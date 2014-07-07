@@ -36,7 +36,7 @@ a number of standard plugins to become *your* web application gateway.
 - Easily Extensible via the Powerful Plugin System
 - SSL connection encryption
   - SSL Server Name Indication (SNI) extension
-- dynamic content compression
+- Dynamic Content Compression
 - Advanced Dynamic Load Balancer
   - Supporting different backend transports (TCP/IP, and UNIX Domain Sockets).
   - Supporting different backend protocols (HTTP and FastCGI)
