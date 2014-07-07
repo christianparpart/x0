@@ -15,23 +15,14 @@
 #include <sys/wait.h>
 #include <sys/prctl.h>
 #include <fcntl.h>
+#include <getopt.h>
 #include <initializer_list>
 #include <vector>
 #include <fstream>
 #include <iostream>
 #include <string>
 
-// supervisor [-f|--fork] [-p|--pidfile=PATH] -- cmd ...
-//
-// -f,--fork            whether to fork the supervisor process into background
-// -p,--pidfile=PATH    location to store the current supervisor PID
-// -r,--restart         Automatically restart program, if crashed.
-// -c,--cgroups         Use cgroups to track PIDs
-//
-// Examples:
-//     supervisor /usr/sbin/x0d --no-fork
-//     supervisor -p /var/run/xzero/supervisor.pid -- /usr/sbin/x0d --no-fork
-
+// {{{ PidTracker
 class PidTracker {
  public:
   PidTracker();
@@ -89,14 +80,16 @@ std::vector<int> PidTracker::get() {
 }
 
 void PidTracker::dump() {
-  printf("PID tracking: ");
+  printf("PID tracking dump: ");
   const auto pids = get();
   for (int pid : pids) {
     printf(" %d", pid);
   }
   printf("\n");
 }
+// }}}
 
+static std::vector<int> forwardingSignals;
 static PidTracker pidTracker;
 static int childPid = 0;
 static int lastSignum = 0;
@@ -121,6 +114,10 @@ void runProgram() {
     if (prctl(PR_SET_CHILD_SUBREAPER, 1) < 0) {
       fprintf(stderr, "supervisor: prctl(PR_SET_CHILD_SUBREAPER) failed. %s",
               strerror(errno));
+
+      // if this one fails, we can still be functional to *SOME* degree,
+      // like, auto-restarting still works, but
+      // the supervised child is forking to re-exec, that'll not work then.
     }
   } else {  // child
     std::vector<char*> argv;
@@ -167,11 +164,41 @@ void sighandler(int signum) {
   }
 }
 
+void printHelp() {
+  printf(
+      "supervisor: a process supervising tool\n"
+      "  (c) 2009-2014 Christian Parpart <trapni@gmail.com>\n"
+      "\n"
+      "usage:\n"
+      "  supervisor [-f|--fork] [-p|--pidfile=PATH] -- cmd ...\n"
+      "\n"
+      "options:\n"
+      "  -f,--fork          whether to fork and daemonize the supervisor\n"
+      "                     process into background\n"
+      "  -p,--pidfile=PATH  location to store the current supervisor PID\n"
+      "  -r,--restart       Automatically restart program, if crashed.\n"
+      "  -d,--delay=SECONDS Number of seconds to wait before we retry\n"
+      "                     to restart the application.\n"
+      "  -s,--signal=SIGNAL Adds given signal to the list of signals\n"
+      "                     to forward to the supervised program.\n"
+      "                     Defaults to (INT, TERM, QUIT, USR1, USR2, HUP)\n"
+      "  -P,--child-pidfile=PATH\n"
+      "                     Path to the child process' managed PID file.\n"
+      "                     The supervisor is watching this file for updates.\n"
+      "\n"
+      "Examples:\n"
+      "    supervisor -- /usr/sbin/x0d --no-fork\n"
+      "    supervisor -p /var/run/xzero/supervisor.pid -- /usr/sbin/x0d\\\n"
+      "               --no-fork\n"
+      "\n");
+}
+
 bool parseArgs(int argc, const char* argv[]) {
   if (argc <= 1) {
-    fprintf(stderr, "usage error\n");
+    printHelp();
     return false;
   }
+  // TODO: use getopt_long
 
   int i = 1;
 
@@ -191,7 +218,7 @@ int main(int argc, const char* argv[]) {
     if (!parseArgs(argc, argv)) return 1;
 
     printf("Installing signal handler...\n");
-    for (int sig : {SIGINT, SIGTERM, SIGQUIT, SIGHUP}) {
+    for (int sig : {SIGINT, SIGTERM, SIGQUIT, SIGHUP, SIGUSR1, SIGUSR2}) {
       signal(sig, &sighandler);
     }
 
