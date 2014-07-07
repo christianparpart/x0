@@ -13,6 +13,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <sys/wait.h>
+#include <sys/prctl.h>
 #include <fcntl.h>
 #include <initializer_list>
 #include <vector>
@@ -59,7 +60,8 @@ PidTracker::~PidTracker() {
 
 void PidTracker::add(int pid) {
   char path[80];
-  snprintf(path, sizeof(path), "/sys/fs/cgroup/cpu/%d.supervisor/tasks", getpid());
+  snprintf(path, sizeof(path), "/sys/fs/cgroup/cpu/%d.supervisor/tasks",
+           getpid());
 
   char buf[64];
   ssize_t n = snprintf(buf, sizeof(buf), "%d", pid);
@@ -73,7 +75,8 @@ std::vector<int> PidTracker::get() {
   std::vector<int> result;
 
   char path[80];
-  snprintf(path, sizeof(path), "/sys/fs/cgroup/cpu/%d.supervisor/tasks", getpid());
+  snprintf(path, sizeof(path), "/sys/fs/cgroup/cpu/%d.supervisor/tasks",
+           getpid());
 
   std::ifstream tasksFile(path);
   std::string line;
@@ -88,7 +91,7 @@ std::vector<int> PidTracker::get() {
 void PidTracker::dump() {
   printf("PID tracking: ");
   const auto pids = get();
-  for (int pid: pids) {
+  for (int pid : pids) {
     printf(" %d", pid);
   }
   printf("\n");
@@ -109,12 +112,17 @@ void runProgram() {
   if (pid < 0) {
     fprintf(stderr, "fork failed. %s\n", strerror(errno));
     abort();
-  } else if (pid > 0) { // parent
+  } else if (pid > 0) {  // parent
     childPid = pid;
     pidTracker.add(pid);
     printf("supervisor: child pid is %d\n", pid);
     pidTracker.dump();
-  } else { // child
+
+    if (prctl(PR_SET_CHILD_SUBREAPER, 1) < 0) {
+      fprintf(stderr, "supervisor: prctl(PR_SET_CHILD_SUBREAPER) failed. %s",
+              strerror(errno));
+    }
+  } else {  // child
     std::vector<char*> argv;
     argv.push_back(const_cast<char*>(programPath.c_str()));
     for (const std::string& arg : programArgs) {
@@ -218,10 +226,12 @@ int main(int argc, const char* argv[]) {
         restartProgram();
       }
 
-      fprintf(stderr, "Child %d terminated. Status code %d\n", childPid, status);
+      fprintf(stderr, "Child %d terminated. Status code %d\n", childPid,
+              status);
       restartProgram();
     }
-  } catch (int exitCode) {
+  }
+  catch (int exitCode) {
     return exitCode;
   }
 }
