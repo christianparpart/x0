@@ -23,8 +23,6 @@ set(x0d_SRC
 add_executable(x0d ${x0d_SRC})
 target_link_libraries(x0d XzeroBase XzeroHttp XzeroFlow sd-daemon ${TCMALLOC_LIBRARIES} rt)
 
-add_executable(supervisor supervisor.cpp)
-
 if(ENABLE_STATIC)
 # FIXME: add_library sd-daemon_static
 add_executable(x0d_static ${x0d_SRC} sd-daemon_static)

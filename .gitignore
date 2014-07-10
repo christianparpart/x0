@@ -25,7 +25,6 @@ docs/html/
 
 x0d/src/x0d
 x0d/src/x0d_static
-x0d/src/supervisor
 x0d/src/*.pid
 
 include/x0/sysconfig.h
