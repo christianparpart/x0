@@ -56,18 +56,21 @@ class X0_API NativeCallback {
   const Signature& signature() const;
 
   // signature builder
+
+  /** Declare the return type. */
   NativeCallback& returnType(FlowType type);
 
+  /** Declare a single named parameter without default value. */
   template <typename T>
-  NativeCallback& param(const std::string& name);  //!< Declare a single named
-                                                   //parameter.
+  NativeCallback& param(const std::string& name);
+
+  /** Declare a single named parameter with default value. */
   template <typename T>
-  NativeCallback& param(const std::string& name,
-                        T defaultValue);  //!< Declare a singly named parameter
-                                          //with default value.
+  NativeCallback& param(const std::string& name, T defaultValue);
+
+  /** Declare ordered parameter signature. */
   template <typename... Args>
-  NativeCallback& params(Args... args);  //!< Declare ordered parameter
-                                         //signature.
+  NativeCallback& params(Args... args);
 
   // semantic verifier
   NativeCallback& verifier(const Verifier& vf);

@@ -9,9 +9,7 @@
  * plugin type: content generator
  *
  * description:
- *     Implements basic load balancing, ideally taking out the need of an
- *HAproxy
- *     in front of us.
+ *     Implements request proxying and load balancing.
  *
  * setup API:
  *
@@ -62,6 +60,7 @@ DirectorPlugin::DirectorPlugin(x0d::XzeroDaemon* d, const std::string& name)
       roadWarrior_(new RoadWarrior(server().selectWorker())),
       haproxyApi_(new HaproxyApi(&directors_)),
       pseudonym_("x0d") {
+
   setupFunction("director.load", &DirectorPlugin::director_load)
       .param<FlowString>("name")
       .param<FlowString>("path");
