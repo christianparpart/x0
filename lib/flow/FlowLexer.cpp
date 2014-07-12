@@ -298,10 +298,6 @@ void FlowLexer::processCommand(const std::string& line) {
 }
 
 FlowToken FlowLexer::nextToken() {
-  bool expectsValue = token() == FlowToken::Ident ||
-                      token() == FlowToken::On  // match-on
-                      || FlowTokenTraits::isOperator(token());
-
   if (!consumeSpace()) return token_ = FlowToken::Eof;
 
   lastLocation_ = location_;
@@ -311,11 +307,11 @@ FlowToken FlowLexer::nextToken() {
 
   TRACE(2,
         "nextToken(): currentChar %s curr[%zu:%zu.%zu] curr_tok(%s) "
-        "next[%zu:%zu.%zu]%s",
+        "next[%zu:%zu.%zu]",
         escape(currentChar_).c_str(), scope()->currPos.line,
         scope()->currPos.column, scope()->currPos.offset, token().c_str(),
-        scope()->nextPos.line, scope()->nextPos.column, scope()->nextPos.offset,
-        expectsValue ? " expectsValue" : "");
+        scope()->nextPos.line, scope()->nextPos.column,
+        scope()->nextPos.offset);
 
   switch (currentChar()) {
     case '~':
@@ -448,7 +444,9 @@ FlowToken FlowLexer::nextToken() {
           return token_ = FlowToken::Mul;
       }
     case '/':
-      if (expectsValue) return token_ = parseString('/', FlowToken::RegExp);
+      // if (expectsValue) {
+      //   return token_ = parseString('/', FlowToken::RegExp);
+      // }
 
       nextChar();
       return token_ = FlowToken::Div;
@@ -523,6 +521,7 @@ FlowToken FlowLexer::parseString(char delimiter, FlowToken result) {
 
   return token_ = FlowToken::Unknown;
 }
+
 FlowToken FlowLexer::parseInterpolationFragment(bool start) {
   int last = -1;
   stringValue_.clear();
@@ -756,6 +755,27 @@ bool FlowLexer::ipv6HexDigit4() {
   ipv6HexDigits_ = 0;
 
   return i >= 1 && i <= 4;
+}
+
+bool FlowLexer::continueParseRegEx(char delim) {
+  int last = -1;
+
+  stringValue_.clear();
+
+  while (!eof() && (currentChar() != delim || (last == '\\'))) {
+    stringValue_ += static_cast<char>(currentChar());
+    last = currentChar();
+    nextChar();
+  }
+
+  if (currentChar() == delim) {
+    nextChar();
+    token_ = FlowToken::RegExp;
+    return true;
+  }
+
+  token_ = FlowToken::Unknown;
+  return false;
 }
 
 // ipv6HexDigit4 *(':' ipv6HexDigit4) ['::' [ipv6HexSeq]]

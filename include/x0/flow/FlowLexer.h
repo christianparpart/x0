@@ -36,6 +36,7 @@ class X0_API FlowLexer {
 
   // processing
   FlowToken nextToken();
+  bool continueParseRegEx(char delim);
 
   // current parser state
   FlowToken token() const { return token_; }

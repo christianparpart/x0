@@ -1,3 +1,7 @@
+0.11.0 (2014-MM-DD)
+
+	* flow: fixes parsing regular expression (versus div operator)
+
 0.10.0 (2014-07-03)
 
 	* project: changed from AGPL-3 license to MIT license.

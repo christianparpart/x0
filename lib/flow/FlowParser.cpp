@@ -1037,6 +1037,17 @@ std::unique_ptr<Expr> FlowParser::literalExpr() {
   FlowLocation loc(location());
 
   switch (token()) {
+    case FlowToken::Div: {  // /REGEX/
+      if (lexer_->continueParseRegEx('/')) {
+        auto e = std::make_unique<RegExpExpr>(RegExp(stringValue()),
+                                              loc.update(end()));
+        nextToken();
+        return std::move(e);
+      } else {
+        reportError("Error parsing regular expression.");
+        return nullptr;
+      }
+    }
     case FlowToken::Number: {  // NUMBER [UNIT]
       auto number = numberValue();
       nextToken();
