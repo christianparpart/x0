@@ -1,6 +1,5 @@
 for a long-term todo list, see ticket system at https://github.com/xzero/x0/issues/
 
-- clang-format'ify
 - ssl: test plugin to run safely at least in single-threaded mode
 - director:
   - FIXME: hanging connection in read state without idle timer for over 1day already
