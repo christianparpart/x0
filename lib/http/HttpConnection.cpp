@@ -130,7 +130,7 @@ void HttpConnection::unref() {
 
   TRACE(1, "unref() %u (conn:%s, outputPending:%d, cstate:%s, pstate:%s)",
         refCount_, isOpen() ? "open" : "closed", isOutputPending(), state_str(),
-        parserStateStr());
+        tos(parserState()).c_str());
   // TRACE(1, "Stack Trace:\n%s", StackTrace().c_str());
 
   if (refCount_ > 0) return;
@@ -151,7 +151,7 @@ void HttpConnection::unref() {
 }
 
 void HttpConnection::onReadWriteReady(Socket*, int revents) {
-  TRACE(1, "io(revents=%04x) %s, %s", revents, state_str(), parserStateStr());
+  TRACE(1, "io(revents=%04x) %s, %s", revents, state_str(), tos(parserState()).c_str());
 
   ScopedRef _r(this);
 
@@ -177,7 +177,7 @@ void HttpConnection::onReadWriteReady(Socket*, int revents) {
 }
 
 void HttpConnection::onReadWriteTimeout(Socket*) {
-  TRACE(1, "timeout(): cstate:%s, pstate:%s", state_str(), parserStateStr());
+  TRACE(1, "timeout(): cstate:%s, pstate:%s", state_str(), tos(parserState()).c_str());
 
   switch (state()) {
     case ReadingRequest:
@@ -452,7 +452,7 @@ bool HttpConnection::onMessageHeaderEnd() {
 
 bool HttpConnection::onMessageContent(const BufferRef& chunk) {
   TRACE(1, "onMessageContent(#%lu): cstate:%s pstate:%s", chunk.size(),
-        state_str(), parserStateStr());
+        state_str(), tos(parserState()).c_str());
 
   if (requestBodyFd_ >= 0) {
     TRACE(1, "onMessageContent: write to fd %d (%zu bytes)", requestBodyFd_,
@@ -537,7 +537,7 @@ static inline Buffer escapeChunk(const BufferRef& chunk) {
 
 void HttpConnection::onProtocolError(const BufferRef& chunk, size_t offset) {
   log(Severity::diag, "HTTP protocol error at chunk offset %zu (0x%02x): %s",
-      offset, chunk[offset], parserStateStr());
+      offset, chunk[offset], tos(parserState()).c_str());
 
   log(Severity::debug, "Request parser offset: %zu", requestParserOffset_);
   log(Severity::debug, "Request Buffer: \"%s\"",
@@ -547,7 +547,7 @@ void HttpConnection::onProtocolError(const BufferRef& chunk, size_t offset) {
 }
 
 void HttpConnection::wantRead(const TimeSpan& timeout) {
-  TRACE(3, "wantRead(): cstate:%s pstate:%s", state_str(), parserStateStr());
+  TRACE(3, "wantRead(): cstate:%s pstate:%s", state_str(), tos(parserState()).c_str());
 
   if (timeout)
     socket_->setTimeout<HttpConnection, &HttpConnection::onReadWriteTimeout>(
@@ -557,7 +557,7 @@ void HttpConnection::wantRead(const TimeSpan& timeout) {
 }
 
 void HttpConnection::wantWrite() {
-  TRACE(3, "wantWrite(): cstate:%s pstate:%s", state_str(), parserStateStr());
+  TRACE(3, "wantWrite(): cstate:%s pstate:%s", state_str(), tos(parserState()).c_str());
 
   if (isContentExpected()) {
     auto timeout = std::max(worker().server().maxReadIdle().value(),
@@ -585,7 +585,7 @@ bool HttpConnection::readSome() {
   TRACE(1,
         "readSome: cstate=%s pstate=%s, parserOffset=%zu, "
         "requestBuffer.size=%zu/%zu",
-        state_str(), parserStateStr(), requestParserOffset_,
+        state_str(), tos(parserState()).c_str(), requestParserOffset_,
         requestBuffer_.size(), requestBuffer_.capacity());
 
   if (requestBuffer_.size() == requestBuffer_.capacity()) {
@@ -610,7 +610,7 @@ bool HttpConnection::readSome() {
         default:
           if (state() != KeepAliveRead) {
             log(Severity::error, "(%s) Failed to read from client. %s",
-                parserStateStr(), strerror(errno));
+                tos(parserState()).c_str(), strerror(errno));
             request_->status = HttpStatus::Hangup;
           }
           abort();
@@ -766,7 +766,7 @@ bool HttpConnection::writeSome() {
  */
 void HttpConnection::abort(HttpStatus status) {
   TRACE(1, "abort(%d): cstate:%s, pstate:%s", (int)status, state_str(),
-        parserStateStr());
+        tos(parserState()).c_str());
 
   assert(state() == ReadingRequest || state() == KeepAliveRead);
 
@@ -834,7 +834,7 @@ void HttpConnection::close() {
  */
 void HttpConnection::resume() {
   TRACE(1, "resume() shouldKeepAlive:%d, cstate:%s, pstate:%s",
-        shouldKeepAlive(), state_str(), parserStateStr());
+        shouldKeepAlive(), state_str(), tos(parserState()).c_str());
   TRACE(1, "-- (requestParserOffset:%lu, requestBufferSize:%lu)",
         requestParserOffset_, requestBuffer_.size());
 
@@ -864,7 +864,7 @@ void HttpConnection::resume() {
 bool HttpConnection::process() {
   TRACE(2, "process: offset=%lu, size=%lu (before processing) %s, %s",
         requestParserOffset_, requestBuffer_.size(), state_str(),
-        parserStateStr());
+        tos(parserState()).c_str());
 
   while (parserState() != MESSAGE_BEGIN || state() == ReadingRequest ||
          state() == KeepAliveRead) {
@@ -882,7 +882,7 @@ bool HttpConnection::process() {
     }
 
     TRACE(1, "process: (size: %lu, cstate:%s pstate:%s", chunk.size(),
-          state_str(), parserStateStr());
+          state_str(), tos(parserState()).c_str());
     // TRACE(1, "%s", requestBuffer_.ref(requestBuffer_.size() -
     // rv).str().c_str());
 
@@ -890,7 +890,8 @@ bool HttpConnection::process() {
     TRACE(1,
           "process: done process()ing; fd=%d, request=%p cstate:%s pstate:%s, "
           "rv:%d",
-          socket_->handle(), request_, state_str(), parserStateStr(), rv);
+          socket_->handle(), request_, state_str(), tos(parserState()).c_str(),
+          rv);
 
     if (!isOpen()) {
       TRACE(1, "abort detected");

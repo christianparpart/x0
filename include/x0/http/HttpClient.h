@@ -34,6 +34,7 @@ std::string tos(HttpClientError ec);
 class X0_API HttpClient : public HttpMessageParser {
  public:
   typedef std::unordered_map<std::string, std::string> HeaderMap;
+
   typedef std::function<void(HttpClientError, int /*status*/,
                              const HeaderMap& /*headers*/,
                              const BufferRef& /*content*/)> ResponseHandler;
@@ -44,9 +45,11 @@ class X0_API HttpClient : public HttpMessageParser {
   void setResultCallback(const ResponseHandler& callback) {
     responseHandler_ = callback;
   }
+
   void setRequest(const std::string& method, const std::string& path,
                   const HeaderMap& headers = HeaderMap(),
                   const Buffer& content = Buffer());
+
   void setRequest(
       const std::string& method, const std::string& path,
       const std::initializer_list<
@@ -54,6 +57,7 @@ class X0_API HttpClient : public HttpMessageParser {
       const Buffer& content = Buffer());
 
   void start();
+
   void stop();
 
   static void request(

@@ -49,11 +49,11 @@ class X0_API HttpConnection : public HttpMessageParser {
     Undefined = 0,      //!< Object got just constructed.
     ReadingRequest,     //!< Parses HTTP request.
     ProcessingRequest,  //!< request handler: has taken over but not sent out
-                        //anythng
+    // anythng
     SendingReply,  //!< request handler: response headers written, sending body
     SendingReplyDone,  //!< request handler: populating message done, still
-                       //pending data to sent.
-    KeepAliveRead      //!< Waiting for next HTTP request in keep-alive state.
+    // pending data to sent.
+    KeepAliveRead  //!< Waiting for next HTTP request in keep-alive state.
   };
 
   class ScopedRef {
@@ -82,7 +82,7 @@ class X0_API HttpConnection : public HttpMessageParser {
   ~HttpConnection();
 
   unsigned long long id() const;  //!< returns the (mostly) unique,
-                                  //worker-local, ID to this connection
+  // worker-local, ID to this connection
 
   unsigned requestCount() const { return requestCount_; }
 
@@ -93,15 +93,18 @@ class X0_API HttpConnection : public HttpMessageParser {
   HttpMessageParser::State parserState() const {
     return HttpMessageParser::state();
   }
-  const char* parserStateStr() const { return HttpMessageParser::state_str(); }
 
   Socket* socket() const;  //!< Retrieves a pointer to the connection socket.
   HttpWorker& worker() const;  //!< Retrieves a reference to the owning worker.
 
   const IPAddress& remoteIP() const { return socket_->remoteIP(); }
+
+  /**
+   * Retrieves the TCP port numer of the remote end point (client).
+   */
   unsigned int remotePort() const {
     return socket_->remotePort();
-  }  //!< Retrieves the TCP port numer of the remote end point (client).
+  }
 
   const IPAddress& localIP() const { return socket_->localIP(); }
   unsigned int localPort() const { return socket_->localPort(); }
@@ -141,14 +144,14 @@ class X0_API HttpConnection : public HttpMessageParser {
   template <typename... Args>
   void log(Severity s, const char* fmt, Args... args);
 
-  void log(LogMessage&& msg);
+  void log(LogMessage&& msg) override;
 
-  /** Increments the internal reference count and ensures that this object
-   *remains valid until its unref().
+  /**
+   * Increments the internal reference count and ensures that this object
+   * remains valid until its unref().
    *
    * Surround the section using this object by a ref() and unref(), ensuring,
-   *that this
-   * object won't be destroyed in between.
+   * that this object won't be destroyed in between.
    *
    * \see unref()
    * \see close()
@@ -156,17 +159,16 @@ class X0_API HttpConnection : public HttpMessageParser {
    */
   void ref();
 
-  /** Decrements the internal reference count, marking the end of the section
-   *using this connection.
+  /**
+   * Decrements the internal reference count, marking the end of the section
+   * using this connection.
    *
-   * \note After the unref()-call, the connection object MUST NOT be used any
-   *more.
-   * If the unref()-call results into a reference-count of zero <b>AND</b> the
-   *connection
-   * has been closed during this time, the connection will be released /
-   *destructed.
+   * @note After the unref()-call, the connection object MUST NOT be used any
+   *       more.  If the unref()-call results into a reference-count of
+   *       zero <b>AND</b> the connection has been closed during this time,
+   *       the connection will be released / destructed.
    *
-   * \see ref()
+   * @see ref()
    */
   void unref();
 
@@ -220,32 +222,32 @@ class X0_API HttpConnection : public HttpMessageParser {
 
   unsigned long long id_;  //!< the worker-local connection-ID
   unsigned requestCount_;  //!< the number of requests already processed or
-                           //currently in process
-  bool shouldKeepAlive_;   //!< indication whether or not connection should
-                           //keep-alive after current request
+  // currently in process
+  bool shouldKeepAlive_;  //!< indication whether or not connection should
+  // keep-alive after current request
   std::function<void()> clientAbortHandler_;  //!< connection abort callback
 
   // HTTP HttpRequest
-  Buffer requestBuffer_;                //!< buffer for incoming data.
-  std::size_t requestParserOffset_;     //!< number of bytes in request buffer
-                                        //successfully processed already.
+  Buffer requestBuffer_;             //!< buffer for incoming data.
+  std::size_t requestParserOffset_;  //!< number of bytes in request buffer
+  // successfully processed already.
   std::size_t requestHeaderEndOffset_;  //!< offset to the first byte of the
-                                        //currently processed request
+  // currently processed request
   HttpRequest* request_;  //!< currently parsed http HttpRequest, may be NULL
 
   char requestBodyPath_[1024];  //!< full path to temporary stored request body,
-                                //if available
+  // if available
   int requestBodyFd_;  //!< file handle to temporary stored request body, if
-                       //available
+  // available
   size_t requestBodyFileSize_;  //!< size of the temporary request body file in
-                                //bytes, if available, 0 otherwise.
+  // bytes, if available, 0 otherwise.
 
   // output
   CompositeSource output_;          //!< pending write-chunks
   std::unique_ptr<Socket> socket_;  //!< underlying communication socket
   SocketSink sink_;                 //!< sink wrapper for socket_
   bool autoFlush_;  //!< true if flush() is invoked automatically after every
-                    //write()
+  // write()
 
   // intrusive links for the free-list cache
   HttpConnection* prev_;

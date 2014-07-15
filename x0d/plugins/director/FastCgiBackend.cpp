@@ -730,8 +730,9 @@ void FastCgiBackend::Connection::onParam(const std::string& name,
 
 void FastCgiBackend::Connection::onStdOut(const x0::BufferRef& chunk) {
   TRACE(1, "Received %ld bytes from backend server (state=%s).", chunk.size(),
-        state_str());
-  //	TRACE(2, "data: %s", chunk.str().c_str());
+        tos(state()).c_str());
+  // TRACE(2, "data: %s", chunk.str().c_str());
+
   parseFragment(chunk);
 }
 

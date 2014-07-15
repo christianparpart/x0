@@ -29,17 +29,21 @@ namespace x0 {
  */
 class X0_API HttpMessageParser {
  public:
-  //! defines whether to parse HTTP requests, responses, or plain messages.
+  /** defines whether to parse HTTP requests, responses, or plain messages.
+   */
   enum ParseMode {  // {{{
-    //! the message to parse is an HTTP request.
+    /** the message to parse is an HTTP request. */
     REQUEST,
-    //! the message to parse is an HTTP response.
+
+    /** the message to parse is an HTTP response. */
     RESPONSE,
-    //! the message to parse does not contain either an HTTP request-line nor
-    //response status-line but headers and a body.
+
+    /** the message to parse does not contain either an HTTP request-line nor
+     * response status-line but headers and a body. */
     MESSAGE };  // }}}
 
-  //! defines list of states the parser is in while processing the message.
+  /** defines list of states the parser is in while processing the message.
+   */
   enum State {  // {{{
     // artificial
     PROTOCOL_ERROR = 1,
@@ -125,7 +129,6 @@ class X0_API HttpMessageParser {
   virtual ~HttpMessageParser() {}
 
   State state() const;
-  const char* state_str() const;
 
   size_t parseFragment(const BufferRef& chunk, size_t* nparsed = nullptr);
 
@@ -171,7 +174,7 @@ class X0_API HttpMessageParser {
   bool chunked_;  //!< whether or not request content is chunked encoded
   ssize_t contentLength_;  //!< content length of whole content or current chunk
   ChainFilter filters_;    //!< filters to apply to the message body before
-                           //forwarding to the callback.
+                           // forwarding to the callback.
 };
 
 }  // namespace x0
@@ -186,6 +189,11 @@ namespace x0 {
 inline enum HttpMessageParser::State HttpMessageParser::state() const {
   return state_;
 }
+
+/**
+ * Converts message parser state into a string.
+ */
+X0_API std::string tos(HttpMessageParser::State state);
 
 /*! represents the remaining length of the content or chunk.
  *

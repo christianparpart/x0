@@ -398,7 +398,7 @@ class StatusPlugin : public x0d::XzeroPlugin {
 
     out << "<td class='state'>" << c->state_str();
     if (c->state() == x0::HttpConnection::ReadingRequest)
-      out << " (" << c->parserStateStr() << ")";
+      out << " (" << tos(c->parserState()) << ")";
     out << "</td>";
 
     out << "<td class='age'>"

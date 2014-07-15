@@ -507,7 +507,7 @@ void HttpBackend::Connection::onReadWriteReady(Socket* s, int revents) {
 
 bool HttpBackend::Connection::writeSome() {
   auto r = rn_->request;
-  TRACE("writeSome() - %s", state_str());
+  TRACE("writeSome() - %s", tos(state()).c_str());
 
   ssize_t rv = writeSource_.sendto(writeSink_);
   TRACE("write request: wrote %ld bytes", rv);
@@ -543,7 +543,7 @@ bool HttpBackend::Connection::writeSome() {
 }
 
 bool HttpBackend::Connection::readSome() {
-  TRACE("readSome() - %s", state_str());
+  TRACE("readSome() - %s", tos(state()).c_str());
 
   std::size_t lower_bound = readBuffer_.size();
 
