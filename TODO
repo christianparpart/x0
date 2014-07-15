@@ -1,6 +1,7 @@
 for a long-term todo list, see ticket system at https://github.com/xzero/x0/issues/
 
 - ssl: test plugin to run safely at least in single-threaded mode
+- ssl: consider porting to OpenSSL
 - director:
   - FIXME: hanging connection in read state without idle timer for over 1day already
     - hanging in reading-request (header-value)
