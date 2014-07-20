@@ -6,6 +6,7 @@
 // the License at: http://opensource.org/licenses/MIT
 
 #include <x0/http/hpack.h>
+#include <algorithm>
 #include <inttypes.h>
 
 namespace x0 {
@@ -90,23 +91,172 @@ StaticTable* StaticTable::get() {
 // }}}
 // {{{ HeaderTable
 HeaderTable::HeaderTable(size_t maxEntries)
-    : maxEntries_(maxEntries), entries_() {}
+    : maxEntries_(maxEntries), entries_(), referenceSets_() {}
 
-void HeaderTable::resize(size_t limit) {
+HeaderTable::~HeaderTable() {
+  assert(referenceSets_.empty() &&
+         "There shall be no reference set at header table destruction.");
+}
+
+void HeaderTable::setMaxEntries(size_t limit) {
   maxEntries_ = limit;
+
   while (size() > limit) {
     entries_.pop_back();
   }
 }
 
 void HeaderTable::add(const HeaderField& field) {
-  while (size() >= maxEntries_) entries_.pop_back();
+  while (size() >= maxEntries()) {
+    entries_.pop_back();
+  }
+
   entries_.push_front(field);
 }
 
+HeaderTable::iterator HeaderTable::find(const HeaderFieldName& name) {
+  return std::find_if(entries_.begin(), entries_.end(),
+                      [&](const HeaderField& f) {
+    // just test on header name
+    return f.name == name;
+  });
+}
+
+HeaderTable::const_iterator HeaderTable::find(
+    const HeaderFieldName& name) const {
+  return std::find_if(entries_.cbegin(), entries_.cend(),
+                      [&](const HeaderField& f) {
+    // just test on header name
+    return f.name == name;
+  });
+}
+
+bool HeaderTable::contains(const HeaderField* field) const {
+  auto i = std::find_if(entries_.cbegin(), entries_.cend(),
+                      [&](const HeaderField& f) { return &f == field; });
+
+  return i != cend();
+}
+
+void HeaderTable::remove(const HeaderFieldName& name) {
+  auto i = find(name);
+
+  if (i != entries_.end()) {
+    for (ReferenceSet* rs : referenceSets_) {
+      rs->remove(&*i);
+    }
+    entries_.erase(i);
+  }
+}
+
+void HeaderTable::remove(const HeaderField* field) {
+  auto i = std::find_if(begin(), end(),
+                        [&](const HeaderField& f) { return &f == field; });
+
+  if (i != entries_.end()) {
+    for (ReferenceSet* rs : referenceSets_) {
+      rs->remove(&*i);
+    }
+    entries_.erase(i);
+  }
+}
+
 void HeaderTable::clear() {
-  // evict all
+  for (const HeaderField& entry : entries_) {
+    for (ReferenceSet* rs : referenceSets_) {
+      rs->remove(&entry);
+    }
+  }
+
   entries_.clear();
+}
+
+void HeaderTable::link(ReferenceSet* ref) { referenceSets_.push_back(ref); }
+
+void HeaderTable::unlink(ReferenceSet* ref) {
+  auto i = std::find(referenceSets_.begin(), referenceSets_.end(), ref);
+  if (i != referenceSets_.end()) {
+    referenceSets_.erase(i);
+  }
+}
+// }}}
+// {{{ ReferenceSet
+ReferenceSet::ReferenceSet(HeaderTable* headerTable)
+    : headerTable_(headerTable), references_() {
+
+  headerTable_->link(this);
+}
+
+ReferenceSet::~ReferenceSet() {
+  //.
+  headerTable_->unlink(this);
+}
+
+bool ReferenceSet::empty() const {
+  //.
+  return references_.empty();
+}
+
+size_t ReferenceSet::size() const {
+  //.
+  return references_.size();
+}
+
+void ReferenceSet::add(const HeaderField* field) {
+  if (headerTable_->contains(field)) {
+    if (!contains(field)) {
+      references_.push_back(field);
+    }
+  }
+}
+
+bool ReferenceSet::contains(const HeaderField* field) const {
+  auto i = std::find(references_.begin(), references_.end(), field);
+  return i != references_.end();
+}
+
+void ReferenceSet::remove(const HeaderField* field) {
+  auto i = std::find(references_.begin(), references_.end(), field);
+  if (i != references_.end()) {
+    references_.erase(i);
+  }
+}
+
+ReferenceSet::iterator ReferenceSet::begin() {
+  return iterator(this, references_.begin());
+}
+
+ReferenceSet::iterator ReferenceSet::end() {
+  return iterator(this, references_.end());
+}
+// }}}
+// {{{ ReferenceSet::iterator
+ReferenceSet::iterator::iterator()
+    : referenceSet_(nullptr), current_(), end_() {}
+
+ReferenceSet::iterator::iterator(ReferenceSet* rs,
+                                 std::list<const HeaderField*>::iterator init)
+    : referenceSet_(rs), current_(init), end_(rs->references_.end()) {}
+
+ReferenceSet::iterator& ReferenceSet::iterator::operator++() {
+  if (current_ != end_) {
+    ++current_;
+  }
+
+  return *this;
+}
+
+bool ReferenceSet::iterator::operator==(const iterator& other) const {
+  return referenceSet_ == other.referenceSet_ && current_ == other.current_;
+}
+
+bool ReferenceSet::iterator::operator!=(const iterator& other) const {
+  return !(*this == other);
+}
+
+const HeaderField& ReferenceSet::iterator::operator*() const {
+  return **current_;
+  // return *referenceSet_->headerTable()->find(*current_);
 }
 // }}}
 // {{{ EncoderHelper
