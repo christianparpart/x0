@@ -133,7 +133,7 @@ HeaderTable::const_iterator HeaderTable::find(
 
 bool HeaderTable::contains(const HeaderField* field) const {
   auto i = std::find_if(entries_.cbegin(), entries_.cend(),
-                      [&](const HeaderField& f) { return &f == field; });
+                        [&](const HeaderField& f) { return &f == field; });
 
   return i != cend();
 }
@@ -260,23 +260,32 @@ const HeaderField& ReferenceSet::iterator::operator*() const {
 }
 // }}}
 // {{{ EncoderHelper
-void EncoderHelper::encodeInt(Buffer* output, uint64_t i, unsigned prefixBits) {
+/**
+ * Encodes an integer.
+ *
+ * @param output     The output buffer to encode to.
+ * @param value      The integer value to encode.
+ * @param prefixBits Number of bits for the first bytes that the encoder
+ *                   is allowed to use (between 1 and 8).
+ */
+void EncoderHelper::encodeInt(Buffer* output, uint64_t value,
+                              unsigned prefixBits) {
   assert(prefixBits >= 1 && prefixBits <= 8);
 
   const unsigned maxValue = (1 << prefixBits) - 1;
 
-  if (i < maxValue) {
-    output->push_back(static_cast<char>(i));
+  if (value < maxValue) {
+    output->push_back(static_cast<char>(value));
   } else {
     output->push_back(static_cast<char>(maxValue));
-    i -= maxValue;
+    value -= maxValue;
 
-    while (i >= 128) {
-      const uint8_t byte = (1 << 7) | (i & 0x7f);
+    while (value >= 128) {
+      const uint8_t byte = (1 << 7) | (value & 0x7f);
       output->push_back(static_cast<char>(byte));
-      i /= 128;
+      value /= 128;
     }
-    output->push_back(static_cast<char>(i));
+    output->push_back(static_cast<char>(value));
   }
 }
 

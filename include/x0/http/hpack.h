@@ -146,7 +146,9 @@ class X0_API HeaderTable {
   std::list<ReferenceSet*> referenceSets_;
 };
 
-// used for differential encoding of a new header set
+/**
+ * used for differential encoding of a new header set.
+ */
 class X0_API ReferenceSet {
  public:
   explicit ReferenceSet(HeaderTable* headerTable);
@@ -191,6 +193,9 @@ class X0_API ReferenceSet::iterator {
   std::list<const HeaderField*>::iterator end_;
 };
 
+/**
+ * Helper methods for encoding header fragments. 
+ */
 class X0_API EncoderHelper {
  public:
   static void encodeInt(Buffer* output, uint64_t i, unsigned prefixBits);
@@ -211,6 +216,9 @@ class X0_API Encoder : private EncoderHelper {
   void encode(const HeaderSet& headerBlock);
 };
 
+/**
+ * Helper methods for decoding header fragments. 
+ */
 class X0_API DecoderHelper {
  public:
   static uint64_t decodeInt(const BufferRef& input, unsigned prefixBits,
