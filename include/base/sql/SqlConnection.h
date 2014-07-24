@@ -21,7 +21,7 @@ namespace base {
 //! \addtogroup sql
 //@{
 
-class X0_API SqlConnection {
+class BASE_API SqlConnection {
  private:
   MYSQL handle_;
 

@@ -90,7 +90,7 @@ struct BufferTraits<Buffer> {
 // }}}
 // {{{ BufferBase<T>
 template <typename T>
-class X0_API BufferBase {
+class BASE_API BufferBase {
  public:
   typedef typename BufferTraits<T>::value_type value_type;
   typedef typename BufferTraits<T>::reference_type reference_type;
@@ -251,7 +251,7 @@ bool operator!=(PodType (&b)[N], const BufferBase<T>& a) {
 }
 // }}}
 // {{{ BufferRef
-class X0_API BufferRef : public BufferBase<char*> {
+class BASE_API BufferRef : public BufferBase<char*> {
  public:
   BufferRef() : BufferBase<char*>() {}
   BufferRef(const char* data, size_t size)
@@ -275,7 +275,7 @@ class X0_API BufferRef : public BufferBase<char*> {
   static void dump(const void* bytes, std::size_t length,
                    const char* description);
 
-  class X0_API reverse_iterator {  // {{{
+  class BASE_API reverse_iterator {  // {{{
    private:
     BufferRef* buf_;
     int cur_;
@@ -320,7 +320,7 @@ inline bool mutableEnsure(void* self, size_t size);
  *write to.
  */
 template <bool (*ensure)(void*, size_t)>
-class X0_API MutableBuffer : public BufferRef {
+class BASE_API MutableBuffer : public BufferRef {
  protected:
   size_t capacity_;
 
@@ -382,7 +382,7 @@ class X0_API MutableBuffer : public BufferRef {
  *    printf("result: '%s'\n", obj.c_str());
  * @endcode
  */
-class X0_API FixedBuffer : public MutableBuffer<immutableEnsure> {
+class BASE_API FixedBuffer : public MutableBuffer<immutableEnsure> {
  public:
   FixedBuffer();
   FixedBuffer(const FixedBuffer& v);
@@ -404,7 +404,7 @@ class X0_API FixedBuffer : public MutableBuffer<immutableEnsure> {
  *it is the main goal
  * of some certain linear information to share.
  */
-class X0_API Buffer : public MutableBuffer<mutableEnsure> {
+class BASE_API Buffer : public MutableBuffer<mutableEnsure> {
  public:
   enum { CHUNK_SIZE = 4096 };
 
@@ -442,7 +442,7 @@ class X0_API Buffer : public MutableBuffer<mutableEnsure> {
 // {{{ BufferSlice
 /** Holds a reference to a slice (region) of a managed mutable buffer.
  */
-class X0_API BufferSlice : public BufferBase<Buffer> {
+class BASE_API BufferSlice : public BufferBase<Buffer> {
  public:
   BufferSlice();
   BufferSlice(Buffer& buffer, size_t offset, size_t _size);
@@ -466,23 +466,23 @@ class X0_API BufferSlice : public BufferBase<Buffer> {
 };
 // }}}
 // {{{ free functions API
-X0_API Buffer& operator<<(Buffer& b, Buffer::value_type v);
-X0_API Buffer& operator<<(Buffer& b, int v);
-X0_API Buffer& operator<<(Buffer& b, long v);
-X0_API Buffer& operator<<(Buffer& b, long long v);
-X0_API Buffer& operator<<(Buffer& b, unsigned v);
-X0_API Buffer& operator<<(Buffer& b, unsigned long v);
-X0_API Buffer& operator<<(Buffer& b, unsigned long long v);
-X0_API Buffer& operator<<(Buffer& b, const Buffer& v);
-X0_API Buffer& operator<<(Buffer& b, const BufferRef& v);
-X0_API Buffer& operator<<(Buffer& b, const std::string& v);
-X0_API Buffer& operator<<(Buffer& b, typename Buffer::value_type* v);
+BASE_API Buffer& operator<<(Buffer& b, Buffer::value_type v);
+BASE_API Buffer& operator<<(Buffer& b, int v);
+BASE_API Buffer& operator<<(Buffer& b, long v);
+BASE_API Buffer& operator<<(Buffer& b, long long v);
+BASE_API Buffer& operator<<(Buffer& b, unsigned v);
+BASE_API Buffer& operator<<(Buffer& b, unsigned long v);
+BASE_API Buffer& operator<<(Buffer& b, unsigned long long v);
+BASE_API Buffer& operator<<(Buffer& b, const Buffer& v);
+BASE_API Buffer& operator<<(Buffer& b, const BufferRef& v);
+BASE_API Buffer& operator<<(Buffer& b, const std::string& v);
+BASE_API Buffer& operator<<(Buffer& b, typename Buffer::value_type* v);
 
 template <typename PodType, size_t N>
-X0_API Buffer& operator<<(Buffer& b, PodType (&v)[N]);
+BASE_API Buffer& operator<<(Buffer& b, PodType (&v)[N]);
 // }}}
 // {{{ free functions (concatenation) API
-X0_API Buffer operator+(const BufferRef& a, const BufferRef& b);
+BASE_API Buffer operator+(const BufferRef& a, const BufferRef& b);
 // }}}
 //@}
 

@@ -19,10 +19,6 @@ install_manifest.txt
 certtool.cfg
 docs/html/
 
-*.ll
-*.s
-*.flow
-
 include/base/sysconfig.h
 tests/libbase-test
 examples/tcp-echo-server
@@ -35,21 +31,20 @@ experimental
 *.cpp.*
 *.hpp.*
 
-libbase.pc
-
-lib/libbase.so.*
+/libbase.pc
+/src/libbase.so.*
 
 # CTags file
-tags
+/tags
 
 # cscope files
-cscope.*
+/cscope.*
 
 # debian packaging temp files
-debian/*.substvars
-debian/*.debhelper
-debian/libbase/
-debian/libbase-dev/
-debian/tmp/
-debian/files
+/debian/*.substvars
+/debian/*.debhelper
+/debian/libbase/
+/debian/libbase-dev/
+/debian/tmp/
+/debian/files
 *-stamp

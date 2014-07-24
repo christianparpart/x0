@@ -18,7 +18,7 @@ namespace base {
 class Socket;
 class IPAddress;
 
-class X0_API SocketDriver {
+class BASE_API SocketDriver {
  public:
   SocketDriver();
   virtual ~SocketDriver();

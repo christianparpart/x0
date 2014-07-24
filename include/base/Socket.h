@@ -29,7 +29,7 @@ class Pipe;
  * * nonblocking reads/writes,
  * * I/O and timeout event callbacks.
  */
-class X0_API Socket
+class BASE_API Socket
 #ifndef XZERO_NDEBUG
     : public Logging
 #endif
@@ -83,7 +83,7 @@ class X0_API Socket
   const DateTime &startedAt() const { return startedAt_; }
   const DateTime &lastActivityAt() const { return lastActivityAt_; }
 
-  X0_DEPRECATED void set(int fd, int addressFamily);
+  BASE_DEPRECATED void set(int fd, int addressFamily);
 
   static Socket *open(struct ev_loop *loop, const SocketSpec &spec,
                       int flags = 0);
@@ -156,10 +156,10 @@ class X0_API Socket
 
   virtual void inspect(Buffer &out);
 
-  X0_DEPRECATED bool openUnix(const std::string &unixPath, int flags = 0);
-  X0_DEPRECATED bool openTcp(const std::string &hostname, int port,
+  BASE_DEPRECATED bool openUnix(const std::string &unixPath, int flags = 0);
+  BASE_DEPRECATED bool openTcp(const std::string &hostname, int port,
                              int flags = 0);
-  X0_DEPRECATED bool openTcp(const IPAddress &host, int port, int flags = 0);
+  BASE_DEPRECATED bool openTcp(const IPAddress &host, int port, int flags = 0);
   bool open(const SocketSpec &spec, int flags = 0);
 
  private:

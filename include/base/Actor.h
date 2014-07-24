@@ -22,7 +22,7 @@
 namespace base {
 
 template <typename Message>
-class X0_API Actor {
+class BASE_API Actor {
  private:
   bool shutdown_;
   Queue<Message> messages_;

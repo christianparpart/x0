@@ -19,7 +19,7 @@ namespace base {
 
 /** pipe sink.
  */
-class X0_API PipeSink : public Sink {
+class BASE_API PipeSink : public Sink {
  private:
   Pipe* pipe_;
 

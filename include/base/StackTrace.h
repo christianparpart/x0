@@ -15,7 +15,7 @@
 
 namespace base {
 
-class X0_API StackTrace {
+class BASE_API StackTrace {
  private:
   Buffer buffer_;
   void **addresses_;

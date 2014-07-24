@@ -13,7 +13,7 @@
 
 namespace base {
 
-class X0_API Base64 {
+class BASE_API Base64 {
  private:
   static const char base64_[];
   static const unsigned char pr2six_[256];

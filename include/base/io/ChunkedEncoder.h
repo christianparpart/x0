@@ -17,7 +17,7 @@ namespace base {
 
 /**
  */
-class X0_API ChunkedEncoder : public Filter {
+class BASE_API ChunkedEncoder : public Filter {
  public:
   ChunkedEncoder();
 

@@ -19,7 +19,7 @@ namespace base {
 
 /** file source.
  */
-class X0_API FileSource : public Source, public SinkVisitor {
+class BASE_API FileSource : public Source, public SinkVisitor {
  private:
   int handle_;
   off_t offset_;

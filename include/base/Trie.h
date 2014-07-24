@@ -26,7 +26,7 @@ namespace base {
  * \see http://paste.lisp.org/display/12161 (trie in C#, suffix trie)
  */
 template <typename _Key, typename _Value>
-class X0_API trie {
+class BASE_API trie {
  public:
   typedef _Key key_type;
   typedef typename key_type::value_type keyelem_type;

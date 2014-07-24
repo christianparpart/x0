@@ -14,7 +14,7 @@
 
 namespace base {
 
-class X0_API CacheService {
+class BASE_API CacheService {
  public:
   virtual ~CacheService();
 

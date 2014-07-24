@@ -15,7 +15,7 @@
 namespace base {
 
 template <typename T, typename U = T>
-class X0_API Tokenizer {
+class BASE_API Tokenizer {
  private:
   const U& input_;
   T token_;

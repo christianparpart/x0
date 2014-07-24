@@ -20,7 +20,7 @@ namespace base {
  *
  * \see Buffer, Source, Sink
  */
-class X0_API NullSource : public Source {
+class BASE_API NullSource : public Source {
  public:
   ssize_t sendto(Sink& sink);
   ssize_t size() const override;

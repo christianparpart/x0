@@ -18,7 +18,7 @@ namespace base {
 
 /** simply passes incoming buffers through.
  */
-class X0_API NullFilter : public Filter {
+class BASE_API NullFilter : public Filter {
  public:
   NullFilter() {}
 

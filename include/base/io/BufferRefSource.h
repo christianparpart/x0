@@ -21,7 +21,7 @@ namespace base {
  *
  * \see BufferRef, Source, Sink
  */
-class X0_API BufferRefSource : public Source {
+class BASE_API BufferRefSource : public Source {
  public:
   BufferRefSource(const BufferRef& data);
   BufferRefSource(BufferRef&& data);

@@ -32,7 +32,7 @@ struct Errno : public Error {
  * that avoids exception handling.
  */
 template <typename T>
-class X0_API Try {
+class BASE_API Try {
  public:
   Try() : value_(), errorMessage_(nullptr) {}
   Try(const Error& err) : value_(), errorMessage_(err.msg_) {}

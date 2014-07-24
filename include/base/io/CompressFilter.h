@@ -27,7 +27,7 @@ namespace base {
 
 /** simply transforms all letters into upper-case letters (test filter).
  */
-class X0_API CompressFilter : public Filter {
+class BASE_API CompressFilter : public Filter {
  public:
   explicit CompressFilter(int level);
 
@@ -49,7 +49,7 @@ inline int CompressFilter::level() const { return level_; }
 // {{{ DeflateFilter
 /** deflate compression filter.
  */
-class X0_API DeflateFilter : public CompressFilter {
+class BASE_API DeflateFilter : public CompressFilter {
  protected:
   DeflateFilter(int level, bool gzip);
 
@@ -70,7 +70,7 @@ class X0_API DeflateFilter : public CompressFilter {
 // {{{ GZipFilter
 /** gzip compression filter.
  */
-class X0_API GZipFilter : public DeflateFilter {
+class BASE_API GZipFilter : public DeflateFilter {
  public:
   GZipFilter(int level);
 };
@@ -81,7 +81,7 @@ inline GZipFilter::GZipFilter(int level) : DeflateFilter(level, false) {}
 
 #if defined(HAVE_BZLIB_H)
 // {{{ BZip2Filter
-class X0_API BZip2Filter : public CompressFilter {
+class BASE_API BZip2Filter : public CompressFilter {
  public:
   explicit BZip2Filter(int level);
 

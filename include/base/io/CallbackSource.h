@@ -21,7 +21,7 @@ namespace base {
  *
  * \see Source
  */
-class X0_API CallbackSource : public Source {
+class BASE_API CallbackSource : public Source {
  public:
   typedef std::function<void()> Callback;
 

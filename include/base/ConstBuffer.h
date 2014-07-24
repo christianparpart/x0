@@ -12,7 +12,7 @@
 
 namespace base {
 
-class X0_API ConstBuffer : public Buffer {
+class BASE_API ConstBuffer : public Buffer {
  public:
   template <typename PodType, std::size_t N>
   explicit ConstBuffer(PodType (&value)[N]);

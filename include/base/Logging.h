@@ -17,7 +17,7 @@ namespace base {
 /** This class is to be inherited by classes that need deeper inspections when
  * logging.
  */
-class X0_API Logging {
+class BASE_API Logging {
  private:
   static std::vector<char *> env_;
 

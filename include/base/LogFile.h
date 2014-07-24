@@ -26,7 +26,7 @@ namespace base {
  * used to write synchronously into the log file.
  *
  */
-class X0_API LogFile : public Sink {
+class BASE_API LogFile : public Sink {
  public:
   explicit LogFile(const std::string& path);
   ~LogFile();

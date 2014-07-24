@@ -12,7 +12,7 @@ add_executable(libbase-test libbase-test.cpp
   Base64-test.cpp
 )
 
-target_link_libraries(libbase-test libbase gtest)
+target_link_libraries(libbase-test base gtest)
 
 add_custom_target(test
   DEPENDS libbase-test

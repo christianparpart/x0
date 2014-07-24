@@ -22,7 +22,7 @@ namespace base {
 
 /** file sink.
  */
-class X0_API FileSink : public Sink {
+class BASE_API FileSink : public Sink {
  private:
   std::string path_;
   int flags_;

@@ -18,7 +18,7 @@ class Socket;
 //! \addtogroup io
 //@{
 
-class X0_API Pipe {
+class BASE_API Pipe {
  private:
   int pipe_[2];
   size_t size_;  // number of bytes available in pipe

@@ -15,7 +15,7 @@
 
 namespace base {
 
-struct X0_API CustomData {
+struct BASE_API CustomData {
   CustomData(const CustomData&) = delete;
   CustomData& operator=(const CustomData&) = delete;
   CustomData() = default;

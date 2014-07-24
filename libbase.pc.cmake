@@ -1,9 +1,9 @@
 # libbase.pc.cmake
 
 Name: libbase
-Description: C++ base framework, containing commonly shared APIs
-Version: @PACKAGE_VERSION@
+Description: C++ base framework, containing general-purpose APIs
+Version: @LIBBASE_VERSION@
 Requires: libpcre >= 7.0 
 # Conflicts: 
-Libs: -L@LIBDIR@ @LIBS_RPATH@ -lbase -lpthread @POSIX_RT_LIBS@ @MYSQL_LDFLAGS@
-Cflags: -I@INCLUDEDIR@ -pthread @CFLAGS_RDYNAMIC@ @MYSQL_CFLAGS@ @CXXFLAGS@
+Libs: -L@CMAKE_INSTALL_PREFIX@/lib -lbase -lpthread -pthread @POSIX_RT_LIBS@ @MYSQL_LDFLAGS@
+Cflags: -I@CMAKE_INSTALL_PREFIX@/include -pthread @CFLAGS_RDYNAMIC@ @MYSQL_CFLAGS@ @CXXFLAGS@

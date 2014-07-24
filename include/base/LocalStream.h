@@ -22,7 +22,7 @@ namespace base {
 
 /** provides a socket pair (local stream) API.
  */
-class X0_API LocalStream {
+class BASE_API LocalStream {
   LocalStream& operator=(const LocalStream& v) = delete;
   LocalStream(const LocalStream&) = delete;
 

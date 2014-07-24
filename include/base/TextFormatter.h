@@ -15,9 +15,9 @@
 namespace base {
 
 template <typename Domain, typename... Args>
-class X0_API TextFormatterImpl;
+class BASE_API TextFormatterImpl;
 
-class X0_API TextFormatter {
+class BASE_API TextFormatter {
  protected:
   Buffer* output_;
 
@@ -29,7 +29,7 @@ class X0_API TextFormatter {
 
  public:
   template <typename... Args>
-  X0_API static std::shared_ptr<TextFormatterImpl<TextFormatter, Args...>>
+  BASE_API static std::shared_ptr<TextFormatterImpl<TextFormatter, Args...>>
   print(const char* fmt, Args... args) {
     return std::make_shared<TextFormatterImpl<TextFormatter, Args...>>(fmt,
                                                                        args...);
@@ -58,7 +58,7 @@ class X0_API TextFormatter {
 };
 
 template <typename Domain, typename... Args>
-class X0_API TextFormatterImpl : public TextFormatter {
+class BASE_API TextFormatterImpl : public TextFormatter {
  private:
   Domain domain_;
   std::string format_;
@@ -101,7 +101,7 @@ class X0_API TextFormatterImpl : public TextFormatter {
   }
 };
 
-X0_API inline Buffer& operator<<(Buffer& buf,
+BASE_API inline Buffer& operator<<(Buffer& buf,
                                  std::shared_ptr<TextFormatter> formatter) {
   formatter->print(&buf);
   return buf;

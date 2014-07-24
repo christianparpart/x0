@@ -24,7 +24,7 @@ namespace base {
  *
  * \see FileSource, Sink, Filter
  */
-class X0_API Source {
+class BASE_API Source {
  public:
   virtual ~Source() {}
 

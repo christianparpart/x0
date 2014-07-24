@@ -13,7 +13,7 @@
 namespace base {
 
 template <const unsigned PERIOD = 60, typename T = double>
-class X0_API PerformanceCounter {
+class BASE_API PerformanceCounter {
  public:
   typedef T value_type;
 

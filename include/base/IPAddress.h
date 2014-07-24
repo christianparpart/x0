@@ -21,7 +21,7 @@
 
 namespace base {
 
-class X0_API IPAddress {
+class BASE_API IPAddress {
  public:
   static const int V4 = AF_INET;
   static const int V6 = AF_INET6;

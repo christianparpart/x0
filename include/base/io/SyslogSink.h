@@ -12,7 +12,7 @@
 
 namespace base {
 
-class X0_API SyslogSink : public Sink {
+class BASE_API SyslogSink : public Sink {
  private:
   int level_;
 

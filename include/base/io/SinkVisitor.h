@@ -27,7 +27,7 @@ class LogFile;
  *
  * \see source
  */
-class X0_API SinkVisitor {
+class BASE_API SinkVisitor {
  public:
   virtual ~SinkVisitor() {}
 

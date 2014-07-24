@@ -21,7 +21,7 @@ namespace base {
 //! \addtogroup sql
 //@{
 
-class X0_API SqlStatement
+class BASE_API SqlStatement
 #ifndef XZERO_NDEBUG
     : public Logging
 #endif

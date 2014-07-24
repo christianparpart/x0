@@ -20,7 +20,7 @@ namespace base {
 
 /** file source.
  */
-class X0_API PipeSource : public Source, public SinkVisitor {
+class BASE_API PipeSource : public Source, public SinkVisitor {
  private:
   Pipe* pipe_;
 

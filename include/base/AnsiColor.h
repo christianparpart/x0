@@ -13,7 +13,7 @@
 
 namespace base {
 
-class X0_API AnsiColor {
+class BASE_API AnsiColor {
  public:
   enum Type {
     Clear = 0,
@@ -51,7 +51,7 @@ class X0_API AnsiColor {
   static std::string colorize(Type AColor, const std::string& AText);
 };
 
-inline X0_API AnsiColor::Type operator|(AnsiColor::Type a, AnsiColor::Type b) {
+inline BASE_API AnsiColor::Type operator|(AnsiColor::Type a, AnsiColor::Type b) {
   return AnsiColor::Type(int(a) | int(b));
 }
 

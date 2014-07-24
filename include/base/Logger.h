@@ -33,7 +33,7 @@ namespace base {
  *
  * \see FileLogger
  */
-class X0_API Logger {
+class BASE_API Logger {
   Logger& operator=(const Logger&) = delete;
   Logger(const Logger&) = delete;
 
@@ -81,7 +81,7 @@ typedef std::shared_ptr<Logger> LoggerPtr;
  *
  * \see logger, FileLogger
  */
-class X0_API NullLogger : public Logger {
+class BASE_API NullLogger : public Logger {
  public:
   NullLogger();
   ~NullLogger();
@@ -95,7 +95,7 @@ class X0_API NullLogger : public Logger {
  *
  * \see logger, server
  */
-class X0_API FileLogger : public Logger {
+class BASE_API FileLogger : public Logger {
  public:
   FileLogger(const std::string& filename, std::function<time_t()> now);
   FileLogger(int fd, std::function<time_t()> now);
@@ -113,7 +113,7 @@ class X0_API FileLogger : public Logger {
   std::function<time_t()> now_;
 };
 
-class X0_API ConsoleLogger : public Logger {
+class BASE_API ConsoleLogger : public Logger {
  public:
   ConsoleLogger();
 
@@ -126,7 +126,7 @@ class X0_API ConsoleLogger : public Logger {
  *
  * \see logger, server
  */
-class X0_API SystemLogger : public Logger {
+class BASE_API SystemLogger : public Logger {
  public:
   SystemLogger();
   ~SystemLogger();
@@ -140,7 +140,7 @@ class X0_API SystemLogger : public Logger {
  *
  * \see logger, server
  */
-class X0_API SystemdLogger : public Logger {
+class BASE_API SystemdLogger : public Logger {
  public:
   SystemdLogger();
   ~SystemdLogger();

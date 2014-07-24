@@ -20,7 +20,7 @@ namespace base {
 
 class JsonWriter;
 
-class X0_API Counter {
+class BASE_API Counter {
  public:
   typedef size_t value_type;
 
@@ -78,6 +78,6 @@ class X0_API Counter {
   void decrement(size_t n);
 };
 
-X0_API JsonWriter& operator<<(JsonWriter& json, const Counter& counter);
+BASE_API JsonWriter& operator<<(JsonWriter& json, const Counter& counter);
 
 }  // namespace base

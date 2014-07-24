@@ -26,7 +26,7 @@ namespace base {
  *
  * \note You may only run one child at a time per \p process <b>instance</b>.
  */
-class X0_API Process {
+class BASE_API Process {
   Process(const Process&) = delete;
   Process& operator=(const Process&) = delete;
 

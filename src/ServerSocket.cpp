@@ -54,7 +54,7 @@ namespace base {
 //
 // the PID part is not yet supported
 
-#define X0_LISTEN_FDS "XZERO_LISTEN_FDS"
+#define BASE_LISTEN_FDS "XZERO_LISTEN_FDS"
 
 static int validateSocket(int fd) {
   struct stat st;
@@ -71,7 +71,7 @@ static int validateSocket(int fd) {
 std::vector<int> ServerSocket::getInheritedSocketList() {
   std::vector<int> list;
 
-  char* e = getenv(X0_LISTEN_FDS);
+  char* e = getenv(BASE_LISTEN_FDS);
   if (!e) return list;
 
   e = strdup(e);
@@ -100,7 +100,7 @@ std::vector<int> ServerSocket::getInheritedSocketList() {
 }
 
 static int getSocketInet(const char* address, int port) {
-  char* e = getenv(X0_LISTEN_FDS);
+  char* e = getenv(BASE_LISTEN_FDS);
   if (!e) return -1;
 
   int fd = -1;
@@ -135,7 +135,7 @@ done:
 }
 
 static int getSocketUnix(const char* path) {
-  char* e = getenv(X0_LISTEN_FDS);
+  char* e = getenv(BASE_LISTEN_FDS);
   if (!e) return -1;
 
   int fd = -1;
@@ -216,6 +216,7 @@ ServerSocket::ServerSocket(struct ev_loop* loop)
       addressFamily_(AF_UNSPEC),
       fd_(-1),
       reusePort_(false),
+      deferAccept_(false),
       multiAcceptCount_(1),
       io_(loop),
       socketDriver_(new SocketDriver()),
@@ -246,6 +247,24 @@ void ServerSocket::setBacklog(int value) {
 void ServerSocket::setReusePort(bool value) {
   assert(isOpen() == false);
   reusePort_ = value;
+}
+
+bool ServerSocket::setDeferAccept(bool enabled) {
+#if defined(TCP_DEFER_ACCEPT) && defined(ENABLE_TCP_DEFER_ACCEPT)
+  int rc = enabled ? 1 : 0;
+  if (::setsockopt(fd_, SOL_TCP, TCP_DEFER_ACCEPT, &rc, sizeof(rc)) < 0) {
+    deferAccept_ = enabled;
+    return false;
+  }
+  return true;
+#else
+  errno = ENOSYS;
+  return false;
+#endif
+}
+
+bool ServerSocket::deferAccept() const {
+  return deferAccept_;
 }
 
 ServerSocket* ServerSocket::clone(struct ev_loop* loop) {
@@ -373,11 +392,6 @@ bool ServerSocket::open(const std::string& address, int port, int flags) {
 
 #if defined(TCP_QUICKACK)
           if (::setsockopt(fd, SOL_TCP, TCP_QUICKACK, &rc, sizeof(rc)) < 0)
-            goto syserr;
-#endif
-
-#if defined(TCP_DEFER_ACCEPT) && defined(ENABLE_TCP_DEFER_ACCEPT)
-          if (::setsockopt(fd, SOL_TCP, TCP_DEFER_ACCEPT, &rc, sizeof(rc)) < 0)
             goto syserr;
 #endif
           goto done;

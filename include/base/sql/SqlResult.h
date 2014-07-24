@@ -21,7 +21,7 @@ namespace base {
 
 class SqlConnection;
 
-class X0_API SqlResult {
+class BASE_API SqlResult {
  private:
   MYSQL *handle_;
   MYSQL_RES *result_;

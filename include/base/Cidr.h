@@ -13,7 +13,7 @@
 
 namespace base {
 
-class X0_API Cidr {
+class BASE_API Cidr {
  public:
   Cidr() : ipaddr_(), prefix_(0) {}
 
@@ -32,8 +32,8 @@ class X0_API Cidr {
 
   bool contains(const IPAddress& ipaddr) const;
 
-  friend X0_API bool operator==(const Cidr& a, const Cidr& b);
-  friend X0_API bool operator!=(const Cidr& a, const Cidr& b);
+  friend BASE_API bool operator==(const Cidr& a, const Cidr& b);
+  friend BASE_API bool operator!=(const Cidr& a, const Cidr& b);
 
  private:
   IPAddress ipaddr_;

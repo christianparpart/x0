@@ -21,7 +21,7 @@ namespace base {
  *
  * \see Buffer, Source, Sink
  */
-class X0_API BufferSource : public Source {
+class BASE_API BufferSource : public Source {
  public:
   BufferSource();
   template <typename PodType, std::size_t N>

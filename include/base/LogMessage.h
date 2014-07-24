@@ -16,7 +16,7 @@
 
 namespace base {
 
-class X0_API LogMessage {
+class BASE_API LogMessage {
  public:
   LogMessage(Severity severity, const char* msg);
 
@@ -51,7 +51,7 @@ class X0_API LogMessage {
   std::deque<std::pair<size_t, size_t>> tags_;
 };
 
-X0_API Buffer& operator<<(Buffer& b, const LogMessage& v);
+BASE_API Buffer& operator<<(Buffer& b, const LogMessage& v);
 
 // {{{
 inline LogMessage::LogMessage(Severity severity, const char* msg)

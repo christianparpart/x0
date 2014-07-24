@@ -26,7 +26,7 @@ class SinkVisitor;
  *
  * \see file_sink, buffer_sink, asio_sink, source
  */
-class X0_API Sink {
+class BASE_API Sink {
  public:
   virtual ~Sink() {}
 

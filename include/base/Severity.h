@@ -22,7 +22,7 @@ namespace base {
  * \brief named enum `Severity`, used by logging facility
  * \see logger
  */
-struct X0_API Severity {
+struct BASE_API Severity {
   enum {
     debug3 = 0,
     debug2 = 1,

@@ -15,7 +15,7 @@
 
 namespace base {
 
-class X0_API TimeSpan {
+class BASE_API TimeSpan {
  private:
   ev_tstamp value_;
 
@@ -100,7 +100,7 @@ inline TimeSpan operator-(const TimeSpan& a, const TimeSpan& b) {
   return TimeSpan(a() - b());
 }
 
-X0_API Buffer& operator<<(Buffer& buf, const TimeSpan& ts);
+BASE_API Buffer& operator<<(Buffer& buf, const TimeSpan& ts);
 
 }  // namespace base
 

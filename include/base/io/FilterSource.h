@@ -26,7 +26,7 @@ namespace base {
  *
  * \see Source, Filter
  */
-class X0_API FilterSource : public Source {
+class BASE_API FilterSource : public Source {
  public:
   explicit FilterSource(Filter* filter, bool force = false)
       : buffer_(),

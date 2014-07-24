@@ -13,7 +13,7 @@
 
 namespace base {
 
-class X0_API IniFile {
+class BASE_API IniFile {
  public:
   typedef std::map<std::string, std::string> Section;
   typedef std::map<std::string, Section> SectionMap;

@@ -21,7 +21,7 @@ namespace base {
  *
  * \see sink, source
  */
-class X0_API BufferSink : public Sink {
+class BASE_API BufferSink : public Sink {
  public:
   BufferSink() : buffer_() {}
 

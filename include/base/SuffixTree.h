@@ -13,7 +13,7 @@
 namespace base {
 
 template <typename K, typename V>
-class X0_API SuffixTree {
+class BASE_API SuffixTree {
  public:
   typedef K Key;
   typedef typename Key::value_type Elem;

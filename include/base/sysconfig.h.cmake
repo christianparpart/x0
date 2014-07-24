@@ -29,15 +29,6 @@
 
 #cmakedefine HAVE_LDAP_H
 
-#cmakedefine ENABLE_PLUGIN_AUTH_PAM
-
-#cmakedefine ENABLE_INOTIFY
-#cmakedefine ENABLE_PCRE
-#cmakedefine ENABLE_ACCEPT4
-#cmakedefine ENABLE_TCP_DEFER_ACCEPT
-#cmakedefine ENABLE_MULTI_ACCEPT
-#cmakedefine ENABLE_OPPORTUNISTIC_WRITE
-
 #cmakedefine HAVE_INOTIFY_CREATE1
 #cmakedefine HAVE_FORK
 #cmakedefine HAVE_CHROOT
@@ -49,20 +40,13 @@
 #cmakedefine HAVE_PTHREAD_SETNAME_NP
 #cmakedefine HAVE_PTHREAD_SETAFFINITY_NP
 
-#cmakedefine SYSCONFDIR "@SYSCONFDIR@"
-#cmakedefine PLUGINDIR "@PLUGINDIR@"
-#cmakedefine X0_TMPDIR "@X0_TMPDIR@"
+#cmakedefine ENABLE_INOTIFY
+#cmakedefine ENABLE_PCRE
+#cmakedefine ENABLE_ACCEPT4
+#cmakedefine ENABLE_TCP_DEFER_ACCEPT
+#cmakedefine ENABLE_MULTI_ACCEPT
+#cmakedefine ENABLE_OPPORTUNISTIC_WRITE
 
-#cmakedefine X0_ENABLE_O_TMPFILE
-#cmakedefine X0_ENABLE_POST_FN_OPTIMIZATION
-
-#cmakedefine VALGRIND 1
-
-/* x0 features */
-#cmakedefine X0_QUEUE_LOCKFREE 1                /* make Queue<T> lock-free (use mutex+deque otherwise) */
-#cmakedefine X0_WORKER_POST_LIBEV 1             /* HttpWorker to use libev's ev_async (over locking queue) for its post API */
-#cmakedefine X0_WORKER_RR 1                     /* use RR for worker-select instead of lowest-load */
-#cmakedefine ENABLE_FLOW_DIRECT_THREADED_VM 1   /* use direct threaded interpreter loop over indirect threaded */
-#cmakedefine ENABLE_DIRECTOR_CACHE              /* built director plugin with object cache built in */
+#cmakedefine BASE_QUEUE_LOCKFREE
 
 #endif

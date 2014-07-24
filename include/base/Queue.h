@@ -11,7 +11,7 @@
 #include <base/Defines.h>
 #include <base/sysconfig.h>
 
-#if !defined(X0_QUEUE_LOCKFREE)
+#if !defined(BASE_QUEUE_LOCKFREE)
 #include <mutex>
 #include <deque>
 #endif
@@ -25,9 +25,9 @@ namespace base {
  * implementation details.
  */
 template <typename T>
-class X0_API Queue {
+class BASE_API Queue {
  private:
-#if defined(X0_QUEUE_LOCKFREE)
+#if defined(BASE_QUEUE_LOCKFREE)
   struct NodePtr;
   struct Node;
 
@@ -51,10 +51,12 @@ class X0_API Queue {
   T& front();
 
  private:
+#if defined(BASE_QUEUE_LOCKFREE)
   void enqueue(Node* value);
+#endif
 };
 
-#if defined(X0_QUEUE_LOCKFREE)
+#if defined(BASE_QUEUE_LOCKFREE)
 // {{{ Queue<T>::NodePtr impl
 template <typename T>
 struct Queue<T>::NodePtr {
@@ -88,7 +90,7 @@ struct Queue<T>::NodePtr {
 // }}}
 // {{{ Queue<T>::Node impl
 template <typename T>
-struct Queue<T>::Node {
+struct BASE_API Queue<T>::Node {
   T value;
   NodePtr next;
 
@@ -245,7 +247,7 @@ bool Queue<T>::dequeue(T* result) {
   std::lock_guard<std::mutex> _l(lock_);
 
   if (!impl_.empty()) {
-    *result = impl_.front();
+    *result = std::move(impl_.front());
     impl_.pop_front();
     return true;
   } else {

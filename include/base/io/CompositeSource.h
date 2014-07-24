@@ -23,7 +23,7 @@ namespace base {
  * This source represents a sequential set of sub sources.
  * \see source
  */
-class X0_API CompositeSource : public Source {
+class BASE_API CompositeSource : public Source {
  private:
   typedef std::unique_ptr<Source> value_type;
   typedef std::deque<value_type> list_type;

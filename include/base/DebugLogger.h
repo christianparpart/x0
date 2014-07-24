@@ -21,9 +21,9 @@ namespace base {
 /**
  * Customizable, taggable debug logging.
  */
-class X0_API DebugLogger {
+class BASE_API DebugLogger {
  public:
-  class X0_API Instance {  // {{{
+  class BASE_API Instance {  // {{{
    public:
     Instance(DebugLogger* logger, const std::string& tag);
     ~Instance();
@@ -160,17 +160,17 @@ class X0_API DebugLogger {
   bool colored_;
 };
 
-#if 1  // defined(X0_ENABLE_DEBUG)
-#define X0_DEBUG(tag, level, msg...)             \
+#if 1  // defined(BASE_ENABLE_DEBUG)
+#define BASE_DEBUG(tag, level, msg...)             \
   do {                                           \
     DebugLogger::get().log((tag), (level), msg); \
   } while (0)
 #else
-#define X0_DEBUG(tag, level, msg...) \
+#define BASE_DEBUG(tag, level, msg...) \
   do {                               \
   } while (0)
 #endif
 
-#define XZERO_DEBUG(tag, level, msg...) X0_DEBUG((tag), (level), msg)
+#define XZERO_DEBUG(tag, level, msg...) BASE_DEBUG((tag), (level), msg)
 
 }  // namespace base

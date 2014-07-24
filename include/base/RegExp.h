@@ -17,7 +17,7 @@ namespace base {
 
 class BufferRef;
 
-class X0_API RegExp {
+class BASE_API RegExp {
  private:
   std::string pattern_;
   pcre* re_;
@@ -63,7 +63,7 @@ class X0_API RegExp {
   }
 };
 
-class X0_API RegExpContext {
+class BASE_API RegExpContext {
  public:
   RegExpContext();
   virtual ~RegExpContext();

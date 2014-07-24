@@ -85,47 +85,47 @@ class fstringbuilder {
 /**
  * retrieves contents of given file.
  */
-X0_API Buffer readFile(const std::string& filename);
+BASE_API Buffer readFile(const std::string& filename);
 
 /**
  * trims leading and trailing spaces off the value.
  */
-X0_API std::string trim(const std::string& value);
+BASE_API std::string trim(const std::string& value);
 
 /**
  * splits a string into pieces
  */
 template <typename T, typename U>
-X0_API std::vector<T> split(const std::basic_string<U>& list,
+BASE_API std::vector<T> split(const std::basic_string<U>& list,
                             const std::basic_string<U>& sep);
 
 /**
  * splits a string into pieces
  */
 template <typename T, typename U>
-X0_API std::vector<T> split(const std::basic_string<U>& list, const U* sep);
+BASE_API std::vector<T> split(const std::basic_string<U>& list, const U* sep);
 
 template <typename T, typename U>
-X0_API inline bool hex2int(const T* begin, const T* end, U& result);
+BASE_API inline bool hex2int(const T* begin, const T* end, U& result);
 
 /*! compares two strings for case insensitive equality. */
-X0_API bool iequals(const char* a, const char* b);
+BASE_API bool iequals(const char* a, const char* b);
 
 /*! compares the first n bytes of two strings for case insensitive equality. */
-X0_API bool iequals(const char* a, const char* b, std::size_t n);
+BASE_API bool iequals(const char* a, const char* b, std::size_t n);
 
 //@}
 
 //! \addtogroup base
 //@{
 
-X0_API std::string make_hostid(const std::string& hostname);
+BASE_API std::string make_hostid(const std::string& hostname);
 
 template <typename String>
-X0_API std::string make_hostid(const String& hostname, int port);
+BASE_API std::string make_hostid(const String& hostname, int port);
 
-X0_API int extract_port_from_hostid(const std::string& hostid);
-X0_API std::string extract_host_from_hostid(const std::string& hostid);
+BASE_API int extract_port_from_hostid(const std::string& hostid);
+BASE_API std::string extract_host_from_hostid(const std::string& hostid);
 
 //@}
 

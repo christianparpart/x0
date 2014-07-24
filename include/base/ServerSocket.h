@@ -33,7 +33,7 @@ class IPAddress;
  * @see Socket
  * @see SocketDriver
  */
-class X0_API ServerSocket
+class BASE_API ServerSocket
 #ifndef XZERO_NDEBUG
     : public Logging
 #endif
@@ -46,6 +46,7 @@ class X0_API ServerSocket
   int addressFamily_;
   int fd_;
   bool reusePort_;
+  bool deferAccept_;
   size_t multiAcceptCount_;
   ev::io io_;
   SocketDriver* socketDriver_;
@@ -68,6 +69,9 @@ class X0_API ServerSocket
 
   void setReusePort(bool enabled);
   bool reusePort() const { return reusePort_; }
+
+  bool deferAccept() const;
+  bool setDeferAccept(bool enabled);
 
   bool open(const std::string& ipAddress, int port, int flags);
   bool open(const std::string& localAddress, int flags);

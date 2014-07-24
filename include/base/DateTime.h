@@ -25,7 +25,7 @@ namespace base {
  *  as well as HTTP conform dates as used in Date/Last-Modified and other
  * headers.
  */
-class X0_API DateTime {
+class BASE_API DateTime {
  private:
   ev_tstamp value_;
   mutable Buffer http_;
@@ -55,16 +55,16 @@ class X0_API DateTime {
   static int compare(const DateTime& a, const DateTime& b);
 };
 
-X0_API bool operator==(const DateTime& a, const DateTime& b);
-X0_API bool operator!=(const DateTime& a, const DateTime& b);
-X0_API bool operator<=(const DateTime& a, const DateTime& b);
-X0_API bool operator>=(const DateTime& a, const DateTime& b);
-X0_API bool operator<(const DateTime& a, const DateTime& b);
-X0_API bool operator>(const DateTime& a, const DateTime& b);
+BASE_API bool operator==(const DateTime& a, const DateTime& b);
+BASE_API bool operator!=(const DateTime& a, const DateTime& b);
+BASE_API bool operator<=(const DateTime& a, const DateTime& b);
+BASE_API bool operator>=(const DateTime& a, const DateTime& b);
+BASE_API bool operator<(const DateTime& a, const DateTime& b);
+BASE_API bool operator>(const DateTime& a, const DateTime& b);
 
-X0_API TimeSpan operator-(const DateTime& a, const DateTime& b);
-X0_API DateTime operator+(const DateTime& a, const TimeSpan& b);
-X0_API DateTime operator-(const DateTime& a, const TimeSpan& b);
+BASE_API TimeSpan operator-(const DateTime& a, const DateTime& b);
+BASE_API DateTime operator+(const DateTime& a, const TimeSpan& b);
+BASE_API DateTime operator-(const DateTime& a, const TimeSpan& b);
 
 // {{{ impl
 inline time_t DateTime::mktime(const char* v) {

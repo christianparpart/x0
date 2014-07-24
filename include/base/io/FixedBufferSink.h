@@ -20,7 +20,7 @@ namespace base {
  *
  * \see sink, source
  */
-class X0_API FixedBufferSink : public Sink {
+class BASE_API FixedBufferSink : public Sink {
  public:
   explicit FixedBufferSink(FixedBuffer& ref) : buffer_(ref) {}
 

@@ -16,7 +16,7 @@
 
 namespace base {
 
-class X0_API Url {
+class BASE_API Url {
  public:
   typedef std::unordered_map<std::string, std::string> ArgsMap;
 
@@ -79,12 +79,12 @@ class X0_API Url {
   std::string fragment_;
 };
 
-X0_API bool parseUrl(const std::string& spec, std::string& protocol,
+BASE_API bool parseUrl(const std::string& spec, std::string& protocol,
                      std::string& hostname, int& port, std::string& path,
                      std::string& query);
-X0_API bool parseUrl(const std::string& spec, std::string& protocol,
+BASE_API bool parseUrl(const std::string& spec, std::string& protocol,
                      std::string& hostname, int& port, std::string& path);
-X0_API bool parseUrl(const std::string& spec, std::string& protocol,
+BASE_API bool parseUrl(const std::string& spec, std::string& protocol,
                      std::string& hostname, int& port);
 
 // {{{ inline impl

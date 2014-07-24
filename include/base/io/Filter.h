@@ -27,7 +27,7 @@ namespace base {
  *
  * \see source, sink
  */
-class X0_API Filter {
+class BASE_API Filter {
  public:
   /** processes given input data through this Filter. */
   virtual Buffer process(const BufferRef& input) = 0;

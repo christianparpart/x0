@@ -19,7 +19,7 @@ namespace base {
 
 /** file descriptor stream sink.
  */
-class X0_API SocketSink : public Sink {
+class BASE_API SocketSink : public Sink {
  public:
   explicit SocketSink(Socket *conn);
 

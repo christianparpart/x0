@@ -10,31 +10,11 @@
 
 #include <base/Defines.h>
 
-// x0 exports
-#if defined(BUILD_X0)
-#define X0_API X0_EXPORT
+// libbase exports
+#if defined(BUILD_BASE)
+#define BASE_API BASE_EXPORT
 #else
-#define X0_API X0_IMPORT
-#endif
-
-#if defined(__cplusplus) && defined(__APPLE__)
-
-// XXX WORKAROUND FOR APPLE OS X
-namespace std {
-
-template <typename T>
-const T& move(const T& value) {
-  return value;
-}
-template <typename T>
-const T& forward(const T& value) {
-  return value;
-}
-template <typename>
-struct hash;
-
-} // namespace std
-
+#define BASE_API BASE_IMPORT
 #endif
 
 #endif

@@ -16,7 +16,7 @@ namespace base {
 class Buffer;
 class BufferRef;
 
-class X0_API JsonWriter {
+class BASE_API JsonWriter {
  private:
   enum class Type { Value, Object, Array };
 
@@ -88,18 +88,18 @@ class X0_API JsonWriter {
   void postValue();
 };
 
-X0_API JsonWriter& operator<<(base::JsonWriter& json, bool value);
-X0_API JsonWriter& operator<<(base::JsonWriter& json, char value);
-X0_API JsonWriter& operator<<(base::JsonWriter& json, int value);
-X0_API JsonWriter& operator<<(base::JsonWriter& json, long value);
-X0_API JsonWriter& operator<<(base::JsonWriter& json, long long value);
-X0_API JsonWriter& operator<<(base::JsonWriter& json, unsigned int value);
-X0_API JsonWriter& operator<<(base::JsonWriter& json, unsigned long value);
-X0_API JsonWriter& operator<<(base::JsonWriter& json, unsigned long long value);
-X0_API JsonWriter& operator<<(base::JsonWriter& json, float value);
-X0_API JsonWriter& operator<<(base::JsonWriter& json, const std::string& value);
-X0_API JsonWriter& operator<<(base::JsonWriter& json, const Buffer& value);
-X0_API JsonWriter& operator<<(base::JsonWriter& json, const BufferRef& value);
-X0_API JsonWriter& operator<<(base::JsonWriter& json, const char* value);
+BASE_API JsonWriter& operator<<(base::JsonWriter& json, bool value);
+BASE_API JsonWriter& operator<<(base::JsonWriter& json, char value);
+BASE_API JsonWriter& operator<<(base::JsonWriter& json, int value);
+BASE_API JsonWriter& operator<<(base::JsonWriter& json, long value);
+BASE_API JsonWriter& operator<<(base::JsonWriter& json, long long value);
+BASE_API JsonWriter& operator<<(base::JsonWriter& json, unsigned int value);
+BASE_API JsonWriter& operator<<(base::JsonWriter& json, unsigned long value);
+BASE_API JsonWriter& operator<<(base::JsonWriter& json, unsigned long long value);
+BASE_API JsonWriter& operator<<(base::JsonWriter& json, float value);
+BASE_API JsonWriter& operator<<(base::JsonWriter& json, const std::string& value);
+BASE_API JsonWriter& operator<<(base::JsonWriter& json, const Buffer& value);
+BASE_API JsonWriter& operator<<(base::JsonWriter& json, const BufferRef& value);
+BASE_API JsonWriter& operator<<(base::JsonWriter& json, const char* value);
 
 }  // namespace base

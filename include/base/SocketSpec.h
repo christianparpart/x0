@@ -15,7 +15,7 @@
 
 namespace base {
 
-class X0_API SocketSpec {
+class BASE_API SocketSpec {
  public:
   enum Type { Unknown, Local, Inet, };
 
@@ -66,10 +66,10 @@ class X0_API SocketSpec {
   bool reusePort_;
 };
 
-X0_API bool operator==(const base::SocketSpec& a, const base::SocketSpec& b);
-X0_API bool operator!=(const base::SocketSpec& a, const base::SocketSpec& b);
+BASE_API bool operator==(const base::SocketSpec& a, const base::SocketSpec& b);
+BASE_API bool operator!=(const base::SocketSpec& a, const base::SocketSpec& b);
 
-inline X0_API bool operator==(const base::SocketSpec& a,
+inline BASE_API bool operator==(const base::SocketSpec& a,
                               const base::SocketSpec& b) {
   if (a.type() != b.type()) return false;
 
@@ -83,7 +83,7 @@ inline X0_API bool operator==(const base::SocketSpec& a,
   }
 }
 
-inline X0_API bool operator!=(const base::SocketSpec& a,
+inline BASE_API bool operator!=(const base::SocketSpec& a,
                               const base::SocketSpec& b) {
   return !(a == b);
 }

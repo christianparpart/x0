@@ -19,7 +19,7 @@ namespace base {
 
 /** chaining filter API, supporting sub filters to be chained together.
  */
-class X0_API ChainFilter : public Filter {
+class BASE_API ChainFilter : public Filter {
  public:
   virtual Buffer process(const BufferRef& input);
 

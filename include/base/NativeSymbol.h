@@ -15,7 +15,7 @@ namespace base {
 
 class Buffer;
 
-class X0_API NativeSymbol {
+class BASE_API NativeSymbol {
  private:
   const char* symbol_;
 
@@ -33,7 +33,7 @@ class X0_API NativeSymbol {
   Buffer name() const;
 };
 
-X0_API Buffer& operator<<(Buffer& b, const NativeSymbol& s);
+BASE_API Buffer& operator<<(Buffer& b, const NativeSymbol& s);
 
 }  // namespace base
 

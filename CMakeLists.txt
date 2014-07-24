@@ -28,6 +28,8 @@ option(ENABLE_PCRE "With PCRE support [default: off]" ON)
 option(ENABLE_TCP_DEFER_ACCEPT "Builds with support for TCP_DEFER_ACCEPT, if found [default: on]" ON)
 option(ENABLE_INOTIFY "Build with inotify support [default: on]" ON)
 
+option(BASE_QUEUE_LOCKFREE "Queue<T> is using a lock-free algorithm [default: on]" ON)
+
 # XXX do not use -std=c++11 here, as it's not supported on GCC 4.6 (default on Ubuntu 12.04)
 set(CMAKE_CXX_FLAGS "-std=c++0x")
 

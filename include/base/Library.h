@@ -14,7 +14,7 @@
 
 namespace base {
 
-class X0_API Library {
+class BASE_API Library {
  public:
   explicit Library(const std::string& filename = std::string());
   Library(Library&& movable);
