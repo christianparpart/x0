@@ -8,7 +8,10 @@
 #ifndef xzero_sysconfig_h
 #define xzero_sysconfig_h (1)
 
+#include <base/sysconfig.h>
+
 #cmakedefine LIBXZERO_VERSION "@LIBXZERO_VERSION@"
+
 #cmakedefine HAVE_SYS_INOTIFY_H
 #cmakedefine HAVE_SYS_SENDFILE_H
 #cmakedefine HAVE_SYS_RESOURCE_H

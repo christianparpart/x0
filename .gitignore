@@ -48,3 +48,5 @@ experimental
 /debian/tmp/
 /debian/files
 *-stamp
+include/xzero/sysconfig.h
+/tests/xzero-test
