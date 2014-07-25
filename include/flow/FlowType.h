@@ -43,7 +43,7 @@ enum class FlowType {
 typedef uint64_t Register;  // FlowVM
 
 typedef int64_t FlowNumber;
-typedef BufferRef FlowString;
+typedef base::BufferRef FlowString;
 
 std::string tos(FlowType type);
 
