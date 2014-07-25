@@ -78,13 +78,11 @@ class XZERO_API HttpConnection : public HttpMessageParser {
   HttpConnection& operator=(const HttpConnection&) = delete;
   HttpConnection(const HttpConnection&) = delete;
 
-  /**
-   * creates an HTTP connection object.
-   * \param srv a ptr to the server object this connection belongs to.
-   */
   HttpConnection(HttpWorker* worker, unsigned long long id);
-
   ~HttpConnection();
+
+  static const std::string& tempDirectory();
+  static void setTempDirectory(const char* path);
 
   unsigned long long id() const;  //!< returns the (mostly) unique,
   // worker-local, ID to this connection
@@ -218,6 +216,8 @@ class XZERO_API HttpConnection : public HttpMessageParser {
   std::size_t requestParserOffset() const { return requestParserOffset_; }
 
  private:
+  static std::string tempDirectory_;
+
   unsigned refCount_;
 
   State state_;

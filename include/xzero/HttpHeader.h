@@ -15,8 +15,6 @@
 
 namespace xzero {
 
-using namespace base;
-
 //! \addtogroup http
 //@{
 
@@ -45,7 +43,7 @@ struct XZERO_API HttpHeader {
   }
 };
 
-typedef HttpHeader<BufferRef> HttpRequestHeader;
+typedef HttpHeader<base::BufferRef> HttpRequestHeader;
 
 //@}
 
