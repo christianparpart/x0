@@ -50,3 +50,4 @@ experimental
 *-stamp
 include/xzero/sysconfig.h
 /tests/xzero-test
+Doxyfile
