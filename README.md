@@ -1,13 +1,12 @@
-# Xzero HTTP Web Server & Framework
+# Xzero HTTP Framework
 
-[ ![Build status - Travis-ci](https://secure.travis-ci.org/xzero/x0.png) ](http://travis-ci.org/xzero/x0)
+[ ![Build status - Travis-ci](https://secure.travis-ci.org/xzero/libxzero.png) ](http://travis-ci.org/xzero/libxzero)
 
 - official website: http://xzero.io
-- github: http://github.com/xzero/x0
-- ohloh: http://www.ohloh.net/p/x0
-- travis-ci: https://travis-ci.org/xzero/x0
+- github: http://github.com/xzero/libxzero
+- travis-ci: https://travis-ci.org/xzero/libxzero
 
-Xzero is a thin low-latency and scalable HTTP web server and web service framework
+`libxzero` is a thin low-latency and scalable HTTP server framework
 written in modern C++.
 
 ## Framework Features
@@ -15,65 +14,17 @@ written in modern C++.
 - Thin and clean core API
 - Response output filter API
 - HTTP/1.1, including pipelining
-- Flexible configuration language, Flow
 - fully asynchronous response content generation support
 - zero-copy networking optimization through sendfile() system call
 - transmitting of static files with partial response support and cache-friendly
 
-# x0d HTTP Application Gateway Server
-
-`x0d` is the dedicated HTTP web server that is built ontop of the
-Xzero Framework.
-
-It supports a very expressive and natural configuration language and
-a number of standard plugins to become *your* web application gateway.
-
-### x0d Features
-
-- Customizable Error Pages
-- Automatic Directory Indexing
-- on-the-fly executable upgrade with gracefully finishing currently active requests.
-- Easily Extensible via the Powerful Plugin System
-- SSL connection encryption
-  - SSL Server Name Indication (SNI) extension
-- Dynamic Content Compression
-- Advanced Dynamic Load Balancer
-  - Supporting different backend transports (TCP/IP, and UNIX Domain Sockets).
-  - Supporting different backend protocols (HTTP and FastCGI)
-  - Advanced Health Monitoring
-  - JSON API for retrieving state, stats,
-    and reconfiguring clusters (including adding/updating/removing backends).
-  - [Client Side Routing support](http://xzero.io/#/article/client-side-routing)
-  - Sticky Offline Mode
-  - X-Sendfile support, full static file transmission acceleration
-  - HAproxy compatible CSV output
-  - Object Cache
-    - fully runtime configurable
-    - client-cache aware
-    - life JSON stats
-    - supports serving stale objects when no backend is available
-    - `Vary` response-header Support.
-    - multiple update strategies (locked, shadowed)
-- Basic Authentication
-  - including PAM authentication
-- Request Path Aliasing
-- Automatic Directory Listing
-- Apache-style access logging
-- User-directory Support
-- Browser Match Support
-- Customizable Expires & Cache-Control Response Header Control
-- instant mode (configuration-less basic HTTP serving)
-- CGI/1.1 Support
-
 # INSTALLATION REQUIREMENTS:
 
+- libbase from https://github.com/xzero/libbase.git
 - gcc >= 4.8.0 (for building only, CLANG >= 3.4 is also supported)
-- libev >= 4.0
 - cmake (for building only)
-- tbb, Threading Building Blocks (required)
 - zlib (optional & recommended, for compression)
 - bzip2 (optional & recommended, for compression)
-- gnutls (optional & recommended, for SSL/TLS encryption)
 - gtest (optional, for unit testing)
 
 ### Building from Source on Ubuntu 14.04:
@@ -116,9 +67,7 @@ a number of standard plugins to become *your* web application gateway.
     sudo apt-get install gcc-4.8 g++-4.8
 
     # Installs required dependencies
-    sudo apt-get install make cmake libgnutls28-dev libgcrypt11-dev \
-        libmysqlclient-dev libev-dev zlib1g-dev libbz2-dev pkg-config \
-        libpcre3-dev libfcgi-dev libgoogle-perftools0 libtbb-dev libpam-dev git
+    sudo apt-get install make cmake pkg-config git
     
     # If you want to built the tests, you must install libgtest-dev and then built it yourself
     sudo apt-get install libgtest-dev
@@ -126,25 +75,17 @@ a number of standard plugins to become *your* web application gateway.
         sudo make && sudo cp -vpi libgtest*.a /usr/local/lib/; cd -
     
     # Install git and clone repository
-    git clone git://github.com/xzero/x0.git && cd x0
+    git clone git://github.com/xzero/libxzero.git
+    cd libxzero
+    git subtree add -P 3rdparty/libbase git://github.com/xzero/libbase.git
     
     # Now run cmake to bootstrap the build
-    cmake -DCMAKE_BUILD_TYPE=debug -DCMAKE_INSTALL_PREFIX=$HOME/local \
-          -DCMAKE_C_COMPILER=/usr/bin/gcc-4.8 -DCMAKE_CXX_COMPILER=/usr/bin/g++-4.8 .
-    
-    # Ensure installation target prefix
-    mkdir $HOME/local
+    cmake -DCMAKE_CXX_COMPILER=/usr/bin/g++-4.8 .
     
     # Now compiling should just work.
-    make && make install
+    make && sudo make install
     
-    # Run web server on port 8080
-    `pwd`/x0d/src/x0d --instant=`pwd`/www/htdocs,8080
-    
-    # or try its CLI help
-    `pwd`/x0d/src/x0d -h
-
-    # have fun hacking and don't forget to checkout the just installed man pages ;-)
+    # have fun hacking ;-)
 
 LICENSE
 -------
