@@ -53,9 +53,11 @@ int main() {
 sudo apt-get install make cmake pkg-config git gcc-4.8 g++-4.8 \
     libmysqlclient-dev libev-dev zlib1g-dev libbz2-dev libpcre3-dev
 
-# If you want to built the tests, you must install libgtest-dev and then built it yourself
+# If you want to built the tests, you must install libgtest-dev
+# and then built it yourself
 sudo apt-get install libgtest-dev
-cd /usr/src/gtest && sudo cmake . && sudo make && sudo cp -vpi libgtest*.a /usr/local/lib/; cd -
+cd /usr/src/gtest && sudo cmake . && sudo make && \
+     sudo cp -vpi libgtest*.a /usr/local/lib/; cd -
 
 # Clone the repository
 git clone git://github.com/xzero/libxzero.git && cd libxzero
@@ -84,10 +86,12 @@ sudo apt-get install gcc-4.8 g++-4.8
 sudo apt-get install make cmake pkg-config git gcc-4.8 g++-4.8 \
     libmysqlclient-dev libev-dev zlib1g-dev libbz2-dev libpcre3-dev
 
-# If you want to built the tests, you must install libgtest-dev and then built it yourself
+# If you want to built the tests, you must install libgtest-dev
+# and then built it yourself
 sudo apt-get install libgtest-dev
-cd /usr/src/gtest && sudo cmake -DCMAKE_C_COMPILER=$CC -DCMAKE_CXX_COMPILER=$CXX . && \
-    sudo make && sudo cp -vpi libgtest*.a /usr/local/lib/; cd -
+cd /usr/src/gtest && sudo cmake -DCMAKE_C_COMPILER=$CC \
+      -DCMAKE_CXX_COMPILER=$CXX . && sudo make && \
+    sudo cp -vpi libgtest*.a /usr/local/lib/; cd -
 
 # Clone the repository
 git clone git://github.com/xzero/libxzero.git && cd libxzero
