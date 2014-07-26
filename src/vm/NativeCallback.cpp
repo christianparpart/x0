@@ -11,7 +11,7 @@
 #include <base/RegExp.h>
 
 namespace flow {
-namespace FlowVM {
+namespace vm {
 
 using namespace base;
 
@@ -84,5 +84,5 @@ int NativeCallback::find(const std::string& name) const {
 
 void NativeCallback::invoke(Params& args) const { function_(args); }
 
-}  // namespace FlowVM
+}  // namespace vm
 }  // namespace flow

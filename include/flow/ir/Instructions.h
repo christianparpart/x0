@@ -277,9 +277,9 @@ class FLOW_API MatchInstr : public TerminateInstr {
   MatchInstr(const MatchInstr&);
 
  public:
-  MatchInstr(FlowVM::MatchClass op, Value* cond);
+  MatchInstr(vm::MatchClass op, Value* cond);
 
-  FlowVM::MatchClass op() const { return op_; }
+  vm::MatchClass op() const { return op_; }
 
   Value* condition() const { return operand(0); }
 
@@ -294,7 +294,7 @@ class FLOW_API MatchInstr : public TerminateInstr {
   void accept(InstructionVisitor& v) override;
 
  private:
-  FlowVM::MatchClass op_;
+  vm::MatchClass op_;
   std::vector<std::pair<Constant*, BasicBlock*>> cases_;
 };
 

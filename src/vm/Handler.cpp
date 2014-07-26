@@ -10,7 +10,7 @@
 #include <flow/vm/Instruction.h>
 
 namespace flow {
-namespace FlowVM {
+namespace vm {
 
 Handler::Handler() {}
 
@@ -76,8 +76,8 @@ bool Handler::run(void* userdata) {
 }
 
 void Handler::disassemble() {
-  printf("%s", FlowVM::disassemble(code_.data(), code_.size()).c_str());
+  printf("%s", vm::disassemble(code_.data(), code_.size()).c_str());
 }
 
-}  // namespace FlowVM
+}  // namespace vm
 }  // namespace flow

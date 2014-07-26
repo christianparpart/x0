@@ -11,11 +11,11 @@
 #include <string>
 
 namespace flow {
-namespace FlowVM {
+namespace vm {
 
 enum class MatchClass { Same, Head, Tail, RegExp, };
 
 FLOW_API std::string tos(MatchClass c);
 
-}  // namespace FlowVM
+}  // namespace vm
 }  // namespace flow

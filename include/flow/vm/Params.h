@@ -19,7 +19,7 @@ namespace flow {
 
 using namespace base;
 
-namespace FlowVM {
+namespace vm {
 
 class FLOW_API Params {
  private:
@@ -118,5 +118,5 @@ class FLOW_API Params {
   iterator end() { return iterator(this, argc_); }
 };
 
-}  // namespace FlowVM
+}  // namespace vm
 }  // namespace flow

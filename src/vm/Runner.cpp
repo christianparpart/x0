@@ -25,7 +25,7 @@
 #include <flow/sysconfig.h>
 
 #if !defined(XZERO_NDEBUG)
-#define TRACE(level, msg...) XZERO_DEBUG("FlowVM", (level), msg)
+#define TRACE(level, msg...) XZERO_DEBUG("vm", (level), msg)
 #else
 #define TRACE(msg...) \
   do {                \
@@ -33,7 +33,7 @@
 #endif
 
 namespace flow {
-namespace FlowVM {
+namespace vm {
 
 std::unique_ptr<Runner> Runner::create(Handler* handler) {
   Runner* p = (Runner*)malloc(sizeof(Runner) +
@@ -751,5 +751,5 @@ bool Runner::loop() {
   // }}}
 }
 
-}  // namespace FlowVM
+}  // namespace vm
 }  // namespace flow

@@ -13,7 +13,7 @@
 #include <flow/ir/Instructions.h>
 
 namespace flow {
-namespace FlowVM {
+namespace vm {
 
 Runtime::~Runtime() {
   for (auto b : builtins_) {
@@ -84,5 +84,5 @@ bool Runtime::verify(IRProgram* program) {
   return true;
 }
 
-}  // namespace FlowVM
+}  // namespace vm
 }  // namespace flow

@@ -79,7 +79,7 @@ int parsedump(const char* filename)  // {{{
 
   parser.importHandler = [&](const std::string& moduleName,
                              const std::string& path,
-                             std::vector<FlowVM::NativeCallback*>*)
+                             std::vector<vm::NativeCallback*>*)
                              ->bool {
     printf("importHandler: '%s' from '%s'\n", moduleName.c_str(), path.c_str());
     return true;

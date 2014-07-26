@@ -18,7 +18,7 @@
 #include <new>
 
 namespace flow {
-namespace FlowVM {
+namespace vm {
 
 /* {{{ possible binary file format
  * ----------------------------------------------
@@ -186,5 +186,5 @@ bool Program::link(Runtime* runtime) {
   return errors == 0;
 }
 
-}  // namespace FlowVM
+}  // namespace vm
 }  // namespace flow

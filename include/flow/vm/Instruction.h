@@ -13,7 +13,7 @@
 #include <vector>
 
 namespace flow {
-namespace FlowVM {
+namespace vm {
 
 enum Opcode {
   // misc
@@ -192,5 +192,5 @@ FLOW_API size_t computeRegisterCount(const Instruction* code, size_t size);
 FLOW_API size_t registerMax(Instruction instr);
 FLOW_API FlowType resultType(Opcode opc);
 
-}  // namespace FlowVM
+}  // namespace vm
 }  // namespace flow

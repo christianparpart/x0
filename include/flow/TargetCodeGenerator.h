@@ -34,7 +34,7 @@ class BasicBlock;
 class IRBuiltinHandler;
 class IRBuiltinFunction;
 
-namespace FlowVM {
+namespace vm {
 class Program;
 }
 
@@ -43,7 +43,7 @@ class FLOW_API TargetCodeGenerator : public InstructionVisitor {
   TargetCodeGenerator();
   ~TargetCodeGenerator();
 
-  std::unique_ptr<FlowVM::Program> generate(IRProgram* program);
+  std::unique_ptr<vm::Program> generate(IRProgram* program);
 
  protected:
   void generate(IRHandler* handler);
@@ -53,18 +53,18 @@ class FLOW_API TargetCodeGenerator : public InstructionVisitor {
   size_t makeNativeHandler(IRBuiltinHandler* builtin);
   size_t makeNativeFunction(IRBuiltinFunction* builtin);
 
-  size_t emit(FlowVM::Opcode opc) { return emit(FlowVM::makeInstruction(opc)); }
-  size_t emit(FlowVM::Opcode opc, FlowVM::Operand op1) {
-    return emit(FlowVM::makeInstruction(opc, op1));
+  size_t emit(vm::Opcode opc) { return emit(vm::makeInstruction(opc)); }
+  size_t emit(vm::Opcode opc, vm::Operand op1) {
+    return emit(vm::makeInstruction(opc, op1));
   }
-  size_t emit(FlowVM::Opcode opc, FlowVM::Operand op1, FlowVM::Operand op2) {
-    return emit(FlowVM::makeInstruction(opc, op1, op2));
+  size_t emit(vm::Opcode opc, vm::Operand op1, vm::Operand op2) {
+    return emit(vm::makeInstruction(opc, op1, op2));
   }
-  size_t emit(FlowVM::Opcode opc, FlowVM::Operand op1, FlowVM::Operand op2,
-              FlowVM::Operand op3) {
-    return emit(FlowVM::makeInstruction(opc, op1, op2, op3));
+  size_t emit(vm::Opcode opc, vm::Operand op1, vm::Operand op2,
+              vm::Operand op3) {
+    return emit(vm::makeInstruction(opc, op1, op2, op3));
   }
-  size_t emit(FlowVM::Instruction instr);
+  size_t emit(vm::Instruction instr);
 
   /**
    * Emits conditional jump instruction.
@@ -77,7 +77,7 @@ class FLOW_API TargetCodeGenerator : public InstructionVisitor {
    *instruction pointer and passed operands
    * for later back-patching once all basic block addresses have been computed.
    */
-  size_t emit(FlowVM::Opcode opcode, Register cond, BasicBlock* bb);
+  size_t emit(vm::Opcode opcode, Register cond, BasicBlock* bb);
 
   /**
    * Emits unconditional jump instruction.
@@ -89,12 +89,12 @@ class FLOW_API TargetCodeGenerator : public InstructionVisitor {
    *instruction pointer and passed operands
    * for later back-patching once all basic block addresses have been computed.
    */
-  size_t emit(FlowVM::Opcode opcode, BasicBlock* bb);
+  size_t emit(vm::Opcode opcode, BasicBlock* bb);
 
-  size_t emitBinaryAssoc(Instr& instr, FlowVM::Opcode rr, FlowVM::Opcode ri);
-  size_t emitBinary(Instr& instr, FlowVM::Opcode rr, FlowVM::Opcode ri);
-  size_t emitBinary(Instr& instr, FlowVM::Opcode rr);
-  size_t emitUnary(Instr& instr, FlowVM::Opcode r);
+  size_t emitBinaryAssoc(Instr& instr, vm::Opcode rr, vm::Opcode ri);
+  size_t emitBinary(Instr& instr, vm::Opcode rr, vm::Opcode ri);
+  size_t emitBinary(Instr& instr, vm::Opcode rr);
+  size_t emitUnary(Instr& instr, vm::Opcode r);
 
   /**
    * Emits call args.
@@ -104,8 +104,8 @@ class FLOW_API TargetCodeGenerator : public InstructionVisitor {
    */
   Register emitCallArgs(Instr& instr);
 
-  FlowVM::Operand getRegister(Value* value);
-  FlowVM::Operand getConstantInt(Value* value);
+  vm::Operand getRegister(Value* value);
+  vm::Operand getConstantInt(Value* value);
   size_t getInstructionPointer() const { return code_.size(); }
 
   size_t allocate(size_t count, Value* alias) {
@@ -187,13 +187,13 @@ class FLOW_API TargetCodeGenerator : public InstructionVisitor {
  private:
   struct ConditionalJump {
     size_t pc;
-    FlowVM::Opcode opcode;
+    vm::Opcode opcode;
     Register condition;
   };
 
   struct UnconditionalJump {
     size_t pc;
-    FlowVM::Opcode opcode;
+    vm::Opcode opcode;
   };
 
   //! list of raised errors during code generation.
@@ -205,13 +205,13 @@ class FLOW_API TargetCodeGenerator : public InstructionVisitor {
   std::list<std::pair<MatchInstr*, size_t /*matchId*/>> matchHints_;
 
   size_t handlerId_;                                //!< current handler's ID
-  std::vector<FlowVM::Instruction> code_;           //!< current handler's code
+  std::vector<vm::Instruction> code_;           //!< current handler's code
   std::unordered_map<Value*, Register> variables_;  //!< variable-to-register
                                                     //assignment-map
   std::vector<bool> allocations_;  //!< register allocation map (primitive)
 
   // target program output
-  FlowVM::ConstantPool cp_;
+  vm::ConstantPool cp_;
 };
 
 //!@}

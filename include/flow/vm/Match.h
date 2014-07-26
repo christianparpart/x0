@@ -20,7 +20,7 @@
 #include <unordered_map>
 
 namespace flow {
-namespace FlowVM {
+namespace vm {
 
 using namespace base;
 
@@ -113,5 +113,5 @@ class FLOW_API MatchRegEx : public Match {
   std::vector<std::pair<const RegExp*, uint64_t>> map_;
 };
 
-}  // namespace FlowVM
+}  // namespace vm
 }  // namespace flow

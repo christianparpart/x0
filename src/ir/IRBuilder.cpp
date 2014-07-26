@@ -17,7 +17,7 @@
 
 namespace flow {
 
-using namespace FlowVM;
+using namespace vm;
 
 #define FLOW_DEBUG_IR 1
 
@@ -659,7 +659,7 @@ Instr* IRBuilder::createCondBr(Value* condValue, BasicBlock* trueBlock,
   return insert(new CondBrInstr(condValue, trueBlock, falseBlock));
 }
 
-MatchInstr* IRBuilder::createMatch(FlowVM::MatchClass opc, Value* cond) {
+MatchInstr* IRBuilder::createMatch(vm::MatchClass opc, Value* cond) {
   return static_cast<MatchInstr*>(insert(new MatchInstr(opc, cond)));
 }
 

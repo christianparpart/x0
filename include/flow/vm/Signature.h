@@ -12,7 +12,7 @@
 #include <string>
 
 namespace flow {
-namespace FlowVM {
+namespace vm {
 
 class FLOW_API Signature {
  private:
@@ -51,5 +51,5 @@ class FLOW_API Signature {
 FlowType typeSignature(char ch);
 char signatureType(FlowType t);
 
-}  // namespace FlowVM
+}  // namespace vm
 }  // namespace flow

@@ -28,7 +28,7 @@ using namespace base;
 //! \addtogroup Flow
 //@{
 
-namespace FlowVM {
+namespace vm {
 class NativeCallback;
 }
 
@@ -177,11 +177,11 @@ class ParamList;
 
 class FLOW_API Callable : public Symbol {
  protected:
-  const FlowVM::NativeCallback* nativeCallback_;
-  FlowVM::Signature sig_;
+  const vm::NativeCallback* nativeCallback_;
+  vm::Signature sig_;
 
  public:
-  Callable(Type t, const FlowVM::NativeCallback* cb, const FlowLocation& loc);
+  Callable(Type t, const vm::NativeCallback* cb, const FlowLocation& loc);
   Callable(const std::string& name, const FlowLocation& loc);
 
   bool isHandler() const {
@@ -193,9 +193,9 @@ class FLOW_API Callable : public Symbol {
            type() == Symbol::BuiltinFunction;
   }
 
-  const FlowVM::Signature& signature() const;
+  const vm::Signature& signature() const;
 
-  const FlowVM::NativeCallback* nativeCallback() const {
+  const vm::NativeCallback* nativeCallback() const {
     return nativeCallback_;
   }
 
@@ -239,7 +239,7 @@ class FLOW_API Handler : public Callable {
 
 class FLOW_API BuiltinFunction : public Callable {
  public:
-  explicit BuiltinFunction(const FlowVM::NativeCallback* cb)
+  explicit BuiltinFunction(const vm::NativeCallback* cb)
       : Callable(Symbol::BuiltinFunction, cb, FlowLocation()) {}
 
   virtual void visit(ASTVisitor& v);
@@ -247,7 +247,7 @@ class FLOW_API BuiltinFunction : public Callable {
 
 class FLOW_API BuiltinHandler : public Callable {
  public:
-  explicit BuiltinHandler(const FlowVM::NativeCallback* cb)
+  explicit BuiltinHandler(const vm::NativeCallback* cb)
       : Callable(Symbol::BuiltinHandler, cb, FlowLocation()) {}
 
   virtual void visit(ASTVisitor& v);
@@ -287,15 +287,15 @@ class FLOW_API Expr : public ASTNode {
 
 class FLOW_API UnaryExpr : public Expr {
  private:
-  FlowVM::Opcode operator_;
+  vm::Opcode operator_;
   std::unique_ptr<Expr> subExpr_;
 
  public:
-  UnaryExpr(FlowVM::Opcode op, std::unique_ptr<Expr>&& subExpr,
+  UnaryExpr(vm::Opcode op, std::unique_ptr<Expr>&& subExpr,
             const FlowLocation& loc)
       : Expr(loc), operator_(op), subExpr_(std::move(subExpr)) {}
 
-  FlowVM::Opcode op() const { return operator_; }
+  vm::Opcode op() const { return operator_; }
   Expr* subExpr() const { return subExpr_.get(); }
 
   virtual void visit(ASTVisitor& v);
@@ -304,15 +304,15 @@ class FLOW_API UnaryExpr : public Expr {
 
 class FLOW_API BinaryExpr : public Expr {
  private:
-  FlowVM::Opcode operator_;
+  vm::Opcode operator_;
   std::unique_ptr<Expr> lhs_;
   std::unique_ptr<Expr> rhs_;
 
  public:
-  BinaryExpr(FlowVM::Opcode op, std::unique_ptr<Expr>&& lhs,
+  BinaryExpr(vm::Opcode op, std::unique_ptr<Expr>&& lhs,
              std::unique_ptr<Expr>&& rhs);
 
-  FlowVM::Opcode op() const { return operator_; }
+  vm::Opcode op() const { return operator_; }
   Expr* leftExpr() const { return lhs_.get(); }
   Expr* rightExpr() const { return rhs_.get(); }
 
@@ -381,7 +381,7 @@ class FLOW_API ParamList {
 
   bool contains(const std::string& name) const;
   void swap(size_t source, size_t dest);
-  void reorder(const FlowVM::NativeCallback* source,
+  void reorder(const vm::NativeCallback* source,
                std::vector<std::string>* superfluous);
   int find(const std::string& name) const;
 
@@ -552,14 +552,14 @@ class FLOW_API MatchStmt : public Stmt {
   typedef std::list<MatchCase> CaseList;
 
   MatchStmt(const FlowLocation& loc, std::unique_ptr<Expr>&& cond,
-            FlowVM::MatchClass op, std::list<MatchCase>&& cases,
+            vm::MatchClass op, std::list<MatchCase>&& cases,
             std::unique_ptr<Stmt>&& elseStmt);
   MatchStmt(MatchStmt&& other);
   MatchStmt& operator=(MatchStmt&& other);
   ~MatchStmt();
 
   Expr* condition() { return cond_.get(); }
-  FlowVM::MatchClass op() const { return op_; }
+  vm::MatchClass op() const { return op_; }
   CaseList& cases() { return cases_; }
 
   Stmt* elseStmt() const { return elseStmt_.get(); }
@@ -569,7 +569,7 @@ class FLOW_API MatchStmt : public Stmt {
 
  private:
   std::unique_ptr<Expr> cond_;
-  FlowVM::MatchClass op_;
+  vm::MatchClass op_;
   CaseList cases_;
   std::unique_ptr<Stmt> elseStmt_;
 };

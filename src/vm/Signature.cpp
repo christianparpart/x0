@@ -11,7 +11,7 @@
 #include <string>
 
 namespace flow {
-namespace FlowVM {
+namespace vm {
 
 Signature::Signature() : name_(), returnType_(FlowType::Void), args_() {}
 
@@ -148,5 +148,5 @@ char signatureType(FlowType t) {
   }
 }
 
-}  // namespace FlowVM
+}  // namespace vm
 }  // namespace flow

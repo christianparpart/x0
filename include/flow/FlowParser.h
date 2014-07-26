@@ -26,7 +26,7 @@ using namespace base;
 //! \addtogroup Flow
 //@{
 
-namespace FlowVM {
+namespace vm {
 class Runtime;
 class NativeCallback;
 };
@@ -36,14 +36,14 @@ class FlowLexer;
 class FLOW_API FlowParser {
   std::unique_ptr<FlowLexer> lexer_;
   SymbolTable* scopeStack_;
-  FlowVM::Runtime* runtime_;
+  vm::Runtime* runtime_;
 
  public:
   std::function<void(const std::string&)> errorHandler;
   std::function<bool(const std::string&, const std::string&,
-                     std::vector<FlowVM::NativeCallback*>*)> importHandler;
+                     std::vector<vm::NativeCallback*>*)> importHandler;
 
-  explicit FlowParser(FlowVM::Runtime* runtime);
+  explicit FlowParser(vm::Runtime* runtime);
   ~FlowParser();
 
   bool open(const std::string& filename);
@@ -51,7 +51,7 @@ class FLOW_API FlowParser {
 
   std::unique_ptr<Unit> parse();
 
-  FlowVM::Runtime* runtime() const { return runtime_; }
+  vm::Runtime* runtime() const { return runtime_; }
 
  private:
   class Scope;
@@ -122,7 +122,7 @@ class FLOW_API FlowParser {
   }
 
   void importRuntime();
-  void declareBuiltin(const FlowVM::NativeCallback* native);
+  void declareBuiltin(const vm::NativeCallback* native);
 
   // syntax: decls
   std::unique_ptr<Unit> unit();

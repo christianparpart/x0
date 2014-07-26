@@ -17,17 +17,17 @@
 
 namespace flow {
 class Instr;
-namespace FlowVM {
+namespace vm {
 class Program;
-} // FlowVM
+} // vm
 } // flow
 
 using namespace flow;
 
-class Flower : public flow::FlowVM::Runtime {
+class Flower : public flow::vm::Runtime {
  private:
   std::string filename_;
-  std::unique_ptr<FlowVM::Program> program_;
+  std::unique_ptr<vm::Program> program_;
   size_t totalCases_;    // total number of cases ran
   size_t totalSuccess_;  // total number of succeed tests
   size_t totalFailed_;   // total number of failed tests
@@ -41,7 +41,7 @@ class Flower : public flow::FlowVM::Runtime {
   ~Flower();
 
   virtual bool import(const std::string& name, const std::string& path,
-                      std::vector<FlowVM::NativeCallback*>* builtins);
+                      std::vector<vm::NativeCallback*>* builtins);
 
   int optimizationLevel() { return 0; }
   void setOptimizationLevel(int val) {}
@@ -59,33 +59,33 @@ class Flower : public flow::FlowVM::Runtime {
   bool compile(flow::Unit* unit);
 
   // functions
-  void flow_print(FlowVM::Params& args);
-  void flow_print_I(FlowVM::Params& args);
-  void flow_print_SI(FlowVM::Params& args);
-  void flow_print_IS(FlowVM::Params& args);
-  void flow_print_i(FlowVM::Params& args);
-  void flow_print_s(FlowVM::Params& args);
-  void flow_print_p(FlowVM::Params& args);
-  void flow_print_c(FlowVM::Params& args);
-  void flow_suspend(FlowVM::Params& args);
-  void flow_log(FlowVM::Params& args);
+  void flow_print(vm::Params& args);
+  void flow_print_I(vm::Params& args);
+  void flow_print_SI(vm::Params& args);
+  void flow_print_IS(vm::Params& args);
+  void flow_print_i(vm::Params& args);
+  void flow_print_s(vm::Params& args);
+  void flow_print_p(vm::Params& args);
+  void flow_print_c(vm::Params& args);
+  void flow_suspend(vm::Params& args);
+  void flow_log(vm::Params& args);
 
   // handlers
-  void flow_assert(FlowVM::Params& args);
-  void flow_finish(FlowVM::Params& args);
-  void flow_pass(FlowVM::Params& args);
-  void flow_assertFail(FlowVM::Params& args);
-  void flow_fail(FlowVM::Params& args);
-  void flow_error(FlowVM::Params& args);
-  void flow_getcwd(FlowVM::Params& args);
-  void flow_random(FlowVM::Params& args);
-  void flow_getenv(FlowVM::Params& args);
+  void flow_assert(vm::Params& args);
+  void flow_finish(vm::Params& args);
+  void flow_pass(vm::Params& args);
+  void flow_assertFail(vm::Params& args);
+  void flow_fail(vm::Params& args);
+  void flow_error(vm::Params& args);
+  void flow_getcwd(vm::Params& args);
+  void flow_random(vm::Params& args);
+  void flow_getenv(vm::Params& args);
 
   bool verify_numbers(Instr* call);
-  void flow_numbers(FlowVM::Params& args);
-  void flow_names(FlowVM::Params& args);
+  void flow_numbers(vm::Params& args);
+  void flow_names(vm::Params& args);
 
   // TODO: not ported yet
-  //	void flow_mkbuf(FlowVM::Params& args);
-  //	void flow_getbuf(FlowVM::Params& args);
+  //	void flow_mkbuf(vm::Params& args);
+  //	void flow_getbuf(vm::Params& args);
 };

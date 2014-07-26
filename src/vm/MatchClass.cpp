@@ -9,7 +9,7 @@
 #include <cassert>
 
 namespace flow {
-namespace FlowVM {
+namespace vm {
 
 std::string tos(MatchClass mc) {
   switch (mc) {
@@ -27,5 +27,5 @@ std::string tos(MatchClass mc) {
   }
 }
 
-}  // namespace FlowVM
+}  // namespace vm
 }  // namespace flow

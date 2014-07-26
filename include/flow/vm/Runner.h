@@ -22,7 +22,7 @@
 #include <string>
 
 namespace flow {
-namespace FlowVM {
+namespace vm {
 
 // ExecutionEngine
 // VM
@@ -82,5 +82,5 @@ class FLOW_API Runner : public CustomData {
   Runner& operator=(Runner&) = delete;
 };
 
-}  // namespace FlowVM
+}  // namespace vm
 }  // namespace flow

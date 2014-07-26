@@ -40,7 +40,7 @@ enum class FlowType {
   CidrArray = 12,    // array<Cidr>
 };
 
-typedef uint64_t Register;  // FlowVM
+typedef uint64_t Register;  // vm
 
 typedef int64_t FlowNumber;
 typedef base::BufferRef FlowString;

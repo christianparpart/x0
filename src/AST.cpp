@@ -85,7 +85,7 @@ Symbol* SymbolTable::lookup(const std::string& name, Lookup method,
 }
 // }}}
 // {{{ Callable
-Callable::Callable(Type t, const FlowVM::NativeCallback* cb,
+Callable::Callable(Type t, const vm::NativeCallback* cb,
                    const FlowLocation& loc)
     : Symbol(t, cb->signature().name(), loc),
       nativeCallback_(cb),
@@ -97,7 +97,7 @@ Callable::Callable(const std::string& name, const FlowLocation& loc)
   sig_.setReturnType(FlowType::Boolean);
 }
 
-const FlowVM::Signature& Callable::signature() const {
+const vm::Signature& Callable::signature() const {
   if (nativeCallback_) return nativeCallback_->signature();
 
   return sig_;
@@ -185,7 +185,7 @@ bool Callable::isDirectMatch(const ParamList& params) const {
 bool Callable::tryMatch(ParamList& params, Buffer* errorMessage) const {
   // printf("Callable(%s).tryMatch()\n", name().c_str());
 
-  const FlowVM::NativeCallback* native = nativeCallback();
+  const vm::NativeCallback* native = nativeCallback();
 
   if (params.empty() && (!native || native->signature().args().empty()))
     return true;
@@ -266,7 +266,7 @@ bool Callable::tryMatch(ParamList& params, Buffer* errorMessage) const {
       completeDefaultValue(params, type, defaultValue, name);
     }
 
-    FlowVM::Signature sig;
+    vm::Signature sig;
     sig.setName(this->name());
     sig.setReturnType(signature().returnType());  // XXX cheetah
     std::vector<FlowType> argTypes;
@@ -369,7 +369,7 @@ std::pair<std::string, Expr*> ParamList::at(size_t offset) const {
   return std::make_pair(isNamed() ? names_[offset] : "", values_[offset]);
 }
 
-void ParamList::reorder(const FlowVM::NativeCallback* native,
+void ParamList::reorder(const vm::NativeCallback* native,
                         std::vector<std::string>* superfluous) {
   // dump("ParamList::reorder (before)");
 
@@ -460,7 +460,7 @@ void Handler::visit(ASTVisitor& v) { v.accept(*this); }
 
 void UnaryExpr::visit(ASTVisitor& v) { v.accept(*this); }
 
-BinaryExpr::BinaryExpr(FlowVM::Opcode op, std::unique_ptr<Expr>&& lhs,
+BinaryExpr::BinaryExpr(vm::Opcode op, std::unique_ptr<Expr>&& lhs,
                        std::unique_ptr<Expr>&& rhs)
     : Expr(rhs->location() - lhs->location()),
       operator_(op),
@@ -516,7 +516,7 @@ bool CallExpr::setArgs(ParamList&& args) {
 }
 
 MatchStmt::MatchStmt(const FlowLocation& loc, std::unique_ptr<Expr>&& cond,
-                     FlowVM::MatchClass op, std::list<MatchCase>&& cases,
+                     vm::MatchClass op, std::list<MatchCase>&& cases,
                      std::unique_ptr<Stmt>&& elseStmt)
     : Stmt(loc),
       cond_(std::move(cond)),

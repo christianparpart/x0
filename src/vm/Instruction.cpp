@@ -14,7 +14,7 @@
 #include <unordered_map>
 
 namespace flow {
-namespace FlowVM {
+namespace vm {
 
 InstructionSig operandSignature(Opcode opc) {
   static std::unordered_map<size_t, InstructionSig> map = {
@@ -454,5 +454,5 @@ size_t computeRegisterCount(const Instruction* code, size_t size) {
   return count;
 }
 
-}  // namespace FlowVM
+}  // namespace vm
 }  // namespace flow

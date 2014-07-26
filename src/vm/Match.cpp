@@ -11,7 +11,7 @@
 #include <flow/vm/Runner.h>
 
 namespace flow {
-namespace FlowVM {
+namespace vm {
 
 // {{{ Match
 Match::Match(const MatchDef& def, Program* program)
@@ -94,5 +94,5 @@ uint64_t MatchRegEx::evaluate(const FlowString* condition, Runner* env) const {
 }
 // }}}
 
-}  // namespace FlowVM
+}  // namespace vm
 }  // namespace flow

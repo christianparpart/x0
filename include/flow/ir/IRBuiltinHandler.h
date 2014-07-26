@@ -19,14 +19,14 @@ namespace flow {
 
 class FLOW_API IRBuiltinHandler : public Constant {
  public:
-  IRBuiltinHandler(const FlowVM::Signature& sig)
+  IRBuiltinHandler(const vm::Signature& sig)
       : Constant(FlowType::Boolean, sig.name()), signature_(sig) {}
 
-  const FlowVM::Signature& signature() const { return signature_; }
-  const FlowVM::Signature& get() const { return signature_; }
+  const vm::Signature& signature() const { return signature_; }
+  const vm::Signature& get() const { return signature_; }
 
  private:
-  FlowVM::Signature signature_;
+  vm::Signature signature_;
 };
 
 }  // namespace flow

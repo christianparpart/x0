@@ -19,7 +19,7 @@ namespace flow {
 
 class IRProgram;
 
-namespace FlowVM {
+namespace vm {
 
 typedef uint64_t Value;
 
@@ -31,7 +31,7 @@ class FLOW_API Runtime {
   virtual ~Runtime();
 
   virtual bool import(const std::string& name, const std::string& path,
-                      std::vector<FlowVM::NativeCallback*>* builtins) = 0;
+                      std::vector<vm::NativeCallback*>* builtins) = 0;
 
   bool contains(const std::string& signature) const;
   NativeCallback* find(const std::string& signature);
@@ -51,5 +51,5 @@ class FLOW_API Runtime {
   std::vector<NativeCallback*> builtins_;
 };
 
-}  // FlowVM
+}  // vm
 }  // x0

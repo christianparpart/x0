@@ -76,10 +76,10 @@ class FLOW_API IRBuilder {
   ConstantIP* get(const IPAddress& literal) { return program_->get(literal); }
   ConstantCidr* get(const Cidr& literal) { return program_->get(literal); }
   ConstantRegExp* get(const RegExp& literal) { return program_->get(literal); }
-  IRBuiltinHandler* getBuiltinHandler(const FlowVM::Signature& sig) {
+  IRBuiltinHandler* getBuiltinHandler(const vm::Signature& sig) {
     return program_->getBuiltinHandler(sig);
   }
-  IRBuiltinFunction* getBuiltinFunction(const FlowVM::Signature& sig) {
+  IRBuiltinFunction* getBuiltinFunction(const vm::Signature& sig) {
     return program_->getBuiltinFunction(sig);
   }
   ConstantArray* get(const std::vector<Constant*>& arrayElements) {
@@ -188,7 +188,7 @@ class FLOW_API IRBuilder {
   Instr* createBr(BasicBlock* block);
   Instr* createCondBr(Value* condValue, BasicBlock* trueBlock,
                       BasicBlock* falseBlock);
-  MatchInstr* createMatch(FlowVM::MatchClass opc, Value* cond);
+  MatchInstr* createMatch(vm::MatchClass opc, Value* cond);
   Value* createMatchSame(Value* cond);
   Value* createMatchHead(Value* cond);
   Value* createMatchTail(Value* cond);

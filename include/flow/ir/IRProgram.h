@@ -60,10 +60,10 @@ class FLOW_API IRProgram {
   // const std::vector<ConstantArray*>& constantArrays() const { return
   // constantArrays_; }
 
-  IRBuiltinHandler* getBuiltinHandler(const FlowVM::Signature& sig) {
+  IRBuiltinHandler* getBuiltinHandler(const vm::Signature& sig) {
     return get<IRBuiltinHandler>(builtinHandlers_, sig);
   }
-  IRBuiltinFunction* getBuiltinFunction(const FlowVM::Signature& sig) {
+  IRBuiltinFunction* getBuiltinFunction(const vm::Signature& sig) {
     return get<IRBuiltinFunction>(builtinFunctions_, sig);
   }
 

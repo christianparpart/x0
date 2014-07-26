@@ -13,7 +13,7 @@
 
 namespace flow {
 
-using namespace FlowVM;
+using namespace vm;
 
 IRProgram::IRProgram()
     : modules_(),

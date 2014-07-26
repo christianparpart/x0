@@ -11,7 +11,7 @@
 #include <inttypes.h>
 
 namespace flow {
-namespace FlowVM {
+namespace vm {
 
 // {{{ helpers
 template <typename T, typename S>
@@ -271,7 +271,7 @@ void ConstantPool::dump() const {
     }
   }
 
-  flow::FlowVM::dump(intArrays_, "Integer");
+  flow::vm::dump(intArrays_, "Integer");
 
   if (!stringArrays_.empty()) {
     std::cout << "\n; Constant String Arrays\n";
@@ -286,8 +286,8 @@ void ConstantPool::dump() const {
     }
   }
 
-  flow::FlowVM::dump(ipaddrArrays_, "IPAddress");
-  flow::FlowVM::dump(cidrArrays_, "Cidr");
+  flow::vm::dump(ipaddrArrays_, "IPAddress");
+  flow::vm::dump(cidrArrays_, "Cidr");
 
   if (!matchDefs_.empty()) {
     printf("\n; Match Table\n");
@@ -315,5 +315,5 @@ void ConstantPool::dump() const {
   }
 }
 
-}  // namespace FlowVM
+}  // namespace vm
 }  // namespace flow

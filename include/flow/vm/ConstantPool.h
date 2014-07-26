@@ -16,7 +16,7 @@
 #include <base/Buffer.h>
 
 namespace flow {
-namespace FlowVM {
+namespace vm {
 
 using namespace base;
 
@@ -132,5 +132,5 @@ struct FLOW_API ConstantPool {
   std::vector<std::string> nativeFunctionSignatures_;
 };
 
-}  // namespace FlowVM
+}  // namespace vm
 }  // namespace flow

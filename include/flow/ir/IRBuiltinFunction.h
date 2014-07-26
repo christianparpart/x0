@@ -15,14 +15,14 @@ namespace flow {
 
 class FLOW_API IRBuiltinFunction : public Constant {
  public:
-  IRBuiltinFunction(const FlowVM::Signature& sig)
+  IRBuiltinFunction(const vm::Signature& sig)
       : Constant(sig.returnType(), sig.name()), signature_(sig) {}
 
-  const FlowVM::Signature& signature() const { return signature_; }
-  const FlowVM::Signature& get() const { return signature_; }
+  const vm::Signature& signature() const { return signature_; }
+  const vm::Signature& get() const { return signature_; }
 
  private:
-  FlowVM::Signature signature_;
+  vm::Signature signature_;
 };
 
 }  // namespace flow

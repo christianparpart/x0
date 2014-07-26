@@ -20,7 +20,7 @@
 #include <memory>
 
 namespace flow {
-namespace FlowVM {
+namespace vm {
 
 using namespace base;
 
@@ -82,5 +82,5 @@ class FLOW_API Program {
   std::vector<NativeCallback*> nativeFunctions_;
 };
 
-}  // namespace FlowVM
+}  // namespace vm
 }  // namespace flow

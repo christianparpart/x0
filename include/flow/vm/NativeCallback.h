@@ -23,7 +23,7 @@ using namespace base;
 
 class Instr;
 
-namespace FlowVM {
+namespace vm {
 
 typedef uint64_t Value;
 
@@ -340,5 +340,5 @@ inline const void* NativeCallback::getDefaultAt(size_t i) const {
 }
 // }}}
 
-}  // namespace FlowVM
+}  // namespace vm
 }  // namespace flow

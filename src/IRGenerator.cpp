@@ -206,16 +206,16 @@ void IRGenerator::accept(UnaryExpr& expr) {
   FNTRACE();
 
   static const std::unordered_map<
-      int /*FlowVM::Opcode*/,
+      int /*vm::Opcode*/,
       Value* (IRGenerator::*)(Value*, const std::string&)> ops =
-      {{FlowVM::Opcode::I2S, &IRGenerator::createI2S},
-       {FlowVM::Opcode::P2S, &IRGenerator::createP2S},
-       {FlowVM::Opcode::C2S, &IRGenerator::createC2S},
-       {FlowVM::Opcode::R2S, &IRGenerator::createR2S},
-       {FlowVM::Opcode::S2I, &IRGenerator::createS2I},
-       {FlowVM::Opcode::NNEG, &IRGenerator::createNeg},
-       {FlowVM::Opcode::NNOT, &IRGenerator::createNot},
-       {FlowVM::Opcode::BNOT, &IRGenerator::createBNot}, };
+      {{vm::Opcode::I2S, &IRGenerator::createI2S},
+       {vm::Opcode::P2S, &IRGenerator::createP2S},
+       {vm::Opcode::C2S, &IRGenerator::createC2S},
+       {vm::Opcode::R2S, &IRGenerator::createR2S},
+       {vm::Opcode::S2I, &IRGenerator::createS2I},
+       {vm::Opcode::NNEG, &IRGenerator::createNeg},
+       {vm::Opcode::NNOT, &IRGenerator::createNot},
+       {vm::Opcode::BNOT, &IRGenerator::createBNot}, };
 
   Value* rhs = codegen(expr.subExpr());
 
@@ -232,51 +232,51 @@ void IRGenerator::accept(BinaryExpr& expr) {
   FNTRACE();
 
   static const std::unordered_map<
-      int /*FlowVM::Opcode*/,
+      int /*vm::Opcode*/,
       Value* (IRGenerator::*)(Value*, Value*, const std::string&)> ops =
       {// boolean
-       {FlowVM::Opcode::BAND, &IRGenerator::createBAnd},
-       {FlowVM::Opcode::BXOR, &IRGenerator::createBXor},
+       {vm::Opcode::BAND, &IRGenerator::createBAnd},
+       {vm::Opcode::BXOR, &IRGenerator::createBXor},
        // numerical
-       {FlowVM::Opcode::NADD, &IRGenerator::createAdd},
-       {FlowVM::Opcode::NSUB, &IRGenerator::createSub},
-       {FlowVM::Opcode::NMUL, &IRGenerator::createMul},
-       {FlowVM::Opcode::NDIV, &IRGenerator::createDiv},
-       {FlowVM::Opcode::NREM, &IRGenerator::createRem},
-       {FlowVM::Opcode::NSHL, &IRGenerator::createShl},
-       {FlowVM::Opcode::NSHR, &IRGenerator::createShr},
-       {FlowVM::Opcode::NPOW, &IRGenerator::createPow},
-       {FlowVM::Opcode::NAND, &IRGenerator::createAnd},
-       {FlowVM::Opcode::NOR, &IRGenerator::createOr},
-       {FlowVM::Opcode::NXOR, &IRGenerator::createXor},
-       {FlowVM::Opcode::NCMPEQ, &IRGenerator::createNCmpEQ},
-       {FlowVM::Opcode::NCMPNE, &IRGenerator::createNCmpNE},
-       {FlowVM::Opcode::NCMPLE, &IRGenerator::createNCmpLE},
-       {FlowVM::Opcode::NCMPGE, &IRGenerator::createNCmpGE},
-       {FlowVM::Opcode::NCMPLT, &IRGenerator::createNCmpLT},
-       {FlowVM::Opcode::NCMPGT, &IRGenerator::createNCmpGT},
+       {vm::Opcode::NADD, &IRGenerator::createAdd},
+       {vm::Opcode::NSUB, &IRGenerator::createSub},
+       {vm::Opcode::NMUL, &IRGenerator::createMul},
+       {vm::Opcode::NDIV, &IRGenerator::createDiv},
+       {vm::Opcode::NREM, &IRGenerator::createRem},
+       {vm::Opcode::NSHL, &IRGenerator::createShl},
+       {vm::Opcode::NSHR, &IRGenerator::createShr},
+       {vm::Opcode::NPOW, &IRGenerator::createPow},
+       {vm::Opcode::NAND, &IRGenerator::createAnd},
+       {vm::Opcode::NOR, &IRGenerator::createOr},
+       {vm::Opcode::NXOR, &IRGenerator::createXor},
+       {vm::Opcode::NCMPEQ, &IRGenerator::createNCmpEQ},
+       {vm::Opcode::NCMPNE, &IRGenerator::createNCmpNE},
+       {vm::Opcode::NCMPLE, &IRGenerator::createNCmpLE},
+       {vm::Opcode::NCMPGE, &IRGenerator::createNCmpGE},
+       {vm::Opcode::NCMPLT, &IRGenerator::createNCmpLT},
+       {vm::Opcode::NCMPGT, &IRGenerator::createNCmpGT},
 
        // string
-       {FlowVM::Opcode::SADD, &IRGenerator::createSAdd},
-       {FlowVM::Opcode::SCMPEQ, &IRGenerator::createSCmpEQ},
-       {FlowVM::Opcode::SCMPNE, &IRGenerator::createSCmpNE},
-       {FlowVM::Opcode::SCMPLE, &IRGenerator::createSCmpLE},
-       {FlowVM::Opcode::SCMPGE, &IRGenerator::createSCmpGE},
-       {FlowVM::Opcode::SCMPLT, &IRGenerator::createSCmpLT},
-       {FlowVM::Opcode::SCMPGT, &IRGenerator::createSCmpGT},
-       {FlowVM::Opcode::SCMPBEG, &IRGenerator::createSCmpEB},
-       {FlowVM::Opcode::SCMPEND, &IRGenerator::createSCmpEE},
-       {FlowVM::Opcode::SCONTAINS, &IRGenerator::createSIn},
+       {vm::Opcode::SADD, &IRGenerator::createSAdd},
+       {vm::Opcode::SCMPEQ, &IRGenerator::createSCmpEQ},
+       {vm::Opcode::SCMPNE, &IRGenerator::createSCmpNE},
+       {vm::Opcode::SCMPLE, &IRGenerator::createSCmpLE},
+       {vm::Opcode::SCMPGE, &IRGenerator::createSCmpGE},
+       {vm::Opcode::SCMPLT, &IRGenerator::createSCmpLT},
+       {vm::Opcode::SCMPGT, &IRGenerator::createSCmpGT},
+       {vm::Opcode::SCMPBEG, &IRGenerator::createSCmpEB},
+       {vm::Opcode::SCMPEND, &IRGenerator::createSCmpEE},
+       {vm::Opcode::SCONTAINS, &IRGenerator::createSIn},
 
        // regex
-       {FlowVM::Opcode::SREGMATCH, &IRGenerator::createSCmpRE},
+       {vm::Opcode::SREGMATCH, &IRGenerator::createSCmpRE},
 
        // ip
-       {FlowVM::Opcode::PCMPEQ, &IRGenerator::createPCmpEQ},
-       {FlowVM::Opcode::PCMPNE, &IRGenerator::createPCmpNE},
-       {FlowVM::Opcode::PINCIDR, &IRGenerator::createPInCidr}, };
+       {vm::Opcode::PCMPEQ, &IRGenerator::createPCmpEQ},
+       {vm::Opcode::PCMPNE, &IRGenerator::createPCmpNE},
+       {vm::Opcode::PINCIDR, &IRGenerator::createPInCidr}, };
 
-  if (expr.op() == FlowVM::Opcode::BOR) {
+  if (expr.op() == vm::Opcode::BOR) {
     // (lhs || rhs)
     //
     //   L = lhs();

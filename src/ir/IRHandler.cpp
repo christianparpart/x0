@@ -13,7 +13,7 @@
 
 namespace flow {
 
-using namespace FlowVM;
+using namespace vm;
 
 IRHandler::IRHandler(const std::string& name)
     : Constant(FlowType::Handler, name), parent_(nullptr), blocks_() {}

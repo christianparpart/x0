@@ -37,7 +37,7 @@ struct hash<OpSig> {
 
 namespace flow {
 
-using FlowVM::Opcode;
+using vm::Opcode;
 
 #define FLOW_DEBUG_PARSER 1
 
@@ -130,7 +130,7 @@ class FlowParser::Scope {
   for (FlowParser::Scope _(this, (SCOPED_SYMBOL)); _.flip();)
 // }}}
 
-FlowParser::FlowParser(FlowVM::Runtime* runtime)
+FlowParser::FlowParser(vm::Runtime* runtime)
     : lexer_(new FlowLexer()),
       scopeStack_(nullptr),
       runtime_(runtime),
@@ -189,7 +189,7 @@ std::unique_ptr<Unit> FlowParser::parse() { return unit(); }
  * @return opcode that matches given expressions operator or EXIT if operands
  *incompatible.
  */
-FlowVM::Opcode makeOperator(FlowToken token, Expr* left, Expr* right) {
+vm::Opcode makeOperator(FlowToken token, Expr* left, Expr* right) {
   // (bool, bool)     == !=
   // (num, num)       + - * / % ** << >> & | ^ and or xor == != <= >= < >
   // (string, string) + == != <= >= < > =^ =$ in
@@ -408,7 +408,7 @@ void FlowParser::importRuntime() {
   }
 }
 
-void FlowParser::declareBuiltin(const FlowVM::NativeCallback* native) {
+void FlowParser::declareBuiltin(const vm::NativeCallback* native) {
   TRACE(1, "declareBuiltin (scope:%p): %s", scope(),
         native->signature().to_s().c_str());
 
@@ -495,13 +495,13 @@ bool FlowParser::importDecl(Unit* unit) {
   }
 
   for (auto i = names.begin(), e = names.end(); i != e; ++i) {
-    std::vector<FlowVM::NativeCallback*> builtins;
+    std::vector<vm::NativeCallback*> builtins;
 
     if (importHandler && !importHandler(*i, path, &builtins)) return false;
 
     unit->import(*i, path);
 
-    for (FlowVM::NativeCallback* native : builtins) {
+    for (vm::NativeCallback* native : builtins) {
       declareBuiltin(native);
     }
   }
@@ -628,7 +628,7 @@ std::unique_ptr<Expr> FlowParser::notExpr() {
 
   if ((nots % 2) == 0) return subExpr;
 
-  FlowVM::Opcode op = makeOperator(FlowToken::Not, subExpr.get());
+  vm::Opcode op = makeOperator(FlowToken::Not, subExpr.get());
   if (op == Opcode::EXIT) {
     reportError(
         "Type cast error in unary 'not'-operator. Invalid source type <%s>.",
@@ -782,7 +782,7 @@ std::unique_ptr<Expr> FlowParser::negExpr() {
     std::unique_ptr<Expr> e = negExpr();
     if (!e) return nullptr;
 
-    FlowVM::Opcode op = makeOperator(FlowToken::Minus, e.get());
+    vm::Opcode op = makeOperator(FlowToken::Minus, e.get());
     if (op == Opcode::EXIT) {
       reportError(
           "Type cast error in unary 'neg'-operator. Invalid source type <%s>.",
@@ -807,7 +807,7 @@ std::unique_ptr<Expr> FlowParser::bitNotExpr() {
     std::unique_ptr<Expr> e = bitNotExpr();
     if (!e) return nullptr;
 
-    FlowVM::Opcode op = makeOperator(FlowToken::BitNot, e.get());
+    vm::Opcode op = makeOperator(FlowToken::BitNot, e.get());
     if (op == Opcode::EXIT) {
       reportError(
           "Type cast error in unary 'not'-operator. Invalid source type <%s>.",
@@ -1340,20 +1340,20 @@ std::unique_ptr<Stmt> FlowParser::matchStmt() {
   }
 
   // [MATCH_OP]
-  FlowVM::MatchClass op;
+  vm::MatchClass op;
   if (FlowTokenTraits::isOperator(token())) {
     switch (token()) {
       case FlowToken::Equal:
-        op = FlowVM::MatchClass::Same;
+        op = vm::MatchClass::Same;
         break;
       case FlowToken::PrefixMatch:
-        op = FlowVM::MatchClass::Head;
+        op = vm::MatchClass::Head;
         break;
       case FlowToken::SuffixMatch:
-        op = FlowVM::MatchClass::Tail;
+        op = vm::MatchClass::Tail;
         break;
       case FlowToken::RegexMatch:
-        op = FlowVM::MatchClass::RegExp;
+        op = vm::MatchClass::RegExp;
         break;
       default:
         reportError("Expected match oeprator, found \"%s\" instead.",
@@ -1362,10 +1362,10 @@ std::unique_ptr<Stmt> FlowParser::matchStmt() {
     }
     nextToken();
   } else {
-    op = FlowVM::MatchClass::Same;
+    op = vm::MatchClass::Same;
   }
 
-  if (op == FlowVM::MatchClass::RegExp) matchType = FlowType::RegExp;
+  if (op == vm::MatchClass::RegExp) matchType = FlowType::RegExp;
 
   // '{'
   if (!consume(FlowToken::Begin)) return nullptr;
@@ -1584,9 +1584,9 @@ std::unique_ptr<CallExpr> FlowParser::callStmt(
   return resolve(callables, std::move(params));
 }
 
-FlowVM::Signature makeSignature(const Callable* callee,
+vm::Signature makeSignature(const Callable* callee,
                                 const ParamList& params) {
-  FlowVM::Signature sig;
+  vm::Signature sig;
 
   sig.setName(callee->name());
 

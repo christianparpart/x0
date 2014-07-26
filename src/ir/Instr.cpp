@@ -17,7 +17,7 @@
 
 namespace flow {
 
-using namespace FlowVM;
+using namespace vm;
 
 Instr::Instr(const Instr& v)
     : Value(v), parent_(nullptr), operands_(v.operands_) {

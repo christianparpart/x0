@@ -138,7 +138,7 @@ Flower::Flower()
 Flower::~Flower() {}
 
 bool Flower::import(const std::string& name, const std::string& path,
-                    std::vector<FlowVM::NativeCallback*>* builtins) {
+                    std::vector<vm::NativeCallback*>* builtins) {
   return false;
 }
 
@@ -179,7 +179,7 @@ int Flower::runAll(const char* fileName) {
 
   parser.importHandler = [&](const std::string& name,
                              const std::string& basedir,
-                             std::vector<FlowVM::NativeCallback*>*)
+                             std::vector<vm::NativeCallback*>*)
                              ->bool {
     fprintf(stderr, "parser.importHandler('%s', '%s')\n", name.c_str(),
             basedir.c_str());
@@ -306,7 +306,7 @@ int Flower::run(const char* fileName, const char* handlerName) {
 
   parser.importHandler = [&](const std::string& name,
                              const std::string& basedir,
-                             std::vector<FlowVM::NativeCallback*>*)
+                             std::vector<vm::NativeCallback*>*)
                              ->bool {
     fprintf(stderr, "parser.importHandler('%s', '%s')\n", name.c_str(),
             basedir.c_str());
@@ -337,7 +337,7 @@ int Flower::run(const char* fileName, const char* handlerName) {
 
   if (!compile(unit.get())) return -1;
 
-  FlowVM::Handler* handler = program_->findHandler(handlerName);
+  vm::Handler* handler = program_->findHandler(handlerName);
   assert(handler != nullptr);
 
   printf("Running handler %s ...\n", handlerName);
@@ -352,23 +352,23 @@ int Flower::run(const char* fileName, const char* handlerName) {
 
 void Flower::dump() { program_->dump(); }
 
-void Flower::flow_print(FlowVM::Params& args) {
+void Flower::flow_print(vm::Params& args) {
   printf("%s\n", args.getString(1).str().c_str());
 }
 
-void Flower::flow_print_I(FlowVM::Params& args) {
+void Flower::flow_print_I(vm::Params& args) {
   printf("%" PRIi64 "\n", args.getInt(1));
 }
 
-void Flower::flow_print_SI(FlowVM::Params& args) {
+void Flower::flow_print_SI(vm::Params& args) {
   printf("%s %" PRIi64 "\n", args.getString(1).str().c_str(), args.getInt(2));
 }
 
-void Flower::flow_print_IS(FlowVM::Params& args) {
+void Flower::flow_print_IS(vm::Params& args) {
   printf("%" PRIi64 " %s\n", args.getInt(1), args.getString(2).str().c_str());
 }
 
-void Flower::flow_print_i(FlowVM::Params& args) {
+void Flower::flow_print_i(vm::Params& args) {
   const FlowIntArray& array = args.getIntArray(1);
   printf("int array size: #%zu\n", array.size());
   for (FlowNumber number : array) {
@@ -378,7 +378,7 @@ void Flower::flow_print_i(FlowVM::Params& args) {
 }
 
 typedef std::vector<FixedBuffer> FixedBufferArray;
-void Flower::flow_print_s(FlowVM::Params& args) {
+void Flower::flow_print_s(vm::Params& args) {
   const FlowStringArray& array = args.getStringArray(1);
   std::cout << "string array: (" << array.size() << ") [";
   size_t i = 0;
@@ -389,30 +389,30 @@ void Flower::flow_print_s(FlowVM::Params& args) {
   std::cout << ']' << std::endl;
 }
 
-void Flower::flow_print_p(FlowVM::Params& args) {
+void Flower::flow_print_p(vm::Params& args) {
   for (const IPAddress& ipaddr : args.getIPAddressArray(1)) {
     printf("%s\n", ipaddr.c_str());
   }
   printf("\n");
 }
 
-void Flower::flow_print_c(FlowVM::Params& args) {
+void Flower::flow_print_c(vm::Params& args) {
   for (const Cidr& cidr : args.getCidrArray(1)) {
     printf("%s\n", cidr.str().c_str());
   }
   printf("\n");
 }
 
-void Flower::flow_suspend(FlowVM::Params& args) { args.caller()->suspend(); }
+void Flower::flow_suspend(vm::Params& args) { args.caller()->suspend(); }
 
-void Flower::flow_log(FlowVM::Params& args) {
+void Flower::flow_log(vm::Params& args) {
   const FlowString& message = args.getString(1);
   FlowNumber severity = args.getInt(2);
 
   printf("<%" PRIi64 "> %s\n", severity, message.str().c_str());
 }
 
-void Flower::flow_assert(FlowVM::Params& args) {
+void Flower::flow_assert(vm::Params& args) {
   const FlowString& sourceValue = args.getString(2);
 
   if (!args.getBool(1)) {
@@ -425,22 +425,22 @@ void Flower::flow_assert(FlowVM::Params& args) {
   }
 }
 
-void Flower::flow_getcwd(FlowVM::Params& args) {
+void Flower::flow_getcwd(vm::Params& args) {
   char buf[PATH_MAX];
 
   args.setResult(getcwd(buf, sizeof(buf)) ? buf : strerror(errno));
 }
 
-void Flower::flow_random(FlowVM::Params& args) {
+void Flower::flow_random(vm::Params& args) {
   srand(time(NULL));
   args.setResult(static_cast<FlowNumber>(random()));
 }
 
-void Flower::flow_getenv(FlowVM::Params& args) {
+void Flower::flow_getenv(vm::Params& args) {
   args.setResult(getenv(args.getString(1).str().c_str()));
 }
 
-void Flower::flow_error(FlowVM::Params& args) {
+void Flower::flow_error(vm::Params& args) {
   if (args.size() == 2)
     printf("Error. %s\n", args.getString(1).str().c_str());
   else
@@ -449,13 +449,13 @@ void Flower::flow_error(FlowVM::Params& args) {
   args.setResult(true);
 }
 
-void Flower::flow_finish(FlowVM::Params& args) { args.setResult(true); }
+void Flower::flow_finish(vm::Params& args) { args.setResult(true); }
 
-void Flower::flow_fail(FlowVM::Params& args) { args.setResult(true); }
+void Flower::flow_fail(vm::Params& args) { args.setResult(true); }
 
-void Flower::flow_pass(FlowVM::Params& args) { args.setResult(false); }
+void Flower::flow_pass(vm::Params& args) { args.setResult(false); }
 
-void Flower::flow_assertFail(FlowVM::Params& args) {
+void Flower::flow_assertFail(vm::Params& args) {
   if (args.getBool(1)) {
     fprintf(stderr, "Assertion failed. %s\n", args.getString(2).str().c_str());
     args.setResult(true);
@@ -479,7 +479,7 @@ bool Flower::verify_numbers(Instr* call) {
   return true;
 }
 
-void Flower::flow_numbers(FlowVM::Params& args) {
+void Flower::flow_numbers(vm::Params& args) {
   const FlowIntArray& array = args.getIntArray(1);
 
   for (FlowNumber value : array) {
@@ -487,7 +487,7 @@ void Flower::flow_numbers(FlowVM::Params& args) {
   }
 }
 
-void Flower::flow_names(FlowVM::Params& args) {
+void Flower::flow_names(vm::Params& args) {
   const FlowStringArray& array = args.getStringArray(1);
 
   for (const FlowString& value : array) {

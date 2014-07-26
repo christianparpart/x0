@@ -16,7 +16,7 @@
 #include <flow/sysconfig.h>
 
 namespace flow {
-namespace FlowVM {
+namespace vm {
 
 class Program;
 class Runner;
@@ -63,5 +63,5 @@ class FLOW_API Handler {
 #endif
 };
 
-}  // namespace FlowVM
+}  // namespace vm
 }  // namespace flow

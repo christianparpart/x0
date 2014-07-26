@@ -15,7 +15,7 @@
 
 namespace flow {
 
-using namespace FlowVM;
+using namespace vm;
 
 template <typename T, typename U>
 inline std::vector<U> join(const T& a, const std::vector<U>& vec)  // {{{

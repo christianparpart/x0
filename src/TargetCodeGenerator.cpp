@@ -21,7 +21,7 @@
 
 namespace flow {
 
-using namespace FlowVM;
+using namespace vm;
 
 template <typename T, typename S>
 std::vector<T> convert(const std::vector<Constant*>& source) {
@@ -47,13 +47,13 @@ TargetCodeGenerator::TargetCodeGenerator()
 
 TargetCodeGenerator::~TargetCodeGenerator() {}
 
-std::unique_ptr<FlowVM::Program> TargetCodeGenerator::generate(
+std::unique_ptr<vm::Program> TargetCodeGenerator::generate(
     IRProgram* program) {
   for (IRHandler* handler : program->handlers()) generate(handler);
 
   cp_.setModules(program->modules());
 
-  return std::unique_ptr<FlowVM::Program>(new FlowVM::Program(std::move(cp_)));
+  return std::unique_ptr<vm::Program>(new vm::Program(std::move(cp_)));
 }
 
 void TargetCodeGenerator::generate(IRHandler* handler) {
@@ -121,19 +121,19 @@ size_t TargetCodeGenerator::handlerRef(IRHandler* handler) {
   return cp_.makeHandler(handler->name());
 }
 
-size_t TargetCodeGenerator::emit(FlowVM::Instruction instr) {
+size_t TargetCodeGenerator::emit(vm::Instruction instr) {
   code_.push_back(instr);
   return getInstructionPointer() - 1;
 }
 
-size_t TargetCodeGenerator::emit(FlowVM::Opcode opcode, Register cond,
+size_t TargetCodeGenerator::emit(vm::Opcode opcode, Register cond,
                                  BasicBlock* bb) {
   size_t pc = emit(Opcode::NOP);
   conditionalJumps_[bb].push_back({pc, opcode, cond});
   return pc;
 }
 
-size_t TargetCodeGenerator::emit(FlowVM::Opcode opcode, BasicBlock* bb) {
+size_t TargetCodeGenerator::emit(vm::Opcode opcode, BasicBlock* bb) {
   size_t pc = emit(Opcode::NOP);
   unconditionalJumps_[bb].push_back({pc, opcode});
   return pc;
@@ -187,7 +187,7 @@ size_t TargetCodeGenerator::emitBinary(Instr& instr, Opcode rr, Opcode ri) {
   return emit(rr, a, b, c);
 }
 
-size_t TargetCodeGenerator::emitUnary(Instr& instr, FlowVM::Opcode r) {
+size_t TargetCodeGenerator::emitUnary(Instr& instr, vm::Opcode r) {
   assert(operandSignature(r) == InstructionSig::RR);
 
   Register a = allocate(1, instr);
@@ -378,14 +378,14 @@ void TargetCodeGenerator::visit(HandlerCallInstr& instr) {
   free(rbase + 1, argc - 1);
 }
 
-FlowVM::Operand TargetCodeGenerator::getConstantInt(Value* value) {
+vm::Operand TargetCodeGenerator::getConstantInt(Value* value) {
   if (auto i = dynamic_cast<ConstantInt*>(value)) return i->get();
 
   assert(!"Should not happen");
   return 0;
 }
 
-FlowVM::Operand TargetCodeGenerator::getRegister(Value* value) {
+vm::Operand TargetCodeGenerator::getRegister(Value* value) {
   auto i = variables_.find(value);
   if (i != variables_.end()) return i->second;
 
