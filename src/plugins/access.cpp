@@ -60,21 +60,21 @@ class AccessPlugin : public x0d::XzeroPlugin {
 
  private:
   // {{{ deny()
-  bool deny_all(HttpRequest* r, FlowVM::Params& args) { return forbidden(r); }
+  bool deny_all(HttpRequest* r, vm::Params& args) { return forbidden(r); }
 
-  bool deny_ip(HttpRequest* r, FlowVM::Params& args) {
+  bool deny_ip(HttpRequest* r, vm::Params& args) {
     if (r->connection.remoteIP() == args.getIPAddress(1)) return forbidden(r);
 
     return false;
   }
 
-  bool deny_cidr(HttpRequest* r, FlowVM::Params& args) {
+  bool deny_cidr(HttpRequest* r, vm::Params& args) {
     if (args.getCidr(1).contains(r->connection.remoteIP())) return forbidden(r);
 
     return false;
   }
 
-  bool deny_ipArray(HttpRequest* r, FlowVM::Params& args) {
+  bool deny_ipArray(HttpRequest* r, vm::Params& args) {
     const auto& list = args.getIPAddressArray(1);
     for (const auto& ip : list)
       if (ip == r->connection.remoteIP()) return forbidden(r);
@@ -82,7 +82,7 @@ class AccessPlugin : public x0d::XzeroPlugin {
     return false;
   }
 
-  bool deny_cidrArray(HttpRequest* r, FlowVM::Params& args) {
+  bool deny_cidrArray(HttpRequest* r, vm::Params& args) {
     const auto& list = args.getCidrArray(1);
     for (const auto& cidr : list)
       if (cidr.contains(r->connection.remoteIP())) return forbidden(r);
@@ -91,19 +91,19 @@ class AccessPlugin : public x0d::XzeroPlugin {
   }
   // }}}
   // {{{ deny_except()
-  bool denyExcept_ip(HttpRequest* r, FlowVM::Params& args) {
+  bool denyExcept_ip(HttpRequest* r, vm::Params& args) {
     if (r->connection.remoteIP() == args.getIPAddress(1)) return false;
 
     return forbidden(r);
   }
 
-  bool denyExcept_cidr(HttpRequest* r, FlowVM::Params& args) {
+  bool denyExcept_cidr(HttpRequest* r, vm::Params& args) {
     if (args.getCidr(1).contains(r->connection.remoteIP())) return false;
 
     return forbidden(r);
   }
 
-  bool denyExcept_ipArray(HttpRequest* r, FlowVM::Params& args) {
+  bool denyExcept_ipArray(HttpRequest* r, vm::Params& args) {
     const auto& list = args.getIPAddressArray(1);
     for (const auto& ip : list)
       if (ip == r->connection.remoteIP()) return false;
@@ -111,7 +111,7 @@ class AccessPlugin : public x0d::XzeroPlugin {
     return forbidden(r);
   }
 
-  bool denyExcept_cidrArray(HttpRequest* r, FlowVM::Params& args) {
+  bool denyExcept_cidrArray(HttpRequest* r, vm::Params& args) {
     const auto& list = args.getCidrArray(1);
     for (const auto& cidr : list)
       if (cidr.contains(r->connection.remoteIP())) return false;

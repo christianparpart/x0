@@ -65,7 +65,7 @@ class dirlisting_plugin : public x0d::XzeroPlugin {
   }
 
  private:
-  bool simple(HttpRequest* in, flow::FlowVM::Params& args) {
+  bool simple(HttpRequest* in, flow::vm::Params& args) {
     if (in->testDirectoryTraversal()) return true;
 
     Buffer sstr;
@@ -129,7 +129,7 @@ class dirlisting_plugin : public x0d::XzeroPlugin {
     return true;
   }
 
-  bool google(HttpRequest* in, flow::FlowVM::Params& args) {
+  bool google(HttpRequest* in, flow::vm::Params& args) {
     if (in->testDirectoryTraversal()) return true;
 
     Buffer buf;

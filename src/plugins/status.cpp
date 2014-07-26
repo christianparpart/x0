@@ -145,7 +145,7 @@ class StatusPlugin : public x0d::XzeroPlugin {
   ~StatusPlugin() {}
 
  private:
-  bool status_api(HttpRequest* r, flow::FlowVM::Params& args) {
+  bool status_api(HttpRequest* r, flow::vm::Params& args) {
     Buffer buf;
     JsonWriter json(buf);
 
@@ -201,7 +201,7 @@ class StatusPlugin : public x0d::XzeroPlugin {
         .endObject();
   }
 
-  bool nginx_compat(HttpRequest* r, flow::FlowVM::Params& args) {
+  bool nginx_compat(HttpRequest* r, flow::vm::Params& args) {
     Buffer nginxCompatStatus(1024);
     Stats sum;
 
@@ -232,7 +232,7 @@ class StatusPlugin : public x0d::XzeroPlugin {
     return true;
   }
 
-  bool handleRequest(HttpRequest* r, flow::FlowVM::Params& args) {
+  bool handleRequest(HttpRequest* r, flow::vm::Params& args) {
     // set response status code
     r->status = HttpStatus::Ok;
     r->responseHeaders.push_back("Content-Type", "text/html; charset=utf-8");

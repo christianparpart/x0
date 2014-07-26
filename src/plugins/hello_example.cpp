@@ -42,7 +42,7 @@ class HelloPlugin : public x0d::XzeroPlugin {
   ~HelloPlugin() {}
 
  private:
-  bool handleRequest(HttpRequest* r, flow::FlowVM::Params& args) {
+  bool handleRequest(HttpRequest* r, flow::vm::Params& args) {
     // set response status code
     r->status = HttpStatus::Ok;
 

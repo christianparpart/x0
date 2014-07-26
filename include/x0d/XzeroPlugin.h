@@ -69,23 +69,23 @@ class X0D_API XzeroPlugin {
  protected:
   // flow configuration API
   template <typename Class, typename... ArgTypes>
-  flow::FlowVM::NativeCallback& setupFunction(
-      const std::string& name, void (Class::*method)(flow::FlowVM::Params&),
+  flow::vm::NativeCallback& setupFunction(
+      const std::string& name, void (Class::*method)(flow::vm::Params&),
       ArgTypes... argTypes);
   template <typename Class, typename... ArgTypes>
-  flow::FlowVM::NativeCallback& sharedFunction(
+  flow::vm::NativeCallback& sharedFunction(
       const std::string& name,
-      void (Class::*method)(xzero::HttpRequest* r, flow::FlowVM::Params&),
+      void (Class::*method)(xzero::HttpRequest* r, flow::vm::Params&),
       ArgTypes... argTypes);
   template <typename Class, typename... ArgTypes>
-  flow::FlowVM::NativeCallback& mainFunction(
+  flow::vm::NativeCallback& mainFunction(
       const std::string& name,
-      void (Class::*method)(xzero::HttpRequest* r, flow::FlowVM::Params&),
+      void (Class::*method)(xzero::HttpRequest* r, flow::vm::Params&),
       ArgTypes... argTypes);
   template <typename Class, typename... ArgTypes>
-  flow::FlowVM::NativeCallback& mainHandler(
+  flow::vm::NativeCallback& mainHandler(
       const std::string& name,
-      bool (Class::*method)(xzero::HttpRequest* r, flow::FlowVM::Params&),
+      bool (Class::*method)(xzero::HttpRequest* r, flow::vm::Params&),
       ArgTypes... argTypes);
 
   // hook setup API
@@ -138,14 +138,14 @@ class X0D_API XzeroPlugin {
   }
 
  private:
-  flow::FlowVM::NativeCallback& addNative(flow::FlowVM::NativeCallback& cb);
+  flow::vm::NativeCallback& addNative(flow::vm::NativeCallback& cb);
 
  protected:
   XzeroDaemon* daemon_;
   xzero::HttpServer* server_;
   std::string name_;
   std::list<std::function<void()>> cleanups_;
-  std::vector<flow::FlowVM::NativeCallback*> natives_;
+  std::vector<flow::vm::NativeCallback*> natives_;
 
 #if !defined(XZERO_NDEBUG)
   int debugLevel_;
@@ -155,28 +155,28 @@ class X0D_API XzeroPlugin {
 };
 
 // {{{ flow integration
-inline flow::FlowVM::NativeCallback& XzeroPlugin::addNative(
-    flow::FlowVM::NativeCallback& cb) {
+inline flow::vm::NativeCallback& XzeroPlugin::addNative(
+    flow::vm::NativeCallback& cb) {
   natives_.push_back(&cb);
   return cb;
 }
 
 template <typename Class, typename... ArgTypes>
-inline flow::FlowVM::NativeCallback& XzeroPlugin::setupFunction(
-    const std::string& name, void (Class::*method)(flow::FlowVM::Params&),
+inline flow::vm::NativeCallback& XzeroPlugin::setupFunction(
+    const std::string& name, void (Class::*method)(flow::vm::Params&),
     ArgTypes... argTypes) {
   return addNative(daemon_->setupFunction(
-      name, [=](flow::FlowVM::Params& args) { (((Class*)this)->*method)(args); },
+      name, [=](flow::vm::Params& args) { (((Class*)this)->*method)(args); },
       argTypes...));
 }
 
 template <typename Class, typename... ArgTypes>
-inline flow::FlowVM::NativeCallback& XzeroPlugin::sharedFunction(
+inline flow::vm::NativeCallback& XzeroPlugin::sharedFunction(
     const std::string& name,
-    void (Class::*method)(xzero::HttpRequest*, flow::FlowVM::Params&),
+    void (Class::*method)(xzero::HttpRequest*, flow::vm::Params&),
     ArgTypes... argTypes) {
   return addNative(daemon_->sharedFunction(
-      name, [=](flow::FlowVM::Params& args) {
+      name, [=](flow::vm::Params& args) {
               (((Class*)this)->*method)(
                   (xzero::HttpRequest*)args.caller()->userdata(), args);
             },
@@ -184,12 +184,12 @@ inline flow::FlowVM::NativeCallback& XzeroPlugin::sharedFunction(
 }
 
 template <typename Class, typename... ArgTypes>
-inline flow::FlowVM::NativeCallback& XzeroPlugin::mainFunction(
+inline flow::vm::NativeCallback& XzeroPlugin::mainFunction(
     const std::string& name,
-    void (Class::*method)(xzero::HttpRequest*, flow::FlowVM::Params&),
+    void (Class::*method)(xzero::HttpRequest*, flow::vm::Params&),
     ArgTypes... argTypes) {
   return addNative(daemon_->mainFunction(
-      name, [=](flow::FlowVM::Params& args) {
+      name, [=](flow::vm::Params& args) {
               (((Class*)this)->*method)(
                   (xzero::HttpRequest*)args.caller()->userdata(), args);
             },
@@ -197,12 +197,12 @@ inline flow::FlowVM::NativeCallback& XzeroPlugin::mainFunction(
 }
 
 template <typename Class, typename... ArgTypes>
-inline flow::FlowVM::NativeCallback& XzeroPlugin::mainHandler(
+inline flow::vm::NativeCallback& XzeroPlugin::mainHandler(
     const std::string& name,
-    bool (Class::*method)(xzero::HttpRequest*, flow::FlowVM::Params&),
+    bool (Class::*method)(xzero::HttpRequest*, flow::vm::Params&),
     ArgTypes... argTypes) {
   return addNative(daemon_->mainHandler(
-      name, [=](flow::FlowVM::Params& args) {
+      name, [=](flow::vm::Params& args) {
               args.setResult((((Class*)this)->*method)(
                   (xzero::HttpRequest*)args.caller()->userdata(), args));
             },

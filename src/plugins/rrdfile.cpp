@@ -63,7 +63,7 @@ class RRDFilePlugin : public x0d::XzeroPlugin {
   ~RRDFilePlugin() {}
 
  private:
-  void setup_step(flow::FlowVM::Params& args) {
+  void setup_step(flow::vm::Params& args) {
     step_ = args.getInt(1);
 
     if (step_) evTimer_.set(step_, step_);
@@ -71,7 +71,7 @@ class RRDFilePlugin : public x0d::XzeroPlugin {
     checkStart();
   }
 
-  void setup_filename(flow::FlowVM::Params& args) {
+  void setup_filename(flow::vm::Params& args) {
     filename_ = args.getString(1);
 
     checkStart();
@@ -100,7 +100,7 @@ class RRDFilePlugin : public x0d::XzeroPlugin {
     }
   }
 
-  bool logRequest(HttpRequest* r, flow::FlowVM::Params& args) {
+  bool logRequest(HttpRequest* r, flow::vm::Params& args) {
     //++ worker().get<local>(this).counter_[filename];
     ++numRequests_;
     return false;

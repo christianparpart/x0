@@ -43,20 +43,20 @@ class BrowserPlugin : public x0d::XzeroPlugin {
   std::vector<std::string> ancients_;
   std::map<std::string, float> modern_;
 
-  void setAncient(flow::FlowVM::Params& args) {
+  void setAncient(flow::vm::Params& args) {
     std::string ident = args.getString(1).str();
 
     ancients_.push_back(ident);
   }
 
-  void setModern(flow::FlowVM::Params& args) {
+  void setModern(flow::vm::Params& args) {
     std::string browser = args.getString(1).str();
     float version = args.getString(2).toFloat();
 
     modern_[browser] = version;
   }
 
-  void isAncient(HttpRequest* r, flow::FlowVM::Params& args) {
+  void isAncient(HttpRequest* r, flow::vm::Params& args) {
     BufferRef userAgent(r->requestHeader("User-Agent"));
 
     for (auto& ancient : ancients_) {
@@ -68,7 +68,7 @@ class BrowserPlugin : public x0d::XzeroPlugin {
     args.setResult(false);
   }
 
-  void isModern(HttpRequest* r, flow::FlowVM::Params& args) {
+  void isModern(HttpRequest* r, flow::vm::Params& args) {
     BufferRef userAgent(r->requestHeader("User-Agent"));
 
     for (auto& modern : modern_) {

@@ -37,28 +37,28 @@ class DirectorPlugin : public x0d::XzeroPlugin {
  private:
   RequestNotes* requestNotes(xzero::HttpRequest* r);
 
-  void director_load(flow::FlowVM::Params& args);
+  void director_load(flow::vm::Params& args);
 
-  void director_cache_enabled(xzero::HttpRequest* r, flow::FlowVM::Params& args);
-  void director_cache_key(xzero::HttpRequest* r, flow::FlowVM::Params& args);
-  void director_cache_ttl(xzero::HttpRequest* r, flow::FlowVM::Params& args);
+  void director_cache_enabled(xzero::HttpRequest* r, flow::vm::Params& args);
+  void director_cache_key(xzero::HttpRequest* r, flow::vm::Params& args);
+  void director_cache_ttl(xzero::HttpRequest* r, flow::vm::Params& args);
 
-  void director_pseudonym(flow::FlowVM::Params& args);
+  void director_pseudonym(flow::vm::Params& args);
 
-  bool director_balance(xzero::HttpRequest* r, flow::FlowVM::Params& args);
+  bool director_balance(xzero::HttpRequest* r, flow::vm::Params& args);
   void balance(xzero::HttpRequest* r, const std::string& directorName,
                const std::string& bucketName);
 
-  bool director_pass(xzero::HttpRequest* r, flow::FlowVM::Params& args);
+  bool director_pass(xzero::HttpRequest* r, flow::vm::Params& args);
   void pass(xzero::HttpRequest* r, const std::string& directorName,
             const std::string& backendName);
 
-  bool director_api(xzero::HttpRequest* r, flow::FlowVM::Params& args);
-  bool director_fcgi(xzero::HttpRequest* r, flow::FlowVM::Params& args);
-  bool director_http(xzero::HttpRequest* r, flow::FlowVM::Params& args);
+  bool director_api(xzero::HttpRequest* r, flow::vm::Params& args);
+  bool director_fcgi(xzero::HttpRequest* r, flow::vm::Params& args);
+  bool director_http(xzero::HttpRequest* r, flow::vm::Params& args);
 
-  bool director_haproxy_monitor(xzero::HttpRequest* r, flow::FlowVM::Params& args);
-  bool director_haproxy_stats(xzero::HttpRequest* r, flow::FlowVM::Params& args);
+  bool director_haproxy_monitor(xzero::HttpRequest* r, flow::vm::Params& args);
+  bool director_haproxy_stats(xzero::HttpRequest* r, flow::vm::Params& args);
 
   bool director_roadwarrior_verify(flow::Instr* instr);
 

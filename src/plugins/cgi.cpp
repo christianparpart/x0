@@ -633,12 +633,12 @@ class CgiPlugin : public x0d::XzeroPlugin {
   }
 
  private:
-  void set_ttl(FlowVM::Params& args) { ttl_ = args.getInt(1); }
+  void set_ttl(vm::Params& args) { ttl_ = args.getInt(1); }
 
-  void setMaxScripts(FlowVM::Params& args) { maxScripts_ = args.getInt(1); }
+  void setMaxScripts(vm::Params& args) { maxScripts_ = args.getInt(1); }
 
   // handler cgi.exec();
-  bool exec(HttpRequest* r, FlowVM::Params& args) {
+  bool exec(HttpRequest* r, vm::Params& args) {
     if (!verify(r)) {
       return true;
     }
@@ -656,7 +656,7 @@ class CgiPlugin : public x0d::XzeroPlugin {
   }
 
   // handler cgi.run(string executable);
-  bool run(HttpRequest* r, FlowVM::Params& args) {
+  bool run(HttpRequest* r, vm::Params& args) {
     if (!verify(r)) {
       return true;
     }

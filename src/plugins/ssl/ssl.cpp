@@ -146,7 +146,7 @@ class SslPlugin : public x0d::XzeroPlugin, public SslContextSelector {
   // {{{ config
  private:
   // ssl.listener(BINDADDR_PORT);
-  void add_listener(flow::FlowVM::Params& args) {
+  void add_listener(flow::vm::Params& args) {
     SocketSpec socketSpec(args.getIPAddress(1),  // bind addr
                               args.getInt(2),        // port
                               args.getInt(3),        // backlog
@@ -162,9 +162,9 @@ class SslPlugin : public x0d::XzeroPlugin, public SslContextSelector {
     }
   }
 
-  void set_loglevel(flow::FlowVM::Params& args) { setLogLevel(args.getInt(1)); }
+  void set_loglevel(flow::vm::Params& args) { setLogLevel(args.getInt(1)); }
 
-  void set_priorities(flow::FlowVM::Params& args) {
+  void set_priorities(flow::vm::Params& args) {
     // TODO priorities_ = args[0].toString();
   }
 
@@ -190,7 +190,7 @@ class SslPlugin : public x0d::XzeroPlugin, public SslContextSelector {
   // 	       priorities: CIPHERS
   // );
   //
-  void add_context(flow::FlowVM::Params& args) {
+  void add_context(flow::vm::Params& args) {
     std::auto_ptr<SslContext> cx(new SslContext());
 
     cx->setLogger(server().logger());

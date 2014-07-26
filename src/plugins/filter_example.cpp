@@ -66,7 +66,7 @@ class filter_plugin : public x0d::XzeroPlugin {
                  flow::FlowType::String);
   }
 
-  void install_filter(HttpRequest* r, flow::FlowVM::Params& args) {
+  void install_filter(HttpRequest* r, flow::vm::Params& args) {
     auto algo = args.getString(1);
     if (equals(algo, "identity"))
       r->outputFilters.push_back(

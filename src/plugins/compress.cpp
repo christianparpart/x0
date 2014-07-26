@@ -92,7 +92,7 @@ class compress_plugin : public x0d::XzeroPlugin {
   }
 
  private:
-  void setup_types(flow::FlowVM::Params& args) {
+  void setup_types(flow::vm::Params& args) {
     contentTypes_.clear();
 
     const auto& x = args.getStringArray(1);
@@ -102,14 +102,14 @@ class compress_plugin : public x0d::XzeroPlugin {
     }
   }
 
-  void setup_level(flow::FlowVM::Params& args) {
+  void setup_level(flow::vm::Params& args) {
     level_ = args.getInt(1);
     level_ = std::min(std::max(level_, 0), 10);
   }
 
-  void setup_minsize(flow::FlowVM::Params& args) { minSize_ = args.getInt(1); }
+  void setup_minsize(flow::vm::Params& args) { minSize_ = args.getInt(1); }
 
-  void setup_maxsize(flow::FlowVM::Params& args) { maxSize_ = args.getInt(1); }
+  void setup_maxsize(flow::vm::Params& args) { maxSize_ = args.getInt(1); }
 
  private:
   void postProcess(HttpRequest* in) {

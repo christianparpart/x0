@@ -46,7 +46,7 @@ using namespace base;
 using namespace xzero;
 using namespace flow;
 
-typedef flow::FlowVM::Params FlowParams;
+typedef flow::vm::Params FlowParams;
 
 static Buffer concat(FlowParams& args) {
   Buffer msg;
@@ -420,7 +420,7 @@ void XzeroCore::systemd_controlled(HttpRequest*, FlowParams& args) {
 }
 // }}}
 // {{{ sys
-void XzeroCore::sys_cpu_count(HttpRequest*, flow::FlowVM::Params& args) {
+void XzeroCore::sys_cpu_count(HttpRequest*, flow::vm::Params& args) {
   long numCPU = sysconf(_SC_NPROCESSORS_ONLN);
 
   if (numCPU < 0) numCPU = 1;
@@ -511,7 +511,7 @@ void XzeroCore::log_debug(HttpRequest* r, FlowParams& args) {
 // {{{ void sleep(int seconds)
 class Sleeper {
  public:
-  Sleeper(int seconds, HttpRequest* r, FlowVM::Runner* vm)
+  Sleeper(int seconds, HttpRequest* r, vm::Runner* vm)
       : n_(seconds),
         timer_(r->connection.worker().loop()),
         request_(r),
@@ -535,7 +535,7 @@ class Sleeper {
   int n_;
   ev::timer timer_;
   HttpRequest* request_;
-  FlowVM::Runner* vm_;
+  vm::Runner* vm_;
 };
 
 void XzeroCore::sleep(HttpRequest* r, FlowParams& args) {
@@ -663,7 +663,7 @@ void XzeroCore::pathinfo(HttpRequest* r, FlowParams& args) {
 }
 
 void XzeroCore::error_handler(HttpRequest* r, FlowParams& args) {
-  FlowVM::Handler* handler = args.getHandler(1);
+  vm::Handler* handler = args.getHandler(1);
 
   r->setErrorHandler([=](HttpRequest* r)->bool { return handler->run(r); });
 }
@@ -749,7 +749,7 @@ bool XzeroCore::verify_req_accept_language(flow::Instr* call) {
 
 // string req.accept_language(string[] filter)
 void XzeroCore::req_accept_language(xzero::HttpRequest* r,
-                                    flow::FlowVM::Params& args) {
+                                    flow::vm::Params& args) {
   const FlowStringArray& supportedLanguages = args.getStringArray(1);
   BufferRef acceptLanguage = r->requestHeader("Accept-Language");
 

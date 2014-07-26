@@ -34,7 +34,7 @@ class XzeroEventHandler;
 class XzeroPlugin;
 class XzeroCore;
 
-class X0D_API XzeroDaemon : public flow::FlowVM::Runtime {
+class X0D_API XzeroDaemon : public flow::vm::Runtime {
  private:
   friend class XzeroPlugin;
   friend class XzeroCore;
@@ -92,24 +92,24 @@ class X0D_API XzeroDaemon : public flow::FlowVM::Runtime {
 
  public:  // FlowBackend overrides
   virtual bool import(const std::string& name, const std::string& path,
-                      std::vector<flow::FlowVM::NativeCallback*>* builtins);
+                      std::vector<flow::vm::NativeCallback*>* builtins);
 
   // new
   template <typename... ArgTypes>
-  flow::FlowVM::NativeCallback& setupFunction(
-      const std::string& name, const flow::FlowVM::NativeCallback::Functor& cb,
+  flow::vm::NativeCallback& setupFunction(
+      const std::string& name, const flow::vm::NativeCallback::Functor& cb,
       ArgTypes... argTypes);
   template <typename... ArgTypes>
-  flow::FlowVM::NativeCallback& sharedFunction(
-      const std::string& name, const flow::FlowVM::NativeCallback::Functor& cb,
+  flow::vm::NativeCallback& sharedFunction(
+      const std::string& name, const flow::vm::NativeCallback::Functor& cb,
       ArgTypes... argTypes);
   template <typename... ArgTypes>
-  flow::FlowVM::NativeCallback& mainFunction(
-      const std::string& name, const flow::FlowVM::NativeCallback::Functor& cb,
+  flow::vm::NativeCallback& mainFunction(
+      const std::string& name, const flow::vm::NativeCallback::Functor& cb,
       ArgTypes... argTypes);
   template <typename... ArgTypes>
-  flow::FlowVM::NativeCallback& mainHandler(
-      const std::string& name, const flow::FlowVM::NativeCallback::Functor& cb,
+  flow::vm::NativeCallback& mainHandler(
+      const std::string& name, const flow::vm::NativeCallback::Functor& cb,
       ArgTypes... argTypes);
 
  private:
@@ -163,8 +163,8 @@ class X0D_API XzeroDaemon : public flow::FlowVM::Runtime {
 
   // flow configuration
   std::unique_ptr<flow::Unit> unit_;
-  std::unique_ptr<flow::FlowVM::Program> program_;
-  flow::FlowVM::Handler* main_;
+  std::unique_ptr<flow::vm::Program> program_;
+  flow::vm::Handler* main_;
   std::vector<std::string> setupApi_;
   std::vector<std::string> mainApi_;
 
@@ -181,8 +181,8 @@ inline T* XzeroDaemon::loadPlugin(const std::string& name,
 inline XzeroCore& XzeroDaemon::core() const { return *core_; }
 
 template <typename... ArgTypes>
-inline flow::FlowVM::NativeCallback& XzeroDaemon::setupFunction(
-    const std::string& name, const flow::FlowVM::NativeCallback::Functor& cb,
+inline flow::vm::NativeCallback& XzeroDaemon::setupFunction(
+    const std::string& name, const flow::vm::NativeCallback::Functor& cb,
     ArgTypes... argTypes) {
   setupApi_.push_back(name);
   return registerFunction(name, flow::FlowType::Void).bind(cb).params(
@@ -190,8 +190,8 @@ inline flow::FlowVM::NativeCallback& XzeroDaemon::setupFunction(
 }
 
 template <typename... ArgTypes>
-inline flow::FlowVM::NativeCallback& XzeroDaemon::sharedFunction(
-    const std::string& name, const flow::FlowVM::NativeCallback::Functor& cb,
+inline flow::vm::NativeCallback& XzeroDaemon::sharedFunction(
+    const std::string& name, const flow::vm::NativeCallback::Functor& cb,
     ArgTypes... argTypes) {
   setupApi_.push_back(name);
   mainApi_.push_back(name);
@@ -200,8 +200,8 @@ inline flow::FlowVM::NativeCallback& XzeroDaemon::sharedFunction(
 }
 
 template <typename... ArgTypes>
-inline flow::FlowVM::NativeCallback& XzeroDaemon::mainFunction(
-    const std::string& name, const flow::FlowVM::NativeCallback::Functor& cb,
+inline flow::vm::NativeCallback& XzeroDaemon::mainFunction(
+    const std::string& name, const flow::vm::NativeCallback::Functor& cb,
     ArgTypes... argTypes) {
   mainApi_.push_back(name);
   return registerFunction(name, flow::FlowType::Void).bind(cb).params(
@@ -209,8 +209,8 @@ inline flow::FlowVM::NativeCallback& XzeroDaemon::mainFunction(
 }
 
 template <typename... ArgTypes>
-inline flow::FlowVM::NativeCallback& XzeroDaemon::mainHandler(
-    const std::string& name, const flow::FlowVM::NativeCallback::Functor& cb,
+inline flow::vm::NativeCallback& XzeroDaemon::mainHandler(
+    const std::string& name, const flow::vm::NativeCallback::Functor& cb,
     ArgTypes... argTypes) {
   mainApi_.push_back(name);
   return registerHandler(name).bind(cb).params(argTypes...);

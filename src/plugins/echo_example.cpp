@@ -27,7 +27,7 @@ class EchoPlugin : public x0d::XzeroPlugin {
   ~EchoPlugin() {}
 
  private:
-  virtual bool handleRequest(HttpRequest* r, FlowVM::Params& args) {
+  virtual bool handleRequest(HttpRequest* r, vm::Params& args) {
     r->status = HttpStatus::Ok;
 
     if (r->contentAvailable()) {

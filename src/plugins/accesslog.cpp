@@ -327,14 +327,14 @@ class AccesslogPlugin : public x0d::XzeroPlugin {
 
  private:
   // accesslog.format(literal string id, literal string format);
-  void accesslog_format(FlowVM::Params& args) {
+  void accesslog_format(vm::Params& args) {
     FlowString id = args.getString(1);
     FlowString format = args.getString(2);
     formats_[id] = format;
   }
 
   // accesslog(filename, format = "main");
-  void accesslog_file(HttpRequest* r, flow::FlowVM::Params& args) {
+  void accesslog_file(HttpRequest* r, flow::vm::Params& args) {
     std::string filename(args.getString(1).str());
     FlowString id = args.getString(2);
 
@@ -355,7 +355,7 @@ class AccesslogPlugin : public x0d::XzeroPlugin {
     }
   }
 
-  void accesslog_syslog(HttpRequest* r, flow::FlowVM::Params& args) {
+  void accesslog_syslog(HttpRequest* r, flow::vm::Params& args) {
 #if defined(HAVE_SYSLOG_H)
     FlowString id = args.getString(1);
 

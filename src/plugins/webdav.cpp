@@ -102,7 +102,7 @@ class WebDAVPlugin : public x0d::XzeroPlugin {
   ~WebDAVPlugin() {}
 
  private:
-  bool handleRequest(HttpRequest* r, flow::FlowVM::Params& args) {
+  bool handleRequest(HttpRequest* r, flow::vm::Params& args) {
     if (r->method == "GET") {
       return todo(r);
     } else if (r->method == "PUT") {

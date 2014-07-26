@@ -128,12 +128,12 @@ void DirectorPlugin::addVia(HttpRequest* r) {
   r->responseHeaders.prepend("Via", buf);
 }
 
-void DirectorPlugin::director_pseudonym(flow::FlowVM::Params& args) {
+void DirectorPlugin::director_pseudonym(flow::vm::Params& args) {
   pseudonym_ = args.getString(1).str();
 }
 
 // {{{ setup_function director.load(name, path)
-void DirectorPlugin::director_load(FlowVM::Params& args) {
+void DirectorPlugin::director_load(vm::Params& args) {
   const auto directorName = args.getString(1).str();
   const auto path = args.getString(2).str();
 
@@ -154,7 +154,7 @@ void DirectorPlugin::director_load(FlowVM::Params& args) {
 // }}}
 // {{{ setup function director.cache.key(string key)
 #if defined(ENABLE_DIRECTOR_CACHE)
-void DirectorPlugin::director_cache_key(HttpRequest* r, FlowVM::Params& args) {
+void DirectorPlugin::director_cache_key(HttpRequest* r, vm::Params& args) {
   auto notes = requestNotes(r);
   notes->setCacheKey(args.getString(1));
 }
@@ -163,7 +163,7 @@ void DirectorPlugin::director_cache_key(HttpRequest* r, FlowVM::Params& args) {
 // {{{ function director.cache.enabled()
 #if defined(ENABLE_DIRECTOR_CACHE)
 void DirectorPlugin::director_cache_enabled(HttpRequest* r,
-                                            FlowVM::Params& args) {
+                                            vm::Params& args) {
   auto notes = requestNotes(r);
   notes->cacheIgnore = !args.getBool(1);
 }
@@ -171,7 +171,7 @@ void DirectorPlugin::director_cache_enabled(HttpRequest* r,
 // }}}
 // {{{ function director.cache.ttl()
 #if defined(ENABLE_DIRECTOR_CACHE)
-void DirectorPlugin::director_cache_ttl(HttpRequest* r, FlowVM::Params& args) {
+void DirectorPlugin::director_cache_ttl(HttpRequest* r, vm::Params& args) {
   auto notes = requestNotes(r);
   notes->cacheTTL = TimeSpan::fromSeconds(args.getInt(1));
 }
@@ -190,7 +190,7 @@ bool DirectorPlugin::internalServerError(HttpRequest* r) {
 }
 
 // handler director.balance(string director_name, string bucket_name = '');
-bool DirectorPlugin::director_balance(HttpRequest* r, FlowVM::Params& args) {
+bool DirectorPlugin::director_balance(HttpRequest* r, vm::Params& args) {
   std::string directorName = args.getString(1).str();
   std::string bucketName = args.getString(2).str();
 
@@ -239,7 +239,7 @@ void DirectorPlugin::balance(HttpRequest* r, const std::string& directorName,
   director->schedule(rn, bucket);
 }  // }}}
 // {{{ handler director.pass(string director_id [, string backend_id ] );
-bool DirectorPlugin::director_pass(HttpRequest* r, FlowVM::Params& args) {
+bool DirectorPlugin::director_pass(HttpRequest* r, vm::Params& args) {
   std::string directorName = args.getString(1).str();
   std::string backendName = args.getString(2).str();
 
@@ -289,7 +289,7 @@ void DirectorPlugin::pass(HttpRequest* r, const std::string& directorName,
 }
 // }}}
 // {{{ handler director.api(string prefix);
-bool DirectorPlugin::director_api(HttpRequest* r, FlowVM::Params& args) {
+bool DirectorPlugin::director_api(HttpRequest* r, vm::Params& args) {
   const FlowString& prefix = args.getString(1);
 
   if (!r->path.begins(prefix)) return false;
@@ -303,7 +303,7 @@ bool DirectorPlugin::director_api(HttpRequest* r, FlowVM::Params& args) {
 // }}}
 // {{{ handler director.fcgi(string hostname, int port, string onClientAbort =
 // "close");
-bool DirectorPlugin::director_fcgi(HttpRequest* r, FlowVM::Params& args) {
+bool DirectorPlugin::director_fcgi(HttpRequest* r, vm::Params& args) {
   RequestNotes* rn = requestNotes(r);
 
   SocketSpec socketSpec(args.getIPAddress(1),  // bind addr
@@ -345,7 +345,7 @@ bool DirectorPlugin::director_roadwarrior_verify(Instr* instr) {
   }
 }
 
-bool DirectorPlugin::director_http(HttpRequest* r, FlowVM::Params& args) {
+bool DirectorPlugin::director_http(HttpRequest* r, vm::Params& args) {
   SocketSpec socketSpec(args.getIPAddress(1),  // bind addr
                         args.getInt(2)         // port
                         );
@@ -359,7 +359,7 @@ bool DirectorPlugin::director_http(HttpRequest* r, FlowVM::Params& args) {
 // }}}
 // {{{ haproxy compatibility API
 bool DirectorPlugin::director_haproxy_monitor(HttpRequest* r,
-                                              FlowVM::Params& args) {
+                                              vm::Params& args) {
   const FlowString& prefix = args.getString(1);
 
   if (!r->path.begins(prefix) && !r->unparsedUri.begins(prefix)) return false;
@@ -369,7 +369,7 @@ bool DirectorPlugin::director_haproxy_monitor(HttpRequest* r,
 }
 
 bool DirectorPlugin::director_haproxy_stats(HttpRequest* r,
-                                            FlowVM::Params& args) {
+                                            vm::Params& args) {
   const FlowString& prefix = args.getString(1);
 
   if (!r->path.begins(prefix) && !r->unparsedUri.begins(prefix)) return false;

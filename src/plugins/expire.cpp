@@ -64,7 +64,7 @@ class ExpirePlugin : public x0d::XzeroPlugin {
 
  private:
   // void expire(datetime / timespan)
-  void expire(HttpRequest* r, flow::FlowVM::Params& args) {
+  void expire(HttpRequest* r, flow::vm::Params& args) {
     time_t now = r->connection.worker().now().unixtime();
     time_t mtime = r->fileinfo ? r->fileinfo->mtime() : now;
     time_t value = args.getInt(1);

@@ -233,27 +233,27 @@ class AuthPlugin :  // {{{
   ~AuthPlugin() {}
 
  private:
-  void auth_realm(HttpRequest* r, flow::FlowVM::Params& args) {
+  void auth_realm(HttpRequest* r, flow::vm::Params& args) {
     if (!r->customData<AuthBasic>(this)) r->setCustomData<AuthBasic>(this);
 
     r->customData<AuthBasic>(this)->realm = args.getString(1).str();
   }
 
-  void auth_userfile(HttpRequest* r, flow::FlowVM::Params& args) {
+  void auth_userfile(HttpRequest* r, flow::vm::Params& args) {
     if (!r->customData<AuthBasic>(this)) r->setCustomData<AuthBasic>(this);
 
     r->customData<AuthBasic>(this)->setupUserfile(args.getString(1).str());
   }
 
 #if defined(HAVE_SECURITY_PAM_APPL_H)
-  void auth_pam(HttpRequest* r, flow::FlowVM::Params& args) {
+  void auth_pam(HttpRequest* r, flow::vm::Params& args) {
     if (!r->customData<AuthBasic>(this)) r->setCustomData<AuthBasic>(this);
 
     r->customData<AuthBasic>(this)->setupPAM(args.getString(1).str());
   }
 #endif
 
-  bool auth_require(HttpRequest* r, flow::FlowVM::Params& args) {
+  bool auth_require(HttpRequest* r, flow::vm::Params& args) {
     AuthBasic* auth = r->customData<AuthBasic>(this);
     if (!auth || !auth->backend) {
       r->log(Severity::error,

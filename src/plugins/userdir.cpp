@@ -49,7 +49,7 @@ class userdir_plugin : public x0d::XzeroPlugin {
 
   ~userdir_plugin() {}
 
-  void setup_userdir(flow::FlowVM::Params& args) {
+  void setup_userdir(flow::vm::Params& args) {
     std::string dirname = args.getString(1).str();
 
     std::error_code ec = validate(dirname);
@@ -76,7 +76,7 @@ class userdir_plugin : public x0d::XzeroPlugin {
   }
 
  private:
-  void handleRequest(HttpRequest* r, flow::FlowVM::Params& args) {
+  void handleRequest(HttpRequest* r, flow::vm::Params& args) {
     if (dirname_.empty()) return;
 
     if (r->path.size() <= 2 || r->path[1] != '~') return;

@@ -30,7 +30,7 @@ class DebugPlugin : public x0d::XzeroPlugin {
   }
 
  private:
-  bool dumpRequestBuffers(HttpRequest* r, FlowVM::Params& args) {
+  bool dumpRequestBuffers(HttpRequest* r, vm::Params& args) {
     r->status = HttpStatus::NotFound;
 
     unsigned long long cid = r->query.toInt();
@@ -67,7 +67,7 @@ class DebugPlugin : public x0d::XzeroPlugin {
     return true;
   }
 
-  bool dumpCore(HttpRequest* r, flow::FlowVM::Params& args) {
+  bool dumpCore(HttpRequest* r, flow::vm::Params& args) {
     r->status = HttpStatus::Ok;
     r->responseHeaders.push_back("Content-Type", "text/plain; charset=utf8");
 
@@ -82,7 +82,7 @@ class DebugPlugin : public x0d::XzeroPlugin {
     return true;
   }
 
-  bool dumpCorePost(HttpRequest* r, flow::FlowVM::Params& args) {
+  bool dumpCorePost(HttpRequest* r, flow::vm::Params& args) {
     r->status = HttpStatus::Ok;
     r->responseHeaders.push_back("Content-Type", "text/plain; charset=utf8");
 
@@ -99,7 +99,7 @@ class DebugPlugin : public x0d::XzeroPlugin {
 
   void _dumpCore() { Process::dumpCore(); }
 
-  bool slowResponse(HttpRequest* r, flow::FlowVM::Params& args) {
+  bool slowResponse(HttpRequest* r, flow::vm::Params& args) {
     const unsigned count = 8;
     for (unsigned i = 0; i < count; ++i) {
       Buffer buf;

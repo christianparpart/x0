@@ -958,7 +958,7 @@ void XzeroDaemon::addComponent(const std::string& value) {
 // }}}
 // {{{ Flow helper
 bool XzeroDaemon::import(const std::string& name, const std::string& path,
-                         std::vector<FlowVM::NativeCallback*>* builtins) {
+                         std::vector<vm::NativeCallback*>* builtins) {
   if (pluginLoaded(name)) return true;
 
   std::string filename = path;
@@ -977,7 +977,7 @@ bool XzeroDaemon::import(const std::string& name, const std::string& path,
 
   TRACE(1, "import(\"%s\", \"%s\", @%p)", name.c_str(), path.c_str(), builtins);
   if (builtins) {
-    for (FlowVM::NativeCallback* native : plugin->natives_) {
+    for (vm::NativeCallback* native : plugin->natives_) {
       TRACE(2, "  native name: %s", native->signature().to_s().c_str());
       builtins->push_back(native);
     }
@@ -1081,7 +1081,7 @@ bool XzeroDaemon::setup(std::unique_ptr<std::istream>&& settings,
     auto main = program_->findHandler("main");
 
     server_->requestHandler = [=](HttpRequest* r) {
-      FlowVM::Runner* cx = static_cast<FlowVM::Runner*>(
+      vm::Runner* cx = static_cast<vm::Runner*>(
           r->setCustomData(r, main->createRunner()));
       cx->setUserData(r);
       bool handled = cx->run();
