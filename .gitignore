@@ -11,18 +11,19 @@ Makefile
 .*.swp
 *.pid
 .directory
-.kdev4/
-build/
-test.crt
-test.key
-install_manifest.txt
 certtool.cfg
-docs/html/
+install_manifest.txt
 
-include/base/sysconfig.h
-tests/libxzero-test
-examples/tcp-echo-server
-examples/tcp-echo-server-splice
+/.kdev4/
+/build/
+/docs/html/
+/include/base/sysconfig.h
+/tests/libxzero-test
+/examples/hello_http
+/examples/hello_service
+/libxzero.pc
+/src/libxzero.so.*
+
 core
 core.*
 vgcore.*
@@ -30,9 +31,6 @@ environ
 experimental
 *.cpp.*
 *.hpp.*
-
-/libxzero.pc
-/src/libxzero.so.*
 
 # CTags file
 /tags

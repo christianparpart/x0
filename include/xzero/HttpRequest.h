@@ -382,6 +382,7 @@ class XZERO_API HttpRequest :
   bool sendfile(const HttpFileRef& transferFile);
 
   // dynamic response writer
+  void write(const char* text);
   void write(std::unique_ptr<Source>&& chunk);
   template <class T, class... Args>
   void write(Args&&... args);

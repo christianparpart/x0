@@ -1,4 +1,4 @@
-# Xzero HTTP Framework
+# Xzero C++ HTTP Framework
 
 [ ![Build status - Travis-ci](https://secure.travis-ci.org/xzero/libxzero.png) ](http://travis-ci.org/xzero/libxzero)
 
@@ -17,6 +17,27 @@ written in modern C++.
 - fully asynchronous response content generation support
 - zero-copy networking optimization through sendfile() system call
 - transmitting of static files with partial response support and cache-friendly
+
+## Hello HTTP World
+
+```cpp
+#include <xzero/HttpRequest.h>
+#include <xzero/HttpServer.h>
+#include <ev++.h>
+
+int main() {
+  xzero::HttpServer httpServer(ev::default_loop(0));      // create an HTTP server
+  httpServer.setupListener("0.0.0.0", 3000);              // listen on 0.0.0.0:3000
+
+  httpServer.requestHandler = [](xzero::HttpRequest* r) { // setup request handler
+    r->status = xzero::HttpStatus::Ok;
+    r->write("Hello, HTTP World!\n");
+    r->finish();
+  };
+
+  return httpServer.run();
+}
+```
 
 # INSTALLATION REQUIREMENTS:
 
