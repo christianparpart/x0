@@ -28,7 +28,10 @@ include_directories(${CMAKE_CURRENT_BINARY_DIR}/include)
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include)
 
 # libbase integration
-if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/libbase)
+if(EXISTS ${X0D_TOPLEVEL_3RDPARTY_DIR}/libbase)
+  set(BASE_LIBRARIES base)
+  message("libflow: use libbase from ${X0D_TOPLEVEL_3RDPARTY_DIR}/libbase")
+elseif(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/libbase)
   add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/libbase)
   include_directories(${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/libbase/include)
   include_directories(${CMAKE_CURRENT_BINARY_DIR}/3rdparty/libbase/include)
