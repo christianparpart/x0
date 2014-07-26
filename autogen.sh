@@ -24,10 +24,10 @@ if [[ "$1" == "clean" ]]; then
     rm -vf install_manifest.txt
     rm -vf libflow.pc 
     rm -vf flow-tool/flow-tool
+    rm -vf include/libflow/sysconfig.h
 
 	find . \( -name 'CMakeCache.txt' -o -name 'CMakeFiles' \
 			-o -name 'Makefile' -o -name cmake_install.cmake \
-            -o -name 'sysconfig.h' \
 			-o -name '*.so' \
             -o -name '*.a' \
 			-o -name '*.so.*' \
