@@ -24,6 +24,10 @@
 
 #define TRACE(msg...) DEBUG("hello: " msg)
 
+using namespace base;
+using namespace flow;
+using namespace xzero;
+
 /**
  * \ingroup plugins
  * \brief example content generator plugin

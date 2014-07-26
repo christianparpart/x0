@@ -20,6 +20,8 @@ include(CheckCSourceCompiles)
 include(CMakeDetermineCCompiler)
 
 option(ENABLE_TESTS "Build unit tests [default: off]" OFF)
+option(ENABLE_EXAMPLES "Includes example plugins and programs [default: on]" ON)
+
 option(ENABLE_O_TMPFILE "Try to open temporary files with O_TMPFILE flag before falling back to standard behaviour [default: on]" ON)
 
 # x0d plugins
@@ -161,13 +163,12 @@ else()
   message("libxzero libdir: ${XZERO_LIBRARY_DIRS}")
 endif()
 
-
 # libflow integration
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/libflow)
   add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/libflow)
   include_directories(${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/libflow/include)
   include_directories(${CMAKE_CURRENT_BINARY_DIR}/3rdparty/libflow/include)
-  set(FLOW_LIBRARIES xzero)
+  set(FLOW_LIBRARIES flow)
   message("libflow: use from 3rdparty/libflow")
 else()
   pkg_check_modules(FLOW REQUIRED "libflow")

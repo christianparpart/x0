@@ -10,6 +10,8 @@
 #include <base/io/BufferRefSource.h>
 
 using namespace base;
+using namespace xzero;
+using namespace flow;
 
 /**
  * \ingroup plugins

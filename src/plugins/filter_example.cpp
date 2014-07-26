@@ -14,6 +14,10 @@
 #include <base/Types.h>
 #include <x0d/sysconfig.h>
 
+using namespace base;
+using namespace flow;
+using namespace xzero;
+
 // {{{ ExampleFilter
 class ExampleFilter : public Filter {
  public:
