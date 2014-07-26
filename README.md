@@ -11,12 +11,12 @@ written in modern C++.
 
 ## Framework Features
 
-- Thin and clean core API
-- Response output filter API
-- HTTP/1.1, including pipelining
+- thin and clean core API
+- response output filter API
 - fully asynchronous response content generation support
-- zero-copy networking optimization through sendfile() system call
-- transmitting of static files with partial response support and cache-friendly
+- zero-copy networking optimizations
+- client-cache aware and partial static file transmission support
+- HTTP/1.1, including pipelining
 
 ## Hello HTTP World
 
@@ -39,74 +39,69 @@ int main() {
 }
 ```
 
-# INSTALLATION REQUIREMENTS:
+## Installation Requirements
 
 - libbase from https://github.com/xzero/libbase.git
 - gcc >= 4.8.0 (for building only, CLANG >= 3.4 is also supported)
 - cmake (for building only)
-- zlib (optional & recommended, for compression)
-- bzip2 (optional & recommended, for compression)
 - gtest (optional, for unit testing)
 
 ### Building from Source on Ubuntu 14.04:
 
-    # Installs required dependencies
-    sudo apt-get install make cmake gcc-4.8 g++-4.8 libgnutls28-dev libgcrypt11-dev \
-        libmysqlclient-dev libev-dev zlib1g-dev libbz2-dev pkg-config \
-        libpcre3-dev libfcgi-dev libgoogle-perftools-dev libtbb-dev libpam-dev git
-    
-    # If you want to built the tests, you must install libgtest-dev and then built it yourself
-    sudo apt-get install libgtest-dev
-    cd /usr/src/gtest && sudo cmake . && sudo make && sudo cp -vpi libgtest*.a /usr/local/lib/; cd -
-    
-    # Install git and clone repository
-    git clone git://github.com/xzero/x0.git && cd x0
-    
-    # Now run cmake to bootstrap the build
-    cmake -DCMAKE_BUILD_TYPE=debug -DCMAKE_INSTALL_PREFIX=$HOME/local
-    
-    # Ensure installation target prefix
-    mkdir $HOME/local
-    
-    # Now compiling should just work.
-    make && make install
-    
-    # Run web server on port 8080
-    `pwd`/x0d/src/x0d --instant=`pwd`/www/htdocs,8080
-    
-    # or try its CLI help
-    `pwd`/x0d/src/x0d -h
+```sh
+# Installs required dependencies
+sudo apt-get install make cmake pkg-config git gcc-4.8 g++-4.8 \
+    libmysqlclient-dev libev-dev zlib1g-dev libbz2-dev libpcre3-dev
 
-    # have fun hacking and don't forget to checkout the just installed man pages ;-)
+# If you want to built the tests, you must install libgtest-dev and then built it yourself
+sudo apt-get install libgtest-dev
+cd /usr/src/gtest && sudo cmake . && sudo make && sudo cp -vpi libgtest*.a /usr/local/lib/; cd -
+
+# Clone the repository
+git clone git://github.com/xzero/libxzero.git && cd libxzero
+git clone git://github.com/xzero/libbase.git 3rdparty/libbase
+
+# Now run cmake to bootstrap the build
+cmake .
+
+# Now compiling should just work
+make && sudo make install
+
+# Try out an example
+./examples/hello_http
+```
 
 ### Build from Sources on Ubuntu 12.04
 
-    # Ensure required GCC (version 4.8)
-    sudo apt-get install python-software-properties
-    sudo add-apt-repository ppa:ubuntu-toolchain-r/test
-    sudo apt-get update
-    sudo apt-get install gcc-4.8 g++-4.8
+```sh
+# Ensure required GCC (version 4.8)
+sudo apt-get install python-software-properties
+sudo add-apt-repository ppa:ubuntu-toolchain-r/test
+sudo apt-get update
+sudo apt-get install gcc-4.8 g++-4.8
 
-    # Installs required dependencies
-    sudo apt-get install make cmake pkg-config git
-    
-    # If you want to built the tests, you must install libgtest-dev and then built it yourself
-    sudo apt-get install libgtest-dev
-    cd /usr/src/gtest && sudo cmake -DCMAKE_C_COMPILER=$CC -DCMAKE_CXX_COMPILER=$CXX . && \
-        sudo make && sudo cp -vpi libgtest*.a /usr/local/lib/; cd -
-    
-    # Install git and clone repository
-    git clone git://github.com/xzero/libxzero.git
-    cd libxzero
-    git subtree add -P 3rdparty/libbase git://github.com/xzero/libbase.git
-    
-    # Now run cmake to bootstrap the build
-    cmake -DCMAKE_CXX_COMPILER=/usr/bin/g++-4.8 .
-    
-    # Now compiling should just work.
-    make && sudo make install
-    
-    # have fun hacking ;-)
+# Installs required dependencies
+sudo apt-get install make cmake pkg-config git gcc-4.8 g++-4.8 \
+    libmysqlclient-dev libev-dev zlib1g-dev libbz2-dev libpcre3-dev
+
+# If you want to built the tests, you must install libgtest-dev and then built it yourself
+sudo apt-get install libgtest-dev
+cd /usr/src/gtest && sudo cmake -DCMAKE_C_COMPILER=$CC -DCMAKE_CXX_COMPILER=$CXX . && \
+    sudo make && sudo cp -vpi libgtest*.a /usr/local/lib/; cd -
+
+# Clone the repository
+git clone git://github.com/xzero/libxzero.git && cd libxzero
+git clone git://github.com/xzero/libbase.git 3rdparty/libbase
+
+# Now run cmake to bootstrap the build
+cmake -DCMAKE_CXX_COMPILER=/usr/bin/g++-4.8 .
+
+# Now compiling should just work
+make && sudo make install
+
+# Try out an example
+./examples/hello_http
+```
 
 LICENSE
 -------
