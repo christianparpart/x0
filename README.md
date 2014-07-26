@@ -14,7 +14,7 @@ It supports a very expressive and natural configuration via
 the [Flow configuration language](https://github.com/xzero/libflow/) and
 a number of standard plugins to become *your* web application server.
 
-### Features
+## Features
 
 - Customizable Error Pages
 - Automatic Directory Indexing
