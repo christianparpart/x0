@@ -6,4 +6,9 @@ if(XZERO_ENABLE_TESTS)
   )
   target_link_libraries(xzero-test gtest xzero)
 
+  add_custom_target(test-libxzero
+    DEPENDS libxzero-test
+    COMMAND ./libxzero-test ${CMAKE_CURRENT_SOURCE_DIR}
+  )
+
 endif()
