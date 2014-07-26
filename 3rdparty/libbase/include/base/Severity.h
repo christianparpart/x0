@@ -24,10 +24,10 @@ namespace base {
  */
 struct BASE_API Severity {
   enum {
-    debug3 = 0,
-    debug2 = 1,
-    debug1 = 2,
-    diag = 3,
+    trace3 = 0,
+    trace2 = 1,
+    trace1 = 2,
+    debug = 3,
     info = 4,
     notice = 5,
     warning = 6,
@@ -36,7 +36,7 @@ struct BASE_API Severity {
     alert = 9,
     emerg = 10,
     warn = warning,
-    debug = debug1
+    trace = trace1,
   };
 
   int value_;
@@ -49,9 +49,10 @@ struct BASE_API Severity {
   bool isError() const { return value_ == error; }
   bool isWarning() const { return value_ == warn; }
   bool isInfo() const { return value_ == info; }
-  bool isDebug() const { return value_ >= debug; }
+  bool isDebug() const { return value_ == debug; }
+  bool isTrace() const { return value_ >= trace1; }
 
-  int debugLevel() const { return isDebug() ? 1 + value_ - debug1 : 0; }
+  int traceLevel() const { return isTrace() ? 1 + value_ - trace1 : 0; }
 
   bool set(const char* value);
 };

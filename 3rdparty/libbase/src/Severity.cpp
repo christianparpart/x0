@@ -31,14 +31,14 @@ const char* Severity::c_str() const {
       return "notice";
     case info:
       return "info";
-    case diag:
-      return "diag";
-    case debug1:
-      return "debug:1";
-    case debug2:
-      return "debug:2";
-    case debug3:
-      return "debug:3";
+    case debug:
+      return "debug";
+    case trace1:
+      return "trace:1";
+    case trace2:
+      return "trace:2";
+    case trace3:
+      return "trace:3";
     default:
       return "UNKNOWN";
   }
@@ -53,11 +53,11 @@ bool Severity::set(const char* value) {
                                          {"warning", Severity::warn},
                                          {"notice", Severity::notice},
                                          {"info", Severity::info},
-                                         {"diag", Severity::diag},
                                          {"debug", Severity::debug},
-                                         {"debug1", Severity::debug1},
-                                         {"debug2", Severity::debug2},
-                                         {"debug3", Severity::debug3}, };
+                                         {"trace", Severity::trace},
+                                         {"trace1", Severity::trace1},
+                                         {"trace2", Severity::trace2},
+                                         {"trace3", Severity::trace3}, };
 
   auto i = map.find(value);
   if (i != map.end()) {

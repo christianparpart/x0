@@ -28,7 +28,8 @@ class BASE_API LogMessage {
   bool isWarning() const { return severity_ == Severity::warning; }
   bool isNotice() const { return severity_ == Severity::notice; }
   bool isInfo() const { return severity_ == Severity::info; }
-  bool isDebug() const { return severity_ <= Severity::debug1; }
+  bool isDebug() const { return severity_ == Severity::debug; }
+  bool isTrace() const { return severity_ <= Severity::trace1; }
 
   BufferRef text() const { return tagBuffer_.ref(0, messageSize_); }
 
