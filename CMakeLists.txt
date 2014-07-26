@@ -119,9 +119,11 @@ if(NOT ("${CMAKE_CXX_COMPILER}" MATCHES "clang"))
 endif()
 set(TBB_LIBRARIES tbb)
 
+# {{{ 3rdparty integration
+set(X0D_TOPLEVEL_3RDPARTY_DIR "${CMAKE_CURRENT_SOURCE_DIR}/3rdparty")
+
 # libbase integration
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/libbase)
-  add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/libbase)
   include_directories(${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/libbase/include)
   include_directories(${CMAKE_CURRENT_BINARY_DIR}/3rdparty/libbase/include)
   set(BASE_LIBRARIES base)
@@ -143,7 +145,6 @@ endif()
 
 # libxzero integration
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/libxzero)
-  add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/libxzero)
   include_directories(${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/libxzero/include)
   include_directories(${CMAKE_CURRENT_BINARY_DIR}/3rdparty/libxzero/include)
   set(XZERO_LIBRARIES xzero)
@@ -165,7 +166,6 @@ endif()
 
 # libflow integration
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/libflow)
-  add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/libflow)
   include_directories(${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/libflow/include)
   include_directories(${CMAKE_CURRENT_BINARY_DIR}/3rdparty/libflow/include)
   set(FLOW_LIBRARIES flow)
@@ -184,16 +184,10 @@ else()
   message("libflow libs: ${FLOW_LIBRARIES}")
   message("libflow libdir: ${FLOW_LIBRARY_DIRS}")
 endif()
+# }}}
 
-# ---------------------------------------------------------------------------
 include_directories(${CMAKE_CURRENT_BINARY_DIR}/include)
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include)
-
-# ev
-find_package(EV)
-include_directories(${EV_INCLUDE_DIR})
-link_directories(${EV_LIBRARY_DIR})
-add_definitions(${EV_CPPFLAGS})
 
 pkg_check_modules(SD libsystemd-daemon)
 
