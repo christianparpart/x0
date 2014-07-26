@@ -13,7 +13,20 @@ if [[ -z "$CXX" ]]; then
 	fi
 fi
 
+3rdparty_clean() {
+  if [[ -x 3rdparty/$1/autogen.sh ]]; then
+    pushd . &> /dev/null
+    cd 3rdparty/$1
+    ./autogen.sh clean
+    popd &> /dev/null
+  fi
+}
+
 if [[ "$1" == "clean" ]]; then
+    3rdparty_clean libbase
+    3rdparty_clean libflow
+    3rdparty_clean libxzero
+
 	rm -vf {configure,build,install}-stamp
 	rm -vf debian/*.log
 	rm -vf debian/*.substvars
@@ -30,7 +43,7 @@ if [[ "$1" == "clean" ]]; then
            "docs/flow.7" \
            "docs/x0d.8" \
            "docs/x0d.conf.5" \
-           "include/x0/sysconfig.h" \
+           "include/x0d/sysconfig.h" \
            "examples/capi-app1" \
            "examples/capi-app2" \
            "examples/capi-post-data" \
