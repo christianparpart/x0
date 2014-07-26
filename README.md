@@ -1,4 +1,4 @@
-# Xzero HTTP Web Server & Framework
+# Xzero HTTP Application Server
 
 [ ![Build status - Travis-ci](https://secure.travis-ci.org/xzero/x0.png) ](http://travis-ci.org/xzero/x0)
 
@@ -7,26 +7,12 @@
 - ohloh: http://www.ohloh.net/p/x0
 - travis-ci: https://travis-ci.org/xzero/x0
 
-Xzero is a thin low-latency and scalable HTTP web server and web service framework
-written in modern C++.
+`x0d` is a thin low-latency and scalable HTTP web server built on-top 
+of the Xzero C++ HTTP Framework.
 
-## Framework Features
-
-- Thin and clean core API
-- Response output filter API
-- HTTP/1.1, including pipelining
-- Flexible configuration language, Flow
-- fully asynchronous response content generation support
-- zero-copy networking optimization through sendfile() system call
-- transmitting of static files with partial response support and cache-friendly
-
-# x0d HTTP Application Gateway Server
-
-`x0d` is the dedicated HTTP web server that is built ontop of the
-Xzero Framework.
-
-It supports a very expressive and natural configuration language and
-a number of standard plugins to become *your* web application gateway.
+It supports a very expressive and natural configuration via the `Flow`
+configuration language and a number of standard plugins
+to become *your* web application.
 
 ### x0d Features
 
