@@ -21,7 +21,7 @@ if [[ "$1" == "clean" ]]; then
 	rm -rvf debian/{files,tmp,x0d,x0d-plugins}
 	rm -rvf debian/libxzero-{base,http,flow}{,-dev}
     rm -rf docs/html
-    rm -vf XzeroBase.pc XzeroFlow.pc XzeroHttp.pc x0d/x0d.pc
+    rm -vf x0d.pc
     rm -vf install_manifest.txt
 
 	rm -vf "x0d/src/x0d" \
@@ -61,7 +61,5 @@ else
 		-DCMAKE_CXX_FLAGS_DEBUG="-O0 -g3" \
 		-DCMAKE_INSTALL_PREFIX="${HOME}/local" \
 		-DENABLE_PLUGIN_{RRD,IMAGEABLE,WEBDAV,DEBUG}=ON \
-		-DENABLE_FLOW_TOOL=ON \
-		-DENABLE_EXAMPLES=ON \
 		-DENABLE_TESTS=ON
 fi

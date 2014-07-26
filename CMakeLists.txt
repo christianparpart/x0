@@ -20,18 +20,7 @@ include(CheckCSourceCompiles)
 include(CMakeDetermineCCompiler)
 
 option(ENABLE_TESTS "Build unit tests [default: off]" OFF)
-
-option(ENABLE_EXAMPLES "Includes example plugins and programs [default: off]" OFF)
-
-option(ENABLE_XZERO_FLOW "Build libXzeroFlow [default: on]" ON)
-option(ENABLE_FLOW_TOOL "Build flow-tool [default: off]" OFF)
-
-option(ENABLE_CAPI "Build Xzero C-API [default: on]" ON)
-
-option(X0_QUEUE_LOCKFREE "Build Queue<T> API as lock-free data structure [default: on]" ON)
-option(X0_WORKER_POST_LIBEV "Use libev's async method to post into HTTP workers instead of a locking queue [default: on]" ON)
-option(X0_ENABLE_O_TMPFILE "Try to open temporary files with O_TMPFILE flag before falling back to standard behaviour [default: on]" ON)
-option(X0_ENABLE_POST_FN_OPTIMIZATION "Optimize code path for post()'ing code blocks into current worker threads [default: OFF]" OFF)
+option(ENABLE_O_TMPFILE "Try to open temporary files with O_TMPFILE flag before falling back to standard behaviour [default: on]" ON)
 
 # x0d plugins
 option(ENABLE_PLUGINS "Compile x0d plugins [default: on]" ON)
@@ -46,19 +35,8 @@ option(ENABLE_PLUGIN_DEBUG "Includes x0d debugging support (plugin) [default: of
 # x0d plugin feature flags
 option(ENABLE_DIRECTOR_CACHE "Enables response cache accelerator [default: on]" ON)
 
-option(ENABLE_X0D "Compile x0d HTTP server daemon [default: on]" ON)
 option(ENABLE_MANPAGES "Build manual pages [default: on]" ON)
-option(ENABLE_STATIC "Build libraries and x0d as a static version in addition to the dynamic [default: OFF]" OFF)
-
-# Xzero feature flags
-option(ENABLE_ACCEPT4 "Builds with support for accept4() system-call, if found [default: on]" ON)
-option(ENABLE_MULTI_ACCEPT "Builds listener acceptor with support for repeative accept() calls  [default: on]" ON)
-option(ENABLE_OPPORTUNISTIC_WRITE "Builds with support for opportunistic write() calls to client sockets [default: off]." OFF)
-option(ENABLE_PCRE "With PCRE support [default: off]" ON)
-option(ENABLE_TCP_DEFER_ACCEPT "Builds with support for TCP_DEFER_ACCEPT, if found [default: on]" ON)
-option(ENABLE_INOTIFY "Build with inotify support [default: on]" ON)
 option(ENABLE_TCMALLOC "Uses tcmalloc for memory allocation [default: off]." OFF)
-option(ENABLE_FLOW_DIRECT_THREADED_VM "Builds with direct threaded (over indirect threaded) interpreter loop [default: on]" ON)
 
 if(ENABLE_PLUGIN_AUTH_PAM)
   CHECK_INCLUDE_FILES(security/pam_appl.h HAVE_SECURITY_PAM_APPL_H)
@@ -120,30 +98,11 @@ CHECK_FUNCTION_EXISTS(accept4 HAVE_ACCEPT4)
 CHECK_LIBRARY_EXISTS(pthread pthread_setname_np "" HAVE_PTHREAD_SETNAME_NP)
 CHECK_LIBRARY_EXISTS(pthread pthread_setaffinity_np "" HAVE_PTHREAD_SETAFFINITY_NP)
 
-if(ENABLE_INOTIFY)
-  CHECK_INCLUDE_FILES(sys/inotify.h HAVE_SYS_INOTIFY_H)
-  if(HAVE_SYS_INOTIFY_H)
-    CHECK_FUNCTION_EXISTS(inotify_init1 HAVE_INOTIFY_INIT1)
-  endif(HAVE_SYS_INOTIFY_H)
-endif()
-
 if(ENABLE_TCMALLOC)
   CHECK_INCLUDE_FILES(google/tcmalloc.h HAVE_GOOGLE_TCMALLOC_H)
-#  pkg_check_modules(TCMALLOC REQUIRED libtcmalloc>=1.8.3)
+  # pkg_check_modules(TCMALLOC REQUIRED libtcmalloc>=1.8.3)
   set(TCMALLOC_LIBRARIES tcmalloc)
 endif()
-
-CHECK_INCLUDE_FILES(zlib.h HAVE_ZLIB_H)
-if(HAVE_ZLIB_H)
-  CHECK_LIBRARY_EXISTS(z deflate "" HAVE_LIBZ)
-  set(ZLIB_LIBRARIES z)
-endif(HAVE_ZLIB_H)
-
-CHECK_INCLUDE_FILES(bzlib.h HAVE_BZLIB_H)
-if(HAVE_BZLIB_H)
-  CHECK_LIBRARY_EXISTS(bz2 BZ2_bzCompressInit "" HAVE_LIBBZ2)
-  set(BZIP2_LIBRARIES bz2)
-endif(HAVE_BZLIB_H)
 
 # TODO dynamic check for tbb
 # tbb is required for director plugin and for base's TimeoutScheduler (needed?)
@@ -158,15 +117,76 @@ if(NOT ("${CMAKE_CXX_COMPILER}" MATCHES "clang"))
 endif()
 set(TBB_LIBRARIES tbb)
 
+# libbase integration
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/libbase)
+  add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/libbase)
+  include_directories(${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/libbase/include)
+  include_directories(${CMAKE_CURRENT_BINARY_DIR}/3rdparty/libbase/include)
+  set(BASE_LIBRARIES base)
+  message("libbase: use from 3rdparty/libbase")
+else()
+  pkg_check_modules(BASE REQUIRED "libbase")
+  add_definitions(${BASE_CFLAGS})
+  add_definitions(${BASE_CPPFLAGS})
+  include_directories(${BASE_INCLUDE_DIR})
+  include_directories(${BASE_INCLUDE_DIRS})
+  link_directories(${BASE_LIBRARY_DIRS})
+
+  message("libbase include dirs: ${BASE_INCLUDE_DIRS}")
+  message("libbase cflags: ${BASE_CFLAGS}")
+  message("libbase ldflags: ${BASE_LDFLAGS}")
+  message("libbase libs: ${BASE_LIBRARIES}")
+  message("libbase libdir: ${BASE_LIBRARY_DIRS}")
+endif()
+
+# libxzero integration
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/libxzero)
+  add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/libxzero)
+  include_directories(${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/libxzero/include)
+  include_directories(${CMAKE_CURRENT_BINARY_DIR}/3rdparty/libxzero/include)
+  set(XZERO_LIBRARIES xzero)
+  message("libxzero: use from 3rdparty/libxzero")
+else()
+  pkg_check_modules(XZERO REQUIRED "libxzero")
+  add_definitions(${XZERO_CFLAGS})
+  add_definitions(${XZERO_CPPFLAGS})
+  include_directories(${XZERO_INCLUDE_DIR})
+  include_directories(${XZERO_INCLUDE_DIRS})
+  link_directories(${XZERO_LIBRARY_DIRS})
+
+  message("libxzero include dirs: ${XZERO_INCLUDE_DIRS}")
+  message("libxzero cflags: ${XZERO_CFLAGS}")
+  message("libxzero ldflags: ${XZERO_LDFLAGS}")
+  message("libxzero libs: ${XZERO_LIBRARIES}")
+  message("libxzero libdir: ${XZERO_LIBRARY_DIRS}")
+endif()
+
+
+# libflow integration
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/libflow)
+  add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/libflow)
+  include_directories(${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/libflow/include)
+  include_directories(${CMAKE_CURRENT_BINARY_DIR}/3rdparty/libflow/include)
+  set(FLOW_LIBRARIES xzero)
+  message("libflow: use from 3rdparty/libflow")
+else()
+  pkg_check_modules(FLOW REQUIRED "libflow")
+  add_definitions(${FLOW_CFLAGS})
+  add_definitions(${FLOW_CPPFLAGS})
+  include_directories(${FLOW_INCLUDE_DIR})
+  include_directories(${FLOW_INCLUDE_DIRS})
+  link_directories(${FLOW_LIBRARY_DIRS})
+
+  message("libflow include dirs: ${FLOW_INCLUDE_DIRS}")
+  message("libflow cflags: ${FLOW_CFLAGS}")
+  message("libflow ldflags: ${FLOW_LDFLAGS}")
+  message("libflow libs: ${FLOW_LIBRARIES}")
+  message("libflow libdir: ${FLOW_LIBRARY_DIRS}")
+endif()
+
 # ---------------------------------------------------------------------------
 include_directories(${CMAKE_CURRENT_BINARY_DIR}/include)
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include)
-include_directories(${CMAKE_CURRENT_SOURCE_DIR}/support/sd-daemon)
-
-# PCRE
-if(ENABLE_PCRE)
-  pkg_check_modules(PCRE REQUIRED libpcre>=7.0)
-endif()
 
 # ev
 find_package(EV)
@@ -174,17 +194,12 @@ include_directories(${EV_INCLUDE_DIR})
 link_directories(${EV_LIBRARY_DIR})
 add_definitions(${EV_CPPFLAGS})
 
-# mySQL
-option(ENABLE_MYSQL "With mySQL support [default: on]" ON)
-if(ENABLE_MYSQL)
-  find_package(MYSQL)
-  include_directories(${MYSQL_INCLUDE_DIR})
-  set(LIBS ${LIBS} ${MYSQL_LDFLAGS})
-  add_definitions(${MYSQL_CFLAGS})
-endif()
+pkg_check_modules(SD libsystemd-daemon)
 
-# systemd support (implemented in support/sd-daemon/)
-set(SD_LIBRARIES sd-daemon)
+if(ENABLE_TESTS)
+  find_package(FCGI)
+  CHECK_INCLUDE_FILES(gtest/gtest.h HAVE_GTEST_GTEST_H)
+endif()
 
 # {{{ path prefixes
 # ---------------------------------------------------------------------------
@@ -220,21 +235,8 @@ else()
 endif()
 
 set(PLUGINDIR "${LIBDIR}/x0d" CACHE PATH "path to x0d plugins")
-
-set(X0_TMPDIR "${CMAKE_INSTALL_PREFIX}/tmp" CACHE PATH "path prefix for temporary files")
 # ---------------------------------------------------------------------------
 # }}}
-
-#set(CMAKE_VERBOSE_MAKEFILE ON)
-
-#pkg_check_modules(LUA REQUIRED lua>=5.1)
-#message(STATUS "LUA include directory: " ${LUA_INCLUDE_DIRS})
-#message(STATUS "LUA libraries: " ${LUA_LIBRARIES})
-
-if(ENABLE_TESTS)
-  find_package(FCGI)
-  CHECK_INCLUDE_FILES(gtest/gtest.h HAVE_GTEST_GTEST_H)
-endif()
 
 # ---------------------------------------------------------------------------
 macro(x0_plugin_simple ModuleName)
@@ -249,68 +251,36 @@ macro(x0_plugin ModuleName SrcFiles)
   install(TARGETS ${ModuleName} DESTINATION ${PLUGINDIR})
 endmacro()
 
-# ---------------------------------------------------------------------------
 configure_file(
-  ${CMAKE_CURRENT_SOURCE_DIR}/include/x0/sysconfig.h.cmake
-  ${CMAKE_CURRENT_BINARY_DIR}/include/x0/sysconfig.h)
-
-# ---------------------------------------------------------------------------
-configure_file(
-  ${CMAKE_CURRENT_SOURCE_DIR}/XzeroBase.pc.cmake
-  ${CMAKE_CURRENT_BINARY_DIR}/XzeroBase.pc)
-
-install(FILES ${CMAKE_CURRENT_BINARY_DIR}/XzeroBase.pc DESTINATION ${LIBDIR}/pkgconfig)
+    ${CMAKE_CURRENT_SOURCE_DIR}/include/x0d/sysconfig.h.cmake
+    ${CMAKE_CURRENT_BINARY_DIR}/include/x0d/sysconfig.h)
 
 configure_file(
-  ${CMAKE_CURRENT_SOURCE_DIR}/XzeroFlow.pc.cmake
-  ${CMAKE_CURRENT_BINARY_DIR}/XzeroFlow.pc)
+    ${CMAKE_CURRENT_SOURCE_DIR}/x0d.pc.cmake
+    ${CMAKE_CURRENT_BINARY_DIR}/x0d.pc)
 
-install(FILES ${CMAKE_CURRENT_BINARY_DIR}/XzeroFlow.pc DESTINATION ${LIBDIR}/pkgconfig)
-
-configure_file(
-  ${CMAKE_CURRENT_SOURCE_DIR}/XzeroHttp.pc.cmake
-  ${CMAKE_CURRENT_BINARY_DIR}/XzeroHttp.pc)
-
-install(FILES ${CMAKE_CURRENT_BINARY_DIR}/XzeroHttp.pc DESTINATION ${LIBDIR}/pkgconfig)
-
-# ---------------------------------------------------------------------------
-add_definitions(-DHAVE_SYSCONFIG_H)
-
-add_subdirectory(docs)
-add_subdirectory(support)
-add_subdirectory(lib)
-add_subdirectory(x0d)
-add_subdirectory(flow-tool)
-add_subdirectory(tests)
-add_subdirectory(examples)
-
-install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/include/
-  DESTINATION ${INCLUDEDIR}
-  FILES_MATCHING
-  PATTERN "*.h"
-  PATTERN "*.hpp"
-  PATTERN "*.cc")
-
-install(DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/include/
-  DESTINATION ${INCLUDEDIR}
-  FILES_MATCHING
-  PATTERN "*.h"
-  PATTERN "*.hpp"
-  PATTERN "*.cc")
+install(
+    FILES ${CMAKE_CURRENT_BINARY_DIR}/x0d.pc
+    DESTINATION ${LIBDIR}/pkgconfig)
 
 add_custom_target(ctags
-  COMMAND ctags -R --c++-kinds=+p --fields=+iaS --extra=+q ${CMAKE_SOURCE_DIR}/lib ${CMAKE_SOURCE_DIR}/include
-  WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
+    COMMAND ctags -R --c++-kinds=+p --fields=+iaS --extra=+q ${CMAKE_SOURCE_DIR}/lib ${CMAKE_SOURCE_DIR}/include
+    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
 
 add_custom_target(cscope
-  COMMAND echo -n > ${CMAKE_SOURCE_DIR}/cscope.files
-          && find ${CMAKE_SOURCE_DIR}/lib -name '*.h' -o -name '*.cc' -o -name '*.cpp' >> ${CMAKE_SOURCE_DIR}/cscope.files
-          && find ${CMAKE_SOURCE_DIR}/include -name '*.h' -o -name '*.cc' -o -name '*.hpp' >> ${CMAKE_SOURCE_DIR}/cscope.files
-          && cscope -q -R -b -i cscope.files
-  WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+    COMMAND echo -n > ${CMAKE_SOURCE_DIR}/cscope.files
+            && find ${CMAKE_SOURCE_DIR}/lib -name '*.h' -o -name '*.cc' -o -name '*.cpp' >> ${CMAKE_SOURCE_DIR}/cscope.files
+            && find ${CMAKE_SOURCE_DIR}/include -name '*.h' -o -name '*.cc' -o -name '*.hpp' >> ${CMAKE_SOURCE_DIR}/cscope.files
+            && cscope -q -R -b -i cscope.files
+    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
 )
 
 add_custom_target(release
-  COMMAND ${CMAKE_SOURCE_DIR}/contrib/ppa-release.sh
-  WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+    COMMAND ${CMAKE_SOURCE_DIR}/contrib/ppa-release.sh
+    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
 )
+
+add_subdirectory(docs)
+add_subdirectory(3rdparty)
+add_subdirectory(src)
+add_subdirectory(tests)

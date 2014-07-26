@@ -1,31 +1,14 @@
 if(ENABLE_TESTS)
 
-add_executable(x0-test x0-test.cpp
-  Maybe-test.cpp
-  Try-test.cpp
-  Buffer-test.cpp
-  Cidr-test.cpp
-  TokenShaper-test.cpp
-  Tokenizer-test.cpp
-  TaggedPtr-test.cpp
-  List-test.cpp
-  Base64-test.cpp
-  HttpServer-test.cpp
-  Vary-test.cpp
-  http2-framing-test.cpp
-  hpack-test.cpp
+add_executable(x0d-test
+  x0d-test.cpp
 )
 
-target_link_libraries(x0-test XzeroBase XzeroHttp XzeroFlow gtest)
+target_link_libraries(x0d-test gtest pthread)
 
 add_custom_target(test
-  DEPENDS x0-test
-  COMMAND ./x0-test ${CMAKE_CURRENT_SOURCE_DIR}
+  DEPENDS x0d-test
+  COMMAND ./x0d-test ${CMAKE_CURRENT_SOURCE_DIR}
 )
-
-if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/quickie.cpp)
-  add_executable(quickie quickie.cpp)
-  target_link_libraries(quickie XzeroBase XzeroHttp)
-endif()
 
 endif()

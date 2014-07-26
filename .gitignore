@@ -23,24 +23,13 @@ docs/html/
 *.s
 *.flow
 
-x0d/src/x0d
-x0d/src/x0d_static
-x0d/src/*.pid
+/include/x0d/sysconfig.h
+/src/x0d
+/src/x0d_static
+/src/*.pid
+/src/test.conf
+/tests/x0d-test
 
-include/x0/sysconfig.h
-src/x0/test-*.*
-src/x0/test-*
-tests/web_client_test
-tests/x0test
-tests/testapp-fcgi
-tests/queue-bench
-tests/x0-test
-examples/app1
-examples/tcp-echo-server
-examples/tcp-echo-server-splice
-examples/capi-app1
-examples/capi-app2
-examples/capi-post-data
 core
 core.*
 vgcore.*
@@ -50,38 +39,24 @@ environ
 experimental
 *.cpp.*
 *.hpp.*
-t1.cpp
-t2.cpp
-www/htdocs/rrd/*.gif
-www/htdocs/rrd/*.png
-www/htdocs/rrd/*.rrd
-docs/x0d.8
-docs/x0d.conf.5
-docs/flow.7
-tests/x0cp
-tests/*.req
-www/htdocs/*.gz
-www/htdocs/*.bz2
-tests/fcgi-long-run
-tests/fcgi-staticfile
-tests/flow_test
-tests/test_flow_lexer
-tests/splice_test
-tests/quickie
-sandbox/
+/docs/x0d.8
+/docs/x0d.conf.5
+/docs/flow.7
+/sandbox/
 *.log
 .safe
 .safe?
 
-XzeroBase.pc
-XzeroFlow.pc
-XzeroHttp.pc
-x0d.pc
+/www/htdocs/cookie-bomb.html
+/www/htdocs/*.php
+/www/htdocs/*.cgi
+/www/htdocs/*.gz
+/www/htdocs/*.bz2
+/www/htdocs/rrd/*.gif
+/www/htdocs/rrd/*.png
+/www/htdocs/rrd/*.rrd
 
-lib/libXzeroBase.so.*
-lib/flow/libXzeroFlow.so.*
-lib/http/libXzeroHttp.so.*
-lib/capi/libx0capi.so.*
+/x0d.pc
 
 # CTags file
 tags
@@ -104,5 +79,3 @@ debian/x0/
 debian/tmp/
 debian/files
 *-stamp
-flow-tool/flow-tool
-lib/libXzeroFlow2.*
