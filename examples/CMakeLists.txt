@@ -1,0 +1,5 @@
+if(ENABLE_EXAMPLES)
+  x0_plugin_simple(echo_example)
+  x0_plugin_simple(hello_example)
+  x0_plugin_simple(filter_example)
+endif()

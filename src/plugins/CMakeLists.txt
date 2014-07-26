@@ -51,12 +51,6 @@ if(ENABLE_PLUGIN_WEBDAV)
   x0_plugin_simple(webdav)
 endif()
 
-if(ENABLE_EXAMPLES)
-  x0_plugin_simple(echo_example)
-  x0_plugin_simple(hello_example)
-  x0_plugin_simple(filter_example)
-endif()
-
 # ---------------------------------------------------------------------------
 # the more complex plugins:
 

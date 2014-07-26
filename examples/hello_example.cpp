@@ -9,7 +9,7 @@
 #include <xzero/HttpServer.h>
 #include <xzero/HttpRequest.h>
 #include <xzero/HttpHeader.h>
-#include <base/io/BufferSource.h>
+#include <base/io/BufferRefSource.h>
 #include <base/strutils.h>
 #include <base/Types.h>
 
@@ -21,8 +21,6 @@
 #include <sys/stat.h>
 #include <unistd.h>
 #include <dirent.h>
-
-#define TRACE(msg...) DEBUG("hello: " msg)
 
 using namespace base;
 using namespace flow;
@@ -39,8 +37,6 @@ class HelloPlugin : public x0d::XzeroPlugin {
     mainHandler("hello_example", &HelloPlugin::handleRequest);
   }
 
-  ~HelloPlugin() {}
-
  private:
   bool handleRequest(HttpRequest* r, flow::vm::Params& args) {
     // set response status code
@@ -50,7 +46,7 @@ class HelloPlugin : public x0d::XzeroPlugin {
     r->responseHeaders.push_back("Hello", "World");
 
     // write some content to the client
-    r->write<BufferSource>("Hello, World\n");
+    r->write<BufferRefSource>("Hello, World\n");
 
     // invoke finish() marking this request as being fully handled (response
     // fully generated).

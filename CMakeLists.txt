@@ -278,4 +278,5 @@ add_custom_target(release
 add_subdirectory(docs)
 add_subdirectory(3rdparty)
 add_subdirectory(src)
+add_subdirectory(examples)
 add_subdirectory(tests)
