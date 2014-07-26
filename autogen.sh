@@ -24,10 +24,8 @@ if [[ "$1" == "clean" ]]; then
     rm -vf libbase.pc
     rm -vf install_manifest.txt
 
-	rm -vf "include/base/sysconfig.h" \
-           "examples/tcp-echo-server" \
-           "examples/tcp-echo-server-splice" \
-           "tests/libbase-test"
+	rm -vf "include/xzero/sysconfig.h" \
+           "tests/libxzero-test"
 
 	find . \( -name 'CMakeCache.txt' -o -name 'CMakeFiles' \
 			-o -name 'Makefile' -o -name cmake_install.cmake \
