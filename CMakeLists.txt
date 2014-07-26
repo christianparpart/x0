@@ -17,8 +17,7 @@ include(CheckCSourceCompiles)
 include(CMakeDetermineCCompiler)
 
 option(ENABLE_TESTS "Build unit tests [default: off]" OFF)
-option(ENABLE_EXAMPLES "Includes example plugins and programs [default: off]" OFF)
-option(ENABLE_STATIC "Build libraries and x0d as a static version in addition to the dynamic [default: OFF]" OFF)
+option(ENABLE_EXAMPLES "Includes example programs [default: on]" ON)
 
 # Xzero feature flags
 option(ENABLE_ACCEPT4 "Builds with support for accept4() system-call, if found [default: on]" ON)
