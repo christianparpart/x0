@@ -70,7 +70,8 @@ sudo apt-get install make cmake gcc-4.8 g++-4.8 libgnutls28-dev libgcrypt11-dev 
     libmysqlclient-dev libev-dev zlib1g-dev libbz2-dev pkg-config \
     libpcre3-dev libfcgi-dev libgoogle-perftools-dev libtbb-dev libpam-dev git
 
-# If you want to built the tests, you must install libgtest-dev and then built it yourself
+# If you want to built the tests, you must install libgtest-dev and then
+# built it yourself
 sudo apt-get install libgtest-dev
 cd /usr/src/gtest && sudo cmake . && sudo make && \
      sudo cp -vpi libgtest*.a /usr/local/lib/; cd -
@@ -107,7 +108,8 @@ sudo apt-get install make cmake libgnutls28-dev libgcrypt11-dev \
     libmysqlclient-dev libev-dev zlib1g-dev libbz2-dev pkg-config \
     libpcre3-dev libfcgi-dev libgoogle-perftools0 libtbb-dev libpam-dev git
 
-# If you want to built the tests, you must install libgtest-dev and then built it yourself
+# If you want to built the tests, you must install libgtest-dev and then
+# built it yourself
 sudo apt-get install libgtest-dev
 cd /usr/src/gtest && sudo cmake -DCMAKE_C_COMPILER=$CC \
         -DCMAKE_CXX_COMPILER=$CXX . && sudo make && \
