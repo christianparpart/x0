@@ -1,4 +1,4 @@
-# Xzero HTTP Application Server
+# Xzero HTTP Application Web Server
 
 [ ![Build status - Travis-ci](https://secure.travis-ci.org/xzero/x0.png) ](http://travis-ci.org/xzero/x0)
 
@@ -10,11 +10,11 @@
 `x0d` is a thin low-latency and scalable HTTP web server built on-top 
 of the Xzero C++ HTTP Framework.
 
-It supports a very expressive and natural configuration via the `Flow`
-configuration language and a number of standard plugins
-to become *your* web application.
+It supports a very expressive and natural configuration via 
+the [Flow configuration language](https://github.com/xzero/libflow/) and
+a number of standard plugins to become *your* web application server.
 
-### x0d Features
+### Features
 
 - Customizable Error Pages
 - Automatic Directory Indexing
@@ -51,7 +51,7 @@ to become *your* web application.
 - instant mode (configuration-less basic HTTP serving)
 - CGI/1.1 Support
 
-# INSTALLATION REQUIREMENTS:
+## Installation Requirements
 
 - gcc >= 4.8.0 (for building only, CLANG >= 3.4 is also supported)
 - libev >= 4.0
@@ -64,73 +64,70 @@ to become *your* web application.
 
 ### Building from Source on Ubuntu 14.04:
 
-    # Installs required dependencies
-    sudo apt-get install make cmake gcc-4.8 g++-4.8 libgnutls28-dev libgcrypt11-dev \
-        libmysqlclient-dev libev-dev zlib1g-dev libbz2-dev pkg-config \
-        libpcre3-dev libfcgi-dev libgoogle-perftools-dev libtbb-dev libpam-dev git
-    
-    # If you want to built the tests, you must install libgtest-dev and then built it yourself
-    sudo apt-get install libgtest-dev
-    cd /usr/src/gtest && sudo cmake . && sudo make && sudo cp -vpi libgtest*.a /usr/local/lib/; cd -
-    
-    # Install git and clone repository
-    git clone git://github.com/xzero/x0.git && cd x0
-    
-    # Now run cmake to bootstrap the build
-    cmake -DCMAKE_BUILD_TYPE=debug -DCMAKE_INSTALL_PREFIX=$HOME/local
-    
-    # Ensure installation target prefix
-    mkdir $HOME/local
-    
-    # Now compiling should just work.
-    make && make install
-    
-    # Run web server on port 8080
-    `pwd`/x0d/src/x0d --instant=`pwd`/www/htdocs,8080
-    
-    # or try its CLI help
-    `pwd`/x0d/src/x0d -h
+```sh
+# Installs required dependencies
+sudo apt-get install make cmake gcc-4.8 g++-4.8 libgnutls28-dev libgcrypt11-dev \
+    libmysqlclient-dev libev-dev zlib1g-dev libbz2-dev pkg-config \
+    libpcre3-dev libfcgi-dev libgoogle-perftools-dev libtbb-dev libpam-dev git
 
-    # have fun hacking and don't forget to checkout the just installed man pages ;-)
+# If you want to built the tests, you must install libgtest-dev and then built it yourself
+sudo apt-get install libgtest-dev
+cd /usr/src/gtest && sudo cmake . && sudo make && sudo cp -vpi libgtest*.a /usr/local/lib/; cd -
+
+# Install git and clone repository
+git clone git://github.com/xzero/x0.git && cd x0
+
+# Now run cmake to bootstrap the build
+cmake .
+
+# Now compiling should just work.
+make && sudo make install
+
+# Run web server on port 8080
+./x0d/src/x0d --instant=`pwd`/www/htdocs,8080
+
+# or try its CLI help
+./x0d/src/x0d -h
+
+# have fun hacking and don't forget to checkout the just installed man pages ;-)
+```
 
 ### Build from Sources on Ubuntu 12.04
 
-    # Ensure required GCC (version 4.8)
-    sudo apt-get install python-software-properties
-    sudo add-apt-repository ppa:ubuntu-toolchain-r/test
-    sudo apt-get update
-    sudo apt-get install gcc-4.8 g++-4.8
+```sh
+# Ensure required GCC (version 4.8)
+sudo apt-get install python-software-properties
+sudo add-apt-repository ppa:ubuntu-toolchain-r/test
+sudo apt-get update
+sudo apt-get install gcc-4.8 g++-4.8
 
-    # Installs required dependencies
-    sudo apt-get install make cmake libgnutls28-dev libgcrypt11-dev \
-        libmysqlclient-dev libev-dev zlib1g-dev libbz2-dev pkg-config \
-        libpcre3-dev libfcgi-dev libgoogle-perftools0 libtbb-dev libpam-dev git
-    
-    # If you want to built the tests, you must install libgtest-dev and then built it yourself
-    sudo apt-get install libgtest-dev
-    cd /usr/src/gtest && sudo cmake -DCMAKE_C_COMPILER=$CC -DCMAKE_CXX_COMPILER=$CXX . && \
-        sudo make && sudo cp -vpi libgtest*.a /usr/local/lib/; cd -
-    
-    # Install git and clone repository
-    git clone git://github.com/xzero/x0.git && cd x0
-    
-    # Now run cmake to bootstrap the build
-    cmake -DCMAKE_BUILD_TYPE=debug -DCMAKE_INSTALL_PREFIX=$HOME/local \
-          -DCMAKE_C_COMPILER=/usr/bin/gcc-4.8 -DCMAKE_CXX_COMPILER=/usr/bin/g++-4.8 .
-    
-    # Ensure installation target prefix
-    mkdir $HOME/local
-    
-    # Now compiling should just work.
-    make && make install
-    
-    # Run web server on port 8080
-    `pwd`/x0d/src/x0d --instant=`pwd`/www/htdocs,8080
-    
-    # or try its CLI help
-    `pwd`/x0d/src/x0d -h
+# Installs required dependencies
+sudo apt-get install make cmake libgnutls28-dev libgcrypt11-dev \
+    libmysqlclient-dev libev-dev zlib1g-dev libbz2-dev pkg-config \
+    libpcre3-dev libfcgi-dev libgoogle-perftools0 libtbb-dev libpam-dev git
 
-    # have fun hacking and don't forget to checkout the just installed man pages ;-)
+# If you want to built the tests, you must install libgtest-dev and then built it yourself
+sudo apt-get install libgtest-dev
+cd /usr/src/gtest && sudo cmake -DCMAKE_C_COMPILER=$CC -DCMAKE_CXX_COMPILER=$CXX . && \
+    sudo make && sudo cp -vpi libgtest*.a /usr/local/lib/; cd -
+
+# Install git and clone repository
+git clone git://github.com/xzero/x0.git && cd x0
+
+# Now run cmake to bootstrap the build
+cmake -DCMAKE_C_COMPILER=/usr/bin/gcc-4.8 -DCMAKE_CXX_COMPILER=/usr/bin/g++-4.8 .
+
+# Now compiling should just work.
+make && sudo make install
+
+# Run web server on port 8080
+./x0d/src/x0d --instant=`pwd`/www/htdocs,8080
+
+# or try its CLI help
+./x0d/src/x0d -h
+
+# have fun hacking and don't forget to checkout the just installed man pages ;-)
+```
 
 LICENSE
 -------
