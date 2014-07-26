@@ -14,7 +14,7 @@ add_executable(libbase-test libbase-test.cpp
 
 target_link_libraries(libbase-test base gtest)
 
-add_custom_target(test
+add_custom_target(test-libbase
   DEPENDS libbase-test
   COMMAND ./libbase-test ${CMAKE_CURRENT_SOURCE_DIR}
 )
