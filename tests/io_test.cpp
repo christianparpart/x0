@@ -19,9 +19,6 @@
 
 #include <base/io/Filter.h>
 
-#include <cppunit/extensions/HelperMacros.h>
-#include <cppunit/extensions/TestFactoryRegistry.h>
-
 #include <iostream>
 #include <cstdlib>
 #include <cctype>

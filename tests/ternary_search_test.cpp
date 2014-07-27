@@ -6,8 +6,6 @@
 // the License at: http://opensource.org/licenses/MIT
 
 #include "x0/TernarySearch.hpp"
-#include <cppunit/extensions/HelperMacros.h>
-#include <cppunit/extensions/TestFactoryRegistry.h>
 #include <iostream>
 #include <exception>
 #include <cassert>
