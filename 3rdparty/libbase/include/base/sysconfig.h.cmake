@@ -8,6 +8,8 @@
 #ifndef sw_x0_sysconfig_h
 #define sw_x0_sysconfig_h (1)
 
+#cmakedefine SD_FOUND
+
 #cmakedefine HAVE_SYS_INOTIFY_H
 #cmakedefine HAVE_SYS_SENDFILE_H
 #cmakedefine HAVE_SYS_RESOURCE_H

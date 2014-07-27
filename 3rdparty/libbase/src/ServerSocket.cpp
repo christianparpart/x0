@@ -297,7 +297,6 @@ bool ServerSocket::open(const std::string& address, int port, int flags) {
 #endif
   TRACE("opening");
 
-  int sd_fd_count = sd_listen_fds(false);
   addrinfo* res = nullptr;
   addrinfo hints;
 
@@ -372,41 +371,46 @@ bool ServerSocket::open(const std::string& address, int port, int flags) {
     }
   }
 
-  // check if systemd created the socket for us
-  if (sd_fd_count > 0) {
-    fd = SD_LISTEN_FDS_START;
-    int last = fd + sd_fd_count;
+#if defined(SD_FOUND)
+  {
+    // check if systemd created the socket for us
+    int sd_fd_count = sd_listen_fds(false);
+    if (sd_fd_count > 0) {
+      fd = SD_LISTEN_FDS_START;
+      int last = fd + sd_fd_count;
 
-    for (addrinfo* ri = res; ri != nullptr; ri = ri->ai_next) {
-      for (; fd < last; ++fd) {
-        if (sd_is_socket_inet(fd, ri->ai_family, ri->ai_socktype, true, port) >
-            0) {
-          // socket found, but ensure our expected `flags` are set.
-          if ((flags & O_NONBLOCK) &&
-              fcntl(fd, F_SETFL, fcntl(fd, F_GETFL) | O_NONBLOCK) < 0)
-            goto syserr;
+      for (addrinfo* ri = res; ri != nullptr; ri = ri->ai_next) {
+        for (; fd < last; ++fd) {
+          if (sd_is_socket_inet(fd, ri->ai_family, ri->ai_socktype, true, port) >
+              0) {
+            // socket found, but ensure our expected `flags` are set.
+            if ((flags & O_NONBLOCK) &&
+                fcntl(fd, F_SETFL, fcntl(fd, F_GETFL) | O_NONBLOCK) < 0)
+              goto syserr;
 
-          if ((flags & O_CLOEXEC) &&
-              fcntl(fd, F_SETFD, fcntl(fd, F_GETFD) | FD_CLOEXEC) < 0)
-            goto syserr;
+            if ((flags & O_CLOEXEC) &&
+                fcntl(fd, F_SETFD, fcntl(fd, F_GETFD) | FD_CLOEXEC) < 0)
+              goto syserr;
 
 #if defined(TCP_QUICKACK)
-          if (::setsockopt(fd, SOL_TCP, TCP_QUICKACK, &rc, sizeof(rc)) < 0)
-            goto syserr;
+            if (::setsockopt(fd, SOL_TCP, TCP_QUICKACK, &rc, sizeof(rc)) < 0)
+              goto syserr;
 #endif
-          goto done;
+            goto done;
+          }
         }
       }
-    }
 
-    char buf[256];
-    snprintf(buf, sizeof(buf),
-             "Running under systemd socket unit, but we received no socket for "
-             "%s:%d.",
-             address.c_str(), port);
-    errorText_ = buf;
-    goto err;
+      char buf[256];
+      snprintf(buf, sizeof(buf),
+               "Running under systemd socket unit, but we received no socket for "
+               "%s:%d.",
+               address.c_str(), port);
+      errorText_ = buf;
+      goto err;
+    }
   }
+#endif
 
   // create socket manually
   for (ri = res; ri != nullptr; ri = ri->ai_next) {
@@ -497,7 +501,6 @@ bool ServerSocket::open(const std::string& path, int flags) {
 
   int fd = -1;
   size_t addrlen;
-  int sd_fd_count = sd_listen_fds(false);
 
   typeMask_ = 0;
   flags_ = flags;
@@ -525,29 +528,34 @@ bool ServerSocket::open(const std::string& path, int flags) {
     }
   }
 
-  // check if systemd created the socket for us
-  if (sd_fd_count > 0) {
-    fd = SD_LISTEN_FDS_START;
-    int last = fd + sd_fd_count;
+#if defined(SD_FOUND)
+  {
+    // check if systemd created the socket for us
+    int sd_fd_count = sd_listen_fds(false);
+    if (sd_fd_count > 0) {
+      fd = SD_LISTEN_FDS_START;
+      int last = fd + sd_fd_count;
 
-    for (; fd < last; ++fd) {
-      if (sd_is_socket_unix(fd, AF_UNIX, SOCK_STREAM, path.c_str(),
-                            path.size()) > 0) {
-        // socket found, but ensure our expected `flags` are set.
-        if (flags && fcntl(fd, F_SETFL, fcntl(fd, F_GETFL) | flags) < 0) {
-          goto syserr;
-        } else {
-          goto done;
+      for (; fd < last; ++fd) {
+        if (sd_is_socket_unix(fd, AF_UNIX, SOCK_STREAM, path.c_str(),
+                              path.size()) > 0) {
+          // socket found, but ensure our expected `flags` are set.
+          if (flags && fcntl(fd, F_SETFL, fcntl(fd, F_GETFL) | flags) < 0) {
+            goto syserr;
+          } else {
+            goto done;
+          }
         }
       }
-    }
 
-    errorText_ =
-        "Running under systemd socket unit, but we received no UNIX-socket for "
-        "\"" +
-        path + "\".";
-    goto err;
+      errorText_ =
+          "Running under systemd socket unit, but we received no UNIX-socket for "
+          "\"" +
+          path + "\".";
+      goto err;
+    }
   }
+#endif
 
   // create socket manually
   fd = ::socket(PF_UNIX, SOCK_STREAM, 0);
