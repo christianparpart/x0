@@ -17,8 +17,8 @@ include(CheckLibraryExists)
 include(CheckCSourceCompiles)
 include(CMakeDetermineCCompiler)
 
-option(FLOW_ENABLE_TESTS "Build unit tests [default: off]" OFF)
-option(FLOW_ENABLE_EXAMPLES "Builds example programs [default: off]" OFF)
+option(ENABLE_TESTS "Build unit tests [default: off]" OFF)
+option(FLOW_ENABLE_EXAMPLES "Builds example programs [default: on]" ON)
 option(FLOW_ENABLE_FLOW_TOOL "Builds flow-tool [default: on]" ON)
 
 # XXX do not use -std=c++11 here, as it's not supported on GCC 4.6 (default on Ubuntu 12.04)
@@ -52,7 +52,7 @@ else()
   message("libbase libdir: ${BASE_LIBRARY_DIRS}")
 endif()
 
-if(FLOW_ENABLE_TESTS)
+if(ENABLE_TESTS)
   CHECK_INCLUDE_FILES(gtest/gtest.h HAVE_GTEST_GTEST_H)
 endif()
 
