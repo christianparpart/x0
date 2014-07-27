@@ -1,10 +1,10 @@
-if(XZERO_ENABLE_TESTS)
+if(ENABLE_TESTS)
 
-  add_executable(xzero-test xzero-test.cpp
+  add_executable(libxzero-test xzero-test.cpp
     http2-framing-test.cpp
     hpack-test.cpp
   )
-  target_link_libraries(xzero-test gtest xzero)
+  target_link_libraries(libxzero-test gtest xzero)
 
   add_custom_target(test-libxzero
     DEPENDS libxzero-test
