@@ -79,3 +79,4 @@ debian/x0/
 debian/tmp/
 debian/files
 *-stamp
+/3rdparty/libflow/tests/libflow-test
