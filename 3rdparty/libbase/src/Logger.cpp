@@ -9,8 +9,12 @@
 #include <base/DateTime.h>
 #include <base/AnsiColor.h>
 #include <base/strutils.h>
+#include <base/sysconfig.h>
 #include <cstring>
+
+#if defined(SD_FOUND)
 #include <systemd/sd-daemon.h>
+#endif
 
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -74,6 +78,7 @@ SystemdLogger::~SystemdLogger() {}
 void SystemdLogger::cycle() {}
 
 void SystemdLogger::write(LogMessage& message) {
+#if defined(SD_FOUND)
   static const char* sd[] = {SD_DEBUG,   SD_DEBUG, SD_DEBUG, SD_DEBUG,
                              SD_DEBUG,   SD_DEBUG, SD_INFO,  SD_NOTICE,
                              SD_WARNING, SD_ERR, };
@@ -84,6 +89,14 @@ void SystemdLogger::write(LogMessage& message) {
 
     fprintf(stderr, "%s%s\n", sd[message.severity()], buf.c_str());
   }
+#else
+  if (message.severity() >= level()) {
+    Buffer buf;
+    buf << message;
+
+    fprintf(stderr, "%s\n", buf.c_str());
+  }
+#endif
 }
 
 SystemdLogger* SystemdLogger::clone() const { return new SystemdLogger(); }
