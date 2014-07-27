@@ -6,11 +6,15 @@
 // the License at: http://opensource.org/licenses/MIT
 
 #include <base/Logging.h>
-#include <systemd/sd-daemon.h>
+#include <base/sysconfig.h>
 #include <typeinfo>
 #include <cstdarg>
 #include <cstdio>
 #include <cstdlib>
+
+#if defined(SD_FOUND)
+#include <systemd/sd-daemon.h>
+#endif
 
 namespace base {
 
@@ -118,7 +122,11 @@ void Logging::debug(const char* fmt, ...) {
   vsnprintf(buf, sizeof(buf), fmt, va);
   va_end(va);
 
+#if defined(SD_FOUND)
   fprintf(stdout, SD_DEBUG "%s: %s\n", prefix_.c_str(), buf);
+#else
+  fprintf(stdout, "%s: %s\n", prefix_.c_str(), buf);
+#endif
   fflush(stdout);
 }
 

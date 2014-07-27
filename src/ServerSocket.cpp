@@ -22,7 +22,9 @@
 #include <errno.h>
 #include <unistd.h>
 
+#if defined(SD_FOUND)
 #include <systemd/sd-daemon.h>
+#endif
 
 namespace base {
 
