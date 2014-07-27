@@ -1,6 +1,9 @@
 # Xzero HTTP Application Web Server
 
 [ ![Build status - Travis-ci](https://secure.travis-ci.org/xzero/x0.png) ](http://travis-ci.org/xzero/x0)
+[ ![Build status - Travis-ci](https://secure.travis-ci.org/xzero/libbase.png) ](http://travis-ci.org/xzero/libbase)
+[ ![Build status - Travis-ci](https://secure.travis-ci.org/xzero/libflow.png) ](http://travis-ci.org/xzero/libflow)
+[ ![Build status - Travis-ci](https://secure.travis-ci.org/xzero/libxzero.png) ](http://travis-ci.org/xzero/libxzero)
 
 - official website: http://xzero.io
 - github: http://github.com/xzero/x0
