@@ -117,7 +117,7 @@ if(ENABLE_MYSQL)
   add_definitions(${MYSQL_CFLAGS})
 endif()
 
-pkg_check_modules(SD REQUIRED libsystemd-daemon)
+pkg_check_modules(SD libsystemd-daemon)
 
 if(ENABLE_TESTS)
   CHECK_INCLUDE_FILES(gtest/gtest.h HAVE_GTEST_GTEST_H)
