@@ -1,10 +1,10 @@
-if(FLOW_ENABLE_TESTS)
+if(ENABLE_TESTS)
 
-  add_executable(flow-test
+  add_executable(libflow-test
     flow-test.cpp
     FlowLexer-test.cpp
   )
-  target_link_libraries(flow-test gtest flow)
+  target_link_libraries(libflow-test gtest flow)
 
   add_custom_target(test-libflow
     DEPENDS libflow-test
