@@ -20,7 +20,10 @@
 #include <base/DebugLogger.h>
 
 #include <ev++.h>
+
+#if defined(SD_FOUND)
 #include <systemd/sd-daemon.h>
+#endif
 
 #include <functional>
 #include <algorithm>

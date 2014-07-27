@@ -39,7 +39,9 @@
 #include <pwd.h>
 #include <grp.h>
 
+#if defined(SD_FOUND)
 #include <systemd/sd-daemon.h>
+#endif
 
 namespace x0d {
 
