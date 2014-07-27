@@ -10,17 +10,6 @@
 #include <xzero/HttpRequest.h>
 #include <xzero/HttpHeader.h>
 #include <base/io/BufferRefSource.h>
-#include <base/strutils.h>
-#include <base/Types.h>
-
-#include <cstring>
-#include <cerrno>
-#include <cstddef>
-
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <unistd.h>
-#include <dirent.h>
 
 using namespace base;
 using namespace flow;
