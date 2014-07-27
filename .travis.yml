@@ -18,9 +18,12 @@ install:
   - mkdir ~/gtest && cd ~/gtest && cmake /usr/src/gtest -DBUILD_SHARED_LIBS=ON && make && sudo cp -vp libgtest*.so /usr/local/lib/ && sudo ldconfig && cd -
 script:
   - $CXX --version
-  - cmake -DCMAKE_BUILD_TYPE=debug -DENABLE_{RRD,EXAMPLES,TESTS}=ON
+  - cmake -DCMAKE_BUILD_TYPE=debug -DENABLE_{EXAMPLES,TESTS}=ON
   - make
-  - ./tests/x0-test
+  - ./3rdparty/libbase/tests/libbase-test
+  - ./3rdparty/libxzero/tests/libxzero-test
+  - ./3rdparty/libflow/tests/libflow-test
+  - ./tests/x0d-test
 branches:
   only:
     - master
