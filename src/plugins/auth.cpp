@@ -276,7 +276,7 @@ class AuthPlugin :  // {{{
 
       r->username = user;
 
-      r->log(Severity::debug, "auth.require: '%s' -> '%s'",
+      r->log(Severity::trace, "auth.require: '%s' -> '%s'",
              authcode.str().c_str(), plain.c_str());
 
       if (auth->verify(user, pass)) {

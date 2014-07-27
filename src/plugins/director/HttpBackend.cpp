@@ -30,7 +30,7 @@
 #include <netdb.h>
 
 #if !defined(XZERO_NDEBUG)
-#define TRACE(msg...) (this->log(LogMessage(Severity::debug1, msg)))
+#define TRACE(msg...) (this->log(LogMessage(Severity::trace1, msg)))
 #else
 #define TRACE(msg...) \
   do {                \
@@ -184,16 +184,16 @@ void HttpBackend::Connection::exitSuccess() {
 void HttpBackend::Connection::onClientAbort() {
   switch (backend_->manager()->clientAbortAction()) {
     case ClientAbortAction::Ignore:
-      log(Severity::diag, "Client closed connection early. Ignored.");
+      log(Severity::debug, "Client closed connection early. Ignored.");
       break;
     case ClientAbortAction::Close:
-      log(Severity::diag,
+      log(Severity::debug,
           "Client closed connection early. Aborting request to backend HTTP "
           "server.");
       exitSuccess();
       break;
     case ClientAbortAction::Notify:
-      log(Severity::diag,
+      log(Severity::debug,
           "Client closed connection early. Notifying backend HTTP server by "
           "abort.");
       exitSuccess();

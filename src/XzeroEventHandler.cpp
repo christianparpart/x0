@@ -245,10 +245,10 @@ void XzeroEventHandler::suspendHandler(ev::sig& sig, int) {
 /** resumes previousely suspended execution.
  */
 void XzeroEventHandler::resumeHandler(ev::sig& sig, int) {
-  server()->log(Severity::debug, "Siganl %s received.",
+  server()->log(Severity::trace, "Siganl %s received.",
                 strsignal(sig.signum));
 
-  server()->log(Severity::debug, "Resuming worker threads.");
+  server()->log(Severity::trace, "Resuming worker threads.");
   for (HttpWorker* worker : server()->workers()) {
     worker->resume();
   }
@@ -334,7 +334,7 @@ void XzeroEventHandler::onChild(ev::child&, int) {
     ev_unref(loop_);
   }
 
-  server()->log(Severity::debug, "Reactivating listeners.");
+  server()->log(Severity::trace, "Reactivating listeners.");
   for (ServerSocket* listener : server()->listeners()) {
     // reenable O_CLOEXEC on listener socket
     listener->setCloseOnExec(true);
@@ -343,7 +343,7 @@ void XzeroEventHandler::onChild(ev::child&, int) {
     listener->start();
   }
 
-  server()->log(Severity::debug, "Resuming workers.");
+  server()->log(Severity::trace, "Resuming workers.");
   for (HttpWorker* worker : server()->workers()) {
     worker->resume();
   }

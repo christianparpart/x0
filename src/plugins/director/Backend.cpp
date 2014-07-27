@@ -146,7 +146,7 @@ SchedulerStatus Backend::tryProcess(RequestNotes* rn) {
   status = SchedulerStatus::Overloaded;
   if (capacity_ && load_.current() >= capacity_) goto done;
 
-  rn->request->log(Severity::debug,
+  rn->request->log(Severity::trace,
                    "Processing request by director '%s' backend '%s'.",
                    manager()->name().c_str(), name().c_str());
 

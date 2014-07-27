@@ -15,7 +15,7 @@ using namespace base;
 using namespace xzero;
 
 #if 0  // !defined(XZERO_NDEBUG)
-#define TRACE(n, msg...) (this->log(LogMessage(Severity::debug##n, msg)))
+#define TRACE(n, msg...) (this->log(LogMessage(Severity::trace##n, msg)))
 #else
 #define TRACE(n, msg...) \
   do {                   \

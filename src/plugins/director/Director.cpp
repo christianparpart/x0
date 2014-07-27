@@ -38,14 +38,14 @@ static inline void logRequest(HttpRequest* r, int level, const char* fmt,
 }
 
 #if !defined(XZERO_NDEBUG)
-//#	define TRACE(obj, level, msg...) (obj)->request->log(Severity::debug ##
+//#	define TRACE(obj, level, msg...) (obj)->request->log(Severity::trace ##
 //level, "director: " msg)
-//#	define WTRACE(level, msg...) worker_->log(Severity::debug ## level,
+//#	define WTRACE(level, msg...) worker_->log(Severity::trace ## level,
 //"director: " msg)
 #define TRACE(obj, level, msg...) ::logRequest((obj)->request, level, msg)
 #define WTRACE(level, msg...)                  \
   do {                                         \
-    LogMessage m(Severity::debug##level, msg); \
+    LogMessage m(Severity::trace##level, msg); \
     m.addTag("director");                      \
     worker_->log(std::move(m));                \
   } while (0)

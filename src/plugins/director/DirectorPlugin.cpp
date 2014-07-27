@@ -140,7 +140,7 @@ void DirectorPlugin::director_load(vm::Params& args) {
   // TODO verify that given director name is still available.
   // TODO verify that no director has been instanciated already by given path.
 
-  server().log(Severity::debug, "director: Loading director %s from %s.",
+  server().log(Severity::trace, "director: Loading director %s from %s.",
                directorName.c_str(), path.c_str());
 
   std::unique_ptr<Director> director(
@@ -232,7 +232,7 @@ void DirectorPlugin::balance(HttpRequest* r, const std::string& directorName,
   r->onPostProcess.connect(std::bind(&DirectorPlugin::addVia, this, r));
 
 #if !defined(NDEBUG)
-  server().log(Severity::debug, "director: passing request to %s [%s].",
+  server().log(Severity::trace, "director: passing request to %s [%s].",
                director->name().c_str(), bucket->name().c_str());
 #endif
 
@@ -274,7 +274,7 @@ void DirectorPlugin::pass(HttpRequest* r, const std::string& directorName,
   }
 
 #if !defined(NDEBUG)
-  server().log(Severity::debug, "director: passing request to %s [backend %s].",
+  server().log(Severity::trace, "director: passing request to %s [backend %s].",
                director->name().c_str(), backend->name().c_str());
 #endif
 

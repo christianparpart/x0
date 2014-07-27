@@ -44,7 +44,7 @@ using namespace xzero;
 #define TRACE(rn, n, msg...)                 \
   do {                                       \
     if ((rn) && (rn)->request != nullptr) {  \
-      LogMessage m(Severity::debug##n, msg); \
+      LogMessage m(Severity::trace##n, msg); \
       m.addTag("director-cache");            \
       rn->request->log(std::move(m));        \
     } else {                                 \

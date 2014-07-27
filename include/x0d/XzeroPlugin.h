@@ -238,7 +238,7 @@ inline void XzeroPlugin::debug(int level, const char* msg, Args&&... args) {
     fmt.push_back(": ");
     fmt.push_back(msg);
 
-    server_->log(base::Severity::debug, fmt.c_str(), args...);
+    server_->log(base::Severity::trace, fmt.c_str(), args...);
   }
 #endif
 }

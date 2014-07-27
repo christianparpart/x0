@@ -182,7 +182,7 @@ CgiScript::CgiScript(HttpRequest* r, const std::string& hostprogram)
       stdoutTransferBuffer_(),
       stdoutTransferActive_(false),
       outputFlags_(NoneClosed) {
-  log(Severity::debug, "CgiScript(path=\"%s\", hostprogram=\"%s\")",
+  log(Severity::trace, "CgiScript(path=\"%s\", hostprogram=\"%s\")",
       request_->fileinfo->path().c_str(), hostprogram_.c_str());
 
   count_++;
@@ -195,7 +195,7 @@ CgiScript::CgiScript(HttpRequest* r, const std::string& hostprogram)
 }
 
 CgiScript::~CgiScript() {
-  log(Severity::debug, "destructing");
+  log(Severity::trace, "destructing");
 
   if (request_) {
     if (request_->status == HttpStatus::Undefined) {
@@ -220,7 +220,7 @@ CgiScript::~CgiScript() {
  * by libev.
  */
 void CgiScript::onChild(ev::child&, int revents) {
-  log(Severity::debug, "onChild(0x%x)", revents);
+  log(Severity::trace, "onChild(0x%x)", revents);
   evCheckDestroy_.send();
 }
 
@@ -254,7 +254,7 @@ void CgiScript::onCheckDestroy(ev::async& /*w*/, int /*revents*/) {
 bool CgiScript::checkDestroy() {
   // child's stdout still open?
   if ((outputFlags_ & OutputClosed) == OutputClosed) {
-    log(Severity::debug, "checkDestroy: all subjects closed (0x%04x)",
+    log(Severity::trace, "checkDestroy: all subjects closed (0x%04x)",
         outputFlags_);
     delete this;
     return true;
@@ -266,7 +266,7 @@ bool CgiScript::checkDestroy() {
   if (outputFlags_ & ChildClosed) fs += "|child";
   fs += "|";
 
-  log(Severity::debug, "checkDestroy: failed (0x%04x) %s", outputFlags_,
+  log(Severity::trace, "checkDestroy: failed (0x%04x) %s", outputFlags_,
       fs.c_str());
   return false;
 }
@@ -378,17 +378,17 @@ inline void CgiScript::runAsync() {
 
 #ifndef XZERO_NDEBUG
   for (auto i = environment.begin(), e = environment.end(); i != e; ++i)
-    log(Severity::debug, "env[%s]: '%s'", i->first.c_str(), i->second.c_str());
+    log(Severity::trace, "env[%s]: '%s'", i->first.c_str(), i->second.c_str());
 #endif
 
   // prepare stdin
   if (request_->contentAvailable()) {
-    log(Severity::debug, "prepare stdin");
+    log(Severity::trace, "prepare stdin");
     stdinSource_ = std::move(request_->takeBody());
     stdinSink_.reset(new FileSink(process_.input(), false));
     evStdin_.start(process_.input(), ev::WRITE);
   } else {
-    log(Severity::debug, "close stdin");
+    log(Severity::trace, "close stdin");
     process_.closeInput();
   }
 
@@ -418,16 +418,16 @@ inline void CgiScript::runAsync() {
  * ready to write into stdin.
  */
 void CgiScript::onStdinReady(ev::io& /*w*/, int revents) {
-  log(Severity::debug, "CgiScript::onStdinReady(%d)", revents);
+  log(Severity::trace, "CgiScript::onStdinReady(%d)", revents);
 
   for (;;) {
     ssize_t rv = stdinSource_->sendto(*stdinSink_);
     if (rv > 0) {
-      log(Severity::debug, "- wrote %zi bytes to upstream's stdin", rv);
+      log(Severity::trace, "- wrote %zi bytes to upstream's stdin", rv);
       continue;
     } else if (rv == 0) {
       // no more data to transfer
-      log(Severity::debug, "- stdin transfer finished");
+      log(Severity::trace, "- stdin transfer finished");
       evStdin_.stop();
       process_.closeInput();
       return;
@@ -456,11 +456,11 @@ void CgiScript::onStdinReady(ev::io& /*w*/, int revents) {
  *  includes validation and possible post-modification
  */
 void CgiScript::onStdoutAvailable(ev::io& w, int revents) {
-  log(Severity::debug, "onStdoutAvailable()");
+  log(Severity::trace, "onStdoutAvailable()");
 
   if (!request_) {
     // no client request (anymore)
-    log(Severity::debug, "no client request (anymore)");
+    log(Severity::trace, "no client request (anymore)");
     evStdout_.stop();
     outputFlags_ |= StdoutClosed;
     return;
@@ -475,7 +475,7 @@ void CgiScript::onStdoutAvailable(ev::io& w, int revents) {
                   outbuf_.capacity() - lower_bound);
 
   if (rv > 0) {
-    log(Severity::debug, "onStdoutAvailable(): read %d bytes", rv);
+    log(Severity::trace, "onStdoutAvailable(): read %d bytes", rv);
 
     outbuf_.resize(lower_bound + rv);
     // printf("%s\n", outbuf_.ref(outbuf_.size() - rv, rv).str().c_str());
@@ -483,11 +483,11 @@ void CgiScript::onStdoutAvailable(ev::io& w, int revents) {
     std::size_t np = parseFragment(outbuf_.ref(lower_bound, rv));
     (void)np;
 
-    log(Severity::debug, "onStdoutAvailable@process: %ld", np);
+    log(Severity::trace, "onStdoutAvailable@process: %ld", np);
 
     serial_++;
   } else if (rv < 0) {
-    log(Severity::debug, "onStdoutAvailable: rv=%d %s", rv, strerror(errno));
+    log(Severity::trace, "onStdoutAvailable: rv=%d %s", rv, strerror(errno));
     if (rv != EINTR && rv != EAGAIN) {
       // error while reading from stdout
       evStdout_.stop();
@@ -505,7 +505,7 @@ void CgiScript::onStdoutAvailable(ev::io& w, int revents) {
     }
   } else {  // if (rv == 0) {
     // stdout closed by cgi child process
-    log(Severity::debug, "stdout closed");
+    log(Severity::trace, "stdout closed");
 
     evStdout_.stop();
     outputFlags_ |= StdoutClosed;
@@ -518,9 +518,9 @@ void CgiScript::onStdoutAvailable(ev::io& w, int revents) {
  * the web server's error log stream or passes it to the actual client stream,
  * too. */
 void CgiScript::onStderrAvailable(ev::io& /*w*/, int revents) {
-  log(Severity::debug, "onStderrAvailable()");
+  log(Severity::trace, "onStderrAvailable()");
   if (!request_) {
-    log(Severity::debug, "no client request (anymore)");
+    log(Severity::trace, "no client request (anymore)");
     evStderr_.stop();
     outputFlags_ |= StderrClosed;
     return;
@@ -529,12 +529,12 @@ void CgiScript::onStderrAvailable(ev::io& /*w*/, int revents) {
   int rv = ::read(process_.error(), (char*)errbuf_.data(), errbuf_.capacity());
 
   if (rv > 0) {
-    log(Severity::debug, "read %d bytes: %s", rv, errbuf_.data());
+    log(Severity::trace, "read %d bytes: %s", rv, errbuf_.data());
     errbuf_.resize(rv);
     request_->log(Severity::error, "CGI script error: %s: %s",
                   request_->fileinfo->path().c_str(), errbuf_.str().c_str());
   } else if (rv == 0) {
-    log(Severity::debug, "stderr closed");
+    log(Severity::trace, "stderr closed");
     evStderr_.stop();
     outputFlags_ |= StderrClosed;
     checkDestroy();
@@ -558,7 +558,7 @@ void CgiScript::log(LogMessage&& msg) {
 }
 
 bool CgiScript::onMessageHeader(const BufferRef& name, const BufferRef& value) {
-  log(Severity::debug, "messageHeader(\"%s\", \"%s\")", name.str().c_str(),
+  log(Severity::trace, "messageHeader(\"%s\", \"%s\")", name.str().c_str(),
       value.str().c_str());
 
   if (name == "Status") {
@@ -575,7 +575,7 @@ bool CgiScript::onMessageHeader(const BufferRef& name, const BufferRef& value) {
 }
 
 bool CgiScript::onMessageContent(const BufferRef& value) {
-  log(Severity::debug, "messageContent(length=%ld)", value.size());
+  log(Severity::trace, "messageContent(length=%ld)", value.size());
 
   if (stdoutTransferActive_) {
     stdoutTransferBuffer_.push_back(value);
@@ -592,17 +592,17 @@ bool CgiScript::onMessageContent(const BufferRef& value) {
 /** completion handler for the response content stream.
  */
 void CgiScript::onStdoutWritten() {
-  log(Severity::debug, "onStdoutWritten()");
+  log(Severity::trace, "onStdoutWritten()");
 
   stdoutTransferActive_ = false;
 
   if (stdoutTransferBuffer_.size() > 0) {
-    log(Severity::debug, "flushing stdoutBuffer (%ld)",
+    log(Severity::trace, "flushing stdoutBuffer (%ld)",
         stdoutTransferBuffer_.size());
     request_->write<BufferRefSource>(stdoutTransferBuffer_.ref());
     request_->writeCallback<CgiScript, &CgiScript::onStdoutWritten>(this);
   } else {
-    log(Severity::debug, "stdout: watch");
+    log(Severity::trace, "stdout: watch");
     evStdout_.start();
   }
 }

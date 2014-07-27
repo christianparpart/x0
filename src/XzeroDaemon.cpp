@@ -618,8 +618,8 @@ bool XzeroDaemon::setupConfig() {
 
   if (bind.empty()) bind = "::";  //"0.0.0.0"; //TODO: "0::0";
 
-  log(Severity::debug, "docroot: %s", documentRoot_.c_str());
-  log(Severity::debug, "listen: addr=%s, port=%d", bind.c_str(), port);
+  log(Severity::trace, "docroot: %s", documentRoot_.c_str());
+  log(Severity::trace, "listen: addr=%s, port=%d", bind.c_str(), port);
 
   std::string source(
       "import compress;\n"
@@ -643,7 +643,7 @@ bool XzeroDaemon::setupConfig() {
   gsub(source, "#{bind}", bind);  // FIXME <--- bind to 1 instead of "::" lol
   gsub(source, "#{port}", port);
 
-  log(Severity::debug2, "source: %s", source.c_str());
+  log(Severity::trace2, "source: %s", source.c_str());
 
   server_->tcpCork(true);
 
@@ -717,7 +717,7 @@ void XzeroDaemon::reexec() {
     serializedListeners.push_back(';');
   }
 
-  server_->log(Severity::debug, "Setting envvar XZERO_LISTEN_FDS to: '%s'",
+  server_->log(Severity::trace, "Setting envvar XZERO_LISTEN_FDS to: '%s'",
                serializedListeners.c_str());
   setenv("XZERO_LISTEN_FDS", serializedListeners.c_str(), true);
 
@@ -790,7 +790,7 @@ void XzeroDaemon::reexec() {
   }
 
   // continue running the the process (with listeners disabled)
-  server_->log(Severity::debug, "Setting O_CLOEXEC on listener sockets");
+  server_->log(Severity::trace, "Setting O_CLOEXEC on listener sockets");
   for (auto listener : server_->listeners()) {
     listener->setCloseOnExec(true);
   }
@@ -878,7 +878,7 @@ XzeroPlugin* XzeroDaemon::loadPlugin(const std::string& name,
   std::string plugin_create_name("x0plugin_init");
 
 #if !defined(XZERO_NDEBUG)
-  log(Severity::debug, "Loading plugin %s", filename.c_str());
+  log(Severity::trace, "Loading plugin %s", filename.c_str());
 #endif
 
   Library lib;
@@ -900,7 +900,7 @@ XzeroPlugin* XzeroDaemon::loadPlugin(const std::string& name,
 
 /** safely unloads a plugin. */
 void XzeroDaemon::unloadPlugin(const std::string& name) {
-  log(Severity::debug, "Unloading plugin: %s", name.c_str());
+  log(Severity::trace, "Unloading plugin: %s", name.c_str());
 
   for (auto plugin : plugins_) {
     if (plugin->name() == name) {
@@ -1179,7 +1179,7 @@ bool XzeroDaemon::setup(std::unique_ptr<std::istream>&& settings,
       }
     }
     if (!found) {
-      log(Severity::debug, "Closing inherited superfluous listening socket %d.",
+      log(Severity::trace, "Closing inherited superfluous listening socket %d.",
           fd);
       ::close(fd);
     }

@@ -892,7 +892,7 @@ void ApiRequest::processBucket(Director* director) {
         return;
       }
 
-      director->worker()->log(Severity::debug,
+      director->worker()->log(Severity::trace,
                               "director %s: Destroying bucket %s",
                               director->name().c_str(), bucket->name().c_str());
 

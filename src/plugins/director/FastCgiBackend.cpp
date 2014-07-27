@@ -57,8 +57,8 @@
   {                                                                  \
     static_assert((level) >= 1 && (level) <= 5,                      \
                   "TRACE()-level must be between 1 and 5, matching " \
-                  "Severity::debugN values.");                       \
-    log(Severity::debug##level, msg);                                \
+                  "Severity::traceN values.");                       \
+    log(Severity::trace##level, msg);                                \
   }
 #else
 #define TRACE(msg...) /*!*/
@@ -410,16 +410,16 @@ void FastCgiBackend::Connection::onClientAbort() {
 
   switch (backend_->manager()->clientAbortAction()) {
     case ClientAbortAction::Ignore:
-      log(Severity::diag, "Client closed connection early. Ignored.");
+      log(Severity::debug, "Client closed connection early. Ignored.");
       break;
     case ClientAbortAction::Close:
-      log(Severity::diag,
+      log(Severity::debug,
           "Client closed connection early. Aborting request to backend FastCGI "
           "server.");
       exitSuccess();
       break;
     case ClientAbortAction::Notify:
-      log(Severity::diag,
+      log(Severity::debug,
           "Client closed connection early. Notifying backend FastCGI server.");
       write<FastCgi::AbortRequestRecord>(id_);
       flush();

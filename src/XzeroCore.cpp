@@ -496,16 +496,16 @@ void XzeroCore::log_info(HttpRequest* r, FlowParams& args) {
 
 void XzeroCore::log_diag(HttpRequest* r, FlowParams& args) {
   if (r)
-    r->log(Severity::diag, "%s", concat(args).c_str());
+    r->log(Severity::debug, "%s", concat(args).c_str());
   else
-    server().log(Severity::diag, "%s", concat(args).c_str());
+    server().log(Severity::debug, "%s", concat(args).c_str());
 }
 
 void XzeroCore::log_debug(HttpRequest* r, FlowParams& args) {
   if (r)
-    r->log(Severity::debug, "%s", concat(args).c_str());
+    r->log(Severity::trace, "%s", concat(args).c_str());
   else
-    server().log(Severity::debug, "%s", concat(args).c_str());
+    server().log(Severity::trace, "%s", concat(args).c_str());
 }
 // }}}
 // {{{ void sleep(int seconds)
@@ -516,7 +516,7 @@ class Sleeper {
         timer_(r->connection.worker().loop()),
         request_(r),
         vm_(vm) {
-    r->log(Severity::debug, "Sleeping for %i seconds.", n_);
+    r->log(Severity::trace, "Sleeping for %i seconds.", n_);
     timer_.set<Sleeper, &Sleeper::wakeup>(this);
     timer_.start(seconds, 0);
     vm->suspend();
@@ -524,7 +524,7 @@ class Sleeper {
 
  private:
   void wakeup(ev::timer& ev, int revents) {
-    request_->log(Severity::debug, "Sleeping for %i seconds. WAKEUP", n_);
+    request_->log(Severity::trace, "Sleeping for %i seconds. WAKEUP", n_);
     bool handled = vm_->resume();
     if (!handled && !vm_->isSuspended()) {
       request_->finish();  // doh'
@@ -1174,7 +1174,7 @@ unsigned long long XzeroCore::setrlimit(int resource,
     return 0;
   }
 
-  server().log(Severity::debug, "Set resource limit on %s from %lld to %lld.",
+  server().log(Severity::trace, "Set resource limit on %s from %lld to %lld.",
                rc2str(resource), hlast, hvalue);
 
   return value;
