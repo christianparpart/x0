@@ -8,6 +8,7 @@
 #include <x0d/sysconfig.h>
 #include <x0d/XzeroEventHandler.h>
 #include <x0d/XzeroDaemon.h>
+#include <x0d/sysconfig.h>
 #include <xzero/HttpServer.h>
 #include <xzero/HttpRequest.h>
 #include <base/io/SyslogSink.h>
@@ -174,16 +175,20 @@ void XzeroEventHandler::setState(XzeroState newState) {
     case XzeroState::Inactive:
       break;
     case XzeroState::Initializing:
+#if defined(SD_FOUND)
       sd_notify(0, "STATUS=Initializing ...");
+#endif
       break;
     case XzeroState::Running:
       if (server()->generation() == 1) {
         // we have been started up directoy (e.g. by systemd)
+#if defined(SD_FOUND)
         sd_notifyf(0,
                    "MAINPID=%d\n"
                    "STATUS=Accepting requests ...\n"
                    "READY=1\n",
                    getpid());
+#endif
       } else {
         // we have been invoked by x0d itself, e.g. a executable upgrade and/or
         // configuration reload.
@@ -194,23 +199,29 @@ void XzeroEventHandler::setState(XzeroState newState) {
       }
       break;
     case XzeroState::Upgrading:
+#if defined(SD_FOUND)
       sd_notify(0, "STATUS=Upgrading");
+#endif
       server()->log(Severity::info, "Upgrading ...");
       break;
     case XzeroState::GracefullyShuttingdown:
       if (state_ == XzeroState::Running) {
+#if defined(SD_FOUND)
         sd_notify(0, "STATUS=Shutting down gracefully ...");
+#endif
       } else if (state_ == XzeroState::Upgrading) {
         // we're not the master anymore
         // tell systemd, that our freshly spawned child is taking over, and the
         // new master
         // XXX as of systemd v28, RELOADED=1 is not yet implemented, but on
         // their TODO list
+#if defined(SD_FOUND)
         sd_notifyf(0,
                    "MAINPID=%d\n"
                    "STATUS=Accepting requests ...\n"
                    "RELOADED=1\n",
                    child_.pid);
+#endif
       }
       break;
     default:
@@ -282,7 +293,9 @@ void XzeroEventHandler::quickShutdownHandler(ev::sig& sig, int) {
 
   if (state_ != XzeroState::Upgrading) {
     // we are no garbage parent process
+#if defined(SD_FOUND)
     sd_notify(0, "STATUS=Shutting down.");
+#endif
   }
 
   // default to standard signal-handler

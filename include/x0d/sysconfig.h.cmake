@@ -8,6 +8,8 @@
 #ifndef X0D_SYSCONFIG_H
 #define X0D_SYSCONFIG_H
 
+#cmakedefine SD_FOUND
+
 #cmakedefine HAVE_SYSLOG_H
 #cmakedefine HAVE_SYS_UTSNAME_H
 

@@ -126,7 +126,11 @@ XzeroDaemon::XzeroDaemon(int argc, char* argv[])
       instant_(),
       documentRoot_(),
       nofork_(false),
+#if defined(SD_FOUND)
       systemd_(getppid() == 1 && sd_booted()),
+#else
+      systemd_(false),
+#endif
       dumpAST_(false),
       dumpIR_(false),
       dumpTargetCode_(false),
@@ -1002,7 +1006,9 @@ bool XzeroDaemon::setup(std::unique_ptr<std::istream>&& settings,
                 std::placeholders::_2, std::placeholders::_3);
 
   if (!parser.open(filename, std::move(settings))) {
+#if defined(SD_FOUND)
     sd_notifyf(0, "ERRNO=%d", errno);
+#endif
     fprintf(stderr, "Failed to open file: %s\n", filename.c_str());
     return false;
   }
@@ -1187,6 +1193,7 @@ bool XzeroDaemon::setup(std::unique_ptr<std::istream>&& settings,
   // }}}
 
   // {{{ systemd: check for superfluous passed file descriptors
+#if defined(SD_FOUND)
   if (int count = sd_listen_fds(0)) {
     int maxfd = SD_LISTEN_FDS_START + count;
     count = 0;
@@ -1207,6 +1214,7 @@ bool XzeroDaemon::setup(std::unique_ptr<std::istream>&& settings,
       return false;
     }
   }
+#endif
   // }}}
 
   // XXX post worker wakeup

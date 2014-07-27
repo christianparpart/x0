@@ -7,6 +7,7 @@
 
 #include <x0d/XzeroCore.h>
 #include <x0d/XzeroDaemon.h>
+#include <x0d/sysconfig.h>
 #include <flow/AST.h>
 #include <flow/ir/Instr.h>
 #include <flow/ir/BasicBlock.h>
@@ -412,11 +413,19 @@ void XzeroCore::dump_ir(FlowParams& args) { emitIR_ = true; }
 // }}}
 // {{{ systemd.*
 void XzeroCore::systemd_booted(HttpRequest*, FlowParams& args) {
+#if defined(SD_FOUND)
   args.setResult(sd_booted() == 0);
+#else
+  args.setResult(false);
+#endif
 }
 
 void XzeroCore::systemd_controlled(HttpRequest*, FlowParams& args) {
+#if defined(SD_FOUND)
   args.setResult(sd_booted() == 0 && getppid() == 1);
+#else
+  args.setResult(false);
+#endif
 }
 // }}}
 // {{{ sys
