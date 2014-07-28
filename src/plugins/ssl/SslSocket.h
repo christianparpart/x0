@@ -19,7 +19,7 @@ class SslContext;
  */
 class SslSocket : public base::Socket {
  private:
-#ifndef XZERO_NDEBUG
+#ifndef NDEBUG
   ev_tstamp ctime_;
 #endif
 

@@ -28,7 +28,7 @@
 
 namespace base {
 
-#if 0  //!defined(XZERO_NDEBUG)
+#if 0  //!defined(NDEBUG)
 #define TRACE(msg...) this->debug(msg)
 #else
 #define TRACE(msg...) \
@@ -294,7 +294,7 @@ ServerSocket* ServerSocket::clone(struct ev_loop* loop) {
  * \retval false some failure occured during setting up the server socket.
  */
 bool ServerSocket::open(const std::string& address, int port, int flags) {
-#ifndef XZERO_NDEBUG
+#ifndef NDEBUG
   setLoggingPrefix("ServerSocket(%s:%d)", address.c_str(), port);
 #endif
   TRACE("opening");
@@ -496,7 +496,7 @@ err:
  * \retval false some failure occured during setting up the server socket.
  */
 bool ServerSocket::open(const std::string& path, int flags) {
-#ifndef XZERO_NDEBUG
+#ifndef NDEBUG
   setLoggingPrefix("ServerSocket(%s)", path.c_str());
 #endif
   TRACE("opening");

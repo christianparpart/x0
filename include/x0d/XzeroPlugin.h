@@ -58,7 +58,7 @@ class X0D_API XzeroPlugin {
   template <typename... Args>
   inline void debug(int level, const char* msg, Args&&... args);
 
-#if !defined(XZERO_NDEBUG)
+#if !defined(NDEBUG)
   inline int debug_level() const;
   void debug_level(int value);
 #endif
@@ -147,7 +147,7 @@ class X0D_API XzeroPlugin {
   std::list<std::function<void()>> cleanups_;
   std::vector<flow::vm::NativeCallback*> natives_;
 
-#if !defined(XZERO_NDEBUG)
+#if !defined(NDEBUG)
   int debugLevel_;
 #endif
 
@@ -231,7 +231,7 @@ inline void XzeroPlugin::log(base::Severity sv, const char* msg, Args&&... args)
 
 template <typename... Args>
 inline void XzeroPlugin::debug(int level, const char* msg, Args&&... args) {
-#if !defined(XZERO_NDEBUG)
+#if !defined(NDEBUG)
   if (level <= debugLevel_) {
     base::Buffer fmt;
     fmt.push_back(name_);
@@ -243,7 +243,7 @@ inline void XzeroPlugin::debug(int level, const char* msg, Args&&... args) {
 #endif
 }
 
-#if !defined(XZERO_NDEBUG)
+#if !defined(NDEBUG)
 inline int XzeroPlugin::debug_level() const { return debugLevel_; }
 
 inline void XzeroPlugin::debug_level(int value) { debugLevel_ = value; }

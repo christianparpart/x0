@@ -108,7 +108,7 @@ int main(int argc, const char* argv[]) {
   DebugLogger::get().configure("XZERO_DEBUG");
 
 // {{{ args parsing
-#if !defined(XZERO_NDEBUG)
+#if !defined(NDEBUG)
   if (argc == 1) {
     static const char* debugArgs[] = {argv[0], "-A",   "-I",           "-T",
                                       "-e",    "main", "./parse.flow", nullptr};

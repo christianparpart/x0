@@ -37,7 +37,7 @@ static inline void logRequest(HttpRequest* r, int level, const char* fmt,
   r->log(std::move(msg));
 }
 
-#if !defined(XZERO_NDEBUG)
+#if !defined(NDEBUG)
 //#	define TRACE(obj, level, msg...) (obj)->request->log(Severity::trace ##
 //level, "director: " msg)
 //#	define WTRACE(level, msg...) worker_->log(Severity::trace ## level,
@@ -1319,7 +1319,7 @@ RequestNotes* Director::dequeue() {
   return nullptr;
 }
 
-#ifndef XZERO_NDEBUG
+#ifndef NDEBUG
 inline const char* roleStr(BackendRole role) {
   switch (role) {
     case BackendRole::Active:

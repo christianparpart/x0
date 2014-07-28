@@ -69,7 +69,7 @@
 #include <syslog.h>
 #endif
 
-#if !defined(XZERO_NDEBUG)
+#if !defined(NDEBUG)
 using base::DebugLogger;
 #define TRACE(n, msg...) XZERO_DEBUG("XzeroDaemon", (n), msg)
 #else
@@ -884,7 +884,7 @@ XzeroPlugin* XzeroDaemon::loadPlugin(const std::string& name,
 
   std::string plugin_create_name("x0plugin_init");
 
-#if !defined(XZERO_NDEBUG)
+#if !defined(NDEBUG)
   log(Severity::trace, "Loading plugin %s", filename.c_str());
 #endif
 

@@ -26,7 +26,7 @@ struct RequestNotes;
  * \see Director, Roadwarrior
  */
 class BackendManager
-#ifndef XZERO_NDEBUG
+#ifndef NDEBUG
     : public base::Logging
 #endif
       {

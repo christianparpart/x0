@@ -13,7 +13,7 @@
 #include <vector>
 #include <dlfcn.h>
 
-#if !defined(XZERO_NDEBUG)
+#if !defined(NDEBUG)
 #define TRACE(n, msg...) XZERO_DEBUG("Library", (n), msg)
 #else
 #define TRACE(n, msg...) /*!*/ ((void)0)

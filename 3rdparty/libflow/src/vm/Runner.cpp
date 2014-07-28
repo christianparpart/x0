@@ -24,7 +24,7 @@
 #include <inttypes.h>
 #include <flow/sysconfig.h>
 
-#if !defined(XZERO_NDEBUG)
+#if !defined(NDEBUG)
 #define TRACE(level, msg...) XZERO_DEBUG("vm", (level), msg)
 #else
 #define TRACE(msg...) \

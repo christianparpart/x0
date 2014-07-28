@@ -29,7 +29,7 @@
 #include <fcntl.h>
 #include <netdb.h>
 
-#if !defined(XZERO_NDEBUG)
+#if !defined(NDEBUG)
 #define TRACE(msg...) (this->log(LogMessage(Severity::trace1, msg)))
 #else
 #define TRACE(msg...) \
@@ -42,7 +42,7 @@ using namespace xzero;
 
 // {{{ HttpBackend::Connection API
 class HttpBackend::Connection :
-#ifndef XZERO_NDEBUG
+#ifndef NDEBUG
     public Logging,
 #endif
     public CustomData,
@@ -126,7 +126,7 @@ HttpBackend::Connection::Connection(RequestNotes* rn,
       transferOffset_(0) {
   transferPath_[0] = '\0';
 
-#ifndef XZERO_NDEBUG
+#ifndef NDEBUG
   setLoggingPrefix("Connection/%p", this);
 #endif
   TRACE("Connection()");
@@ -636,7 +636,7 @@ HttpBackend::HttpBackend(BackendManager* bm, const std::string& name,
               healthChecks ? std::make_unique<HttpHealthMonitor>(
                                  *bm->worker()->server().nextWorker())
                            : nullptr) {
-#ifndef XZERO_NDEBUG
+#ifndef NDEBUG
   setLoggingPrefix("HttpBackend/%s", name.c_str());
 #endif
 

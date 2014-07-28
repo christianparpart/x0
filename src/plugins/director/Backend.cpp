@@ -11,7 +11,7 @@
 #include "RequestNotes.h"
 #include "HealthMonitor.h"
 
-#if !defined(XZERO_NDEBUG)
+#if !defined(NDEBUG)
 #define TRACE(msg...) (this->Logging::debug(msg))
 #else
 #define TRACE(msg...) \
@@ -39,7 +39,7 @@ Backend::Backend(BackendManager* bm, const std::string& name,
                  const SocketSpec& socketSpec, size_t capacity,
                  std::unique_ptr<HealthMonitor>&& healthMonitor)
     :
-#ifndef XZERO_NDEBUG
+#ifndef NDEBUG
       Logging("Backend/%s", name.c_str()),
 #endif
       manager_(bm),

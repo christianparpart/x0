@@ -16,8 +16,8 @@
 #include <cassert>
 #include <strings.h>
 
-#ifndef XZERO_NDEBUG
-#define XZERO_NDEBUG 1
+#ifndef NDEBUG
+#define NDEBUG 1
 #endif
 
 using namespace x0;

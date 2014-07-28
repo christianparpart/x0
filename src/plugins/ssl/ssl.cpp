@@ -32,7 +32,7 @@
 #include <gcrypt.h>
 GCRY_THREAD_OPTION_PTHREAD_IMPL;
 
-#if 0  // !defined(XZERO_NDEBUG)
+#if 0  // !defined(NDEBUG)
 #define TRACE(msg...) DEBUG("ssl: " msg)
 #else
 #define TRACE(msg...) /*!*/

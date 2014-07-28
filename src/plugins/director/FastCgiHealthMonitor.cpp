@@ -19,7 +19,7 @@
 using namespace base;
 using namespace xzero;
 
-#if !defined(XZERO_NDEBUG)
+#if !defined(NDEBUG)
 #define TRACE(msg...) (this->debug(msg))
 #else
 #define TRACE(msg...) \

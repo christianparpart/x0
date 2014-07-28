@@ -19,7 +19,7 @@
 using namespace base;
 using namespace xzero;
 
-#if !defined(XZERO_NDEBUG)
+#if !defined(NDEBUG)
 #define TRACE(msg...) (this->debug(msg))
 #else
 #define TRACE(msg...) \
@@ -103,7 +103,7 @@ void HealthMonitor::setStateChangeCallback(
 void HealthMonitor::setBackend(Backend* backend) {
   backend_ = backend;
 
-#ifndef XZERO_NDEBUG
+#ifndef NDEBUG
   setLoggingPrefix("HealthMonitor/%s", backend_->socketSpec().str().c_str());
 #endif
 

@@ -3,7 +3,7 @@
 
 export DH_VERBOSE=1
 
-CXXFLAGS += -DNDEBUG=1 -DXZERO_NDEBUG=1
+CXXFLAGS += -DNDEBUG=1 -DNDEBUG=1
 CXXFLAGS += -g
 
 configure: configure-stamp

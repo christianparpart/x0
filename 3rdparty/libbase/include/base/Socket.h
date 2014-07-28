@@ -30,7 +30,7 @@ class Pipe;
  * * I/O and timeout event callbacks.
  */
 class BASE_API Socket
-#ifndef XZERO_NDEBUG
+#ifndef NDEBUG
     : public Logging
 #endif
       {
@@ -241,7 +241,7 @@ inline void Socket::setReadyCallback(K *object) {
 
 template <class K, void (K::*cb)(Socket *)>
 inline void Socket::setTimeout(K *object, TimeSpan value) {
-#if !defined(XZERO_NDEBUG)
+#if !defined(NDEBUG)
   debug("setTimeout(%p, %.2f) active:%s", object, value(),
         timer_.is_active() ? "true" : "false");
 #endif

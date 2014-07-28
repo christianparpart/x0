@@ -369,14 +369,14 @@ inline void CgiScript::runAsync() {
 #endif
 
 // {{{ for valgrind
-#ifndef XZERO_NDEBUG
+#ifndef NDEBUG
 //_loadenv_if("LD_PRELOAD", environment);
 //_loadenv_if("LD_LIBRARY_PATH", environment);
 #endif
 // }}}
 // }}}
 
-#ifndef XZERO_NDEBUG
+#ifndef NDEBUG
   for (auto i = environment.begin(), e = environment.end(); i != e; ++i)
     log(Severity::trace, "env[%s]: '%s'", i->first.c_str(), i->second.c_str());
 #endif

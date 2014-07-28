@@ -10,7 +10,7 @@
 #include <cassert>
 #include <zlib.h>
 
-#if 0  // !defined(XZERO_NDEBUG)
+#if 0  // !defined(NDEBUG)
 #define TRACE(msg...) DEBUG("ChunkedEncoder: " msg)
 #else
 #define TRACE(msg...)

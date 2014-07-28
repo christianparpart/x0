@@ -13,7 +13,7 @@
 #include <unistd.h>
 #include <time.h>
 
-#if 0  // !defined(XZERO_NDEBUG)
+#if 0  // !defined(NDEBUG)
 //#	define TRACE(msg...) DEBUG(msg)
 #define TRACE(msg...)             \
   {                               \
@@ -524,7 +524,7 @@ bool SqlStatement::valueAt<bool>(unsigned index) const {
     case MYSQL_TYPE_DATETIME:
       return true;
     default:
-#if !defined(XZERO_NDEBUG)
+#if !defined(NDEBUG)
       fprintf(stderr, "Unknown type case from bool to %s\n",
               mysql_type_str(fields_[index]->type));
 #endif
@@ -555,7 +555,7 @@ char SqlStatement::valueAt<char>(unsigned index) const {
     case MYSQL_TYPE_DATETIME:
       return 0;  // invalid
     default:
-#if !defined(XZERO_NDEBUG)
+#if !defined(NDEBUG)
       fprintf(stderr, "Unknown type case from CHAR to %s\n",
               mysql_type_str(fields_[index]->type));
 #endif
@@ -586,7 +586,7 @@ int SqlStatement::valueAt<int>(unsigned index) const {
     case MYSQL_TYPE_DATETIME:
       return 0;  // TODO return time_t
     default:
-#if !defined(XZERO_NDEBUG)
+#if !defined(NDEBUG)
       fprintf(stderr, "Unknown type case from INT to %s\n",
               mysql_type_str(fields_[index]->type));
 #endif
@@ -643,7 +643,7 @@ long SqlStatement::valueAt<long>(unsigned index) const {
       return ts;
     }
     default:
-#if !defined(XZERO_NDEBUG)
+#if !defined(NDEBUG)
       fprintf(stderr, "Unknown type case from LONG to %s\n",
               mysql_type_str(fields_[index]->type));
 #endif
@@ -681,13 +681,13 @@ unsigned long long SqlStatement::valueAt<unsigned long long>(
   }
 }
 
-#ifndef XZERO_NDEBUG
+#ifndef NDEBUG
 static unsigned int si_ = 0;
 #endif
 
 SqlStatement::SqlStatement()
     :
-#ifndef XZERO_NDEBUG
+#ifndef NDEBUG
       Logging("SqlStatement/%d", ++si_),
 #endif
       conn_(NULL),

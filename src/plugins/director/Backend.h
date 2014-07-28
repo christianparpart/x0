@@ -30,7 +30,7 @@ struct RequestNotes;
  * \see BackendManager, HttpBackend, FastCgiBackend
  */
 class Backend
-#ifndef XZERO_NDEBUG
+#ifndef NDEBUG
     : public base::Logging
 #endif
       {

@@ -29,7 +29,7 @@
 
 SslSocket::SslSocket(SslDriver *driver, struct ev_loop *loop, int fd, int af)
     : Socket(loop, fd, af),
-#ifndef XZERO_NDEBUG
+#ifndef NDEBUG
       ctime_(ev_now(loop)),
 #endif
       driver_(driver),

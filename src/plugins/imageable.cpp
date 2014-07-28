@@ -90,7 +90,7 @@
 
 using namespace base;
 
-#if 1  //!defined(XZERO_NDEBUG)
+#if 1  //!defined(NDEBUG)
 #define TRACE(level, msg...)                                         \
   {                                                                  \
     static_assert((level) >= 1 && (level) <= 5,                      \
@@ -171,7 +171,7 @@ Imageable::~Imageable() { DestroyMagickWand(wand_); }
 
 void Imageable::perform() {
   auto args = Url::parseQuery(request_->query);
-#ifndef XZERO_NDEBUG
+#ifndef NDEBUG
   request_->log(Severity::trace1, "url: %s", args["url"].c_str());
   request_->log(Severity::trace1, "size: %s", args["size"].c_str());
   request_->log(Severity::trace1, "x: %s", args["x"].c_str());

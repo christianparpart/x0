@@ -15,7 +15,7 @@ namespace x0d {
 using namespace base;
 using namespace xzero;
 
-#if !defined(XZERO_NDEBUG)
+#if !defined(NDEBUG)
 #define TRACE(n, msg...) XZERO_DEBUG("XzeroPlugin", (n), msg)
 #else
 #define TRACE(n, msg...) /*!*/ ((void)0)
@@ -32,7 +32,7 @@ XzeroPlugin::XzeroPlugin(XzeroDaemon* daemon, const std::string& name)
       name_(name),
       cleanups_(),
       natives_()
-#if !defined(XZERO_NDEBUG)
+#if !defined(NDEBUG)
       ,
       debugLevel_(9)
 #endif

@@ -13,7 +13,7 @@ using namespace base;
 
 BackendManager::BackendManager(HttpWorker* worker, const std::string& name)
     :
-#ifndef XZERO_NDEBUG
+#ifndef NDEBUG
       Logging("BackendManager/%s", name.c_str()),
 #endif
       worker_(worker),
