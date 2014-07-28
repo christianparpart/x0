@@ -40,11 +40,7 @@ int main() {
   httpServer.requestHandler = [&](xzero::HttpRequest* r) {
     r->documentRoot = cwd;
     r->fileinfo = r->connection.worker().fileinfo(r->documentRoot + r->path);
-    if (r->fileinfo) {
-      r->sendfile(r->fileinfo);
-    } else {
-      r->status = xzero::HttpStatus::NotFound;
-    }
+    r->sendfile(r->fileinfo);
     r->finish();
   };
 
