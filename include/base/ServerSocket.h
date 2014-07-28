@@ -34,7 +34,7 @@ class IPAddress;
  * @see SocketDriver
  */
 class BASE_API ServerSocket
-#ifndef XZERO_NDEBUG
+#ifndef NDEBUG
     : public Logging
 #endif
       {

@@ -22,7 +22,7 @@ namespace base {
 //@{
 
 class BASE_API SqlStatement
-#ifndef XZERO_NDEBUG
+#ifndef NDEBUG
     : public Logging
 #endif
       {

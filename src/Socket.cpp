@@ -31,7 +31,7 @@
 #include <netdb.h>
 #include <unistd.h>
 
-#if !defined(XZERO_NDEBUG)
+#if !defined(NDEBUG)
 #define TRACE(level, msg...) XZERO_DEBUG("Socket", (level), msg)
 #else
 #define TRACE(msg...) \
@@ -54,7 +54,7 @@ inline const char* mode_str(Socket::Mode m) {
 
 Socket::Socket(struct ev_loop* loop)
     :
-#ifndef XZERO_NDEBUG
+#ifndef NDEBUG
       Logging(),
 #endif
       loop_(loop),
@@ -75,7 +75,7 @@ Socket::Socket(struct ev_loop* loop)
       localPort_(),
       callback_(nullptr),
       callbackData_(0) {
-#ifndef XZERO_NDEBUG
+#ifndef NDEBUG
   //	setLogging(false);
   static std::atomic<unsigned long long> id(0);
   setLoggingPrefix("Socket(%d, %s:%d)", ++id, remoteIP().c_str(), remotePort());
@@ -105,7 +105,7 @@ Socket::Socket(struct ev_loop* loop, int fd, int af, State state)
       localPort_(),
       callback_(nullptr),
       callbackData_(0) {
-#ifndef XZERO_NDEBUG
+#ifndef NDEBUG
   setLogging(false);
   static std::atomic<unsigned long long> id(0);
   setLoggingPrefix("Socket(%d, %s:%d)", ++id, remoteIP().c_str(), remotePort());
@@ -390,7 +390,7 @@ ssize_t Socket::read(Pipe* pipe, size_t size) {
 ssize_t Socket::write(const void* buffer, size_t size) {
   lastActivityAt_.update(ev_now(loop_));
 
-#if 0  // !defined(XZERO_NDEBUG)
+#if 0  // !defined(NDEBUG)
     //TRACE(1, "write('%s')", Buffer(buffer, size).c_str());
     ssize_t rv = ::write(fd_, buffer, size);
     TRACE(1, "write: %ld => %ld", size, rv);
@@ -417,7 +417,7 @@ ssize_t Socket::write(int fd, off_t* offset, size_t nbytes) {
   ssize_t rv = ::sendfile(fd_, fd, offset, nbytes);
 #endif
 
-#if !defined(XZERO_NDEBUG)
+#if !defined(NDEBUG)
   TRACE(1, "write(fd=%d, offset=[%ld->%ld], nbytes=%ld) -> %ld", fd, offset0,
         *offset, nbytes, rv);
 

@@ -55,7 +55,7 @@ bool RegExp::match(const char* buffer, size_t size, Result* result) const {
   const size_t OV_COUNT = 3 * 36;
   int ov[OV_COUNT];
 
-#ifndef XZERO_NDEBUG
+#ifndef NDEBUG
   for (size_t i = 0; i < OV_COUNT; ++i) ov[i] = 1337;
 #endif
 
