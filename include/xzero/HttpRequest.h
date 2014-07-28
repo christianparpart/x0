@@ -50,7 +50,7 @@ class HttpConnection;
  * \see header, response, HttpConnection, server
  */
 class XZERO_API HttpRequest :
-#ifndef XZERO_NDEBUG
+#ifndef NDEBUG
     public Logging,
 #endif
     public RegExpContext {
