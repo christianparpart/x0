@@ -49,3 +49,4 @@ experimental
 include/xzero/sysconfig.h
 /tests/xzero-test
 Doxyfile
+/examples/hello_staticfile

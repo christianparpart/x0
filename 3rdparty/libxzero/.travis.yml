@@ -19,9 +19,9 @@ install:
 script:
   - $CXX --version
   - git clone git://github.com/xzero/libbase.git 3rdparty/libbase
-  - cmake -DCMAKE_BUILD_TYPE=debug -DXZERO_ENABLE_{EXAMPLES,TESTS}=ON
+  - cmake -DCMAKE_BUILD_TYPE=debug -DENABLE_{EXAMPLES,TESTS}=ON
   - make
-  - ./tests/xzero-test
+  - ./tests/libxzero-test
 branches:
   only:
     - master
