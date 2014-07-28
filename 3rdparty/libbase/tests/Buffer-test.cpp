@@ -8,8 +8,6 @@
 #include <gtest/gtest.h>
 #include <base/Buffer.h>
 #include <base/ConstBuffer.h>
-#include <cppunit/extensions/HelperMacros.h>
-#include <cppunit/extensions/TestFactoryRegistry.h>
 
 #include <iostream>
 #include <cstdlib>

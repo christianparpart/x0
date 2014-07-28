@@ -7,8 +7,6 @@
 
 #include <base/Try.h>
 #include <gtest/gtest.h>
-#include <cppunit/extensions/HelperMacros.h>
-#include <cppunit/extensions/TestFactoryRegistry.h>
 
 #include <iostream>
 #include <cstdlib>

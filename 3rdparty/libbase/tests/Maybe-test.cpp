@@ -7,8 +7,6 @@
 
 #include <gtest/gtest.h>
 #include <base/Maybe.h>
-#include <cppunit/extensions/HelperMacros.h>
-#include <cppunit/extensions/TestFactoryRegistry.h>
 
 #include <iostream>
 #include <cstdlib>
