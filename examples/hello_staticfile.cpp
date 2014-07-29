@@ -21,13 +21,13 @@
 
 #include <xzero/HttpRequest.h>
 #include <xzero/HttpServer.h>
-#include <sys/stat.h>
-#include <stdio.h>
+#include <unistd.h>
 #include <ev++.h>
 
 int main() {
   xzero::HttpServer httpServer(ev::default_loop(0));
   httpServer.setupListener("0.0.0.0", 3000);
+  httpServer.setLogLevel(base::Severity::info);
 
   char cwd[1024];
   if (!getcwd(cwd, sizeof(cwd))) {
@@ -35,9 +35,10 @@ int main() {
     cwd[1] = '\0';
   }
 
-  printf("Serving HTTP from 0.0.0.0:3000 ...\n");
+  httpServer.log(base::Severity::info, "Serving HTTP from 0.0.0.0:3000 ...");
 
   httpServer.requestHandler = [&](xzero::HttpRequest* r) {
+    r->log(base::Severity::info, "Serving: %s", r->path.str().c_str());
     r->documentRoot = cwd;
     r->fileinfo = r->connection.worker().fileinfo(r->documentRoot + r->path);
     r->sendfile(r->fileinfo);
