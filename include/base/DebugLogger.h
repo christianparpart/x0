@@ -160,14 +160,14 @@ class BASE_API DebugLogger {
   bool colored_;
 };
 
-#if 1  // defined(BASE_ENABLE_DEBUG)
-#define BASE_DEBUG(tag, level, msg...)             \
+#if 1  // !defined(NDEBUG)
+#define BASE_DEBUG(tag, level, msg...)           \
   do {                                           \
     DebugLogger::get().log((tag), (level), msg); \
   } while (0)
 #else
-#define BASE_DEBUG(tag, level, msg...) \
-  do {                               \
+#define BASE_DEBUG(tag, level, msg...)           \
+  do {                                           \
   } while (0)
 #endif
 
