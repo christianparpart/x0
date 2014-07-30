@@ -32,6 +32,7 @@ class BASE_API Pipe {
   ~Pipe();
 
   bool isOpen() const;
+  int errorCode() const;
 
   size_t size() const;
   bool isEmpty() const;
@@ -64,6 +65,8 @@ inline Pipe::~Pipe() {
 }
 
 inline bool Pipe::isOpen() const { return pipe_[0] >= 0; }
+
+inline int Pipe::errorCode() const { return pipe_[0] < 0 ? -pipe_[0] : 0; }
 
 inline int Pipe::writeFd() const { return pipe_[1]; }
 
