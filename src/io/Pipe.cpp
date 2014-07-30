@@ -93,6 +93,28 @@ ssize_t Pipe::write(int fd, off_t* fd_off, size_t size) {
   return rv;
 }
 
+/**
+ * Copies the data in @p source into this pipe.
+ *
+ * @param source the source pipe to copy the data from.
+ *               The contents of this pipe will not be consumed.
+ * @param size   number of bytes to copy
+ *
+ * @return number of actual buytes copied or -1 on error and errno is set.
+ */
+ssize_t Pipe::copy(Pipe* source, ssize_t size) {
+#if defined(HAVE_TEE)
+  ssize_t rv = tee(source->readFd(), writeFd(), size, 0);
+  if (rv > 0) {
+    size_ += rv;
+  }
+  return rv;
+#else
+  errno = ENOSYS;
+  return -1;
+#endif
+}
+
 ssize_t Pipe::read(void* buf, size_t size) {
   ssize_t rv = ::read(readFd(), buf, size);
 
