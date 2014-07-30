@@ -8,6 +8,7 @@
 #include <flow/vm/Handler.h>
 #include <flow/vm/Runner.h>
 #include <flow/vm/Instruction.h>
+#include <flow/sysconfig.h>
 
 namespace flow {
 namespace vm {
