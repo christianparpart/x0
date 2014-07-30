@@ -28,7 +28,6 @@
 #include <arpa/inet.h>
 #include <fcntl.h>
 #include <errno.h>
-#include <netdb.h>
 #include <unistd.h>
 
 #if !defined(NDEBUG)
