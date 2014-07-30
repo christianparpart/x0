@@ -1,6 +1,7 @@
 if(ENABLE_TESTS)
 
   add_executable(libxzero-test xzero-test.cpp
+    HttpRangeDef-test.cpp
     http2-framing-test.cpp
     hpack-test.cpp
   )

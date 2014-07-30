@@ -47,21 +47,24 @@ inline bool HttpRangeDef::parse(const BufferRef& value) {
   // suffix-byte-range-spec = "-" suffix-length
   // suffix-length = 1*DIGIT
 
-  for (Tokenizer<BufferRef> spec(value, "="); !spec.end(); spec.nextToken()) {
+  typedef Tokenizer<BufferRef> Tokenizer;
+
+  for (Tokenizer spec(value, "="); !spec.end(); spec.nextToken()) {
     unitName = spec.token();
 
     if (unitName() == "bytes") {
-      for (auto& range :
-           Tokenizer<BufferRef>::tokenize(spec.nextToken(), ",")) {
-        if (!parseRangeSpec(range)) return false;
+      for (auto& range : Tokenizer::tokenize(spec.nextToken(), ",")) {
+        if (!parseRangeSpec(range)) {
+          return false;
+        }
       }
     }
   }
+
   return true;
 }
 
 inline bool HttpRangeDef::parseRangeSpec(const BufferRef& spec) {
-  std::size_t a, b;
   const char* i = const_cast<char*>(spec.cbegin());
   const char* e = spec.cend();
 
@@ -69,7 +72,7 @@ inline bool HttpRangeDef::parseRangeSpec(const BufferRef& spec) {
 
   // parse first element
   char* eptr = const_cast<char*>(i);
-  a = std::isdigit(*i) ? strtoul(i, &eptr, 10) : npos;
+  size_t a = std::isdigit(*i) ? strtoul(i, &eptr, 10) : npos;
 
   i = eptr;
 
@@ -80,8 +83,13 @@ inline bool HttpRangeDef::parseRangeSpec(const BufferRef& spec) {
 
   ++i;
 
+  if (i == e) {
+    ranges_.push_back(std::make_pair(a, npos));
+    return true;
+  }
+
   // parse second element
-  b = std::isdigit(*i) ? strtoul(i, &eptr, 10) : npos;
+  size_t b = strtoul(i, &eptr, 10);
 
   i = eptr;
 
