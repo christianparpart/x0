@@ -30,6 +30,8 @@
 #cmakedefine HAVE_POSIX_FADVISE
 #cmakedefine HAVE_READAHEAD
 #cmakedefine HAVE_PIPE2
+#cmakedefine HAVE_SPLICE
+#cmakedefine HAVE_TEE
 
 #cmakedefine HAVE_SYS_RESOURCE_H
 #cmakedefine HAVE_SYS_LIMITS_H
