@@ -48,7 +48,7 @@ class XZERO_API HttpRangeDef {
    *bytes in this case)</li>
    * <ul>
    */
-  static const std::size_t npos = std::size_t(-1);
+  enum { npos = std::size_t(-1) };
 
  private:
   vector_type ranges_;
