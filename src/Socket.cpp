@@ -12,23 +12,27 @@
 #include <base/StackTrace.h>
 #include <base/DebugLogger.h>
 #include <base/io/Pipe.h>
+#include <base/sysconfig.h>
 #include <atomic>
 #include <system_error>
 
 #include <sys/un.h>
 #include <sys/stat.h>
 #include <sys/socket.h>
-#ifdef __APPLE__
-#include <sys/uio.h>
-#else
-#include <sys/sendfile.h>
-#endif
 #include <netinet/tcp.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <fcntl.h>
 #include <errno.h>
 #include <unistd.h>
+
+#if defined(HAVE_SYS_UIO_H)
+# include <sys/uio.h>
+#endif
+
+#if defined(HAVE_SYS_SENDFILE_H)
+# include <sys/sendfile.h>
+#endif
 
 #if !defined(NDEBUG)
 #define TRACE(level, msg...) XZERO_DEBUG("Socket", (level), msg)
@@ -410,7 +414,7 @@ ssize_t Socket::write(int fd, off_t* offset, size_t nbytes) {
   if (nbytes == 0) return 0;
 
   auto offset0 = *offset;
-#ifdef __APPLE__
+#if defined(__APPLE__)
   ssize_t rv = ::sendfile(fd_, fd, offset, (off_t*)&nbytes, NULL, 0);
 #else
   ssize_t rv = ::sendfile(fd_, fd, offset, nbytes);

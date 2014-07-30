@@ -25,6 +25,7 @@
 #cmakedefine HAVE_FCNTL_H
 #cmakedefine HAVE_NETDB_H
 
+#cmakedefine HAVE_SYS_UIO_H
 #cmakedefine HAVE_SYS_SENDFILE_H
 #cmakedefine HAVE_SENDFILE
 #cmakedefine HAVE_POSIX_FADVISE
