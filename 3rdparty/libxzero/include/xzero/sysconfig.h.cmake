@@ -12,6 +12,31 @@
 
 #cmakedefine LIBXZERO_VERSION "@LIBXZERO_VERSION@"
 
+// --------------------------------------------------------------------------
+// feature tests
+
+// Build with inotify support
+#cmakedefine XZERO_ENABLE_INOTIFY
+
+// Try to open temporary files with O_TMPFILE flag before falling back
+// to the standard behaviour.
+#cmakedefine XZERO_ENABLE_O_TMPFILE
+
+// Optimize code path for post()'ing code blocks into current worker threads
+#cmakedefine XZERO_ENABLE_POST_FN_OPTIMIZATION 1
+
+// Builds with support for opportunistic write() calls to client sockets
+#cmakedefine XZERO_OPPORTUNISTIC_WRITE 1
+
+// HttpWorker to use libev's ev_async (over locking queue) for its post API
+#cmakedefine XZERO_WORKER_POST_LIBEV 1
+
+// use RR for worker-select instead of lowest-load
+#cmakedefine XZERO_WORKER_RR 1
+
+// --------------------------------------------------------------------------
+// header tests
+
 #cmakedefine HAVE_SYS_INOTIFY_H
 #cmakedefine HAVE_SYS_SENDFILE_H
 #cmakedefine HAVE_SYS_RESOURCE_H
@@ -31,18 +56,10 @@
 #cmakedefine HAVE_SYS_UTSNAME_H
 #cmakedefine HAVE_SECURITY_PAM_APPL_H
 
-#cmakedefine HAVE_LDAP_H
+// --------------------------------------------------------------------------
+// functional tests
 
-#cmakedefine ENABLE_PLUGIN_AUTH_PAM
-
-#cmakedefine ENABLE_INOTIFY
-#cmakedefine ENABLE_PCRE
-#cmakedefine ENABLE_ACCEPT4
-#cmakedefine ENABLE_TCP_DEFER_ACCEPT
-#cmakedefine ENABLE_MULTI_ACCEPT
-#cmakedefine ENABLE_OPPORTUNISTIC_WRITE
-
-#cmakedefine HAVE_INOTIFY_CREATE1
+#cmakedefine HAVE_INOTIFY_INIT1
 #cmakedefine HAVE_FORK
 #cmakedefine HAVE_CHROOT
 #cmakedefine HAVE_PATHCONF
@@ -52,14 +69,5 @@
 #cmakedefine HAVE_ACCEPT4
 #cmakedefine HAVE_PTHREAD_SETNAME_NP
 #cmakedefine HAVE_PTHREAD_SETAFFINITY_NP
-
-#cmakedefine XZERO_TMPDIR "@X0_TMPDIR@"
-
-#cmakedefine XZERO_ENABLE_O_TMPFILE
-#cmakedefine XZERO_ENABLE_POST_FN_OPTIMIZATION
-
-/* libxzero features */
-#cmakedefine XZERO_WORKER_POST_LIBEV 1             /* HttpWorker to use libev's ev_async (over locking queue) for its post API */
-#cmakedefine XZERO_WORKER_RR 1                     /* use RR for worker-select instead of lowest-load */
 
 #endif
