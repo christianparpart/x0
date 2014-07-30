@@ -13,7 +13,6 @@
 #cmakedefine ENABLE_ACCEPT4
 #cmakedefine ENABLE_MULTI_ACCEPT
 #cmakedefine ENABLE_TCP_DEFER_ACCEPT
-#cmakedefine ENABLE_OPPORTUNISTIC_WRITE
 #cmakedefine ENABLE_MYSQL
 
 // enable app features

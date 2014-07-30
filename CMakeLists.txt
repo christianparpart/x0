@@ -19,13 +19,14 @@ include(CMakeDetermineCCompiler)
 option(ENABLE_TESTS "Build unit tests [default: off]" OFF)
 option(ENABLE_EXAMPLES "Includes example programs [default: on]" ON)
 
-# Xzero feature flags
+# Xzero Base: platform feature flags
 option(ENABLE_PCRE "With PCRE support [default: off]" ON)
 option(ENABLE_ACCEPT4 "Builds with support for accept4() system-call, if found [default: on]" ON)
 option(ENABLE_MULTI_ACCEPT "Builds listener acceptor with support for repeative accept() calls  [default: on]" ON)
 option(ENABLE_TCP_DEFER_ACCEPT "Builds with support for TCP_DEFER_ACCEPT, if found [default: on]" ON)
-option(ENABLE_OPPORTUNISTIC_WRITE "Builds with support for opportunistic write() calls to client sockets [default: off]." OFF)
 option(ENABLE_MYSQL "With mySQL support [default: on]" ON)
+
+# Xzero Base: implementation features
 option(BASE_QUEUE_LOCKFREE "Queue<T> is using a lock-free algorithm [default: on]" ON)
 
 # XXX do not use -std=c++11 here, as it's not supported on GCC 4.6 (default on Ubuntu 12.04)
