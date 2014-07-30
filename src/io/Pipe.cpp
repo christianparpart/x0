@@ -64,7 +64,7 @@ ssize_t Pipe::write(Pipe* pipe, size_t size) {
   ssize_t rv = 0;
 
 #ifdef __APPLE__
-  assert(__APPLE__);
+  assert(!"TODO");
 #else
   rv = splice(pipe->readFd(), NULL, writeFd(), NULL, pipe->size_,
               SPLICE_F_MOVE | SPLICE_F_NONBLOCK);
@@ -82,7 +82,7 @@ ssize_t Pipe::write(int fd, off_t* fd_off, size_t size) {
   ssize_t rv = 0;
 
 #ifdef __APPLE__
-  assert(__APPLE__);
+  assert(!"TODO");
 #else
   rv = splice(fd, fd_off, writeFd(), NULL, size,
               SPLICE_F_MOVE | SPLICE_F_NONBLOCK);
@@ -111,7 +111,7 @@ ssize_t Pipe::read(int fd, off_t* fd_off, size_t size) {
   ssize_t rv = 0;
 
 #ifdef __APPLE__
-  assert(__APPLE__);
+  assert(!"TODO");
 #else
   rv = splice(readFd(), fd_off, fd, NULL, size,
               SPLICE_F_MOVE | SPLICE_F_NONBLOCK);
