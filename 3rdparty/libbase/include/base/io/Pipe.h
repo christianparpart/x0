@@ -46,6 +46,8 @@ class BASE_API Pipe {
   ssize_t write(int fd, size_t size);
   ssize_t write(int fd, off_t* fd_off, size_t size);
 
+  ssize_t copy(Pipe* socket, ssize_t size);
+
   // read from pipe
   ssize_t read(void* buf, size_t size);
   ssize_t read(Socket* socket, size_t size);
