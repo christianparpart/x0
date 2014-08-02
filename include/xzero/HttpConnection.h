@@ -145,7 +145,7 @@ class XZERO_API HttpConnection : public HttpMessageParser {
   template <typename... Args>
   void log(Severity s, const char* fmt, Args... args);
 
-  void log(LogMessage&& msg) override;
+  void log(LogMessage&& msg);
 
   /**
    * Increments the internal reference count and ensures that this object

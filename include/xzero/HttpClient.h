@@ -76,8 +76,6 @@ class XZERO_API HttpClient : public HttpMessageParser {
       const std::unordered_map<std::string, std::string>& headers,
       const Buffer& content, ResponseHandler callback);
 
-  void log(LogMessage&& msg) override;
-
  protected:
   void reportError(HttpClientError ec);
   void onConnectDone(Socket* socket, int revents);
