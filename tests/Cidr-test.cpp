@@ -22,9 +22,9 @@ TEST(Cidr, contains) {
 }
 
 TEST(Cidr, equals) {
-  ASSERT_EQ(Cidr(IPAddress("0.0.0.0"), 0), Cidr(IPAddress("0.0.0.0"), 0));
-  ASSERT_EQ(Cidr(IPAddress("1.2.3.4"), 24), Cidr(IPAddress("1.2.3.4"), 24));
+  ASSERT_EQ(Cidr("0.0.0.0", 0),  Cidr("0.0.0.0", 0));
+  ASSERT_EQ(Cidr("1.2.3.4", 24), Cidr("1.2.3.4", 24));
 
-  ASSERT_NE(Cidr(IPAddress("1.2.3.4"), 24), Cidr(IPAddress("1.2.1.4"), 24));
-  ASSERT_NE(Cidr(IPAddress("1.2.3.4"), 24), Cidr(IPAddress("1.2.3.4"), 23));
+  ASSERT_NE(Cidr("1.2.3.4", 24), Cidr("1.2.1.4", 24));
+  ASSERT_NE(Cidr("1.2.3.4", 24), Cidr("1.2.3.4", 23));
 }

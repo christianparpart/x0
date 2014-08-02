@@ -12,7 +12,6 @@
   - BufferSlice
   - ConstBuffer
 - Cache
-- Cidr
 - DateTime
 - DebugLogger...
 - File
@@ -60,4 +59,4 @@ NOTE: when documenting, also write a test suite if applicable.
 
 - Signal<>
 - Base64
-
+- Cidr
