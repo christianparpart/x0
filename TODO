@@ -1,5 +1,6 @@
 for a long-term todo list, see ticket system at https://github.com/xzero/x0/issues/
 
+- debian: fix packaging to new scheme
 - ssl: test plugin to run safely at least in single-threaded mode
 - ssl: consider porting to OpenSSL
 - director:
