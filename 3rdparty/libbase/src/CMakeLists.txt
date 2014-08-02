@@ -6,7 +6,6 @@ set(libbase_SRC
   Buffer.cpp
   Cidr.cpp
   CacheService.cpp
-  ConstBuffer.cpp
   Counter.cpp
   DateTime.cpp
   DebugLogger.cpp

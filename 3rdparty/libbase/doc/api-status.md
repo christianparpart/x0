@@ -10,7 +10,6 @@
   - FixedBuffer
   - Buffer
   - BufferSlice
-  - ConstBuffer
 - Cache
 - DateTime
 - DebugLogger...
