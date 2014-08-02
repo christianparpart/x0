@@ -10,7 +10,6 @@
 
 #include <xzero/Api.h>
 #include <base/Buffer.h>
-#include <base/io/ChainFilter.h>
 #include <base/LogMessage.h>
 #include <base/Defines.h>
 
@@ -175,8 +174,6 @@ class XZERO_API HttpMessageParser {
   // body
   bool chunked_;  //!< whether or not request content is chunked encoded
   ssize_t contentLength_;  //!< content length of whole content or current chunk
-  ChainFilter filters_;    //!< filters to apply to the message body before
-                           // forwarding to the callback.
 };
 
 }  // namespace xzero

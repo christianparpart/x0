@@ -7,7 +7,7 @@
 
 #include <gtest/gtest.h>
 #include <xzero/HttpRangeDef.h>
-#include <base/ConstBuffer.h>
+#include <base/Buffer.h>
 #include <iostream>
 #include <cstdlib>
 #include <cctype>
@@ -15,11 +15,11 @@
 #include <strings.h>
 
 using xzero::HttpRangeDef;
-using base::ConstBuffer;
+using base::BufferRef;
 
 TEST(HttpRangeDef, range1) {
   HttpRangeDef r;
-  ConstBuffer spec("bytes=0-499");
+  BufferRef spec("bytes=0-499");
 
   ASSERT_TRUE(r.parse(spec.ref()));
   ASSERT_EQ("bytes", r.unitName());
@@ -30,7 +30,7 @@ TEST(HttpRangeDef, range1) {
 
 TEST(HttpRangeDef, range2) {
   HttpRangeDef r;
-  ConstBuffer spec("bytes=500-999");
+  BufferRef spec("bytes=500-999");
 
   ASSERT_TRUE(r.parse(spec.ref()));
   ASSERT_EQ("bytes", r.unitName());
@@ -42,7 +42,7 @@ TEST(HttpRangeDef, range2) {
 TEST(HttpRangeDef, range3) {
   HttpRangeDef r;
 
-  ConstBuffer spec("bytes=-500");
+  BufferRef spec("bytes=-500");
   ASSERT_TRUE(r.parse(spec.ref()));
   ASSERT_EQ("bytes", r.unitName());
   ASSERT_EQ(1, r.size());
@@ -53,7 +53,7 @@ TEST(HttpRangeDef, range3) {
 TEST(HttpRangeDef, range4) {
   HttpRangeDef r;
 
-  ConstBuffer spec("bytes=9500-");
+  BufferRef spec("bytes=9500-");
   ASSERT_TRUE(r.parse(spec.ref()));
   ASSERT_EQ("bytes", r.unitName());
   ASSERT_EQ(1, r.size());
@@ -64,7 +64,7 @@ TEST(HttpRangeDef, range4) {
 TEST(HttpRangeDef, range5) {
   HttpRangeDef r;
 
-  ConstBuffer spec("bytes=0-0,-1");
+  BufferRef spec("bytes=0-0,-1");
   ASSERT_TRUE(r.parse(spec.ref()));
   ASSERT_EQ("bytes", r.unitName());
   ASSERT_EQ(2, r.size());
@@ -79,7 +79,7 @@ TEST(HttpRangeDef, range5) {
 TEST(HttpRangeDef, range6) {
   HttpRangeDef r;
 
-  ConstBuffer spec("bytes=500-700,601-999");
+  BufferRef spec("bytes=500-700,601-999");
   ASSERT_TRUE(r.parse(spec.ref()));
   ASSERT_EQ("bytes", r.unitName());
   ASSERT_EQ(2, r.size());
