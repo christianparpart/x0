@@ -377,7 +377,6 @@ void Flower::flow_print_i(vm::Params& args) {
   printf("\n");
 }
 
-typedef std::vector<FixedBuffer> FixedBufferArray;
 void Flower::flow_print_s(vm::Params& args) {
   const FlowStringArray& array = args.getStringArray(1);
   std::cout << "string array: (" << array.size() << ") [";
