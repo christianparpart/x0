@@ -19,6 +19,7 @@
 #include <base/io/Source.h>
 #include <base/io/CompositeSource.h>
 #include <base/io/CallbackSource.h>
+#include <base/io/ChainFilter.h>
 #include <base/CustomDataMgr.h>
 #include <base/RegExp.h>
 #include <base/Logging.h>
