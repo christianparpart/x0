@@ -2,6 +2,7 @@ if(ENABLE_TESTS)
 
 add_executable(libbase-test libbase-test.cpp
   Maybe-test.cpp
+  Signal-test.cpp
   Try-test.cpp
   Buffer-test.cpp
   Cidr-test.cpp
