@@ -123,8 +123,6 @@ class XZERO_API HttpMessageParser {
   bool isProcessingBody() const;
   bool isContentExpected() const;
 
-  virtual void log(LogMessage&& msg) = 0;
-
  public:
   explicit HttpMessageParser(ParseMode mode);
   virtual ~HttpMessageParser() {}
