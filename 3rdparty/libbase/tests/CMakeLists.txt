@@ -1,15 +1,16 @@
 if(ENABLE_TESTS)
 
 add_executable(libbase-test libbase-test.cpp
-  Maybe-test.cpp
-  Try-test.cpp
+  Base64-test.cpp
   Buffer-test.cpp
   Cidr-test.cpp
+  List-test.cpp
+  Maybe-test.cpp
+  Signal-test.cpp
+  TaggedPtr-test.cpp
   TokenShaper-test.cpp
   Tokenizer-test.cpp
-  TaggedPtr-test.cpp
-  List-test.cpp
-  Base64-test.cpp
+  Try-test.cpp
 )
 
 target_link_libraries(libbase-test base gtest)

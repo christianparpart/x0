@@ -28,26 +28,28 @@ template <typename SignatureT>
 class Signal;
 
 /**
- * \brief signal API
- * \see handler<void(Args...)>
+ * @brief Signal API
+ *
+ * This API is based on the idea of Qt's signal/slot API.
+ * You can connect zero or more callbacks to this signal that get invoked
+ * sequentially when this signal is fired.
+ *
  */
 template <typename... Args>
 class Signal<void(Args...)> {
   Signal(const Signal&) = delete;
   Signal& operator=(const Signal&) = delete;
 
- public:
+ private:
   typedef std::list<std::function<void(Args...)>> list_type;
 
-  typedef typename list_type::iterator iterator;
-  typedef typename list_type::const_iterator const_iterator;
-
-  typedef iterator Connection;
+ public:
+  typedef typename list_type::iterator Connection;
 
  public:
-  Signal() : listeners_() {}
-
-  ~Signal() {}
+  Signal() = default;
+  Signal(Signal&&) = default;
+  Signal& operator=(Signal&&) = default;
 
   /**
    * Tests whether this signal contains any listeners.
@@ -70,7 +72,9 @@ class Signal<void(Args...)> {
   }
 
   /**
-   * Connects a listener with this signal.
+   * @brief Connects a listener with this signal.
+   *
+   * @return a handle to later explicitely disconnect from this signal again.
    */
   Connection connect(std::function<void(Args...)>&& cb) {
     listeners_.push_back(std::move(cb));
@@ -80,18 +84,30 @@ class Signal<void(Args...)> {
   }
 
   /**
-   * Disconnects a listener from this signal.
+   * @brief Disconnects a listener from this signal.
    */
   void disconnect(Connection c) { listeners_.erase(c); }
 
   /**
-   * Triggers this signal and notifies all listeners via their registered
+   * @brief invokes all listeners with the given args
+   *
+   * Triggers this signal by notifying all listeners via their registered
    * callback each with the given arguments passed.
    */
-  void operator()(Args... args) const {
+  void fire(const Args&... args) const {
     for (auto listener : listeners_) {
       listener(args...);
     }
+  }
+
+  /**
+   * @brief invokes all listeners with the given args
+   *
+   * Triggers this signal by notifying all listeners via their registered
+   * callback each with the given arguments passed.
+   */
+  void operator()(Args... args) const {
+    fire(std::forward<Args>(args)...);
   }
 
   /**

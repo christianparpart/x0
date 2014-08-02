@@ -12,11 +12,9 @@ namespace base {
 
 DateTime::DateTime() : value_(std::time(0)), http_(), htlog_() {}
 
-/** initializes DateTime object with an HTTP conform input date-time. */
 DateTime::DateTime(const BufferRef& v)
     : value_(mktime(v.data())), http_(v), htlog_() {}
 
-/** initializes DateTime object with an HTTP conform input date-time. */
 DateTime::DateTime(const std::string& v)
     : value_(mktime(v.c_str())), http_(v), htlog_(v) {}
 
@@ -24,9 +22,6 @@ DateTime::DateTime(ev::tstamp v) : value_(v), http_(), htlog_() {}
 
 DateTime::~DateTime() {}
 
-/** retrieve this dateime object as a HTTP/1.1 conform string.
- * \return HTTP/1.1 conform string value.
- */
 const Buffer& DateTime::http_str() const {
   if (http_.empty()) {
     std::time_t ts = unixtime();
