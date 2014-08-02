@@ -130,7 +130,7 @@ class io_test : public CPPUNIT_NS::TestFixture {
     /*using namespace base;
 
     CompositeSource s;
-    s.push_back<BufferSource>(ConstBuffer("hello"));
+    s.push_back<BufferSource>(BufferRef("hello"));
     s.push_back<BufferSource>(Buffer(", "));
     s.push_back<BufferSource>(Buffer("world"));
 
@@ -145,7 +145,7 @@ class io_test : public CPPUNIT_NS::TestFixture {
   void test_buffer_sink() { /*
                                using namespace base;
 
-                               BufferSource src(ConstBuffer("Hello World!"));
+                               BufferSource src(BufferRef("Hello World!"));
                                BufferSink snk;
                                src.pump(snk);
 

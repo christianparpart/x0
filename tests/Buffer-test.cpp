@@ -7,7 +7,6 @@
 
 #include <gtest/gtest.h>
 #include <base/Buffer.h>
-#include <base/ConstBuffer.h>
 
 #include <iostream>
 #include <cstdlib>
@@ -28,7 +27,7 @@ TEST(BufferBase, ctor0) {
 }
 
 TEST(BufferBase, begins) {
-  ConstBuffer b("hello");
+  BufferRef b("hello");
   BufferRef v(b.ref());
 
   ASSERT_TRUE(v.begins(nullptr));
@@ -37,7 +36,7 @@ TEST(BufferBase, begins) {
 }
 
 TEST(BufferBase, find_cstr) {
-  ConstBuffer buf("012345");
+  BufferRef buf("012345");
   BufferRef ref = buf.ref(1);
 
   int i = ref.find("34");
@@ -65,19 +64,19 @@ TEST(BufferBase, replaceAll2) {
 
 TEST(BufferBase, toBool) {
   // true
-  ASSERT_TRUE(ConstBuffer("true").toBool());
-  ASSERT_TRUE(ConstBuffer("TRUE").toBool());
-  ASSERT_TRUE(ConstBuffer("True").toBool());
-  ASSERT_TRUE(ConstBuffer("1").toBool());
+  ASSERT_TRUE(BufferRef("true").toBool());
+  ASSERT_TRUE(BufferRef("TRUE").toBool());
+  ASSERT_TRUE(BufferRef("True").toBool());
+  ASSERT_TRUE(BufferRef("1").toBool());
 
   // false
-  ASSERT_TRUE(!ConstBuffer("false").toBool());
-  ASSERT_TRUE(!ConstBuffer("FALSE").toBool());
-  ASSERT_TRUE(!ConstBuffer("False").toBool());
-  ASSERT_TRUE(!ConstBuffer("0").toBool());
+  ASSERT_TRUE(!BufferRef("false").toBool());
+  ASSERT_TRUE(!BufferRef("FALSE").toBool());
+  ASSERT_TRUE(!BufferRef("False").toBool());
+  ASSERT_TRUE(!BufferRef("0").toBool());
 
   // invalid cast results into false
-  ASSERT_TRUE(!base::ConstBuffer("BLAH").toBool());
+  ASSERT_TRUE(!base::BufferRef("BLAH").toBool());
 }
 // }}}
 // {{{ MutableBuffer<>
@@ -90,10 +89,6 @@ TEST(MutableBuffer, resize) {
   buf.resize(4);
   ASSERT_EQ(4, buf.size());
   ASSERT_EQ("hell", buf);
-
-  //! \todo should not be resizable (const_buffer)
-  // ConstBuffer cbuf("hello");
-  // cbuf.size(4);
 }
 
 TEST(MutableBuffer, swap) {
@@ -252,12 +247,12 @@ base::Buffer getbuf()
 
 void const_buffer1()
 {
-    base::ConstBuffer empty("");
+    BufferRef empty("");
     CPPUNIT_ASSERT(empty.empty());
     CPPUNIT_ASSERT(empty.size() == 0);
     CPPUNIT_ASSERT(empty == "");
 
-    base::ConstBuffer hello("hello");
+    BufferRef hello("hello");
     CPPUNIT_ASSERT(!hello.empty());
     CPPUNIT_ASSERT(hello.size() == 5);
     CPPUNIT_ASSERT(hello == "hello");
@@ -320,7 +315,7 @@ void const_iterators()
     base::Buffer buf;
     buf.push_back("hello");
 
-    base::ConstBuffer::const_iterator i = buf.cbegin();
+    BufferRef::const_iterator i = buf.cbegin();
     CPPUNIT_ASSERT(i != buf.cend());
     CPPUNIT_ASSERT(*i == 'h');
     CPPUNIT_ASSERT(*++i == 'e');
@@ -367,7 +362,7 @@ void random_access()
 
 void ref()
 {
-    base::ConstBuffer a("hello");
+    BufferRef a("hello");
 
     CPPUNIT_ASSERT(a == "hello");
     CPPUNIT_ASSERT(a.ref(0) == "hello");
@@ -380,7 +375,7 @@ void std_string()
 {
     // test std::string() utility functions
 
-    base::ConstBuffer a("hello");
+    BufferRef a("hello");
     std::string s(a.str());
 
     CPPUNIT_ASSERT(a.data() != s.data());
@@ -391,24 +386,24 @@ void std_string()
 // {{{ BufferRef tests
 void ref_as_int()
 {
-    CPPUNIT_ASSERT(base::ConstBuffer("1234").toInt() == 1234);
+    CPPUNIT_ASSERT(BufferRef("1234").toInt() == 1234);
 
-    CPPUNIT_ASSERT(base::ConstBuffer("-1234").toInt() == -1234);
-    CPPUNIT_ASSERT(base::ConstBuffer("+1234").toInt() == +1234);
+    CPPUNIT_ASSERT(BufferRef("-1234").toInt() == -1234);
+    CPPUNIT_ASSERT(BufferRef("+1234").toInt() == +1234);
 
-    CPPUNIT_ASSERT(base::ConstBuffer("12.34").toInt() == 12);
+    CPPUNIT_ASSERT(BufferRef("12.34").toInt() == 12);
 }
 
 void ref_hex()
 {
-    CPPUNIT_ASSERT(base::ConstBuffer("1234").hex<int>() == 0x1234);
-    CPPUNIT_ASSERT(base::ConstBuffer("5678").hex<int>() == 0x5678);
+    CPPUNIT_ASSERT(BufferRef("1234").hex<int>() == 0x1234);
+    CPPUNIT_ASSERT(BufferRef("5678").hex<int>() == 0x5678);
 
-    CPPUNIT_ASSERT(base::ConstBuffer("abcdef").hex<int>() == 0xabcdef);
-    CPPUNIT_ASSERT(base::ConstBuffer("ABCDEF").hex<int>() == 0xABCDEF);
+    CPPUNIT_ASSERT(BufferRef("abcdef").hex<int>() == 0xabcdef);
+    CPPUNIT_ASSERT(BufferRef("ABCDEF").hex<int>() == 0xABCDEF);
 
-    CPPUNIT_ASSERT(base::ConstBuffer("ABCDEFG").hex<int>() == 0xABCDEF);
-    CPPUNIT_ASSERT(base::ConstBuffer("G").hex<int>() == 0);
+    CPPUNIT_ASSERT(BufferRef("ABCDEFG").hex<int>() == 0xABCDEF);
+    CPPUNIT_ASSERT(BufferRef("G").hex<int>() == 0);
 }
 // }}}
 #endif  // }}}
