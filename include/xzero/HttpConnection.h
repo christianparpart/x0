@@ -112,8 +112,6 @@ class XZERO_API HttpConnection : public HttpMessageParser {
   const IPAddress& localIP() const { return socket_->localIP(); }
   unsigned int localPort() const { return socket_->localPort(); }
 
-  const ServerSocket& listener() const;
-
   bool isSecure() const;
 
   void write(std::unique_ptr<Source>&& source);
@@ -182,7 +180,7 @@ class XZERO_API HttpConnection : public HttpMessageParser {
   void clearRequestBody();
 
   void reinit(unsigned long long id);
-  void start(std::unique_ptr<Socket>&& client, ServerSocket* listener);
+  void start(std::unique_ptr<Socket>&& client, bool acceptDeferred);
   void resume();
 
   void abort(HttpStatus status);
@@ -222,7 +220,6 @@ class XZERO_API HttpConnection : public HttpMessageParser {
 
   State state_;
 
-  ServerSocket* listener_;
   HttpWorker* worker_;
 
   unsigned long long id_;  //!< the worker-local connection-ID
@@ -278,10 +275,6 @@ inline HttpWorker& HttpConnection::worker() const { return *worker_; }
 template <class T, class... Args>
 inline void HttpConnection::write(Args&&... args) {
   write(std::unique_ptr<T>(new T(args...)));
-}
-
-inline const ServerSocket& HttpConnection::listener() const {
-  return *listener_;
 }
 
 inline bool HttpConnection::isOpen() const { return socket_->isOpen(); }
