@@ -125,6 +125,10 @@ configure_file(
     ${CMAKE_CURRENT_SOURCE_DIR}/libbase.pc.cmake
     ${CMAKE_CURRENT_BINARY_DIR}/libbase.pc)
 
+configure_file(
+    ${CMAKE_CURRENT_SOURCE_DIR}/Doxyfile.cmake
+    ${CMAKE_CURRENT_BINARY_DIR}/Doxyfile)
+
 install(
     FILES ${CMAKE_CURRENT_BINARY_DIR}/libbase.pc 
     DESTINATION ${CMAKE_INSTALL_PREFIX}/lib/pkgconfig)
