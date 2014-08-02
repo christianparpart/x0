@@ -21,9 +21,12 @@ namespace base {
 //! \addtogroup base
 //@{
 
-/** date/time object that understands unix timestamps
- *  as well as HTTP conform dates as used in Date/Last-Modified and other
- * headers.
+/**
+ *
+ * @brief Date/Time object.
+ *
+ * ... that understands unix timestamps as well as HTTP conform dates
+ * as used in Date/Last-Modified and other headers.
  */
 class BASE_API DateTime {
  private:
@@ -34,14 +37,33 @@ class BASE_API DateTime {
   static time_t mktime(const char* v);
 
  public:
+  /**
+   * Initializes the date/time object with the current timestamp.
+   */
   DateTime();
+
+  /** Initializes this object with an HTTP conform input date-time. */
   explicit DateTime(const BufferRef& http_v);
+
+  /** Initializes this object with an HTTP conform input date-time. */
   explicit DateTime(const std::string& http_v);
+
+  /** Initializes this object with the given timestamp. */
   explicit DateTime(ev::tstamp v);
+
   ~DateTime();
 
+  /** Retrieves the timestamp as type @c ev::tstamp, as used by libev. */
   ev::tstamp value() const;
+
+  /** Retrieves the timestamp as @c time_t. */
   std::time_t unixtime() const;
+
+  /**
+   * @brief  Retrieve this dateime object as a HTTP/1.1 conform string.
+   *
+   * @return HTTP/1.1 conform string value.
+   */
   const Buffer& http_str() const;
   const Buffer& htlog_str() const;
 
