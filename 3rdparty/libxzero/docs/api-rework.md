@@ -76,6 +76,91 @@ The following other components need to be accessable ...
 
 6 deps
 
-### HttpServer
+## re-API'ing
 
 
+```cpp
+
+HttpRequest(
+    DateTime timeStart,
+    )
+
+HttpResponse(
+    unsigned maxKeepAliveRequests,
+    bool advertise,
+    string serverTag,
+    bool tcpCork,
+    Socket* socket,
+    RequestHook onPostProcess,
+    RequestHook onRequestDone,
+    )
+  void abort();
+  void finish();
+  void write();
+
+HttpConnection(
+    // callbacks
+    ConnectionHook onClientAbort,
+    ConnectionHook onConnectionOpen,
+    ConnectionHook onConnectionClose,
+    ConnectionHook onRequestDone,
+    ConnectionHook onConnectionStateChanged,
+    // performance tweaks
+    bool tcpCork,
+    // resource limits
+    TimeSpan maxReadIdle,
+    TimeSpan maxWriteIdle,
+    TimeSpan maxKeepaliveIdle,
+    TimeSpan lingering,
+    size_t maxRequestUriSize,
+    size_t maxRequestHeaderSize,
+    size_t maxRequestHeaderCount,
+    size_t maxRequestBodySize,
+    size_t requestHeaderBufferSize,
+    size_t requestBodyBufferSize,
+    // other
+    Logger* logger,
+    Clock* clock,
+    )
+
+HttpWorker
+
+HttpServer
+
+```
+
+```cpp
+// some helper interfaces for the above redesign
+class Clock {
+ public:
+  virtual time_t now() const noexept = 0;
+};
+
+// specializations as used by xzero / x0
+class EVClock : public Clock {
+ public:
+  explicit EVClock(ev::loop* loop);
+
+  time_t now() const noexept override { return ev_now(loop); }
+};
+
+/**
+ * @brief abstrats a task queue.
+ *
+ * tasks get enqueued on this end, and will be executed on other receiver end. 
+ */
+class TaskQueue {
+ public:
+  typedef std::function<void()> Task;
+  typedef std::function<void(Task)> TaskAcceptor;
+
+  explicit TaskQueue(TaskAcceptor onNewTask);
+
+  /**
+   * @brief To enqueue one proc to be run within this thread.
+   * @note can be invoked from any thread
+   */
+  void enqueue(Task&& task);
+};
+
+```
