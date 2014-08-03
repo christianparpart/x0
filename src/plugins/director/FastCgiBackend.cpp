@@ -132,7 +132,6 @@ class FastCgiBackend::Connection :  // {{{
   bool onMessageContent(const BufferRef& content) override;
 
   // proxy logging
-  void log(LogMessage&& msg) override;
   template <typename... Args>
   void log(Severity severity, const char* fmt, Args&&... args);
 
@@ -854,17 +853,12 @@ bool FastCgiBackend::Connection::onMessageContent(const BufferRef& chunk) {
   return true;
 }
 
-void FastCgiBackend::Connection::log(LogMessage&& msg) {
-  if (rn_) {
-    msg.addTag("fastcgi/%d", transportId_);
-    rn_->request->log(std::move(msg));
-  }
-}
-
 template <typename... Args>
 inline void FastCgiBackend::Connection::log(Severity severity, const char* fmt,
                                             Args&&... args) {
-  log(LogMessage(severity, fmt, args...));
+  if (rn_) {
+    rn_->request->log(severity, fmt, std::forward<Args>(args)...);
+  }
 }
 
 void FastCgiBackend::Connection::inspect(Buffer& out) {

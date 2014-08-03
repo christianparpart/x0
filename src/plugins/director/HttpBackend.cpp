@@ -30,7 +30,7 @@
 #include <netdb.h>
 
 #if !defined(NDEBUG)
-#define TRACE(msg...) (this->log(LogMessage(Severity::trace1, msg)))
+#define TRACE(msg...) (this->log(Severity::trace1, msg))
 #else
 #define TRACE(msg...) \
   do {                \
@@ -91,8 +91,6 @@ class HttpBackend::Connection :
   bool onMessageHeaderEnd() override;
   bool onMessageContent(const BufferRef& chunk) override;
   bool onMessageEnd() override;
-
-  void log(LogMessage&& msg) override;
 
   template <typename... Args>
   void log(Severity severity, const char* fmt, Args&&... args);
@@ -478,17 +476,12 @@ bool HttpBackend::Connection::onMessageEnd() {
   return false;
 }
 
-void HttpBackend::Connection::log(LogMessage&& msg) {
-  if (rn_) {
-    msg.addTag("http-backend");
-    rn_->request->log(std::move(msg));
-  }
-}
-
 template <typename... Args>
 inline void HttpBackend::Connection::log(Severity severity, const char* fmt,
                                          Args&&... args) {
-  log(LogMessage(severity, fmt, args...));
+  if (rn_) {
+    rn_->request->log(severity, fmt, std::forward<Args>(args)...);
+  }
 }
 
 void HttpBackend::Connection::onReadWriteReady(Socket* s, int revents) {

@@ -115,7 +115,6 @@ class HealthMonitor : protected base::Logging,
                        const base::BufferRef& value) override;
   bool onMessageContent(const base::BufferRef& chunk) override;
   bool onMessageEnd() override;
-  void log(base::LogMessage&& msg) override;
 };
 
 base::JsonWriter& operator<<(base::JsonWriter& json,
