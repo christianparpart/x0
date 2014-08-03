@@ -52,7 +52,7 @@
 #include <unistd.h>
 #include <fcntl.h>
 
-#if 1  //!defined(NDEBUG)
+#if !defined(NDEBUG)
 #define TRACE(level, msg...)                                         \
   {                                                                  \
     static_assert((level) >= 1 && (level) <= 5,                      \
