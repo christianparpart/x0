@@ -1,3 +1,4 @@
+[![Stories in Ready](https://badge.waffle.io/xzero/x0.png?label=ready&title=Ready)](https://waffle.io/xzero/x0)
 # Xzero HTTP Application Web Server
 
 [ ![Build status - Travis-ci](https://secure.travis-ci.org/xzero/x0.png) ](http://travis-ci.org/xzero/x0)
