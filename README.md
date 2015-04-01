@@ -1,7 +1,7 @@
 # Xzero HTTP Application Web Server
 
-[![Stories in Ready](https://badge.waffle.io/xzero/x0.png?label=ready&title=Ready)](https://waffle.io/xzero/x0)
 [ ![Build status - Travis-ci](https://secure.travis-ci.org/xzero/x0.png) ](http://travis-ci.org/xzero/x0)
+[ ![Stories in Ready](https://badge.waffle.io/xzero/x0.png?label=ready&title=Ready) ](https://waffle.io/xzero/x0)
 
 - official website: http://xzero.io
 - github: http://github.com/xzero/x0
