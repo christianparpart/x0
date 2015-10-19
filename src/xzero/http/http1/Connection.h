@@ -30,7 +30,7 @@ class Channel;
 /**
  * @brief Implements a HTTP/1.1 transport connection.
  */
-class XZERO_BASE_HTTP_API Connection : public ::xzero::Connection,
+class XZERO_HTTP_API Connection : public ::xzero::Connection,
                                    public HttpTransport {
  public:
   Connection(EndPoint* endpoint,

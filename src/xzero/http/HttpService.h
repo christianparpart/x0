@@ -34,7 +34,7 @@ class HttpResponse;
  *
  * @note HTTP/1 is always enabled by default.
  */
-class XZERO_BASE_HTTP_API HttpService {
+class XZERO_HTTP_API HttpService {
  private:
   class InputListener;
 
@@ -112,7 +112,7 @@ class XZERO_BASE_HTTP_API HttpService {
 /**
  * Interface for general purpose HTTP request handlers.
  */
-class XZERO_BASE_HTTP_API HttpService::Handler {
+class XZERO_HTTP_API HttpService::Handler {
  public:
   /**
    * Attempts to handle the given request.
@@ -126,7 +126,7 @@ class XZERO_BASE_HTTP_API HttpService::Handler {
 /**
  * Builtin Asset Handler for HttpService.
  */
-class XZERO_BASE_HTTP_API HttpService::BuiltinAssetHandler : public Handler {
+class XZERO_HTTP_API HttpService::BuiltinAssetHandler : public Handler {
  public:
   BuiltinAssetHandler();
 

@@ -68,9 +68,9 @@ LogAggregator& LogAggregator::get() {
   return aggregator;
 }
 
-XZERO_BASE_INIT static void initializeLogAggregator() {
+XZERO_INIT static void initializeLogAggregator() {
   try {
-    if (const char* target = getenv("XZERO_BASE_LOGTARGET")) {
+    if (const char* target = getenv("XZERO_LOGTARGET")) {
       if (iequals(target, "console")) {
         LogAggregator::get().setLogTarget(LogTarget::console());
       } else if (iequals(target, "syslog")) {
@@ -80,7 +80,7 @@ XZERO_BASE_INIT static void initializeLogAggregator() {
       }
     }
 
-    if (const char* level = getenv("XZERO_BASE_LOGLEVEL")) {
+    if (const char* level = getenv("XZERO_LOGLEVEL")) {
       LogAggregator::get().setLogLevel(to_loglevel(level));
     }
   } catch (...) {

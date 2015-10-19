@@ -153,7 +153,7 @@ std::pair<IPAddress, int> InetEndPoint::localAddress() const {
   return result;
 }
 
-bool InetEndPoint::isOpen() const XZERO_BASE_NOEXCEPT {
+bool InetEndPoint::isOpen() const XZERO_NOEXCEPT {
   return handle_ >= 0;
 }
 
@@ -268,7 +268,7 @@ size_t InetEndPoint::flush(int fd, off_t offset, size_t size) {
 #endif
 }
 
-void InetEndPoint::onReadable() XZERO_BASE_NOEXCEPT {
+void InetEndPoint::onReadable() XZERO_NOEXCEPT {
   RefPtr<EndPoint> _guard(this);
 
   try {
@@ -282,7 +282,7 @@ void InetEndPoint::onReadable() XZERO_BASE_NOEXCEPT {
   }
 }
 
-void InetEndPoint::onWritable() XZERO_BASE_NOEXCEPT {
+void InetEndPoint::onWritable() XZERO_NOEXCEPT {
   RefPtr<EndPoint> _guard(this);
 
   try {

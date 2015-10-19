@@ -19,7 +19,7 @@ namespace http1 {
 /**
  * Connection factory for HTTP/1 connections.
  */
-class XZERO_BASE_HTTP_API ConnectionFactory : public HttpConnectionFactory {
+class XZERO_HTTP_API ConnectionFactory : public HttpConnectionFactory {
  public:
   ConnectionFactory();
 
@@ -32,10 +32,10 @@ class XZERO_BASE_HTTP_API ConnectionFactory : public HttpConnectionFactory {
 
   ~ConnectionFactory();
 
-  size_t maxRequestCount() const XZERO_BASE_NOEXCEPT { return maxRequestCount_; }
+  size_t maxRequestCount() const XZERO_NOEXCEPT { return maxRequestCount_; }
   void setMaxRequestCount(size_t value) { maxRequestCount_ = value; }
 
-  TimeSpan maxKeepAlive() const XZERO_BASE_NOEXCEPT { return maxKeepAlive_; }
+  TimeSpan maxKeepAlive() const XZERO_NOEXCEPT { return maxKeepAlive_; }
   void setMaxKeepAlive(TimeSpan value) { maxKeepAlive_ = value; }
 
   ::xzero::Connection* create(Connector* connector, EndPoint* endpoint) override;

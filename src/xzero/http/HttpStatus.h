@@ -104,25 +104,25 @@ inline bool operator!(HttpStatus st) {
 }
 
 /** Retrieves the human readable text of the HTTP status @p code. */
-XZERO_BASE_HTTP_API const std::string& to_string(HttpStatus code);
+XZERO_HTTP_API const std::string& to_string(HttpStatus code);
 
 /** Tests whether given status @p code MUST NOT have a message body. */
-XZERO_BASE_HTTP_API bool isContentForbidden(HttpStatus code);
+XZERO_HTTP_API bool isContentForbidden(HttpStatus code);
 
 /** Tests whether given status @p code is informatiional (1xx). */
-XZERO_BASE_HTTP_API bool isInformational(HttpStatus code);
+XZERO_HTTP_API bool isInformational(HttpStatus code);
 
 /** Tests whether given status @p code is successful (2xx). */
-XZERO_BASE_HTTP_API bool isSuccess(HttpStatus code);
+XZERO_HTTP_API bool isSuccess(HttpStatus code);
 
 /** Tests whether given status @p code is a redirect (3xx). */
-XZERO_BASE_HTTP_API bool isRedirect(HttpStatus code);
+XZERO_HTTP_API bool isRedirect(HttpStatus code);
 
 /** Tests whether given status @p code is a client error (4xx). */
-XZERO_BASE_HTTP_API bool isClientError(HttpStatus code);
+XZERO_HTTP_API bool isClientError(HttpStatus code);
 
 /** Tests whether given status @p code is a server error (5xx). */
-XZERO_BASE_HTTP_API bool isServerError(HttpStatus code);
+XZERO_HTTP_API bool isServerError(HttpStatus code);
 //@}
 
 // {{{ inlines

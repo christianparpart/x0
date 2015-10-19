@@ -38,27 +38,27 @@ LocalFile::LocalFile(LocalFileRepository& repo,
 LocalFile::~LocalFile() {
 }
 
-size_t LocalFile::size() const XZERO_BASE_NOEXCEPT {
+size_t LocalFile::size() const XZERO_NOEXCEPT {
   return stat_.st_size;
 }
 
-time_t LocalFile::mtime() const XZERO_BASE_NOEXCEPT {
+time_t LocalFile::mtime() const XZERO_NOEXCEPT {
   return stat_.st_mtime;
 }
 
-size_t LocalFile::inode() const XZERO_BASE_NOEXCEPT {
+size_t LocalFile::inode() const XZERO_NOEXCEPT {
   return stat_.st_ino;
 }
 
-bool LocalFile::isRegular() const XZERO_BASE_NOEXCEPT {
+bool LocalFile::isRegular() const XZERO_NOEXCEPT {
   return S_ISREG(stat_.st_mode);
 }
 
-bool LocalFile::isDirectory() const XZERO_BASE_NOEXCEPT {
+bool LocalFile::isDirectory() const XZERO_NOEXCEPT {
   return S_ISDIR(stat_.st_mode);
 }
 
-bool LocalFile::isExecutable() const XZERO_BASE_NOEXCEPT {
+bool LocalFile::isExecutable() const XZERO_NOEXCEPT {
   return stat_.st_mode & (S_IXUSR | S_IXGRP | S_IXOTH);
 }
 

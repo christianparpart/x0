@@ -24,7 +24,7 @@ class XZERO_BASE_API MimeTypes {
   void loadFromLocal(const std::string& path);
 
   /** Retrieves the default mimetype. */
-  const std::string& defaultMimeType() const XZERO_BASE_NOEXCEPT;
+  const std::string& defaultMimeType() const XZERO_NOEXCEPT;
 
   /** Sets the default mimetype to given @p value. */
   void setDefaultMimeType(const std::string& value);
@@ -33,7 +33,7 @@ class XZERO_BASE_API MimeTypes {
   const std::string& getMimeType(const std::string& path);
 
   /** Retrieves the mimetype mappings (from file extension to mimetype). */
-  const std::unordered_map<std::string, std::string>& mimetypes() const XZERO_BASE_NOEXCEPT;
+  const std::unordered_map<std::string, std::string>& mimetypes() const XZERO_NOEXCEPT;
 
  private:
   std::unordered_map<std::string, std::string> mimetypes_;
@@ -42,11 +42,11 @@ class XZERO_BASE_API MimeTypes {
 
 // {{{ inlines
 inline const std::unordered_map<std::string, std::string>&
-    MimeTypes::mimetypes() const XZERO_BASE_NOEXCEPT {
+    MimeTypes::mimetypes() const XZERO_NOEXCEPT {
   return mimetypes_;
 }
 
-inline const std::string& MimeTypes::defaultMimeType() const XZERO_BASE_NOEXCEPT {
+inline const std::string& MimeTypes::defaultMimeType() const XZERO_NOEXCEPT {
   return defaultMimeType_;
 }
 

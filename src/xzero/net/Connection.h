@@ -46,12 +46,12 @@ class XZERO_BASE_API Connection {
   /**
    * Retrieves the corresponding endpoint for this connection.
    */
-  EndPoint* endpoint() const XZERO_BASE_NOEXCEPT;
+  EndPoint* endpoint() const XZERO_NOEXCEPT;
 
   /**
    * Retrieves the Executor that may be used for handling this connection.
    */
-  Executor* executor() const XZERO_BASE_NOEXCEPT;
+  Executor* executor() const XZERO_NOEXCEPT;
 
   /**
    * Registers given @p listener to this connection.
@@ -126,11 +126,11 @@ class XZERO_BASE_API Connection {
   std::list<ConnectionListener*> listeners_;
 };
 
-inline EndPoint* Connection::endpoint() const XZERO_BASE_NOEXCEPT {
+inline EndPoint* Connection::endpoint() const XZERO_NOEXCEPT {
   return endpoint_;
 }
 
-inline Executor* Connection::executor() const XZERO_BASE_NOEXCEPT {
+inline Executor* Connection::executor() const XZERO_NOEXCEPT {
   return executor_;
 }
 

@@ -19,7 +19,7 @@ namespace http {
 /**
  * HTTP Response Message Info.
  */
-class XZERO_BASE_HTTP_API HttpResponseInfo : public HttpInfo {
+class XZERO_HTTP_API HttpResponseInfo : public HttpInfo {
  public:
   HttpResponseInfo();
   HttpResponseInfo(HttpResponseInfo&& other);
@@ -32,12 +32,12 @@ class XZERO_BASE_HTTP_API HttpResponseInfo : public HttpInfo {
                    const HeaderFieldList& trailers);
 
   /** Retrieves the HTTP response status code. */
-  HttpStatus status() const XZERO_BASE_NOEXCEPT { return status_; }
+  HttpStatus status() const XZERO_NOEXCEPT { return status_; }
 
-  const std::string& reason() const XZERO_BASE_NOEXCEPT { return reason_; }
+  const std::string& reason() const XZERO_NOEXCEPT { return reason_; }
 
   /** Retrieves whether this is an HTTP response to a HEAD request. */
-  bool isHeadResponse() const XZERO_BASE_NOEXCEPT { return isHeadResponse_; }
+  bool isHeadResponse() const XZERO_NOEXCEPT { return isHeadResponse_; }
 
  private:
   HttpStatus status_;

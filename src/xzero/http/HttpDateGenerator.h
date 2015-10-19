@@ -21,7 +21,7 @@ namespace http {
 /**
  * API to generate an HTTP conform Date response header field value.
  */
-class XZERO_BASE_HTTP_API HttpDateGenerator {
+class XZERO_HTTP_API HttpDateGenerator {
  public:
   explicit HttpDateGenerator(WallClock* clock);
 

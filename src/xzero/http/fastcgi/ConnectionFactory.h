@@ -21,7 +21,7 @@ namespace fastcgi {
 /**
  * Connection factory for FastCGI connections.
  */
-class XZERO_BASE_HTTP_API ConnectionFactory : public HttpConnectionFactory {
+class XZERO_HTTP_API ConnectionFactory : public HttpConnectionFactory {
  public:
   ConnectionFactory();
 
@@ -33,7 +33,7 @@ class XZERO_BASE_HTTP_API ConnectionFactory : public HttpConnectionFactory {
 
   ~ConnectionFactory();
 
-  TimeSpan maxKeepAlive() const XZERO_BASE_NOEXCEPT { return maxKeepAlive_; }
+  TimeSpan maxKeepAlive() const XZERO_NOEXCEPT { return maxKeepAlive_; }
   void setMaxKeepAlive(TimeSpan value) { maxKeepAlive_ = value; }
 
   xzero::Connection* create(Connector* connector, EndPoint* endpoint) override;

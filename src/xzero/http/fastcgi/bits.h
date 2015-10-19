@@ -41,7 +41,7 @@ enum class Type {
   UnknownType = 11
 };
 
-XZERO_BASE_HTTP_API std::string to_string(Type t);
+XZERO_HTTP_API std::string to_string(Type t);
 
 enum class Role {
   Responder = 1,
@@ -56,7 +56,7 @@ enum class ProtocolStatus {
   UnknownRole = 3
 };
 
-struct XZERO_BASE_PACKED Record {
+struct XZERO_PACKED Record {
  private:
   uint8_t version_;
   uint8_t type_;
@@ -104,7 +104,7 @@ struct XZERO_BASE_PACKED Record {
   }
 };
 
-struct XZERO_BASE_PACKED BeginRequestRecord : public Record {
+struct XZERO_PACKED BeginRequestRecord : public Record {
  private:
   uint16_t role_;
   uint8_t flags_;
@@ -221,12 +221,12 @@ class CgiParamStreamReader {
                        size_t valueLen) = 0;
 };
 
-struct XZERO_BASE_PACKED AbortRequestRecord : public Record {
+struct XZERO_PACKED AbortRequestRecord : public Record {
  public:
   explicit AbortRequestRecord(uint16_t requestId);
 };
 
-struct XZERO_BASE_PACKED UnknownTypeRecord : public Record {
+struct XZERO_PACKED UnknownTypeRecord : public Record {
  private:
   uint8_t unknownType_;
   uint8_t reserved_[7];
@@ -237,7 +237,7 @@ struct XZERO_BASE_PACKED UnknownTypeRecord : public Record {
   int unknownType() const noexcept;
 };
 
-struct XZERO_BASE_PACKED EndRequestRecord : public Record {
+struct XZERO_PACKED EndRequestRecord : public Record {
  private:
   uint32_t appStatus_;
   uint8_t protocolStatus_;

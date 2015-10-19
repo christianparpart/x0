@@ -43,14 +43,14 @@ class XZERO_BASE_API SafeCall {
    *
    * @see setExceptionHandler(std::function<void(const std::exception&)>)
    */
-  void safeCall(std::function<void()> callee) XZERO_BASE_NOEXCEPT;
+  void safeCall(std::function<void()> callee) XZERO_NOEXCEPT;
 
   /**
    * Convinience call operator.
    *
    * @see void safeCall(std::function<void()> callee)
    */
-  void operator()(std::function<void()> callee) XZERO_BASE_NOEXCEPT {
+  void operator()(std::function<void()> callee) XZERO_NOEXCEPT {
     safeCall(callee);
   }
 
@@ -58,7 +58,7 @@ class XZERO_BASE_API SafeCall {
   /**
    * Handles uncaught exception.
    */
-  void handleException(const std::exception& e) XZERO_BASE_NOEXCEPT;
+  void handleException(const std::exception& e) XZERO_NOEXCEPT;
 
  private:
   std::function<void(const std::exception&)> exceptionHandler_;

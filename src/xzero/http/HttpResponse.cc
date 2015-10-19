@@ -64,7 +64,7 @@ void HttpResponse::setCommitted(bool value) {
   committed_ = value;
 }
 
-HttpVersion HttpResponse::version() const XZERO_BASE_NOEXCEPT {
+HttpVersion HttpResponse::version() const XZERO_NOEXCEPT {
   return version_;
 }
 

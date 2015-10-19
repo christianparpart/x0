@@ -39,12 +39,12 @@ class XZERO_BASE_API RuntimeError : public std::system_error {
   template<typename T = RuntimeError>
   T setSource(const char* file, int line, const char* fn);
   const char* sourceFile() const { return sourceFile_; }
-  int sourceLine() const XZERO_BASE_NOEXCEPT { return sourceLine_; }
+  int sourceLine() const XZERO_NOEXCEPT { return sourceLine_; }
   const char* functionName() const { return functionName_; }
 
   // XXX for backwards-compatibility only
-  XZERO_BASE_DEPRECATED const char* typeName() const;
-  XZERO_BASE_DEPRECATED bool ofType(Status ev) const;
+  XZERO_DEPRECATED const char* typeName() const;
+  XZERO_DEPRECATED bool ofType(Status ev) const;
 
   std::vector<std::string> backtrace() const;
 

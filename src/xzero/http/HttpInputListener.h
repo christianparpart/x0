@@ -16,7 +16,7 @@ namespace http {
 /**
  * Callback API for HTTP message body availability.
  */
-class XZERO_BASE_HTTP_API HttpInputListener {
+class XZERO_HTTP_API HttpInputListener {
  public:
   virtual ~HttpInputListener() {}
 

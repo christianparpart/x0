@@ -50,7 +50,7 @@ class XZERO_BASE_API LocalConnector : public Connector {
   ~LocalConnector();
 
   void start() override;
-  bool isStarted() const XZERO_BASE_NOEXCEPT override;
+  bool isStarted() const XZERO_NOEXCEPT override;
   void stop() override;
   std::list<RefPtr<EndPoint>> connectedEndPoints() override;
 
@@ -74,7 +74,7 @@ class XZERO_BASE_API LocalConnector : public Connector {
   std::list<RefPtr<LocalEndPoint>> connectedEndPoints_;
 };
 
-inline bool LocalConnector::isStarted() const XZERO_BASE_NOEXCEPT {
+inline bool LocalConnector::isStarted() const XZERO_NOEXCEPT {
   return isStarted_;
 }
 

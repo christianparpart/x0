@@ -18,15 +18,15 @@ namespace http {
 /**
  * HTTP Request Message Info.
  */
-class XZERO_BASE_HTTP_API HttpRequestInfo : public HttpInfo {
+class XZERO_HTTP_API HttpRequestInfo : public HttpInfo {
  public:
   HttpRequestInfo();
   HttpRequestInfo(HttpVersion version, const std::string& method,
                   const std::string& entity, size_t contentLength,
                   const HeaderFieldList& headers);
 
-  const std::string& method() const XZERO_BASE_NOEXCEPT { return method_; }
-  const std::string& entity() const XZERO_BASE_NOEXCEPT { return entity_; }
+  const std::string& method() const XZERO_NOEXCEPT { return method_; }
+  const std::string& entity() const XZERO_NOEXCEPT { return entity_; }
 
  private:
   std::string method_;

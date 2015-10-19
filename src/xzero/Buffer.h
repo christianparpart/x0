@@ -494,7 +494,7 @@ class XZERO_BASE_API Buffer : public MutableBuffer<mutableEnsure> {
 
   void swap(Buffer& other);
 
-  size_t mark() const XZERO_BASE_NOEXCEPT;
+  size_t mark() const XZERO_NOEXCEPT;
   void setMark(size_t value);
 
   BufferSlice slice(size_t offset = 0) const;
@@ -1670,7 +1670,7 @@ inline void Buffer::swap(xzero::Buffer& other) {
   std::swap(mark_, other.mark_);
 }
 
-inline size_t Buffer::mark() const XZERO_BASE_NOEXCEPT {
+inline size_t Buffer::mark() const XZERO_NOEXCEPT {
   return mark_;
 }
 
@@ -1766,7 +1766,7 @@ inline void swap(xzero::BufferRef& left, xzero::BufferRef& right) {
 namespace xzero {
   // Fowler / Noll / Vo (FNV) Hash-Implementation
   template <typename T>
-  uint32_t _hash(const T& array) XZERO_BASE_NOEXCEPT {
+  uint32_t _hash(const T& array) XZERO_NOEXCEPT {
     uint32_t result = 2166136261u;
 
     for (auto value : array) {
@@ -1784,7 +1784,7 @@ struct hash<xzero::BufferSlice> {
   typedef xzero::BufferSlice argument_type;
   typedef uint32_t result_type;
 
-  result_type operator()(const argument_type& value) const XZERO_BASE_NOEXCEPT {
+  result_type operator()(const argument_type& value) const XZERO_NOEXCEPT {
     return xzero::_hash(value);
   }
 };
@@ -1794,7 +1794,7 @@ struct hash<xzero::BufferRef> {
   typedef xzero::BufferRef argument_type;
   typedef uint32_t result_type;
 
-  result_type operator()(const argument_type& value) const XZERO_BASE_NOEXCEPT {
+  result_type operator()(const argument_type& value) const XZERO_NOEXCEPT {
     return xzero::_hash(value);
   }
 };
@@ -1804,7 +1804,7 @@ struct hash<xzero::Buffer> {
   typedef xzero::Buffer argument_type;
   typedef uint32_t result_type;
 
-  result_type operator()(const argument_type& value) const XZERO_BASE_NOEXCEPT {
+  result_type operator()(const argument_type& value) const XZERO_NOEXCEPT {
     return xzero::_hash(value);
   }
 };

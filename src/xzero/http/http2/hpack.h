@@ -73,7 +73,7 @@ typedef std::list<HeaderField> HeaderSet;
  * and may be shared amongst
  * all encoding contexts.
  */
-class XZERO_BASE_HTTP_API StaticTable {
+class XZERO_HTTP_API StaticTable {
  public:
   StaticTable();
   ~StaticTable();
@@ -92,7 +92,7 @@ class ReferenceSet;
  * The header table (see Section 3.2) is a component used
  * to associate stored header fields to index values.
  */
-class XZERO_BASE_HTTP_API HeaderTable {
+class XZERO_HTTP_API HeaderTable {
  public:
   explicit HeaderTable(size_t maxEntries);
   ~HeaderTable();
@@ -152,7 +152,7 @@ class XZERO_BASE_HTTP_API HeaderTable {
 /**
  * used for differential encoding of a new header set.
  */
-class XZERO_BASE_HTTP_API ReferenceSet {
+class XZERO_HTTP_API ReferenceSet {
  public:
   explicit ReferenceSet(HeaderTable* headerTable);
   ~ReferenceSet();
@@ -176,7 +176,7 @@ class XZERO_BASE_HTTP_API ReferenceSet {
   std::list<const HeaderField*> references_;
 };
 
-class XZERO_BASE_HTTP_API ReferenceSet::iterator {
+class XZERO_HTTP_API ReferenceSet::iterator {
  public:
   iterator();
   iterator(ReferenceSet* rs, std::list<const HeaderField*>::iterator init);
@@ -199,7 +199,7 @@ class XZERO_BASE_HTTP_API ReferenceSet::iterator {
 /**
  * Helper methods for encoding header fragments. 
  */
-class XZERO_BASE_HTTP_API EncoderHelper {
+class XZERO_HTTP_API EncoderHelper {
  public:
   static void encodeInt(Buffer* output, uint64_t i, unsigned prefixBits);
   static void encodeIndexed(Buffer* output, unsigned index);
@@ -211,7 +211,7 @@ class XZERO_BASE_HTTP_API EncoderHelper {
   static void encodeTableSizeChange(Buffer* output, unsigned newSize);
 };
 
-class XZERO_BASE_HTTP_API Encoder : private EncoderHelper {
+class XZERO_HTTP_API Encoder : private EncoderHelper {
  public:
   Encoder();
   ~Encoder();
@@ -222,13 +222,13 @@ class XZERO_BASE_HTTP_API Encoder : private EncoderHelper {
 /**
  * Helper methods for decoding header fragments. 
  */
-class XZERO_BASE_HTTP_API DecoderHelper {
+class XZERO_HTTP_API DecoderHelper {
  public:
   static uint64_t decodeInt(const BufferRef& input, unsigned prefixBits,
                             unsigned* bytesConsumed);
 };
 
-class XZERO_BASE_HTTP_API Decoder : private DecoderHelper {
+class XZERO_HTTP_API Decoder : private DecoderHelper {
  public:
   Decoder();
   ~Decoder();

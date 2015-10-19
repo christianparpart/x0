@@ -41,10 +41,10 @@ class XZERO_BASE_API LogSource {
   void error(const std::exception& e);
 
   void enable();
-  bool isEnabled() const XZERO_BASE_NOEXCEPT;
+  bool isEnabled() const XZERO_NOEXCEPT;
   void disable();
 
-  const std::string& componentName() const XZERO_BASE_NOEXCEPT { return componentName_; }
+  const std::string& componentName() const XZERO_NOEXCEPT { return componentName_; }
 
  private:
   std::string componentName_;

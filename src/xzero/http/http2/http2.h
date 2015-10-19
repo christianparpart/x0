@@ -115,11 +115,11 @@ enum class ErrorCode {
 };
 // }}}
 // {{{ free functions
-XZERO_BASE_HTTP_API std::string to_string(FrameType type);
-XZERO_BASE_HTTP_API std::string to_string(ErrorCode ec);
-XZERO_BASE_HTTP_API std::string to_string(uint8_t flags, FrameType type);
+XZERO_HTTP_API std::string to_string(FrameType type);
+XZERO_HTTP_API std::string to_string(ErrorCode ec);
+XZERO_HTTP_API std::string to_string(uint8_t flags, FrameType type);
 // }}}
-struct XZERO_BASE_HTTP_API BASE_PACKED Frame {  // {{{
+struct XZERO_HTTP_API BASE_PACKED Frame {  // {{{
                                  /*
 *  0                   1                   2                   3
 *  0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
@@ -166,7 +166,7 @@ struct XZERO_BASE_HTTP_API BASE_PACKED Frame {  // {{{
   unsigned streamID_ : 31;
 };
 // }}}
-struct XZERO_BASE_HTTP_API BASE_PACKED HeadersFrame : public Frame {  // {{{
+struct XZERO_HTTP_API BASE_PACKED HeadersFrame : public Frame {  // {{{
                                                        /*
 *  0                   1                   2                   3
 *  0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
@@ -228,7 +228,7 @@ struct XZERO_BASE_HTTP_API BASE_PACKED HeadersFrame : public Frame {  // {{{
   unsigned unused2_ : 24;
 };
 // }}}
-struct XZERO_BASE_HTTP_API BASE_PACKED ContinuationFrame : public Frame {  // {{{
+struct XZERO_HTTP_API BASE_PACKED ContinuationFrame : public Frame {  // {{{
                                                             /*
 *  0                   1                   2                   3
 *  0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
@@ -258,7 +258,7 @@ struct XZERO_BASE_HTTP_API BASE_PACKED ContinuationFrame : public Frame {  // {{
   unsigned unused2_ : 24;
 };
 // }}}
-struct XZERO_BASE_HTTP_API BASE_PACKED PriorityFrame : public Frame {  // {{{
+struct XZERO_HTTP_API BASE_PACKED PriorityFrame : public Frame {  // {{{
                                                         /*
 *  0                   1                   2                   3
 *  0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
@@ -285,7 +285,7 @@ struct XZERO_BASE_HTTP_API BASE_PACKED PriorityFrame : public Frame {  // {{{
   unsigned unused_ : 24;
 };
 // }}}
-struct XZERO_BASE_HTTP_API BASE_PACKED DataFrame : public Frame {  // {{{
+struct XZERO_HTTP_API BASE_PACKED DataFrame : public Frame {  // {{{
                                                     /*
 *  0                   1                   2                   3
 *  0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
@@ -320,7 +320,7 @@ struct XZERO_BASE_HTTP_API BASE_PACKED DataFrame : public Frame {  // {{{
   uint8_t padLength_;
 };
 // }}}
-struct XZERO_BASE_HTTP_API BASE_PACKED PingFrame : public Frame {  // {{{
+struct XZERO_HTTP_API BASE_PACKED PingFrame : public Frame {  // {{{
  public:
   enum Flags { ACK = 0x01, };
 
@@ -336,7 +336,7 @@ struct XZERO_BASE_HTTP_API BASE_PACKED PingFrame : public Frame {  // {{{
   uint64_t opaqueData_;
 };
 // }}}
-struct XZERO_BASE_HTTP_API BASE_PACKED GoAwayFrame : public Frame {  // {{{
+struct XZERO_HTTP_API BASE_PACKED GoAwayFrame : public Frame {  // {{{
                                                       /*
 *  0                   1                   2                   3
 *  0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
@@ -370,7 +370,7 @@ struct XZERO_BASE_HTTP_API BASE_PACKED GoAwayFrame : public Frame {  // {{{
   unsigned errorCode_ : 32;
 };
 // }}}
-struct XZERO_BASE_HTTP_API BASE_PACKED ResetStreamFrame : public Frame {  // {{{
+struct XZERO_HTTP_API BASE_PACKED ResetStreamFrame : public Frame {  // {{{
  public:
   ErrorCode errorCode() const {
     return static_cast<ErrorCode>(ntohl(errorCode_));
@@ -384,7 +384,7 @@ struct XZERO_BASE_HTTP_API BASE_PACKED ResetStreamFrame : public Frame {  // {{{
   uint32_t errorCode_;
 };
 // }}}
-struct XZERO_BASE_HTTP_API BASE_PACKED SettingsFrame : public Frame {  // {{{
+struct XZERO_HTTP_API BASE_PACKED SettingsFrame : public Frame {  // {{{
  public:
   enum Flags { ACK = 0x01 };
 
@@ -480,7 +480,7 @@ struct XZERO_BASE_HTTP_API BASE_PACKED SettingsFrame : public Frame {  // {{{
       const std::vector<std::pair<Parameter::Type, uint32_t>>& params);
   static void encodeAck(Buffer* out);
 };                                                         // }}}
-struct XZERO_BASE_HTTP_API BASE_PACKED PushPromiseFrame : public Frame {  // {{{
+struct XZERO_HTTP_API BASE_PACKED PushPromiseFrame : public Frame {  // {{{
                                                            /*
 *  0                   1                   2                   3
 *  0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
@@ -511,7 +511,7 @@ struct XZERO_BASE_HTTP_API BASE_PACKED PushPromiseFrame : public Frame {  // {{{
   unsigned promisedStreamID_ : 31;
 };
 // }}}
-struct XZERO_BASE_HTTP_API BASE_PACKED WindowUpdateFrame : public Frame {  // {{{
+struct XZERO_HTTP_API BASE_PACKED WindowUpdateFrame : public Frame {  // {{{
  public:
   unsigned windowSizeIncrement() const {
     return static_cast<size_t>(ntohl(windowSizeIncrement_));

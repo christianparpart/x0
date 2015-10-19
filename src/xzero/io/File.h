@@ -44,12 +44,12 @@ class XZERO_BASE_API File {
 
   virtual const std::string& etag() const = 0;
 
-  virtual size_t size() const XZERO_BASE_NOEXCEPT = 0;
-  virtual time_t mtime() const XZERO_BASE_NOEXCEPT = 0;
-  virtual size_t inode() const XZERO_BASE_NOEXCEPT = 0;
-  virtual bool isRegular() const XZERO_BASE_NOEXCEPT = 0;
-  virtual bool isDirectory() const XZERO_BASE_NOEXCEPT = 0;
-  virtual bool isExecutable() const XZERO_BASE_NOEXCEPT = 0;
+  virtual size_t size() const XZERO_NOEXCEPT = 0;
+  virtual time_t mtime() const XZERO_NOEXCEPT = 0;
+  virtual size_t inode() const XZERO_NOEXCEPT = 0;
+  virtual bool isRegular() const XZERO_NOEXCEPT = 0;
+  virtual bool isDirectory() const XZERO_NOEXCEPT = 0;
+  virtual bool isExecutable() const XZERO_NOEXCEPT = 0;
 
   /**
    * Flags that can be passed when creating a system file handle.
@@ -100,7 +100,7 @@ class XZERO_BASE_API File {
   /**
    * Retrieves errno-compatible error code for the validity of the entity.
    */
-  int errorCode() const XZERO_BASE_NOEXCEPT { return errno_; }
+  int errorCode() const XZERO_NOEXCEPT { return errno_; }
 
   /**
    * Tests wheather this file exists, that is, no error had occurred during

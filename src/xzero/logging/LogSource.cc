@@ -93,7 +93,7 @@ void LogSource::enable() {
   enabled_ = true;
 }
 
-bool LogSource::isEnabled() const XZERO_BASE_NOEXCEPT {
+bool LogSource::isEnabled() const XZERO_NOEXCEPT {
   return enabled_;
 }
 

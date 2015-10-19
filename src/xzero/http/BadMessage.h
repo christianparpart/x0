@@ -14,7 +14,7 @@
 namespace xzero {
 namespace http {
 
-class XZERO_BASE_HTTP_API HttpStatusCategory : public std::error_category {
+class XZERO_HTTP_API HttpStatusCategory : public std::error_category {
  public:
   static std::error_category& get();
 
@@ -25,13 +25,13 @@ class XZERO_BASE_HTTP_API HttpStatusCategory : public std::error_category {
 /**
  * Helper exception that is thrown on semantic message errors by HttpChannel.
  */
-class XZERO_BASE_HTTP_API BadMessage : public RuntimeError {
+class XZERO_HTTP_API BadMessage : public RuntimeError {
  public:
   explicit BadMessage(HttpStatus code);
   BadMessage(HttpStatus code, const std::string& reason);
   explicit BadMessage(RuntimeError& v) : RuntimeError(v) {}
 
-  HttpStatus httpCode() const XZERO_BASE_NOEXCEPT {
+  HttpStatus httpCode() const XZERO_NOEXCEPT {
     return static_cast<HttpStatus>(code().value());
   }
 };

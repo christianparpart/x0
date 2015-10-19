@@ -31,7 +31,7 @@ namespace fastcgi {
  *
  * Generates the binary stream for an HTTP request or response.
  */
-class XZERO_BASE_HTTP_API Generator {
+class XZERO_HTTP_API Generator {
  public:
   /**
    * Generates an HTTP request or HTTP response for given FastCGI request-ID.

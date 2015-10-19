@@ -12,11 +12,11 @@
 
 #include <xzero/Defines.h>
 
-// libxzero exports
-#if defined(BUILD_XZERO_BASE_BASE)
-#define XZERO_BASE_API XZERO_BASE_EXPORT
+// libxzero-base exports
+#if defined(BUILD_XZERO)
+#define XZERO_BASE_API XZERO_EXPORT
 #else
-#define XZERO_BASE_API XZERO_BASE_IMPORT
+#define XZERO_BASE_API XZERO_IMPORT
 #endif
 
 #endif

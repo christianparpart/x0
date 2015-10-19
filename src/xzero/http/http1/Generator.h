@@ -33,7 +33,7 @@ namespace http1 {
  * Implements the HTTP/1.1 transport layer syntax to generate
  * RFC 7230 conform messages.
  */
-class XZERO_BASE_HTTP_API Generator {
+class XZERO_HTTP_API Generator {
   enum class State {
     None,
     WritingBody,
@@ -94,12 +94,12 @@ class XZERO_BASE_HTTP_API Generator {
   /**
    * Retrieves the number of bytes pending for the content.
    */
-  size_t pendingContentLength() const XZERO_BASE_NOEXCEPT { return contentLength_; }
+  size_t pendingContentLength() const XZERO_NOEXCEPT { return contentLength_; }
 
   /**
    * Retrieves boolean indicating whether chunked response is generated.
    */
-  bool isChunked() const XZERO_BASE_NOEXCEPT { return chunked_; }
+  bool isChunked() const XZERO_NOEXCEPT { return chunked_; }
 
   size_t bytesTransmitted() const noexcept { return bytesTransmitted_; }
 

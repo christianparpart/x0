@@ -158,7 +158,7 @@ void InetConnector::bind(const IPAddress& ipaddr, int port) {
 void InetConnector::listen(int backlog) {
   int somaxconn = SOMAXCONN;
 
-#if defined(XZERO_BASE_OS_LINUX)
+#if defined(XZERO_OS_LINUX)
   somaxconn = FileUtil::read("/proc/sys/net/core/somaxconn").toInt();
 #endif
 
@@ -167,7 +167,7 @@ void InetConnector::listen(int backlog) {
         RuntimeError,
         "Listener %s:%d configured with a backlog higher than the system"
         " permits (%ld > %ld)."
-#if defined(XZERO_BASE_OS_LINUX)
+#if defined(XZERO_OS_LINUX)
         " See /proc/sys/net/core/somaxconn for your system limits."
 #endif
         ,
@@ -186,7 +186,7 @@ void InetConnector::listen(int backlog) {
     RAISE_ERRNO(errno);
 }
 
-bool InetConnector::isOpen() const XZERO_BASE_NOEXCEPT {
+bool InetConnector::isOpen() const XZERO_NOEXCEPT {
   return socket_ >= 0;
 }
 
@@ -201,7 +201,7 @@ InetConnector::~InetConnector() {
   }
 }
 
-int InetConnector::handle() const XZERO_BASE_NOEXCEPT {
+int InetConnector::handle() const XZERO_NOEXCEPT {
   return socket_;
 }
 
@@ -209,7 +209,7 @@ void InetConnector::setSocket(int socket) {
   socket_ = socket;
 }
 
-size_t InetConnector::backlog() const XZERO_BASE_NOEXCEPT {
+size_t InetConnector::backlog() const XZERO_NOEXCEPT {
   return backlog_;
 }
 
@@ -364,11 +364,11 @@ void InetConnector::setReuseAddr(bool enable) {
   }
 }
 
-size_t InetConnector::multiAcceptCount() const XZERO_BASE_NOEXCEPT {
+size_t InetConnector::multiAcceptCount() const XZERO_NOEXCEPT {
   return multiAcceptCount_;
 }
 
-void InetConnector::setMultiAcceptCount(size_t value) XZERO_BASE_NOEXCEPT {
+void InetConnector::setMultiAcceptCount(size_t value) XZERO_NOEXCEPT {
   multiAcceptCount_ = value;
 }
 
@@ -406,7 +406,7 @@ void InetConnector::notifyOnEvent() {
       std::bind(&InetConnector::onConnect, this));
 }
 
-bool InetConnector::isStarted() const XZERO_BASE_NOEXCEPT {
+bool InetConnector::isStarted() const XZERO_NOEXCEPT {
   return isStarted_;
 }
 

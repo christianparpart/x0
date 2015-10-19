@@ -28,7 +28,7 @@ class HttpResponse;
  *
  * @note this class is not meant to be thread safe.
  */
-class XZERO_BASE_HTTP_API HttpFileHandler {
+class XZERO_HTTP_API HttpFileHandler {
  public:
   /**
    * Initializes static file handler.

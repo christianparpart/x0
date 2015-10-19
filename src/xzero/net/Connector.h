@@ -72,7 +72,7 @@ class XZERO_BASE_API Connector {
   /**
    * Tests whether this connector has been started.
    */
-  virtual bool isStarted() const XZERO_BASE_NOEXCEPT = 0;
+  virtual bool isStarted() const XZERO_NOEXCEPT = 0;
 
   /**
    * Stops given connector.

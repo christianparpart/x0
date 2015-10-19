@@ -11,10 +11,10 @@
 #include <xzero/Defines.h>
 
 // libxzero/http exports
-#if defined(BUILD_XZERO_BASE_HTTP)
-#define XZERO_BASE_HTTP_API XZERO_BASE_EXPORT
+#if defined(BUILD_XZERO_HTTP)
+#define XZERO_HTTP_API XZERO_EXPORT
 #else
-#define XZERO_BASE_HTTP_API XZERO_BASE_IMPORT
+#define XZERO_HTTP_API XZERO_IMPORT
 #endif
 
 #endif

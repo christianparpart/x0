@@ -29,7 +29,7 @@ class XZERO_BASE_API FileOutputStream : public OutputStream {
   FileOutputStream(int fd);
   ~FileOutputStream();
 
-  int handle() const XZERO_BASE_NOEXCEPT { return fd_; }
+  int handle() const XZERO_NOEXCEPT { return fd_; }
 
  private:
   int fd_;

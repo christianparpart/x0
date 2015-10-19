@@ -69,7 +69,7 @@ class XZERO_BASE_API SslConnector : public InetConnector {
                   const std::string& keyFilePath);
 
   void start() override;
-  bool isStarted() const XZERO_BASE_NOEXCEPT override;
+  bool isStarted() const XZERO_NOEXCEPT override;
   void stop() override;
   std::list<RefPtr<EndPoint>> connectedEndPoints() override;
 

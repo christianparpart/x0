@@ -24,7 +24,7 @@ namespace http {
  *
  * @see HttpParser
  */
-class XZERO_BASE_HTTP_API HttpListener {
+class XZERO_HTTP_API HttpListener {
  public:
   virtual ~HttpListener() {}
 

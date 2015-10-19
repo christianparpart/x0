@@ -26,7 +26,7 @@ namespace fastcgi {
 /**
  * Parses a client FastCGI stream (upstream & downstream side).
  */
-class XZERO_BASE_HTTP_API ResponseParser {
+class XZERO_HTTP_API ResponseParser {
  private:
   struct StreamState { // {{{
     HttpListener* listener;

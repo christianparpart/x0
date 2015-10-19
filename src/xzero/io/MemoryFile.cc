@@ -29,13 +29,13 @@
 namespace xzero {
 
 // Since OS/X doesn't support SHM in a way Linux does, we need to work around it.
-#if XZERO_BASE_OS_DARWIN
-#  define XZERO_BASE_MEMORYFILE_USE_TMPFILE
+#if XZERO_OS_DARWIN
+#  define XZERO_MEMORYFILE_USE_TMPFILE
 #else
 // Use TMPFILE here, too (for now), because create*Channel would fail otherwise.
 // So let's create a posix_filebuf
-//#  define XZERO_BASE_MEMORYFILE_USE_SHM
-#  define XZERO_BASE_MEMORYFILE_USE_TMPFILE
+//#  define XZERO_MEMORYFILE_USE_SHM
+#  define XZERO_MEMORYFILE_USE_TMPFILE
 #endif
 
 MemoryFile::MemoryFile()
@@ -58,7 +58,7 @@ MemoryFile::MemoryFile(
       etag_(std::to_string(data.hash())),
       fspath_(),
       fd_(-1) {
-#if defined(XZERO_BASE_MEMORYFILE_USE_TMPFILE)
+#if defined(XZERO_MEMORYFILE_USE_TMPFILE)
   fspath_ = FileUtil::joinPaths(FileUtil::tempDirectory(), "memfile.XXXXXXXX");
 
   fd_ = mkstemp(const_cast<char*>(fspath_.c_str()));
@@ -96,7 +96,7 @@ MemoryFile::MemoryFile(
 }
 
 MemoryFile::~MemoryFile() {
-#if defined(XZERO_BASE_MEMORYFILE_USE_TMPFILE)
+#if defined(XZERO_MEMORYFILE_USE_TMPFILE)
   if (fd_ >= 0) {
     ::close(fd_);
   }
@@ -109,32 +109,32 @@ const std::string& MemoryFile::etag() const {
   return etag_;
 }
 
-size_t MemoryFile::size() const XZERO_BASE_NOEXCEPT {
+size_t MemoryFile::size() const XZERO_NOEXCEPT {
   return size_;
 }
 
-time_t MemoryFile::mtime() const XZERO_BASE_NOEXCEPT {
+time_t MemoryFile::mtime() const XZERO_NOEXCEPT {
   return mtime_;
 }
 
-size_t MemoryFile::inode() const XZERO_BASE_NOEXCEPT {
+size_t MemoryFile::inode() const XZERO_NOEXCEPT {
   return inode_;
 }
 
-bool MemoryFile::isRegular() const XZERO_BASE_NOEXCEPT {
+bool MemoryFile::isRegular() const XZERO_NOEXCEPT {
   return true;
 }
 
-bool MemoryFile::isDirectory() const XZERO_BASE_NOEXCEPT {
+bool MemoryFile::isDirectory() const XZERO_NOEXCEPT {
   return false;
 }
 
-bool MemoryFile::isExecutable() const XZERO_BASE_NOEXCEPT {
+bool MemoryFile::isExecutable() const XZERO_NOEXCEPT {
   return false;
 }
 
 int MemoryFile::createPosixChannel(OpenFlags oflags) {
-#if defined(XZERO_BASE_MEMORYFILE_USE_TMPFILE)
+#if defined(XZERO_MEMORYFILE_USE_TMPFILE)
   if (fd_ < 0) {
     errno = ENOENT;
     return -1;
@@ -149,7 +149,7 @@ int MemoryFile::createPosixChannel(OpenFlags oflags) {
 }
 
 std::unique_ptr<std::istream> MemoryFile::createInputChannel() {
-#if defined(XZERO_BASE_MEMORYFILE_USE_TMPFILE)
+#if defined(XZERO_MEMORYFILE_USE_TMPFILE)
   return std::unique_ptr<std::istream>(
       new std::ifstream(fspath_, std::ios::binary));
 #else
@@ -158,7 +158,7 @@ std::unique_ptr<std::istream> MemoryFile::createInputChannel() {
 }
 
 std::unique_ptr<std::ostream> MemoryFile::createOutputChannel() {
-#if defined(XZERO_BASE_MEMORYFILE_USE_TMPFILE)
+#if defined(XZERO_MEMORYFILE_USE_TMPFILE)
   return std::unique_ptr<std::ostream>(
       new std::ofstream(fspath_, std::ios::binary));
 #else
@@ -167,7 +167,7 @@ std::unique_ptr<std::ostream> MemoryFile::createOutputChannel() {
 }
 
 std::unique_ptr<MemoryMap> MemoryFile::createMemoryMap(bool rw) {
-#if defined(XZERO_BASE_MEMORYFILE_USE_TMPFILE)
+#if defined(XZERO_MEMORYFILE_USE_TMPFILE)
   // use FileDescriptor for auto-closing here, in case of exceptions
   FileDescriptor fd = ::open(fspath_.c_str(), rw ? O_RDWR : O_RDONLY);
   if (fd < 0)

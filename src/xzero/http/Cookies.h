@@ -36,7 +36,7 @@ public:
       bool secure = false,
       bool httpOnly = false);
 
-  XZERO_BASE_DEPRECATED static std::string mkCookie(
+  XZERO_DEPRECATED static std::string mkCookie(
       const std::string& key,
       const std::string& value,
       const DateTime& expire = DateTime::epoch(),

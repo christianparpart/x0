@@ -23,8 +23,8 @@ enum class HttpVersion {
   VERSION_2_0 = 0x20,
 };
 
-XZERO_BASE_HTTP_API const std::string& to_string(HttpVersion value);
-XZERO_BASE_HTTP_API HttpVersion make_version(const std::string& value);
+XZERO_HTTP_API const std::string& to_string(HttpVersion value);
+XZERO_HTTP_API HttpVersion make_version(const std::string& value);
 
 } // namespace http
 } // namespace xzero

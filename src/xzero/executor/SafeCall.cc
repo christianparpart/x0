@@ -27,7 +27,7 @@ void SafeCall::setExceptionHandler(
   exceptionHandler_ = eh;
 }
 
-void SafeCall::safeCall(std::function<void()> task) XZERO_BASE_NOEXCEPT {
+void SafeCall::safeCall(std::function<void()> task) XZERO_NOEXCEPT {
   try {
     if (task) {
       task();
@@ -38,7 +38,7 @@ void SafeCall::safeCall(std::function<void()> task) XZERO_BASE_NOEXCEPT {
   }
 }
 
-void SafeCall::handleException(const std::exception& e) XZERO_BASE_NOEXCEPT {
+void SafeCall::handleException(const std::exception& e) XZERO_NOEXCEPT {
   if (exceptionHandler_) {
     try {
       exceptionHandler_(e);

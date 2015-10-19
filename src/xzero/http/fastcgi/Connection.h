@@ -36,7 +36,7 @@ class HttpFastCgiTransport;
 /**
  * @brief Implements a HTTP/1.1 transport connection.
  */
-class XZERO_BASE_HTTP_API Connection : public ::xzero::Connection {
+class XZERO_HTTP_API Connection : public ::xzero::Connection {
   friend class HttpFastCgiTransport;
  public:
   Connection(EndPoint* endpoint,

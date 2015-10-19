@@ -84,7 +84,7 @@ void SslConnector::start() {
   InetConnector::start();
 }
 
-bool SslConnector::isStarted() const XZERO_BASE_NOEXCEPT {
+bool SslConnector::isStarted() const XZERO_NOEXCEPT {
   return InetConnector::isStarted();
 }
 

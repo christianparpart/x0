@@ -29,7 +29,7 @@ namespace fastcgi {
  * Parses a client FastCGI request stream.
  *
  */
-class XZERO_BASE_HTTP_API RequestParser {
+class XZERO_HTTP_API RequestParser {
  private:
   struct StreamState : public CgiParamStreamReader { // {{{
     HttpListener* listener;

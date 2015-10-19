@@ -16,7 +16,7 @@ namespace http {
 /**
  * Represents a single HTTP message header name/value pair.
  */
-class XZERO_BASE_HTTP_API HeaderField {
+class XZERO_HTTP_API HeaderField {
  public:
   HeaderField() = default;
   HeaderField(HeaderField&&) = default;
@@ -51,7 +51,7 @@ class XZERO_BASE_HTTP_API HeaderField {
   std::string value_;
 };
 
-XZERO_BASE_HTTP_API std::string inspect(const HeaderField& field);
+XZERO_HTTP_API std::string inspect(const HeaderField& field);
 
 }  // namespace http
 }  // namespace xzero

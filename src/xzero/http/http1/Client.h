@@ -52,7 +52,7 @@ class ClientResponse { // {{{
  * - sync & async calls.
  * - incremental response receive vs full response object
  */
-class XZERO_BASE_HTTP_API Client {
+class XZERO_HTTP_API Client {
  public:
   Client(HttpVersion version,
          const std::string& method,

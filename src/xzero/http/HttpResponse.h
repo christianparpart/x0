@@ -30,7 +30,7 @@ class HttpOutput;
  *
  * @note It is not safe to mutate a response from multiple threads concurrently.
  */
-class XZERO_BASE_HTTP_API HttpResponse {
+class XZERO_HTTP_API HttpResponse {
  private:
   HttpResponse(HttpResponse&) = delete;
   HttpResponse& operator=(HttpResponse&) = delete;
@@ -40,25 +40,25 @@ class XZERO_BASE_HTTP_API HttpResponse {
 
   void recycle();
 
-  HttpVersion version() const XZERO_BASE_NOEXCEPT;
+  HttpVersion version() const XZERO_NOEXCEPT;
   void setVersion(HttpVersion version);
 
   void setStatus(HttpStatus status);
-  HttpStatus status() const XZERO_BASE_NOEXCEPT { return status_; }
-  bool hasStatus() const XZERO_BASE_NOEXCEPT { return status_ != HttpStatus::Undefined; }
+  HttpStatus status() const XZERO_NOEXCEPT { return status_; }
+  bool hasStatus() const XZERO_NOEXCEPT { return status_ != HttpStatus::Undefined; }
 
-  const std::string& reason() const XZERO_BASE_NOEXCEPT { return reason_; }
+  const std::string& reason() const XZERO_NOEXCEPT { return reason_; }
   void setReason(const std::string& val);
 
   // high level header support
   void resetContentLength();
   void setContentLength(size_t size);
 
-  size_t contentLength() const XZERO_BASE_NOEXCEPT {
+  size_t contentLength() const XZERO_NOEXCEPT {
     return contentLength_;
   }
 
-  bool hasContentLength() const XZERO_BASE_NOEXCEPT {
+  bool hasContentLength() const XZERO_NOEXCEPT {
     return contentLength_ != static_cast<size_t>(-1);
   }
 
@@ -70,8 +70,8 @@ class XZERO_BASE_HTTP_API HttpResponse {
   void removeHeader(const std::string& name);
   void removeAllHeaders();
   const std::string& getHeader(const std::string& name) const;
-  const HeaderFieldList& headers() const XZERO_BASE_NOEXCEPT { return headers_; }
-  HeaderFieldList& headers() XZERO_BASE_NOEXCEPT { return headers_; }
+  const HeaderFieldList& headers() const XZERO_NOEXCEPT { return headers_; }
+  HeaderFieldList& headers() XZERO_NOEXCEPT { return headers_; }
 
   // trailers
   //bool isTrailerSupported() const;
@@ -79,7 +79,7 @@ class XZERO_BASE_HTTP_API HttpResponse {
   void appendTrailer(const std::string& name, const std::string& value,
                     const std::string& delim = "");
   void setTrailer(const std::string& name, const std::string& value);
-  const HeaderFieldList& trailers() const XZERO_BASE_NOEXCEPT { return trailers_; }
+  const HeaderFieldList& trailers() const XZERO_NOEXCEPT { return trailers_; }
 
   /**
    * Installs a callback to be invoked right before serialization of response
@@ -121,7 +121,7 @@ class XZERO_BASE_HTTP_API HttpResponse {
 
   HttpOutput* output() { return output_.get(); }
 
-  bool isCommitted() const XZERO_BASE_NOEXCEPT { return committed_; }
+  bool isCommitted() const XZERO_NOEXCEPT { return committed_; }
 
   void setBytesTransmitted(size_t n) { bytesTransmitted_ = n; }
   size_t bytesTransmitted() const noexcept { return bytesTransmitted_; }

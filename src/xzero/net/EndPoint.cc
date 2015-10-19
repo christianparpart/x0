@@ -13,7 +13,7 @@
 
 namespace xzero {
 
-EndPoint::EndPoint() XZERO_BASE_NOEXCEPT
+EndPoint::EndPoint() XZERO_NOEXCEPT
     : connection_(nullptr) {
 }
 

@@ -96,7 +96,7 @@ class XZERO_BASE_API InetEndPoint : public EndPoint {
   std::pair<IPAddress, int> localAddress() const;
 
   // EndPoint overrides
-  bool isOpen() const XZERO_BASE_NOEXCEPT override;
+  bool isOpen() const XZERO_NOEXCEPT override;
   void close() override;
   bool isBlocking() const override;
   void setBlocking(bool enable) override;
@@ -115,8 +115,8 @@ class XZERO_BASE_API InetEndPoint : public EndPoint {
   Option<IPAddress> remoteIP() const override;
 
  private:
-  void onReadable() XZERO_BASE_NOEXCEPT;
-  void onWritable() XZERO_BASE_NOEXCEPT;
+  void onReadable() XZERO_NOEXCEPT;
+  void onWritable() XZERO_NOEXCEPT;
 
   void fillable();
   void flushable();

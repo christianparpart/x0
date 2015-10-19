@@ -22,7 +22,7 @@ class HttpInputListener;
 /**
  * Abstract HTTP message body consumer API.
  */
-class XZERO_BASE_HTTP_API HttpInput {
+class XZERO_HTTP_API HttpInput {
  public:
   HttpInput();
   virtual ~HttpInput();
@@ -54,7 +54,7 @@ class XZERO_BASE_HTTP_API HttpInput {
   /**
    * Retrieves the HttpInputListener that is being associated with this input.
    */
-  HttpInputListener* listener() const XZERO_BASE_NOEXCEPT { return listener_; }
+  HttpInputListener* listener() const XZERO_NOEXCEPT { return listener_; }
 
   /**
    * Internally invoked to pass some input chunk to this layer.

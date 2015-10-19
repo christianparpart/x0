@@ -25,8 +25,8 @@ enum class HttpMethod {
   CONNECT,
 };
 
-XZERO_BASE_HTTP_API std::string to_string(HttpMethod value);
-XZERO_BASE_HTTP_API HttpMethod to_method(const std::string& value);
+XZERO_HTTP_API std::string to_string(HttpMethod value);
+XZERO_HTTP_API HttpMethod to_method(const std::string& value);
 
 } // namespace http
 } // namespace xzero
