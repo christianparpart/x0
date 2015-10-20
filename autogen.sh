@@ -23,5 +23,4 @@ cmake "$(dirname $0)" \
   -DCMAKE_C_COMPILER="${CC}" \
   -DCMAKE_INSTALL_PREFIX="${HOME}/local" \
   -DOPENSSL_INCLUDE_DIR="/usr/local/opt/openssl/include" \
-  -DOPENSSL_SSL_LIBRARY="/usr/local/opt/openssl/lib/libssl.dylib" \
-  -DENABLE_{TESTS,EXAMPLES}=ON
+  -DOPENSSL_SSL_LIBRARY="/usr/local/opt/openssl/lib/libssl.dylib"
