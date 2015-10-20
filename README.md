@@ -1,4 +1,4 @@
-# Embeddable Configuration Flow Programming Language
+## Embeddable Configuration Flow Programming Language
 
 ```!sh
 # Example Flow:
