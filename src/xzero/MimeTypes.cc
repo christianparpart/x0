@@ -15,7 +15,7 @@
 namespace xzero {
 
 MimeTypes::MimeTypes()
-    : MimeTypes("/etc/mime.types", "application/octet-stream") {
+    : MimeTypes("", "application/octet-stream") {
 }
 
 MimeTypes::MimeTypes(const std::string& path,
@@ -50,6 +50,11 @@ void MimeTypes::loadFromLocal(const std::string& path) {
   }
 }
 
+void MimeTypes::setMimeType(const std::string& ext,
+                            const std::string& mimetype) {
+  mimetypes_[ext] = mimetype;
+}
+
 const std::string& MimeTypes::getMimeType(const std::string& path) {
   std::string* result = nullptr;
 
@@ -80,6 +85,14 @@ const std::string& MimeTypes::getMimeType(const std::string& path) {
   }
 
   return *result;
+}
+
+bool MimeTypes::empty() const noexcept {
+  return mimetypes_.empty();
+}
+
+void MimeTypes::load(const std::unordered_map<std::string, std::string>& entries) {
+  mimetypes_ = entries;
 }
 
 }  // namespace xzero

@@ -32,6 +32,21 @@ class XZERO_BASE_API MimeTypes {
   /** Retrieves a mimetype based on given file @p path name. */
   const std::string& getMimeType(const std::string& path);
 
+  /**
+   * Assigns given @p mimetype to the file extension @p ext.
+   */
+  void setMimeType(const std::string& ext, const std::string& mimetype);
+
+  /**
+   * Tests whether mimetypes database is empty or not.
+   */
+  bool empty() const noexcept;
+
+  /**
+   * Initializes mimetypes DB with given entries.
+   */
+  void load(const std::unordered_map<std::string, std::string>& entries);
+
   /** Retrieves the mimetype mappings (from file extension to mimetype). */
   const std::unordered_map<std::string, std::string>& mimetypes() const XZERO_NOEXCEPT;
 
