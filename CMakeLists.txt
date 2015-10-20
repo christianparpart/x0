@@ -5,8 +5,12 @@ project(x0d CXX C)
 # add_definitions(-DPROJECT_ROOT_BIN_DIR=${CMAKE_CURRENT_BINARY_DIR})
 
 set(CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
-include_directories(${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/gtest-1.7.0/include)
-#add_subdirectory(3rdparty/gtest-1.7.0)
+
+if (EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/gtest-1.7.0)
+  include_directories(${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/gtest-1.7.0/include)
+  add_subdirectory(3rdparty/gtest-1.7.0)
+endif()
+
 add_subdirectory(3rdparty/libxzero-base/src/xzero)
 add_subdirectory(3rdparty/libxzero-flow/src/xzero-flow)
 add_subdirectory(src)
