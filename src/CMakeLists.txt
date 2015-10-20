@@ -10,7 +10,7 @@ include(CheckVariableExists)
 include(CheckTypeSize)
 include(CheckLibraryExists)
 include(CheckCSourceCompiles)
-#include(CMakeDetermineCCompiler)
+include(CMakeDetermineCCompiler)
 
 include_directories(${XZERO_BASE_INCLUDE_DIRS})
 include_directories(${XZERO_FLOW_INCLUDE_DIRS})
