@@ -1,4 +1,4 @@
-FROM ubuntu:12.04
+FROM ubuntu:14.04
 MAINTAINER Christian Parpart <trapni@gmail.com>
 
 WORKDIR /tmp
@@ -28,14 +28,23 @@ RUN apt-get update
 RUN apt-get -qqy upgrade
 
 # get dependencies
-RUN apt-get -qqy install g++-4.8 git make cmake libgnutls28-dev libgcrypt11-dev libmysqlclient-dev libev-dev zlib1g-dev libbz2-dev pkg-config libpcre3-dev libfcgi-dev libmagickwand-dev librrd-dev libtbb-dev
+RUN apt-get -qqy install \
+        g++-4.8 git make cmake libssl-dev libmysqlclient-dev \
+        zlib1g-dev libbz2-dev pkg-config libpcre3-dev libfcgi-dev \
+        libmagickwand-dev librrd-dev libtbb-dev
 
 # x0d: clone, configure, compile, install
 RUN git clone --depth=0 git://github.com/xzero/x0.git /usr/src/x0
 RUN cmake -DCMAKE_BUILD_TYPE=release -DCMAKE_INSTALL_PREFIX=/usr /usr/src/x0
 RUN make all
 RUN make install
+
+# cleanup
 RUN rm -rf /tmp/*
+RUN apt-get remove --purge \
+        g++-4.8 git make cmake libssl-dev libmysqlclient-dev \
+        zlib1g-dev libbz2-dev pkg-config libpcre3-dev libfcgi-dev \
+        libmagickwand-dev librrd-dev libtbb-dev
 
 RUN mkdir /etc/xzero
 
