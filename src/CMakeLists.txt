@@ -31,6 +31,7 @@ MIMETYPES_GENERATE_CPP(MT_SRC ${PROJECT_SOURCE_DIR}/3rdparty/mime.types)
 
 set(x0d_SRC
   ${MT_SRC}
+
   # core
   main.cc
   XzeroDaemon.cc
