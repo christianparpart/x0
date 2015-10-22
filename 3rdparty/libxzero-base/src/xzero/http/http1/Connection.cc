@@ -105,7 +105,9 @@ void Connection::completed() {
   if (onComplete_)
     RAISE(IllegalStateError, "there is still another completion hook.");
 
-  if (!generator_.isChunked() && generator_.pendingContentLength() > 0)
+  if (channel_->request()->method() != HttpMethod::HEAD &&
+      !generator_.isChunked() &&
+      generator_.pendingContentLength() > 0)
     RAISE(IllegalStateError, "Invalid State. Response not fully written but completed() invoked.");
 
   onComplete_ = std::bind(&Connection::onResponseComplete, this,
