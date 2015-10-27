@@ -45,6 +45,7 @@ class XZERO_BASE_API Option {
 
   bool isSome() const { return valid_; }
   bool isNone() const noexcept { return !valid_; }
+  bool isEmpty() const noexcept { return !valid_; }
   operator bool() const { return isSome(); }
 
   T& get() {
