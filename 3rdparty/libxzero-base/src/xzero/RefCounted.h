@@ -22,8 +22,8 @@ class XZERO_BASE_API RefCounted {
   void ref() noexcept;
   bool unref();
 
-  XZERO_DEPRECATED void incRef() { ref(); }
-  XZERO_DEPRECATED void decRef() { unref(); }
+  void incRef() { ref(); }
+  void decRef() { unref(); }
 
   unsigned refCount() const noexcept;
 
