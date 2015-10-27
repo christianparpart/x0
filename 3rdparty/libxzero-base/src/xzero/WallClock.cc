@@ -1,102 +1,48 @@
-// This file is part of the "libxzero" project
-//   (c) 2009-2015 Christian Parpart <https://github.com/christianparpart>
-//   (c) 2014-2015 Paul Asmuth <https://github.com/paulasmuth>
-//
-// libxzero is free software: you can redistribute it and/or modify it under
-// the terms of the GNU Affero General Public License v3.0.
-// You should have received a copy of the GNU Affero General Public License
-// along with this program. If not, see <http://www.gnu.org/licenses/>.
-
-#include <xzero/WallClock.h>
-#include <xzero/DateTime.h>
-#include <xzero/sysconfig.h>
-#include <xzero/RuntimeError.h>
+/**
+ * This file is part of the "libxzero" project
+ *   Copyright (c) 2014 Paul Asmuth, Google Inc.
+ *
+ * libxzero is free software: you can redistribute it and/or modify it under
+ * the terms of the GNU General Public License v3.0. You should have received a
+ * copy of the GNU General Public License along with this program. If not, see
+ * <http://www.gnu.org/licenses/>.
+ */
 #include <sys/time.h>
-#include <unistd.h>
-#include <ctime>
+#include <xzero/WallClock.h>
 
 namespace xzero {
 
-class SimpleClock : public WallClock {
- public:
-  DateTime get() const override;
-};
+UnixTime WallClock::now() {
+  return UnixTime(WallClock::getUnixMicros());
+}
 
-DateTime SimpleClock::get() const {
+uint64_t WallClock::unixSeconds() {
   struct timeval tv;
-  struct timezone tz;
 
-  int rc = gettimeofday(&tv, &tz);
-  if (rc < 0)
-    RAISE_ERRNO(errno);
-
-  return DateTime(tv);
+  gettimeofday(&tv, NULL);
+  return tv.tv_sec;
 }
 
-#ifdef HAVE_CLOCK_GETTIME
-class HighPrecisionClock : public WallClock {
- public:
-  explicit HighPrecisionClock(int clkid);
-  DateTime get() const override;
-
- private:
-  int clkid_;
-};
-
-HighPrecisionClock::HighPrecisionClock(int clkid)
-    : clkid_(clkid) {
+uint64_t WallClock::getUnixMillis() {
+  return unixMillis();
 }
 
-DateTime HighPrecisionClock::get() const {
-  timespec ts;
-  memset(&ts, 0, sizeof(ts));
-  if (clock_gettime(clkid_, &ts) < 0)
-    return DateTime(std::time(nullptr));
+uint64_t WallClock::unixMillis() {
+  struct timeval tv;
 
-  return DateTime(
-      static_cast<double>(ts.tv_sec) +
-      TimeSpan::fromNanoseconds(ts.tv_nsec).value());
-}
-#endif
-
-WallClock* WallClock::system() {
-#ifdef HAVE_CLOCK_GETTIME
-  static HighPrecisionClock clock(CLOCK_REALTIME);
-  return &clock;
-#else
-  static SimpleClock bc;
-  return &bc;
-#endif
+  gettimeofday(&tv, NULL);
+  return tv.tv_sec * 1000llu + tv.tv_usec / 1000llu;
 }
 
-WallClock* WallClock::monotonic() {
-#ifdef HAVE_CLOCK_GETTIME
-  static HighPrecisionClock clock(CLOCK_MONOTONIC);
-  return &clock;
-#else
-  static SimpleClock bc;
-  return &bc;
-#endif
+uint64_t WallClock::getUnixMicros() {
+  return unixMicros();
 }
 
-void WallClock::sleep(TimeSpan ts) {
-#if defined(HAVE_NANOSLEEP)
-  timespec remaining;
-  remaining.tv_sec = ts.totalSeconds();
-  remaining.tv_nsec = ts.nanoseconds();
+uint64_t WallClock::unixMicros() {
+  struct timeval tv;
 
-  for (;;) {
-    timespec expected = remaining;
-    int rv = nanosleep(&expected, &remaining);
-    if (rv == 0)
-      break;
-
-    if (errno != EINTR)
-      RAISE_ERRNO(errno);
-  }
-#else
-  usleep(ts.totalMicroseconds());
-#endif
+  gettimeofday(&tv, NULL);
+  return tv.tv_sec * 1000000llu + tv.tv_usec;
 }
 
-} // namespace xzero
+}
