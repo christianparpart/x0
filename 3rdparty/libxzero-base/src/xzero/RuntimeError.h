@@ -46,6 +46,8 @@ class XZERO_BASE_API RuntimeError : public std::system_error {
   XZERO_DEPRECATED const char* typeName() const;
   XZERO_DEPRECATED bool ofType(Status ev) const;
 
+  bool operator==(Status status) const;
+
   std::vector<std::string> backtrace() const;
 
   void debugPrint(std::ostream* os = nullptr) const;

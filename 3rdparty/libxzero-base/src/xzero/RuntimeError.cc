@@ -85,6 +85,11 @@ bool RuntimeError::ofType(Status ev) const {
       && &code().category() == &StatusCategory().get();
 }
 
+bool RuntimeError::operator==(Status status) const {
+  return &code().category() == &StatusCategory().get()
+      && static_cast<int>(status) == code().value();
+}
+
 void RuntimeError::debugPrint(std::ostream* os) const {
   if (os == nullptr) {
     os = &std::cerr;
