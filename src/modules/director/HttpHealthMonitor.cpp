@@ -90,7 +90,7 @@ void HttpHealthMonitor::onCheckStart() {
  * Callback, invoked on completed asynchronous connect-operation.
  */
 void HttpHealthMonitor::onConnectDone(Socket*, int revents) {
-  TRACE(1, "onConnectDone(0x%04x)", revents);
+  TRACE(1, "onConnectDone($0)", revents);
 
   if (socket_.state() == Socket::Operational) {
     TRACE(1, "connected");
@@ -109,7 +109,7 @@ void HttpHealthMonitor::onConnectDone(Socket*, int revents) {
  * Callback, invoked on I/O readiness of origin server connection.
  */
 void HttpHealthMonitor::io(Socket*, int revents) {
-  TRACE(1, "io(0x%04x)", revents);
+  TRACE(1, "io($0)", revents);
 
   if (revents & ev::WRITE) {
     writeSome();
@@ -157,12 +157,12 @@ void HttpHealthMonitor::readSome() {
   ssize_t rv = socket_.read(response_);
 
   if (rv > 0) {
-    TRACE(1, "readSome: read %zi bytes", rv);
+    TRACE(1, "readSome: read $0 bytes", rv);
     size_t np = parseFragment(response_.ref(lower_bound, rv));
 
-    (void)np;
-    TRACE(1, "readSome(): processed %ld of %ld bytes (%s)", np, rv,
-          HttpMessageParser::state_str());
+    (void) np;
+    TRACE(1, "readSome(): processed $0 of $1 bytes ($2)",
+          np, rv, HttpMessageParser::state());
 
     if (HttpMessageParser::state() == HttpMessageParser::PROTOCOL_ERROR) {
       TRACE(1, "protcol error");
@@ -171,8 +171,7 @@ void HttpHealthMonitor::readSome() {
       TRACE(1, "processing done");
       logSuccess();
     } else {
-      TRACE(1, "resume with io:%d, state:%s", socket_.mode(),
-            state_str().c_str());
+      TRACE(1, "resume with io:$0, state:$1", socket_.mode(), state());
       socket_.setTimeout<HttpHealthMonitor, &HttpHealthMonitor::onTimeout>(
           this, backend_->manager()->readTimeout());
       socket_.setMode(Socket::Read);
@@ -193,7 +192,7 @@ void HttpHealthMonitor::readSome() {
 #endif
         break;
       default:
-        TRACE(1, "error reading health-check response from backend. %s",
+        TRACE(1, "error reading health-check response from backend. $0",
               strerror(errno));
         logFailure();
         return;

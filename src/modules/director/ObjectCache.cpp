@@ -59,8 +59,7 @@ ObjectCache::ConcreteObject::ConcreteObject(Object* object)
       requestNotes_(nullptr),
       interests_(),
       bufferIndex_() {
-  TRACE(requestNotes_, 2, "ConcreteObject(key: '%s')",
-        object_->cacheKey().c_str());
+  TRACE(requestNotes_, 2, "ConcreteObject(key: '$0')", object_->cacheKey());
 }
 
 ObjectCache::ConcreteObject::~ConcreteObject() {
@@ -77,15 +76,15 @@ bool ObjectCache::ConcreteObject::isMatch(const HttpRequest* r) const {
 }
 
 void ObjectCache::ConcreteObject::postProcess() {
-  TRACE(requestNotes_, 3, "ConcreteObject.postProcess() status: %d",
+  TRACE(requestNotes_, 3, "ConcreteObject.postProcess() status: $0",
         requestNotes_->request->status);
   HttpRequest* r = requestNotes_->request;
 
   backBuffer().varyingHeaders.clear();
 
   for (const auto& header : requestNotes_->request->responseHeaders) {
-    TRACE(requestNotes_, 3, "ConcreteObject.postProcess() %s: %s",
-          header.name.c_str(), header.value.c_str());
+    TRACE(requestNotes_, 3, "ConcreteObject.postProcess() $0: $1",
+          header.name, header.value);
     if (unlikely(iequals(header.name, "Set-Cookie"))) {
       requestNotes_->request->log(Severity::info,
                                   "Caching requested but origin server "
@@ -121,7 +120,7 @@ void ObjectCache::ConcreteObject::postProcess() {
     if (iequals(header.name, "ETag")) backBuffer().etag = header.value;
 
     if (iequals(header.name, "Last-Modified"))
-      backBuffer().mtime = DateTime(header.value);
+      backBuffer().mtime = UnixTime(header.value);
 
     if (iequals(header.name, "Vary")) {
       Tokenizer<BufferRef> st(
@@ -174,7 +173,7 @@ void ObjectCache::ConcreteObject::addHeaders(HttpRequest* r, bool hit) {
   snprintf(buf, sizeof(buf), "%zu", hit ? frontBuffer().hits : 0);
   r->responseHeaders.push_back("X-Cache-Hits", buf);
 
-  TimeSpan age(r->connection.worker().now() - frontBuffer().ctime);
+  Duration age(r->connection.worker().now() - frontBuffer().ctime);
   snprintf(buf, sizeof(buf), "%zu", (size_t)(hit ? age.totalSeconds() : 0));
   r->responseHeaders.push_back("Age", buf);
 }
@@ -200,12 +199,12 @@ void ObjectCache::ConcreteObject::commit() {
   size_t i = 0;
   (void)i;
   for (auto rn : pendingRequests) {
-    TRACE(requestNotes_, 3, "commit: deliver to pending request %zu", ++i);
+    TRACE(requestNotes_, 3, "commit: deliver to pending request $0", ++i);
     rn->request->post([=]() { deliver(rn); });
   }
 }
 
-DateTime ObjectCache::ConcreteObject::ctime() const {
+UnixTime ObjectCache::ConcreteObject::ctime() const {
   return frontBuffer().ctime;
 }
 
@@ -219,7 +218,7 @@ const std::string& ObjectCache::ConcreteObject::varyingHeader(
 }
 
 bool ObjectCache::ConcreteObject::update(RequestNotes* rn) {
-  TRACE(rn, 3, "ConcreteObject.update() -> %s", to_s(state_).c_str());
+  TRACE(rn, 3, "ConcreteObject.update() -> $0", state_);
 
   if (state_ != Spawning) state_ = Updating;
 
@@ -243,7 +242,7 @@ bool ObjectCache::ConcreteObject::update(RequestNotes* rn) {
     // the interest list
     // and wait for the response.
     interests_.push_back(rn);  // TODO honor updateLockTimeout
-    TRACE(rn, 3, "Concurrent update detected. Enqueuing interest (%zu).",
+    TRACE(rn, 3, "Concurrent update detected. Enqueuing interest ($0).",
           interests_.size());
     return true;
   }
@@ -258,8 +257,8 @@ void ObjectCache::ConcreteObject::internalDeliver(RequestNotes* rn) {
 
   ++frontBuffer().hits;
 
-  TRACE(rn, 3, "ConcreteObject.deliver(): hit %zu, state %s",
-        frontBuffer().hits, to_s(state_).c_str());
+  TRACE(rn, 3, "ConcreteObject.deliver(): hit $0, state $1",
+        frontBuffer().hits, state_);
 
   if (equals(r->method, "GET")) {
     HttpStatus status = tryProcessClientCache(rn);
@@ -311,12 +310,11 @@ HttpStatus ObjectCache::ConcreteObject::tryProcessClientCache(
   // If-None-Match
   do {
     BufferRef value = r->requestHeader("If-None-Match");
-    TRACE(rn, 1, "tryProcessClientCache(): If-None-Match: '%s'",
-          value.str().c_str());
+    TRACE(rn, 1, "tryProcessClientCache(): If-None-Match: '$0'", value);
     if (value.empty()) continue;
 
     // XXX: on these entities we probably don't need the token-list support
-    TRACE(rn, 1, " - against etag: '%s'", frontBuffer().etag.c_str());
+    TRACE(rn, 1, " - against etag: '$0'", frontBuffer().etag);
     if (value != frontBuffer().etag) continue;
 
     return HttpStatus::NotModified;
@@ -325,11 +323,10 @@ HttpStatus ObjectCache::ConcreteObject::tryProcessClientCache(
   // If-Modified-Since
   do {
     BufferRef value = r->requestHeader("If-Modified-Since");
-    TRACE(rn, 1, "tryProcessClientCache(): If-Modified-Since: '%s'",
-          value.str().c_str());
+    TRACE(rn, 1, "tryProcessClientCache(): If-Modified-Since: '$0'", value);
     if (value.empty()) continue;
 
-    DateTime dt(value);
+    UnixTime dt(value);
     if (!dt.valid()) continue;
 
     if (frontBuffer().mtime > dt) continue;
@@ -340,8 +337,7 @@ HttpStatus ObjectCache::ConcreteObject::tryProcessClientCache(
   // If-Match
   do {
     BufferRef value = r->requestHeader("If-Match");
-    TRACE(rn, 1, "tryProcessClientCache(): If-Match: '%s'",
-          value.str().c_str());
+    TRACE(rn, 1, "tryProcessClientCache(): If-Match: '$0'", value);
     if (value.empty()) continue;
 
     if (value == "*") continue;
@@ -355,11 +351,10 @@ HttpStatus ObjectCache::ConcreteObject::tryProcessClientCache(
   // If-Unmodified-Since
   do {
     BufferRef value = r->requestHeader("If-Unmodified-Since");
-    TRACE(rn, 1, "tryProcessClientCache(): If-Unmodified-Since: '%s'",
-          value.str().c_str());
+    TRACE(rn, 1, "tryProcessClientCache(): If-Unmodified-Since: '$0'", value);
     if (value.empty()) continue;
 
-    DateTime dt(value);
+    UnixTime dt(value);
     if (!dt.valid()) continue;
 
     if (frontBuffer().mtime <= dt) continue;
@@ -452,10 +447,10 @@ ObjectCache::ObjectCache(Director* director)
       deliverActive_(true),
       deliverShadow_(true),
       lockOnUpdate_(true),
-      updateLockTimeout_(TimeSpan::fromSeconds(10)),
+      updateLockTimeout_(Duration::fromSeconds(10)),
       defaultKey_("%h%r%q"),
-      defaultTTL_(TimeSpan::fromSeconds(20)),  // TimeSpan::Zero),
-      defaultShadowTTL_(TimeSpan::Zero),
+      defaultTTL_(Duration::fromSeconds(20)),  // Duration::Zero),
+      defaultShadowTTL_(Duration::Zero),
       cacheHits_(0),
       cacheShadowHits_(0),
       cacheMisses_(0),
@@ -541,8 +536,8 @@ bool ObjectCache::deliverActive(RequestNotes* rn) {
     } else if (someObject) {
       ConcreteObject* object = someObject->select(rn);
 
-      const DateTime now = rn->request->connection.worker().now();
-      const DateTime expiry = object->ctime() + rn->cacheTTL;
+      const UnixTime now = rn->request->connection.worker().now();
+      const UnixTime expiry = object->ctime() + rn->cacheTTL;
 
       if (expiry < now) object->expire();
 
@@ -616,7 +611,7 @@ ObjectCache::Builder::Builder(ConcreteObject* object) : object_(object) {}
 
 Buffer ObjectCache::Builder::process(const BufferRef& chunk) {
   if (object_) {
-    TRACE(object_->requestNotes_, 3, "ObjectCache.Builder.process(): %zu bytes",
+    TRACE(object_->requestNotes_, 3, "ObjectCache.Builder.process(): $0 bytes",
           chunk.size());
     if (!chunk.empty()) {
       object_->backBuffer().body.push_back(chunk);

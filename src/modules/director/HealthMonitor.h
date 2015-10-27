@@ -8,7 +8,7 @@
 #pragma once
 
 #include <base/Buffer.h>
-#include <base/TimeSpan.h>
+#include <base/Duration.h>
 #include <base/Logging.h>
 #include <base/Socket.h>
 #include <base/SocketSpec.h>
@@ -21,11 +21,6 @@
 class Backend;
 
 enum class HealthState { Undefined, Offline, Online };
-
-inline std::string stringify(HealthState value) {
-  static const std::string strings[] = {"Undefined", "Offline", "Online"};
-  return strings[static_cast<size_t>(value)];
-}
 
 /**
  * Implements HTTP server health monitoring.
@@ -41,7 +36,7 @@ class HealthMonitor : protected base::Logging,
   Mode mode_;
   Backend* backend_;
   xzero::HttpWorker& worker_;
-  base::TimeSpan interval_;
+  base::Duration interval_;
   HealthState state_;
 
   std::function<void(HealthMonitor*, HealthState)> onStateChange_;
@@ -80,8 +75,8 @@ class HealthMonitor : protected base::Logging,
 
   void update();
 
-  const base::TimeSpan& interval() const { return interval_; }
-  void setInterval(const base::TimeSpan& value);
+  const base::Duration& interval() const { return interval_; }
+  void setInterval(const base::Duration& value);
 
   void setExpectCode(xzero::HttpStatus value) { expectCode_ = value; }
   xzero::HttpStatus expectCode() const { return expectCode_; }

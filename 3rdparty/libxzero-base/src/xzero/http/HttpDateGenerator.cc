@@ -6,25 +6,26 @@
 // the License at: http://opensource.org/licenses/MIT
 
 #include <xzero/http/HttpDateGenerator.h>
-#include <xzero/WallClock.h>
-#include <xzero/DateTime.h>
+#include <xzero/UnixTime.h>
 #include <cassert>
 #include <ctime>
 
 namespace xzero {
 namespace http {
 
-HttpDateGenerator::HttpDateGenerator(WallClock* clock)
-  : clock_(clock),
-    current_(0.0),
+HttpDateGenerator::HttpDateGenerator()
+  : current_(0.0),
     buffer_(),
     mutex_() {
 }
 
-void HttpDateGenerator::update() {
-  assert(clock_ != nullptr);
+UnixTime HttpDateGenerator::getCurrentTime() {
+  return UnixTime::now();
+}
 
-  DateTime now = clock_->get();
+void HttpDateGenerator::update() {
+  UnixTime now = getCurrentTime();
+
   if (current_ != now) {
     std::lock_guard<std::mutex> _lock(mutex_);
 

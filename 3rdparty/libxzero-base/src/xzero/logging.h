@@ -1,52 +1,186 @@
-// This file is part of the "libxzero" project
-//   (c) 2009-2015 Christian Parpart <https://github.com/christianparpart>
-//   (c) 2014-2015 Paul Asmuth <https://github.com/paulasmuth>
-//
-// libxzero is free software: you can redistribute it and/or modify it under
-// the terms of the GNU Affero General Public License v3.0.
-// You should have received a copy of the GNU Affero General Public License
-// along with this program. If not, see <http://www.gnu.org/licenses/>.
+/**
+ * This file is part of the "libxzero" project
+ *   Copyright (c) 2014 Paul Asmuth, Google Inc.
+ *
+ * libxzero is free software: you can redistribute it and/or modify it under
+ * the terms of the GNU General Public License v3.0. You should have received a
+ * copy of the GNU General Public License along with this program. If not, see
+ * <http://www.gnu.org/licenses/>.
+ */
+#ifndef _libxzero_UTIL_LOGGING_H
+#define _libxzero_UTIL_LOGGING_H
 
-#pragma once
-
-#include <xzero/Api.h>
-#include <xzero/logging/LogAggregator.h>
 #include <xzero/logging/LogLevel.h>
-#include <xzero/logging/LogSource.h>
-#include <string>
+#include <xzero/logging/Logger.h>
 
 namespace xzero {
 
-template<typename... Args>
-XZERO_BASE_API void logError(const char* component, const char* fmt, Args... args) {
-  LogAggregator::get().getSource(component)->error(fmt, args...);
+/**
+ * EMERGENCY: Something very bad happened
+ */
+template <typename... T>
+void logEmergency(const String& component, const String& msg, T... args) {
+  Logger::get()->log(LogLevel::kEmergency, component, msg, args...);
 }
 
-template<typename... Args>
-XZERO_BASE_API void logWarning(const char* component, const char* fmt, Args... args) {
-  LogAggregator::get().getSource(component)->warn(fmt, args...);
+template <typename... T>
+void logEmergency(
+    const String& component,
+    const std::exception& e,
+    const String& msg,
+    T... args) {
+  Logger::get()->logException(LogLevel::kEmergency, component, e, msg, args...);
 }
 
-template<typename... Args>
-XZERO_BASE_API void logNotice(const char* component, const char* fmt, Args... args) {
-  LogAggregator::get().getSource(component)->notice(fmt, args...);
+/**
+ * ALERT: Action must be taken immediately
+ */
+template <typename... T>
+void logAlert(const String& component, const String& msg, T... args) {
+  Logger::get()->log(LogLevel::kAlert, component, msg, args...);
 }
 
-template<typename... Args>
-XZERO_BASE_API void logInfo(const char* component, const char* fmt, Args... args) {
-  LogAggregator::get().getSource(component)->info(fmt, args...);
+template <typename... T>
+void logAlert(
+    const String& component,
+    const std::exception& e,
+    const String& msg,
+    T... args) {
+  Logger::get()->logException(LogLevel::kAlert, component, e, msg, args...);
 }
 
-template<typename... Args>
-XZERO_BASE_API void logDebug(const char* component, const char* fmt, Args... args) {
-  LogAggregator::get().getSource(component)->debug(fmt, args...);
+/**
+ * CRITICAL: Action should be taken as soon as possible
+ */
+template <typename... T>
+void logCritical(const String& component, const String& msg, T... args) {
+  Logger::get()->log(LogLevel::kCritical, component, msg, args...);
 }
 
-template<typename... Args>
-XZERO_BASE_API void logTrace(const char* component, const char* fmt, Args... args) {
-  LogAggregator::get().getSource(component)->trace(fmt, args...);
+template <typename... T>
+void logCritical(
+    const String& component,
+    const std::exception& e,
+    const String& msg,
+    T... args) {
+  Logger::get()->logException(LogLevel::kCritical, component, e, msg, args...);
 }
 
-XZERO_BASE_API void logError(const char* component, const std::exception& e);
+/**
+ * ERROR: User-visible Runtime Errors
+ */
+template <typename... T>
+void logError(const String& component, const String& msg, T... args) {
+  Logger::get()->log(LogLevel::kError, component, msg, args...);
+}
 
-}  // namespace xzero
+template <typename... T>
+void logError(
+    const String& component,
+    const std::exception& e,
+    const String& msg,
+    T... args) {
+  Logger::get()->logException(LogLevel::kError, component, e, msg, args...);
+}
+
+/**
+ * WARNING: Something unexpected happened that should not have happened
+ */
+template <typename... T>
+void logWarning(const String& component, const String& msg, T... args) {
+  Logger::get()->log(LogLevel::kWarning, component, msg, args...);
+}
+
+template <typename... T>
+void logWarning(
+    const String& component,
+    const std::exception& e,
+    const String& msg,
+    T... args) {
+  Logger::get()->logException(LogLevel::kWarning, component, e, msg, args...);
+}
+
+/**
+ * NOTICE: Normal but significant condition.
+ */
+template <typename... T>
+void logNotice(const String& component, const String& msg, T... args) {
+  Logger::get()->log(LogLevel::kNotice, component, msg, args...);
+}
+
+template <typename... T>
+void logNotice(
+    const String& component,
+    const std::exception& e,
+    const String& msg,
+    T... args) {
+  Logger::get()->logException(LogLevel::kNotice, component, e, msg, args...);
+}
+
+/**
+ * INFO: Informational messages
+ */
+template <typename... T>
+void logInfo(const String& component, const String& msg, T... args) {
+  Logger::get()->log(LogLevel::kInfo, component, msg, args...);
+}
+
+template <typename... T>
+void logInfo(
+    const String& component,
+    const std::exception& e,
+    const String& msg,
+    T... args) {
+  Logger::get()->logException(LogLevel::kInfo, component, e, msg, args...);
+}
+
+/**
+ * DEBUG: Debug messages
+ */
+template <typename... T>
+void logDebug(const String& component, const String& msg, T... args) {
+  Logger::get()->log(LogLevel::kDebug, component, msg, args...);
+}
+
+template <typename... T>
+void logDebug(
+    const String& component,
+    const std::exception& e,
+    const String& msg,
+    T... args) {
+  Logger::get()->logException(LogLevel::kDebug, component, e, msg, args...);
+}
+
+/**
+ * TRACE: Trace messages
+ */
+template <typename... T>
+void logTrace(const String& component, const String& msg, T... args) {
+  Logger::get()->log(LogLevel::kTrace, component, msg, args...);
+}
+
+template <typename... T>
+void logTrace(
+    const String& component,
+    const std::exception& e,
+    const String& msg,
+    T... args) {
+  Logger::get()->logException(LogLevel::kTrace, component, e, msg, args...);
+}
+
+/**
+ * Return the human readable string representation of the provided log leval
+ */
+const char* logLevelToStr(LogLevel log_level);
+
+std::string to_string(LogLevel log_level);
+
+/**
+ * Return the log level from the human readable string representation. This
+ * will raise an exception if no such log level is known
+ */
+LogLevel strToLogLevel(const String& log_level);
+
+}
+
+#endif

@@ -8,8 +8,8 @@
 #pragma once
 
 #include <base/Buffer.h>
-#include <base/TimeSpan.h>
-#include <base/DateTime.h>
+#include <base/Duration.h>
+#include <base/UnixTime.h>
 #include <base/io/Filter.h>
 #include <xzero/HttpStatus.h>
 #include <tbb/concurrent_hash_map.h>
@@ -57,10 +57,10 @@ class ObjectCache {
   bool deliverActive_;
   bool deliverShadow_;
   bool lockOnUpdate_;
-  base::TimeSpan updateLockTimeout_;
+  base::Duration updateLockTimeout_;
   std::string defaultKey_;
-  base::TimeSpan defaultTTL_;
-  base::TimeSpan defaultShadowTTL_;
+  base::Duration defaultTTL_;
+  base::Duration defaultShadowTTL_;
   std::atomic<unsigned long long> cacheHits_;  //!< Total number of cache hits.
   std::atomic<unsigned long long> cacheShadowHits_;  //!< Total number hits
                                                      //against shadow objects.
@@ -89,8 +89,8 @@ class ObjectCache {
    * A value of Zero means, that we will not wait at all and deliver the stale
    *version instead.
    */
-  base::TimeSpan updateLockTimeout() const { return updateLockTimeout_; }
-  void setUpdateLockTimeout(const base::TimeSpan& value) {
+  base::Duration updateLockTimeout() const { return updateLockTimeout_; }
+  void setUpdateLockTimeout(const base::Duration& value) {
     updateLockTimeout_ = value;
   }
 
@@ -118,15 +118,15 @@ class ObjectCache {
   /**
    * Default TTL (time to life) value a cache object is considered valid.
    */
-  base::TimeSpan defaultTTL() const { return defaultTTL_; }
-  void setDefaultTTL(const base::TimeSpan& value) { defaultTTL_ = value; }
+  base::Duration defaultTTL() const { return defaultTTL_; }
+  void setDefaultTTL(const base::Duration& value) { defaultTTL_ = value; }
 
   /**
    * Default TTL (time to life) value a stale cache object may held in the
    * store.
    */
-  base::TimeSpan defaultShadowTTL() const { return defaultShadowTTL_; }
-  void setDefaultShadowTTL(const base::TimeSpan& value) {
+  base::Duration defaultShadowTTL() const { return defaultShadowTTL_; }
+  void setDefaultShadowTTL(const base::Duration& value) {
     defaultShadowTTL_ = value;
   }
 
@@ -322,7 +322,7 @@ class ObjectCache::ConcreteObject {
   /**
    * creation time of given cache object or the time it was last updated.
    */
-  base::DateTime ctime() const;
+  base::UnixTime ctime() const;
 
   /**
    * Retrieves the value of a given request header.
@@ -345,13 +345,13 @@ class ObjectCache::ConcreteObject {
   inline void internalDeliver(RequestNotes* rn);
 
   struct Buffer {  // {{{
-    base::DateTime ctime;
+    base::UnixTime ctime;
     xzero::HttpStatus status;
 
     std::list<std::pair<std::string, std::string>> headers;
     std::vector<std::pair<base::BufferRef, std::string>> varyingHeaders;
     std::string etag;
-    base::DateTime mtime;
+    base::UnixTime mtime;
     base::Buffer body;
     size_t hits;
 

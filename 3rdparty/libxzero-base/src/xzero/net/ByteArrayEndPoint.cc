@@ -81,12 +81,12 @@ size_t ByteArrayEndPoint::fill(Buffer* sink) {
   sink->push_back(input_.ref(readPos_));
   n = sink->size() - n;
   readPos_ += n;
-  TRACE("%p fill: %zu bytes", this, n);
+  TRACE("$0 fill: $1 bytes", this, n);
   return n;
 }
 
 size_t ByteArrayEndPoint::flush(const BufferRef& source) {
-  TRACE("%p flush: %zu bytes", this, source.size());
+  TRACE("$0 flush: $1 bytes", this, source.size());
 
   if (closed_) {
     return 0;
@@ -111,10 +111,10 @@ size_t ByteArrayEndPoint::flush(int fd, off_t offset, size_t size) {
 
 void ByteArrayEndPoint::wantFill() {
   if (connection()) {
-    TRACE("%p wantFill.", this);
+    TRACE("$0 wantFill.", this);
     ref();
     connector_->executor()->execute([this] {
-      TRACE("%p wantFill: fillable.", this);
+      TRACE("$0 wantFill: fillable.", this);
       try {
         connection()->onFillable();
       } catch (std::exception& e) {
@@ -127,10 +127,10 @@ void ByteArrayEndPoint::wantFill() {
 
 void ByteArrayEndPoint::wantFlush() {
   if (connection()) {
-    TRACE("%p wantFlush.", this);
+    TRACE("$0 wantFlush.", this);
     ref();
     connector_->executor()->execute([this] {
-      TRACE("%p wantFlush: flushable.", this);
+      TRACE("$0 wantFlush: flushable.", this);
       try {
         connection()->onFlushable();
       } catch (std::exception& e) {
@@ -141,19 +141,19 @@ void ByteArrayEndPoint::wantFlush() {
   }
 }
 
-TimeSpan ByteArrayEndPoint::readTimeout() {
-  return TimeSpan::Zero; // TODO
+Duration ByteArrayEndPoint::readTimeout() {
+  return Duration::Zero; // TODO
 }
 
-TimeSpan ByteArrayEndPoint::writeTimeout() {
-  return TimeSpan::Zero; // TODO
+Duration ByteArrayEndPoint::writeTimeout() {
+  return Duration::Zero; // TODO
 }
 
-void ByteArrayEndPoint::setReadTimeout(TimeSpan timeout) {
+void ByteArrayEndPoint::setReadTimeout(Duration timeout) {
   // TODO
 }
 
-void ByteArrayEndPoint::setWriteTimeout(TimeSpan timeout) {
+void ByteArrayEndPoint::setWriteTimeout(Duration timeout) {
   // TODO
 }
 
@@ -170,6 +170,11 @@ bool ByteArrayEndPoint::isCorking() const {
 }
 
 void ByteArrayEndPoint::setCorking(bool /*enable*/) {
+}
+
+template<>
+std::string StringUtil::toString(ByteArrayEndPoint* value) {
+  return StringUtil::format("ByteArrayEndPoint[$0]", (void*)value);
 }
 
 } // namespace xzero

@@ -34,7 +34,6 @@
 #include <xzero/cli/Flags.h>
 #include <xzero/RuntimeError.h>
 #include <xzero/MimeTypes.h>
-#include <xzero/WallClock.h>
 #include <xzero/Application.h>
 #include <xzero/StringUtil.h>
 #include <xzero/logging.h>
@@ -84,18 +83,17 @@ XzeroDaemon::XzeroDaemon()
       requestHeaderBufferSize_(16 * 1024),      // 16 KB
       requestBodyBufferSize_(16 * 1024),        // 16 KB
       http1_(new http1::ConnectionFactory(
-          WallClock::system(),          // Date generator
           1024,                         // max_request_uri_size      1 K
           16 * 1024 * 1024,             // max_request_body_size    16 M
           100,                          // max_keepalive_requests  100
-          TimeSpan::fromSeconds(8))),   // max_keepalive_idle        8 s
+          Duration::fromSeconds(8))),   // max_keepalive_idle        8 s
       tcpCork_(false),
       tcpNoDelay_(false),
       maxConnections_(512),
-      maxReadIdle_(TimeSpan::fromSeconds(60)),
-      maxWriteIdle_(TimeSpan::fromSeconds(360)),
-      tcpFinTimeout_(TimeSpan::fromSeconds(60)),
-      lingering_(TimeSpan::Zero),
+      maxReadIdle_(Duration::fromSeconds(60)),
+      maxWriteIdle_(Duration::fromSeconds(360)),
+      tcpFinTimeout_(Duration::fromSeconds(60)),
+      lingering_(Duration::Zero),
       config_(new Config) {
 
   http1_->setHandler(std::bind(&XzeroDaemon::handleRequest, this,
@@ -221,7 +219,7 @@ bool XzeroDaemon::configure() {
 
     return true;
   } catch (const RuntimeError& e) {
-    if (e.ofType(Status::ConfigurationError)) {
+    if (e == Status::ConfigurationError) {
       logError("x0d", "Configuration failed. %s", e.what());
       return false;
     }
@@ -323,17 +321,16 @@ T* XzeroDaemon::setupConnector(
 
   Executor* executor = mainWorker()->scheduler();
   Scheduler* scheduler = mainWorker()->scheduler();
-  auto eh = [](const std::exception& e) { logError("x0d", e); };
+  UniquePtr<ExceptionHandler> eh(new CatchAndLogExceptionHandler("x0d"));
 
   auto inet = server_->addConnector<T>(
       "inet",
       executor,
       scheduler,
-      WallClock::monotonic(),
       maxReadIdle_,
       maxWriteIdle_,
       tcpFinTimeout_,
-      eh,
+      std::move(eh),
       ipaddr,
       port,
       backlog,

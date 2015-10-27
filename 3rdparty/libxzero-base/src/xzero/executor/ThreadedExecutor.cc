@@ -1,8 +1,8 @@
-// This file is part of the "libxzero" project
+// This file is part of the "libcortex" project
 //   (c) 2009-2015 Christian Parpart <https://github.com/christianparpart>
 //   (c) 2014-2015 Paul Asmuth <https://github.com/paulasmuth>
 //
-// libxzero is free software: you can redistribute it and/or modify it under
+// libcortex is free software: you can redistribute it and/or modify it under
 // the terms of the GNU Affero General Public License v3.0.
 // You should have received a copy of the GNU Affero General Public License
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
@@ -28,9 +28,8 @@ static std::mutex m;
 #define TRACE(msg...) do { } while (0)
 #endif
 
-ThreadedExecutor::ThreadedExecutor(
-    std::function<void(const std::exception&)> eh)
-    : Executor(eh),
+ThreadedExecutor::ThreadedExecutor(std::unique_ptr<xzero::ExceptionHandler> eh)
+    : Executor(std::move(eh)),
       threads_() {
 }
 
@@ -57,17 +56,17 @@ void ThreadedExecutor::joinAll() {
       tid = threads_.front();
       threads_.pop_front();
     }
-    TRACE("joinAll: join(%lu) %s", tid, getThreadName(tid).c_str());
+    TRACE("joinAll: join($0) $1", tid, getThreadName(tid));
     pthread_join(tid, nullptr);
   }
   TRACE("joinAll: done");
 }
 
 void* ThreadedExecutor::launchme(void* ptr) {
-  TRACE("launchme[%d](%p) enter", pthread_self(), ptr);
+  TRACE("launchme[$0]($1) enter", pthread_self(), ptr);
   std::unique_ptr<Executor::Task> task(reinterpret_cast<Executor::Task*>(ptr));
   (*task)();
-  TRACE("launchme[%d](%p) leave", pthread_self(), ptr);
+  TRACE("launchme[$0]($1) leave", pthread_self(), ptr);
   return nullptr;
 }
 
@@ -95,7 +94,7 @@ void ThreadedExecutor::execute(Task task) {
     pthread_t tid = pthread_self();
     safeCall(task);
     {
-      TRACE("task %s finished. getting lock for cleanup", getThreadName(tid).c_str());
+      TRACE("task $0 finished. getting lock for cleanup", getThreadName(tid));
       std::lock_guard<std::mutex> lock(mutex_);
       pthread_detach(tid);
       auto i = std::find(threads_.begin(), threads_.end(), tid);

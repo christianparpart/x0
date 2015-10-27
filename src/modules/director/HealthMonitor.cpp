@@ -34,7 +34,7 @@ HealthMonitor::HealthMonitor(HttpWorker& worker,
       mode_(Mode::Paranoid),
       backend_(nullptr),
       worker_(worker),
-      interval_(TimeSpan::fromSeconds(2)),
+      interval_(Duration::fromSeconds(2)),
       state_(HealthState::Undefined),
       onStateChange_(),
       expectCode_(HttpStatus::Ok),
@@ -81,7 +81,7 @@ void HealthMonitor::setState(HealthState value) {
   HealthState oldState = state_;
   state_ = value;
 
-  TRACE("setState: %s", state_str().c_str());
+  TRACE("setState: $0", state_str());
 
   if (onStateChange_) {
     onStateChange_(this, oldState);
@@ -127,7 +127,7 @@ void HealthMonitor::update() {
       backend_->name().c_str());
 }
 
-void HealthMonitor::setInterval(const TimeSpan& value) { interval_ = value; }
+void HealthMonitor::setInterval(const Duration& value) { interval_ = value; }
 
 void HealthMonitor::reset() {
   HttpMessageParser::reset();
@@ -196,8 +196,8 @@ void HealthMonitor::logFailure() {
  */
 bool HealthMonitor::onMessageBegin(int versionMajor, int versionMinor, int code,
                                    const BufferRef& text) {
-  TRACE("onMessageBegin: (HTTP/%d.%d, %d, '%s')", versionMajor, versionMinor,
-        code, text.str().c_str());
+  TRACE("onMessageBegin: (HTTP/$0.$1, '$2')",
+        versionMajor, versionMinor, code, text.str());
 
   responseCode_ = static_cast<HttpStatus>(code);
 
@@ -209,8 +209,7 @@ bool HealthMonitor::onMessageBegin(int versionMajor, int versionMinor, int code,
  */
 bool HealthMonitor::onMessageHeader(const BufferRef& name,
                                     const BufferRef& value) {
-  TRACE("onResponseHeader(name:%s, value:%s)", name.str().c_str(),
-        value.str().c_str());
+  TRACE("onResponseHeader(name:$0, value:$1)", name, value);
 
   if (iequals(name, "Status")) {
     int status = value.ref(0, value.find(' ')).toInt();
@@ -232,7 +231,7 @@ bool HealthMonitor::onMessageContent(const BufferRef& chunk) {
  * Callback, invoked when the response message has been fully parsed.
  */
 bool HealthMonitor::onMessageEnd() {
-  TRACE("onMessageEnd() state:%s", state_str().c_str());
+  TRACE("onMessageEnd() state:$0", state_str());
   processingDone_ = true;
 
   if (responseCode_ == expectCode_) {
@@ -254,3 +253,13 @@ JsonWriter& operator<<(JsonWriter& json, const HealthMonitor& monitor) {
 
   return json;
 }
+
+namespace xzero {
+
+template<>
+inline std::string StringUtil::toString(HealthState hs) {
+  static const std::string strings[] = {"Undefined", "Offline", "Online"};
+  return strings[static_cast<size_t>(value)];
+}
+
+} // namespace xzero

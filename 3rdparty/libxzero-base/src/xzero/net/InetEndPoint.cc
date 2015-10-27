@@ -44,35 +44,34 @@ InetEndPoint::InetEndPoint(int socket,
       scheduler_(scheduler),
       readTimeout_(connector->readTimeout()),
       writeTimeout_(connector->writeTimeout()),
-      idleTimeout_(connector->clock(), connector->scheduler()),
+      idleTimeout_(connector->scheduler()),
       io_(),
       handle_(socket),
       addressFamily_(connector->addressFamily()),
       isCorking_(false) {
 
   idleTimeout_.setCallback(std::bind(&InetEndPoint::onTimeout, this));
-  TRACE("%p ctor", this);
+  TRACE("$0 ctor", this);
 }
 
 InetEndPoint::InetEndPoint(int socket,
                            int addressFamily,
-                           TimeSpan readTimeout,
-                           TimeSpan writeTimeout,
-                           WallClock* clock,
+                           Duration readTimeout,
+                           Duration writeTimeout,
                            Scheduler* scheduler)
     : EndPoint(),
       connector_(nullptr),
       scheduler_(scheduler),
       readTimeout_(readTimeout),
       writeTimeout_(writeTimeout),
-      idleTimeout_(clock, scheduler),
+      idleTimeout_(scheduler),
       io_(),
       handle_(socket),
       addressFamily_(addressFamily),
       isCorking_(false) {
 
   idleTimeout_.setCallback(std::bind(&InetEndPoint::onTimeout, this));
-  TRACE("%p ctor", this);
+  TRACE("$0 ctor", this);
 }
 
 void InetEndPoint::onTimeout() {
@@ -84,15 +83,15 @@ void InetEndPoint::onTimeout() {
 }
 
 InetEndPoint::~InetEndPoint() {
-  TRACE("%p dtor", this);
+  TRACE("$0 dtor", this);
   if (isOpen()) {
     close();
   }
 }
 
-std::pair<IPAddress, int> InetEndPoint::remoteAddress() const {
+Option<std::pair<IPAddress, int>> InetEndPoint::remoteAddress() const {
   if (handle_ < 0)
-    RAISE(IllegalStateError, "Invalid socket handle.");
+    return None();
 
   std::pair<IPAddress, int> result;
   switch (addressFamily()) {
@@ -117,12 +116,12 @@ std::pair<IPAddress, int> InetEndPoint::remoteAddress() const {
     default:
       RAISE(IllegalStateError, "Invalid address family.");
   }
-  return result;
+  return Some<std::pair<IPAddress, int>>(result);
 }
 
-std::pair<IPAddress, int> InetEndPoint::localAddress() const {
+Option<std::pair<IPAddress, int>> InetEndPoint::localAddress() const {
   if (handle_ < 0)
-    RAISE(IllegalStateError, "Invalid socket handle.");
+    return None();
 
   std::pair<IPAddress, int> result;
   switch (addressFamily()) {
@@ -150,7 +149,7 @@ std::pair<IPAddress, int> InetEndPoint::localAddress() const {
       break;
   }
 
-  return result;
+  return Some<std::pair<IPAddress, int>>(result);
 }
 
 bool InetEndPoint::isOpen() const XZERO_NOEXCEPT {
@@ -173,7 +172,7 @@ bool InetEndPoint::isBlocking() const {
 }
 
 void InetEndPoint::setBlocking(bool enable) {
-  TRACE("%p setBlocking(\"%s\")", this, enable ? "blocking" : "nonblocking");
+  TRACE("$0 setBlocking(\"$1\")", this, enable);
 #if 1
   unsigned current = fcntl(handle_, F_GETFL);
   unsigned flags = enable ? (current & ~O_NONBLOCK)
@@ -213,7 +212,7 @@ std::string InetEndPoint::toString() const {
 size_t InetEndPoint::fill(Buffer* result) {
   result->reserve(result->size() + 1024);
   ssize_t n = read(handle(), result->end(), result->capacity() - result->size());
-  TRACE("read(%zu bytes) -> %zi", result->capacity() - result->size(), n);
+  TRACE("read($0 bytes) -> $1", result->capacity() - result->size(), n);
 
   if (n < 0) {
     // don't raise on soft errors, such as there is simply no more data to read.
@@ -237,7 +236,7 @@ size_t InetEndPoint::fill(Buffer* result) {
 size_t InetEndPoint::flush(const BufferRef& source) {
   ssize_t rv = write(handle(), source.data(), source.size());
 
-  TRACE("flush(%zu bytes) -> %zi", source.size(), rv);
+  TRACE("flush($0 bytes) -> $1", source.size(), rv);
 
   if (rv < 0)
     RAISE_ERRNO(errno);
@@ -251,14 +250,14 @@ size_t InetEndPoint::flush(int fd, off_t offset, size_t size) {
 #if defined(__APPLE__)
   off_t len = 0;
   int rv = sendfile(fd, handle(), offset, &len, nullptr, 0);
-  TRACE("flush(offset:%zu, size:%zu) -> %zi", offset, size, rv);
+  TRACE("flush(offset:$0, size:$1) -> $2", offset, size, rv);
   if (rv < 0)
     RAISE_ERRNO(errno);
 
   return len;
 #else
   ssize_t rv = sendfile(handle(), fd, &offset, size);
-  TRACE("flush(offset:%zu, size:%zu) -> %zi", offset, size, rv);
+  TRACE("flush(offset:$0, size:$1) -> $2", offset, size, rv);
   if (rv < 0)
     RAISE_ERRNO(errno);
 
@@ -297,7 +296,7 @@ void InetEndPoint::onWritable() XZERO_NOEXCEPT {
 }
 
 void InetEndPoint::wantFill() {
-  TRACE("%p wantFill()", this);
+  TRACE("$0 wantFill()", this);
   // TODO: abstract away the logic of TCP_DEFER_ACCEPT
 
   //FIXME: idleTimeout_.activate(readTimeout());
@@ -324,7 +323,7 @@ void InetEndPoint::fillable() {
 }
 
 void InetEndPoint::wantFlush() {
-  TRACE("%p wantFlush() %s", this, io_.get() ? "again" : "first time");
+  TRACE("$0 wantFlush() $1", this, io_.get() ? "again" : "first time");
   //FIXME: idleTimeout_.activate(writeTimeout());
 
   if (!io_) {
@@ -349,24 +348,28 @@ void InetEndPoint::flushable() {
   }
 }
 
-TimeSpan InetEndPoint::readTimeout() {
+Duration InetEndPoint::readTimeout() {
   return readTimeout_;
 }
 
-TimeSpan InetEndPoint::writeTimeout() {
+Duration InetEndPoint::writeTimeout() {
   return writeTimeout_;
 }
 
-void InetEndPoint::setReadTimeout(TimeSpan timeout) {
+void InetEndPoint::setReadTimeout(Duration timeout) {
   readTimeout_ = timeout;
 }
 
-void InetEndPoint::setWriteTimeout(TimeSpan timeout) {
+void InetEndPoint::setWriteTimeout(Duration timeout) {
   writeTimeout_ = timeout;
 }
 
 Option<IPAddress> InetEndPoint::remoteIP() const {
-  return Some(remoteAddress().first);
+  auto remote = remoteAddress();
+  if (remote.isEmpty())
+    return None();
+  else
+    return remote.get().first;
 }
 
 class InetConnectState {
@@ -383,20 +386,25 @@ class InetConnectState {
     int val = 0;
     socklen_t vlen = sizeof(val);
     if (getsockopt(ep_->handle(), SOL_SOCKET, SO_ERROR, &val, &vlen) == 0) {
-      TRACE("%p onConnectComplete: connected.", this);
+      TRACE("$0 onConnectComplete: connected.", this);
       promise_.success(std::move(ep_));
     } else {
-      TRACE("%p onConnectComplete: failure %d. %s", this,
-          val, strerror(val));
+      TRACE("$0 onConnectComplete: failure $1. $2",
+            this, val, strerror(val));
       promise_.failure(Status::IOError); // dislike: wanna pass errno val here.
     }
     delete this;
   }
 };
 
+template<>
+std::string StringUtil::toString(InetConnectState* obj) {
+  return StringUtil::format("InetConnectState[$0]", (void*) obj);
+}
+
 Future<std::unique_ptr<InetEndPoint>> InetEndPoint::connectAsync(
     const IPAddress& ipaddr, int port,
-    TimeSpan timeout, WallClock* clock, Scheduler* scheduler) {
+    Duration timeout, Scheduler* scheduler) {
   int fd = socket(ipaddr.family(), SOCK_STREAM, IPPROTO_TCP);
   if (fd < 0)
     RAISE_ERRNO(errno);
@@ -405,9 +413,8 @@ Future<std::unique_ptr<InetEndPoint>> InetEndPoint::connectAsync(
   std::unique_ptr<InetEndPoint> ep;
 
   try {
-    TRACE("connectAsync: to %s port %d", ipaddr.str().c_str(), port);
-    ep.reset(new InetEndPoint(fd, ipaddr.family(), timeout, timeout,
-                               clock, scheduler));
+    TRACE("connectAsync: to $0 port $1", ipaddr, port);
+    ep.reset(new InetEndPoint(fd, ipaddr.family(), timeout, timeout, scheduler));
     ep->setBlocking(false);
 
     switch (ipaddr.family()) {
@@ -422,7 +429,7 @@ Future<std::unique_ptr<InetEndPoint>> InetEndPoint::connectAsync(
         TRACE("connectAsync: connect(ipv4)");
         if (::connect(fd, (const struct sockaddr*) &saddr, sizeof(saddr)) < 0) {
           if (errno != EINPROGRESS) {
-            TRACE("connectAsync: connect() error. %s", strerror(errno));
+            TRACE("connectAsync: connect() error. $0", strerror(errno));
             promise.failure(Status::IOError); // errno
             return promise.future();
           } else {
@@ -446,7 +453,7 @@ Future<std::unique_ptr<InetEndPoint>> InetEndPoint::connectAsync(
         // this connect()-call can block if fd is non-blocking
         if (::connect(fd, (const struct sockaddr*) &saddr, sizeof(saddr)) < 0) {
           if (errno != EINPROGRESS) {
-            TRACE("connectAsync: connect() error. %s", strerror(errno));
+            TRACE("connectAsync: connect() error. $0", strerror(errno));
             RAISE_ERRNO(errno);
           } else {
             TRACE("connectAsync: backgrounding");
@@ -474,11 +481,11 @@ Future<std::unique_ptr<InetEndPoint>> InetEndPoint::connectAsync(
 
 void InetEndPoint::connectAsync(
     const IPAddress& ipaddr, int port,
-    TimeSpan timeout, WallClock* clock, Scheduler* scheduler,
+    Duration timeout, Scheduler* scheduler,
     std::function<void(std::unique_ptr<InetEndPoint>&&)> onSuccess,
     std::function<void(Status)> onError) {
   Future<std::unique_ptr<InetEndPoint>> f = connectAsync(
-      ipaddr, port, timeout, clock, scheduler);
+      ipaddr, port, timeout, scheduler);
 
   f.onSuccess([onSuccess] (const std::unique_ptr<InetEndPoint>& x) {
       onSuccess(std::move(const_cast<std::unique_ptr<InetEndPoint>&>(x)));
@@ -488,11 +495,16 @@ void InetEndPoint::connectAsync(
 
 std::unique_ptr<InetEndPoint> InetEndPoint::connect(
     const IPAddress& ipaddr, int port,
-    TimeSpan timeout, WallClock* clock, Scheduler* scheduler) {
+    Duration timeout, Scheduler* scheduler) {
   std::unique_ptr<InetEndPoint> ep =
-      std::move(connectAsync(ipaddr, port, timeout, clock, scheduler).get());
+      std::move(connectAsync(ipaddr, port, timeout, scheduler).get());
   ep->setBlocking(true);
   return ep;
+}
+
+template<>
+std::string StringUtil::toString(InetEndPoint* ep) {
+  return StringUtil::format("InetEndPoint[$0]", ep->remoteIP());
 }
 
 } // namespace xzero

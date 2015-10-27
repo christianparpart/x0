@@ -10,6 +10,7 @@
 #include <xzero/net/SslConnector.h>
 #include <xzero/net/SslContext.h>
 #include <xzero/net/Connection.h>
+#include <xzero/logging.h>
 #include <xzero/sysconfig.h>
 #include <xzero/RuntimeError.h>
 #include <openssl/ssl.h>
@@ -18,24 +19,20 @@
 namespace xzero {
 
 #ifndef NDEBUG
-#define TRACE(msg...) { \
-  fprintf(stderr, "SslConnector: " msg); \
-  fprintf(stderr, "\n"); \
-  fflush(stderr); \
-}
+#define TRACE(msg...) logTrace("SslConnector", msg)
 #else
 #define TRACE(msg...) do {} while (0)
 #endif
 
 SslConnector::SslConnector(const std::string& name, Executor* executor,
-                           Scheduler* scheduler, WallClock* clock,
-                           TimeSpan readTimeout, TimeSpan writeTimeout,
-                           TimeSpan tcpFinTimeout,
-                           std::function<void(const std::exception&)> eh,
+                           Scheduler* scheduler,
+                           Duration readTimeout, Duration writeTimeout,
+                           Duration tcpFinTimeout,
+                           UniquePtr<ExceptionHandler> eh,
                            const IPAddress& ipaddress, int port, int backlog,
                            bool reuseAddr, bool reusePort)
-    : InetConnector(name, executor, scheduler, clock,
-                    readTimeout, writeTimeout, tcpFinTimeout, eh,
+    : InetConnector(name, executor, scheduler,
+                    readTimeout, writeTimeout, tcpFinTimeout, std::move(eh),
                     ipaddress, port, backlog, reuseAddr, reusePort),
       contexts_() {
 }
@@ -49,7 +46,7 @@ void SslConnector::addContext(const std::string& crtFilePath,
 }
 
 SslContext* SslConnector::selectContext(const char* servername) const {
-  TRACE("%p selectContext: servername = '%s'", this, servername);
+  TRACE("$0 selectContext: servername = '$1'", this, servername);
   if (!servername)
     return nullptr;
 
@@ -63,20 +60,20 @@ SslContext* SslConnector::selectContext(const char* servername) const {
 int SslConnector::selectContext(
     SSL* ssl, int* ad, SslConnector* self) {
   const char * servername = SSL_get_servername(ssl, TLSEXT_NAMETYPE_host_name);
-  TRACE("%p selectContext: servername = '%s'", self, servername);
+  TRACE("$0 selectContext: servername = '$1'", self, servername);
 
   if (!servername)
     return SSL_TLSEXT_ERR_NOACK;
 
   for (const auto& ctx: self->contexts_) {
     if (ctx->isValidDnsName(servername)) {
-      TRACE("selecting context %p\n", ctx->get());
+      TRACE("selecting context $0", (void*) ctx->get());
       SSL_set_SSL_CTX(ssl, ctx->get());
       return SSL_TLSEXT_ERR_OK;
     }
   }
 
-  TRACE("using default context %p", SSL_get_SSL_CTX(ssl));
+  TRACE("using default context $0", (void*) SSL_get_SSL_CTX(ssl));
   return SSL_TLSEXT_ERR_OK;
 }
 
@@ -102,6 +99,14 @@ RefPtr<EndPoint> SslConnector::createEndPoint(int cfd) {
 
 void SslConnector::onEndPointCreated(const RefPtr<EndPoint>& endpoint) {
   endpoint.weak_as<SslEndPoint>()->onHandshake();
+}
+
+template<> std::string StringUtil::toString(SslConnector* c) {
+  return StringUtil::format("$0", c->name());
+}
+
+template<> std::string StringUtil::toString(const SslConnector* c) {
+  return StringUtil::format("$0", c->name());
 }
 
 } // namespace xzero

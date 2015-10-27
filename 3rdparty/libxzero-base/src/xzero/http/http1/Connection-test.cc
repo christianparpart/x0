@@ -35,12 +35,12 @@ using namespace xzero::http::http1;
 class ScopedLogger { // {{{
  public:
   ScopedLogger() {
-    xzero::LogAggregator::get().setLogLevel(xzero::LogLevel::Trace);
-    xzero::LogAggregator::get().setLogTarget(xzero::LogTarget::console());
+    // xzero::LogAggregator::get().setLogLevel(xzero::LogLevel::Trace);
+    // xzero::LogAggregator::get().setLogTarget(xzero::LogTarget::console());
   }
   ~ScopedLogger() {
-    xzero::LogAggregator::get().setLogLevel(xzero::LogLevel::None);
-    xzero::LogAggregator::get().setLogTarget(nullptr);
+    // xzero::LogAggregator::get().setLogLevel(xzero::LogLevel::None);
+    // xzero::LogAggregator::get().setLogTarget(nullptr);
   }
 };
 // }}}
@@ -48,17 +48,16 @@ class ScopedLogger { // {{{
 static const size_t maxRequestUriLength = 64;
 static const size_t maxRequestBodyLength = 128;
 static const size_t maxRequestCount = 5;
-static const TimeSpan maxKeepAlive = TimeSpan::fromSeconds(30);
+static const Duration maxKeepAlive = Duration::fromSeconds(30);
 
 #define SCOPED_LOGGER() ScopedLogger _scoped_logger_;
 #define MOCK_HTTP1_SERVER(server, localConnector, executor)                     \
   xzero::Server server;                                                        \
   xzero::DirectExecutor executor(false);                                       \
-  xzero::WallClock* clock = nullptr;                                           \
   auto localConnector = server.addConnector<xzero::LocalConnector>(&executor); \
-  auto http = localConnector->addConnectionFactory<                             \
-                                 xzero::http::http1::ConnectionFactory>(  \
-      clock, maxRequestUriLength, maxRequestBodyLength, maxRequestCount,        \
+  auto http = localConnector->addConnectionFactory<                            \
+                                 xzero::http::http1::ConnectionFactory>(       \
+      maxRequestUriLength, maxRequestBodyLength, maxRequestCount,              \
       maxKeepAlive);                                                            \
   http->setHandler([&](HttpRequest* request, HttpResponse* response) {          \
       response->setStatus(HttpStatus::Ok);                                      \

@@ -7,6 +7,7 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 
+#include <xzero/StringUtil.h>
 #include <xzero/net/Connection.h>
 #include <xzero/net/EndPoint.h>
 #include <algorithm>
@@ -70,6 +71,11 @@ void Connection::onInterestFailure(const std::exception& error) {
 bool Connection::onReadTimeout() {
   // inform caller to close the endpoint
   return true;
+}
+
+template<>
+std::string StringUtil::toString(Connection* c) {
+  return StringUtil::format("Connection[$0]", c->endpoint()->remoteIP());
 }
 
 // {{{ ConnectionListener impl

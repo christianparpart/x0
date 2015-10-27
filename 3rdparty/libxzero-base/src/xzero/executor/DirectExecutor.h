@@ -1,15 +1,14 @@
-// This file is part of the "libxzero" project
+// This file is part of the "libcortex" project
 //   (c) 2009-2015 Christian Parpart <https://github.com/christianparpart>
 //   (c) 2014-2015 Paul Asmuth <https://github.com/paulasmuth>
 //
-// libxzero is free software: you can redistribute it and/or modify it under
+// libcortex is free software: you can redistribute it and/or modify it under
 // the terms of the GNU Affero General Public License v3.0.
 // You should have received a copy of the GNU Affero General Public License
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 #pragma once
 
-#include <xzero/Api.h>
 #include <xzero/sysconfig.h>
 #include <xzero/executor/Executor.h>
 #include <deque>
@@ -21,11 +20,11 @@ namespace xzero {
  *
  * @note Not thread-safe.
  */
-class XZERO_BASE_API DirectExecutor : public Executor {
+class DirectExecutor : public Executor {
  public:
   DirectExecutor(
     bool recursive = false,
-    std::function<void(const std::exception&)> eh = nullptr);
+    std::unique_ptr<xzero::ExceptionHandler> eh = nullptr);
 
   void execute(Task task) override;
   std::string toString() const override;

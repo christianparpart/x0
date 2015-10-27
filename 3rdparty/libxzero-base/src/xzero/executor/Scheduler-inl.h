@@ -56,11 +56,11 @@ inline void Scheduler::Handle::fire(Task task) {
 }
 
 inline Scheduler::HandleRef Scheduler::executeOnReadable(int fd, Task task) {
-  return executeOnReadable(fd, task, TimeSpan::fromDays(5 * 365), nullptr);
+  return executeOnReadable(fd, task, Duration::fromDays(5 * 365), nullptr);
 }
 
 inline Scheduler::HandleRef Scheduler::executeOnWritable(int fd, Task task) {
-  return executeOnWritable(fd, task, TimeSpan::fromDays(5 * 365), nullptr);
+  return executeOnWritable(fd, task, Duration::fromDays(5 * 365), nullptr);
 }
 
 }  // namespace xzero

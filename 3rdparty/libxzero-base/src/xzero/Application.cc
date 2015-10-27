@@ -9,8 +9,8 @@
 
 #include <xzero/Application.h>
 #include <xzero/thread/SignalHandler.h>
-#include <xzero/logging/LogAggregator.h>
-#include <xzero/logging/LogTarget.h>
+#include <xzero/logging/ConsoleLogTarget.h>
+#include <xzero/logging/LogLevel.h>
 #include <xzero/logging.h>
 #include <xzero/RuntimeError.h>
 #include <xzero/sysconfig.h>
@@ -32,8 +32,8 @@ void Application::init() {
 }
 
 void Application::logToStderr(LogLevel loglevel) {
-  LogAggregator::get().setLogTarget(LogTarget::console());
-  LogAggregator::get().setLogLevel(loglevel);
+  Logger::get()->setMinimumLogLevel(loglevel);
+  Logger::get()->addTarget(ConsoleLogTarget::get());
 }
 
 static void globalEH() {

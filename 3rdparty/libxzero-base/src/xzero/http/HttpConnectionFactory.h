@@ -13,6 +13,7 @@
 #include <xzero/http/HttpHandler.h>
 #include <xzero/http/HttpDateGenerator.h>
 #include <xzero/http/HttpOutputCompressor.h>
+#include <xzero/stdtypes.h>
 #include <memory>
 
 namespace xzero {
@@ -32,13 +33,12 @@ class XZERO_HTTP_API HttpConnectionFactory : public ConnectionFactory {
    * Base initiailization for the HTTP connection factory.
    *
    * @param protocolName HTTP protocol name, e.g. http1, http2, ssl+http1, ...
-   * @param clock the wallclock used for generating @c Date response header
+   * @param dg the wallclock used for generating @c Date response header
    * @param maxRequestUriLength maximum number of bytes for the request URI
    * @param maxRequestBodyLength maximum number of bytes for the request body
    */
   HttpConnectionFactory(
       const std::string& protocolName,
-      WallClock* clock,
       size_t maxRequestUriLength,
       size_t maxRequestBodyLength);
 
@@ -57,7 +57,7 @@ class XZERO_HTTP_API HttpConnectionFactory : public ConnectionFactory {
   HttpOutputCompressor* outputCompressor() const XZERO_NOEXCEPT;
 
   /** Access to the @c Date response header generator. */
-  HttpDateGenerator* dateGenerator() const XZERO_NOEXCEPT;
+  HttpDateGenerator* dateGenerator() XZERO_NOEXCEPT;
 
   Connection* configure(Connection* connection, Connector* connector) override;
 
@@ -66,7 +66,7 @@ class XZERO_HTTP_API HttpConnectionFactory : public ConnectionFactory {
   size_t maxRequestBodyLength_;
   HttpHandler handler_;
   std::unique_ptr<HttpOutputCompressor> outputCompressor_;
-  std::unique_ptr<HttpDateGenerator> dateGenerator_;
+  HttpDateGenerator dateGenerator_;
 };
 
 // {{{ inlines
@@ -74,8 +74,8 @@ inline HttpOutputCompressor* HttpConnectionFactory::outputCompressor() const XZE
   return outputCompressor_.get();
 }
 
-inline HttpDateGenerator* HttpConnectionFactory::dateGenerator() const XZERO_NOEXCEPT {
-  return dateGenerator_.get();
+inline HttpDateGenerator* HttpConnectionFactory::dateGenerator() XZERO_NOEXCEPT {
+  return &dateGenerator_;
 }
 // }}}
 

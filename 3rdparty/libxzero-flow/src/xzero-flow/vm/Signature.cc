@@ -6,6 +6,7 @@
 // the License at: http://opensource.org/licenses/MIT
 
 #include <xzero-flow/vm/Signature.h>
+#include <xzero/StringUtil.h>
 #include <cstdlib>
 #include <vector>
 #include <string>
@@ -155,4 +156,10 @@ char signatureType(FlowType t) {
 
 }  // namespace vm
 }  // namespace flow
+
+template<>
+std::string StringUtil::toString(flow::vm::Signature& signature) {
+  return signature.to_s();
+}
+
 }  // namespace xzero

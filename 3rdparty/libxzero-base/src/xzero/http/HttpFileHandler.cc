@@ -13,7 +13,7 @@
 #include <xzero/http/HeaderFieldList.h>
 #include <xzero/io/File.h>
 #include <xzero/io/FileRef.h>
-#include <xzero/DateTime.h>
+#include <xzero/UnixTime.h>
 #include <xzero/Tokenizer.h>
 #include <xzero/Buffer.h>
 #include <xzero/RuntimeError.h>
@@ -155,6 +155,8 @@ bool HttpFileHandler::handle(
 bool HttpFileHandler::handleClientCache(const File& transferFile,
                                         HttpRequest* request,
                                         HttpResponse* response) {
+  static const char* timeFormat = "%a, %d %b %Y %H:%M:%S GMT";
+
   // If-None-Match
   do {
     const std::string& value = request->headers().get("If-None-Match");
@@ -173,8 +175,7 @@ bool HttpFileHandler::handleClientCache(const File& transferFile,
     const std::string& value = request->headers().get("If-Modified-Since");
     if (value.empty()) continue;
 
-    DateTime dt(value);
-    if (!dt.valid()) continue;
+    UnixTime dt(UnixTime::parseString(value, timeFormat));
 
     if (transferFile.mtime() > dt.unixtime()) continue;
 
@@ -203,8 +204,7 @@ bool HttpFileHandler::handleClientCache(const File& transferFile,
     const std::string& value = request->headers().get("If-Unmodified-Since");
     if (value.empty()) continue;
 
-    DateTime dt(value);
-    if (!dt.valid()) continue;
+    UnixTime dt(UnixTime::parseString(value, timeFormat));
 
     if (transferFile.mtime() <= dt.unixtime()) continue;
 

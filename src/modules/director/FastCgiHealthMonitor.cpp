@@ -163,8 +163,9 @@ template <typename T, typename... Args>
 inline void FastCgiHealthMonitor::write(Args&&... args) {
   T record(args...);
 
-  TRACE("write(type=%s, rid=%d, size=%d, pad=%d)", record.type_str(),
-        record.requestId(), record.size(), record.paddingLength());
+  TRACE("write(type=$0, rid=$1, size=$2, pad=$3)",
+        record.type_str(), record.requestId(), record.size(),
+        record.paddingLength());
 
   writeBuffer_.push_back(record.data(), record.size());
 }
@@ -176,7 +177,8 @@ void FastCgiHealthMonitor::write(FastCgi::Type type, const Buffer& buffer) {
 
   if (buffer.empty()) {
     FastCgi::Record record(type, requestId, 0, 0);
-    TRACE("write(type=%s, rid=%d, size=0)", record.type_str(), requestId);
+    TRACE("write(type=$0, rid=$1, size=0)",
+          record.type_str(), requestId);
     writeBuffer_.push_back(record.data(), sizeof(record));
     return;
   }
@@ -191,7 +193,7 @@ void FastCgiHealthMonitor::write(FastCgi::Type type, const Buffer& buffer) {
     writeBuffer_.push_back(buffer.data() + offset, clen);
     writeBuffer_.push_back(padding, plen);
 
-    TRACE("write(type=%s, rid=%d, offset=%ld, size=%ld, plen=%ld)",
+    TRACE("write(type=$0, rid=$1, offset=$2, size=$3, plen=$4)",
           record.type_str(), requestId, offset, clen, plen);
 
     offset += clen;
@@ -207,7 +209,7 @@ void FastCgiHealthMonitor::onCheckStart() {
   socket_.open(backend_->socketSpec(), O_NONBLOCK | O_CLOEXEC);
 
   if (!socket_.isOpen()) {
-    TRACE("Connect failed. %s", strerror(errno));
+    TRACE("Connect failed. $0", strerror(errno));
     logFailure();
   } else if (socket_.state() == Socket::Connecting) {
     TRACE("connecting asynchronously.");
@@ -230,7 +232,7 @@ void FastCgiHealthMonitor::onCheckStart() {
  * Callback, invoked on completed asynchronous connect-operation.
  */
 void FastCgiHealthMonitor::onConnectDone(Socket*, int revents) {
-  TRACE("onConnectDone(0x%04x)", revents);
+  TRACE("onConnectDone($0)", revents);
 
   if (socket_.state() == Socket::Operational) {
     TRACE("connected");
@@ -240,7 +242,7 @@ void FastCgiHealthMonitor::onConnectDone(Socket*, int revents) {
         this);
     socket_.setMode(Socket::ReadWrite);
   } else {
-    TRACE("Asynchronous connect failed %s", strerror(errno));
+    TRACE("Asynchronous connect failed $0", strerror(errno));
     logFailure();
   }
 }
@@ -249,7 +251,7 @@ void FastCgiHealthMonitor::onConnectDone(Socket*, int revents) {
  * Callback, invoked on I/O readiness of origin server connection.
  */
 void FastCgiHealthMonitor::io(Socket*, int revents) {
-  TRACE("io(0x%04x)", revents);
+  TRACE("io($0)", revents);
 
   if (revents & ev::WRITE) {
     if (!writeSome()) {
@@ -275,7 +277,7 @@ bool FastCgiHealthMonitor::writeSome() {
       socket_.write(writeBuffer_.data() + writeOffset_, chunkSize);
 
   if (writeCount < 0) {
-    TRACE("write failed. %s", strerror(errno));
+    TRACE("write failed. $0", strerror(errno));
     logFailure();
   } else {
     writeOffset_ += writeCount;
@@ -326,7 +328,7 @@ bool FastCgiHealthMonitor::readSome() {
     }
   }
 
-  TRACE("readSome: read %zu bytes", readBuffer_.size() - readOffset_);
+  TRACE("readSome: read $0 bytes", readBuffer_.size() - readOffset_);
 
   // process fully received records
   while (readOffset_ + sizeof(FastCgi::Record) <= readBuffer_.size()) {
@@ -398,7 +400,7 @@ bool FastCgiHealthMonitor::processRecord(const FastCgi::Record* record) {
 }
 
 void FastCgiHealthMonitor::onStdOut(const BufferRef& chunk) {
-  TRACE("onStdOut: chunk.size=%ld", chunk.size());
+  TRACE("onStdOut: chunk.size=$0", chunk.size());
   parseFragment(chunk);
 }
 
@@ -409,8 +411,8 @@ void FastCgiHealthMonitor::onStdErr(const BufferRef& chunk) {
 
 void FastCgiHealthMonitor::onEndRequest(
     int appStatus, FastCgi::ProtocolStatus protocolStatus) {
-  TRACE("onEndRequest(appStatus=%d, protocolStatus=%d)", appStatus,
-        (int)protocolStatus);
+  TRACE("onEndRequest(appStatus=$0, protocolStatus=$1)",
+        appStatus, protocolStatus);
 
   // explicitely invoke HttpMessageParser hook since ParseMode::MESSAGE doesn't
   // invoke it in this mode.

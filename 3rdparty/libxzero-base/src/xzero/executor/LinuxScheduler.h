@@ -47,10 +47,10 @@ class XZERO_BASE_API LinuxScheduler : public Scheduler {
 
   void execute(Task task) override;
   std::string toString() const override;
-  HandleRef executeAfter(TimeSpan delay, Task task) override;
-  HandleRef executeAt(DateTime dt, Task task) override;
-  HandleRef executeOnReadable(int fd, Task task, TimeSpan tmo, Task tcb) override;
-  HandleRef executeOnWritable(int fd, Task task, TimeSpan tmo, Task tcb) override;
+  HandleRef executeAfter(Duration delay, Task task) override;
+  HandleRef executeAt(UnixTime dt, Task task) override;
+  HandleRef executeOnReadable(int fd, Task task, Duration tmo, Task tcb) override;
+  HandleRef executeOnWritable(int fd, Task task, Duration tmo, Task tcb) override;
   void executeOnWakeup(Task task, Wakeup* wakeup, long generation) override;
   size_t timerCount() override;
   size_t readerCount() override;
@@ -63,7 +63,7 @@ class XZERO_BASE_API LinuxScheduler : public Scheduler {
   /**
    * Waits at most @p timeout for @p fd to become readable without blocking.
    */
-  static void waitForReadable(int fd, TimeSpan timeout);
+  static void waitForReadable(int fd, Duration timeout);
 
   /**
    * Waits until given @p fd becomes readable without blocking.
@@ -73,7 +73,7 @@ class XZERO_BASE_API LinuxScheduler : public Scheduler {
   /**
    * Waits at most @p timeout for @p fd to become writable without blocking.
    */
-  static void waitForWritable(int fd, TimeSpan timeout);
+  static void waitForWritable(int fd, Duration timeout);
 
   /**
    * Waits until given @p fd becomes writable without blocking.
@@ -86,20 +86,20 @@ class XZERO_BASE_API LinuxScheduler : public Scheduler {
     int fd;
     Mode mode;
     Task onIO;
-    DateTime timeout;
+    UnixTime timeout;
     Task onTimeout;
 
     Watcher* prev; //!< predecessor by timeout ASC
     Watcher* next; //!< successor by timeout ASC
 
     Watcher()
-        : Watcher(-1, Mode::READABLE, nullptr, DateTime(0.0), nullptr) {}
+        : Watcher(-1, Mode::READABLE, nullptr, UnixTime(0.0), nullptr) {}
 
     Watcher(const Watcher& w)
         : Watcher(w.fd, w.mode, w.onIO, w.timeout, w.onTimeout) {}
 
     Watcher(int _fd, Mode _mode, Task _onIO,
-            DateTime _timeout, Task _onTimeout)
+            UnixTime _timeout, Task _onTimeout)
         : fd(_fd), mode(_mode), onIO(_onIO),
           timeout(_timeout), onTimeout(_onTimeout),
           prev(nullptr), next(nullptr) {
@@ -110,7 +110,7 @@ class XZERO_BASE_API LinuxScheduler : public Scheduler {
     }
 
     void reset(int _fd, Mode _mode, Task _onIO,
-            DateTime _timeout, Task _onTimeout) {
+            UnixTime _timeout, Task _onTimeout) {
       fd = _fd;
       mode = _mode;
       onIO = _onIO;
@@ -125,7 +125,7 @@ class XZERO_BASE_API LinuxScheduler : public Scheduler {
 
     void clear() {
       fd = -1;
-      timeout = DateTime(0.0);
+      timeout = UnixTime(0.0);
       prev = nullptr;
       next = nullptr;
     }
@@ -135,12 +135,12 @@ class XZERO_BASE_API LinuxScheduler : public Scheduler {
     }
   }; // }}}
   struct Timer : public Handle { // {{{
-    DateTime when;
+    UnixTime when;
     Task action;
 
     Timer() : Handle(), when(), action() {}
-    Timer(DateTime dt, Task t) : Handle(), when(dt), action(t) {}
-    Timer(DateTime dt, Task t, Task c) : Handle(c), when(dt), action(t) {}
+    Timer(UnixTime dt, Task t) : Handle(), when(dt), action(t) {}
+    Timer(UnixTime dt, Task t, Task c) : Handle(c), when(dt), action(t) {}
     Timer(const Timer&) = default;
     Timer& operator=(const Timer&) = default;
   }; // }}}
@@ -154,7 +154,7 @@ class XZERO_BASE_API LinuxScheduler : public Scheduler {
    *
    * @note The caller must protect the access itself.
    */
-  HandleRef insertIntoTimersList(DateTime dt, Task task);
+  HandleRef insertIntoTimersList(UnixTime dt, Task task);
 
   void collectTimeouts(std::list<Task>* result);
 
@@ -168,7 +168,7 @@ class XZERO_BASE_API LinuxScheduler : public Scheduler {
    * @note requires the caller to lock the object mutex.
    */
   HandleRef setupWatcher(int fd, Mode mode, Task onFire,
-                         TimeSpan timeout, Task onTimeout);
+                         Duration timeout, Task onTimeout);
 
   /**
    * Inserts watcher between @p pred and @p pred's successor.
@@ -197,7 +197,7 @@ class XZERO_BASE_API LinuxScheduler : public Scheduler {
    *
    * @note requires the caller to lock the object mutex.
    */
-  TimeSpan nextTimeout() const;
+  Duration nextTimeout() const;
 
   std::string inspectImpl() const;
 

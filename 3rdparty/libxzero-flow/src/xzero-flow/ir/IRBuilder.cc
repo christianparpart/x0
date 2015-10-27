@@ -71,7 +71,7 @@ IRHandler* IRBuilder::setHandler(IRHandler* hn) {
 BasicBlock* IRBuilder::createBlock(const std::string& name) {
   std::string n = makeName(name);
 
-  TRACE(1, "createBlock() %s", n.c_str());
+  TRACE(1, "createBlock() $0", n);
   BasicBlock* bb = new BasicBlock(n);
 
   bb->setParent(handler_);
@@ -85,7 +85,7 @@ void IRBuilder::setInsertPoint(BasicBlock* bb) {
   assert(bb->parent() == handler() &&
          "insert point must belong to the current handler.");
 
-  TRACE(1, "setInsertPoint() %s", bb->name().c_str());
+  TRACE(1, "setInsertPoint() $0", bb->name());
 
   insertPoint_ = bb;
   bb->parent_ = handler_;

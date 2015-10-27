@@ -12,7 +12,7 @@
 #include <xzero/http/HttpStatus.h>
 #include <xzero/net/IPAddress.h>
 #include <xzero/WallClock.h>
-#include <xzero/DateTime.h>
+#include <xzero/UnixTime.h>
 #include <xzero/logging.h>
 
 using namespace xzero;
@@ -40,11 +40,11 @@ XzeroContext::XzeroContext(
   });
 }
 
-xzero::DateTime XzeroContext::now() const {
-  return WallClock::system()->get();
+xzero::UnixTime XzeroContext::now() const {
+  return WallClock::now();
 }
 
-xzero::TimeSpan XzeroContext::duration() const {
+xzero::Duration XzeroContext::duration() const {
   return now() - createdAt();
 }
 

@@ -12,9 +12,8 @@
 #include <xzero/HttpConnection.h>
 #include <xzero/HttpWorker.h>
 #include <base/CustomDataMgr.h>
-#include <base/DateTime.h>
 #include <base/TokenShaper.h>
-#include <base/TimeSpan.h>
+#include <base/Duration.h>
 #include <x0d/sysconfig.h>
 
 using namespace base;
@@ -32,7 +31,7 @@ RequestNotes::RequestNotes(HttpRequest* r)
 #if defined(ENABLE_DIRECTOR_CACHE)
       ,
       cacheKey(),
-      cacheTTL(TimeSpan::Zero),
+      cacheTTL(Duration::Zero),
       cacheHeaderIgnores(),
       cacheIgnore(false)
 #endif

@@ -11,7 +11,7 @@
 
 #include <xzero/Api.h>
 #include <xzero/WallClock.h>
-#include <xzero/TimeSpan.h>
+#include <xzero/Duration.h>
 #include <functional>
 #include <string>
 #include <stdlib.h>
@@ -22,7 +22,7 @@ namespace util {
 
 class XZERO_BASE_API SimpleRateLimit {
  public:
-  SimpleRateLimit(const TimeSpan& period);
+  SimpleRateLimit(const Duration& period);
 
   bool check();
 
@@ -33,7 +33,7 @@ class XZERO_BASE_API SimpleRateLimit {
 
 class XZERO_BASE_API SimpleRateLimitedFn {
  public:
-  SimpleRateLimitedFn(const TimeSpan& period, std::function<void ()> fn);
+  SimpleRateLimitedFn(const Duration& period, std::function<void ()> fn);
 
   void runMaybe();
   void runForce();

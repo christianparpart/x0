@@ -15,7 +15,7 @@
 #include <xzero/http/HttpTransport.h>
 #include <xzero/http/HttpHandler.h>
 #include <xzero/Buffer.h>
-#include <xzero/TimeSpan.h>
+#include <xzero/Duration.h>
 #include <memory>
 #include <unordered_map>
 #include <list>
@@ -46,7 +46,7 @@ class XZERO_HTTP_API Connection : public ::xzero::Connection {
              HttpOutputCompressor* outputCompressor,
              size_t maxRequestUriLength,
              size_t maxRequestBodyLength,
-             TimeSpan maxKeepAlive);
+             Duration maxKeepAlive);
   ~Connection();
 
   HttpChannel* createChannel(int request);
@@ -78,7 +78,7 @@ class XZERO_HTTP_API Connection : public ::xzero::Connection {
   size_t maxRequestBodyLength_;
   HttpDateGenerator* dateGenerator_;
   HttpOutputCompressor* outputCompressor_;
-  TimeSpan maxKeepAlive_;
+  Duration maxKeepAlive_;
   Buffer inputBuffer_;
   size_t inputOffset_;
   bool persistent_;

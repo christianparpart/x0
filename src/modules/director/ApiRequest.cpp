@@ -247,7 +247,7 @@ bool ApiRequest::loadParam(const std::string& key, float& result) {
   return nptr == i->second.c_str() + i->second.size();
 }
 
-bool ApiRequest::loadParam(const std::string& key, TimeSpan& result) {
+bool ApiRequest::loadParam(const std::string& key, Duration& result) {
   auto i = args_.find(key);
   if (i == args_.end()) {
     request_->log(Severity::error, "Request parameter '%s' not found.",
@@ -256,7 +256,7 @@ bool ApiRequest::loadParam(const std::string& key, TimeSpan& result) {
     return false;
   }
 
-  result = TimeSpan::fromSeconds(std::atoll(i->second.c_str()));
+  result = Duration::fromSeconds(std::atoll(i->second.c_str()));
 
   return true;
 }
@@ -456,7 +456,7 @@ bool ApiRequest::update(Director* director) {
   if (hasParam("queue-limit") && !loadParam("queue-limit", queueLimit))
     return false;
 
-  TimeSpan queueTimeout = director->queueTimeout();
+  Duration queueTimeout = director->queueTimeout();
   if (hasParam("queue-timeout") && !loadParam("queue-timeout", queueTimeout))
     return false;
 
@@ -465,20 +465,20 @@ bool ApiRequest::update(Director* director) {
       !loadParam("on-client-abort", clientAbortAction))
     return false;
 
-  TimeSpan retryAfter = director->retryAfter();
+  Duration retryAfter = director->retryAfter();
   if (hasParam("retry-after") && !loadParam("retry-after", retryAfter))
     return false;
 
-  TimeSpan connectTimeout = director->connectTimeout();
+  Duration connectTimeout = director->connectTimeout();
   if (hasParam("connect-timeout") &&
       !loadParam("connect-timeout", connectTimeout))
     return false;
 
-  TimeSpan readTimeout = director->readTimeout();
+  Duration readTimeout = director->readTimeout();
   if (hasParam("read-timeout") && !loadParam("read-timeout", readTimeout))
     return false;
 
-  TimeSpan writeTimeout = director->writeTimeout();
+  Duration writeTimeout = director->writeTimeout();
   if (hasParam("write-timeout") && !loadParam("write-timeout", writeTimeout))
     return false;
 
@@ -535,12 +535,12 @@ bool ApiRequest::update(Director* director) {
       !loadParam("cache-deliver-shadow", cacheDeliverShadow))
     return false;
 
-  TimeSpan cacheDefaultTTL = director->objectCache().defaultTTL();
+  Duration cacheDefaultTTL = director->objectCache().defaultTTL();
   if (hasParam("cache-default-ttl") &&
       !loadParam("cache-default-ttl", cacheDefaultTTL))
     return false;
 
-  TimeSpan cacheDefaultShadowTTL = director->objectCache().defaultShadowTTL();
+  Duration cacheDefaultShadowTTL = director->objectCache().defaultShadowTTL();
   if (hasParam("cache-default-shadow-ttl") &&
       !loadParam("cache-default-shadow-ttl", cacheDefaultShadowTTL))
     return false;
@@ -692,7 +692,7 @@ bool ApiRequest::createBackend(Director* director) {
     socketSpec = SocketSpec::fromInet(IPAddress(hostname), port);
   }
 
-  TimeSpan hcInterval;
+  Duration hcInterval;
   if (!loadParam("health-check-interval", hcInterval)) return false;
 
   HealthMonitor::Mode hcMode;
@@ -757,7 +757,7 @@ bool ApiRequest::update(Backend* backend, Director* director) {
   if (hasParam("terminate-protection"))
     loadParam("terminate-protection", terminateProtection);
 
-  TimeSpan hcInterval = backend->healthMonitor()->interval();
+  Duration hcInterval = backend->healthMonitor()->interval();
   if (hasParam("health-check-interval"))
     loadParam("health-check-interval", hcInterval);
 

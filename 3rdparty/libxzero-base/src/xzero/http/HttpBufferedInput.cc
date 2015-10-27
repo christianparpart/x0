@@ -25,15 +25,15 @@ HttpBufferedInput::HttpBufferedInput()
     : HttpInput(),
       content_(),
       offset_(0) {
-  TRACE("%p ctor", this);
+  TRACE("$0 ctor", this);
 }
 
 HttpBufferedInput::~HttpBufferedInput() {
-  TRACE("%p dtor", this);
+  TRACE("$0 dtor", this);
 }
 
 void HttpBufferedInput::recycle() {
-  TRACE("%p recycle", this);
+  TRACE("$0 recycle", this);
   content_.clear();
   offset_ = 0;
 }
@@ -41,7 +41,7 @@ void HttpBufferedInput::recycle() {
 int HttpBufferedInput::read(Buffer* result) {
   const size_t len = content_.size() - offset_;
   result->push_back(content_.ref(offset_));
-  TRACE("%p read: %zu bytes", this, len);
+  TRACE("$0 read: $1 bytes", this, len);
 
   content_.clear();
   offset_ = 0;
@@ -51,7 +51,7 @@ int HttpBufferedInput::read(Buffer* result) {
 
 size_t HttpBufferedInput::readLine(Buffer* result) {
   const size_t len = content_.size() - offset_;
-  TRACE("%p readLine: %zu bytes", this, len);
+  TRACE("$0 readLine: $1 bytes", this, len);
 
   const size_t n = content_.find('\n', offset_);
   if (n == Buffer::npos) {
@@ -77,7 +77,7 @@ bool HttpBufferedInput::empty() const noexcept {
 }
 
 void HttpBufferedInput::onContent(const BufferRef& chunk) {
-  TRACE("%p onContent: %zu bytes", this, chunk.size());
+  TRACE("$0 onContent: $1 bytes", this, chunk.size());
   content_ += chunk;
 
   if (listener())
@@ -85,4 +85,10 @@ void HttpBufferedInput::onContent(const BufferRef& chunk) {
 }
 
 } // namespace http
+
+template<>
+std::string StringUtil::toString(http::HttpBufferedInput* value) {
+  return StringUtil::format("HttpBufferedInput[$0]", (void*)value);
+}
+
 } // namespace xzero

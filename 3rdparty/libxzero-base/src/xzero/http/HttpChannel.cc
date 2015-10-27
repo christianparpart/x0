@@ -67,7 +67,7 @@ HttpChannel::HttpChannel(HttpTransport* transport, const HttpHandler& handler,
 }
 
 HttpChannel::~HttpChannel() {
-  TRACE("%p dtor", this);
+  TRACE("$0 dtor", this);
   //.
 }
 
@@ -79,10 +79,10 @@ void HttpChannel::reset() {
 }
 
 void HttpChannel::setState(HttpChannelState newState) {
-  TRACE("%p setState from %s to %s",
+  TRACE("$0 setState from $1 to $2",
         this,
-        to_string(state_).c_str(),
-        to_string(newState).c_str());
+        to_string(state_),
+        to_string(newState));
 
   state_ = newState;
 }
@@ -252,8 +252,10 @@ void HttpChannel::onMessageBegin(const BufferRef& method,
     RAISE_EXCEPTION(BadMessage, HttpStatus::BadRequest);
   }
 
-  TRACE("onMessageBegin(%s, %s, %s)", request_->unparsedMethod().c_str(),
-        request_->path().c_str(), to_string(version).c_str());
+  TRACE("onMessageBegin($0, $1, $2)",
+        request_->unparsedMethod(),
+        request_->path(),
+        to_string(version));
 }
 
 void HttpChannel::onMessageHeader(const BufferRef& name,
@@ -294,7 +296,7 @@ void HttpChannel::handleRequest() {
     handler_(request(), response());
   } catch (std::exception& e) {
     // TODO: reportException(e);
-    logError("HttpChannel", e);
+    logError("HttpChannel", e, "unhandled exception");
     response()->sendError(HttpStatus::InternalServerError, e.what());
   } catch (...) {
     // TODO: reportException(RUNTIME_ERROR("Unhandled unknown exception caught");
@@ -336,12 +338,12 @@ void HttpChannel::completed() {
   }
 
   if (!outputFilters_.empty()) {
-    TRACE("%p completed: send(applyFilters(EOS))", this);
+    TRACE("$0 completed: send(applyFilters(EOS))", this);
     Buffer filtered;
     Filter::applyFilters(outputFilters_, "", &filtered, true);
     transport_->send(std::move(filtered), nullptr);
   } else if (!response_->isCommitted()) {
-    TRACE("%p completed: not committed yet. commit empty-body response", this);
+    TRACE("$0 completed: not committed yet. commit empty-body response", this);
     if (!response_->hasContentLength() && request_->method() != HttpMethod::HEAD) {
       response_->setContentLength(0);
     }
@@ -351,7 +353,7 @@ void HttpChannel::completed() {
 
   setState(HttpChannelState::DONE);
 
-  TRACE("%p completed: pass on to transport layer", this);
+  TRACE("$0 completed: pass on to transport layer", this);
   transport_->completed();
 }
 
@@ -371,4 +373,10 @@ void HttpChannel::responseEnd() {
 }
 
 }  // namespace http
+
+template<>
+std::string StringUtil::toString(http::HttpChannel* value) {
+  return StringUtil::format("HttpChannel[$0]", (void*)value);
+}
+
 }  // namespace xzero

@@ -47,7 +47,7 @@ int MemoryFileRepository::createTempFile(std::string* filename) {
 }
 
 void MemoryFileRepository::insert(
-    const std::string& path, const BufferRef& data, DateTime mtime) {
+    const std::string& path, const BufferRef& data, UnixTime mtime) {
   files_[path].reset(new MemoryFile(path,
                                     mimetypes_.getMimeType(path),
                                     data,
@@ -56,7 +56,7 @@ void MemoryFileRepository::insert(
 
 void MemoryFileRepository::insert(
     const std::string& path, const BufferRef& data) {
-  insert(path, data, DateTime());
+  insert(path, data, UnixTime());
 }
 
 } // namespace xzero

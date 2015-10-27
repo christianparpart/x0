@@ -33,11 +33,11 @@ File::File(const std::string& path, const std::string& mimetype)
       mimetype_(mimetype),
       errno_(0),
       lastModified_() {
-  TRACE(2, "(%s).ctor", path_.c_str());
+  TRACE(2, "($0).ctor", path_);
 }
 
 File::~File() {
-  TRACE(2, "(%s).dtor", path_.c_str());
+  TRACE(2, "($0).dtor", path_);
 }
 
 std::string File::filename() const {

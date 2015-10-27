@@ -8,10 +8,10 @@
 #pragma once
 
 #include <base/CustomDataMgr.h>
-#include <base/DateTime.h>
+#include <base/UnixTime.h>
 #include <base/Buffer.h>
 #include <base/TokenShaper.h>
-#include <base/TimeSpan.h>
+#include <base/Duration.h>
 #include <x0d/sysconfig.h>
 #include <cstring>  // strlen()
 #include <string>
@@ -37,7 +37,7 @@ class BackendManager;
  */
 struct RequestNotes : public base::CustomData {
   xzero::HttpRequest* request; //!< The actual HTTP request.
-  base::DateTime ctime;        //!< Request creation time.
+  base::UnixTime ctime;        //!< Request creation time.
 
   //! Designated cluster to load balance this request.
   BackendManager* manager;     
@@ -57,7 +57,7 @@ struct RequestNotes : public base::CustomData {
 
 #if defined(ENABLE_DIRECTOR_CACHE)
   std::string cacheKey;
-  base::TimeSpan cacheTTL;
+  base::Duration cacheTTL;
   std::list<std::string> cacheHeaderIgnores;
   bool cacheIgnore;  //!< true if cache MUST NOT be preferred over the backend
                      //server's successful response.

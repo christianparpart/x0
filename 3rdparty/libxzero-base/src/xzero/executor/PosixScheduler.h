@@ -9,8 +9,8 @@
 
 #pragma once
 
-#include <xzero/Api.h>
 #include <xzero/RefPtr.h>
+#include <xzero/MonotonicTime.h>
 #include <xzero/executor/Scheduler.h>
 #include <sys/select.h>
 #include <set>
@@ -20,33 +20,32 @@
 
 namespace xzero {
 
-class WallClock;
-
-class XZERO_BASE_API PosixScheduler : public Scheduler {
+class PosixScheduler : public Scheduler {
  public:
   PosixScheduler(
-      std::function<void(const std::exception&)> errorLogger,
-      WallClock* clock,
+      std::unique_ptr<xzero::ExceptionHandler> eh,
       std::function<void()> preInvoke,
       std::function<void()> postInvoke);
 
   explicit PosixScheduler(
-      std::function<void(const std::exception&)> errorLogger,
-      WallClock* clock);
+      std::unique_ptr<xzero::ExceptionHandler> eh);
 
   PosixScheduler();
 
   ~PosixScheduler();
+
+  MonotonicTime now() const;
 
   using Scheduler::executeOnReadable;
   using Scheduler::executeOnWritable;
 
   void execute(Task task) override;
   std::string toString() const override;
-  HandleRef executeAfter(TimeSpan delay, Task task) override;
-  HandleRef executeAt(DateTime dt, Task task) override;
-  HandleRef executeOnReadable(int fd, Task task, TimeSpan tmo, Task tcb) override;
-  HandleRef executeOnWritable(int fd, Task task, TimeSpan tmo, Task tcb) override;
+  HandleRef executeAfter(Duration delay, Task task) override;
+  HandleRef executeAt(UnixTime dt, Task task) override;
+  HandleRef executeOnReadable(int fd, Task task, Duration tmo, Task tcb) override;
+  HandleRef executeOnWritable(int fd, Task task, Duration tmo, Task tcb) override;
+  void cancelFD(int fd) override;
   void executeOnWakeup(Task task, Wakeup* wakeup, long generation) override;
   size_t timerCount() override;
   size_t readerCount() override;
@@ -59,7 +58,7 @@ class XZERO_BASE_API PosixScheduler : public Scheduler {
   /**
    * Waits at most @p timeout for @p fd to become readable without blocking.
    */
-  static void waitForReadable(int fd, TimeSpan timeout);
+  static void waitForReadable(int fd, Duration timeout);
 
   /**
    * Waits until given @p fd becomes readable without blocking.
@@ -69,7 +68,7 @@ class XZERO_BASE_API PosixScheduler : public Scheduler {
   /**
    * Waits at most @p timeout for @p fd to become writable without blocking.
    */
-  static void waitForWritable(int fd, TimeSpan timeout);
+  static void waitForWritable(int fd, Duration timeout);
 
   /**
    * Waits until given @p fd becomes writable without blocking.
@@ -82,31 +81,31 @@ class XZERO_BASE_API PosixScheduler : public Scheduler {
     int fd;
     Mode mode;
     Task onIO;
-    DateTime timeout;
+    MonotonicTime timeout;
     Task onTimeout;
 
     Watcher* prev; //!< predecessor by timeout ASC
     Watcher* next; //!< successor by timeout ASC
 
     Watcher()
-        : Watcher(-1, Mode::READABLE, nullptr, DateTime(0.0), nullptr) {}
+        : Watcher(-1, Mode::READABLE, nullptr, MonotonicTime(0), nullptr) {}
 
     Watcher(const Watcher& w)
         : Watcher(w.fd, w.mode, w.onIO, w.timeout, w.onTimeout) {}
 
     Watcher(int _fd, Mode _mode, Task _onIO,
-            DateTime _timeout, Task _onTimeout)
+            MonotonicTime _timeout, Task _onTimeout)
         : fd(_fd), mode(_mode), onIO(_onIO),
           timeout(_timeout), onTimeout(_onTimeout),
           prev(nullptr), next(nullptr) {
       // Manually ref because we're not holding it in a
       // RefPtr<Watcher> vector in PosixScheduler.
       // - Though, no need to manually unref() either.
-      ref();
+      incRef();
     }
 
     void reset(int _fd, Mode _mode, Task _onIO,
-            DateTime _timeout, Task _onTimeout) {
+            MonotonicTime _timeout, Task _onTimeout) {
       fd = _fd;
       mode = _mode;
       onIO = _onIO;
@@ -121,7 +120,7 @@ class XZERO_BASE_API PosixScheduler : public Scheduler {
 
     void clear() {
       fd = -1;
-      timeout = DateTime(0.0);
+      timeout = MonotonicTime(0);
       prev = nullptr;
       next = nullptr;
     }
@@ -131,12 +130,12 @@ class XZERO_BASE_API PosixScheduler : public Scheduler {
     }
   }; // }}}
   struct Timer : public Handle { // {{{
-    DateTime when;
+    MonotonicTime when;
     Task action;
 
     Timer() : Handle(), when(), action() {}
-    Timer(DateTime dt, Task t) : Handle(), when(dt), action(t) {}
-    Timer(DateTime dt, Task t, Task c) : Handle(c), when(dt), action(t) {}
+    Timer(MonotonicTime dt, Task t) : Handle(), when(dt), action(t) {}
+    Timer(MonotonicTime dt, Task t, Task c) : Handle(c), when(dt), action(t) {}
     Timer(const Timer&) = default;
     Timer& operator=(const Timer&) = default;
   }; // }}}
@@ -150,7 +149,7 @@ class XZERO_BASE_API PosixScheduler : public Scheduler {
    *
    * @note The caller must protect the access itself.
    */
-  HandleRef insertIntoTimersList(DateTime dt, Task task);
+  HandleRef insertIntoTimersList(MonotonicTime dt, Task task);
 
   void collectTimeouts(std::list<Task>* result);
 
@@ -164,7 +163,7 @@ class XZERO_BASE_API PosixScheduler : public Scheduler {
    * @note requires the caller to lock the object mutex.
    */
   HandleRef setupWatcher(int fd, Mode mode, Task onFire,
-                         TimeSpan timeout, Task onTimeout);
+                         Duration timeout, Task onTimeout);
 
   /**
    * Inserts watcher between @p pred and @p pred's successor.
@@ -182,27 +181,23 @@ class XZERO_BASE_API PosixScheduler : public Scheduler {
   Watcher* unlinkWatcher(Watcher* w);
 
   /**
-   * Retrieves a watcher by file descriptor.
-   *
-   * @note requires the caller to lock the object mutex.
-   */
-  Watcher* getWatcher(int fd);
-
-  /**
    * Computes the timespan the event loop should wait the most.
    *
    * @note requires the caller to lock the object mutex.
    */
-  TimeSpan nextTimeout() const;
+  Duration nextTimeout() const;
 
   std::string inspectImpl() const;
 
   friend std::string inspect(const PosixScheduler&);
 
  private:
-  WallClock* clock_;
+  /**
+   * mutex, to protect access to tasks, timers
+   */
   std::mutex lock_;
-  int wakeupPipe_[2];
+
+  int wakeupPipe_[2];        //!< system pipe, used to wakeup the waiting syscall
 
   Task onPreInvokePending_;  //!< callback to be invoked before any other hot CB
   Task onPostInvokePending_; //!< callback to be invoked after any other hot CB
@@ -210,17 +205,16 @@ class XZERO_BASE_API PosixScheduler : public Scheduler {
   std::list<Task> tasks_;            //!< list of pending tasks
   std::list<RefPtr<Timer>> timers_;  //!< ASC-sorted list of timers
 
-  std::mutex watcherMutex_;
   std::vector<Watcher> watchers_;   //!< I/O watchers
   Watcher* firstWatcher_;           //!< I/O watcher with the smallest timeout
   Watcher* lastWatcher_;            //!< I/O watcher with the largest timeout
 
-  std::atomic<size_t> readerCount_;
-  std::atomic<size_t> writerCount_;
+  std::atomic<size_t> readerCount_; //!< number of active read interests
+  std::atomic<size_t> writerCount_; //!< number of active write interests
 };
 
-XZERO_BASE_API std::string inspect(PosixScheduler::Mode mode);
-XZERO_BASE_API std::string inspect(const PosixScheduler::Watcher& w);
-XZERO_BASE_API std::string inspect(const PosixScheduler& s);
+std::string inspect(PosixScheduler::Mode mode);
+std::string inspect(const PosixScheduler::Watcher& w);
+std::string inspect(const PosixScheduler& s);
 
 } // namespace xzero

@@ -10,7 +10,6 @@
 #include <xzero/net/LocalConnector.h>
 #include <xzero/net/ConnectionFactory.h>
 #include <xzero/net/Connection.h>
-#include <xzero/WallClock.h>
 #include <xzero/logging.h>
 #include <xzero/executor/Executor.h>
 #include <algorithm>
@@ -28,17 +27,23 @@ LocalEndPoint::LocalEndPoint(LocalConnector* connector)
     : ByteArrayEndPoint(connector), connector_(connector) {}
 
 LocalEndPoint::~LocalEndPoint() {
-  TRACE("%p ~LocalEndPoint: connection=%p", this, connection());
+  TRACE("$0 ~LocalEndPoint: connection=$1", this, connection());
 }
 
 void LocalEndPoint::close() {
   ByteArrayEndPoint::close();
   connector_->onEndPointClosed(this);
 }
+
+template<>
+std::string StringUtil::toString(LocalEndPoint* ep) {
+  return StringUtil::format("LocalEndPoint[$0]", (void*)ep);
+}
+
 // }}}
 
 LocalConnector::LocalConnector(Executor* executor)
-    : Connector("local", executor, WallClock::system()),
+    : Connector("local", executor),
       isStarted_(false),
       pendingConnects_(),
       connectedEndPoints_() {
@@ -97,8 +102,8 @@ bool LocalConnector::acceptOne() {
 }
 
 void LocalConnector::onEndPointClosed(LocalEndPoint* endpoint) {
-  TRACE("%p onEndPointClosed: connection=%p, endpoint=%p", this,
-        endpoint->connection(), endpoint);
+  TRACE("$0 onEndPointClosed: connection=$1, endpoint=$2",
+        this, endpoint->connection(), endpoint);
 
   // try connected endpoints
   auto i = std::find_if(connectedEndPoints_.begin(), connectedEndPoints_.end(),
@@ -121,6 +126,11 @@ void LocalConnector::onEndPointClosed(LocalEndPoint* endpoint) {
   if (k != pendingConnects_.end()) {
     pendingConnects_.erase(k);
   }
+}
+
+template<>
+std::string StringUtil::toString(LocalConnector* value) {
+  return StringUtil::format("LocalConnector[$0]", (void*)value);
 }
 
 }  // namespace xzero

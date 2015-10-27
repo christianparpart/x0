@@ -108,17 +108,16 @@ LocalConnector* HttpService::configureLocal() {
 
 InetConnector* HttpService::configureInet(Executor* executor,
                                           Scheduler* scheduler,
-                                          WallClock* clock,
-                                          TimeSpan readTimeout,
-                                          TimeSpan writeTimeout,
-                                          TimeSpan tcpFinTimeout,
+                                          Duration readTimeout,
+                                          Duration writeTimeout,
+                                          Duration tcpFinTimeout,
                                           const IPAddress& ipaddress,
                                           int port, int backlog) {
   if (inetConnector_ != nullptr)
     throw std::runtime_error("Multiple inet connectors not yet supported.");
 
   inetConnector_ = server_->addConnector<InetConnector>(
-      "http", executor, scheduler, clock, readTimeout, writeTimeout,
+      "http", executor, scheduler, readTimeout, writeTimeout,
       tcpFinTimeout, nullptr, ipaddress, port, backlog, true, false);
 
   attachProtocol(inetConnector_);
@@ -139,14 +138,12 @@ void HttpService::attachProtocol(Connector* connector) {
 
 void HttpService::attachHttp1(Connector* connector) {
   // TODO: make them configurable via ctor
-  WallClock* clock = WallClock::system();
   size_t maxRequestUriLength = 1024;
   size_t maxRequestBodyLength = 64 * 1024 * 1024;
   size_t maxRequestCount = 100;
-  TimeSpan maxKeepAlive = TimeSpan::fromSeconds(8);
+  Duration maxKeepAlive = Duration::fromSeconds(8);
 
   auto http = connector->addConnectionFactory<xzero::http::http1::ConnectionFactory>(
-      clock,
       maxRequestUriLength,
       maxRequestBodyLength,
       maxRequestCount,
@@ -157,13 +154,12 @@ void HttpService::attachHttp1(Connector* connector) {
 }
 
 void HttpService::attachFCGI(Connector* connector) {
-  WallClock* clock = WallClock::system();
   size_t maxRequestUriLength = 1024;
   size_t maxRequestBodyLength = 64 * 1024 * 1024;
-  TimeSpan maxKeepAlive = TimeSpan::fromSeconds(8);
+  Duration maxKeepAlive = Duration::fromSeconds(8);
 
   auto fcgi = connector->addConnectionFactory<http::fastcgi::ConnectionFactory>(
-      clock, maxRequestUriLength, maxRequestBodyLength, maxKeepAlive);
+      maxRequestUriLength, maxRequestBodyLength, maxKeepAlive);
 
   fcgi->setHandler(std::bind(&HttpService::handleRequest, this,
                    std::placeholders::_1, std::placeholders::_2));
@@ -213,11 +209,13 @@ HttpService::BuiltinAssetHandler::BuiltinAssetHandler()
 void HttpService::BuiltinAssetHandler::addAsset(const std::string& path,
                                                 const std::string& mimetype,
                                                 const Buffer&& data) {
-  assets_[path] = { mimetype, DateTime(), std::move(data) };
+  assets_[path] = { mimetype, UnixTime(), std::move(data) };
 }
 
 bool HttpService::BuiltinAssetHandler::handleRequest(HttpRequest* request,
                                                      HttpResponse* response) {
+  static const char* timeFormat = "%a, %d %b %Y %H:%M:%S GMT";
+
   auto i = assets_.find(request->path());
   if (i == assets_.end())
     return false;
@@ -227,7 +225,7 @@ bool HttpService::BuiltinAssetHandler::handleRequest(HttpRequest* request,
   response->setStatus(HttpStatus::Ok);
   response->setContentLength(i->second.data.size());
   response->addHeader("Content-Type", i->second.mimetype);
-  response->addHeader("Last-Modified", i->second.mtime.http_str().c_str());
+  response->addHeader("Last-Modified", i->second.mtime.format(timeFormat));
   response->output()->write(i->second.data.ref());
   response->completed();
 

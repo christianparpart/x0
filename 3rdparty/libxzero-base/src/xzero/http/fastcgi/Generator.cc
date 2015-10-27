@@ -86,9 +86,9 @@ void Generator::generateRequest(const HttpRequestInfo& info, const BufferRef& ch
 }
 
 void Generator::generateResponse(const HttpResponseInfo& info) {
-  TRACE("generateResponse! status=%d %s",
+  TRACE("generateResponse! status=$0 $2",
         static_cast<int>(info.status()),
-        to_string(info.status()).c_str());
+        to_string(info.status()));
 
   mode_ = GenerateResponse;
 
@@ -99,7 +99,7 @@ void Generator::generateResponse(const HttpResponseInfo& info) {
   payload.push_back("\r\n");
 
   for (const HeaderField& header: info.headers()) {
-    TRACE("  %s: %s", header.name().c_str(), header.value().c_str());
+    TRACE("  $0: $1", header.name().c_str(), header.value().c_str());
     payload.push_back(header.name());
     payload.push_back(": ");
     payload.push_back(header.value());
@@ -202,7 +202,7 @@ void Generator::generateEnd() {
 }
 
 void Generator::write(Type type, int requestId, const char* buf, size_t len) {
-  TRACE("write<%s>(rid=%zu, len=%zu)", to_string(type).c_str(), requestId, len);
+  TRACE("write<$0>(rid=$1, len=$2)", to_string(type), requestId, len);
 
   if (len != 0) {
     constexpr size_t chunkSizeCap = 0xFFFF;
@@ -227,7 +227,7 @@ void Generator::write(Type type, int requestId, const char* buf, size_t len) {
 }
 
 void Generator::flushBuffer() {
-  TRACE("flushBuffer: %zu bytes", buffer_.size());
+  TRACE("flushBuffer: $0 bytes", buffer_.size());
   if (!buffer_.empty()) {
     bytesTransmitted_ += buffer_.size();
     writer_->write(std::move(buffer_));

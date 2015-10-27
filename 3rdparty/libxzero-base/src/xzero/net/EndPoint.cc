@@ -30,4 +30,8 @@ Option<IPAddress> EndPoint::remoteIP() const {
   return None();
 }
 
+Option<std::pair<IPAddress, int>> EndPoint::remoteAddress() const {
+  return None();
+}
+
 }  // namespace xzero

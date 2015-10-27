@@ -12,7 +12,7 @@
 
 #include <base/Counter.h>
 #include <base/Logging.h>
-#include <base/TimeSpan.h>
+#include <base/Duration.h>
 #include <base/SocketSpec.h>
 #include <base/JsonWriter.h>
 #include <base/CustomDataMgr.h>

@@ -6,6 +6,7 @@
 // the License at: http://opensource.org/licenses/MIT
 
 #include <xzero/http/HttpStatus.h>
+#include <xzero/StringUtil.h>
 
 namespace xzero {
 namespace http {
@@ -74,4 +75,10 @@ const std::string& to_string(HttpStatus code) {
 }
 
 } // namespace http
+
+template <>
+std::string StringUtil::toString(http::HttpStatus value) {
+  return to_string(value);
+}
+
 } // namespace xzero

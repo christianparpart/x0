@@ -9,11 +9,12 @@
 
 #pragma once
 
-#include <xzero/Api.h>
-#include <xzero/TimeSpan.h>
-#include <xzero/DateTime.h>
+#include <xzero/Duration.h>
+#include <xzero/MonotonicTime.h>
+#include <xzero/UnixTime.h>
 #include <xzero/RefCounted.h>
 #include <xzero/RefPtr.h>
+#include <xzero/exceptionhandler.h>
 #include <xzero/executor/Executor.h>
 #include <vector>
 #include <functional>
@@ -28,7 +29,7 @@ class Wakeup;
 /**
  * Interface for scheduling tasks.
  */
-class XZERO_BASE_API Scheduler : public Executor {
+class Scheduler : public Executor {
  public:
   struct Handle : public RefCounted { // {{{
    public:
@@ -59,8 +60,8 @@ class XZERO_BASE_API Scheduler : public Executor {
   //typedef std::shared_ptr<Handle> HandleRef;
   //typedef Handle* HandleRef;
 
-  Scheduler(std::function<void(const std::exception&)> eh)
-      : Executor(eh) {}
+  Scheduler(std::unique_ptr<xzero::ExceptionHandler> eh)
+      : Executor(std::move(eh)) {}
 
   /**
    * Schedules given task to be run after given delay.
@@ -68,25 +69,26 @@ class XZERO_BASE_API Scheduler : public Executor {
    * @param task the actual task to be executed.
    * @param delay the timespan to wait before actually executing the task.
    */
-  virtual HandleRef executeAfter(TimeSpan delay, Task task) = 0;
+  virtual HandleRef executeAfter(Duration delay, Task task) = 0;
 
   /**
    * Runs given task at given time.
    */
-  virtual HandleRef executeAt(DateTime dt, Task task) = 0;
+  virtual HandleRef executeAt(UnixTime ts, Task task) = 0;
 
   /**
    * Runs given task when given selectable is non-blocking readable.
    *
    * @param fd file descriptor to watch for non-blocking readability.
    * @param task Task to execute upon given event.
-   * @param timeout timeout to wait for readability. When the timeout is hit
-   *                and no readable-event was generated yet, an
-   *                the task isstill fired but fd will raise with ETIMEDOUT.
+   * @param timeout Duration to wait for readability.
+   *                When this timeout is hit and no readable-event was
+   *                generated yet, the @p onTimeout task will be invoked
+   *                instead and the selectable will no longer be watched on.
    */
   virtual HandleRef executeOnReadable(
       int fd, Task task,
-      TimeSpan timeout, Task onTimeout) = 0;
+      Duration timeout, Task onTimeout) = 0;
 
   /**
    * Runs given task when given selectable is non-blocking readable.
@@ -107,7 +109,7 @@ class XZERO_BASE_API Scheduler : public Executor {
    */
   virtual HandleRef executeOnWritable(
       int fd, Task task,
-      TimeSpan timeout, Task onTimeout) = 0;
+      Duration timeout, Task onTimeout) = 0;
 
   /**
    * Runs given task when given selectable is non-blocking writable.
@@ -116,6 +118,8 @@ class XZERO_BASE_API Scheduler : public Executor {
    * @param task Task to execute upon given event.
    */
   HandleRef executeOnWritable(int fd, Task task);
+
+  virtual void cancelFD(int fd) = 0;
 
   /**
    * Executes @p task  when given @p wakeup triggered a wakeup event
@@ -140,8 +144,8 @@ class XZERO_BASE_API Scheduler : public Executor {
   /**
    * Retrieves the number of active timers.
    *
-   * @see executeAt(DateTime dt, Task task)
-   * @see executeAfter(TimeSpan ts, Task task)
+   * @see executeAt(UnixTime dt, Task task)
+   * @see executeAfter(Duration ts, Task task)
    */
   virtual size_t timerCount() = 0;
 

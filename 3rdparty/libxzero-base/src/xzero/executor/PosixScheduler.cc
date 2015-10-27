@@ -1,19 +1,23 @@
-// This file is part of the "libxzero" project
+// This file is part of the "libcortex" project
 //   (c) 2009-2015 Christian Parpart <https://github.com/christianparpart>
 //   (c) 2014-2015 Paul Asmuth <https://github.com/paulasmuth>
 //
-// libxzero is free software: you can redistribute it and/or modify it under
+// libcortex is free software: you can redistribute it and/or modify it under
 // the terms of the GNU Affero General Public License v3.0.
 // You should have received a copy of the GNU Affero General Public License
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 #include <xzero/executor/PosixScheduler.h>
+#include <xzero/MonotonicClock.h>
 #include <xzero/thread/Wakeup.h>
 #include <xzero/RuntimeError.h>
 #include <xzero/WallClock.h>
 #include <xzero/StringUtil.h>
-#include <xzero/sysconfig.h>
+#include <xzero/wallclock.h>
+#include <xzero/exceptionhandler.h>
 #include <xzero/logging.h>
+#include <xzero/sysconfig.h>
+
 #include <algorithm>
 #include <vector>
 #include <sstream>
@@ -36,20 +40,40 @@ namespace xzero {
 #define TRACE(msg...) do {} while (0)
 #endif
 
+template<>
+std::string StringUtil::toString<PosixScheduler::Mode>(PosixScheduler::Mode mode) {
+  return inspect(mode);
+}
+
+template<>
+std::string StringUtil::toString<PosixScheduler::Watcher>(PosixScheduler::Watcher w) {
+  return inspect(w);
+}
+
+template<>
+std::string StringUtil::toString<PosixScheduler::Watcher*>(PosixScheduler::Watcher* w) {
+  if (!w)
+    return "nil";
+
+  return inspect(*w);
+}
+
+template<>
+std::string StringUtil::toString<const PosixScheduler&>(const PosixScheduler& s) {
+  return inspect(s);
+}
+
 PosixScheduler::PosixScheduler(
-    std::function<void(const std::exception&)> errorLogger,
-    WallClock* clock,
+    std::unique_ptr<xzero::ExceptionHandler> eh,
     std::function<void()> preInvoke,
     std::function<void()> postInvoke)
-    : Scheduler(errorLogger),
-      clock_(clock ? clock : WallClock::monotonic()),
+    : Scheduler(std::move(eh)),
       lock_(),
       wakeupPipe_(),
       onPreInvokePending_(preInvoke),
       onPostInvokePending_(postInvoke),
       tasks_(),
       timers_(),
-      watcherMutex_(),
       watchers_(),
       firstWatcher_(nullptr),
       lastWatcher_(nullptr) {
@@ -59,29 +83,30 @@ PosixScheduler::PosixScheduler(
   fcntl(wakeupPipe_[0], F_SETFL, O_NONBLOCK);
   fcntl(wakeupPipe_[1], F_SETFL, O_NONBLOCK);
 
-  TRACE("ctor: wakeupPipe {read=%d, write=%d}, clock=@%p",
+  watchers_.resize(32768); // TODO: detect fd limit
+
+  TRACE("ctor: wakeupPipe {read=$0, write=$1}",
       wakeupPipe_[PIPE_READ_END],
-      wakeupPipe_[PIPE_WRITE_END],
-      clock_);
+      wakeupPipe_[PIPE_WRITE_END]);
 }
 
-PosixScheduler::PosixScheduler(
-    std::function<void(const std::exception&)> errorLogger,
-    WallClock* clock)
-    : PosixScheduler(errorLogger, clock, nullptr, nullptr) {
+PosixScheduler::PosixScheduler(std::unique_ptr<xzero::ExceptionHandler> eh)
+    : PosixScheduler(std::move(eh), nullptr, nullptr) {
 }
 
 PosixScheduler::PosixScheduler()
-    : PosixScheduler(std::bind(&logAndPass, std::placeholders::_1),
-                     WallClock::monotonic(),
-                     nullptr,
-                     nullptr) {
+    : PosixScheduler(std::unique_ptr<ExceptionHandler>(new CatchAndLogExceptionHandler("PosixScheduler"))) {
 }
 
 PosixScheduler::~PosixScheduler() {
   TRACE("~dtor");
   ::close(wakeupPipe_[PIPE_READ_END]);
   ::close(wakeupPipe_[PIPE_WRITE_END]);
+}
+
+MonotonicTime PosixScheduler::now() const {
+  // later to provide cachable value
+  return MonotonicClock::now();
 }
 
 void PosixScheduler::execute(Task task) {
@@ -98,15 +123,15 @@ std::string PosixScheduler::toString() const {
       wakeupPipe_[PIPE_WRITE_END]);
 }
 
-Scheduler::HandleRef PosixScheduler::executeAfter(TimeSpan delay, Task task) {
-  return insertIntoTimersList(clock_->get() + delay, task);
+Scheduler::HandleRef PosixScheduler::executeAfter(Duration delay, Task task) {
+  return insertIntoTimersList(now() + delay, task);
 }
 
-Scheduler::HandleRef PosixScheduler::executeAt(DateTime when, Task task) {
-  return insertIntoTimersList(when, task);
+Scheduler::HandleRef PosixScheduler::executeAt(UnixTime when, Task task) {
+  return executeAfter(when - WallClock::now(), task);
 }
 
-Scheduler::HandleRef PosixScheduler::insertIntoTimersList(DateTime dt,
+Scheduler::HandleRef PosixScheduler::insertIntoTimersList(MonotonicTime dt,
                                                           Task task) {
   RefPtr<Timer> t(new Timer(dt, task));
 
@@ -116,7 +141,7 @@ Scheduler::HandleRef PosixScheduler::insertIntoTimersList(DateTime dt,
 
     while (i != e) {
       i--;
-      if (*i == t) {
+      if (i->get() == t.get()) {
         timers_.erase(i);
         break;
       }
@@ -154,10 +179,8 @@ Scheduler::HandleRef PosixScheduler::insertIntoTimersList(DateTime dt,
 }
 
 void PosixScheduler::collectTimeouts(std::list<Task>* result) {
-  const DateTime now = clock_->get();
-
-  for (Watcher* w = firstWatcher_; w && w->timeout <= now; ) {
-    TRACE("collectTimeouts: timeouting %s", inspect(*w).c_str());
+  for (Watcher* w = firstWatcher_; w && w->timeout <= now(); ) {
+    //TRACE("collectTimeouts: timeouting $0", *w);
     result->push_back([w] { w->fire(w->onTimeout); });
     switch (w->mode) {
       case Mode::READABLE: readerCount_--; break;
@@ -172,7 +195,7 @@ void PosixScheduler::collectTimeouts(std::list<Task>* result) {
 
     const RefPtr<Timer>& job = timers_.front();
 
-    if (job->when > now)
+    if (job->when > now())
       break;
 
     result->push_back([job] { job->fire(job->action); });
@@ -185,6 +208,8 @@ void PosixScheduler::linkWatcher(Watcher* w, Watcher* pred) {
 
   w->prev = pred;
   w->next = succ;
+
+  TRACE("linkWatcher $0 between $1 and $2", w, pred, succ);
 
   if (pred)
     pred->next = w;
@@ -216,62 +241,67 @@ PosixScheduler::Watcher* PosixScheduler::unlinkWatcher(Watcher* w) {
   return succ;
 }
 
-inline PosixScheduler::Watcher* PosixScheduler::getWatcher(int fd) {
-  return &watchers_[fd];
-}
-
-Scheduler::HandleRef PosixScheduler::executeOnReadable(int fd, Task task, TimeSpan tmo, Task tcb) {
+Scheduler::HandleRef PosixScheduler::executeOnReadable(int fd, Task task, Duration tmo, Task tcb) {
   readerCount_++;
   std::lock_guard<std::mutex> lk(lock_);
   return setupWatcher(fd, Mode::READABLE, task, tmo, tcb);
 }
 
-Scheduler::HandleRef PosixScheduler::executeOnWritable(int fd, Task task, TimeSpan tmo, Task tcb) {
+Scheduler::HandleRef PosixScheduler::executeOnWritable(int fd, Task task, Duration tmo, Task tcb) {
   writerCount_++;
   std::lock_guard<std::mutex> lk(lock_);
   return setupWatcher(fd, Mode::WRITABLE, task, tmo, tcb);
 }
 
+void PosixScheduler::cancelFD(int fd) {
+  std::lock_guard<std::mutex> lk(lock_);
+  if (fd < watchers_.size()) {
+    Watcher* w = &watchers_[fd];
+    w->cancel();
+  }
+}
+
 PosixScheduler::HandleRef PosixScheduler::setupWatcher(
     int fd, Mode mode, Task task,
-    TimeSpan tmo, Task tcb) {
+    Duration tmo, Task tcb) {
 
-  TRACE("setupWatcher(%d, %s, %s)",
-      fd, inspect(mode).c_str(), inspect(tmo).c_str());
+  TRACE("setupWatcher($0, $1, $2)", fd, mode, tmo);
 
-  DateTime timeout = clock_->get() + tmo;
+  MonotonicTime timeout = now() + tmo;
 
   if (fd >= watchers_.size()) {
-    watchers_.resize(fd + 1);
+    // we cannot dynamically resize here without also updating the doubly linked
+    // list as a realloc() can potentially change memory locations.
+    RAISE(IOError, "fd number too high");
   }
 
-  Watcher* w = &watchers_[fd];
+  Watcher* interest = &watchers_[fd];
 
-  if (w->fd >= 0)
-    RAISE_STATUS(AlreadyWatchingOnResource);
+  if (interest->fd >= 0)
+    RAISE(AlreadyWatchingOnResource, "Already watching on resource");
+    //RAISE_STATUS(AlreadyWatchingOnResource);
 
-  w->reset(fd, mode, task, timeout, tcb);
+  interest->reset(fd, mode, task, timeout, tcb);
 
-  // inject watcher oredred by timeout ascending
+  // inject watcher ordered by timeout ascending
   if (lastWatcher_ != nullptr) {
-    Watcher* pred = lastWatcher_;
+    Watcher* succ = lastWatcher_;
 
-    while (pred != nullptr) {
-      if (w->timeout <= pred->timeout) {
-        linkWatcher(w, pred);
-        return w; // handle;
+    while (succ->prev != nullptr) {
+      if (interest->timeout <= succ->prev->timeout) {
+        linkWatcher(interest, succ->prev);
+        return interest; // handle;
       }
     }
     // put in front
-    w->next = firstWatcher_;
-    firstWatcher_->prev = w;
-    firstWatcher_ = w;
-    return w; // handle;
+    interest->next = firstWatcher_;
+    firstWatcher_->prev = interest;
+    firstWatcher_ = interest;
   } else {
-    firstWatcher_ = lastWatcher_ = w;
+    firstWatcher_ = lastWatcher_ = interest;
   }
 
-  return w; // handle;
+  return interest; // handle;
 }
 
 void PosixScheduler::collectActiveHandles(const fd_set* input,
@@ -281,18 +311,18 @@ void PosixScheduler::collectActiveHandles(const fd_set* input,
 
   while (w != nullptr) {
     if (FD_ISSET(w->fd, input)) {
-      TRACE("collectActiveHandles: + active fd %d READABLE", w->fd);
+      TRACE("collectActiveHandles: + active fd $0 READABLE", w->fd);
       readerCount_--;
       result->push_back(w->onIO);
       w = unlinkWatcher(w);
     }
     else if (FD_ISSET(w->fd, output)) {
-      TRACE("collectActiveHandles: + active fd %d WRITABLE", w->fd);
+      TRACE("collectActiveHandles: + active fd $0 WRITABLE", w->fd);
       writerCount_--;
       result->push_back(w->onIO);
       w = unlinkWatcher(w);
     } else {
-      TRACE("collectActiveHandles: - skip fd %d", w->fd);
+      TRACE("collectActiveHandles: - skip fd $0", w->fd);
       w = w->next;
     }
   }
@@ -368,25 +398,25 @@ void PosixScheduler::runLoopOnce() {
       wmark = std::max(wmark, w->fd);
     }
 
-    const TimeSpan timeout = nextTimeout();
-    tv.tv_sec = static_cast<time_t>(timeout.totalSeconds()),
-    tv.tv_usec = timeout.microseconds();
+    const Duration timeout = nextTimeout();
+    tv.tv_sec = static_cast<time_t>(timeout.seconds()),
+    tv.tv_usec = timeout.microseconds() % kMicrosPerSecond;
   }
 
   FD_SET(wakeupPipe_[PIPE_READ_END], &input);
 
-  TRACE("runLoopOnce(): select(wmark=%d, in=%d, out=%d, err=%d, tmo=%ds)",
-      wmark + 1, incount, outcount, errcount, tv.tv_sec);
-  TRACE("runLoopOnce: %s", inspect(*this).c_str());
+  TRACE("runLoopOnce(): select(wmark=$0, in=$1, out=$2, err=$3, tmo=$4)",
+        wmark + 1, incount, outcount, errcount, Duration(tv));
+  TRACE("runLoopOnce: $0", inspect(*this).c_str());
 
   int rv;
   do rv = ::select(wmark + 1, &input, &output, &error, &tv);
   while (rv < 0 && errno == EINTR);
 
-  TRACE("runLoopOnce: select returned %i", rv);
-
   if (rv < 0)
     RAISE_ERRNO(errno);
+
+  TRACE("runLoopOnce: select returned $0", rv);
 
   if (FD_ISSET(wakeupPipe_[PIPE_READ_END], &input)) {
     bool consumeMore = true;
@@ -410,19 +440,17 @@ void PosixScheduler::runLoopOnce() {
   safeCall(onPostInvokePending_);
 }
 
-TimeSpan PosixScheduler::nextTimeout() const {
+Duration PosixScheduler::nextTimeout() const {
   if (!tasks_.empty())
-    return TimeSpan::Zero;
+    return Duration::Zero;
 
-  const DateTime now = clock_->get();
+  const Duration a = !timers_.empty()
+                 ? timers_.front()->when - now()
+                 : Duration::fromSeconds(5);
 
-  const TimeSpan a = !timers_.empty()
-                 ? timers_.front()->when - now
-                 : TimeSpan::fromSeconds(5);
-
-  const TimeSpan b = firstWatcher_ != nullptr
-                 ? firstWatcher_->timeout - now
-                 : TimeSpan::fromSeconds(6);
+  const Duration b = firstWatcher_ != nullptr
+                 ? firstWatcher_->timeout - now()
+                 : Duration::fromSeconds(6);
 
   return std::min(a, b);
 }
@@ -432,16 +460,14 @@ void PosixScheduler::breakLoop() {
   ::write(wakeupPipe_[PIPE_WRITE_END], &dummy, sizeof(dummy));
 }
 
-void PosixScheduler::waitForReadable(int fd, TimeSpan timeout) {
+void PosixScheduler::waitForReadable(int fd, Duration timeout) {
   fd_set input, output;
 
   FD_ZERO(&input);
   FD_ZERO(&output);
   FD_SET(fd, &input);
 
-  struct timeval tv;
-  tv.tv_sec = timeout.totalSeconds();
-  tv.tv_usec = timeout.totalMicroseconds();
+  struct timeval tv = timeout;
 
   int res = select(fd + 1, &input, &output, &input, &tv);
 
@@ -472,7 +498,7 @@ void PosixScheduler::waitForReadable(int fd) {
   }
 }
 
-void PosixScheduler::waitForWritable(int fd, TimeSpan timeout) {
+void PosixScheduler::waitForWritable(int fd, Duration timeout) {
   fd_set input;
   FD_ZERO(&input);
 
@@ -480,9 +506,7 @@ void PosixScheduler::waitForWritable(int fd, TimeSpan timeout) {
   FD_ZERO(&output);
   FD_SET(fd, &output);
 
-  struct timeval tv;
-  tv.tv_sec = timeout.totalSeconds();
-  tv.tv_usec = timeout.totalMicroseconds();
+  struct timeval tv = timeout;
 
   int res = select(fd + 1, &input, &output, &input, &tv);
 
@@ -545,7 +569,7 @@ std::string inspect(PosixScheduler::Mode mode) {
 
 std::string inspect(const PosixScheduler::Watcher& w) {
   return StringUtil::format("{$0, $1, $2}",
-                            w.fd, inspect(w.mode), inspect(w.timeout));
+                            w.fd, w.mode, w.timeout);
 }
 
 std::string inspect(const PosixScheduler& s) {

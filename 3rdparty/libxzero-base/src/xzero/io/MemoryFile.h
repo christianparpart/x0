@@ -11,7 +11,7 @@
 
 #include <xzero/Api.h>
 #include <xzero/io/File.h>
-#include <xzero/DateTime.h>
+#include <xzero/UnixTime.h>
 #include <string>
 
 namespace xzero {
@@ -25,7 +25,7 @@ class XZERO_BASE_API MemoryFile : public File {
   MemoryFile(const std::string& path,
              const std::string& mimetype,
              const BufferRef& data,
-             DateTime mtime);
+             UnixTime mtime);
   ~MemoryFile();
 
   const std::string& etag() const override;

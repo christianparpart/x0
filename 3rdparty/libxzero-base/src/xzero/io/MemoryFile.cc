@@ -50,7 +50,7 @@ MemoryFile::MemoryFile(
     const std::string& path,
     const std::string& mimetype,
     const BufferRef& data,
-    DateTime mtime)
+    UnixTime mtime)
     : File(path, mimetype),
       mtime_(mtime.unixtime()),
       inode_(0),

@@ -7,8 +7,8 @@
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 #pragma once
 
-#include <xzero/TimeSpan.h>
-#include <xzero/DateTime.h>
+#include <xzero/Duration.h>
+#include <xzero/UnixTime.h>
 #include <xzero/executor/Scheduler.h>
 #include <xzero/logging.h>
 #include <memory>
@@ -34,9 +34,9 @@ class XzeroWorker {
   unsigned id() const;
   const std::string& name() const;
 
-  xzero::TimeSpan uptime() const;
-  xzero::DateTime startupTime() const;
-  xzero::DateTime now() const;
+  xzero::Duration uptime() const;
+  xzero::UnixTime startupTime() const;
+  xzero::UnixTime now() const;
 
   xzero::Scheduler* scheduler() const XZERO_NOEXCEPT;
 
@@ -57,8 +57,8 @@ class XzeroWorker {
   XzeroDaemon* daemon_;
   unsigned id_;
   std::string name_;
-  xzero::DateTime startupTime_;
-  xzero::DateTime now_;
+  xzero::UnixTime startupTime_;
+  xzero::UnixTime now_;
   std::unique_ptr<xzero::Scheduler> scheduler_;
 
   std::thread thread_;
@@ -77,15 +77,15 @@ inline const std::string& XzeroWorker::name() const {
   return name_;
 }
 
-inline xzero::TimeSpan XzeroWorker::uptime() const {
+inline xzero::Duration XzeroWorker::uptime() const {
   return now() - startupTime();
 }
 
-inline xzero::DateTime XzeroWorker::startupTime() const {
+inline xzero::UnixTime XzeroWorker::startupTime() const {
   return startupTime_;
 }
 
-inline xzero::DateTime XzeroWorker::now() const {
+inline xzero::UnixTime XzeroWorker::now() const {
   return now_;
 }
 

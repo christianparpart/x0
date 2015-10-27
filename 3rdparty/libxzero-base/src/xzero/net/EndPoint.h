@@ -12,7 +12,7 @@
 #include <xzero/Api.h>
 #include <xzero/sysconfig.h>
 #include <xzero/Buffer.h>
-#include <xzero/TimeSpan.h>
+#include <xzero/Duration.h>
 #include <xzero/RefCounted.h>
 #include <xzero/Option.h>
 #include <xzero/net/IPAddress.h>
@@ -126,23 +126,23 @@ class EndPoint : public RefCounted {
    * Retrieves the timeout before a TimeoutError is thrown when I/O
    * interest cannot be * fullfilled.
    */
-  virtual TimeSpan readTimeout() = 0;
+  virtual Duration readTimeout() = 0;
 
   /**
    * Retrieves the timeout before a TimeoutError is thrown when I/O
    * interest cannot be * fullfilled.
    */
-  virtual TimeSpan writeTimeout() = 0;
+  virtual Duration writeTimeout() = 0;
 
   /**
    * Sets the timeout to wait for the read-interest before an TimeoutError is thrown.
    */
-  virtual void setReadTimeout(TimeSpan timeout) = 0;
+  virtual void setReadTimeout(Duration timeout) = 0;
 
   /**
    * Sets the timeout to wait for the read-interest before an TimeoutError is thrown.
    */
-  virtual void setWriteTimeout(TimeSpan timeout) = 0;
+  virtual void setWriteTimeout(Duration timeout) = 0;
 
   /**
    * Tests whether this endpoint is blocking on I/O.
@@ -173,6 +173,8 @@ class EndPoint : public RefCounted {
   virtual std::string toString() const = 0;
 
   virtual Option<IPAddress> remoteIP() const;
+
+  virtual Option<std::pair<IPAddress, int>> remoteAddress() const;
 
  private:
   Connection* connection_;

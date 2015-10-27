@@ -284,13 +284,11 @@ void HttpBackend::Connection::serializeRequest() {
     } else if (iequals(header.name, "Content-Transfer") ||
                iequals(header.name, "Expect") ||
                iequals(header.name, "Connection")) {
-      TRACE("skip requestHeader(%s: %s)", header.name.str().c_str(),
-            header.value.str().c_str());
+      TRACE("skip requestHeader($0: $1)", header.name, header.value);
       continue;
     }
 
-    TRACE("pass requestHeader(%s: %s)", header.name.str().c_str(),
-          header.value.str().c_str());
+    TRACE("pass requestHeader($0: $1)", header.name, header.value);
     writeBuffer.push_back(header.name);
     writeBuffer.push_back(": ");
     writeBuffer.push_back(header.value);
@@ -387,11 +385,11 @@ void HttpBackend::Connection::onConnected(Socket* s, int revents) {
  */
 bool HttpBackend::Connection::onMessageBegin(int major, int minor, int code,
                                              const BufferRef& text) {
-  TRACE("Connection(%p).status(HTTP/%d.%d, %d, '%s')", (void*)this, major,
-        minor, code, text.str().c_str());
+  TRACE("Connection($0).status(HTTP/$0.$1, '$2')",
+        (void*)this, major, minor, code, text);
 
   rn_->request->status = static_cast<HttpStatus>(code);
-  TRACE("status: %d", (int)rn_->request->status);
+  TRACE("status: $0", rn_->request->status);
   return true;
 }
 
@@ -402,8 +400,7 @@ bool HttpBackend::Connection::onMessageBegin(int major, int minor, int code,
  */
 bool HttpBackend::Connection::onMessageHeader(const BufferRef& name,
                                               const BufferRef& value) {
-  TRACE("Connection(%p).onHeader('%s', '%s')", (void*)this, name.str().c_str(),
-        value.str().c_str());
+  TRACE("Connection($0).onHeader('$1', '$2')", (void*)this, name, value);
 
   // XXX do not allow origin's connection-level response headers to be passed to
   // the client.
@@ -445,7 +442,7 @@ bool HttpBackend::Connection::onMessageHeaderEnd() {
 
 /** callback, invoked on a new response content chunk. */
 bool HttpBackend::Connection::onMessageContent(const BufferRef& chunk) {
-  TRACE("messageContent(nb:%lu) state:%s", chunk.size(), socket_->state_str());
+  TRACE("messageContent(nb:$0) state:$1", chunk.size(), socket_->state_str());
 
   if (unlikely(!sendfile_.empty()))
     // we ignore the backend's message body as we've replaced it with the file
@@ -471,7 +468,7 @@ bool HttpBackend::Connection::onMessageContent(const BufferRef& chunk) {
 }
 
 bool HttpBackend::Connection::onMessageEnd() {
-  TRACE("messageEnd() backend-state:%s", socket_->state_str());
+  TRACE("messageEnd() backend-state:$0", socket_->state_str());
   processingDone_ = true;
   return false;
 }
@@ -485,7 +482,7 @@ inline void HttpBackend::Connection::log(Severity severity, const char* fmt,
 }
 
 void HttpBackend::Connection::onReadWriteReady(Socket* s, int revents) {
-  TRACE("io(0x%04x)", revents);
+  TRACE("io($0)", revents);
 
   if (revents & Socket::Read) {
     if (!readSome()) {
@@ -502,10 +499,10 @@ void HttpBackend::Connection::onReadWriteReady(Socket* s, int revents) {
 
 bool HttpBackend::Connection::writeSome() {
   auto r = rn_->request;
-  TRACE("writeSome() - %s", tos(state()).c_str());
+  TRACE("writeSome() - $0", state());
 
   ssize_t rv = writeSource_.sendto(writeSink_);
-  TRACE("write request: wrote %ld bytes", rv);
+  TRACE("write request: wrote $0 bytes", rv);
 
   if (rv == 0) {
     // output fully flushed. continue to read response
@@ -538,7 +535,7 @@ bool HttpBackend::Connection::writeSome() {
 }
 
 bool HttpBackend::Connection::readSome() {
-  TRACE("readSome() - %s", tos(state()).c_str());
+  TRACE("readSome() - $0", state());
 
   std::size_t lower_bound = readBuffer_.size();
 
@@ -548,10 +545,10 @@ bool HttpBackend::Connection::readSome() {
   ssize_t rv = socket_->read(readBuffer_);
 
   if (rv > 0) {
-    TRACE("read response: %ld bytes", rv);
+    TRACE("read response: $0 bytes", rv);
     std::size_t np = parseFragment(readBuffer_.ref(lower_bound, rv));
     (void)np;
-    TRACE("readSome(): parseFragment(): %ld / %ld", np, rv);
+    TRACE("readSome(): parseFragment(): $0 / $1", np, rv);
 
     if (processingDone_) {
       exitSuccess();
@@ -565,8 +562,7 @@ bool HttpBackend::Connection::readSome() {
       exitFailure(HttpStatus::ServiceUnavailable);
       return false;
     } else {
-      TRACE("resume with io:%d, state:%s", socket_->mode(),
-            socket_->state_str());
+      TRACE("resume with io:$0, state:$1", socket_->mode(), socket_->state());
       socket_->setTimeout<Connection, &Connection::onReadWriteTimeout>(
           this, backend_->manager()->readTimeout());
       socket_->setMode(Socket::Read);

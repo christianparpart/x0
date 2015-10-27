@@ -15,8 +15,9 @@
 #include <xzero/net/IPAddress.h>
 #include <xzero/executor/Executor.h>
 #include <xzero/executor/Scheduler.h>
-#include <xzero/TimeSpan.h>
+#include <xzero/Duration.h>
 #include <xzero/RefPtr.h>
+#include <xzero/stdtypes.h>
 #include <list>
 #include <deque>
 #include <mutex>
@@ -40,7 +41,6 @@ class XZERO_BASE_API InetConnector : public Connector {
    * @param name Describing name for this connector.
    * @param executor Executor service to run handlers on
    * @param scheduler Scheduler service to use for scheduling tasks
-   * @param clock Wall clock used for timeout management.
    * @param readTimeout timespan indicating how long a connection may for read
    *                    readiness.
    * @param writeTimeout timespan indicating how long a connection wait for
@@ -57,10 +57,10 @@ class XZERO_BASE_API InetConnector : public Connector {
    * @throw std::runtime_error on any kind of runtime error.
    */
   InetConnector(const std::string& name, Executor* executor,
-                Scheduler* scheduler, WallClock* clock,
-                TimeSpan readTimeout, TimeSpan writeTimeout,
-                TimeSpan tcpFinTimeout,
-                std::function<void(const std::exception&)> eh,
+                Scheduler* scheduler,
+                Duration readTimeout, Duration writeTimeout,
+                Duration tcpFinTimeout,
+                UniquePtr<ExceptionHandler> eh,
                 const IPAddress& ipaddress, int port, int backlog,
                 bool reuseAddr, bool reusePort);
 
@@ -70,7 +70,6 @@ class XZERO_BASE_API InetConnector : public Connector {
    * @param name Describing name for this connector.
    * @param executor Executor service to run on
    * @param scheduler Scheduler service to use for timeout management
-   * @param clock Wall clock used for timeout management.
    * @param readTimeout timespan indicating how long a connection may for read
    *                    readiness.
    * @param writeTimeout timespan indicating how long a connection wait for
@@ -80,10 +79,10 @@ class XZERO_BASE_API InetConnector : public Connector {
    * @param eh exception handler for errors in hooks or during events.
    */
   InetConnector(const std::string& name, Executor* executor,
-                Scheduler* scheduler, WallClock* clock,
-                TimeSpan readTimeout, TimeSpan writeTimeout,
-                TimeSpan tcpFinTimeout,
-                std::function<void(const std::exception&)> eh);
+                Scheduler* scheduler,
+                Duration readTimeout, Duration writeTimeout,
+                Duration tcpFinTimeout,
+                UniquePtr<ExceptionHandler> eh);
 
   ~InetConnector();
 
@@ -199,36 +198,36 @@ class XZERO_BASE_API InetConnector : public Connector {
   /**
    * Retrieves the timespan a connection may be idle within an I/O operation.
    */
-  TimeSpan readTimeout() const XZERO_NOEXCEPT;
+  Duration readTimeout() const XZERO_NOEXCEPT;
 
   /**
    * Retrieves the timespan a connection may be idle within an I/O operation.
    */
-  TimeSpan writeTimeout() const XZERO_NOEXCEPT;
+  Duration writeTimeout() const XZERO_NOEXCEPT;
 
   /**
    * Sets the timespan a connection may be idle within a read-operation.
    */
-  void setReadTimeout(TimeSpan value);
+  void setReadTimeout(Duration value);
 
   /**
    * Sets the timespan a connection may be idle within a write-operation.
    */
-  void setWriteTimeout(TimeSpan value);
+  void setWriteTimeout(Duration value);
 
   /**
    * Timespan for FIN_WAIT2 states of the client sockets.
    *
    * A value of 0 means to use the system default.
    */
-  TimeSpan tcpFinTimeout() const XZERO_NOEXCEPT;
+  Duration tcpFinTimeout() const XZERO_NOEXCEPT;
 
   /**
    * Sets the timespan to leave a closing client connection in FIN_WAIT2 state.
    *
    * A value of 0 means to use the system-wide default.
    */
-  void setTcpFinTimeout(TimeSpan value);
+  void setTcpFinTimeout(Duration value);
 
   void start() override;
   bool isStarted() const XZERO_NOEXCEPT override;
@@ -304,9 +303,9 @@ class XZERO_BASE_API InetConnector : public Connector {
   bool blocking_;
   size_t backlog_;
   size_t multiAcceptCount_;
-  TimeSpan readTimeout_;
-  TimeSpan writeTimeout_;
-  TimeSpan tcpFinTimeout_;
+  Duration readTimeout_;
+  Duration writeTimeout_;
+  Duration tcpFinTimeout_;
   bool isStarted_;
 };
 
@@ -314,15 +313,15 @@ inline Scheduler* InetConnector::scheduler() const XZERO_NOEXCEPT {
   return scheduler_;
 }
 
-inline TimeSpan InetConnector::readTimeout() const XZERO_NOEXCEPT {
+inline Duration InetConnector::readTimeout() const XZERO_NOEXCEPT {
   return readTimeout_;
 }
 
-inline TimeSpan InetConnector::writeTimeout() const XZERO_NOEXCEPT {
+inline Duration InetConnector::writeTimeout() const XZERO_NOEXCEPT {
   return writeTimeout_;
 }
 
-inline TimeSpan InetConnector::tcpFinTimeout() const XZERO_NOEXCEPT {
+inline Duration InetConnector::tcpFinTimeout() const XZERO_NOEXCEPT {
   return tcpFinTimeout_;
 }
 

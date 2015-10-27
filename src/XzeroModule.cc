@@ -24,9 +24,8 @@ XzeroModule::XzeroModule(XzeroDaemon* x0d, const std::string& name)
 }
 
 XzeroModule::~XzeroModule() {
-  SafeCall safeCall([=](const std::exception& e) {
-    logError(name_.c_str(), e);
-  });
+  SafeCall safeCall(UniquePtr<ExceptionHandler>(
+        new CatchAndLogExceptionHandler("XzeroModule")));
 
   for (const auto& cleanup: cleanups_) {
     safeCall(cleanup);

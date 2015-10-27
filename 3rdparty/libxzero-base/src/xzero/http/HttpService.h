@@ -8,8 +8,9 @@
 #pragma once
 
 #include <xzero/http/Api.h>
-#include <xzero/TimeSpan.h>
-#include <xzero/DateTime.h> // BuiltinAssetHandler
+#include <xzero/Duration.h>
+#include <xzero/UnixTime.h> // BuiltinAssetHandler
+#include <xzero/Buffer.h>
 #include <vector>
 #include <unordered_map>
 
@@ -56,7 +57,6 @@ class XZERO_HTTP_API HttpService {
    *
    * @param executor the executor service to run tasks on.
    * @param scheduler where to schedule timed tasks on.
-   * @param clock The wall clock that may be used for timeout management.
    * @param readTimeout timespan indicating how long a connection may be idle for read.
    * @param writeTimeout timespan indicating how long a connection may be idle for write.
    * @param tcpFinTimeout Timespan to leave client sockets in FIN_WAIT2 state.
@@ -68,10 +68,9 @@ class XZERO_HTTP_API HttpService {
    */
   InetConnector* configureInet(Executor* executor,
                                Scheduler* scheduler,
-                               WallClock* clock,
-                               TimeSpan readTimeout,
-                               TimeSpan writeTimeout,
-                               TimeSpan tcpFinTimeout,
+                               Duration readTimeout,
+                               Duration writeTimeout,
+                               Duration tcpFinTimeout,
                                const IPAddress& ipaddress,
                                int port,
                                int backlog = 128);
@@ -138,7 +137,7 @@ class XZERO_HTTP_API HttpService::BuiltinAssetHandler : public Handler {
  private:
   struct Asset {
     std::string mimetype;
-    DateTime mtime;
+    UnixTime mtime;
     Buffer data;
   };
 

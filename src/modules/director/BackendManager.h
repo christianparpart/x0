@@ -12,7 +12,7 @@
 #include <xzero/HttpStatus.h>
 #include <base/Counter.h>
 #include <base/Logging.h>
-#include <base/TimeSpan.h>
+#include <base/Duration.h>
 #include <string>
 
 class Backend;
@@ -33,9 +33,9 @@ class BackendManager
  protected:
   xzero::HttpWorker* worker_;
   std::string name_;
-  base::TimeSpan connectTimeout_;
-  base::TimeSpan readTimeout_;
-  base::TimeSpan writeTimeout_;
+  base::Duration connectTimeout_;
+  base::Duration readTimeout_;
+  base::Duration writeTimeout_;
   ClientAbortAction clientAbortAction_;
   base::Counter load_;
 
@@ -50,14 +50,14 @@ class BackendManager
   xzero::HttpWorker* worker() const { return worker_; }
   const std::string name() const { return name_; }
 
-  base::TimeSpan connectTimeout() const { return connectTimeout_; }
-  void setConnectTimeout(base::TimeSpan value) { connectTimeout_ = value; }
+  base::Duration connectTimeout() const { return connectTimeout_; }
+  void setConnectTimeout(base::Duration value) { connectTimeout_ = value; }
 
-  base::TimeSpan readTimeout() const { return readTimeout_; }
-  void setReadTimeout(base::TimeSpan value) { readTimeout_ = value; }
+  base::Duration readTimeout() const { return readTimeout_; }
+  void setReadTimeout(base::Duration value) { readTimeout_ = value; }
 
-  base::TimeSpan writeTimeout() const { return writeTimeout_; }
-  void setWriteTimeout(base::TimeSpan value) { writeTimeout_ = value; }
+  base::Duration writeTimeout() const { return writeTimeout_; }
+  void setWriteTimeout(base::Duration value) { writeTimeout_ = value; }
 
   ClientAbortAction clientAbortAction() const { return clientAbortAction_; }
   void setClientAbortAction(ClientAbortAction value) {

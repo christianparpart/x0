@@ -20,7 +20,7 @@ TEST(MemoryMap, rdonly) {
   const std::string path = "/foo.bar.txt";
   const std::string mimetype = "text/plain";
   const BufferRef data = "hello";
-  const DateTime mtime(BufferRef("Thu, 12 Mar 2015 11:29:02 GMT"));
+  const UnixTime mtime(BufferRef("Thu, 12 Mar 2015 11:29:02 GMT"));
 
   MemoryFile file(path, mimetype, data, mtime);
 
@@ -43,7 +43,7 @@ TEST(MemoryMap, readAndWritable) {
   const std::string path = "/foo.bar.txt";
   const std::string mimetype = "text/plain";
   const BufferRef data = "hello";
-  const DateTime mtime(BufferRef("Thu, 12 Mar 2015 11:29:02 GMT"));
+  const UnixTime mtime(BufferRef("Thu, 12 Mar 2015 11:29:02 GMT"));
 
   MemoryFile file(path, mimetype, data, mtime);
 

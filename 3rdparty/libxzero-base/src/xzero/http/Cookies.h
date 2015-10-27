@@ -9,7 +9,7 @@
 #pragma once
 
 #include <xzero/http/Api.h>
-#include <xzero/DateTime.h>
+#include <xzero/UnixTime.h>
 #include <vector>
 #include <string>
 
@@ -30,7 +30,7 @@ public:
   static std::string makeCookie(
       const std::string& key,
       const std::string& value,
-      const DateTime& expire = DateTime::epoch(),
+      const UnixTime& expire = UnixTime::epoch(),
       const std::string& path = "",
       const std::string& domain = "",
       bool secure = false,
@@ -39,7 +39,7 @@ public:
   XZERO_DEPRECATED static std::string mkCookie(
       const std::string& key,
       const std::string& value,
-      const DateTime& expire = DateTime::epoch(),
+      const UnixTime& expire = UnixTime::epoch(),
       const std::string& path = "",
       const std::string& domain = "",
       bool secure = false,

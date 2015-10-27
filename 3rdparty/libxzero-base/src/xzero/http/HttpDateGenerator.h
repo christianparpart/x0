@@ -9,7 +9,7 @@
 
 #include <xzero/http/Api.h>
 #include <xzero/Buffer.h>
-#include <xzero/DateTime.h>
+#include <xzero/UnixTime.h>
 #include <mutex>
 
 namespace xzero {
@@ -23,17 +23,15 @@ namespace http {
  */
 class XZERO_HTTP_API HttpDateGenerator {
  public:
-  explicit HttpDateGenerator(WallClock* clock);
-
-  WallClock* clock() const { return clock_; }
-  void setClock(WallClock* clock) { clock_ = clock; }
+  explicit HttpDateGenerator();
 
   void update();
   void fill(Buffer* target);
 
+  virtual UnixTime getCurrentTime();
+
  private:
-  WallClock* clock_;
-  DateTime current_;
+  UnixTime current_;
   Buffer buffer_;
   std::mutex mutex_;
 };

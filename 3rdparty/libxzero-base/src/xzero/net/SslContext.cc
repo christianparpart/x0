@@ -10,8 +10,9 @@
 #include <xzero/net/SslConnector.h>
 #include <xzero/net/SslContext.h>
 #include <xzero/net/Connection.h>
-#include <xzero/sysconfig.h>
 #include <xzero/RuntimeError.h>
+#include <xzero/logging.h>
+#include <xzero/sysconfig.h>
 #include <openssl/bio.h>
 #include <openssl/err.h>
 #include <openssl/tls1.h>
@@ -23,11 +24,7 @@
 namespace xzero {
 
 #ifndef NDEBUG
-#define TRACE(msg...) { \
-  fprintf(stderr, "SslContext: " msg); \
-  fprintf(stderr, "\n"); \
-  fflush(stderr); \
-}
+#define TRACE(msg...) logTrace("SslContext", msg)
 #else
 #define TRACE(msg...) do {} while (0)
 #endif
@@ -129,7 +126,7 @@ static std::vector<std::string> collectDnsNames(SSL_CTX* ctx) {
 SslContext::SslContext(SslConnector* connector,
                        const std::string& crtFilePath,
                        const std::string& keyFilePath) {
-  TRACE("%p SslContext(\"%s\", \"%s\"", this, crtFilePath.c_str(), keyFilePath.c_str());
+  TRACE("$0 SslContext(\"$1\", \"$2\"", this, crtFilePath, keyFilePath);
 
   connector_ = connector;
 
@@ -170,7 +167,7 @@ SslContext::SslContext(SslConnector* connector,
 }
 
 SslContext::~SslContext() {
-  TRACE("%p ~SslContext()", this);
+  TRACE("$0 ~SslContext()", this);
   SSL_CTX_free(ctx_);
 }
 
@@ -199,7 +196,8 @@ int SslContext::onAppLayerProtoNegotiation(SSL* ssl,
   if (rv != OPENSSL_NPN_NEGOTIATED)
     return SSL_TLSEXT_ERR_NOACK;
 
-  TRACE("SSL ALPN selected: \"%*s\"", *outlen, *out);
+  TRACE("SSL ALPN selected: \"$0\"",
+        std::string((const char*)*out, (size_t)*outlen));
 
   return SSL_TLSEXT_ERR_OK;
 #else
@@ -214,7 +212,7 @@ int SslContext::onAppLayerProtoNegotiation(SSL* ssl,
 int SslContext::onNextProtosAdvertised(SSL* ssl,
     const unsigned char** out, unsigned int* outlen, void* pself) {
 #ifdef TLSEXT_TYPE_next_proto_neg
-  TRACE("%p NPN callback", pself);
+  TRACE("$0 NPN callback", pself);
 
   *out = (const unsigned char*) NPN_BLAH_1_0 NPN_HTTP_1_1;
   *outlen = sizeof(NPN_BLAH_1_0 NPN_HTTP_1_1) - 1;
@@ -226,7 +224,7 @@ int SslContext::onNextProtosAdvertised(SSL* ssl,
 }
 
 int SslContext::onServerName(SSL* ssl, int* ad, SslContext* self) {
-  TRACE("%p onServerName()", self);
+  TRACE("$0 onServerName()", self);
   const char* name = SSL_get_servername(ssl, TLSEXT_NAMETYPE_host_name);
 
   if (SslContext* ctx = self->connector_->selectContext(name)) {
@@ -259,6 +257,10 @@ bool SslContext::imatch(const std::string& pattern, const std::string& value) {
     return true;
 
   return false;
+}
+
+template<> std::string StringUtil::toString(SslContext* cx) {
+  return StringUtil::format("SslContext/$0", (void*) cx);
 }
 
 } // namespace xzero

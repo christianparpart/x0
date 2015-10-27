@@ -9,8 +9,8 @@
 
 #pragma once
 
-#include <xzero/Api.h>
 #include <xzero/executor/SafeCall.h>
+#include <xzero/ExceptionHandler.h>
 #include <xzero/sysconfig.h>
 
 #include <exception>
@@ -30,9 +30,10 @@ namespace xzero {
  * @see DirectExecutor
  * @see ThreadPool
  */
-class XZERO_BASE_API Executor : protected SafeCall {
+class Executor : protected SafeCall {
  public:
-  explicit Executor(std::function<void(const std::exception&)> eh);
+  explicit Executor(std::unique_ptr<xzero::ExceptionHandler> eh);
+
   virtual ~Executor();
 
   typedef std::function<void()> Task;

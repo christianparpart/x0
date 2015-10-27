@@ -1,16 +1,16 @@
-// This file is part of the "libxzero" project
+// This file is part of the "libcortex" project
 //   (c) 2009-2015 Christian Parpart <https://github.com/christianparpart>
 //   (c) 2014-2015 Paul Asmuth <https://github.com/paulasmuth>
 //
-// libxzero is free software: you can redistribute it and/or modify it under
+// libcortex is free software: you can redistribute it and/or modify it under
 // the terms of the GNU Affero General Public License v3.0.
 // You should have received a copy of the GNU Affero General Public License
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 #pragma once
 
-#include <xzero/Api.h>
 #include <xzero/sysconfig.h>
+#include <xzero/exceptionhandler.h>
 
 #include <exception>
 #include <deque>
@@ -26,15 +26,16 @@ namespace xzero {
  * Unhandled exceptions will be caught and passed to the exception handler,
  * i.e. to log them.
  */
-class XZERO_BASE_API SafeCall {
+class SafeCall {
  public:
   SafeCall();
-  explicit SafeCall(std::function<void(const std::exception&)> eh);
+
+  explicit SafeCall(std::unique_ptr<ExceptionHandler> eh);
 
   /**
    * Configures exception handler.
    */
-  void setExceptionHandler(std::function<void(const std::exception&)> eh);
+  void setExceptionHandler(std::unique_ptr<ExceptionHandler> eh);
 
   /**
    * Savely invokes given task within the callers context.
@@ -43,14 +44,14 @@ class XZERO_BASE_API SafeCall {
    *
    * @see setExceptionHandler(std::function<void(const std::exception&)>)
    */
-  void safeCall(std::function<void()> callee) XZERO_NOEXCEPT;
+  void safeCall(std::function<void()> callee) noexcept;
 
   /**
    * Convinience call operator.
    *
    * @see void safeCall(std::function<void()> callee)
    */
-  void operator()(std::function<void()> callee) XZERO_NOEXCEPT {
+  void operator()(std::function<void()> callee) noexcept {
     safeCall(callee);
   }
 
@@ -58,10 +59,10 @@ class XZERO_BASE_API SafeCall {
   /**
    * Handles uncaught exception.
    */
-  void handleException(const std::exception& e) XZERO_NOEXCEPT;
+  void handleException(const std::exception& e) noexcept;
 
  private:
-  std::function<void(const std::exception&)> exceptionHandler_;
+  std::unique_ptr<ExceptionHandler> exceptionHandler_;
 };
 
 } // namespace xzero

@@ -11,7 +11,7 @@
 #include <xzero/Api.h>
 #include <xzero/RefCounted.h>
 #include <xzero/RefPtr.h>
-#include <xzero/TimeSpan.h>
+#include <xzero/Duration.h>
 #include <xzero/RuntimeError.h>
 #include <xzero/Status.h>
 #include <xzero/thread/Wakeup.h>
@@ -66,7 +66,7 @@ class XZERO_BASE_API Future {
   void onSuccess(std::function<void (const T& value)> fn);
 
   void wait() const;
-  void wait(const TimeSpan& timeout) const;
+  void wait(const Duration& timeout) const;
 
   void onReady(std::function<void> fn);
   void onReady(Scheduler* scheduler, std::function<void> fn);

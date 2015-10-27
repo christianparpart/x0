@@ -8,27 +8,24 @@
 #include <xzero/http/http1/ConnectionFactory.h>
 #include <xzero/http/http1/Connection.h>
 #include <xzero/net/Connector.h>
-#include <xzero/WallClock.h>
 
 namespace xzero {
 namespace http {
 namespace http1 {
 
 ConnectionFactory::ConnectionFactory()
-    : ConnectionFactory(WallClock::system(),
-                             4096,
-                             4 * 1024 * 1024,
-                             100,
-                             TimeSpan::fromSeconds(8)) {
+    : ConnectionFactory(4096,
+                        4 * 1024 * 1024,
+                        100,
+                        Duration::fromSeconds(8)) {
 }
 
 ConnectionFactory::ConnectionFactory(
-    WallClock* clock,
     size_t maxRequestUriLength,
     size_t maxRequestBodyLength,
     size_t maxRequestCount,
-    TimeSpan maxKeepAlive)
-    : HttpConnectionFactory("http/1.1", clock, maxRequestUriLength,
+    Duration maxKeepAlive)
+    : HttpConnectionFactory("http/1.1", maxRequestUriLength,
                             maxRequestBodyLength),
       maxRequestCount_(maxRequestCount),
       maxKeepAlive_(maxKeepAlive) {

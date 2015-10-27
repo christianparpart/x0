@@ -9,6 +9,7 @@
 #include <xzero/http/HttpListener.h>
 #include <xzero/http/HttpStatus.h>
 #include <xzero/http/BadMessage.h>
+#include <xzero/StringUtil.h>
 #include <xzero/logging.h>
 
 namespace xzero {
@@ -265,7 +266,7 @@ std::size_t Parser::parseFragment(const BufferRef& chunk) {
 
   // TRACE(2, "process(curState:%s): size: %ld: '%s'", to_string(state()).c_str(),
   // chunk.size(), chunk.str().c_str());
-  TRACE("process(curState:%s): size: %ld", to_string(state()).c_str(),
+  TRACE("process(curState:$0): size: $1", to_string(state()).c_str(),
         chunk.size());
 
 #if 0
@@ -456,9 +457,8 @@ std::size_t Parser::parseFragment(const BufferRef& chunk) {
           state_ = HEADER_NAME_BEGIN;
           nextChar();
 
-          TRACE("request-line: method=%s, entity=%s, vmaj=%d, vmin=%d",
-                method_.str().c_str(), entity_.str().c_str(), versionMajor_,
-                versionMinor_);
+          TRACE("request-line: method=$0, entity=$1, vmaj=$2, vmin=$3",
+                method_.str(), entity_.str(), versionMajor_, versionMinor_);
 
           onMessageBegin(method_, entity_, versionMajor_, versionMinor_);
         } else {
@@ -586,8 +586,8 @@ std::size_t Parser::parseFragment(const BufferRef& chunk) {
           state_ = HEADER_NAME_BEGIN;
           nextChar();
 
-          // TRACE("status-line: HTTP/%d.%d, code=%d, message=%s",
-          // versionMajor_, versionMinor_, code_, message_.str().c_str());
+          // TRACE("status-line: HTTP/$0.$1, code=$2, message=$3",
+          // versionMajor_, versionMinor_, code_, message_);
           onMessageBegin(versionMajor_, versionMinor_, code_, message_);
         } else {
           onProtocolError(HttpStatus::BadRequest);
@@ -724,12 +724,11 @@ std::size_t Parser::parseFragment(const BufferRef& chunk) {
         }
         break;
       case HEADER_VALUE_END: {
-        TRACE("header: name='%s', value='%s'", name_.str().c_str(),
-              value_.str().c_str());
+        TRACE("header: name='$0', value='$1'", name_.str(), value_.str());
 
         if (iequals(name_, "Content-Length")) {
           contentLength_ = value_.toInt();
-          TRACE("set content length to: %ld", contentLength_);
+          TRACE("set content length to: $0", contentLength_);
           onMessageHeader(name_, value_);
         } else if (iequals(name_, "Transfer-Encoding")) {
           if (iequals(value_, "chunked")) {
@@ -783,8 +782,7 @@ std::size_t Parser::parseFragment(const BufferRef& chunk) {
         // body w/o content-length (allowed in simple MESSAGE types only)
         BufferRef c(chunk.ref(*nparsed - initialOutOffset));
 
-        // TRACE("prepared content-chunk (%ld bytes): %s", c.size(),
-        // c.str().c_str());
+        // TRACE("prepared content-chunk ($0 bytes): $1", c.size(), c.str());
 
         nextChar(c.size());
 
@@ -845,7 +843,7 @@ std::size_t Parser::parseFragment(const BufferRef& chunk) {
           onProtocolError(HttpStatus::BadRequest);
           state_ = PROTOCOL_ERROR;
         } else {
-          // TRACE("content_length: %ld", contentLength_);
+          // TRACE("content_length: $0", contentLength_);
           if (contentLength_ != 0)
             state_ = CONTENT_CHUNK_BODY;
           else
@@ -906,15 +904,15 @@ std::size_t Parser::parseFragment(const BufferRef& chunk) {
         goto done;
       default:
 #if !defined(NDEBUG)
-        TRACE("parse: unknown state %i", state_);
+        TRACE("parse: unknown state $0", state_);
         if (std::isprint(*i)) {
-          TRACE("parse: internal error at nparsed: %ld, character: '%c'",
+          TRACE("parse: internal error at nparsed: $0, character: '$1'",
                 *nparsed, *i);
         } else {
-          TRACE("parse: internal error at nparsed: %ld, character: 0x%02X",
+          TRACE("parse: internal error at nparsed: $0, character: $1",
                 *nparsed, *i);
         }
-        TRACE("%s", chunk.hexdump().c_str());
+        TRACE("$0", chunk.hexdump().c_str());
 #endif
         goto done;
     }
@@ -1065,4 +1063,10 @@ void Parser::onProtocolError(HttpStatus code, const std::string& message) {
 
 }  // namespace http1
 }  // namespace http
+
+template <>
+std::string StringUtil::toString(http::http1::Parser::State value) {
+  return http::http1::to_string(value);
+}
+
 }  // namespace xzero

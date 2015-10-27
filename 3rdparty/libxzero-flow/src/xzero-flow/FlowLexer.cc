@@ -122,8 +122,7 @@ FlowLexer::Scope* FlowLexer::enterScope(
   std::unique_ptr<Scope> cx(new Scope());
   if (!cx) return nullptr;
 
-  TRACE(1, "ENTER CONTEXT '%s' (depth: %zu)", filename.c_str(),
-        contexts_.size() + 1);
+  TRACE(1, "ENTER SCOPE '$0' (depth: $1)", filename, contexts_.size() + 1);
 
   cx->setStream(filename, std::move(ifs));
   cx->backupChar = currentChar();
@@ -148,8 +147,7 @@ FlowLexer::Scope* FlowLexer::enterScope(const std::string& filename) {
 }
 
 void FlowLexer::leaveScope() {
-  TRACE(1, "LEAVE CONTEXT '%s' (depth: %zu)", scope()->filename.c_str(),
-        contexts_.size());
+  TRACE(1, "LEAVE SCOPE '$0' (depth: $1)", scope()->filename, contexts_.size());
 
   currentChar_ = scope()->backupChar;
   contexts_.pop_front();
@@ -211,8 +209,8 @@ bool FlowLexer::consumeSpace() {
     if (std::isprint(currentChar_)) break;
 
     // TODO proper error reporting through API callback
-    TRACE(1, "%s[%04zu:%02zu]: invalid byte 0x%02X\n",
-          location_.filename.c_str(), line(), column(), currentChar() & 0xFF);
+    TRACE(1, "$0[$1:$2]: invalid byte $3",
+          location_.filename, line(), column(), currentChar() & 0xFF);
   }
 
   if (eof()) return true;
@@ -276,13 +274,13 @@ void FlowLexer::processCommand(const std::string& line) {
   size_t beg = line.find('"');
   size_t end = line.rfind('"');
   if (beg == std::string::npos || end == std::string::npos) {
-    TRACE(1, "Malformed #include line\n");
+    TRACE(1, "Malformed #include line");
     return;
   }
 
   std::string pattern = line.substr(beg + 1, end - beg - 1);
 
-  TRACE(1, "Process include: '%s'", pattern.c_str());
+  TRACE(1, "Process include: '$0'", pattern);
 
   glob_t gl;
   int rv = glob(pattern.c_str(), GLOB_TILDE, nullptr, &gl);
@@ -291,7 +289,7 @@ void FlowLexer::processCommand(const std::string& line) {
         {GLOB_NOSPACE, "No space"},
         {GLOB_ABORTED, "Aborted"},
         {GLOB_NOMATCH, "No Match"}, };
-    TRACE(1, "glob() error: %s", globErrs[rv]);
+    TRACE(1, "glob() error: $0", globErrs[rv]);
     return;
   }
 
@@ -313,11 +311,14 @@ FlowToken FlowLexer::nextToken() {
   location_.begin = scope()->currPos;
 
   TRACE(2,
-        "nextToken(): currentChar %s curr[%zu:%zu.%zu] curr_tok(%s) "
-        "next[%zu:%zu.%zu]",
-        escape(currentChar_).c_str(), scope()->currPos.line,
-        scope()->currPos.column, scope()->currPos.offset, token().c_str(),
-        scope()->nextPos.line, scope()->nextPos.column,
+        "nextToken(): currentChar $0 curr[$1:$2:$3] curr_tok($4) next[$5:$6:$7]",
+        escape(currentChar_),
+        scope()->currPos.line,
+        scope()->currPos.column,
+        scope()->currPos.offset,
+        token(),
+        scope()->nextPos.line,
+        scope()->nextPos.column,
         scope()->nextPos.offset);
 
   switch (currentChar()) {
@@ -488,8 +489,8 @@ FlowToken FlowLexer::nextToken() {
       if (std::isalpha(currentChar()) || currentChar() == '_')
         return token_ = parseIdent();
 
-      TRACE(1, "nextToken: unknown char %s (0x%02X)\n",
-            escape(currentChar()).c_str(), currentChar() & 0xFF);
+      TRACE(1, "nextToken: unknown char $0 ($1)",
+            escape(currentChar()), (int)(currentChar() & 0xFF));
 
       nextChar();
       return token_ = FlowToken::Unknown;
@@ -837,8 +838,11 @@ FlowToken FlowLexer::continueCidr(size_t range) {
   nextChar();  // consume '/'
 
   if (!std::isdigit(currentChar())) {
-    TRACE(1, "%s[%04zu:%02zu]: invalid byte 0x%02X\n",
-          location_.filename.c_str(), line(), column(), currentChar() & 0xFF);
+    TRACE(1, "$0[$1:$2]: invalid byte $3",
+          location_.filename,
+          line(),
+          column(),
+          (int)(currentChar() & 0xFF));
     return token_ = FlowToken::Unknown;
   }
 
@@ -851,8 +855,8 @@ FlowToken FlowLexer::continueCidr(size_t range) {
   }
 
   if (numberValue_ > static_cast<decltype(numberValue_)>(range)) {
-    TRACE(1, "%s[%04zu:%02zu]: CIDR prefix out of range.\n",
-          location_.filename.c_str(), line(), column());
+    TRACE(1, "$0[$1:$2]: CIDR prefix out of range.",
+          location_.filename, line(), column());
     return token_ = FlowToken::Unknown;
   }
 

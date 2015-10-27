@@ -1,3 +1,21 @@
+# HAproxy Compatibility
+
+Support haproxy config syntax to load load HTTP clusters (others are
+warned and ignored). They cannot be runtime configured nor saved;
+
+- automatically ensure HTTP listeners for the registered ports.
+
+```
+handler setup {
+  haproxy.load '/etc/haproxy.cfg';
+}
+
+handler main {
+  accesslog '/var/log/x0d/access.log';
+  haproxy.serve;
+}
+```
+
 # Backend "slow-start"
 
 `slow-start` is by default set to 0, which means, that as soon as this backend is marked online, it'll be hit with

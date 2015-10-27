@@ -11,6 +11,8 @@
 #define x0_IPAddress_h
 
 #include <xzero/Api.h>
+#include <xzero/StringUtil.h>
+#include <xzero/Option.h>
 
 #include <functional>  // hash<>
 #include <stdint.h>
@@ -183,6 +185,26 @@ inline bool operator!=(const IPAddress& a, const IPAddress& b) {
   return !(a == b);
 }
 // }}}
+
+template<>
+inline std::string StringUtil::toString(const IPAddress& ipaddr) {
+  return ipaddr.str();
+}
+
+template<>
+inline std::string StringUtil::toString(IPAddress& ipaddr) {
+  return ipaddr.str();
+}
+
+template<>
+inline std::string StringUtil::toString(IPAddress ipaddr) {
+  return ipaddr.str();
+}
+
+template<>
+inline std::string StringUtil::toString(Option<IPAddress> ipaddr) {
+  return ipaddr.isEmpty() ? "None" : ipaddr.get().str();
+}
 
 }  // namespace xzero
 

@@ -88,22 +88,30 @@ else()
 endif()
 
 set(xzero_base_SRC
+  AnsiColor.cc
   Application.cc
   Base64.cc
   Buffer.cc
-  DateTime.cc
+  BufferUtil.cc
+  CivilTime.cc
+  Duration.cc
+  ExceptionHandler.cc
   IEEE754.cc
+  ISO8601.cc
   IdleTimeout.cc
   MimeTypes.cc
+  MonotonicClock.cc
+  MonotonicTime.cc
   Random.cc
   RegExp.cc
   RuntimeError.cc
   StackTrace.cc
   Status.cc
   StringUtil.cc
-  TimeSpan.cc
   Tokenizer.cc
+  UnixTime.cc
   Uri.cc
+  UTF8.cc
   WallClock.cc
   inspect.cc
 
@@ -134,11 +142,10 @@ set(xzero_base_SRC
   io/MemoryMap.cc
   io/PageManager.cc
 
-  logging/LogAggregator.cc
+  logging/ConsoleLogTarget.cc
   logging/LogLevel.cc
-  logging/LogSource.cc
   logging/LogTarget.cc
-  logging.cc
+  logging/Logger.cc
 
   net/ByteArrayEndPoint.cc
   net/Cidr.cc

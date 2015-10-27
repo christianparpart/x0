@@ -360,7 +360,7 @@ void FastCgiBackend::Connection::serializeRequest() {
  * @note After this call, all field members must be treated as garbage.
  */
 void FastCgiBackend::Connection::exitSuccess() {
-  TRACE(1, "exitSuccess() aborted:%s\n", isAborted_ ? "yes" : "no");
+  TRACE(1, "exitSuccess() aborted:$0", isAborted_);
 
   // XXX keep a copy on those variables on the stack as we are potentially
   // destroyed on the release()-call
@@ -447,7 +447,7 @@ void FastCgiBackend::Connection::write(FastCgi::Type type, int requestId,
 
   if (len == 0) {
     FastCgi::Record record(type, requestId, 0, 0);
-    TRACE(1, "writing packet (%s) of %ld bytes to backend server.",
+    TRACE(1, "writing packet ($0) of $1 bytes to backend server.",
           record.type_str(), len);
     writeBuffer_.push_back(record.data(), sizeof(record));
     return;
@@ -465,13 +465,13 @@ void FastCgiBackend::Connection::write(FastCgi::Type type, int requestId,
 
     offset += clen;
 
-    TRACE(1, "writing packet (%s) of %ld bytes to backend server.",
+    TRACE(1, "writing packet ($0) of $1 bytes to backend server.",
           record.type_str(), record.size());
   }
 }
 
 void FastCgiBackend::Connection::write(FastCgi::Record* record) {
-  TRACE(1, "writing packet (%s) of %ld bytes to backend server.",
+  TRACE(1, "writing packet ($0) of $1 bytes to backend server.",
         record->type_str(), record->size());
 
   writeBuffer_.push_back(record->data(), record->size());
@@ -542,7 +542,7 @@ void FastCgiBackend::Connection::onReadWriteTimeout(Socket* s) {
 }
 
 void FastCgiBackend::Connection::onReadWriteReady(Socket* s, int revents) {
-  TRACE(1, "Received I/O activity on backend socket. revents=0x%04x", revents);
+  TRACE(1, "Received I/O activity on backend socket. revents=$0", revents);
 
   if (revents & ev::ERROR) {
     log(Severity::error,
@@ -599,7 +599,7 @@ void FastCgiBackend::Connection::onReadWriteReady(Socket* s, int revents) {
 
       readOffset_ += record->size();
 
-      TRACE(1, "Processing received FastCGI packet (%s).", record->type_str());
+      TRACE(1, "Processing received FastCGI packet ($0).", record->type_str());
 
       if (!processRecord(record)) {
         return;
@@ -622,7 +622,7 @@ void FastCgiBackend::Connection::onReadWriteReady(Socket* s, int revents) {
 
     writeOffset_ += rv;
 
-    TRACE(1, "Wrote %ld bytes to backend server.", rv);
+    TRACE(1, "Wrote $0 bytes to backend server.", rv);
 
     // if set watcher back to EV_READ if the write-buffer has been fully written
     // (to catch connection close events)
@@ -641,10 +641,11 @@ void FastCgiBackend::Connection::onReadWriteReady(Socket* s, int revents) {
  */
 void FastCgiBackend::Connection::onWriteComplete() {
 #if 0   //{{{
-    TRACE(1, "FastCgiBackend::Connection.onWriteComplete() bufferSize: %ld", writeBuffer_.size());
+    TRACE(1, "FastCgiBackend::Connection.onWriteComplete() bufferSize:$0d",
+          writeBuffer_.size());
 
     if (writeBuffer_.size() != 0) {
-        TRACE(1, "onWriteComplete: queued:%ld", writeBuffer_.size());
+        TRACE(1, "onWriteComplete: queued:$0", writeBuffer_.size());
 
         auto r = rn_->request;
 
@@ -726,13 +727,13 @@ bool FastCgiBackend::Connection::processRecord(const FastCgi::Record* record) {
 
 void FastCgiBackend::Connection::onParam(const std::string& name,
                                          const std::string& value) {
-  TRACE(1, "Received protocol parameter %s=%s.", name.c_str(), value.c_str());
+  TRACE(1, "Received protocol parameter $0=$1.", name, value);
 }
 
 void FastCgiBackend::Connection::onStdOut(const BufferRef& chunk) {
-  TRACE(1, "Received %ld bytes from backend server (state=%s).", chunk.size(),
-        tos(state()).c_str());
-  // TRACE(2, "data: %s", chunk.str().c_str());
+  TRACE(1, "Received $0 bytes from backend server (state=$1).",
+        chunk.size(), state());
+  // TRACE(2, "data: $0", chunk.str());
 
   parseFragment(chunk);
 }
@@ -789,8 +790,8 @@ void FastCgiBackend::Connection::onEndRequest(
 
 bool FastCgiBackend::Connection::onMessageHeader(const BufferRef& name,
                                                  const BufferRef& value) {
-  TRACE(1, "parsed HTTP header from backend server. %s: %s", name.str().c_str(),
-        value.str().c_str());
+  TRACE(1, "parsed HTTP header from backend server. $0: $1",
+        name.str(), value.str());
 
   if (iequals(name, "Status")) {
     int status = value.ref(0, value.find(' ')).toInt();
@@ -824,9 +825,9 @@ bool FastCgiBackend::Connection::onMessageHeaderEnd() {
 bool FastCgiBackend::Connection::onMessageContent(const BufferRef& chunk) {
   auto r = rn_->request;
 
-  TRACE(1, "Parsed HTTP message content of %ld bytes from backend server.",
+  TRACE(1, "Parsed HTTP message content of $0 bytes from backend server.",
         chunk.size());
-  // TRACE(2, "Message content chunk: %s", chunk.str().c_str());
+  // TRACE(2, "Message content chunk: $0", chunk.str());
 
   if (unlikely(!sendfile_.empty())) {
     // we ignore the backend's message body as we've replaced it with the file

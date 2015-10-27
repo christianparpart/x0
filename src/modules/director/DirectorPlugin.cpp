@@ -173,7 +173,7 @@ void DirectorPlugin::director_cache_enabled(HttpRequest* r,
 #if defined(ENABLE_DIRECTOR_CACHE)
 void DirectorPlugin::director_cache_ttl(HttpRequest* r, vm::Params& args) {
   auto notes = requestNotes(r);
-  notes->cacheTTL = TimeSpan::fromSeconds(args.getInt(1));
+  notes->cacheTTL = Duration::fromSeconds(args.getInt(1));
 }
 #endif
 // }}}

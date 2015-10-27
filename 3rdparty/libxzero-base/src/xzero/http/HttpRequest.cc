@@ -59,7 +59,7 @@ void HttpRequest::setMethod(const std::string& value) {
 }
 
 void HttpRequest::recycle() {
-  TRACE("%p recycle", this);
+  TRACE("$0 recycle", this);
   method_ = HttpMethod::UNKNOWN_METHOD;
   unparsedMethod_.clear();
   unparsedUri_.clear();
@@ -249,7 +249,7 @@ bool HttpRequest::setUri(const std::string& uri) {
       case UriState::QuoteChar2:
         if (ch >= '0' && ch <= '9') {
           ch = decodedChar | (ch - '0');
-          TRACE("parse-uri: decoded character 0x%02x", ch & 0xFF);
+          TRACE("parse-uri: decoded character $0", (unsigned int)(ch & 0xFF));
 
           switch (ch) {
             case '\0':
@@ -285,7 +285,7 @@ bool HttpRequest::setUri(const std::string& uri) {
           //
           ch = decodedChar | (ch - ('a' - 10));
 
-          TRACE("parse-uri: decoded character 0x%02x", ch & 0xFF);
+          TRACE("parse-uri: decoded character $0", (unsigned int)(ch & 0xFF));
 
           switch (ch) {
             case '\0':
@@ -331,9 +331,9 @@ bool HttpRequest::setUri(const std::string& uri) {
   }
 
 done:
-  TRACE("parse-uri(%s): success. path:%s, query:%s, depth:%d, mindepth:%d, state:%s",
-        unparsedUri_.c_str(),
-        path_.c_str(), query_.c_str(), depth, minDepth, uriStateNames[(int)state]);
+  TRACE("parse-uri($0): success. path:$1, query:$2, depth:$3, mindepth:$4, state:$5",
+        unparsedUri_,
+        path_, query_, depth, minDepth, uriStateNames[(int)state]);
   directoryDepth_ = depth;
 
   if (minDepth < 0) {
@@ -348,4 +348,10 @@ void HttpRequest::setHost(const std::string& value) {
 }
 
 }  // namespace http
+
+template<>
+std::string StringUtil::toString(http::HttpRequest* value) {
+  return StringUtil::format("HttpRequest[$0]", (void*)value);
+}
+
 }  // namespace xzero

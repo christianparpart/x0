@@ -1,38 +1,41 @@
-// This file is part of the "libxzero" project
-//   (c) 2009-2015 Christian Parpart <https://github.com/christianparpart>
-//   (c) 2014-2015 Paul Asmuth <https://github.com/paulasmuth>
-//
-// libxzero is free software: you can redistribute it and/or modify it under
-// the terms of the GNU Affero General Public License v3.0.
-// You should have received a copy of the GNU Affero General Public License
-// along with this program. If not, see <http://www.gnu.org/licenses/>.
+/**
+ * This file is part of the "libxzero" project
+ *   Copyright (c) 2014 Paul Asmuth, Google Inc.
+ *
+ * libxzero is free software: you can redistribute it and/or modify it under
+ * the terms of the GNU General Public License v3.0. You should have received a
+ * copy of the GNU General Public License along with this program. If not, see
+ * <http://www.gnu.org/licenses/>.
+ */
+#ifndef _libxzero_UTIL_LOGLEVEL_H
+#define _libxzero_UTIL_LOGLEVEL_H
 
-#pragma once
-
-#include <xzero/Api.h>
-#include <string>
+#include <xzero/stdtypes.h>
 
 namespace xzero {
 
 enum class LogLevel {
-  None = 0,
-  Error = 1,
-  Warning = 2,
-  Notice = 3,
-  Info = 4,
-  Debug = 5,
-  Trace = 6,
+  None = 9999,
+  Emergency = 9000,
+  Alert = 8000,
+  Critical = 7000,
+  Error = 6000,
+  Warning = 5000,
+  Notice = 4000,
+  Info = 3000,
+  Debug = 2000,
+  Trace = 1000,
 
-  none = None,
-  error = Error,
-  warn = Warning,
-  notice = Notice,
-  info = Info,
-  debug = Debug,
-  trace = Trace,
+  kEmergency = Emergency,
+  kAlert = Alert,
+  kCritical = Critical,
+  kError = Error,
+  kWarning = Warning,
+  kNotice = Notice,
+  kInfo = Info,
+  kDebug = Debug,
+  kTrace = Trace
 };
 
-XZERO_BASE_API std::string to_string(LogLevel value);
-XZERO_BASE_API LogLevel to_loglevel(const std::string& value);
-
-}  // namespace xzero
+}
+#endif

@@ -174,7 +174,7 @@ void RequestParser::process(const fastcgi::Record* record) {
 }
 
 void RequestParser::beginRequest(const fastcgi::BeginRequestRecord* record) {
-  TRACE("BeginRequest(role=%s, rid=%d, keepalive=%s)",
+  TRACE("BeginRequest(role=$0, rid=$1, keepalive=$2)",
         record->role_str(),
         record->requestId(),
         record->isKeepAlive() ? "yes" : "no");
@@ -188,7 +188,7 @@ void RequestParser::beginRequest(const fastcgi::BeginRequestRecord* record) {
 }
 
 void RequestParser::streamParams(const fastcgi::Record* record) {
-  TRACE("Params(size=%zu)", record->contentLength());
+  TRACE("Params(size=$0)", record->contentLength());
   StreamState* stream = getStream(record->requestId());
   if (!stream)
     return;
@@ -204,7 +204,7 @@ void RequestParser::streamParams(const fastcgi::Record* record) {
   stream->paramsFullyReceived = true;
 
   for (const auto& param: stream->params)
-    TRACE("  %s: %s", param.name().c_str(), param.value().c_str());
+    TRACE("  $0: $1", param.name(), param.value());
 
   BufferRef method(stream->params.get("REQUEST_METHOD"));
   BufferRef entity(stream->params.get("REQUEST_URI"));
@@ -245,7 +245,7 @@ void RequestParser::streamStdIn(const fastcgi::Record* record) {
 
   stream->totalBytesReceived += record->size();
 
-  TRACE("streamStdIn: payload:%zu, paramsEOS:%s",
+  TRACE("streamStdIn: payload:$0, paramsEOS:$1",
       record->contentLength(),
       stream->paramsFullyReceived ? "true" : "false");
 
@@ -262,7 +262,7 @@ void RequestParser::streamStdIn(const fastcgi::Record* record) {
 }
 
 void RequestParser::streamData(const fastcgi::Record* record) {
-  TRACE("streamData: %zu", record->contentLength());
+  TRACE("streamData: $0", record->contentLength());
 
   StreamState* stream = getStream(record->requestId());
   if (!stream)

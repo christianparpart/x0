@@ -8,7 +8,7 @@
 #pragma once
 
 #include <xzero/Option.h>
-#include <xzero/TimeSpan.h>
+#include <xzero/Duration.h>
 #include <xzero/net/IPAddress.h>
 #include <list>
 #include <unordered_map>
@@ -48,15 +48,15 @@ struct Config {
   size_t requestHeaderBufferSize;
   size_t requestBodyBufferSize;
   size_t maxKeepAliveRequests;
-  xzero::TimeSpan maxKeepAlive;
+  xzero::Duration maxKeepAlive;
 
   bool tcpCork;
   bool tcpNoDelay;
   size_t maxConnections;
-  xzero::TimeSpan maxReadIdle;
-  xzero::TimeSpan maxWriteIdle;
-  xzero::TimeSpan tcpFinTimeout;
-  xzero::TimeSpan lingering;
+  xzero::Duration maxReadIdle;
+  xzero::Duration maxWriteIdle;
+  xzero::Duration tcpFinTimeout;
+  xzero::Duration lingering;
 
   // accesslog
   std::unordered_map<std::string, std::string> accesslogFormats;

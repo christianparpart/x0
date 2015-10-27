@@ -14,8 +14,8 @@
 #include <xzero/MimeTypes.h>
 #include <xzero/io/LocalFileRepository.h>
 #include <xzero/Signal.h>
-#include <xzero/DateTime.h>
-#include <xzero/TimeSpan.h>
+#include <xzero/UnixTime.h>
+#include <xzero/Duration.h>
 #include <xzero/http/http1/ConnectionFactory.h>
 #include <xzero-flow/AST.h>
 #include <xzero-flow/ir/IRProgram.h>
@@ -150,8 +150,8 @@ class XzeroDaemon : public xzero::flow::vm::Runtime {
   void postConfig();
 
  private:
-  unsigned generation_;                   //!< process generation number
-  xzero::DateTime startupTime_;          //!< process startup time
+  unsigned generation_;                  //!< process generation number
+  xzero::UnixTime startupTime_;          //!< process startup time
 
   xzero::MimeTypes mimetypes_;
   xzero::LocalFileRepository vfs_;
@@ -183,10 +183,10 @@ class XzeroDaemon : public xzero::flow::vm::Runtime {
   bool tcpCork_;
   bool tcpNoDelay_;
   size_t maxConnections_;
-  xzero::TimeSpan maxReadIdle_;
-  xzero::TimeSpan maxWriteIdle_;
-  xzero::TimeSpan tcpFinTimeout_;
-  xzero::TimeSpan lingering_;
+  xzero::Duration maxReadIdle_;
+  xzero::Duration maxWriteIdle_;
+  xzero::Duration tcpFinTimeout_;
+  xzero::Duration lingering_;
 
 
   // setup phase

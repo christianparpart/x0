@@ -20,6 +20,9 @@
 #include <xzero/executor/NativeScheduler.h>
 #include <xzero/net/InetConnector.h>
 #include <xzero/net/Server.h>
+#include <xzero/logging/LogTarget.h>
+#include <xzero/logging/ConsoleLogTarget.h>
+#include <xzero/logging.h>
 #include <xzero/cli/CLI.h>
 #include <xzero/cli/Flags.h>
 #include <xzero/RuntimeError.h>
@@ -28,6 +31,7 @@
 #include <xzero/Application.h>
 #include <xzero/StringUtil.h>
 #include <iostream>
+#include <unistd.h>
 
 #define PACKAGE_VERSION "0.11.0-dev"
 #define PACKAGE_HOMEPAGE_URL "https://xzero.io"
@@ -51,6 +55,36 @@ void printHelp(const CLI& cli) {
 
 int main(int argc, const char* argv[]) {
   Application::init();
+
+  LogLevel logLevel = LogLevel::Warning;
+  LogTarget* logTarget = nullptr;
+
+  // {{{ env-var configuration
+  if (const char* str = getenv("X0D_LOGLEVEL")) {
+    logLevel = strToLogLevel(str);
+  }
+
+  if (const char* str = getenv("X0D_LOGTARGET")) {
+    if (strcmp(str, "console") == 0) {
+      logTarget = ConsoleLogTarget::get();
+    } else if (strcmp(str, "syslog") == 0) {
+      // TODO LogTarget::syslog()
+    } else if (strncmp(str, "file:", 5) == 0) {
+      // TODO LogTarget::file("filename")
+    } else if (strcmp(str, "null") == 0) {
+      // ignore
+    } else {
+      // invalid log target
+    }
+  } else {
+    logTarget = ConsoleLogTarget::get();
+  }
+  // }}}
+
+  Logger::get()->setMinimumLogLevel(logLevel);
+
+  if (logTarget)
+    Logger::get()->addTarget(logTarget);
 
   CLI cli;
   cli.defineBool("help", 'h', "Prints this help and terminates.")

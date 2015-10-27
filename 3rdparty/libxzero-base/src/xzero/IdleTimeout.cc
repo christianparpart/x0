@@ -8,8 +8,9 @@
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 #include <xzero/IdleTimeout.h>
-#include <xzero/WallClock.h>
 #include <xzero/logging.h>
+#include <xzero/MonotonicClock.h>
+#include <xzero/MonotonicTime.h>
 #include <xzero/executor/Scheduler.h>
 #include <assert.h>
 
@@ -22,10 +23,9 @@ namespace xzero {
 #define TRACE(msg...) do {} while (0)
 #endif
 
-IdleTimeout::IdleTimeout(WallClock* clock, Scheduler* scheduler) :
-  clock_(clock),
+IdleTimeout::IdleTimeout(Scheduler* scheduler) :
   scheduler_(scheduler),
-  timeout_(TimeSpan::Zero),
+  timeout_(Duration::Zero),
   fired_(),
   active_(false),
   onTimeout_() {
@@ -34,11 +34,11 @@ IdleTimeout::IdleTimeout(WallClock* clock, Scheduler* scheduler) :
 IdleTimeout::~IdleTimeout() {
 }
 
-void IdleTimeout::setTimeout(TimeSpan value) {
+void IdleTimeout::setTimeout(Duration value) {
   timeout_ = value;
 }
 
-TimeSpan IdleTimeout::timeout() const {
+Duration IdleTimeout::timeout() const {
   return timeout_;
 }
 
@@ -68,11 +68,11 @@ void IdleTimeout::deactivate() {
   active_ = false;
 }
 
-TimeSpan IdleTimeout::elapsed() const {
+Duration IdleTimeout::elapsed() const {
   if (isActive()) {
-    return clock_->get() - fired_;
+    return MonotonicClock::now() - fired_;
   } else {
-    return TimeSpan::Zero;
+    return Duration::Zero;
   }
 }
 
@@ -81,13 +81,13 @@ void IdleTimeout::reschedule() {
 
   handle_->cancel();
 
-  TimeSpan deltaTimeout = timeout_ - (clock_->get() - fired_);
+  Duration deltaTimeout = timeout_ - (MonotonicClock::now() - fired_);
   handle_ = scheduler_->executeAfter(deltaTimeout,
                                      std::bind(&IdleTimeout::onFired, this));
 }
 
 void IdleTimeout::schedule() {
-  fired_ = clock_->get();
+  fired_ = MonotonicClock::now();
 
   if (handle_)
     handle_->cancel();
@@ -97,7 +97,7 @@ void IdleTimeout::schedule() {
 }
 
 void IdleTimeout::onFired() {
-  TRACE("IdleTimeout(%p).onFired: active=%d", this, active_);
+  TRACE("IdleTimeout($0).onFired: active=$1", this, active_);
   if (!active_) {
     return;
   }
@@ -112,6 +112,16 @@ void IdleTimeout::onFired() {
 
 bool IdleTimeout::isActive() const {
   return active_;
+}
+
+template<>
+std::string StringUtil::toString(IdleTimeout& timeout) {
+  return StringUtil::format("IdleTimeout[$0]", timeout.timeout());
+}
+
+template<>
+std::string StringUtil::toString(IdleTimeout* timeout) {
+  return StringUtil::format("IdleTimeout[$0]", timeout->timeout());
 }
 
 } // namespace xzero

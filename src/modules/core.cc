@@ -351,15 +351,15 @@ void CoreModule::server_tags(Params& args) {
 }
 
 void CoreModule::max_read_idle(Params& args) {
-  daemon().maxReadIdle_ = TimeSpan::fromSeconds(args.getInt(1));
+  daemon().maxReadIdle_ = Duration::fromSeconds(args.getInt(1));
 }
 
 void CoreModule::max_write_idle(Params& args) {
-  daemon().maxWriteIdle_ = TimeSpan::fromSeconds(args.getInt(1));
+  daemon().maxWriteIdle_ = Duration::fromSeconds(args.getInt(1));
 }
 
 void CoreModule::max_keepalive_idle(Params& args) {
-  daemon().http1_->setMaxKeepAlive(TimeSpan::fromSeconds(args.getInt(1)));
+  daemon().http1_->setMaxKeepAlive(Duration::fromSeconds(args.getInt(1)));
 }
 
 void CoreModule::max_keepalive_requests(Params& args) {
@@ -391,7 +391,7 @@ void CoreModule::tcp_nodelay(Params& args) {
 }
 
 void CoreModule::lingering(Params& args) {
-  daemon().lingering_ = TimeSpan::fromSeconds(args.getInt(1));
+  daemon().lingering_ = Duration::fromSeconds(args.getInt(1));
 }
 
 void CoreModule::max_request_uri_size(Params& args) {
@@ -497,7 +497,8 @@ void CoreModule::sys_now(XzeroContext* cx, Params& args) {
 }
 
 void CoreModule::sys_now_str(XzeroContext* cx, Params& args) {
-  args.setResult(cx->now().http_str());
+  static const char* timeFormat = "%a, %d %b %Y %H:%M:%S GMT";
+  args.setResult(cx->now().format(timeFormat));
 }
 
 void CoreModule::sys_hostname(XzeroContext* cx, Params& args) {
@@ -859,8 +860,9 @@ void CoreModule::expire(XzeroContext* cx, Params& args) {
   if (value < now)
     value = now;
 
+  static const char* timeFormat = "%a, %d %b %Y %H:%M:%S GMT";
   cx->response()->headers().overwrite(
-      "Expires", DateTime(value).http_str().str());
+      "Expires", UnixTime(value).format(timeFormat));
 
   cx->response()->headers().overwrite("Cache-Control",
       StringUtil::format("max-age=$0", value - now));

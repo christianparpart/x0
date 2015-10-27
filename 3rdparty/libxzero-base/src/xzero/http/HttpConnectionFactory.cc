@@ -14,14 +14,13 @@ namespace http {
 
 HttpConnectionFactory::HttpConnectionFactory(
     const std::string& protocolName,
-    WallClock* clock,
     size_t maxRequestUriLength,
     size_t maxRequestBodyLength)
     : ConnectionFactory(protocolName),
       maxRequestUriLength_(maxRequestUriLength),
       maxRequestBodyLength_(maxRequestBodyLength),
       outputCompressor_(new HttpOutputCompressor()),
-      dateGenerator_(clock ? new HttpDateGenerator(clock) : nullptr) {
+      dateGenerator_() {
   //.
 }
 

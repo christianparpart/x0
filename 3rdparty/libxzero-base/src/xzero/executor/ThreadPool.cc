@@ -1,8 +1,8 @@
-// This file is part of the "libxzero" project
+// This file is part of the "libcortex" project
 //   (c) 2009-2015 Christian Parpart <https://github.com/christianparpart>
 //   (c) 2014-2015 Paul Asmuth <https://github.com/paulasmuth>
 //
-// libxzero is free software: you can redistribute it and/or modify it under
+// libcortex is free software: you can redistribute it and/or modify it under
 // the terms of the GNU Affero General Public License v3.0.
 // You should have received a copy of the GNU Affero General Public License
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
@@ -10,9 +10,8 @@
 #include <xzero/executor/ThreadPool.h>
 #include <xzero/executor/PosixScheduler.h>
 #include <xzero/thread/Wakeup.h>
-#include <xzero/RuntimeError.h>
 #include <xzero/WallClock.h>
-#include <xzero/DateTime.h>
+#include <xzero/UnixTime.h>
 #include <xzero/logging.h>
 #include <xzero/sysconfig.h>
 #include <system_error>
@@ -34,14 +33,21 @@ namespace xzero {
 #define TRACE(msg...) do {} while (0)
 #endif
 
-ThreadPool::ThreadPool(std::function<void(const std::exception&)> eh)
-    : ThreadPool(processorCount(), eh) {
+ThreadPool::ThreadPool()
+    : ThreadPool(processorCount(), nullptr) {
 }
 
-ThreadPool::ThreadPool(
-    size_t num_threads,
-    std::function<void(const std::exception&)> eh)
-    : Scheduler(eh),
+ThreadPool::ThreadPool(size_t num_threads)
+    : ThreadPool(num_threads, nullptr) {
+}
+
+ThreadPool::ThreadPool(std::unique_ptr<xzero::ExceptionHandler> eh)
+    : ThreadPool(processorCount(), std::move(eh)) {
+}
+
+ThreadPool::ThreadPool(size_t num_threads,
+                       std::unique_ptr<xzero::ExceptionHandler> eh)
+    : Scheduler(std::move(eh)),
       active_(true),
       threads_(),
       mutex_(),
@@ -78,18 +84,18 @@ size_t ThreadPool::activeCount() const {
 }
 
 void ThreadPool::wait() {
-  TRACE("%p wait()", this);
+  TRACE("$0 wait()", (void*) this);
   std::unique_lock<std::mutex> lock(mutex_);
 
   if (pendingTasks_.empty() && activeTasks_ == 0) {
-    TRACE("%p wait: pending=%zu, active=%zu (immediate return)", this,
-          pendingTasks_.size(), activeTasks_.load());
+    TRACE("$0 wait: pending=$1, active=$2 (immediate return)",
+          (void*) this, pendingTasks_.size(), activeTasks_.load());
     return;
   }
 
   condition_.wait(lock, [&]() -> bool {
-    TRACE("%p wait: pending=%zu, active=%zu", this, pendingTasks_.size(),
-          activeTasks_.load());
+    TRACE("$0 wait: pending=$1, active=$2",
+          (void*) this, pendingTasks_.size(), activeTasks_.load());
     return pendingTasks_.empty() && activeTasks_.load() == 0;
   });
 }
@@ -112,7 +118,7 @@ size_t ThreadPool::processorCount() {
 }
 
 void ThreadPool::work(int workerId) {
-  TRACE("%p worker[%d] enter", this, workerId);
+  TRACE("$0 worker[$1] enter", (void*) this, workerId);
 
   while (active_) {
     Task task;
@@ -123,7 +129,7 @@ void ThreadPool::work(int workerId) {
       if (!active_)
         break;
 
-      TRACE("%p work[%d]: task received", this, workerId);
+      TRACE("$0 work[$1]: task received", (void*) this, workerId);
       task = std::move(pendingTasks_.front());
       pendingTasks_.pop_front();
     }
@@ -136,19 +142,20 @@ void ThreadPool::work(int workerId) {
     condition_.notify_all();
   }
 
-  TRACE("%p worker[%d] leave", this, workerId);
+  TRACE("$0 worker[$1] leave", (void*) this, workerId);
 }
 
 void ThreadPool::execute(Task task) {
   {
     std::unique_lock<std::mutex> lock(mutex_);
-    TRACE("%p execute: enqueue task & notify_all", this);
+    TRACE("$0 execute: enqueue task & notify_all", (void*) this);
     pendingTasks_.emplace_back(std::move(task));
   }
   condition_.notify_all();
 }
 
-ThreadPool::HandleRef ThreadPool::executeOnReadable(int fd, Task task, TimeSpan tmo, Task tcb) {
+ThreadPool::HandleRef ThreadPool::executeOnReadable(int fd, Task task, Duration tmo, Task tcb) {
+  // TODO: honor timeout
   HandleRef hr(new Handle(nullptr));
   activeReaders_++;
   execute([this, task, hr, fd] {
@@ -159,7 +166,8 @@ ThreadPool::HandleRef ThreadPool::executeOnReadable(int fd, Task task, TimeSpan 
   return nullptr;
 }
 
-ThreadPool::HandleRef ThreadPool::executeOnWritable(int fd, Task task, TimeSpan tmo, Task tcb) {
+ThreadPool::HandleRef ThreadPool::executeOnWritable(int fd, Task task, Duration tmo, Task tcb) {
+  // TODO: honor timeout
   HandleRef hr(new Handle(nullptr));
   activeWriters_++;
   execute([this, task, hr, fd] {
@@ -170,25 +178,28 @@ ThreadPool::HandleRef ThreadPool::executeOnWritable(int fd, Task task, TimeSpan 
   return hr;
 }
 
-ThreadPool::HandleRef ThreadPool::executeAfter(TimeSpan delay, Task task) {
+void ThreadPool::cancelFD(int fd) {
+}
+
+ThreadPool::HandleRef ThreadPool::executeAfter(Duration delay, Task task) {
   HandleRef hr(new Handle(nullptr));
   activeTimers_++;
   execute([this, task, hr, delay] {
-    WallClock::sleep(delay);
+    usleep(delay.microseconds());
     safeCall([&] { hr->fire(task); });
     activeTimers_--;
   });
   return hr;
 }
 
-ThreadPool::HandleRef ThreadPool::executeAt(DateTime dt, Task task) {
+ThreadPool::HandleRef ThreadPool::executeAt(UnixTime dt, Task task) {
   HandleRef hr(new Handle(nullptr));
   activeTimers_++;
   execute([this, task, hr, dt] {
-    DateTime now = WallClock::system()->get();
+    UnixTime now = WallClock::now();
     if (dt > now) {
-      TimeSpan delay = dt - now;
-      WallClock::sleep(delay);
+      Duration delay = dt - now;
+      usleep(delay.microseconds());
     }
     safeCall([&] { hr->fire(task); });
     activeTimers_--;
@@ -252,6 +263,24 @@ std::string ThreadPool::toString() const {
                    this);
 
   return std::string(buf, n);
+}
+
+void ThreadPool::run(std::function<void()> task) {
+  execute(task);
+}
+
+void ThreadPool::runOnReadable(std::function<void()> task, int fd) {
+  executeOnReadable(fd, task);
+}
+
+void ThreadPool::runOnWritable(std::function<void()> task, int fd) {
+  executeOnWritable(fd, task);
+}
+
+void ThreadPool::runOnWakeup(std::function<void()> task,
+                             Wakeup* wakeup,
+                             long generation) {
+  executeOnWakeup(task, wakeup, generation);
 }
 
 } // namespace xzero

@@ -18,7 +18,6 @@
 #include <base/IniFile.h>
 #include <base/Counter.h>
 #include <base/Logging.h>
-#include <base/DateTime.h>
 #include <base/CustomDataMgr.h>
 #include <base/TokenShaper.h>
 #include <base/JsonWriter.h>
@@ -83,8 +82,8 @@ class Director : public BackendManager {
                                           //director.
 
   size_t queueLimit_;      //!< how many requests to queue in total.
-  TimeSpan queueTimeout_; //!< how long a request may be queued.
-  TimeSpan retryAfter_;   //!< time a client should wait before retrying a failed
+  Duration queueTimeout_; //!< how long a request may be queued.
+  Duration retryAfter_;   //!< time a client should wait before retrying a failed
                          //request.
   size_t maxRetryCount_;  //!< number of attempts to pass request to a backend
                           //before giving up
@@ -175,11 +174,11 @@ class Director : public BackendManager {
   size_t queueLimit() const { return queueLimit_; }
   void setQueueLimit(size_t value) { queueLimit_ = value; }
 
-  TimeSpan queueTimeout() const { return queueTimeout_; }
-  void setQueueTimeout(TimeSpan value) { queueTimeout_ = value; }
+  Duration queueTimeout() const { return queueTimeout_; }
+  void setQueueTimeout(Duration value) { queueTimeout_ = value; }
 
-  TimeSpan retryAfter() const { return retryAfter_; }
-  void setRetryAfter(TimeSpan value) { retryAfter_ = value; }
+  Duration retryAfter() const { return retryAfter_; }
+  void setRetryAfter(Duration value) { retryAfter_ = value; }
 
   size_t maxRetryCount() const { return maxRetryCount_; }
   void setMaxRetryCount(size_t value) { maxRetryCount_ = value; }

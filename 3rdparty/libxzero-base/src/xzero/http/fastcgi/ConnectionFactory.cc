@@ -17,19 +17,16 @@ namespace http {
 namespace fastcgi {
 
 ConnectionFactory::ConnectionFactory()
-    : ConnectionFactory(WallClock::system(),
-                        4096,
+    : ConnectionFactory(4096,
                         4 * 1024 * 1024,
-                        TimeSpan::fromSeconds(8)) {
+                        Duration::fromSeconds(8)) {
 }
 
 ConnectionFactory::ConnectionFactory(
-    WallClock* clock,
     size_t maxRequestUriLength,
     size_t maxRequestBodyLength,
-    TimeSpan maxKeepAlive)
+    Duration maxKeepAlive)
     : HttpConnectionFactory("fastcgi",
-                            clock,
                             maxRequestUriLength,
                             maxRequestBodyLength),
       maxKeepAlive_(maxKeepAlive) {

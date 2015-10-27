@@ -93,8 +93,8 @@ Director::Director(HttpWorker* worker, const std::string& name)
       enqueueOnUnavailable_(false),
       backends_(),
       queueLimit_(128),
-      queueTimeout_(TimeSpan::fromSeconds(60)),
-      retryAfter_(TimeSpan::fromSeconds(10)),
+      queueTimeout_(Duration::fromSeconds(60)),
+      retryAfter_(Duration::fromSeconds(10)),
       maxRetryCount_(6),
       storagePath_(),
       shaper_(worker->loop(), 0),
@@ -137,9 +137,9 @@ Director::~Director() {
  * \see onBackendStateChanged
  */
 void Director::onBackendEnabledChanged(const Backend* backend) {
-  WTRACE(1, "onBackendEnabledChanged: health=%s, enabled=%s",
-         stringify(backend->healthMonitor()->state()).c_str(),
-         backend->isEnabled() ? "true" : "false");
+  WTRACE(1, "onBackendEnabledChanged: health=$0, enabled=$1",
+         backend->healthMonitor()->state(),
+         backend->isEnabled());
 
   if (backendRole(backend) != BackendRole::Active) return;
 
@@ -162,10 +162,10 @@ void Director::onBackendEnabledChanged(const Backend* backend) {
 void Director::onBackendStateChanged(Backend* backend,
                                      HealthMonitor* healthMonitor,
                                      HealthState oldState) {
-  WTRACE(1, "onBackendStateChanged: health=%s -> %s, enabled=%s",
-         stringify(oldState).c_str(),
-         stringify(backend->healthMonitor()->state()).c_str(),
-         backend->isEnabled() ? "true" : "false");
+  WTRACE(1, "onBackendStateChanged: health=$0 -> $1, enabled=$2",
+         oldState,
+         backend->healthMonitor()->state(),
+         backend->isEnabled());
 
   worker_->log(Severity::info, "Director '%s': backend '%s' is now %s.",
                name().c_str(), backend->name_.c_str(),
@@ -176,7 +176,7 @@ void Director::onBackendStateChanged(Backend* backend,
 
     // backend is online and enabled
 
-    WTRACE(1, "onBackendStateChanged: adding capacity to shaper (%zi + %zi)",
+    WTRACE(1, "onBackendStateChanged: adding capacity to shaper ($0 + $1)",
            shaper()->size(), backend->capacity());
     shaper()->resize(shaper()->size() + backend->capacity());
 
@@ -381,7 +381,7 @@ Backend* Director::findBackend(const std::string& name) {
 
 void Director::setBackendRole(Backend* backend, BackendRole role) {
   BackendRole currentRole = backendRole(backend);
-  WTRACE(1, "setBackendRole(%d) (from %d)", role, currentRole);
+  WTRACE(1, "setBackendRole($0) (from $1)", role, currentRole);
 
   if (role != currentRole) {
     if (role == BackendRole::Active)
@@ -510,7 +510,7 @@ bool Director::load(const std::string& path) {
                   path.c_str());
     return false;
   }
-  queueTimeout_ = TimeSpan::fromSeconds(std::atoll(value.c_str()));
+  queueTimeout_ = Duration::fromSeconds(std::atoll(value.c_str()));
 
   if (!settings.load("director", "retry-after", value)) {
     worker()->log(Severity::error,
@@ -519,7 +519,7 @@ bool Director::load(const std::string& path) {
                   path.c_str());
     return false;
   }
-  retryAfter_ = TimeSpan::fromSeconds(std::atoll(value.c_str()));
+  retryAfter_ = Duration::fromSeconds(std::atoll(value.c_str()));
 
   if (!settings.load("director", "connect-timeout", value)) {
     worker()->log(Severity::error,
@@ -528,7 +528,7 @@ bool Director::load(const std::string& path) {
                   path.c_str());
     return false;
   }
-  connectTimeout_ = TimeSpan::fromSeconds(std::atoll(value.c_str()));
+  connectTimeout_ = Duration::fromSeconds(std::atoll(value.c_str()));
 
   if (!settings.load("director", "read-timeout", value)) {
     worker()->log(Severity::error,
@@ -537,7 +537,7 @@ bool Director::load(const std::string& path) {
                   path.c_str());
     return false;
   }
-  readTimeout_ = TimeSpan::fromSeconds(std::atoll(value.c_str()));
+  readTimeout_ = Duration::fromSeconds(std::atoll(value.c_str()));
 
   if (!settings.load("director", "write-timeout", value)) {
     worker()->log(Severity::error,
@@ -546,7 +546,7 @@ bool Director::load(const std::string& path) {
                   path.c_str());
     return false;
   }
-  writeTimeout_ = TimeSpan::fromSeconds(std::atoll(value.c_str()));
+  writeTimeout_ = Duration::fromSeconds(std::atoll(value.c_str()));
 
   if (!settings.load("director", "on-client-abort", value)) {
     clientAbortAction_ = ClientAbortAction::Close;
@@ -695,7 +695,7 @@ bool Director::load(const std::string& path) {
                     path.c_str());
       return false;
     }
-    objectCache().setDefaultTTL(TimeSpan::fromSeconds(stoi(value)));
+    objectCache().setDefaultTTL(Duration::fromSeconds(stoi(value)));
   } else {
     ++changed;
   }
@@ -708,7 +708,7 @@ bool Director::load(const std::string& path) {
                     path.c_str());
       return false;
     }
-    objectCache().setDefaultShadowTTL(TimeSpan::fromSeconds(stoi(value)));
+    objectCache().setDefaultShadowTTL(Duration::fromSeconds(stoi(value)));
   } else {
     ++changed;
   }
@@ -859,8 +859,8 @@ bool Director::loadBackend(const IniFile& settings, const std::string& key) {
                   storagePath_.c_str(), key.c_str());
     return false;
   }
-  TimeSpan hcInterval =
-      TimeSpan::fromSeconds(std::atoll(hcIntervalStr.c_str()));
+  Duration hcInterval =
+      Duration::fromSeconds(std::atoll(hcIntervalStr.c_str()));
 
   // health-check-mode
   std::string hcModeStr;
@@ -1255,8 +1255,8 @@ void Director::dequeueTo(Backend* backend) {
   if (auto notes = dequeue()) {
     notes->request->post([this, backend, notes]() {
       notes->tokens = 1;
-      TRACE(notes, 1, "Dequeueing request to backend %s @ %s",
-            backend->name().c_str(), name().c_str());
+      TRACE(notes, 1, "Dequeueing request to backend $0 @ $1",
+            backend->name(), name());
       SchedulerStatus rc = backend->tryProcess(notes);
       if (rc != SchedulerStatus::Success) {
         notes->tokens = 0;
@@ -1292,15 +1292,16 @@ bool Director::tryEnqueue(RequestNotes* rn) {
     rn->bucket->enqueue(rn);
     ++queued_;
 
-    TRACE(rn, 1, "Director %s [%s] overloaded. Enqueueing request (%d).",
-          name().c_str(), rn->bucket->name().c_str(),
+    TRACE(rn, 1, "Director $0 [$1] overloaded. Enqueueing request ($2).",
+          name(),
+          rn->bucket->name(),
           rn->bucket->queued().current());
 
     return true;
   }
 
-  TRACE(rn, 1, "director: '%s' queue limit %zu reached.", name().c_str(),
-        queueLimit());
+  TRACE(rn, 1, "director: '$0' queue limit $1 reached.", name(), queueLimit());
+
   serviceUnavailable(rn);
 
   return false;
@@ -1309,34 +1310,33 @@ bool Director::tryEnqueue(RequestNotes* rn) {
 RequestNotes* Director::dequeue() {
   if (auto rn = shaper()->dequeue()) {
     --queued_;
-    TRACE(rn, 1, "Director %s dequeued request (%zu pending).", name().c_str(),
-          queued_.current());
+    TRACE(rn, 1, "Director $0 dequeued request ($1 pending).",
+          name(), queued_.current());
     return rn;
   }
-  WTRACE(1, "Director %s dequeue() failed (%zu pending).", name().c_str(),
-         queued_.current());
+  WTRACE(1, "Director $0 dequeue() failed ($1 pending).",
+         name(), queued_.current());
 
   return nullptr;
 }
 
-#ifndef NDEBUG
-inline const char* roleStr(BackendRole role) {
-  switch (role) {
-    case BackendRole::Active:
-      return "Active";
-    case BackendRole::Backup:
-      return "Backup";
-    case BackendRole::Terminate:
-      return "Terminate";
-    default:
-      return "UNKNOWN";
+namespace xzero {
+  template<> std::string StringUtil::toString(BackendRole role) {
+    switch (role) {
+      case BackendRole::Active:
+        return "Active";
+      case BackendRole::Backup:
+        return "Backup";
+      case BackendRole::Terminate:
+        return "Terminate";
+      default:
+        return "UNKNOWN";
+    }
   }
 }
-#endif
 
 SchedulerStatus Director::tryProcess(RequestNotes* rn, BackendRole role) {
-  TRACE(rn, 1, "Director.tryProcess(role: %s) tc:%zi", roleStr(role),
-        rn->tryCount);
+  TRACE(rn, 1, "Director.tryProcess(role: $0) tc:$1", role, rn->tryCount);
 
   return backends_[static_cast<size_t>(role)].schedule(rn);
 }
@@ -1349,7 +1349,7 @@ void Director::onTimeout(RequestNotes* rn) {
                      rn->request->method.str().c_str(),
                      rn->request->path.c_str());
 
-    TimeSpan diff = rn->request->connection.worker().now() - rn->ctime;
+    Duration diff = rn->request->connection.worker().now() - rn->ctime;
     rn->request->log(Severity::info, "request time: %s", diff.str().c_str());
 
     serviceUnavailable(rn, HttpStatus::GatewayTimeout);

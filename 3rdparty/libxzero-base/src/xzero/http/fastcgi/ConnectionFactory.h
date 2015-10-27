@@ -11,7 +11,7 @@
 
 #include <xzero/http/Api.h>
 #include <xzero/sysconfig.h>
-#include <xzero/TimeSpan.h>
+#include <xzero/Duration.h>
 #include <xzero/http/HttpConnectionFactory.h>
 
 namespace xzero {
@@ -26,20 +26,19 @@ class XZERO_HTTP_API ConnectionFactory : public HttpConnectionFactory {
   ConnectionFactory();
 
   ConnectionFactory(
-      WallClock* clock,
       size_t maxRequestUriLength,
       size_t maxRequestBodyLength,
-      TimeSpan maxKeepAlive);
+      Duration maxKeepAlive);
 
   ~ConnectionFactory();
 
-  TimeSpan maxKeepAlive() const XZERO_NOEXCEPT { return maxKeepAlive_; }
-  void setMaxKeepAlive(TimeSpan value) { maxKeepAlive_ = value; }
+  Duration maxKeepAlive() const XZERO_NOEXCEPT { return maxKeepAlive_; }
+  void setMaxKeepAlive(Duration value) { maxKeepAlive_ = value; }
 
   xzero::Connection* create(Connector* connector, EndPoint* endpoint) override;
 
  private:
-  TimeSpan maxKeepAlive_;
+  Duration maxKeepAlive_;
 };
 
 } // namespace fastcgi

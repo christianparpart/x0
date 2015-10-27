@@ -62,10 +62,10 @@ class XZERO_BASE_API ByteArrayEndPoint : public EndPoint {
   size_t flush(int fd, off_t offset, size_t size) override;
   void wantFill() override;
   void wantFlush() override;
-  TimeSpan readTimeout() override;
-  TimeSpan writeTimeout() override;
-  void setReadTimeout(TimeSpan timeout) override;
-  void setWriteTimeout(TimeSpan timeout) override;
+  Duration readTimeout() override;
+  Duration writeTimeout() override;
+  void setReadTimeout(Duration timeout) override;
+  void setWriteTimeout(Duration timeout) override;
   bool isBlocking() const override;
   void setBlocking(bool enable) override;
   bool isCorking() const override;

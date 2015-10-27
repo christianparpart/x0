@@ -48,17 +48,17 @@
 namespace xzero {
 
 InetConnector::InetConnector(const std::string& name, Executor* executor,
-                             Scheduler* scheduler, WallClock* clock,
-                             TimeSpan readTimeout,
-                             TimeSpan writeTimeout,
-                             TimeSpan tcpFinTimeout,
-                             std::function<void(const std::exception&)> eh)
-    : Connector(name, executor, clock),
+                             Scheduler* scheduler,
+                             Duration readTimeout,
+                             Duration writeTimeout,
+                             Duration tcpFinTimeout,
+                             UniquePtr<ExceptionHandler> eh)
+    : Connector(name, executor),
       scheduler_(scheduler),
       schedulerHandle_(),
       bindAddress_(),
       port_(-1),
-      safeCall_(eh),
+      safeCall_(std::move(eh)),
       connectedEndPoints_(),
       mutex_(),
       socket_(-1),
@@ -75,15 +75,15 @@ InetConnector::InetConnector(const std::string& name, Executor* executor,
 }
 
 InetConnector::InetConnector(const std::string& name, Executor* executor,
-                             Scheduler* scheduler, WallClock* clock,
-                             TimeSpan readTimeout,
-                             TimeSpan writeTimeout,
-                             TimeSpan tcpFinTimeout,
-                             std::function<void(const std::exception&)> eh,
+                             Scheduler* scheduler,
+                             Duration readTimeout,
+                             Duration writeTimeout,
+                             Duration tcpFinTimeout,
+                             UniquePtr<ExceptionHandler> eh,
                              const IPAddress& ipaddress, int port, int backlog,
                              bool reuseAddr, bool reusePort)
-    : InetConnector(name, executor, scheduler, clock,
-                    readTimeout, writeTimeout, tcpFinTimeout, eh) {
+    : InetConnector(name, executor, scheduler,
+                    readTimeout, writeTimeout, tcpFinTimeout, std::move(eh)) {
 
   open(ipaddress, port, backlog, reuseAddr, reusePort);
 }
@@ -95,8 +95,8 @@ void InetConnector::open(const IPAddress& ipaddress, int port, int backlog,
 
   socket_ = ::socket(ipaddress.family(), SOCK_STREAM, 0);
 
-  TRACE("open: ip=%s, port=%d, backlog=%d, reuseAddr=%s, reusePort=%s",
-      ipaddress.str().c_str(), port, backlog,
+  TRACE("open: ip=$0, port=$1, backlog=$2, reuseAddr=$3, reusePort=$4",
+      ipaddress, port, backlog,
       reuseAddr ? "true" : "false",
       reusePort ? "true" : "false");
 
@@ -372,15 +372,15 @@ void InetConnector::setMultiAcceptCount(size_t value) XZERO_NOEXCEPT {
   multiAcceptCount_ = value;
 }
 
-void InetConnector::setReadTimeout(TimeSpan value) {
+void InetConnector::setReadTimeout(Duration value) {
   readTimeout_ = value;
 }
 
-void InetConnector::setWriteTimeout(TimeSpan value) {
+void InetConnector::setWriteTimeout(Duration value) {
   writeTimeout_ = value;
 }
 
-void InetConnector::setTcpFinTimeout(TimeSpan value) {
+void InetConnector::setTcpFinTimeout(Duration value) {
   tcpFinTimeout_ = value;
 }
 
@@ -411,7 +411,7 @@ bool InetConnector::isStarted() const XZERO_NOEXCEPT {
 }
 
 void InetConnector::stop() {
-  TRACE("stop: %s", name().c_str());
+  TRACE("stop: $0", this);
   if (!isStarted()) {
     return;
   }
@@ -477,7 +477,7 @@ int InetConnector::acceptOne() {
   }
 
 #if defined(TCP_LINGER2)
-  if (tcpFinTimeout_ != TimeSpan::Zero) {
+  if (tcpFinTimeout_ != Duration::Zero) {
     int waitTime = tcpFinTimeout_.totalSeconds();
     int rv = setsockopt(cfd, SOL_TCP, TCP_LINGER2, &waitTime, sizeof(waitTime));
     if (rv < 0) {
@@ -526,6 +526,10 @@ void InetConnector::onEndPointClosed(EndPoint* endpoint) {
 
     connectedEndPoints_.erase(i);
   }
+}
+
+template<> std::string StringUtil::toString(InetConnector* c) {
+  return StringUtil::format("InetConnector/$0", (void*) c);
 }
 
 }  // namespace xzero

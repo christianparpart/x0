@@ -406,7 +406,7 @@ std::unique_ptr<Unit> FlowParser::unit() {
 
 void FlowParser::importRuntime() {
   if (runtime_) {
-    TRACE(1, "importing runtime, %zu builtins", runtime_->builtins().size());
+    TRACE(1, "importing runtime, $0 builtins", runtime_->builtins().size());
 
     for (const auto& builtin : runtime_->builtins()) {
       declareBuiltin(builtin);
@@ -415,8 +415,7 @@ void FlowParser::importRuntime() {
 }
 
 void FlowParser::declareBuiltin(const vm::NativeCallback* native) {
-  TRACE(1, "declareBuiltin (scope:%p): %s", scope(),
-        native->signature().to_s().c_str());
+  TRACE(1, "declareBuiltin (scope:$0): $1", scope(), native->signature());
 
   if (native->isHandler()) {
     createSymbol<BuiltinHandler>(native);

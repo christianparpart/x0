@@ -10,17 +10,16 @@
 #include <xzero/net/Connector.h>
 #include <xzero/net/ConnectionFactory.h>
 #include <xzero/net/Server.h>
+#include <xzero/StringUtil.h>
 #include <algorithm>
 #include <cassert>
 
 namespace xzero {
 
-Connector::Connector(const std::string& name, Executor* executor,
-                     WallClock* clock)
+Connector::Connector(const std::string& name, Executor* executor)
   : name_(name),
     server_(nullptr),
     executor_(executor),
-    clock_(clock),
     connectionFactories_(),
     defaultConnectionFactory_(),
     listeners_() {
@@ -89,6 +88,11 @@ void Connector::setDefaultConnectionFactory(std::shared_ptr<ConnectionFactory> f
 
 std::shared_ptr<ConnectionFactory> Connector::defaultConnectionFactory() const {
   return defaultConnectionFactory_;
+}
+
+template <>
+std::string StringUtil::toString(const Connector* value) {
+  return StringUtil::format("Connector[$0@$1]", value->name(), (void*) value);
 }
 
 } // namespace xzero

@@ -38,7 +38,7 @@ class XZERO_BASE_API MemoryFileRepository : public FileRepository {
   void deleteAllFiles() override;
   int createTempFile(std::string* filename = nullptr) override;
 
-  void insert(const std::string& path, const BufferRef& data, DateTime mtime);
+  void insert(const std::string& path, const BufferRef& data, UnixTime mtime);
 
   void insert(const std::string& path, const BufferRef& data);
 

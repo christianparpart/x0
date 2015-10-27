@@ -12,7 +12,7 @@
 #include "HealthMonitor.h"
 
 #include <base/Buffer.h>
-#include <base/TimeSpan.h>
+#include <base/Duration.h>
 #include <base/CustomDataMgr.h>
 #include <xzero/HttpRequest.h>
 

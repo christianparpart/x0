@@ -193,13 +193,15 @@ Buffer formatLog(XzeroContext* cx, const BufferRef& format) { // {{{
         ++i;
         break;
       case 'T': {  // request time duration
-        TimeSpan duration = cx->duration();
-        result.printf("%d.%03d", duration.totalSeconds(), duration.milliseconds());
+        Duration duration = cx->duration();
+        result.printf("%d.%03d",
+                      duration.seconds(),
+                      duration.milliseconds() % kMillisPerSecond);
         ++i;
         break;
       }
       case 't':  // local time
-        result.push_back(cx->now().htlog_str());
+        //FIXME result.push_back(cx->now().htlog_str());
         ++i;
         break;
       case 'U':  // username

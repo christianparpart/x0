@@ -34,7 +34,6 @@ class XZERO_BASE_API SslConnector : public InetConnector {
    * @param name Describing name for this connector.
    * @param executor Executor service to run handlers on
    * @param scheduler Scheduler service to use for scheduling tasks
-   * @param clock Wall clock used for timeout management.
    * @param readTimeout timespan indicating how long a connection may be idle
    *                    for read operations.
    * @param writeTimeout timespan indicating how long a connection may be idle
@@ -51,10 +50,10 @@ class XZERO_BASE_API SslConnector : public InetConnector {
    * @throw std::runtime_error on any kind of runtime error.
    */
   SslConnector(const std::string& name, Executor* executor,
-               Scheduler* scheduler, WallClock* clock,
-               TimeSpan readTimeout, TimeSpan writeTimeout,
-               TimeSpan tcpFinTimeout,
-               std::function<void(const std::exception&)> eh,
+               Scheduler* scheduler,
+               Duration readTimeout, Duration writeTimeout,
+               Duration tcpFinTimeout,
+               UniquePtr<ExceptionHandler> eh,
                const IPAddress& ipaddress, int port, int backlog,
                bool reuseAddr, bool reusePort);
   ~SslConnector();

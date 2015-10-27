@@ -83,21 +83,21 @@ FlowString* Runner::catString(const FlowString& a, const FlowString& b) {
 
 void Runner::suspend() {
   assert(state_ == Running);
-  TRACE(1, "Suspending handler %s.", handler_->name().c_str());
+  TRACE(1, "Suspending handler $0.", handler_->name());
 
   state_ = Suspended;
 }
 
 bool Runner::resume() {
   assert(state_ == Suspended);
-  TRACE(1, "Resuming handler %s.", handler_->name().c_str());
+  TRACE(1, "Resuming handler $0.", handler_->name());
 
   return loop();
 }
 
 bool Runner::run() {
   assert(state_ == Inactive);
-  TRACE(1, "Running handler %s.", handler_->name().c_str());
+  TRACE(1, "Running handler $0.", handler_->name());
 
   return loop();
 }
@@ -126,8 +126,8 @@ bool Runner::loop() {
 
 #define instr(name) \
   l_##name : ++pc;  \
-  TRACE(2, "%s",    \
-        disassemble((Instruction) * pc, (pc - code.data()) / 2).c_str());
+  TRACE(2, "$0",    \
+        disassemble((Instruction) * pc, (pc - code.data()) / 2));
 
 #define get_pc() ((pc - code.data()) / 2)
 #define set_pc(offset)               \
@@ -145,7 +145,7 @@ bool Runner::loop() {
   const auto& code = handler_->code();
 
 #define instr(name) \
-  l_##name : TRACE(2, "%s", disassemble(*pc, pc - code.data()).c_str());
+  l_##name : TRACE(2, "$0", disassemble(*pc, pc - code.data()));
 
 #define get_pc() (pc - code.data())
 #define set_pc(offset)           \
@@ -710,8 +710,10 @@ bool Runner::loop() {
     Register* argv = &data_[C];
 
     Params args(argc, argv, this);
-    TRACE(2, "Calling function: %s",
-          handler_->program()->nativeFunction(id)->signature().to_s().c_str());
+
+    TRACE(2, "Calling function: $0",
+          handler_->program()->nativeFunction(id)->signature());
+
     handler_->program()->nativeFunction(id)->invoke(args);
 
     if (state_ == Suspended) {
@@ -728,8 +730,8 @@ bool Runner::loop() {
     Value* argv = &data_[C];
 
     Params args(argc, argv, this);
-    TRACE(2, "Calling handler: %s",
-          handler_->program()->nativeHandler(id)->signature().to_s().c_str());
+    TRACE(2, "Calling handler: $0",
+          handler_->program()->nativeHandler(id)->signature());
     handler_->program()->nativeHandler(id)->invoke(args);
     const bool handled = (bool)argv[0];
 

@@ -19,7 +19,7 @@
 #include <xzero/executor/Executor.h>
 #include <xzero/logging.h>
 #include <xzero/RuntimeError.h>
-#include <xzero/WallClock.h>
+#include <xzero/StringUtil.h>
 #include <xzero/sysconfig.h>
 #include <cassert>
 #include <cstdlib>
@@ -44,7 +44,7 @@ Connection::Connection(EndPoint* endpoint,
                        size_t maxRequestUriLength,
                        size_t maxRequestBodyLength,
                        size_t maxRequestCount,
-                       TimeSpan maxKeepAlive)
+                       Duration maxKeepAlive)
     : ::xzero::Connection(endpoint, executor),
       parser_(Parser::REQUEST),
       inputBuffer_(),
@@ -63,15 +63,15 @@ Connection::Connection(EndPoint* endpoint,
   channel_->request()->setRemoteIP(endpoint->remoteIP());
 
   parser_.setListener(channel_.get());
-  TRACE("%p ctor", this);
+  TRACE("$0 ctor", this);
 }
 
 Connection::~Connection() {
-  TRACE("%p dtor", this);
+  TRACE("$0 dtor", this);
 }
 
 void Connection::onOpen() {
-  TRACE("%p onOpen", this);
+  TRACE("$0 onOpen", this);
   ::xzero::Connection::onOpen();
 
   // TODO support TCP_DEFER_ACCEPT here
@@ -86,21 +86,21 @@ void Connection::onOpen() {
 }
 
 void Connection::onClose() {
-  TRACE("%p onClose", this);
+  TRACE("$0 onClose", this);
   ::xzero::Connection::onClose();
 }
 
 void Connection::abort() {
-  TRACE("%p abort()");
+  TRACE("$0 abort()", this);
   channel_->response()->setBytesTransmitted(generator_.bytesTransmitted());
   channel_->responseEnd();
 
-  TRACE("%p abort", this);
+  TRACE("$0 abort", this);
   endpoint()->close();
 }
 
 void Connection::completed() {
-  TRACE("%p completed", this);
+  TRACE("$0 completed", this);
 
   if (onComplete_)
     RAISE(IllegalStateError, "there is still another completion hook.");
@@ -118,7 +118,7 @@ void Connection::completed() {
 }
 
 void Connection::onResponseComplete(bool succeed) {
-  TRACE("%p onResponseComplete(%s)", this, succeed ? "succeed" : "failure");
+  TRACE("$0 onResponseComplete($1)", this, succeed ? "succeed" : "failure");
   channel_->response()->setBytesTransmitted(generator_.bytesTransmitted());
   channel_->responseEnd();
 
@@ -128,7 +128,7 @@ void Connection::onResponseComplete(bool succeed) {
   }
 
   if (channel_->isPersistent()) {
-    TRACE("%p completed.onComplete", this);
+    TRACE("$0 completed.onComplete", this);
 
     // re-use on keep-alive
     channel_->reset();
@@ -137,11 +137,11 @@ void Connection::onResponseComplete(bool succeed) {
 
     if (inputOffset_ < inputBuffer_.size()) {
       // have some request pipelined
-      TRACE("%p completed.onComplete: pipelined read", this);
+      TRACE("$0 completed.onComplete: pipelined read", this);
       executor()->execute(std::bind(&Connection::parseFragment, this));
     } else {
       // wait for next request
-      TRACE("%p completed.onComplete: keep-alive read", this);
+      TRACE("$0 completed.onComplete: keep-alive read", this);
       wantFill();
     }
   } else {
@@ -155,7 +155,7 @@ void Connection::send(HttpResponseInfo&& responseInfo,
   if (onComplete && onComplete_)
     RAISE(IllegalStateError, "There is still another completion hook.");
 
-  TRACE("%p send(BufferRef, status=%d, persistent=%s, chunkSize=%zu)",
+  TRACE("$0 send(BufferRef, status=$1, persistent=$2, chunkSize=$2)",
         this, responseInfo.status(), channel_->isPersistent() ? "yes" : "no",
         chunk.size());
 
@@ -176,7 +176,7 @@ void Connection::send(HttpResponseInfo&& responseInfo,
   if (onComplete && onComplete_)
     RAISE(IllegalStateError, "There is still another completion hook.");
 
-  TRACE("%p send(Buffer, status=%d, persistent=%s, chunkSize=%zu)",
+  TRACE("$0 send(Buffer, status=$1, persistent=$2, chunkSize=$3)",
         this, responseInfo.status(), channel_->isPersistent() ? "yes" : "no",
         chunk.size());
 
@@ -197,7 +197,7 @@ void Connection::send(HttpResponseInfo&& responseInfo,
   if (onComplete && onComplete_)
     RAISE(IllegalStateError, "There is still another completion hook.");
 
-  TRACE("%p send(FileRef, status=%d, persistent=%s, fileRef.fd=%d, chunkSize=%zu)",
+  TRACE("$0 send(FileRef, status=$1, persistent=$2, fileRef.fd=$3, chunkSize=$4)",
         this, responseInfo.status(), channel_->isPersistent() ? "yes" : "no",
         chunk.handle(), chunk.size());
 
@@ -219,8 +219,8 @@ void Connection::patchResponseInfo(HttpResponseInfo& responseInfo) {
       ++requestCount_;
 
       char keepAlive[64];
-      snprintf(keepAlive, sizeof(keepAlive), "timeout=%lu, max=%zu",
-               maxKeepAlive_.totalSeconds(), requestMax_ - requestCount_);
+      snprintf(keepAlive, sizeof(keepAlive), "timeout=%llu, max=%zu",
+               maxKeepAlive_.seconds(), requestMax_ - requestCount_);
 
       responseInfo.headers().push_back("Connection", "Keep-Alive");
       responseInfo.headers().push_back("Keep-Alive", keepAlive);
@@ -235,7 +235,7 @@ void Connection::send(Buffer&& chunk, CompletionHandler onComplete) {
   if (onComplete && onComplete_)
     RAISE(IllegalStateError, "There is still another completion hook.");
 
-  TRACE("%p send(Buffer, chunkSize=%zu)", this, chunk.size());
+  TRACE("$0 send(Buffer, chunkSize=$1)", this, chunk.size());
 
   generator_.generateBody(std::move(chunk));
   onComplete_ = std::move(onComplete);
@@ -248,7 +248,7 @@ void Connection::send(const BufferRef& chunk,
   if (onComplete && onComplete_)
     RAISE(IllegalStateError, "There is still another completion hook.");
 
-  TRACE("%p send(BufferRef, chunkSize=%zu)", this, chunk.size());
+  TRACE("$0 send(BufferRef, chunkSize=$1)", this, chunk.size());
 
   generator_.generateBody(chunk);
   onComplete_ = std::move(onComplete);
@@ -260,7 +260,7 @@ void Connection::send(FileRef&& chunk, CompletionHandler onComplete) {
   if (onComplete && onComplete_)
     RAISE(IllegalStateError, "There is still another completion hook.");
 
-  TRACE("%p send(FileRef, chunkSize=%zu)", this, chunk.size());
+  TRACE("$0 send(FileRef, chunkSize=$1)", this, chunk.size());
 
   generator_.generateBody(std::move(chunk));
   onComplete_ = std::move(onComplete);
@@ -268,16 +268,16 @@ void Connection::send(FileRef&& chunk, CompletionHandler onComplete) {
 }
 
 void Connection::setInputBufferSize(size_t size) {
-  TRACE("%p setInputBufferSize(%zu)", this, size);
+  TRACE("$0 setInputBufferSize($1)", this, size);
   inputBuffer_.reserve(size);
 }
 
 void Connection::onFillable() {
-  TRACE("%p onFillable", this);
+  TRACE("$0 onFillable", this);
 
-  TRACE("%p onFillable: calling fill()", this);
+  TRACE("$0 onFillable: calling fill()", this);
   if (endpoint()->fill(&inputBuffer_) == 0) {
-    TRACE("%p onFillable: fill() returned 0", this);
+    TRACE("$0 onFillable: fill() returned 0", this);
     // RAISE("client EOF");
     abort();
     return;
@@ -288,15 +288,15 @@ void Connection::onFillable() {
 
 void Connection::parseFragment() {
   try {
-    TRACE("parseFragment: calling parseFragment (%zu into %zu)",
+    TRACE("parseFragment: calling parseFragment ($0 into $1)",
           inputOffset_, inputBuffer_.size());
     size_t n = parser_.parseFragment(inputBuffer_.ref(inputOffset_));
-    TRACE("parseFragment: called (%zu into %zu) => %zu",
+    TRACE("parseFragment: called ($0 into $1) => $2",
           inputOffset_, inputBuffer_.size(), n);
     inputOffset_ += n;
   } catch (const BadMessage& e) {
-    TRACE("%p parseFragment: BadMessage caught (while in state %s). %s",
-          this, to_string(channel_->state()).c_str(), e.what());
+    TRACE("$0 parseFragment: BadMessage caught (while in state $1). $2",
+          this, to_string(channel_->state()), e.what());
 
     if (channel_->response()->version() == HttpVersion::UNKNOWN)
       channel_->response()->setVersion(HttpVersion::VERSION_0_9);
@@ -309,7 +309,7 @@ void Connection::parseFragment() {
 }
 
 void Connection::onFlushable() {
-  TRACE("%p onFlushable", this);
+  TRACE("$0 onFlushable", this);
 
   if (channel_->state() != HttpChannelState::SENDING)
     channel_->setState(HttpChannelState::SENDING);
@@ -317,11 +317,13 @@ void Connection::onFlushable() {
   const bool complete = writer_.flush(endpoint());
 
   if (complete) {
-    TRACE("%p onFlushable: completed. (%s)", this, (onComplete_ ? "onComplete cb set" : "onComplete cb not set"));
+    TRACE("$0 onFlushable: completed. ($1)",
+          this,
+          (onComplete_ ? "onComplete cb set" : "onComplete cb not set"));
     channel_->setState(HttpChannelState::HANDLING);
 
     if (onComplete_) {
-      TRACE("%p onFlushable: invoking completion callback", this);
+      TRACE("$0 onFlushable: invoking completion callback", this);
       auto callback = std::move(onComplete_);
       onComplete_ = nullptr;
       callback(true);
@@ -333,18 +335,19 @@ void Connection::onFlushable() {
 }
 
 void Connection::onInterestFailure(const std::exception& error) {
-  TRACE("%p onInterestFailure(%s): %s", this, typeid(error).name(), error.what());
+  TRACE("$0 onInterestFailure($1): $2",
+        this, typeid(error).name(), error.what());
 
   // TODO: improve logging here, as this eats our exception here.
   // e.g. via (factory or connector)->error(error);
-  logError("Connection", error);
+  logError("Connection", error, "Unhandled exception caught in I/O loop");
 
   auto callback = std::move(onComplete_);
   onComplete_ = nullptr;
 
   // notify the callback that we failed doing something wrt. I/O.
   if (callback) {
-    TRACE("%p onInterestFailure: invoking onComplete(false)", this);
+    TRACE("$0 onInterestFailure: invoking onComplete(false)", this);
     callback(false);
   }
 
@@ -353,4 +356,15 @@ void Connection::onInterestFailure(const std::exception& error) {
 
 }  // namespace http1
 }  // namespace http
+
+
+template <>
+std::string StringUtil::toString(http::http1::Connection* c) {
+  auto remote = c->endpoint()->remoteAddress();
+  if (remote.isEmpty())
+    return "<EOF>";
+  else
+    return StringUtil::format("$0:$1", remote->first, remote->second);
+}
+
 }  // namespace xzero

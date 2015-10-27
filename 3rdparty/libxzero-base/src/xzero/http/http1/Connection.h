@@ -9,7 +9,7 @@
 
 #include <xzero/http/Api.h>
 #include <xzero/Buffer.h>
-#include <xzero/TimeSpan.h>
+#include <xzero/Duration.h>
 #include <xzero/net/EndPointWriter.h>
 #include <xzero/http/HttpTransport.h>
 #include <xzero/http/HttpHandler.h>
@@ -41,7 +41,7 @@ class XZERO_HTTP_API Connection : public ::xzero::Connection,
                  size_t maxRequestUriLength,
                  size_t maxRequestBodyLength,
                  size_t maxRequestCount,
-                 TimeSpan maxKeepAlive);
+                 Duration maxKeepAlive);
   ~Connection();
 
   size_t bytesReceived() const noexcept { return parser_.bytesReceived(); }
@@ -84,7 +84,7 @@ class XZERO_HTTP_API Connection : public ::xzero::Connection,
   Generator generator_;
 
   std::unique_ptr<Channel> channel_;
-  TimeSpan maxKeepAlive_;
+  Duration maxKeepAlive_;
   size_t requestCount_;
   size_t requestMax_;
 };

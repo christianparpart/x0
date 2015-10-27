@@ -10,14 +10,13 @@
 #pragma once
 
 #include <xzero/Api.h>
-#include <xzero/TimeSpan.h>
-#include <xzero/DateTime.h>
+#include <xzero/Duration.h>
+#include <xzero/MonotonicTime.h>
 #include <xzero/executor/Scheduler.h>
 #include <functional>
 
 namespace xzero {
 
-class WallClock;
 class Scheduler;
 
 /**
@@ -25,17 +24,17 @@ class Scheduler;
  */
 class XZERO_BASE_API IdleTimeout {
  public:
-  IdleTimeout(WallClock* clock, Scheduler* scheduler);
+  IdleTimeout(Scheduler* scheduler);
   ~IdleTimeout();
 
-  void setTimeout(TimeSpan value);
-  TimeSpan timeout() const;
+  void setTimeout(Duration value);
+  Duration timeout() const;
 
   void setCallback(std::function<void()>&& cb);
   void clearCallback();
 
   void activate();
-  void activate(TimeSpan timeout);
+  void activate(Duration timeout);
   void deactivate();
   bool isActive() const;
 
@@ -51,7 +50,7 @@ class XZERO_BASE_API IdleTimeout {
   /**
    * Retrieves the timespan elapsed since idle timer started or 0 if inactive.
    */
-  TimeSpan elapsed() const;
+  Duration elapsed() const;
 
  private:
   void schedule();
@@ -59,16 +58,15 @@ class XZERO_BASE_API IdleTimeout {
   void onFired();
 
  private:
-  WallClock* clock_;
   Scheduler* scheduler_;
-  TimeSpan timeout_;
-  DateTime fired_;
+  Duration timeout_;
+  MonotonicTime fired_;
   bool active_;
   std::function<void()> onTimeout_;
   Scheduler::HandleRef handle_;
 };
 
-inline void IdleTimeout::activate(TimeSpan timeout) {
+inline void IdleTimeout::activate(Duration timeout) {
   setTimeout(timeout);
   activate();
 }

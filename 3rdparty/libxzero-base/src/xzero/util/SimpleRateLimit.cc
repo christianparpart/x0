@@ -8,20 +8,22 @@
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 #include <xzero/util/SimpleRateLimit.h>
+#include <xzero/MonotonicTime.h>
+#include <xzero/MonotonicClock.h>
 
 namespace xzero {
 namespace util {
 
 SimpleRateLimit::SimpleRateLimit(
-    const TimeSpan& period) :
+    const Duration& period) :
     period_micros_(period.microseconds()),
     last_micros_(0) {}
 
 bool SimpleRateLimit::check() {
-  auto now = WallClock::monotonic()->get().unixMicroseconds();
+  MonotonicTime now = MonotonicClock::now();
 
-  if (now - last_micros_ >= period_micros_) {
-    last_micros_ = now;
+  if (now.microseconds() - last_micros_ >= period_micros_) {
+    last_micros_ = now.microseconds();
     return true;
   } else {
     return false;
@@ -29,7 +31,7 @@ bool SimpleRateLimit::check() {
 }
 
 SimpleRateLimitedFn::SimpleRateLimitedFn(
-    const TimeSpan& period,
+    const Duration& period,
     std::function<void ()> fn) :
     limit_(period),
     fn_(fn) {}

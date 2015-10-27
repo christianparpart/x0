@@ -8,7 +8,8 @@
 #pragma once
 
 #include <xzero/Buffer.h>
-#include <xzero/DateTime.h>
+#include <xzero/UnixTime.h>
+#include <xzero/Duration.h>
 #include <xzero/io/File.h>
 #include <xzero/CustomDataMgr.h>
 #include <xzero-flow/vm/Params.h>
@@ -20,7 +21,7 @@
 #include <memory>
 
 namespace xzero {
-  class DateTime;
+  class UnixTime;
   namespace http {
     class HttpRequest;
     class HttpResponse;
@@ -46,9 +47,9 @@ class XzeroContext {
   xzero::http::HttpRequest* request() const noexcept { return request_; }
   xzero::http::HttpResponse* response() const noexcept { return response_; }
 
-  xzero::DateTime createdAt() const { return createdAt_; }
-  xzero::DateTime now() const;
-  xzero::TimeSpan duration() const;
+  xzero::UnixTime createdAt() const { return createdAt_; }
+  xzero::UnixTime now() const;
+  xzero::Duration duration() const;
 
   const std::string& documentRoot() const noexcept { return documentRoot_; }
   void setDocumentRoot(const std::string& path) { documentRoot_ = path; }
@@ -82,7 +83,7 @@ class XzeroContext {
 
  private:
   std::unique_ptr<xzero::flow::vm::Runner> runner_; //!< Flow VM execution unit.
-  xzero::DateTime createdAt_; //!< When the request started
+  xzero::UnixTime createdAt_; //!< When the request started
   xzero::http::HttpRequest* request_; //!< HTTP request
   xzero::http::HttpResponse* response_; //!< HTTP response
   std::string documentRoot_; //!< associated document root

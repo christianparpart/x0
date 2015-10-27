@@ -44,12 +44,11 @@ class XZERO_BASE_API InetEndPoint : public EndPoint {
    *                      that is: @c AF_INET or @c AF_INET6.
    * @param readTimeout read-readiness timeout.
    * @param writeTimeout write-readiness timeout.
-   * @param clock The clock is used for timeout-management.
    * @param scheduler the task scheduler to be used for I/O & timeout completion.
    */
   InetEndPoint(int socket, int addressFamily,
-               TimeSpan readTimeout, TimeSpan writeTimeout,
-               WallClock* clock, Scheduler* scheduler);
+               Duration readTimeout, Duration writeTimeout,
+               Scheduler* scheduler);
 
   ~InetEndPoint();
 
@@ -60,23 +59,22 @@ class XZERO_BASE_API InetEndPoint : public EndPoint {
    * @param port TCP/IP server port.
    * @param timeout connect-timeout and default initialization for i/o timeout
    *                in the resulting InetEndPoint.
-   * @param clock passed as timeout-manager clock to InetEndPoint, when created.
    * @param scheduler Task scheduler used for connecting and later passed
    *                  to the created InetEndPoint.
    */
   static Future<std::unique_ptr<InetEndPoint>> connectAsync(
       const IPAddress& ipaddr, int port,
-      TimeSpan timeout, WallClock* clock, Scheduler* scheduler);
+      Duration timeout, Scheduler* scheduler);
 
   static void connectAsync(
       const IPAddress& ipaddr, int port,
-      TimeSpan timeout, WallClock* clock, Scheduler* scheduler,
+      Duration timeout, Scheduler* scheduler,
       std::function<void(std::unique_ptr<InetEndPoint>&&)> onSuccess,
       std::function<void(Status)> onError);
 
   static std::unique_ptr<InetEndPoint> connect(
       const IPAddress& ipaddr, int port,
-      TimeSpan timeout, WallClock* clock, Scheduler* scheduler);
+      Duration timeout, Scheduler* scheduler);
 
   int handle() const noexcept { return handle_; }
 
@@ -88,12 +86,12 @@ class XZERO_BASE_API InetEndPoint : public EndPoint {
   /**
    * Retrieves remote address + port.
    */
-  std::pair<IPAddress, int> remoteAddress() const;
+  Option<std::pair<IPAddress, int>> remoteAddress() const override;
 
   /**
    * Retrieves local address + port.
    */
-  std::pair<IPAddress, int> localAddress() const;
+  Option<std::pair<IPAddress, int>> localAddress() const;
 
   // EndPoint overrides
   bool isOpen() const XZERO_NOEXCEPT override;
@@ -108,10 +106,10 @@ class XZERO_BASE_API InetEndPoint : public EndPoint {
   size_t flush(int fd, off_t offset, size_t size) override;
   void wantFill() override;
   void wantFlush() override;
-  TimeSpan readTimeout() override;
-  TimeSpan writeTimeout() override;
-  void setReadTimeout(TimeSpan timeout) override;
-  void setWriteTimeout(TimeSpan timeout) override;
+  Duration readTimeout() override;
+  Duration writeTimeout() override;
+  void setReadTimeout(Duration timeout) override;
+  void setWriteTimeout(Duration timeout) override;
   Option<IPAddress> remoteIP() const override;
 
  private:
@@ -125,8 +123,8 @@ class XZERO_BASE_API InetEndPoint : public EndPoint {
  private:
   InetConnector* connector_;
   Scheduler* scheduler_;
-  TimeSpan readTimeout_;
-  TimeSpan writeTimeout_;
+  Duration readTimeout_;
+  Duration writeTimeout_;
   IdleTimeout idleTimeout_;
   Scheduler::HandleRef io_;
   int handle_;
