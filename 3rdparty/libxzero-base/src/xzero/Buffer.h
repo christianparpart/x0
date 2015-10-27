@@ -10,6 +10,7 @@
 #pragma once
 
 #include <xzero/Api.h>
+#include <xzero/RuntimeError.h>
 #include <xzero/sysconfig.h>
 #include <cstddef>
 #include <climits>
@@ -396,6 +397,7 @@ class XZERO_BASE_API MutableBuffer : public BufferRef {
   MutableBuffer(MutableBuffer&& v);
 
   bool resize(size_t value);
+  void truncate(size_t value);
 
   size_t capacity() const;
   bool operator!() const;
@@ -1222,6 +1224,15 @@ inline bool MutableBuffer<ensure>::resize(size_t value) {
 
   size_ = value;
   return true;
+}
+
+template <void (*ensure)(void*, size_t)>
+inline void MutableBuffer<ensure>::truncate(size_t value) {
+  if (value > capacity_) {
+    RAISE(IndexError, "requested size out of bounds");
+  }
+
+  size_ = value;
 }
 
 template <void (*ensure)(void*, size_t)>
