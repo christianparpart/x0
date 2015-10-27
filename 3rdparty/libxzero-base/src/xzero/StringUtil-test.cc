@@ -1,18 +1,17 @@
-// This file is part of the "libxzero" project
-//   (c) 2009-2015 Christian Parpart <https://github.com/christianparpart>
-//   (c) 2014-2015 Paul Asmuth <https://github.com/paulasmuth>
-//
-// libxzero is free software: you can redistribute it and/or modify it under
-// the terms of the GNU Affero General Public License v3.0.
-// You should have received a copy of the GNU Affero General Public License
-// along with this program. If not, see <http://www.gnu.org/licenses/>.
-
-#include <xzero/StringUtil.h>
+/**
+ * This file is part of the "libxzero" project
+ *   Copyright (c) 2014 Paul Asmuth, Google Inc.
+ *
+ * Licensed under the MIT license (see LICENSE).
+ */
+#include <stdlib.h>
+#include <stdio.h>
+#include <xzero/stringutil.h>
 #include <gtest/gtest.h>
 
 using namespace xzero;
 
-TEST(StringUtil, toString) {
+TEST(StringUtilTest, TestToString) {
   EXPECT_EQ(StringUtil::toString(123), "123");
   EXPECT_EQ(StringUtil::toString(1230000000), "1230000000");
   EXPECT_EQ(StringUtil::toString(24.5), "24.5");
@@ -20,7 +19,7 @@ TEST(StringUtil, toString) {
   EXPECT_EQ(StringUtil::toString(std::string("abc")), "abc");
 }
 
-TEST(StringUtil, StripTrailingSlashes) {
+TEST(StringUtilTest, TestStripTrailingSlashes) {
   std::string s1 = "fnord/bar/";
   StringUtil::stripTrailingSlashes(&s1);
   EXPECT_EQ(s1, "fnord/bar");
@@ -38,7 +37,7 @@ TEST(StringUtil, StripTrailingSlashes) {
   EXPECT_EQ(s4, "");
 }
 
-TEST(StringUtil, TestBeginsWith) {
+TEST(StringUtilTest, TestBeginsWith) {
   EXPECT_TRUE(StringUtil::beginsWith("fnord", "fn"));
   EXPECT_TRUE(StringUtil::beginsWith("fnahrad", "fn"));
   EXPECT_FALSE(StringUtil::beginsWith("ford", "fn"));
@@ -46,7 +45,7 @@ TEST(StringUtil, TestBeginsWith) {
   EXPECT_FALSE(StringUtil::beginsWith("fnord", "fnordbar"));
 }
 
-TEST(StringUtil, TestEndsWith) {
+TEST(StringUtilTest, TestEndsWith) {
   EXPECT_TRUE(StringUtil::endsWith("fnord", "ord"));
   EXPECT_TRUE(StringUtil::endsWith("ford", "ord"));
   EXPECT_FALSE(StringUtil::endsWith("ford", "x"));
@@ -55,7 +54,15 @@ TEST(StringUtil, TestEndsWith) {
   EXPECT_FALSE(StringUtil::endsWith("fnord", "fnordbar"));
 }
 
-TEST(StringUtil, replaceAll) {
+TEST(StringUtilTest, TestHexPrint) {
+  auto data1 = "\x17\x23\x42\x01";
+  EXPECT_EQ(StringUtil::hexPrint(data1, 4), "17 23 42 01");
+  EXPECT_EQ(StringUtil::hexPrint(data1, 4, false), "17234201");
+  EXPECT_EQ(StringUtil::hexPrint(data1, 4, true, true), "01 42 23 17");
+  EXPECT_EQ(StringUtil::hexPrint(data1, 4, false, true), "01422317");
+}
+
+TEST(StringUtilTest, TestReplaceAll) {
   std::string str =
       "cloud computing, or in simpler shorthand just >the cloud<...";
 
@@ -66,7 +73,7 @@ TEST(StringUtil, replaceAll) {
   EXPECT_EQ(str, " computing, or in simpler shorthand just >the <...");
 }
 
-TEST(StringUtil, format) {
+TEST(StringUtilTest, TestFormat) {
   auto str1 = StringUtil::format(
       "The quick $0 fox jumps over the $1 dog",
       "brown",
@@ -92,11 +99,14 @@ TEST(StringUtil, format) {
   auto str3 = StringUtil::format("$0 + $1 = $2", 2.5, 6.5, 9);
   EXPECT_EQ(str3, "2.5 + 6.5 = 9");
 
+  auto str5 = StringUtil::format("$0, $1", 1.0, 0.0625);
+  EXPECT_EQ(str5, "1.0, 0.0625");
+
   auto str4 = StringUtil::format("$1$1$1$1$1 $0", "Batman", "Na");
   EXPECT_EQ(str4, "NaNaNaNaNa Batman");
 }
 
-TEST(StringUtil, TestSplit) {
+TEST(StringUtilTest, TestSplit) {
   auto parts1 = StringUtil::split("one,two,three", ",");
   EXPECT_EQ(parts1.size(), 3);
   EXPECT_EQ(parts1[0], "one");

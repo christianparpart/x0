@@ -1,12 +1,12 @@
-// This file is part of the "libxzero" project
-//   (c) 2009-2015 Christian Parpart <https://github.com/christianparpart>
-//   (c) 2014-2015 Paul Asmuth <https://github.com/paulasmuth>
-//
-// libxzero is free software: you can redistribute it and/or modify it under
-// the terms of the GNU Affero General Public License v3.0.
-// You should have received a copy of the GNU Affero General Public License
-// along with this program. If not, see <http://www.gnu.org/licenses/>.
-
+/**
+ * This file is part of the "libxzero" project
+ *   Copyright (c) 2014 Paul Asmuth, Google Inc.
+ *
+ * libxzero is free software: you can redistribute it and/or modify it under
+ * the terms of the GNU General Public License v3.0. You should have received a
+ * copy of the GNU General Public License along with this program. If not, see
+ * <http://www.gnu.org/licenses/>.
+ */
 #include <math.h>
 #include <stdlib.h>
 #include <stdint.h>
@@ -76,27 +76,27 @@ std::string StringUtil::formatNumberMetric(T orig_value) {
   double value = orig_value; // FIXPAUL
   auto abs_value = fabs(value);
 
-  if (abs_value == 0) {
+  if (abs_value == 0){
     len = snprintf(buf, sizeof(buf), "0");
   }
 
-  else if (abs_value < 0.000000001) {
+  else if (abs_value < 0.000000001){
     len = snprintf(buf, sizeof(buf), "%.1fp", value * 1000000000000);
   }
 
-  else if (abs_value < 0.000001) {
+  else if (abs_value < 0.000001){
     len = snprintf(buf, sizeof(buf), "%.1fn", value * 1000000000);
   }
 
-  else if (abs_value < 0.001) {
+  else if (abs_value < 0.001){
     len = snprintf(buf, sizeof(buf), "%.1fμ", value * 1000000);
   }
 
-  else if (abs_value < 0.1) {
+  else if (abs_value < 0.1){
     len = snprintf(buf, sizeof(buf), "%.1fm", value * 1000);
   }
 
-  else if (abs_value < 10) {
+  else if (abs_value < 10){
     len = snprintf(buf, sizeof(buf), "%.2f", value);
   }
 
@@ -123,4 +123,4 @@ std::string StringUtil::formatNumberMetric(T orig_value) {
   return std::string(buf, len);
 }
 
-}  // namespace xzero
+} // namespace xzero
