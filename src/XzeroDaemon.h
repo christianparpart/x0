@@ -188,7 +188,6 @@ class XzeroDaemon : public xzero::flow::vm::Runtime {
   xzero::Duration tcpFinTimeout_;
   xzero::Duration lingering_;
 
-
   // setup phase
   std::unique_ptr<Config> config_;
 
