@@ -34,10 +34,12 @@ set(x0d_SRC
 
   # core
   main.cc
-  XzeroDaemon.cc
-  XzeroModule.cc
-  XzeroWorker.cc
   XzeroContext.cc
+  XzeroDaemon.cc
+  XzeroEventHandler.cc
+  XzeroModule.cc
+  XzeroState.cc
+  XzeroWorker.cc
 
   # static modules
   modules/access.cc
