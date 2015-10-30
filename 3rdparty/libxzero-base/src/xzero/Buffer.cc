@@ -8,6 +8,7 @@
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 #include <xzero/Buffer.h>
+#include <xzero/StringUtil.h>
 #include <xzero/hash/FNV.h>
 #include <xzero/RuntimeError.h>
 #include <sstream>
@@ -196,4 +197,3 @@ std::string BufferRef::hexdumpPrettyAscii(const void* bytes, size_t length) {
 }
 
 }  // namespace xzero
-
