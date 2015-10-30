@@ -431,7 +431,9 @@ std::unique_ptr<Symbol> FlowParser::decl() {
     case FlowToken::Var:
       return varDecl();
     case FlowToken::Handler:
-      return handlerDecl();
+      return handlerDecl(true);
+    case FlowToken::Ident:
+      return handlerDecl(false);
     default:
       return nullptr;
   }
@@ -542,11 +544,14 @@ bool FlowParser::importOne(std::list<std::string>& names) {
 }
 
 // handlerDecl ::= 'handler' IDENT (';' | [do] stmt)
-std::unique_ptr<Handler> FlowParser::handlerDecl() {
+std::unique_ptr<Handler> FlowParser::handlerDecl(bool keyword) {
   FNTRACE();
 
   FlowLocation loc(location());
-  nextToken();  // 'handler'
+
+  if (keyword) {
+    nextToken();  // 'handler'
+  }
 
   consume(FlowToken::Ident);
   std::string name = stringValue();

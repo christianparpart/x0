@@ -137,7 +137,7 @@ class XZERO_FLOW_API FlowParser {
   bool importOne(std::list<std::string>& names);
   std::unique_ptr<Symbol> decl();
   std::unique_ptr<Variable> varDecl();
-  std::unique_ptr<Handler> handlerDecl();
+  std::unique_ptr<Handler> handlerDecl(bool keyword);
 
   // syntax: expressions
   std::unique_ptr<Expr> expr();
