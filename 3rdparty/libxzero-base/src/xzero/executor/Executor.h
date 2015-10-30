@@ -30,15 +30,13 @@ namespace xzero {
  * @see DirectExecutor
  * @see ThreadPool
  */
-class Executor : protected SafeCall {
+class Executor {
  public:
   explicit Executor(std::unique_ptr<xzero::ExceptionHandler> eh);
 
   virtual ~Executor();
 
   typedef std::function<void()> Task;
-
-  using SafeCall::setExceptionHandler;
 
   /**
    * Executes given task.
@@ -49,6 +47,14 @@ class Executor : protected SafeCall {
    * Retrieves a human readable name of this executor (for introspection only).
    */
   virtual std::string toString() const = 0;
+
+  void setExceptionHandler(std::unique_ptr<ExceptionHandler> eh);
+
+ protected:
+  void safeCall(std::function<void()> callee) noexcept;
+
+ protected:
+  SafeCall safeCall_;
 };
 
 } // namespace xzero

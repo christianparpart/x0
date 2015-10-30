@@ -12,10 +12,18 @@
 namespace xzero {
 
 Executor::Executor(std::unique_ptr<xzero::ExceptionHandler> eh)
-    : SafeCall(std::move(eh)) {
+    : safeCall_(std::move(eh)) {
 }
 
 Executor::~Executor() {
+}
+
+void Executor::setExceptionHandler(std::unique_ptr<ExceptionHandler> eh) {
+  safeCall_.setExceptionHandler(std::move(eh));
+}
+
+void Executor::safeCall(std::function<void()> callee) noexcept {
+  safeCall_.invoke(callee);
 }
 
 } // namespace xzero
