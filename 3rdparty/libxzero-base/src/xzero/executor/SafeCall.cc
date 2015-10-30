@@ -26,7 +26,7 @@ void SafeCall::setExceptionHandler(std::unique_ptr<ExceptionHandler> eh) {
   exceptionHandler_ = std::move(eh);
 }
 
-void SafeCall::safeCall(std::function<void()> task) noexcept {
+void SafeCall::invoke(std::function<void()> task) noexcept {
   try {
     if (task) {
       task();

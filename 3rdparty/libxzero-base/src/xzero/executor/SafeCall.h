@@ -38,21 +38,21 @@ class SafeCall {
   void setExceptionHandler(std::unique_ptr<ExceptionHandler> eh);
 
   /**
-   * Savely invokes given task within the callers context.
+   * Safely invokes given task within the callers context.
    *
    * A call to this function will never leak an unhandled exception.
    *
    * @see setExceptionHandler(std::function<void(const std::exception&)>)
    */
-  void safeCall(std::function<void()> callee) noexcept;
+  void invoke(std::function<void()> callee) noexcept;
 
   /**
    * Convinience call operator.
    *
-   * @see void safeCall(std::function<void()> callee)
+   * @see void invoke(std::function<void()> callee)
    */
   void operator()(std::function<void()> callee) noexcept {
-    safeCall(callee);
+    invoke(callee);
   }
 
  protected:
