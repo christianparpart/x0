@@ -506,29 +506,29 @@ void CoreModule::sys_hostname(XzeroContext* cx, Params& args) {
   if (gethostname(buf, sizeof(buf)) == 0) {
     args.setResult(buf);
   } else {
-    logError("sys.hostname: gethostname() failed. %s", strerror(errno));
+    logError("sys.hostname: gethostname() failed. $0", strerror(errno));
     args.setResult("");
   }
 }
 
 void CoreModule::log_err(XzeroContext* cx, Params& args) {
-  logError("x0d", "%s", args.getString(1).str().c_str());
+  logError("x0d", "$0", args.getString(1).str());
 }
 
 void CoreModule::log_warn(XzeroContext* cx, Params& args) {
-  logWarning("x0d", "%s", args.getString(1).str().c_str());
+  logWarning("x0d", "$0", args.getString(1).str());
 }
 
 void CoreModule::log_notice(XzeroContext* cx, Params& args) {
-  logNotice("x0d", "%s", args.getString(1).str().c_str());
+  logNotice("x0d", "$0", args.getString(1).str());
 }
 
 void CoreModule::log_info(XzeroContext* cx, Params& args) {
-  logInfo("x0d", "%s", args.getString(1).str().c_str());
+  logInfo("x0d", "$0", args.getString(1).str());
 }
 
 void CoreModule::log_debug(XzeroContext* cx, Params& args) {
-  logDebug("x0d", "%s", args.getString(1).str().c_str());
+  logDebug("x0d", "$0", args.getString(1).str());
 }
 
 void CoreModule::sleep(XzeroContext* cx, Params& args) {

@@ -286,8 +286,7 @@ bool AuthModule::auth_require(XzeroContext* cx, flow::vm::Params& args) {
 
     cx->request()->setUserName(user);
 
-    logTrace("x0d.auth", "auth.require: '%s' -> '%s'",
-           authcode.c_str(), plain.c_str());
+    logTrace("x0d.auth", "auth.require: '$0' -> '$1'", authcode, plain.c_str());
 
     if (auth->verify(user, pass)) {
       // authentification succeed, so do not intercept request processing

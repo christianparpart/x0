@@ -120,11 +120,9 @@ bool XzeroDaemon::import(
     std::vector<flow::vm::NativeCallback*>* builtins) {
 
   if (path.empty())
-    logDebug("x0d", "Loading plugin \"%s\"",
-             name.c_str());
+    logDebug("x0d", "Loading plugin \"$0\"", name);
   else
-    logDebug("x0d", "Loading plugin \"%s\" from \"%s\"",
-             name.c_str(), path.c_str());
+    logDebug("x0d", "Loading plugin \"$0\" from \"$1\"", name, path);
 
   // TODO actually load the plugin
 
@@ -164,7 +162,7 @@ void XzeroDaemon::loadConfigStream(std::unique_ptr<std::istream>&& is,
                                             std::placeholders::_2,
                                             std::placeholders::_3),
       [](const std::string& msg) {
-        logError("x0d.config", "Configuration file error. %s", msg.c_str());
+        logError("x0d", "Configuration file error. $0", msg);
       });
 
   parser.openStream(std::move(is), filename);
@@ -173,7 +171,7 @@ void XzeroDaemon::loadConfigStream(std::unique_ptr<std::istream>&& is,
   flow::IRGenerator irgen;
   irgen.setExports({"setup", "main"});
   irgen.setErrorCallback([&](const std::string& msg) {
-    logError("x0d", "%s", msg.c_str());
+    logError("x0d", "$0", msg);
   });
 
   programIR_ = irgen.generate(unit_.get());
@@ -220,7 +218,7 @@ bool XzeroDaemon::configure() {
     return true;
   } catch (const RuntimeError& e) {
     if (e == Status::ConfigurationError) {
-      logError("x0d", "Configuration failed. %s", e.what());
+      logError("x0d", "Configuration failed. $0", e.what());
       return false;
     }
 
@@ -292,10 +290,10 @@ void XzeroDaemon::validateContext(const std::string& entrypointHandlerName,
 
     if (std::find(api.begin(), api.end(), i->callee()->name()) == api.end()) {
       logError("x0d",
-          "Illegal call to '%s' found within %s-handler (or its callees).",
-          i->callee()->name().c_str(),
-          entrypointHandlerName.c_str());
-      logError("x0d", "%s", i->location().str().c_str());
+          "Illegal call to '$0' found within handler $1 (or its callees).",
+          i->callee()->name(),
+          entrypointHandlerName);
+      logError("x0d", "$0", i->location().str());
       errorCount++;
     }
   }

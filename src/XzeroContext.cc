@@ -65,7 +65,8 @@ size_t XzeroContext::bytesTransmitted() const {
 
 bool XzeroContext::verifyDirectoryDepth() {
   if (request()->directoryDepth() < 0) {
-    logError("x0d", "Directory traversal detected: %s", request()->path().c_str());
+    logError("x0d", "Directory traversal detected: $0", request()->path());
+    // TODO: why not throwing BadMessage here (anymore?) ?
     //throw BadMessage(HttpStatus::BadRequest, "Directory traversal detected");
     response()->setStatus(HttpStatus::BadRequest);
     response()->setReason("Directory traversal detected");

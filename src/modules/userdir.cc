@@ -37,7 +37,7 @@ void UserdirModule::userdir_name(Params& args) {
 
   std::error_code ec = validate(dirname);
   if (ec) {
-    logError("x0d", "userdir \"%s\": %s", dirname.c_str(), ec.message().c_str());
+    logError("x0d", "userdir \"$0\": $1", dirname, ec.message());
     return;
   }
 
@@ -83,8 +83,9 @@ void UserdirModule::userdir(XzeroContext* cx, Params& args) {
     cx->setDocumentRoot(pw->pw_dir + dirname_);
     cx->setFile(daemon().vfs().getFile(userPath, cx->documentRoot()));
 
-    logTrace("x0d", "docroot[%s], fileinfo[%s]", cx->documentRoot().c_str(),
-        cx->file()->path().c_str());
+    logTrace("x0d", "docroot[$0], fileinfo[$1]",
+             cx->documentRoot(),
+             cx->file()->path());
   }
 }
 
