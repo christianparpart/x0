@@ -10,7 +10,7 @@
 #ifndef xzero_api_hpp
 #define xzero_api_hpp (1)
 
-#include <xzero/Defines.h>
+#include <xzero/defines.h>
 
 // libxzero-base exports
 #if defined(BUILD_XZERO)

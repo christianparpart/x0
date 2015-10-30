@@ -8,8 +8,8 @@
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 #include <xzero/executor/SafeCall.h>
+#include <xzero/ExceptionHandler.h>
 #include <xzero/logging.h>
-#include <xzero/exceptionhandler.h>
 #include <exception>
 
 namespace xzero {

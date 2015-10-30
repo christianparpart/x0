@@ -14,7 +14,7 @@
 #include <xzero/UnixTime.h>
 #include <xzero/RefCounted.h>
 #include <xzero/RefPtr.h>
-#include <xzero/exceptionhandler.h>
+#include <xzero/ExceptionHandler.h>
 #include <xzero/executor/Executor.h>
 #include <vector>
 #include <functional>
@@ -60,7 +60,7 @@ class Scheduler : public Executor {
   //typedef std::shared_ptr<Handle> HandleRef;
   //typedef Handle* HandleRef;
 
-  Scheduler(std::unique_ptr<xzero::ExceptionHandler> eh)
+  Scheduler(std::unique_ptr<ExceptionHandler> eh)
       : Executor(std::move(eh)) {}
 
   /**

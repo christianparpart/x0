@@ -10,7 +10,7 @@
 #include <xzero/executor/PosixScheduler.h>
 #include <xzero/MonotonicTime.h>
 #include <xzero/MonotonicClock.h>
-#include <xzero/application.h>
+#include <xzero/Application.h>
 #include <xzero/RuntimeError.h>
 #include <xzero/logging.h>
 #include <memory>

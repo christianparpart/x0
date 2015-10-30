@@ -478,7 +478,7 @@ int InetConnector::acceptOne() {
 
 #if defined(TCP_LINGER2)
   if (tcpFinTimeout_ != Duration::Zero) {
-    int waitTime = tcpFinTimeout_.totalSeconds();
+    int waitTime = tcpFinTimeout_.seconds();
     int rv = setsockopt(cfd, SOL_TCP, TCP_LINGER2, &waitTime, sizeof(waitTime));
     if (rv < 0) {
       ::close(cfd);

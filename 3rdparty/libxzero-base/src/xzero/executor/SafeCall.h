@@ -10,7 +10,7 @@
 #pragma once
 
 #include <xzero/sysconfig.h>
-#include <xzero/exceptionhandler.h>
+#include <xzero/ExceptionHandler.h>
 
 #include <exception>
 #include <deque>

@@ -6,7 +6,7 @@
  */
 #include <stdlib.h>
 #include <stdio.h>
-#include <xzero/stringutil.h>
+#include <xzero/StringUtil.h>
 #include <gtest/gtest.h>
 
 using namespace xzero;

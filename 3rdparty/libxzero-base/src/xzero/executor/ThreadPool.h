@@ -11,7 +11,7 @@
 
 #include <xzero/sysconfig.h>
 #include <xzero/executor/Scheduler.h>
-#include <xzero/exceptionhandler.h>
+#include <xzero/ExceptionHandler.h>
 #include <condition_variable>
 #include <mutex>
 #include <thread>

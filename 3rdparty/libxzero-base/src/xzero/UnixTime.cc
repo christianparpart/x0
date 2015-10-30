@@ -11,8 +11,8 @@
 #include <ctime>
 #include <xzero/UnixTime.h>
 #include <xzero/inspect.h>
-#include <xzero/wallclock.h>
-#include <xzero/stringutil.h>
+#include <xzero/WallClock.h>
+#include <xzero/StringUtil.h>
 #include <xzero/ISO8601.h>
 
 namespace xzero {

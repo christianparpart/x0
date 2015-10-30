@@ -13,8 +13,7 @@
 #include <xzero/RuntimeError.h>
 #include <xzero/WallClock.h>
 #include <xzero/StringUtil.h>
-#include <xzero/wallclock.h>
-#include <xzero/exceptionhandler.h>
+#include <xzero/ExceptionHandler.h>
 #include <xzero/logging.h>
 #include <xzero/sysconfig.h>
 

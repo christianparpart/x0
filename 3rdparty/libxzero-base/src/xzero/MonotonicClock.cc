@@ -1,7 +1,7 @@
 #include <xzero/MonotonicClock.h>
 #include <xzero/Duration.h>
 #include <xzero/RuntimeError.h>
-#include <xzero/Defines.h>
+#include <xzero/defines.h>
 #include <xzero/sysconfig.h>
 
 #if defined(XZERO_OS_DARWIN)

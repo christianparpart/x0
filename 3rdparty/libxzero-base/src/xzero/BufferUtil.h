@@ -12,7 +12,7 @@
 
 #include <stdlib.h>
 #include <stdint.h>
-#include "xzero/buffer.h"
+#include <xzero/Buffer.h>
 
 namespace xzero {
 

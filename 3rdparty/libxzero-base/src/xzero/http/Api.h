@@ -8,7 +8,7 @@
 #ifndef xzero_http_api_hpp
 #define xzero_http_api_hpp (1)
 
-#include <xzero/Defines.h>
+#include <xzero/defines.h>
 
 // libxzero/http exports
 #if defined(BUILD_XZERO_HTTP)
