@@ -323,6 +323,8 @@ PosixScheduler::HandleRef PosixScheduler::setupWatcher(
       if (interest->timeout <= succ->prev->timeout) {
         linkWatcher(interest, succ->prev);
         return interest; // handle;
+      } else {
+        succ = succ->prev;
       }
     }
 
