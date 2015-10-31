@@ -25,8 +25,10 @@ std::string inspect(const Duration& value) {
   std::stringstream sstr;
   int i = 0;
 
-  if (years)
+  if (years) {
     sstr << years << " years";
+    i++;
+  }
 
   if (days) {
     if (i++) sstr << ' ';
