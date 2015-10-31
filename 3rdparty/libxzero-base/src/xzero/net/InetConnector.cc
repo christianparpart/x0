@@ -96,9 +96,7 @@ void InetConnector::open(const IPAddress& ipaddress, int port, int backlog,
   socket_ = ::socket(ipaddress.family(), SOCK_STREAM, 0);
 
   TRACE("open: ip=$0, port=$1, backlog=$2, reuseAddr=$3, reusePort=$4",
-      ipaddress, port, backlog,
-      reuseAddr ? "true" : "false",
-      reusePort ? "true" : "false");
+      ipaddress, port, backlog, reuseAddr, reusePort);
 
   if (socket_ < 0)
     RAISE_ERRNO(errno);
