@@ -31,15 +31,17 @@ const char* logLevelToStr(LogLevel log_level) {
 }
 
 LogLevel strToLogLevel(const String& log_level) {
-  if (log_level == "EMERGENCY") return LogLevel::kEmergency;
-  if (log_level == "ALERT") return LogLevel::kAlert;
-  if (log_level == "CRITICAL") return LogLevel::kCritical;
-  if (log_level == "ERROR") return LogLevel::kError;
-  if (log_level == "WARNING") return LogLevel::kWarning;
-  if (log_level == "NOTICE") return LogLevel::kNotice;
-  if (log_level == "INFO") return LogLevel::kInfo;
-  if (log_level == "DEBUG") return LogLevel::kDebug;
-  if (log_level == "TRACE") return LogLevel::kTrace;
+  String value = StringUtil::toUpper(log_level);
+
+  if (value == "EMERGENCY") return LogLevel::kEmergency;
+  if (value == "ALERT") return LogLevel::kAlert;
+  if (value == "CRITICAL") return LogLevel::kCritical;
+  if (value == "ERROR") return LogLevel::kError;
+  if (value == "WARNING") return LogLevel::kWarning;
+  if (value == "NOTICE") return LogLevel::kNotice;
+  if (value == "INFO") return LogLevel::kInfo;
+  if (value == "DEBUG") return LogLevel::kDebug;
+  if (value == "TRACE") return LogLevel::kTrace;
   RAISE(IllegalArgumentError, "unknown log level");
 }
 
@@ -68,7 +70,9 @@ template<> std::string StringUtil::toString(LogLevel value) {
   return to_string(value);
 }
 
-LogLevel to_loglevel(const std::string& value) {
+LogLevel to_loglevel(const std::string& str) {
+  std::string value = StringUtil::toLower(str);
+
   if (value == "none")
     return LogLevel::None;
 
