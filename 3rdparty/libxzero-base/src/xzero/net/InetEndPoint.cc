@@ -51,7 +51,7 @@ InetEndPoint::InetEndPoint(int socket,
       isCorking_(false) {
 
   idleTimeout_.setCallback(std::bind(&InetEndPoint::onTimeout, this));
-  TRACE("$0 ctor", this);
+  TRACE("$0 ctor fd=$1", this, handle_);
 }
 
 InetEndPoint::InetEndPoint(int socket,
@@ -504,7 +504,11 @@ std::unique_ptr<InetEndPoint> InetEndPoint::connect(
 
 template<>
 std::string StringUtil::toString(InetEndPoint* ep) {
-  return StringUtil::format("InetEndPoint[$0]", ep->remoteIP());
+  auto addr = ep->remoteAddress();
+  if (addr.isSome())
+    return StringUtil::format("$0:$1", addr->first, addr->second);
+  else
+    return "null";
 }
 
 } // namespace xzero
