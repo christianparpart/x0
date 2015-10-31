@@ -260,11 +260,44 @@ void PosixScheduler::cancelFD(int fd) {
   }
 }
 
+std::string inspectWatchers(PosixScheduler::Watcher* firstWatcher) {
+  std::stringstream sstr;
+  PosixScheduler::Watcher* prev = nullptr;
+  PosixScheduler::Watcher* curr = firstWatcher;
+
+  while (curr != nullptr) {
+    MonotonicTime a;
+    MonotonicTime b;
+    if (prev) {
+      a = curr->timeout;
+      b = prev->timeout;
+    } else {
+      a = MonotonicClock::now();
+      b = curr->timeout;
+    }
+
+    if (prev)
+      sstr << ", ";
+
+    sstr << StringUtil::format("{$0, $1, $2$3s}",
+                               curr->fd,
+                               curr->mode,
+                               a <= b ? "+" : "-",
+                               (a - b).seconds());
+
+    prev = curr;
+    curr = curr->next;
+  }
+
+  return sstr.str();
+}
+
 PosixScheduler::HandleRef PosixScheduler::setupWatcher(
     int fd, Mode mode, Task task,
     Duration tmo, Task tcb) {
 
   TRACE("setupWatcher($0, $1, $2)", fd, mode, tmo);
+  TRACE("- $0", inspect(*this));
 
   MonotonicTime timeout = now() + tmo;
 
@@ -292,6 +325,7 @@ PosixScheduler::HandleRef PosixScheduler::setupWatcher(
         return interest; // handle;
       }
     }
+
     // put in front
     interest->next = firstWatcher_;
     firstWatcher_->prev = interest;
@@ -544,13 +578,7 @@ std::string PosixScheduler::inspectImpl() const {
   sstr << "wakeupPipe:" << wakeupPipe_[PIPE_READ_END]
        << "/" << wakeupPipe_[PIPE_WRITE_END];
 
-  sstr << ", watchers(";
-  for (Watcher* w = firstWatcher_; w != nullptr; w = w->next) {
-    if (w != firstWatcher_)
-      sstr << ", ";
-    sstr << inspect(*w);
-  }
-  sstr << ")"; // watcher-list
+  sstr << ", watchers(" << inspectWatchers(firstWatcher_) << ")";
   sstr << ", front:" << (firstWatcher_ ? firstWatcher_->fd : -1);
   sstr << ", back:" << (lastWatcher_ ? lastWatcher_->fd : -1);
   sstr << "}"; // scheduler
@@ -567,8 +595,9 @@ std::string inspect(PosixScheduler::Mode mode) {
 }
 
 std::string inspect(const PosixScheduler::Watcher& w) {
+  Duration diff = w.timeout - MonotonicClock::now();
   return StringUtil::format("{$0, $1, $2}",
-                            w.fd, w.mode, w.timeout);
+                            w.fd, w.mode, diff);
 }
 
 std::string inspect(const PosixScheduler& s) {
