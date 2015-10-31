@@ -30,7 +30,9 @@ inline constexpr uint64_t MonotonicTime::nanoseconds() const {
 }
 
 inline constexpr Duration MonotonicTime::operator-(const MonotonicTime& other) const {
-  return Duration(microseconds() - other.microseconds());
+  return other < *this
+    ? Duration(microseconds() - other.microseconds())
+    : Duration(other.microseconds() - microseconds());
 }
 
 inline constexpr MonotonicTime MonotonicTime::operator+(const Duration& other) const {
