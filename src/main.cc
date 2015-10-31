@@ -9,27 +9,14 @@
 #include "XzeroModule.h"
 #include "XzeroDaemon.h"
 
-#include <xzero/http/HttpRequest.h>
-#include <xzero/http/HttpResponse.h>
-#include <xzero/http/HttpOutput.h>
-#include <xzero/http/HttpOutputCompressor.h>
-#include <xzero/http/HttpFileHandler.h>
-#include <xzero/http/http1/ConnectionFactory.h>
 #include <xzero-flow/ASTPrinter.h>
-#include <xzero/io/LocalFileRepository.h>
 #include <xzero/executor/NativeScheduler.h>
-#include <xzero/net/InetConnector.h>
-#include <xzero/net/Server.h>
 #include <xzero/logging/LogTarget.h>
 #include <xzero/logging/ConsoleLogTarget.h>
 #include <xzero/logging.h>
 #include <xzero/cli/CLI.h>
 #include <xzero/cli/Flags.h>
-#include <xzero/RuntimeError.h>
-#include <xzero/MimeTypes.h>
-#include <xzero/WallClock.h>
 #include <xzero/Application.h>
-#include <xzero/StringUtil.h>
 #include <iostream>
 #include <unistd.h>
 
@@ -56,41 +43,14 @@ void printHelp(const CLI& cli) {
 int main(int argc, const char* argv[]) {
   Application::init();
 
-  LogLevel logLevel = LogLevel::Warning;
-  LogTarget* logTarget = nullptr;
-
-  // {{{ env-var configuration
-  if (const char* str = getenv("X0D_LOGLEVEL")) {
-    logLevel = strToLogLevel(str);
-  }
-
-  if (const char* str = getenv("X0D_LOGTARGET")) {
-    if (strcmp(str, "console") == 0) {
-      logTarget = ConsoleLogTarget::get();
-    } else if (strcmp(str, "syslog") == 0) {
-      // TODO LogTarget::syslog()
-    } else if (strncmp(str, "file:", 5) == 0) {
-      // TODO LogTarget::file("filename")
-    } else if (strcmp(str, "null") == 0) {
-      // ignore
-    } else {
-      // invalid log target
-    }
-  } else {
-    logTarget = ConsoleLogTarget::get();
-  }
-  // }}}
-
-  Logger::get()->setMinimumLogLevel(logLevel);
-
-  if (logTarget)
-    Logger::get()->addTarget(logTarget);
-
   CLI cli;
   cli.defineBool("help", 'h', "Prints this help and terminates.")
      .defineString("config", 'c', "PATH", "Specify a custom configuration file.", "/etc/x0d/x0d.conf", nullptr)
      .defineString("user", 'u', "NAME", "User privileges to drop down to.", Application::userName())
      .defineString("group", 'g', "NAME", "Group privileges to drop down to.", Application::groupName())
+     .defineString("log-level", 'L', "ENUM", "Defines the minimum log level.", "info", nullptr)
+     .defineString("log-target", 0, "ENUM", "Specifies logging target. One of syslog, file, systemd, console.", "console", nullptr)
+     .defineString("log-file", 'l', "PATH", "Path to application log file.", "", nullptr)
      .defineString("instant", 'i', "PATH[:PORT]", "Enable instant-mode (does not need config file).", "", nullptr)
      .defineNumber("optimization-level", 'O', "LEVEL", "Sets the configuration optimization level.", 1)
      .defineBool("daemonize", 'd', "Forks the process into background.")
@@ -136,6 +96,24 @@ int main(int argc, const char* argv[]) {
     return 1;
 
   Application::dropPrivileges(flags.getString("user"), flags.getString("group"));
+
+  Logger::get()->setMinimumLogLevel(to_loglevel(flags.getString("log-level")));
+
+  std::string logTarget = flags.getString("log-target");
+  if (logTarget == "null") {
+    ; // ignore
+  } else if (logTarget == "console") {
+    Logger::get()->addTarget(ConsoleLogTarget::get());
+  } else if (logTarget == "file") {
+    ; // TODO
+  } else if (logTarget == "syslog") {
+    ; // TODO Logger::get()->addTarget(SyslogTarget::get());
+  } else if (logTarget == "systemd") {
+    ; // TODO
+  } else {
+    fprintf(stderr, "Invalid log target \"%s\".\n", logTarget.c_str());
+    return 1;
+  }
 
   if (flags.getBool("daemonize"))
     Application::daemonize();
