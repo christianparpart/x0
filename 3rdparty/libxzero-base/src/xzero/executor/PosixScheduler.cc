@@ -33,7 +33,7 @@ namespace xzero {
 
 #define ERROR(msg...) logError("PosixScheduler", msg)
 
-#ifndef NDEBUG
+#if 0 // !defined(NDEBUG)
 #define TRACE(msg...) logTrace("PosixScheduler", msg)
 #else
 #define TRACE(msg...) do {} while (0)
