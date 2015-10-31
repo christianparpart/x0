@@ -117,7 +117,9 @@ InetConnector* HttpService::configureInet(Executor* executor,
     throw std::runtime_error("Multiple inet connectors not yet supported.");
 
   inetConnector_ = server_->addConnector<InetConnector>(
-      "http", executor, scheduler, readTimeout, writeTimeout,
+      "http", executor, scheduler,
+      [scheduler]() { return scheduler; },
+      readTimeout, writeTimeout,
       tcpFinTimeout, nullptr, ipaddress, port, backlog, true, false);
 
   attachProtocol(inetConnector_);

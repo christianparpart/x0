@@ -49,6 +49,7 @@ namespace xzero {
 
 InetConnector::InetConnector(const std::string& name, Executor* executor,
                              Scheduler* scheduler,
+                             SchedulerSelector clientSchedulerSelector,
                              Duration readTimeout,
                              Duration writeTimeout,
                              Duration tcpFinTimeout,
@@ -56,6 +57,7 @@ InetConnector::InetConnector(const std::string& name, Executor* executor,
     : Connector(name, executor),
       scheduler_(scheduler),
       schedulerHandle_(),
+      selectScheduler_(clientSchedulerSelector),
       bindAddress_(),
       port_(-1),
       safeCall_(std::move(eh)),
@@ -76,13 +78,14 @@ InetConnector::InetConnector(const std::string& name, Executor* executor,
 
 InetConnector::InetConnector(const std::string& name, Executor* executor,
                              Scheduler* scheduler,
+                             SchedulerSelector clientSchedulerSelector,
                              Duration readTimeout,
                              Duration writeTimeout,
                              Duration tcpFinTimeout,
                              UniquePtr<ExceptionHandler> eh,
                              const IPAddress& ipaddress, int port, int backlog,
                              bool reuseAddr, bool reusePort)
-    : InetConnector(name, executor, scheduler,
+    : InetConnector(name, executor, scheduler, clientSchedulerSelector,
                     readTimeout, writeTimeout, tcpFinTimeout, std::move(eh)) {
 
   open(ipaddress, port, backlog, reuseAddr, reusePort);
@@ -440,12 +443,14 @@ void InetConnector::onConnect() {
 
     TRACE("onConnect: fd=$0", cfd);
 
-    RefPtr<EndPoint> ep = createEndPoint(cfd);
+    Scheduler* scheduler = selectScheduler_();
+    RefPtr<EndPoint> ep = createEndPoint(cfd, scheduler);
     {
       std::lock_guard<std::mutex> _lk(mutex_);
       connectedEndPoints_.push_back(ep);
     }
-    safeCall_.invoke(std::bind(&InetConnector::onEndPointCreated, this, ep));
+
+    scheduler->execute(std::bind(&InetConnector::onEndPointCreated, this, ep));
   }
 
   if (isStarted()) {
@@ -499,8 +504,8 @@ int InetConnector::acceptOne() {
   return cfd;
 }
 
-RefPtr<EndPoint> InetConnector::createEndPoint(int cfd) {
-  return make_ref<InetEndPoint>(cfd, this, scheduler_).as<EndPoint>();
+RefPtr<EndPoint> InetConnector::createEndPoint(int cfd, Scheduler* scheduler) {
+  return make_ref<InetEndPoint>(cfd, this, scheduler).as<EndPoint>();
 }
 
 void InetConnector::onEndPointCreated(const RefPtr<EndPoint>& endpoint) {

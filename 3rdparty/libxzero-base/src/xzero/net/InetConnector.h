@@ -35,6 +35,8 @@ class SslEndPoint;
  */
 class XZERO_BASE_API InetConnector : public Connector {
  public:
+  typedef std::function<Scheduler*()> SchedulerSelector;
+
   /**
    * Initializes this connector.
    *
@@ -58,7 +60,9 @@ class XZERO_BASE_API InetConnector : public Connector {
    */
   InetConnector(const std::string& name, Executor* executor,
                 Scheduler* scheduler,
-                Duration readTimeout, Duration writeTimeout,
+                SchedulerSelector clientSchedulerSelector,
+                Duration readTimeout,
+                Duration writeTimeout,
                 Duration tcpFinTimeout,
                 UniquePtr<ExceptionHandler> eh,
                 const IPAddress& ipaddress, int port, int backlog,
@@ -80,7 +84,9 @@ class XZERO_BASE_API InetConnector : public Connector {
    */
   InetConnector(const std::string& name, Executor* executor,
                 Scheduler* scheduler,
-                Duration readTimeout, Duration writeTimeout,
+                SchedulerSelector clientSchedulerSelector,
+                Duration readTimeout,
+                Duration writeTimeout,
                 Duration tcpFinTimeout,
                 UniquePtr<ExceptionHandler> eh);
 
@@ -256,8 +262,11 @@ class XZERO_BASE_API InetConnector : public Connector {
 
   /**
    * Creates an EndPoint instance for given client file descriptor.
+   *
+   * @param cfd       client's file descriptor
+   * @param scheduler client's designated I/O scheduler
    */
-  virtual RefPtr<EndPoint> createEndPoint(int cfd);
+  virtual RefPtr<EndPoint> createEndPoint(int cfd, Scheduler* scheduler);
 
   /**
    * By default, creates Connection from default connection factory and initiates it.
@@ -290,6 +299,7 @@ class XZERO_BASE_API InetConnector : public Connector {
  private:
   Scheduler* scheduler_;
   Scheduler::HandleRef schedulerHandle_;
+  SchedulerSelector selectScheduler_;
 
   IPAddress bindAddress_;
   int port_;

@@ -51,6 +51,7 @@ class XZERO_BASE_API SslConnector : public InetConnector {
    */
   SslConnector(const std::string& name, Executor* executor,
                Scheduler* scheduler,
+               SchedulerSelector clientSchedulerSelector,
                Duration readTimeout, Duration writeTimeout,
                Duration tcpFinTimeout,
                UniquePtr<ExceptionHandler> eh,
@@ -72,7 +73,7 @@ class XZERO_BASE_API SslConnector : public InetConnector {
   void stop() override;
   std::list<RefPtr<EndPoint>> connectedEndPoints() override;
 
-  RefPtr<EndPoint> createEndPoint(int cfd) override;
+  RefPtr<EndPoint> createEndPoint(int cfd, Scheduler* scheduler) override;
   void onEndPointCreated(const RefPtr<EndPoint>& endpoint) override;
 
   SslContext* selectContext(const char* servername) const;
