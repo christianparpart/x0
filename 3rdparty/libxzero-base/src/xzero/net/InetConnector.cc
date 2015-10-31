@@ -433,21 +433,20 @@ void InetConnector::stop() {
 }
 
 void InetConnector::onConnect() {
-  safeCall_([this]() {
-    for (size_t i = 0; i < multiAcceptCount_; i++) {
-      int cfd = acceptOne();
-      if (cfd < 0)
-        break;
+  for (size_t i = 0; i < multiAcceptCount_; i++) {
+    int cfd = acceptOne();
+    if (cfd < 0)
+      break;
 
-      RefPtr<EndPoint> endpoint = createEndPoint(cfd);
-      {
-        std::lock_guard<std::mutex> _lk(mutex_);
-        connectedEndPoints_.push_back(endpoint);
-      }
+    TRACE("onConnect: fd=$0", cfd);
 
-      onEndPointCreated(endpoint);
+    RefPtr<EndPoint> ep = createEndPoint(cfd);
+    {
+      std::lock_guard<std::mutex> _lk(mutex_);
+      connectedEndPoints_.push_back(ep);
     }
-  });
+    safeCall_.invoke(std::bind(&InetConnector::onEndPointCreated, this, ep));
+  }
 
   if (isStarted()) {
     notifyOnEvent();
@@ -508,7 +507,7 @@ void InetConnector::onEndPointCreated(const RefPtr<EndPoint>& endpoint) {
   // create Connection object for given endpoint
   defaultConnectionFactory()->create(this, endpoint.get());
 
-  safeCall_(std::bind(&Connection::onOpen, endpoint->connection()));
+  endpoint->connection()->onOpen();
 }
 
 std::list<RefPtr<EndPoint>> InetConnector::connectedEndPoints() {
@@ -532,9 +531,8 @@ void InetConnector::onEndPointClosed(EndPoint* endpoint) {
   assert(i != connectedEndPoints_.end());
 
   if (i != connectedEndPoints_.end()) {
-    safeCall_(std::bind(&Connection::onClose, endpoint->connection()));
-
     connectedEndPoints_.erase(i);
+    endpoint->connection()->onClose();
   }
 }
 
