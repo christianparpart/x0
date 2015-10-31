@@ -37,5 +37,9 @@ enum class LogLevel {
   kTrace = Trace
 };
 
-}
+std::string to_string(LogLevel value);
+LogLevel to_loglevel(const std::string& value);
+
+} // namespace xzero
+
 #endif
