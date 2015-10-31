@@ -336,12 +336,24 @@ void StringUtil::toLower(std::string* str) {
   }
 }
 
+std::string StringUtil::toLower(const std::string& str) {
+  std::string copy = str;
+  toLower(&copy);
+  return copy;
+}
+
 void StringUtil::toUpper(std::string* str) {
   auto& str_ref = *str;
 
   for (int i = 0; i < str_ref.length(); ++i) {
     str_ref[i] = std::toupper(str_ref[i]);
   }
+}
+
+std::string StringUtil::toUpper(const std::string& str) {
+  std::string copy = str;
+  toUpper(&copy);
+  return copy;
 }
 
 size_t StringUtil::find(const std::string& str, char chr) {

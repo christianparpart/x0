@@ -179,11 +179,29 @@ public:
   static void toLower(std::string* str);
 
   /**
+   * Converts the provided string to all lowercase
+   *
+   * @param str the str that should be modified
+   *
+   * @return the resulting lower-case string.
+   */
+  static std::string toLower(const std::string& str);
+
+  /**
    * Converts the provided string to all uppercase
    *
    * @param str the str that should be modified
    */
   static void toUpper(std::string* str);
+
+  /**
+   * Converts the provided string to all uppercase
+   *
+   * @param str the str that should be upper-cased.
+   *
+   * @return the resulting upper-case string.
+   */
+  static std::string toUpper(const std::string& str);
 
   /**
    * Finds the first occurence of the provided character in the string. Returns
