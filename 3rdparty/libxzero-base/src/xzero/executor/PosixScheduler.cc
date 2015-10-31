@@ -413,6 +413,9 @@ void PosixScheduler::runLoopOnce() {
   int outcount = 0;
   int errcount = 0;
 
+  FD_SET(wakeupPipe_[PIPE_READ_END], &input);
+  wmark = std::max(wmark, wakeupPipe_[PIPE_READ_END]);
+
   {
     std::lock_guard<std::mutex> lk(lock_);
 
@@ -437,8 +440,6 @@ void PosixScheduler::runLoopOnce() {
     tv.tv_sec = static_cast<time_t>(timeout.seconds()),
     tv.tv_usec = timeout.microseconds() % kMicrosPerSecond;
   }
-
-  FD_SET(wakeupPipe_[PIPE_READ_END], &input);
 
   TRACE("runLoopOnce(): select(wmark=$0, in=$1, out=$2, err=$3, tmo=$4)",
         wmark + 1, incount, outcount, errcount, Duration(tv));
