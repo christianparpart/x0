@@ -179,6 +179,9 @@ class XZERO_BASE_API InetConnector : public Connector {
   /** Enables/disables the @c SO_REUSEPORT flag on this connector. */
   void setReusePort(bool enable);
 
+  /** Tests whether TCP-Port reusing is actually supported. */
+  static bool isReusePortSupported();
+
   /** Tests whether the underlying system @c SO_REUSEADDR flag is set. */
   bool reuseAddr() const;
 

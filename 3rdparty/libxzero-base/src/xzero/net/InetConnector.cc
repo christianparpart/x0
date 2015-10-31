@@ -349,6 +349,18 @@ void InetConnector::setReusePort(bool enable) {
   }
 }
 
+bool InetConnector::isReusePortSupported() {
+  int fd = ::socket(AF_INET, SOCK_STREAM, 0);
+  if (fd < 0)
+    return false;
+
+  int rc = 1;
+  bool res = ::setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &rc, sizeof(rc)) == 0;
+
+  ::close(fd);
+  return res;
+}
+
 bool InetConnector::reuseAddr() const {
   int optval = 1;
   socklen_t optlen = sizeof(optval);
