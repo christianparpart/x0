@@ -48,6 +48,21 @@ class XZERO_BASE_API Option {
   bool isEmpty() const noexcept { return !valid_; }
   operator bool() const { return isSome(); }
 
+  void reset() {
+    value_ = T();
+    valid_ = false;
+  }
+
+  void set(T&& value) {
+    value_ = std::move(value);
+    valid_ = true;
+  }
+
+  void set(const T& value) {
+    value_ = value;
+    valid_ = true;
+  }
+
   T& get() {
     require();
     return value_;
