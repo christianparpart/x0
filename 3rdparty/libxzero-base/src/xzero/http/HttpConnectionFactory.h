@@ -33,7 +33,6 @@ class XZERO_HTTP_API HttpConnectionFactory : public ConnectionFactory {
    * Base initiailization for the HTTP connection factory.
    *
    * @param protocolName HTTP protocol name, e.g. http1, http2, ssl+http1, ...
-   * @param dg the wallclock used for generating @c Date response header
    * @param maxRequestUriLength maximum number of bytes for the request URI
    * @param maxRequestBodyLength maximum number of bytes for the request body
    */
