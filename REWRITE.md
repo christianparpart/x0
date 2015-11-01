@@ -7,12 +7,19 @@
 - [x] compose SafeCall over inheritance
 - [x] threading: revive basic threaded non-blocking
 - [x] threading: revive `SO_REUSEPORT`
+- [x] revive `max_read_idle`
+- [x] revive `max_write_idle`
+- [x] revive `tcp_fin_timeout`
+- [x] revive `tcp_cork`
+- [ ] revive `tcp_nodelay`
+- [ ] revive `lingering`
+- [ ] revive `max_connections`
 - [ ] pull InputStream/OutputStream API from stx (away from istream/ostream)?
 - [ ] (make thread safe) File::lastModified()
 - [ ] how to convert from UnixTime to CivilTime to get the current
 - [ ] FileRef to be renamed to FileHandle/FileHandle or alike?
 
-###  Feature Stories
+### Feature Stories
 
 - [ ] port director plugin, yeah
 - [ ] port stx::HTTPConnectionPool into HttpClient / HttpClientProxy

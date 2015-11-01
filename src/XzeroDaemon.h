@@ -181,22 +181,7 @@ class XzeroDaemon : public xzero::flow::vm::Runtime {
   int optimizationLevel_;
 
   // HTTP
-  bool advertise_; //!< whether or not to provide Server response header
-  size_t maxRequestHeaderSize_;
-  size_t maxRequestHeaderCount_;
-  size_t maxRequestBodySize_;
-  size_t requestHeaderBufferSize_;
-  size_t requestBodyBufferSize_;
   std::shared_ptr<xzero::http::http1::ConnectionFactory> http1_;
-
-  // networking
-  bool tcpCork_;
-  bool tcpNoDelay_;
-  size_t maxConnections_;
-  xzero::Duration maxReadIdle_;
-  xzero::Duration maxWriteIdle_;
-  xzero::Duration tcpFinTimeout_;
-  xzero::Duration lingering_;
 
   // setup phase
   std::unique_ptr<Config> config_;

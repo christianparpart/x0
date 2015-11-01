@@ -310,11 +310,11 @@ bool CoreModule::redirectOnIncompletePath(XzeroContext* cx) {
 }
 
 void CoreModule::mimetypes(Params& args) {
-  daemon().mimetypes().loadFromLocal(args.getString(1).str());
+  daemon().config_->mimetypesPath = args.getString(1).str();
 }
 
 void CoreModule::mimetypes_default(Params& args) {
-  daemon().mimetypes().setDefaultMimeType(args.getString(1).str());
+  daemon().config_->mimetypesDefault = args.getString(1).str();
 }
 
 void CoreModule::etag_mtime(Params& args) {
@@ -351,23 +351,23 @@ void CoreModule::server_tags(Params& args) {
 }
 
 void CoreModule::max_read_idle(Params& args) {
-  daemon().maxReadIdle_ = Duration::fromSeconds(args.getInt(1));
+  daemon().config_->maxReadIdle = Duration::fromSeconds(args.getInt(1));
 }
 
 void CoreModule::max_write_idle(Params& args) {
-  daemon().maxWriteIdle_ = Duration::fromSeconds(args.getInt(1));
+  daemon().config_->maxWriteIdle = Duration::fromSeconds(args.getInt(1));
 }
 
 void CoreModule::max_keepalive_idle(Params& args) {
-  daemon().http1_->setMaxKeepAlive(Duration::fromSeconds(args.getInt(1)));
+  daemon().config_->maxKeepAlive = Duration::fromSeconds(args.getInt(1));
 }
 
 void CoreModule::max_keepalive_requests(Params& args) {
-  daemon().http1_->setMaxRequestCount(args.getInt(1));
+  daemon().config_->maxKeepAliveRequests = args.getInt(1);
 }
 
 void CoreModule::max_conns(Params& args) {
-  daemon().maxConnections_ = args.getInt(1);
+  daemon().config_->maxConnections = args.getInt(1);
 }
 
 void CoreModule::max_files(Params& args) {
@@ -383,39 +383,39 @@ void CoreModule::max_core(Params& args) {
 }
 
 void CoreModule::tcp_cork(Params& args) {
-  daemon().tcpCork_ = args.getBool(1);
+  daemon().config_->tcpCork = args.getBool(1);
 }
 
 void CoreModule::tcp_nodelay(Params& args) {
-  daemon().tcpNoDelay_ = args.getBool(1);
+  daemon().config_->tcpNoDelay = args.getBool(1);
 }
 
 void CoreModule::lingering(Params& args) {
-  daemon().lingering_ = Duration::fromSeconds(args.getInt(1));
+  daemon().config_->lingering = Duration::fromSeconds(args.getInt(1));
 }
 
 void CoreModule::max_request_uri_size(Params& args) {
-  daemon().http1_->setMaxRequestUriLength(args.getInt(1));
+  daemon().config_->maxRequestUriLength = args.getInt(1);
 }
 
 void CoreModule::max_request_header_size(Params& args) {
-  daemon().maxRequestHeaderSize_ = args.getInt(1);
+  daemon().config_->maxRequestHeaderSize = args.getInt(1);
 }
 
 void CoreModule::max_request_header_count(Params& args) {
-  daemon().maxRequestHeaderCount_ = args.getInt(1);
+  daemon().config_->maxRequestHeaderCount = args.getInt(1);
 }
 
 void CoreModule::max_request_body_size(Params& args) {
-  daemon().http1_->setMaxRequestBodyLength(args.getInt(1));
+  daemon().config_->maxRequestBodySize = args.getInt(1);
 }
 
 void CoreModule::request_header_buffer_size(Params& args) {
-  daemon().requestHeaderBufferSize_ = args.getInt(1);
+  daemon().config_->requestHeaderBufferSize = args.getInt(1);
 }
 
 void CoreModule::request_body_buffer_size(Params& args) {
-  daemon().requestBodyBufferSize_ = args.getInt(1);
+  daemon().config_->requestBodyBufferSize = args.getInt(1);
 }
 
 void CoreModule::listen(Params& args) {

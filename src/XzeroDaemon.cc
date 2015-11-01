@@ -74,27 +74,8 @@ XzeroDaemon::XzeroDaemon()
       setupApi_(),
       mainApi_(),
       optimizationLevel_(1),
-      advertise_(true),
-      maxRequestHeaderSize_(16 * 1024),         // 16 KB
-      maxRequestHeaderCount_(128),
-      requestHeaderBufferSize_(16 * 1024),      // 16 KB
-      requestBodyBufferSize_(16 * 1024),        // 16 KB
-      http1_(new http1::ConnectionFactory(
-          1024,                         // max_request_uri_size      1 K
-          16 * 1024 * 1024,             // max_request_body_size    16 M
-          100,                          // max_keepalive_requests  100
-          Duration::fromSeconds(8))),   // max_keepalive_idle        8 s
-      tcpCork_(false),
-      tcpNoDelay_(false),
-      maxConnections_(512),
-      maxReadIdle_(Duration::fromSeconds(60)),
-      maxWriteIdle_(Duration::fromSeconds(360)),
-      tcpFinTimeout_(Duration::fromSeconds(60)),
-      lingering_(Duration::Zero),
+      http1_(),
       config_(new Config) {
-
-  http1_->setHandler(std::bind(&XzeroDaemon::handleRequest, this,
-        std::placeholders::_1, std::placeholders::_2));
 
   loadModule<CoreModule>();
   loadModule<AccessModule>();
@@ -242,6 +223,30 @@ void XzeroDaemon::postConfig() {
     RAISE(ConfigurationError, "No listeners configured.");
   }
 
+  // HTTP/1 connection factory
+  http1_.reset(new http1::ConnectionFactory(
+      config_->maxRequestUriLength,
+      config_->maxRequestBodySize,
+      config_->maxKeepAliveRequests,
+      config_->maxKeepAlive,
+      config_->tcpCork));
+
+  http1_->setHandler(std::bind(&XzeroDaemon::handleRequest, this,
+        std::placeholders::_1, std::placeholders::_2));
+
+  // mimetypes
+  mimetypes_.setDefaultMimeType(config_->mimetypesDefault);
+
+  if (config_->mimetypesPath.empty()) {
+    mimetypes_.loadFromLocal(config_->mimetypesPath);
+  }
+
+  if (mimetypes_.empty()) {
+    logDebug("x0d", "No mimetypes given. Defaulting to builtin database.");
+    mimetypes_.load(mimetypes2cc);
+  }
+
+  // schedulers & threading
   schedulers_.emplace_back(newScheduler());
 
   for (int i = 1; i <= config_->workers; ++i) {
@@ -250,6 +255,7 @@ void XzeroDaemon::postConfig() {
                                         schedulers_[i].get()));
   }
 
+  // listeners
   for (const ListenerConfig& l: config_->listeners) {
     if (l.ssl) {
       if (config_->sslContexts.empty()) {
@@ -271,11 +277,6 @@ void XzeroDaemon::postConfig() {
           l.multiAcceptCount, l.reuseAddr, l.reusePort,
           nullptr);
     }
-  }
-
-  if (mimetypes_.empty()) {
-    logDebug("x0d", "No mimetypes given. Defaulting to builtin database.");
-    mimetypes_.load(mimetypes2cc);
   }
 }
 
@@ -401,9 +402,9 @@ T* XzeroDaemon::doSetupConnector(
       listenerScheduler,
       listenerScheduler,
       clientSchedulerSelector,
-      maxReadIdle_,
-      maxWriteIdle_,
-      tcpFinTimeout_,
+      config_->maxReadIdle,
+      config_->maxWriteIdle,
+      config_->tcpFinTimeout,
       ipaddr,
       port,
       backlog,

@@ -38,27 +38,27 @@ struct Config {
   std::list<ListenerConfig> listeners;
   std::list<SslContext> sslContexts;
 
-#if 0
   std::string mimetypesPath;
-  std::string mimetypesDefault;
+  std::string mimetypesDefault = "application/octet-stream";
 
-  bool advertise_;
-  size_t maxRequestHeaderSize;
-  size_t maxRequestHeaderCount;
-  size_t maxRequestBodySize;
-  size_t requestHeaderBufferSize;
-  size_t requestBodyBufferSize;
-  size_t maxKeepAliveRequests;
-  xzero::Duration maxKeepAlive;
+  size_t maxRequestUriLength = 1024;              // 1 KB
+  size_t maxRequestHeaderSize = 8 * 1024;         // 8 KB
+  size_t maxRequestHeaderCount = 128;
+  size_t maxRequestBodySize = 16 * 1024 * 1024;   // 16 MB
+  size_t requestHeaderBufferSize = 16 * 1024;     // 16 KB
+  size_t requestBodyBufferSize = 16 * 1024;       // 16 KB
+  size_t maxKeepAliveRequests = 100;
+  xzero::Duration maxKeepAlive = xzero::Duration::fromSeconds(8);
 
-  bool tcpCork;
-  bool tcpNoDelay;
-  size_t maxConnections;
-  xzero::Duration maxReadIdle;
-  xzero::Duration maxWriteIdle;
-  xzero::Duration tcpFinTimeout;
-  xzero::Duration lingering;
+  bool tcpCork = false;
+  bool tcpNoDelay = false;
+  size_t maxConnections = 1024;
+  xzero::Duration maxReadIdle = xzero::Duration::fromSeconds(60);
+  xzero::Duration maxWriteIdle = xzero::Duration::fromSeconds(360);
+  xzero::Duration tcpFinTimeout = xzero::Duration::fromSeconds(60);
+  xzero::Duration lingering = xzero::Duration::fromSeconds(0);
 
+#if 0
   // accesslog
   std::unordered_map<std::string, std::string> accesslogFormats;
 
