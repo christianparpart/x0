@@ -322,6 +322,7 @@ PosixScheduler::HandleRef PosixScheduler::setupWatcher(
     while (succ->prev != nullptr) {
       if (interest->timeout <= succ->prev->timeout) {
         linkWatcher(interest, succ->prev);
+        breakLoop();
         return interest; // handle;
       } else {
         succ = succ->prev;
@@ -336,6 +337,7 @@ PosixScheduler::HandleRef PosixScheduler::setupWatcher(
     firstWatcher_ = lastWatcher_ = interest;
   }
 
+  breakLoop();
   return interest; // handle;
 }
 
