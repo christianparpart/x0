@@ -52,15 +52,13 @@ InetConnector::InetConnector(const std::string& name, Executor* executor,
                              SchedulerSelector clientSchedulerSelector,
                              Duration readTimeout,
                              Duration writeTimeout,
-                             Duration tcpFinTimeout,
-                             UniquePtr<ExceptionHandler> eh)
+                             Duration tcpFinTimeout)
     : Connector(name, executor),
       scheduler_(scheduler),
       schedulerHandle_(),
       selectScheduler_(clientSchedulerSelector),
       bindAddress_(),
       port_(-1),
-      safeCall_(std::move(eh)),
       connectedEndPoints_(),
       mutex_(),
       socket_(-1),
@@ -82,11 +80,10 @@ InetConnector::InetConnector(const std::string& name, Executor* executor,
                              Duration readTimeout,
                              Duration writeTimeout,
                              Duration tcpFinTimeout,
-                             UniquePtr<ExceptionHandler> eh,
                              const IPAddress& ipaddress, int port, int backlog,
                              bool reuseAddr, bool reusePort)
     : InetConnector(name, executor, scheduler, clientSchedulerSelector,
-                    readTimeout, writeTimeout, tcpFinTimeout, std::move(eh)) {
+                    readTimeout, writeTimeout, tcpFinTimeout) {
 
   open(ipaddress, port, backlog, reuseAddr, reusePort);
 }

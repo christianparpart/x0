@@ -29,11 +29,10 @@ SslConnector::SslConnector(const std::string& name, Executor* executor,
                            SchedulerSelector clientSchedulerSelector,
                            Duration readTimeout, Duration writeTimeout,
                            Duration tcpFinTimeout,
-                           UniquePtr<ExceptionHandler> eh,
                            const IPAddress& ipaddress, int port, int backlog,
                            bool reuseAddr, bool reusePort)
     : InetConnector(name, executor, scheduler, clientSchedulerSelector,
-                    readTimeout, writeTimeout, tcpFinTimeout, std::move(eh),
+                    readTimeout, writeTimeout, tcpFinTimeout,
                     ipaddress, port, backlog, reuseAddr, reusePort),
       contexts_() {
 }

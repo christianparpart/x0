@@ -120,7 +120,7 @@ InetConnector* HttpService::configureInet(Executor* executor,
       "http", executor, scheduler,
       [scheduler]() { return scheduler; },
       readTimeout, writeTimeout,
-      tcpFinTimeout, nullptr, ipaddress, port, backlog, true, false);
+      tcpFinTimeout, ipaddress, port, backlog, true, false);
 
   attachProtocol(inetConnector_);
 

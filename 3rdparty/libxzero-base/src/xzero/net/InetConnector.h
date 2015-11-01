@@ -64,7 +64,6 @@ class XZERO_BASE_API InetConnector : public Connector {
                 Duration readTimeout,
                 Duration writeTimeout,
                 Duration tcpFinTimeout,
-                UniquePtr<ExceptionHandler> eh,
                 const IPAddress& ipaddress, int port, int backlog,
                 bool reuseAddr, bool reusePort);
 
@@ -87,8 +86,7 @@ class XZERO_BASE_API InetConnector : public Connector {
                 SchedulerSelector clientSchedulerSelector,
                 Duration readTimeout,
                 Duration writeTimeout,
-                Duration tcpFinTimeout,
-                UniquePtr<ExceptionHandler> eh);
+                Duration tcpFinTimeout);
 
   ~InetConnector();
 
@@ -303,9 +301,6 @@ class XZERO_BASE_API InetConnector : public Connector {
 
   IPAddress bindAddress_;
   int port_;
-
-  /** Hook invokation wrapper to catch unhandled exceptions. */
-  SafeCall safeCall_;
 
   std::list<RefPtr<EndPoint>> connectedEndPoints_;
   std::mutex mutex_;

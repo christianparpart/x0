@@ -40,7 +40,6 @@ class XZERO_BASE_API SslConnector : public InetConnector {
    *                     for read operations.
    * @param tcpFinTimeout Timespan to leave client sockets in FIN_WAIT2 state.
    *                      A value of 0 means to leave it at system default.
-   * @param eh exception handler for errors in hooks or during events.
    * @param ipaddress TCP/IP address to listen on
    * @param port TCP/IP port number to listen on
    * @param backlog TCP backlog for this listener.
@@ -54,7 +53,6 @@ class XZERO_BASE_API SslConnector : public InetConnector {
                SchedulerSelector clientSchedulerSelector,
                Duration readTimeout, Duration writeTimeout,
                Duration tcpFinTimeout,
-               UniquePtr<ExceptionHandler> eh,
                const IPAddress& ipaddress, int port, int backlog,
                bool reuseAddr, bool reusePort);
   ~SslConnector();
