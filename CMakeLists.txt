@@ -1,6 +1,8 @@
 cmake_minimum_required(VERSION 2.8)
 project(x0d CXX C)
 
+set(X0_VERSION "0.11.0-dev")
+
 # add_definitions(-DPROJECT_ROOT_SRC_DIR=${CMAKE_CURRENT_SOURCE_DIR})
 # add_definitions(-DPROJECT_ROOT_BIN_DIR=${CMAKE_CURRENT_BINARY_DIR})
 

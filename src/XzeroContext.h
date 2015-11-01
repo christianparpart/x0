@@ -65,6 +65,7 @@ class XzeroContext {
   bool run() const { return runner_->run(); }
 
   const xzero::IPAddress& remoteIP() const;
+  int remotePort() const;
 
   size_t bytesReceived() const;
   size_t bytesTransmitted() const;

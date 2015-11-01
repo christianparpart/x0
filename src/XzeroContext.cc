@@ -55,6 +55,10 @@ const IPAddress& XzeroContext::remoteIP() const {
   RAISE(RuntimeError, "Non-IP transport channels not supported");
 }
 
+int XzeroContext::remotePort() const {
+  return -1; // TODO
+}
+
 size_t XzeroContext::bytesReceived() const {
   return request_->bytesReceived();
 }

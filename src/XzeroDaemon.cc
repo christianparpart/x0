@@ -8,7 +8,6 @@
 
 #include "Config.h"
 #include "XzeroDaemon.h"
-#include "XzeroWorker.h"
 #include "XzeroContext.h"
 
 #include "modules/access.h"
@@ -50,9 +49,6 @@
 #include <sstream>
 #include <fstream>
 
-#define PACKAGE_VERSION "0.11.0-dev"
-#define PACKAGE_HOMEPAGE_URL "https://xzero.io"
-
 using namespace xzero;
 using namespace xzero::http;
 
@@ -64,10 +60,11 @@ namespace x0d {
 XzeroDaemon::XzeroDaemon()
     : generation_(1),
       startupTime_(),
+      terminate_(false),
       mimetypes_(),
       vfs_(mimetypes_, "/", true, true, false),
       lastWorker_(0),
-      workers_(),
+      schedulers_(),
       modules_(),
       server_(new Server()),
       unit_(nullptr),
@@ -107,11 +104,15 @@ XzeroDaemon::XzeroDaemon()
   loadModule<DirlistingModule>();
   loadModule<EmptyGifModule>();
   loadModule<UserdirModule>();
-
-  workers_.emplace_back(new XzeroWorker(this, 0, false));
 }
 
 XzeroDaemon::~XzeroDaemon() {
+}
+
+void XzeroDaemon::runOneThread(Scheduler* scheduler) {
+  while (!terminate_.load()) {
+    scheduler->runLoopOnce();
+  }
 }
 
 bool XzeroDaemon::import(
@@ -231,6 +232,14 @@ void XzeroDaemon::postConfig() {
     RAISE(ConfigurationError, "No listeners configured.");
   }
 
+  schedulers_.emplace_back(std::unique_ptr<Scheduler>(new NativeScheduler()));
+
+  for (int i = 0; i < config_->workers; ++i) {
+    schedulers_.emplace_back(std::unique_ptr<Scheduler>(new NativeScheduler()));
+    threadedExecutor_.execute(std::bind(&XzeroDaemon::runOneThread, this,
+                                        schedulers_[i].get()));
+  }
+
   for (const ListenerConfig& l: config_->listeners) {
     if (l.ssl) {
       auto ssl = setupConnector<SslConnector>(
@@ -257,7 +266,6 @@ void XzeroDaemon::postConfig() {
 
 void XzeroDaemon::handleRequest(HttpRequest* request, HttpResponse* response) {
   XzeroContext* cx = new XzeroContext(main_, request, response);
-
   bool handled = cx->run();
   if (!handled) {
     response->setStatus(HttpStatus::NotFound);
@@ -306,10 +314,26 @@ void XzeroDaemon::validateContext(const std::string& entrypointHandlerName,
 void XzeroDaemon::run() {
   server_->start();
 
-  mainWorker()->runLoop();
-  // scheduler_.runLoop();
+  schedulers_.front()->runLoop();
 
   server_->stop();
+}
+
+void XzeroDaemon::terminate() {
+  terminate_ = true;
+
+  for (auto& scheduler: schedulers_) {
+    scheduler->breakLoop();
+  }
+}
+
+Scheduler* XzeroDaemon::selectClientScheduler() {
+  // TODO: support least-load
+
+  if (++lastWorker_ == schedulers_.size())
+    lastWorker_ = 0;
+
+  return schedulers_[lastWorker_].get();
 }
 
 template<typename T>
@@ -317,18 +341,17 @@ T* XzeroDaemon::setupConnector(
     const xzero::IPAddress& ipaddr, int port,
     int backlog, int multiAccept, bool reuseAddr, bool reusePort) {
 
-  Executor* executor = mainWorker()->scheduler();
-  Scheduler* scheduler = mainWorker()->scheduler();
-  UniquePtr<ExceptionHandler> eh(new CatchAndLogExceptionHandler("x0d"));
+  Scheduler* mainScheduler = schedulers_[0].get();
+  Executor* mainExecutor = mainScheduler;
 
   auto inet = server_->addConnector<T>(
       "inet",
-      executor,
-      scheduler,
+      mainExecutor,
+      mainScheduler,
+      std::bind(&XzeroDaemon::selectClientScheduler, this),
       maxReadIdle_,
       maxWriteIdle_,
       tcpFinTimeout_,
-      std::move(eh),
       ipaddr,
       port,
       backlog,

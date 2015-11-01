@@ -8,6 +8,7 @@
 
 #include "XzeroModule.h"
 #include "XzeroDaemon.h"
+#include "sysconfig.h"
 
 #include <xzero-flow/ASTPrinter.h>
 #include <xzero/executor/NativeScheduler.h>
@@ -20,7 +21,7 @@
 #include <iostream>
 #include <unistd.h>
 
-#define PACKAGE_VERSION "0.11.0-dev"
+#define PACKAGE_VERSION X0_VERSION
 #define PACKAGE_HOMEPAGE_URL "https://xzero.io"
 
 using namespace xzero;
@@ -41,84 +42,91 @@ void printHelp(const CLI& cli) {
 #define DEFAULT_CONFIG_PATH PROJECT_ROOT_SRC_DIR "/x0d.conf"
 
 int main(int argc, const char* argv[]) {
-  Application::init();
+  try {
+    Application::init();
 
-  CLI cli;
-  cli.defineBool("help", 'h', "Prints this help and terminates.")
-     .defineString("config", 'c', "PATH", "Specify a custom configuration file.", "/etc/x0d/x0d.conf", nullptr)
-     .defineString("user", 'u', "NAME", "User privileges to drop down to.", Application::userName())
-     .defineString("group", 'g', "NAME", "Group privileges to drop down to.", Application::groupName())
-     .defineString("log-level", 'L', "ENUM", "Defines the minimum log level.", "info", nullptr)
-     .defineString("log-target", 0, "ENUM", "Specifies logging target. One of syslog, file, systemd, console.", "console", nullptr)
-     .defineString("log-file", 'l', "PATH", "Path to application log file.", "", nullptr)
-     .defineString("instant", 'i', "PATH[:PORT]", "Enable instant-mode (does not need config file).", "", nullptr)
-     .defineNumber("optimization-level", 'O', "LEVEL", "Sets the configuration optimization level.", 1)
-     .defineBool("daemonize", 'd', "Forks the process into background.")
-     .defineBool("dump-ast", 0, "Dumps configuration AST and exits.")
-     .defineBool("dump-ir", 0, "Dumps configuration IR and exits.")
-     .defineBool("dump-tc", 0, "Dumps configuration opcode stream and exits.")
-     ;
+    CLI cli;
+    cli.defineBool("help", 'h', "Prints this help and terminates.")
+       .defineString("config", 'c', "PATH", "Specify a custom configuration file.", "/etc/x0d/x0d.conf", nullptr)
+       .defineString("user", 'u', "NAME", "User privileges to drop down to.", Application::userName())
+       .defineString("group", 'g', "NAME", "Group privileges to drop down to.", Application::groupName())
+       .defineString("log-level", 'L', "ENUM", "Defines the minimum log level.", "info", nullptr)
+       .defineString("log-target", 0, "ENUM", "Specifies logging target. One of syslog, file, systemd, console.", "console", nullptr)
+       .defineString("log-file", 'l', "PATH", "Path to application log file.", "", nullptr)
+       .defineString("instant", 'i', "PATH[:PORT]", "Enable instant-mode (does not need config file).", "", nullptr)
+       .defineNumber("optimization-level", 'O', "LEVEL", "Sets the configuration optimization level.", 1)
+       .defineBool("daemonize", 'd', "Forks the process into background.")
+       .defineBool("dump-ast", 0, "Dumps configuration AST and exits.")
+       .defineBool("dump-ir", 0, "Dumps configuration IR and exits.")
+       .defineBool("dump-tc", 0, "Dumps configuration opcode stream and exits.")
+       ;
 
-  Flags flags = cli.evaluate(argc, argv);
+    Flags flags = cli.evaluate(argc, argv);
 
-  if (flags.getBool("help")) {
-    printHelp(cli);
-    return 0;
-  }
+    if (flags.getBool("help")) {
+      printHelp(cli);
+      return 0;
+    }
 
-  x0d::XzeroDaemon x0d;
+    // {{{ setup logging
+    Logger::get()->setMinimumLogLevel(to_loglevel(flags.getString("log-level")));
 
-  x0d.setOptimizationLevel(flags.getNumber("optimization-level"));
+    std::string logTarget = flags.getString("log-target");
+    if (logTarget == "null") {
+      ; // ignore
+    } else if (logTarget == "console") {
+      Logger::get()->addTarget(ConsoleLogTarget::get());
+    } else if (logTarget == "file") {
+      ; // TODO
+    } else if (logTarget == "syslog") {
+      ; // TODO Logger::get()->addTarget(SyslogTarget::get());
+    } else if (logTarget == "systemd") {
+      ; // TODO Logger::get()->addTarget(SystemdLogTarget::get());
+    } else {
+      fprintf(stderr, "Invalid log target \"%s\".\n", logTarget.c_str());
+      return 1;
+    }
+    // }}}
 
-  x0d.loadConfigFile(flags.getString("config"));
+    x0d::XzeroDaemon x0d;
 
-  bool exitBeforeRun = false;
+    x0d.setOptimizationLevel(flags.getNumber("optimization-level"));
 
-  if (flags.getBool("dump-ast")) {
-    xzero::flow::ASTPrinter::print(x0d.programAST());
-    exitBeforeRun = true;
-  }
+    x0d.loadConfigFile(flags.getString("config"));
 
-  if (flags.getBool("dump-ir")) {
-    x0d.programIR()->dump();
-    exitBeforeRun = true;
-  }
+    bool exitBeforeRun = false;
 
-  if (flags.getBool("dump-tc")) {
-    x0d.program()->dump();
-    exitBeforeRun = true;
-  }
+    if (flags.getBool("dump-ast")) {
+      xzero::flow::ASTPrinter::print(x0d.programAST());
+      exitBeforeRun = true;
+    }
 
-  if (exitBeforeRun)
-    return 0;
+    if (flags.getBool("dump-ir")) {
+      x0d.programIR()->dump();
+      exitBeforeRun = true;
+    }
 
-  if (!x0d.configure())
+    if (flags.getBool("dump-tc")) {
+      x0d.program()->dump();
+      exitBeforeRun = true;
+    }
+
+    if (exitBeforeRun)
+      return 0;
+
+    if (!x0d.configure())
+      return 1;
+
+    Application::dropPrivileges(flags.getString("user"), flags.getString("group"));
+
+    if (flags.getBool("daemonize"))
+      Application::daemonize();
+
+    x0d.run();
+  } catch (const std::exception& e) {
+    fprintf(stderr, "%s\n", e.what());
     return 1;
-
-  Application::dropPrivileges(flags.getString("user"), flags.getString("group"));
-
-  Logger::get()->setMinimumLogLevel(to_loglevel(flags.getString("log-level")));
-
-  std::string logTarget = flags.getString("log-target");
-  if (logTarget == "null") {
-    ; // ignore
-  } else if (logTarget == "console") {
-    Logger::get()->addTarget(ConsoleLogTarget::get());
-  } else if (logTarget == "file") {
-    ; // TODO
-  } else if (logTarget == "syslog") {
-    ; // TODO Logger::get()->addTarget(SyslogTarget::get());
-  } else if (logTarget == "systemd") {
-    ; // TODO
-  } else {
-    fprintf(stderr, "Invalid log target \"%s\".\n", logTarget.c_str());
-    return 1;
   }
-
-  if (flags.getBool("daemonize"))
-    Application::daemonize();
-
-  x0d.run();
 
   return 0;
 }

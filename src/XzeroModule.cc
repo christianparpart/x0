@@ -38,16 +38,6 @@ void XzeroModule::onCycleLogs(std::function<void()> cb) {
   cleanups_.push_back([=]() { daemon().onCycleLogs.disconnect(handle); });
 }
 
-void XzeroModule::onWorkerSpawn(std::function<void(XzeroWorker*)> cb) {
-  auto handle = daemon().onWorkerSpawn.connect(cb);
-  cleanups_.push_back([=]() { daemon().onWorkerSpawn.disconnect(handle); });
-}
-
-void XzeroModule::onWorkerUnspawn(std::function<void(XzeroWorker*)> cb) {
-  auto handle = daemon().onWorkerUnspawn.connect(cb);
-  cleanups_.push_back([=]() { daemon().onWorkerUnspawn.disconnect(handle); });
-}
-
 void XzeroModule::onConnectionOpen(std::function<void(xzero::Connection*)> cb) {
   auto handle = daemon().onConnectionOpen.connect(cb);
   cleanups_.push_back([=]() {

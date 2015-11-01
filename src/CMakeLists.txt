@@ -39,7 +39,6 @@ set(x0d_SRC
   XzeroEventHandler.cc
   XzeroModule.cc
   XzeroState.cc
-  XzeroWorker.cc
 
   # static modules
   modules/access.cc

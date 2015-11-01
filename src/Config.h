@@ -34,6 +34,7 @@ struct SslContext {
 };
 
 struct Config {
+  int workers = 1;
   std::list<ListenerConfig> listeners;
   std::list<SslContext> sslContexts;
 

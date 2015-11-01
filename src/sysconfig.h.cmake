@@ -8,5 +8,7 @@
 
 #pragma once
 
+#cmakedefine X0_VERSION "@X0_VERSION@"
+
 #cmakedefine HAVE_SECURITY_PAM_APPL_H
 #cmakedefine ENABLE_PCRE

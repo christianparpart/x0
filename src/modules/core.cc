@@ -458,7 +458,7 @@ void CoreModule::ssl_context(Params& args) {
 }
 
 void CoreModule::workers(Params& args) {
-  // TODO: setup worker count
+  daemon().config_->workers = args.getInt(1);
 }
 
 void CoreModule::workers_affinity(Params& args) {
@@ -937,7 +937,7 @@ void CoreModule::conn_remote_ip(XzeroContext* cx, Params& args) {
 }
 
 void CoreModule::conn_remote_port(XzeroContext* cx, Params& args) {
-  // TODO
+  args.setResult(static_cast<FlowNumber>(cx->remotePort()));
 }
 
 void CoreModule::conn_local_ip(XzeroContext* cx, Params& args) {

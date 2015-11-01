@@ -16,6 +16,8 @@
 #include <xzero/Signal.h>
 #include <xzero/UnixTime.h>
 #include <xzero/Duration.h>
+#include <xzero/executor/ThreadedExecutor.h>
+#include <xzero/executor/NativeScheduler.h>
 #include <xzero/http/http1/ConnectionFactory.h>
 #include <xzero-flow/AST.h>
 #include <xzero-flow/ir/IRProgram.h>
@@ -34,6 +36,7 @@ namespace xzero {
   class IPAddress;
   class Connection;
   class Connector;
+  class Scheduler;
 
   namespace http {
     class HttpRequest;
@@ -48,13 +51,11 @@ namespace xzero {
 namespace x0d {
 
 class XzeroModule;
-class XzeroWorker;
 
 class XzeroDaemon : public xzero::flow::vm::Runtime {
  public:
   typedef xzero::Signal<void(xzero::Connection*)> ConnectionHook;
   typedef xzero::Signal<void(xzero::http::HttpRequest*, xzero::http::HttpResponse*)> RequestHook;
-  typedef xzero::Signal<void(XzeroWorker*)> WorkerHook;
   typedef xzero::Signal<void()> CycleLogsHook;
 
  public:
@@ -74,6 +75,8 @@ class XzeroDaemon : public xzero::flow::vm::Runtime {
   xzero::flow::Unit* programAST() const noexcept { return unit_.get(); }
   xzero::flow::vm::Program* program() const noexcept { return program_.get(); }
   xzero::flow::IRProgram* programIR() const noexcept { return programIR_.get(); }
+
+  xzero::Scheduler* selectClientScheduler();
 
   template<typename T>
   T* setupConnector(const xzero::IPAddress& ipaddr, int port,
@@ -107,8 +110,6 @@ class XzeroDaemon : public xzero::flow::vm::Runtime {
       const std::string& path,
       std::vector<xzero::flow::vm::NativeCallback*>* builtins);
 
-  XzeroWorker* mainWorker() const;
-
  private:
   void validateConfig();
   void validateContext(const std::string& entrypointHandlerName,
@@ -135,12 +136,6 @@ class XzeroDaemon : public xzero::flow::vm::Runtime {
   //! Hook that is invoked whenever a cycle-the-logfiles is being triggered.
   CycleLogsHook onCycleLogs;
 
-  //! Hook that is invoked whenever a worker is being spawned.
-  WorkerHook onWorkerSpawn;
-
-  //! Hook that is invoked whenever a worker is being despawned.
-  WorkerHook onWorkerUnspawn;
-
   xzero::MimeTypes& mimetypes() noexcept { return mimetypes_; }
   xzero::LocalFileRepository& vfs() noexcept { return vfs_; }
 
@@ -149,17 +144,21 @@ class XzeroDaemon : public xzero::flow::vm::Runtime {
 
   void postConfig();
 
+  void runOneThread(xzero::Scheduler* scheduler);
+
  private:
   unsigned generation_;                  //!< process generation number
   xzero::UnixTime startupTime_;          //!< process startup time
+  std::atomic<bool> terminate_;
 
   xzero::MimeTypes mimetypes_;
   xzero::LocalFileRepository vfs_;
 
-  off_t lastWorker_;                      //!< offset to the last elected worker
-  std::vector<XzeroWorker*> workers_;     //!< list of workers
-  std::list<XzeroModule*> modules_;       //!< list of loaded modules
-  std::unique_ptr<xzero::Server> server_;//!< (HTTP) server instance
+  off_t lastWorker_;                          //!< offset to the last elected worker
+  xzero::ThreadedExecutor threadedExecutor_;  //!< non-main worker executor
+  std::vector<std::unique_ptr<xzero::Scheduler>> schedulers_; //!< schedulers, one for each thread
+  std::list<XzeroModule*> modules_;           //!< list of loaded modules
+  std::unique_ptr<xzero::Server> server_;     //!< (HTTP) server instance
 
   // Flow configuration
   std::unique_ptr<xzero::flow::Unit> unit_;
@@ -195,10 +194,6 @@ class XzeroDaemon : public xzero::flow::vm::Runtime {
 };
 
 // {{{ inlines
-inline XzeroWorker* XzeroDaemon::mainWorker() const {
-  return workers_.front();
-}
-
 template <typename... ArgTypes>
 inline xzero::flow::vm::NativeCallback& XzeroDaemon::setupFunction(
     const std::string& name, xzero::flow::vm::NativeCallback::Functor cb,

@@ -36,7 +36,6 @@ namespace xzero {
 namespace x0d {
 
 class XzeroDaemon;
-class XzeroWorker;
 
 class XzeroModule {
  public:
@@ -76,8 +75,6 @@ class XzeroModule {
       ArgTypes... argTypes);
 
   void onCycleLogs(std::function<void()> callback);
-  void onWorkerSpawn(std::function<void(XzeroWorker*)> callback);
-  void onWorkerUnspawn(std::function<void(XzeroWorker*)> callback);
   void onConnectionOpen(std::function<void(xzero::Connection*)> callback);
   void onConnectionClose(std::function<void(xzero::Connection*)> callback);
   void onPreProcess(std::function<void(xzero::http::HttpRequest*, xzero::http::HttpResponse*)> callback);
