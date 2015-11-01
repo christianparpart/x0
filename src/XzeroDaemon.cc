@@ -237,7 +237,7 @@ void XzeroDaemon::postConfig() {
   // mimetypes
   mimetypes_.setDefaultMimeType(config_->mimetypesDefault);
 
-  if (config_->mimetypesPath.empty()) {
+  if (!config_->mimetypesPath.empty()) {
     mimetypes_.loadFromLocal(config_->mimetypesPath);
   }
 
