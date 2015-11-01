@@ -44,7 +44,8 @@ Connection::Connection(EndPoint* endpoint,
                        size_t maxRequestUriLength,
                        size_t maxRequestBodyLength,
                        size_t maxRequestCount,
-                       Duration maxKeepAlive)
+                       Duration maxKeepAlive,
+                       bool corkStream)
     : ::xzero::Connection(endpoint, executor),
       parser_(Parser::REQUEST),
       inputBuffer_(),
@@ -58,7 +59,8 @@ Connection::Connection(EndPoint* endpoint,
           dateGenerator, outputCompressor)),
       maxKeepAlive_(maxKeepAlive),
       requestCount_(0),
-      requestMax_(maxRequestCount) {
+      requestMax_(maxRequestCount),
+      corkStream_(corkStream) {
 
   channel_->request()->setRemoteIP(endpoint->remoteIP());
 
@@ -161,8 +163,7 @@ void Connection::send(HttpResponseInfo&& responseInfo,
 
   patchResponseInfo(responseInfo);
 
-  const bool corking_ = true;  // TODO(TCP_CORK): part of HttpResponseInfo?
-  if (corking_)
+  if (corkStream_)
     endpoint()->setCorking(true);
 
   generator_.generateResponse(responseInfo, chunk);
@@ -220,7 +221,8 @@ void Connection::patchResponseInfo(HttpResponseInfo& responseInfo) {
 
       char keepAlive[64];
       snprintf(keepAlive, sizeof(keepAlive), "timeout=%llu, max=%zu",
-               maxKeepAlive_.seconds(), requestMax_ - requestCount_);
+               (unsigned long long) maxKeepAlive_.seconds(),
+               requestMax_ - requestCount_);
 
       responseInfo.headers().push_back("Connection", "Keep-Alive");
       responseInfo.headers().push_back("Keep-Alive", keepAlive);

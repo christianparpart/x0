@@ -41,7 +41,8 @@ class XZERO_HTTP_API Connection : public ::xzero::Connection,
                  size_t maxRequestUriLength,
                  size_t maxRequestBodyLength,
                  size_t maxRequestCount,
-                 Duration maxKeepAlive);
+                 Duration maxKeepAlive,
+                 bool corkStream);
   ~Connection();
 
   size_t bytesReceived() const noexcept { return parser_.bytesReceived(); }
@@ -87,6 +88,7 @@ class XZERO_HTTP_API Connection : public ::xzero::Connection,
   Duration maxKeepAlive_;
   size_t requestCount_;
   size_t requestMax_;
+  bool corkStream_;
 };
 
 }  // namespace http1

@@ -27,7 +27,8 @@ class XZERO_HTTP_API ConnectionFactory : public HttpConnectionFactory {
       size_t maxRequestUriLength,
       size_t maxRequestBodyLength,
       size_t maxRequestCount,
-      Duration maxKeepAlive);
+      Duration maxKeepAlive,
+      bool corkStream);
 
   ~ConnectionFactory();
 
@@ -37,11 +38,14 @@ class XZERO_HTTP_API ConnectionFactory : public HttpConnectionFactory {
   Duration maxKeepAlive() const XZERO_NOEXCEPT { return maxKeepAlive_; }
   void setMaxKeepAlive(Duration value) { maxKeepAlive_ = value; }
 
+  bool corkStream() const noexcept { return corkStream_; }
+
   ::xzero::Connection* create(Connector* connector, EndPoint* endpoint) override;
 
  private:
   size_t maxRequestCount_;
   Duration maxKeepAlive_;
+  bool corkStream_;
 };
 
 }  // namespace http1

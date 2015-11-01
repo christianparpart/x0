@@ -17,18 +17,21 @@ ConnectionFactory::ConnectionFactory()
     : ConnectionFactory(4096,
                         4 * 1024 * 1024,
                         100,
-                        Duration::fromSeconds(8)) {
+                        Duration::fromSeconds(8),
+                        false) {
 }
 
 ConnectionFactory::ConnectionFactory(
     size_t maxRequestUriLength,
     size_t maxRequestBodyLength,
     size_t maxRequestCount,
-    Duration maxKeepAlive)
+    Duration maxKeepAlive,
+    bool corkStream)
     : HttpConnectionFactory("http/1.1", maxRequestUriLength,
                             maxRequestBodyLength),
       maxRequestCount_(maxRequestCount),
-      maxKeepAlive_(maxKeepAlive) {
+      maxKeepAlive_(maxKeepAlive),
+      corkStream_(corkStream) {
   setInputBufferSize(16 * 1024);
 }
 
@@ -45,7 +48,8 @@ ConnectionFactory::~ConnectionFactory() {
                                          maxRequestUriLength(),
                                          maxRequestBodyLength(),
                                          maxRequestCount(),
-                                         maxKeepAlive()),
+                                         maxKeepAlive(),
+                                         corkStream()),
                    connector);
 }
 
