@@ -6,7 +6,7 @@
 - [x] fix logging
 - [x] compose SafeCall over inheritance
 - [x] threading: revive basic threaded non-blocking
-- [ ] threading: revive `SO_REUSEPORT`
+- [x] threading: revive `SO_REUSEPORT`
 - [ ] pull InputStream/OutputStream API from stx (away from istream/ostream)?
 - [ ] (make thread safe) File::lastModified()
 - [ ] how to convert from UnixTime to CivilTime to get the current

@@ -107,6 +107,8 @@ XzeroDaemon::XzeroDaemon()
 }
 
 XzeroDaemon::~XzeroDaemon() {
+  terminate();
+  threadedExecutor_.joinAll();
 }
 
 void XzeroDaemon::runOneThread(Scheduler* scheduler) {
@@ -227,34 +229,47 @@ bool XzeroDaemon::configure() {
   }
 }
 
+std::unique_ptr<Scheduler> XzeroDaemon::newScheduler() {
+  return std::unique_ptr<Scheduler>(new NativeScheduler(
+        std::unique_ptr<xzero::ExceptionHandler>(
+              new CatchAndLogExceptionHandler("x0d")),
+        nullptr /* preInvoke */,
+        nullptr /* postInvoke */));
+}
+
 void XzeroDaemon::postConfig() {
   if (config_->listeners.empty()) {
     RAISE(ConfigurationError, "No listeners configured.");
   }
 
-  schedulers_.emplace_back(std::unique_ptr<Scheduler>(new NativeScheduler()));
+  schedulers_.emplace_back(newScheduler());
 
-  for (int i = 0; i < config_->workers; ++i) {
-    schedulers_.emplace_back(std::unique_ptr<Scheduler>(new NativeScheduler()));
+  for (int i = 1; i <= config_->workers; ++i) {
+    schedulers_.emplace_back(newScheduler());
     threadedExecutor_.execute(std::bind(&XzeroDaemon::runOneThread, this,
                                         schedulers_[i].get()));
   }
 
   for (const ListenerConfig& l: config_->listeners) {
     if (l.ssl) {
-      auto ssl = setupConnector<SslConnector>(
-          l.bindAddress, l.port, l.backlog,
-          l.multiAcceptCount, l.reuseAddr, l.reusePort);
       if (config_->sslContexts.empty()) {
         RAISE(ConfigurationError, "SSL listeners found but no SSL contexts configured.");
       }
-      for (const SslContext& cx: config_->sslContexts) {
-        ssl->addContext(cx.certfile, cx.keyfile); // TODO: include trustfile & priorities
-      }
+      setupConnector<SslConnector>(
+          l.bindAddress, l.port, l.backlog,
+          l.multiAcceptCount, l.reuseAddr, l.reusePort,
+          [this](SslConnector* connector) {
+            for (const SslContext& cx: config_->sslContexts) {
+              // TODO: include trustfile & priorities
+              connector->addContext(cx.certfile, cx.keyfile);
+            }
+          }
+      );
     } else {
       setupConnector<InetConnector>(
           l.bindAddress, l.port, l.backlog,
-          l.multiAcceptCount, l.reuseAddr, l.reusePort);
+          l.multiAcceptCount, l.reuseAddr, l.reusePort,
+          nullptr);
     }
   }
 
@@ -314,7 +329,9 @@ void XzeroDaemon::validateContext(const std::string& entrypointHandlerName,
 void XzeroDaemon::run() {
   server_->start();
 
-  schedulers_.front()->runLoop();
+  schedulers_[0]->runLoop();
+
+  logTrace("x0d", "Main loop quit. Shutting down.");
 
   server_->stop();
 }
@@ -337,18 +354,53 @@ Scheduler* XzeroDaemon::selectClientScheduler() {
 }
 
 template<typename T>
-T* XzeroDaemon::setupConnector(
+void XzeroDaemon::setupConnector(
+    const xzero::IPAddress& bindAddress, int port, int backlog,
+    int multiAcceptCount, bool reuseAddr, bool reusePort,
+    std::function<void(T*)> connectorVisitor) {
+
+  if (reusePort && !InetConnector::isReusePortSupported()) {
+    logWarning("x0d", "You platform does not support SO_REUSEPORT. "
+                      "Falling back to traditional connection scheduling.");
+    reusePort = false;
+  }
+
+  if (reusePort) {
+    for (auto& scheduler: schedulers_) {
+      Scheduler* sched = scheduler.get();
+      T* connector = doSetupConnector<T>(
+          sched,
+          [sched]() -> Scheduler* { return sched; },
+          bindAddress, port, backlog,
+          multiAcceptCount, reuseAddr, reusePort);
+      if (connectorVisitor) {
+        connectorVisitor(connector);
+      }
+    }
+  } else {
+    T* connector = doSetupConnector<T>(
+        schedulers_[0].get(),
+        std::bind(&XzeroDaemon::selectClientScheduler, this),
+        bindAddress, port, backlog,
+        multiAcceptCount, reuseAddr, reusePort);
+    if (connectorVisitor) {
+      connectorVisitor(connector);
+    }
+  }
+}
+
+template<typename T>
+T* XzeroDaemon::doSetupConnector(
+    xzero::Scheduler* listenerScheduler,
+    xzero::InetConnector::SchedulerSelector clientSchedulerSelector,
     const xzero::IPAddress& ipaddr, int port,
     int backlog, int multiAccept, bool reuseAddr, bool reusePort) {
 
-  Scheduler* mainScheduler = schedulers_[0].get();
-  Executor* mainExecutor = mainScheduler;
-
   auto inet = server_->addConnector<T>(
       "inet",
-      mainExecutor,
-      mainScheduler,
-      std::bind(&XzeroDaemon::selectClientScheduler, this),
+      listenerScheduler,
+      listenerScheduler,
+      clientSchedulerSelector,
       maxReadIdle_,
       maxWriteIdle_,
       tcpFinTimeout_,

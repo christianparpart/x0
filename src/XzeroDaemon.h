@@ -16,6 +16,7 @@
 #include <xzero/Signal.h>
 #include <xzero/UnixTime.h>
 #include <xzero/Duration.h>
+#include <xzero/net/InetConnector.h>
 #include <xzero/executor/ThreadedExecutor.h>
 #include <xzero/executor/NativeScheduler.h>
 #include <xzero/http/http1/ConnectionFactory.h>
@@ -79,9 +80,17 @@ class XzeroDaemon : public xzero::flow::vm::Runtime {
   xzero::Scheduler* selectClientScheduler();
 
   template<typename T>
-  T* setupConnector(const xzero::IPAddress& ipaddr, int port,
-                    int backlog, int multiAccept,
-                    bool reuseAddr, bool reusePort);
+  void setupConnector(const xzero::IPAddress& ipaddr, int port,
+                      int backlog, int multiAccept,
+                      bool reuseAddr, bool reusePort,
+                      std::function<void(T*)> connectorVisitor);
+
+  template<typename T>
+  T* doSetupConnector(xzero::Scheduler* listenerScheduler,
+                      xzero::InetConnector::SchedulerSelector clientSchedulerSelector,
+                      const xzero::IPAddress& ipaddr, int port,
+                      int backlog, int multiAccept,
+                      bool reuseAddr, bool reusePort);
 
   template <typename... ArgTypes>
   xzero::flow::vm::NativeCallback& setupFunction(
@@ -145,6 +154,8 @@ class XzeroDaemon : public xzero::flow::vm::Runtime {
   void postConfig();
 
   void runOneThread(xzero::Scheduler* scheduler);
+
+  std::unique_ptr<xzero::Scheduler> newScheduler();
 
  private:
   unsigned generation_;                  //!< process generation number
