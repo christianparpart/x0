@@ -76,6 +76,7 @@ class CoreModule : public XzeroModule {
   void sys_now(XzeroContext* cx, Params& args);
   void sys_now_str(XzeroContext* cx, Params& args);
   void sys_hostname(XzeroContext* cx, Params& args);
+  void sys_domainname(XzeroContext* cx, Params& args);
 
   // shared functions
   void log_err(XzeroContext* cx, Params& args);

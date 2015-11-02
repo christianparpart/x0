@@ -172,6 +172,8 @@ CoreModule::CoreModule(XzeroDaemon* d)
       .returnType(FlowType::String);
   sharedFunction("sys.hostname", &CoreModule::sys_hostname)
       .returnType(FlowType::String);
+  sharedFunction("sys.domainname", &CoreModule::sys_domainname)
+      .returnType(FlowType::String);
 
   // shared functions
   sharedFunction("file.exists", &CoreModule::file_exists, FlowType::String)
@@ -507,6 +509,16 @@ void CoreModule::sys_hostname(XzeroContext* cx, Params& args) {
     args.setResult(buf);
   } else {
     logError("sys.hostname: gethostname() failed. $0", strerror(errno));
+    args.setResult("");
+  }
+}
+
+void CoreModule::sys_domainname(XzeroContext* cx, Params& args) {
+  char buf[256];
+  if (getdomainname(buf, sizeof(buf)) == 0) {
+    args.setResult(buf);
+  } else {
+    logError("sys.domainname: getdomainname() failed. $0", strerror(errno));
     args.setResult("");
   }
 }
