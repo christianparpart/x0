@@ -18,6 +18,10 @@
 - [ ] (make thread safe) File::lastModified()
 - [ ] how to convert from UnixTime to CivilTime to get the current
 - [ ] FileRef to be renamed to FileHandle/FileHandle or alike?
+- [ ] (flow) String interpolation doesn't allow function calls without ()'s.
+      Example: "Welcome on ${sys.hostname}" is not working,
+      but the: "Welcome on ${sys.hostname()}" is working.
+- [ ] (flow) `var x = call1 + '.' + call2;` not working. fix me.
 
 ### Feature Stories
 
