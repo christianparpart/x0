@@ -100,6 +100,8 @@ class XZERO_BASE_API InetEndPoint : public EndPoint {
   void setBlocking(bool enable) override;
   bool isCorking() const override;
   void setCorking(bool enable) override;
+  bool isTcpNoDelay() const override;
+  void setTcpNoDelay(bool enable) override;
   std::string toString() const override;
   size_t fill(Buffer* result) override;
   size_t flush(const BufferRef& source) override;

@@ -203,6 +203,21 @@ void InetEndPoint::setCorking(bool enable) {
 #endif
 }
 
+bool InetEndPoint::isTcpNoDelay() const {
+  int result = 0;
+  socklen_t sz = sizeof(result);
+  if (getsockopt(handle_, IPPROTO_TCP, TCP_NODELAY, &result, &sz) < 0)
+    RAISE_ERRNO(errno);
+
+  return result;
+}
+
+void InetEndPoint::setTcpNoDelay(bool enable) {
+  int flag = enable ? 1 : 0;
+  if (setsockopt(handle_, IPPROTO_TCP, TCP_NODELAY, &flag, sizeof(flag)) < 0)
+    RAISE_ERRNO(errno);
+}
+
 std::string InetEndPoint::toString() const {
   char buf[32];
   snprintf(buf, sizeof(buf), "InetEndPoint(%d)@%p", handle(), this);

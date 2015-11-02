@@ -28,7 +28,8 @@ class XZERO_HTTP_API ConnectionFactory : public HttpConnectionFactory {
       size_t maxRequestBodyLength,
       size_t maxRequestCount,
       Duration maxKeepAlive,
-      bool corkStream);
+      bool corkStream,
+      bool tcpNoDelay);
 
   ~ConnectionFactory();
 
@@ -39,13 +40,16 @@ class XZERO_HTTP_API ConnectionFactory : public HttpConnectionFactory {
   void setMaxKeepAlive(Duration value) { maxKeepAlive_ = value; }
 
   bool corkStream() const noexcept { return corkStream_; }
+  bool tcpNoDelay() const noexcept { return tcpNoDelay_; }
 
-  ::xzero::Connection* create(Connector* connector, EndPoint* endpoint) override;
+  Connection* create(Connector* connector, EndPoint* endpoint) override;
+  Connection* configure(Connection* connection, Connector* connector) override;
 
  private:
   size_t maxRequestCount_;
   Duration maxKeepAlive_;
   bool corkStream_;
+  bool tcpNoDelay_;
 };
 
 }  // namespace http1

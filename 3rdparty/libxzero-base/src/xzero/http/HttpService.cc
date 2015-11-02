@@ -145,13 +145,15 @@ void HttpService::attachHttp1(Connector* connector) {
   size_t maxRequestCount = 100;
   Duration maxKeepAlive = Duration::fromSeconds(8);
   bool corkStream = false;
+  bool tcpNoDelay = false;
 
   auto http = connector->addConnectionFactory<xzero::http::http1::ConnectionFactory>(
       maxRequestUriLength,
       maxRequestBodyLength,
       maxRequestCount,
       maxKeepAlive,
-      corkStream);
+      corkStream,
+      tcpNoDelay);
 
   http->setHandler(std::bind(&HttpService::handleRequest, this,
                    std::placeholders::_1, std::placeholders::_2));

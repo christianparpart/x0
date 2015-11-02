@@ -167,6 +167,10 @@ class EndPoint : public RefCounted {
    */
   virtual void setCorking(bool enable) = 0;
 
+  virtual bool isTcpNoDelay() const = 0;
+
+  virtual void setTcpNoDelay(bool enable) = 0;
+
   /**
    * String representation of the object for introspection.
    */

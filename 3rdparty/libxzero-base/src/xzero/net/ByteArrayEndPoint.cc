@@ -172,6 +172,13 @@ bool ByteArrayEndPoint::isCorking() const {
 void ByteArrayEndPoint::setCorking(bool /*enable*/) {
 }
 
+bool ByteArrayEndPoint::isTcpNoDelay() const {
+  return false;
+}
+
+void ByteArrayEndPoint::setTcpNoDelay(bool /*enable*/) {
+}
+
 template<>
 std::string StringUtil::toString(ByteArrayEndPoint* value) {
   return StringUtil::format("ByteArrayEndPoint[$0]", (void*)value);

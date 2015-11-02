@@ -8,6 +8,7 @@
 #include <xzero/http/http1/ConnectionFactory.h>
 #include <xzero/http/http1/Connection.h>
 #include <xzero/net/Connector.h>
+#include <xzero/net/EndPoint.h>
 
 namespace xzero {
 namespace http {
@@ -18,6 +19,7 @@ ConnectionFactory::ConnectionFactory()
                         4 * 1024 * 1024,
                         100,
                         Duration::fromSeconds(8),
+                        false,
                         false) {
 }
 
@@ -26,12 +28,14 @@ ConnectionFactory::ConnectionFactory(
     size_t maxRequestBodyLength,
     size_t maxRequestCount,
     Duration maxKeepAlive,
-    bool corkStream)
+    bool corkStream,
+    bool tcpNoDelay)
     : HttpConnectionFactory("http/1.1", maxRequestUriLength,
                             maxRequestBodyLength),
       maxRequestCount_(maxRequestCount),
       maxKeepAlive_(maxKeepAlive),
-      corkStream_(corkStream) {
+      corkStream_(corkStream),
+      tcpNoDelay_(tcpNoDelay) {
   setInputBufferSize(16 * 1024);
 }
 
@@ -51,6 +55,16 @@ ConnectionFactory::~ConnectionFactory() {
                                          maxKeepAlive(),
                                          corkStream()),
                    connector);
+}
+
+::xzero::Connection* ConnectionFactory::configure(
+    ::xzero::Connection* connection,
+    ::xzero::Connector* connector) {
+
+  if (tcpNoDelay_)
+    connection->endpoint()->setTcpNoDelay(true);
+
+  return xzero::ConnectionFactory::configure(connection, connector);
 }
 
 }  // namespace http1

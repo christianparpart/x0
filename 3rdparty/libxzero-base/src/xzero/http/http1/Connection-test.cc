@@ -58,7 +58,7 @@ static const Duration maxKeepAlive = Duration::fromSeconds(30);
   auto http = localConnector->addConnectionFactory<                            \
                                  xzero::http::http1::ConnectionFactory>(       \
       maxRequestUriLength, maxRequestBodyLength, maxRequestCount,              \
-      maxKeepAlive, false);                                                            \
+      maxKeepAlive, false, false);                                             \
   http->setHandler([&](HttpRequest* request, HttpResponse* response) {          \
       response->setStatus(HttpStatus::Ok);                                      \
       response->setContentLength(request->path().size() + 1);                   \

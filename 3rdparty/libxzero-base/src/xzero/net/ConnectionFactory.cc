@@ -45,6 +45,8 @@ Connection* ConnectionFactory::configure(Connection* connection,
 
   connection->setInputBufferSize(inputBufferSize_);
 
+  // TODO: set SO_LINGER here, if desired.
+
   if (connector != nullptr) {
     for (ConnectionListener* listener: connector->listeners()) {
       connection->addListener(listener);

@@ -76,6 +76,8 @@ class XZERO_BASE_API SslEndPoint : public EndPoint {
   void setBlocking(bool enable) override;
   bool isCorking() const override;
   void setCorking(bool enable) override;
+  bool isTcpNoDelay() const override;
+  void setTcpNoDelay(bool enable) override;
   std::string toString() const override;
 
   /**

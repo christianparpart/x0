@@ -17,6 +17,7 @@
 #include <xzero/logging.h>
 #include <openssl/ssl.h>
 #include <openssl/err.h>
+#include <netinet/tcp.h>
 #include <fcntl.h>
 #include <unistd.h>
 
@@ -313,6 +314,21 @@ void SslEndPoint::setCorking(bool enable) {
     isCorking_ = enable;
   }
 #endif
+}
+
+bool SslEndPoint::isTcpNoDelay() const {
+  int result = 0;
+  socklen_t sz = sizeof(result);
+  if (getsockopt(handle_, IPPROTO_TCP, TCP_NODELAY, &result, &sz) < 0)
+    RAISE_ERRNO(errno);
+
+  return result;
+}
+
+void SslEndPoint::setTcpNoDelay(bool enable) {
+  int flag = enable ? 1 : 0;
+  if (setsockopt(handle_, IPPROTO_TCP, TCP_NODELAY, &flag, sizeof(flag)) < 0)
+    RAISE_ERRNO(errno);
 }
 
 std::string SslEndPoint::toString() const {
