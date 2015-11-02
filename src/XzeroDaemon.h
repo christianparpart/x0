@@ -151,11 +151,11 @@ class XzeroDaemon : public xzero::flow::vm::Runtime {
   template<typename T>
   T* loadModule();
 
+ private:
   void postConfig();
-
-  void runOneThread(xzero::Scheduler* scheduler);
-
   std::unique_ptr<xzero::Scheduler> newScheduler();
+  void runOneThread(int index);
+  void setThreadAffinity(int cpu, int workerId);
 
  private:
   unsigned generation_;                  //!< process generation number

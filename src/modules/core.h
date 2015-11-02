@@ -31,6 +31,7 @@ class CoreModule : public XzeroModule {
   // helper
   bool redirectOnIncompletePath(XzeroContext* cx);
   unsigned long long setrlimit(int resource, unsigned long long value);
+  int cpuCount();
 
   // setup properties
   void mimetypes(Params& args);
@@ -145,6 +146,7 @@ class CoreModule : public XzeroModule {
   bool verify_req_accept_language(xzero::flow::Instr* call);
 
  private:
+  int numCPU_;
   xzero::http::HttpFileHandler fileHandler_;
 };
 

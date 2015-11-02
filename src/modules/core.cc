@@ -99,8 +99,21 @@ unsigned long long CoreModule::setrlimit(
   return value;
 }
 
+int CoreModule::cpuCount() {
+  if (numCPU_ < 0) {
+    numCPU_ = sysconf(_SC_NPROCESSORS_ONLN);
+    if (numCPU_ < 0) {
+      logError("Could not retrieve processor count. $0", strerror(errno));
+      numCPU_ = 1;
+    }
+  }
+
+  return numCPU_;
+}
+
 CoreModule::CoreModule(XzeroDaemon* d)
     : XzeroModule(d, "core"),
+      numCPU_(-1),
       fileHandler_() {
 
   // setup functions
@@ -460,20 +473,42 @@ void CoreModule::ssl_context(Params& args) {
 }
 
 void CoreModule::workers(Params& args) {
-  daemon().config_->workers = args.getInt(1);
+  int workerCount = args.getInt(1);
+  daemon().config_->workers = workerCount;
+
+  if (workerCount == cpuCount()) {
+    logDebug("x0d", "Worker count equals CPU count. Defining linear processor affinity.");
+    daemon().config_->workerAffinities.resize(workerCount);
+    for (int i = 0; i < workerCount; ++i) {
+      daemon().config_->workerAffinities[i] = i;
+    }
+  }
 }
 
 void CoreModule::workers_affinity(Params& args) {
-  // TODO: setup worker count (with affinity)
+  const FlowIntArray& affinities = args.getIntArray(1);
+
+  if (affinities.empty())
+    RAISE(ConfigurationError, "invalid array size");
+
+  FlowNumber numCPU = cpuCount();
+
+  for (FlowNumber affinity: affinities)
+    if (affinity >= numCPU)
+      RAISE(ConfigurationError,
+            "Worker's CPU affinity $0 too high. "
+            "The value must be between 0 and $1.",
+            numCPU);
+
+  daemon().config_->workers = affinities.size();
+
+  daemon().config_->workerAffinities.resize(affinities.size());
+  for (size_t i = 0; i < affinities.size(); ++i)
+    daemon().config_->workerAffinities[i] = (int) affinities[i];
 }
 
 void CoreModule::sys_cpu_count(XzeroContext* cx, Params& args) {
-  long numCPU = sysconf(_SC_NPROCESSORS_ONLN);
-
-  if (numCPU < 0)
-    numCPU = 1;
-
-  args.setResult(static_cast<FlowNumber>(numCPU));
+  args.setResult(static_cast<FlowNumber>(cpuCount()));
 }
 
 void CoreModule::sys_env(XzeroContext* cx, Params& args) {

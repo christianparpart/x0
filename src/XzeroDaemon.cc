@@ -92,12 +92,6 @@ XzeroDaemon::~XzeroDaemon() {
   threadedExecutor_.joinAll();
 }
 
-void XzeroDaemon::runOneThread(Scheduler* scheduler) {
-  while (!terminate_.load()) {
-    scheduler->runLoopOnce();
-  }
-}
-
 bool XzeroDaemon::import(
     const std::string& name,
     const std::string& path,
@@ -210,14 +204,6 @@ bool XzeroDaemon::configure() {
   }
 }
 
-std::unique_ptr<Scheduler> XzeroDaemon::newScheduler() {
-  return std::unique_ptr<Scheduler>(new NativeScheduler(
-        std::unique_ptr<xzero::ExceptionHandler>(
-              new CatchAndLogExceptionHandler("x0d")),
-        nullptr /* preInvoke */,
-        nullptr /* postInvoke */));
-}
-
 void XzeroDaemon::postConfig() {
   if (config_->listeners.empty()) {
     RAISE(ConfigurationError, "No listeners configured.");
@@ -250,10 +236,9 @@ void XzeroDaemon::postConfig() {
   // schedulers & threading
   schedulers_.emplace_back(newScheduler());
 
-  for (int i = 1; i <= config_->workers; ++i) {
+  for (int i = 1; i < config_->workers; ++i) {
     schedulers_.emplace_back(newScheduler());
-    threadedExecutor_.execute(std::bind(&XzeroDaemon::runOneThread, this,
-                                        schedulers_[i].get()));
+    threadedExecutor_.execute(std::bind(&XzeroDaemon::runOneThread, this, i));
   }
 
   // listeners
@@ -279,6 +264,14 @@ void XzeroDaemon::postConfig() {
           nullptr);
     }
   }
+}
+
+std::unique_ptr<Scheduler> XzeroDaemon::newScheduler() {
+  return std::unique_ptr<Scheduler>(new NativeScheduler(
+        std::unique_ptr<xzero::ExceptionHandler>(
+              new CatchAndLogExceptionHandler("x0d")),
+        nullptr /* preInvoke */,
+        nullptr /* postInvoke */));
 }
 
 void XzeroDaemon::handleRequest(HttpRequest* request, HttpResponse* response) {
@@ -331,11 +324,45 @@ void XzeroDaemon::validateContext(const std::string& entrypointHandlerName,
 void XzeroDaemon::run() {
   server_->start();
 
-  schedulers_[0]->runLoop();
-
+  runOneThread(0);
   logTrace("x0d", "Main loop quit. Shutting down.");
 
   server_->stop();
+}
+
+void XzeroDaemon::runOneThread(int index) {
+  Scheduler* scheduler = schedulers_[index].get();
+
+  if (index <= config_->workerAffinities.size())
+    setThreadAffinity(config_->workerAffinities[index], index);
+
+  while (!terminate_.load()) {
+    scheduler->runLoop();
+  }
+}
+
+void XzeroDaemon::setThreadAffinity(int cpu, int workerId) {
+#ifdef HAVE_PTHREAD_SETAFFINITY_NP
+  cpu_set_t set;
+
+  CPU_ZERO(&set);
+  CPU_SET(cpu, &set);
+
+  logTrace("x0d", "setAffinity: cpu $0 on worker $1", cpu, workerId);
+
+  pthread_t tid = pthread_self();
+
+  int rv = pthread_setaffinity_np(tid, sizeof(set), &set);
+  if (rv < 0) {
+    logError("x0d",
+             "setting scheduler affinity on CPU $0 failed for worker $1. $2",
+             cpu, workerId, strerror(errno));
+  }
+#else
+  logError("x0d",
+           "setting scheduler affinity on CPU $0 failed for worker $1. $2",
+           cpu, workerId, strerror(ENOTSUP));
+#endif
 }
 
 void XzeroDaemon::terminate() {
