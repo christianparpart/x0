@@ -9,6 +9,7 @@
 #include <xzero-flow/ASTPrinter.h>
 #include <xzero-flow/vm/Signature.h>
 #include <xzero-flow/vm/NativeCallback.h>
+#include <xzero/StringUtil.h>
 #include <xzero/Buffer.h>
 #include <xzero/Utility.h> // make_unique
 #include <algorithm>
@@ -16,6 +17,12 @@
 #include <cstdio>
 
 namespace xzero {
+
+template<>
+std::string StringUtil::toString(flow::SymbolTable* st) {
+  return StringUtil::format("SymbolTable:$0", st->name());
+}
+
 namespace flow {
 
 // {{{ SymbolTable

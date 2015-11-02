@@ -10,6 +10,7 @@
 #include <xzero-flow/FlowLexer.h>
 #include <xzero-flow/AST.h>
 #include <xzero-flow/vm/Runtime.h>
+#include <xzero/logging.h>
 #include <xzero/Utility.h>
 #include <unordered_map>
 #include <unistd.h>
@@ -39,7 +40,7 @@ namespace flow {
 
 using vm::Opcode;
 
-//#define FLOW_DEBUG_PARSER 1
+#define FLOW_DEBUG_PARSER 1
 
 #if defined(FLOW_DEBUG_PARSER)
 // {{{ trace
@@ -60,7 +61,7 @@ struct fntrace {
     fmt[i++] = ' ';
     strcpy(fmt + i, msg_.c_str());
 
-    XZERO_DEBUG("FlowParser", 5, "%s", fmt);
+    logTrace("FlowParser", "$0", fmt);
     ++fnd;
   }
 
@@ -79,15 +80,15 @@ struct fntrace {
     fmt[i++] = ' ';
     strcpy(fmt + i, msg_.c_str());
 
-    XZERO_DEBUG("FlowParser", 5, "%s", fmt);
+    logTrace("FlowParser", "$0", fmt);
   }
 };
 // }}}
 #define FNTRACE() fntrace _(__PRETTY_FUNCTION__)
-#define TRACE(level, msg...) XZERO_DEBUG("FlowParser", (level), msg)
+#define TRACE(msg...) logTrace("FlowParser", msg)
 #else
 #define FNTRACE()            do {} while (0)
-#define TRACE(level, msg...) do {} while (0)
+#define TRACE(msg...) do {} while (0)
 #endif
 
 // {{{ scoped(SCOPED_SYMBOL)
@@ -406,7 +407,7 @@ std::unique_ptr<Unit> FlowParser::unit() {
 
 void FlowParser::importRuntime() {
   if (runtime_) {
-    TRACE(1, "importing runtime, $0 builtins", runtime_->builtins().size());
+    TRACE("importing runtime, $0 builtins", runtime_->builtins().size());
 
     for (const auto& builtin : runtime_->builtins()) {
       declareBuiltin(builtin);
@@ -415,7 +416,7 @@ void FlowParser::importRuntime() {
 }
 
 void FlowParser::declareBuiltin(const vm::NativeCallback* native) {
-  TRACE(1, "declareBuiltin (scope:$0): $1", scope(), native->signature());
+  TRACE("declareBuiltin (scope:$0): $1", scope(), native->signature().to_s());
 
   if (native->isHandler()) {
     createSymbol<BuiltinHandler>(native);
@@ -955,7 +956,7 @@ std::unique_ptr<Expr> FlowParser::primaryExpr() {
     case FlowToken::BrOpen:
       return arrayExpr();
     default:
-      TRACE(1, "Expected primary expression. Got something... else.");
+      TRACE("Expected primary expression. Got something... else.");
       reportUnexpectedToken();
       return nullptr;
   }
