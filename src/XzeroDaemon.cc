@@ -229,7 +229,8 @@ void XzeroDaemon::postConfig() {
       config_->maxRequestBodySize,
       config_->maxKeepAliveRequests,
       config_->maxKeepAlive,
-      config_->tcpCork));
+      config_->tcpCork,
+      config_->tcpNoDelay));
 
   http1_->setHandler(std::bind(&XzeroDaemon::handleRequest, this,
         std::placeholders::_1, std::placeholders::_2));

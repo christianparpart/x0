@@ -11,7 +11,7 @@
 - [x] revive `max_write_idle`
 - [x] revive `tcp_fin_timeout`
 - [x] revive `tcp_cork`
-- [ ] revive `tcp_nodelay`
+- [x] revive `tcp_nodelay`
 - [ ] revive `lingering`
 - [ ] revive `max_connections`
 - [ ] pull InputStream/OutputStream API from stx (away from istream/ostream)?
