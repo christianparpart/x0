@@ -118,7 +118,11 @@ bool FlowTokenTraits::isRelOp(FlowToken t) {
 bool FlowTokenTraits::isLiteral(FlowToken t) {
   switch (t) {
     case FlowToken::InterpolatedStringFragment:
-    case FlowToken::InterpolatedStringEnd:
+    /*
+     * skip FlowToken::InterpolatedStringEnd,
+     * because it's a tail of a composed literal that is
+     * going to be explicitely matched when needed.
+     */
     case FlowToken::Boolean:
     case FlowToken::Number:
     case FlowToken::String:
