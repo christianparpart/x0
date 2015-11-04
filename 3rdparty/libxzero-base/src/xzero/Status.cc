@@ -8,10 +8,15 @@
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 #include <xzero/Status.h>
+#include <xzero/StringUtil.h>
 #include <xzero/RuntimeError.h>
 #include <string>
 
 namespace xzero {
+
+template<> std::string StringUtil::toString(Status value) {
+  return to_string(value);
+}
 
 std::string to_string(Status ec) {
   return StatusCategory::get().message(static_cast<int>(ec));
