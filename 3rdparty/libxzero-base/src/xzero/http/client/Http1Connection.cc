@@ -17,6 +17,12 @@ namespace xzero {
 namespace http {
 namespace client {
 
+#ifndef NDEBUG
+#define TRACE(msg...) logTrace("http.client.Http1Connection", msg)
+#else
+#define TRACE(msg...) do {} while (0)
+#endif
+
 Http1Connection::Http1Connection(HttpListener* channel,
                                  EndPoint* endpoint,
                                  Executor* executor)
@@ -25,9 +31,10 @@ Http1Connection::Http1Connection(HttpListener* channel,
       onComplete_(),
       writer_(),
       generator_(&writer_),
-      parser_(http1::Parser::RESPONSE, channel_),
+      parser_(http1::Parser::RESPONSE, this),
       inputBuffer_(),
       inputOffset_(0),
+      responseComplete_(false),
       keepAliveCount_(0) {
 }
 
@@ -95,7 +102,13 @@ void Http1Connection::completed() {
 }
 
 void Http1Connection::onRequestComplete(bool success) {
-  //channel_->responseEnd();
+  TRACE("onRequestComplete($0)", success ? "success" : "failed");
+  if (success)
+    wantFill();
+}
+
+void Http1Connection::onResponseComplete(bool success) {
+  // channel_->responseEnd();
 
   if (!keepAliveCount_) {
     close();
@@ -103,15 +116,7 @@ void Http1Connection::onRequestComplete(bool success) {
 }
 
 void Http1Connection::abort() {
-  endpoint()->close();
-}
-
-void Http1Connection::onOpen() {
-  Connection::onOpen();
-}
-
-void Http1Connection::onClose() {
-  Connection::onClose();
+  close();
 }
 
 void Http1Connection::setInputBufferSize(size_t size) {
@@ -119,12 +124,20 @@ void Http1Connection::setInputBufferSize(size_t size) {
 }
 
 void Http1Connection::onFillable() {
-  if (endpoint()->fill(&inputBuffer_) == 0) {
+  TRACE("onFillable()");
+
+  size_t n = endpoint()->fill(&inputBuffer_);
+
+  if (n == 0) {
     abort();
     return;
   }
 
   parseFragment();
+
+  if (!responseComplete_) {
+    wantFill();
+  }
 }
 
 void Http1Connection::parseFragment() {
@@ -137,7 +150,9 @@ void Http1Connection::parseFragment() {
 }
 
 void Http1Connection::onFlushable() {
+  TRACE("onFlushable()");
   const bool complete = writer_.flush(endpoint());
+  TRACE("onFlushable: $0", complete ? "completed" : "needs-more-to-flush");
 
   if (complete) {
     wantFill();
@@ -167,6 +182,38 @@ void Http1Connection::invokeCompleter(bool success) {
     cb(success);
   }
 }
+
+// {{{ HttpListener overrides
+void Http1Connection::onMessageBegin(HttpVersion version,
+                                     HttpStatus code,
+                                     const BufferRef& text) {
+  channel_->onMessageBegin(version, code, text);
+}
+
+void Http1Connection::onMessageHeader(const BufferRef& name,
+                                      const BufferRef& value) {
+  channel_->onMessageHeader(name, value);
+}
+
+void Http1Connection::onMessageHeaderEnd() {
+  channel_->onMessageHeaderEnd();
+}
+
+void Http1Connection::onMessageContent(const BufferRef& chunk) {
+  channel_->onMessageContent(chunk);
+}
+
+void Http1Connection::onMessageEnd() {
+  TRACE("onMessageEnd!");
+  responseComplete_ = true;
+  channel_->onMessageEnd();
+}
+
+void Http1Connection::onProtocolError(HttpStatus code,
+                                      const std::string& message) {
+  channel_->onProtocolError(code, message);
+}
+// }}}
 
 } // namespace client
 } // namespace http

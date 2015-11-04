@@ -28,10 +28,12 @@ class Scheduler;
 class FileRef;
 
 namespace http {
+
+class HeaderFieldList;
+
 namespace client {
 
 class HttpTransport;
-class HeaderFieldList;
 
 /**
  * HTTP client API for a single HTTP message exchange.

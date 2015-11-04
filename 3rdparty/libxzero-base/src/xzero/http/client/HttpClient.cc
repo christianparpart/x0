@@ -101,6 +101,7 @@ void HttpClient::onMessageContent(const BufferRef& chunk) {
 
 void HttpClient::onMessageEnd() {
   TRACE("onMessageEnd()");
+  //endpoint_->close();
 }
 
 void HttpClient::onProtocolError(HttpStatus code, const std::string& message) {

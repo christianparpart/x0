@@ -15,6 +15,7 @@
 #include <xzero/http/http1/Generator.h>
 #include <xzero/http/http1/Parser.h>
 #include <xzero/http/client/HttpTransport.h>
+#include <xzero/http/HttpListener.h>
 
 namespace xzero {
 namespace http {
@@ -25,7 +26,8 @@ namespace client {
  */
 class Http1Connection
     : public Connection,
-      public HttpTransport {
+      public HttpTransport,
+      private HttpListener {
 public:
   /**
    * Initializes the client-side HTTP/1 transport layer.
@@ -56,15 +58,23 @@ public:
   void abort() override;
 
   // Connection overrides
-  void onOpen() override;
-  void onClose() override;
   void setInputBufferSize(size_t size) override;
   void onFillable() override;
   void onFlushable() override;
   void onInterestFailure(const std::exception& error) override;
 
+  // HttpListener overrides
+  void onMessageBegin(HttpVersion version, HttpStatus code,
+                      const BufferRef& text) override;
+  void onMessageHeader(const BufferRef& name, const BufferRef& value) override;
+  void onMessageHeaderEnd() override;
+  void onMessageContent(const BufferRef& chunk) override;
+  void onMessageEnd() override;
+  void onProtocolError(HttpStatus code, const std::string& message) override;
+
  private:
   void onRequestComplete(bool success);
+  void onResponseComplete(bool success);
   void parseFragment();
 
   void setCompleter(CompletionHandler cb);
@@ -85,6 +95,7 @@ public:
   Buffer inputBuffer_;
   size_t inputOffset_;
 
+  bool responseComplete_;
   size_t keepAliveCount_;
 };
 
