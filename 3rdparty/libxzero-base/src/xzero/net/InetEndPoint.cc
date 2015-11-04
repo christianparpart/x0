@@ -389,11 +389,11 @@ Option<IPAddress> InetEndPoint::remoteIP() const {
 
 class InetConnectState {
  public:
-  std::unique_ptr<InetEndPoint> ep_;
-  Promise<std::unique_ptr<InetEndPoint>> promise_;
+  RefPtr<InetEndPoint> ep_;
+  Promise<RefPtr<InetEndPoint>> promise_;
 
-  InetConnectState(std::unique_ptr<InetEndPoint>&& ep,
-                   const Promise<std::unique_ptr<InetEndPoint>>& promise)
+  InetConnectState(RefPtr<InetEndPoint>&& ep,
+                   const Promise<RefPtr<InetEndPoint>>& promise)
       : ep_(std::move(ep)),
         promise_(promise) {}
 
@@ -417,19 +417,19 @@ std::string StringUtil::toString(InetConnectState* obj) {
   return StringUtil::format("InetConnectState[$0]", (void*) obj);
 }
 
-Future<std::unique_ptr<InetEndPoint>> InetEndPoint::connectAsync(
+Future<RefPtr<InetEndPoint>> InetEndPoint::connectAsync(
     const IPAddress& ipaddr, int port,
     Duration timeout, Scheduler* scheduler) {
   int fd = socket(ipaddr.family(), SOCK_STREAM, IPPROTO_TCP);
   if (fd < 0)
     RAISE_ERRNO(errno);
 
-  Promise<std::unique_ptr<InetEndPoint>> promise;
-  std::unique_ptr<InetEndPoint> ep;
+  Promise<RefPtr<InetEndPoint>> promise;
+  RefPtr<InetEndPoint> ep;
 
   try {
     TRACE("connectAsync: to $0 port $1", ipaddr, port);
-    ep.reset(new InetEndPoint(fd, ipaddr.family(), timeout, timeout, scheduler));
+    ep = new InetEndPoint(fd, ipaddr.family(), timeout, timeout, scheduler);
     ep->setBlocking(false);
 
     switch (ipaddr.family()) {
@@ -497,21 +497,21 @@ Future<std::unique_ptr<InetEndPoint>> InetEndPoint::connectAsync(
 void InetEndPoint::connectAsync(
     const IPAddress& ipaddr, int port,
     Duration timeout, Scheduler* scheduler,
-    std::function<void(std::unique_ptr<InetEndPoint>&&)> onSuccess,
+    std::function<void(RefPtr<InetEndPoint>)> onSuccess,
     std::function<void(Status)> onError) {
-  Future<std::unique_ptr<InetEndPoint>> f = connectAsync(
+  Future<RefPtr<InetEndPoint>> f = connectAsync(
       ipaddr, port, timeout, scheduler);
 
-  f.onSuccess([onSuccess] (const std::unique_ptr<InetEndPoint>& x) {
-      onSuccess(std::move(const_cast<std::unique_ptr<InetEndPoint>&>(x)));
+  f.onSuccess([onSuccess] (const RefPtr<InetEndPoint>& x) {
+      onSuccess(const_cast<RefPtr<InetEndPoint>&>(x));
   });
   f.onFailure(onError);
 }
 
-std::unique_ptr<InetEndPoint> InetEndPoint::connect(
+RefPtr<InetEndPoint> InetEndPoint::connect(
     const IPAddress& ipaddr, int port,
     Duration timeout, Scheduler* scheduler) {
-  std::unique_ptr<InetEndPoint> ep =
+  RefPtr<InetEndPoint> ep =
       std::move(connectAsync(ipaddr, port, timeout, scheduler).get());
   ep->setBlocking(true);
   return ep;

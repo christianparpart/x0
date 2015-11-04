@@ -62,17 +62,17 @@ class XZERO_BASE_API InetEndPoint : public EndPoint {
    * @param scheduler Task scheduler used for connecting and later passed
    *                  to the created InetEndPoint.
    */
-  static Future<std::unique_ptr<InetEndPoint>> connectAsync(
+  static Future<RefPtr<InetEndPoint>> connectAsync(
       const IPAddress& ipaddr, int port,
       Duration timeout, Scheduler* scheduler);
 
   static void connectAsync(
       const IPAddress& ipaddr, int port,
       Duration timeout, Scheduler* scheduler,
-      std::function<void(std::unique_ptr<InetEndPoint>&&)> onSuccess,
+      std::function<void(RefPtr<InetEndPoint>)> onSuccess,
       std::function<void(Status)> onError);
 
-  static std::unique_ptr<InetEndPoint> connect(
+  static RefPtr<InetEndPoint> connect(
       const IPAddress& ipaddr, int port,
       Duration timeout, Scheduler* scheduler);
 
