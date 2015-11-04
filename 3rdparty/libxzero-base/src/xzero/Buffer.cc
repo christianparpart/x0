@@ -196,4 +196,16 @@ std::string BufferRef::hexdumpPrettyAscii(const void* bytes, size_t length) {
   return sstr.str();
 }
 
+template<> std::string StringUtil::toString(BufferRef value) {
+  return value.str();
+}
+
+template<> std::string StringUtil::toString(const BufferRef& value) {
+  return value.str();
+}
+
+template<> std::string StringUtil::toString(const Buffer& value) {
+  return value.str();
+}
+
 }  // namespace xzero
