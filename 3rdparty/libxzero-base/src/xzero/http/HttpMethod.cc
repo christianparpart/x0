@@ -6,8 +6,15 @@
 // the License at: http://opensource.org/licenses/MIT
 
 #include <xzero/http/HttpMethod.h>
+#include <xzero/StringUtil.h>
 
 namespace xzero {
+
+template<>
+std::string StringUtil::toString(http::HttpMethod value) {
+  return http::to_string(value);
+}
+
 namespace http {
 
 #define SRET(slit) { static std::string val(slit); return val; }
