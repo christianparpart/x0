@@ -48,6 +48,14 @@ void Generator::generateRequest(const HttpRequestInfo& info,
   generateBody(chunk);
 }
 
+void Generator::generateRequest(const HttpRequestInfo& info,
+                                FileRef&& chunk) {
+  generateRequestLine(info);
+  generateHeaders(info);
+  flushBuffer();
+  generateBody(std::move(chunk));
+}
+
 void Generator::generateResponse(const HttpResponseInfo& info,
                                      const BufferRef& chunk) {
   generateResponseInfo(info);

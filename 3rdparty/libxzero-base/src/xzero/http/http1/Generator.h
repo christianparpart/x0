@@ -52,8 +52,9 @@ class XZERO_HTTP_API Generator {
    * @param info HTTP request message info.
    * @param chunk HTTP message body chunk.
    */
-  void generateRequest(const HttpRequestInfo& info, Buffer&& chunk);
   void generateRequest(const HttpRequestInfo& info, const BufferRef& chunk);
+  void generateRequest(const HttpRequestInfo& info, Buffer&& chunk);
+  void generateRequest(const HttpRequestInfo& info, FileRef&& chunk);
 
   /**
    * Generates an HTTP response message.
