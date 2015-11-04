@@ -20,6 +20,10 @@ HeaderFieldList::HeaderFieldList(
   }
 }
 
+void HeaderFieldList::push_back(HeaderField&& field) {
+  entries_.emplace_back(std::move(field));
+}
+
 void HeaderFieldList::push_back(const std::string& name,
                                 const std::string& value) {
   entries_.emplace_back(name, value);
