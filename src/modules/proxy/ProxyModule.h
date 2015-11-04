@@ -22,24 +22,22 @@ class ProxyModule : public XzeroModule {
   ~ProxyModule();
 
  private:
+  // setup functions
+  void proxy_pseudonym(xzero::flow::vm::Params& args);
+
   // main handlers
   bool verify_proxy_cluster(xzero::flow::Instr* call);
   bool proxy_cluster(XzeroContext* cx, Params& args);
-
-  // --------------------------------------------------------------------------
-  void proxy_load(flow::vm::Params& args);
-  void proxy_cache_enabled(XzeroContext* cx, flow::vm::Params& args);
-  void proxy_cache_key(XzeroContext* cx, flow::vm::Params& args);
-  void proxy_cache_ttl(XzeroContext* cx, flow::vm::Params& args);
-  void proxy_pseudonym(flow::vm::Params& args);
-  bool proxy_balance(XzeroContext* cx, flow::vm::Params& args);
-  bool proxy_pass(XzeroContext* cx, flow::vm::Params& args);
-  bool proxy_api(XzeroContext* cx, flow::vm::Params& args);
-  bool proxy_fcgi(XzeroContext* cx, flow::vm::Params& args);
-  bool proxy_http(XzeroContext* cx, flow::vm::Params& args);
-  bool proxy_haproxy_monitor(XzeroContext* cx, flow::vm::Params& args);
-  bool proxy_haproxy_stats(XzeroContext* cx, flow::vm::Params& args);
-  bool proxy_roadwarrior_verify(flow::Instr* instr);
+  bool proxy_pass(XzeroContext* cx, xzero::flow::vm::Params& args);
+  bool proxy_api(XzeroContext* cx, xzero::flow::vm::Params& args);
+  bool proxy_fcgi(XzeroContext* cx, xzero::flow::vm::Params& args);
+  bool proxy_http(XzeroContext* cx, xzero::flow::vm::Params& args);
+  bool proxy_haproxy_monitor(XzeroContext* cx, xzero::flow::vm::Params& args);
+  bool proxy_haproxy_stats(XzeroContext* cx, xzero::flow::vm::Params& args);
+  bool proxy_roadwarrior_verify(xzero::flow::Instr* instr);
+  void proxy_cache_enabled(XzeroContext* cx, xzero::flow::vm::Params& args);
+  void proxy_cache_key(XzeroContext* cx, xzero::flow::vm::Params& args);
+  void proxy_cache_ttl(XzeroContext* cx, xzero::flow::vm::Params& args);
 
  private:
   bool internalServerError(XzeroContext* cx);
