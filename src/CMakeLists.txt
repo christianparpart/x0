@@ -68,3 +68,5 @@ set(LIBS pam)
 add_executable(x0d ${x0d_SRC})
 target_link_libraries(x0d xzero-base xzero-flow ${LIBS})
 
+add_executable(xurl xurl.cc)
+target_link_libraries(xurl xzero-base)
