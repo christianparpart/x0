@@ -31,6 +31,8 @@ class XZERO_HTTP_API HttpInfo {
   /** Retrieves the HTTP message version. */
   HttpVersion version() const XZERO_NOEXCEPT { return version_; }
 
+  void setVersion(HttpVersion version) { version_ = version; }
+
   /** Retrieves the HTTP response headers. */
   const HeaderFieldList& headers() const XZERO_NOEXCEPT { return headers_; }
 
