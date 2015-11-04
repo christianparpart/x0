@@ -6,9 +6,16 @@
 // the License at: http://opensource.org/licenses/MIT
 
 #include <xzero/http/HttpVersion.h>
+#include <xzero/StringUtil.h>
 #include <stdexcept>
 
 namespace xzero {
+
+template<>
+std::string StringUtil::toString(http::HttpVersion version) {
+  return http::to_string(version);
+}
+
 namespace http {
 
 #define SRET(slit) { static std::string val(slit); return val; }
