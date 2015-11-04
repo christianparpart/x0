@@ -121,6 +121,7 @@ set(xzero_base_SRC
   executor/SafeCall.cc
   executor/Executor.cc
   executor/DirectExecutor.cc
+  executor/LocalScheduler.cc
   executor/PosixScheduler.cc
   executor/Scheduler.cc
   executor/ThreadedExecutor.cc
