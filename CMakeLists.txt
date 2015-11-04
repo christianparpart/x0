@@ -13,10 +13,6 @@ if (EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/gtest-1.7.0)
   add_subdirectory(3rdparty/gtest-1.7.0)
 endif()
 
-add_subdirectory(3rdparty/libxzero-base/src/xzero)
-add_subdirectory(3rdparty/libxzero-flow/src/xzero-flow)
-add_subdirectory(src)
-
 add_custom_target(ctags
     COMMAND ctags -R --c++-kinds=+p --fields=+iaS --extra=+q ${CMAKE_SOURCE_DIR}/lib ${CMAKE_SOURCE_DIR}/include
     WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
@@ -34,3 +30,7 @@ add_custom_target(release
     WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
 )
 
+add_subdirectory(3rdparty/libxzero-base/src/xzero)
+add_subdirectory(3rdparty/libxzero-flow/src/xzero-flow)
+add_subdirectory(src/x0d)
+add_subdirectory(src/xurl)
