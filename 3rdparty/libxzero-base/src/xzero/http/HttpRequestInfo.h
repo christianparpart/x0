@@ -10,6 +10,7 @@
 #include <xzero/http/Api.h>
 #include <xzero/sysconfig.h>
 #include <xzero/http/HttpInfo.h>
+#include <xzero/http/HttpMethod.h>
 #include <string>
 
 namespace xzero {
@@ -21,6 +22,11 @@ namespace http {
 class XZERO_HTTP_API HttpRequestInfo : public HttpInfo {
  public:
   HttpRequestInfo();
+
+  HttpRequestInfo(HttpVersion version, const HttpMethod method,
+                  const std::string& entity, size_t contentLength,
+                  const HeaderFieldList& headers);
+
   HttpRequestInfo(HttpVersion version, const std::string& method,
                   const std::string& entity, size_t contentLength,
                   const HeaderFieldList& headers);
@@ -35,6 +41,14 @@ class XZERO_HTTP_API HttpRequestInfo : public HttpInfo {
 
 inline HttpRequestInfo::HttpRequestInfo()
     : HttpRequestInfo(HttpVersion::UNKNOWN, "", "", 0, {}) {
+}
+
+inline HttpRequestInfo::HttpRequestInfo(HttpVersion version,
+                                        HttpMethod method,
+                                        const std::string& entity,
+                                        size_t contentLength,
+                                        const HeaderFieldList& headers)
+    : HttpRequestInfo(version, to_string(method), entity, contentLength, headers) {
 }
 
 inline HttpRequestInfo::HttpRequestInfo(HttpVersion version,
