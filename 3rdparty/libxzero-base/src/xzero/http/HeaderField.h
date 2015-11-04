@@ -18,6 +18,8 @@ namespace http {
  */
 class XZERO_HTTP_API HeaderField {
  public:
+  static HeaderField parse(const std::string& field);
+
   HeaderField() = default;
   HeaderField(HeaderField&&) = default;
   HeaderField(const HeaderField&) = default;

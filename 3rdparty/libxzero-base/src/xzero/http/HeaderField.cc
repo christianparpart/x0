@@ -12,6 +12,19 @@
 namespace xzero {
 namespace http {
 
+HeaderField HeaderField::parse(const std::string& field) {
+  size_t i = field.find(':');
+  size_t k = i + 1;
+
+  while (std::isspace(field[k]))
+    k++;
+
+  std::string name = field.substr(0, i);
+  std::string value = field.substr(k);
+
+  return HeaderField(name, value);
+}
+
 HeaderField::HeaderField(const std::string& name, const std::string& value)
   : name_(name), value_(value) {
 }
