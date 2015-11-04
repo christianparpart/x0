@@ -1,6 +1,7 @@
 /build
 /.kdev4
 /3rdparty/gtest-1.7.0
+/sandbox/
 
 /core
 /core.*
