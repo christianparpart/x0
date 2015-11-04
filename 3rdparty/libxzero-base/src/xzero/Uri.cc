@@ -59,6 +59,10 @@ void Uri::parse(const std::string& uri_str) {
       &fragment_);
 }
 
+void Uri::setPath(const std::string& value) {
+  path_ = value;
+}
+
 const std::string& Uri::scheme() const {
   return scheme_;
 }

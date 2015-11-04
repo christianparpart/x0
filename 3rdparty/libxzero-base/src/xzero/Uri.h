@@ -31,6 +31,8 @@ public:
 
   void parse(const std::string& uri);
 
+  void setPath(const std::string& value);
+
   const std::string& scheme() const;
   const std::string& userinfo() const;
   const std::string& host() const;
