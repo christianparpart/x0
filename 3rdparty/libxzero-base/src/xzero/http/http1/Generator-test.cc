@@ -36,7 +36,7 @@ TEST(http_http1_Generator, generateResponse_empty) {
   generator.generateResponse(info, BufferRef());
   generator.generateTrailer({});
 
-  ByteArrayEndPoint ep(nullptr);
+  ByteArrayEndPoint ep;
   writer.flush(&ep);
 
   ASSERT_EQ("HTTP/1.1 200 my\r\nContent-Length: 0\r\n\r\n", ep.output());
@@ -58,7 +58,7 @@ TEST(http_http1_Generator, generateResponse_headers) {
   generator.generateResponse(info, BufferRef());
   generator.generateTrailer(trailers);
 
-  ByteArrayEndPoint ep(nullptr);
+  ByteArrayEndPoint ep;
   writer.flush(&ep);
 
   ASSERT_EQ("HTTP/1.1 200 my\r\nFoo: the-foo\r\nBar: the-bar\r\nContent-Length: 0\r\n\r\n", ep.output());
@@ -78,7 +78,7 @@ TEST(http_http1_Generator, generateResponse_static_body) {
   generator.generateResponse(info, body);
   generator.generateTrailer(trailers);
 
-  ByteArrayEndPoint ep(nullptr);
+  ByteArrayEndPoint ep;
   writer.flush(&ep);
 
   ASSERT_EQ("HTTP/1.1 200 my\r\nContent-Length: 4\r\n\r\nbody", ep.output());
@@ -98,7 +98,7 @@ TEST(http_http1_Generator, generateResponse_chunked) {
   generator.generateResponse(info, body);
   generator.generateTrailer(trailers);
 
-  ByteArrayEndPoint ep(nullptr);
+  ByteArrayEndPoint ep;
   writer.flush(&ep);
 
   ASSERT_EQ("HTTP/1.1 200 my\r\nTransfer-Encoding: chunked\r\n\r\n4\r\nbody\r\n0\r\n\r\n", ep.output());
@@ -121,7 +121,7 @@ TEST(http_http1_Generator, generateResponse_chunked_trailer) {
   generator.generateResponse(info, body);
   generator.generateTrailer(trailers);
 
-  ByteArrayEndPoint ep(nullptr);
+  ByteArrayEndPoint ep;
   writer.flush(&ep);
 
   ASSERT_EQ("HTTP/1.1 200 my\r\nTrailer: Foo, Bar\r\nTransfer-Encoding: chunked\r\n\r\n4\r\nbody\r\n0\r\nFoo: the-foo\r\nBar: the-bar\r\n\r\n", ep.output());
@@ -144,7 +144,7 @@ TEST(http_http1_Generator, generateResponse_chunked_trailer2) {
   generator.generateResponse(info, body);
   generator.generateTrailer(trailers);
 
-  ByteArrayEndPoint ep(nullptr);
+  ByteArrayEndPoint ep;
   writer.flush(&ep);
 
   ASSERT_EQ("HTTP/1.1 200 my\r\nTrailer: Foo, Bar\r\nTransfer-Encoding: chunked\r\n\r\n4\r\nbody\r\n0\r\nFoo: the-foo\r\nBar: the-bar\r\n\r\n", ep.output());

@@ -16,8 +16,6 @@
 
 namespace xzero {
 
-class LocalConnector;
-
 /**
  * Buffer-based dual-channel EndPoint.
  *
@@ -26,7 +24,7 @@ class LocalConnector;
  */
 class XZERO_BASE_API ByteArrayEndPoint : public EndPoint {
  public:
-  explicit ByteArrayEndPoint(LocalConnector* connector);
+  ByteArrayEndPoint();
   ~ByteArrayEndPoint();
 
   /**
@@ -74,7 +72,6 @@ class XZERO_BASE_API ByteArrayEndPoint : public EndPoint {
   void setTcpNoDelay(bool enable) override;
 
  private:
-  LocalConnector* connector_;
   Buffer input_;
   size_t readPos_;
   Buffer output_;

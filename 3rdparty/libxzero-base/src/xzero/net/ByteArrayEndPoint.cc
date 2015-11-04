@@ -9,7 +9,6 @@
 
 #include <xzero/net/ByteArrayEndPoint.h>
 #include <xzero/net/Connection.h>
-#include <xzero/net/LocalConnector.h>
 #include <xzero/executor/Executor.h>
 #include <xzero/logging.h>
 #include <system_error>
@@ -24,9 +23,8 @@ namespace xzero {
 #define TRACE(msg...) do {} while (0)
 #endif
 
-ByteArrayEndPoint::ByteArrayEndPoint(LocalConnector* connector)
-    : connector_(connector),
-      input_(),
+ByteArrayEndPoint::ByteArrayEndPoint()
+    : input_(),
       readPos_(0),
       output_(),
       closed_(false) {
@@ -55,6 +53,7 @@ const Buffer& ByteArrayEndPoint::output() const {
 }
 
 void ByteArrayEndPoint::close() {
+  TRACE("close()");
   // FIXME maybe we need closedInput | closedOutput distinction
   //closed_ = true;
 }
@@ -82,11 +81,13 @@ size_t ByteArrayEndPoint::fill(Buffer* sink) {
   n = sink->size() - n;
   readPos_ += n;
   TRACE("$0 fill: $1 bytes", this, n);
+  TRACE("$0", input_.ref(readPos_ - n));
   return n;
 }
 
 size_t ByteArrayEndPoint::flush(const BufferRef& source) {
   TRACE("$0 flush: $1 bytes", this, source.size());
+  TRACE("$0", source);
 
   if (closed_) {
     return 0;
@@ -113,7 +114,7 @@ void ByteArrayEndPoint::wantFill() {
   if (connection()) {
     TRACE("$0 wantFill.", this);
     ref();
-    connector_->executor()->execute([this] {
+    connection()->executor()->execute([this] {
       TRACE("$0 wantFill: fillable.", this);
       try {
         connection()->onFillable();
@@ -129,7 +130,7 @@ void ByteArrayEndPoint::wantFlush() {
   if (connection()) {
     TRACE("$0 wantFlush.", this);
     ref();
-    connector_->executor()->execute([this] {
+    connection()->executor()->execute([this] {
       TRACE("$0 wantFlush: flushable.", this);
       try {
         connection()->onFlushable();

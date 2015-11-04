@@ -31,7 +31,7 @@ TEST(http_fastcgi_Generator, simpleRequest) {
   generator.generateBody(content);
   generator.generateEnd();
 
-  ByteArrayEndPoint ep(nullptr);
+  ByteArrayEndPoint ep;
   writer.flush(&ep);
 
   //printf("%s\n", ep.output().hexdump(HexDumpMode::PrettyAscii).c_str());
@@ -54,7 +54,7 @@ TEST(http_fastcgi_Generator, simpleResponse) {
   generator.generateBody(content);
   generator.generateEnd();
 
-  ByteArrayEndPoint ep(nullptr);
+  ByteArrayEndPoint ep;
   writer.flush(&ep);
 
   //printf("%s\n", ep.output().hexdump(HexDumpMode::PrettyAscii).c_str());

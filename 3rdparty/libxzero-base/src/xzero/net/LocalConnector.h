@@ -65,7 +65,6 @@ class XZERO_BASE_API LocalConnector : public Connector {
   void release(Connection* localConnection);
 
   friend class LocalEndPoint;
-  friend class ByteArrayEndPoint;
   void onEndPointClosed(LocalEndPoint* endpoint);
 
  private:

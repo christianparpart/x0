@@ -9,7 +9,6 @@
 
 #include <xzero/http/fastcgi/Generator.h>
 #include <xzero/net/EndPointWriter.h>
-#include <xzero/net/ByteArrayEndPoint.h>
 #include <xzero/StringUtil.h>
 #include <xzero/RuntimeError.h>
 #include <xzero/logging.h>

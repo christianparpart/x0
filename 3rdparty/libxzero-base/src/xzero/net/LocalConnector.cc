@@ -24,7 +24,7 @@ namespace xzero {
 
 // {{{ LocalEndPoint impl
 LocalEndPoint::LocalEndPoint(LocalConnector* connector)
-    : ByteArrayEndPoint(connector), connector_(connector) {}
+    : ByteArrayEndPoint(), connector_(connector) {}
 
 LocalEndPoint::~LocalEndPoint() {
   TRACE("$0 ~LocalEndPoint: connection=$1", this, connection());
