@@ -32,13 +32,18 @@ void ConsoleLogTarget::log(LogLevel level,
       }
     };
 
-    printf("[%s] [%s] %s\n",
-           AnsiColor::colorize(logColor(level), StringUtil::toString(level)).c_str(),
-           AnsiColor::colorize(componentColor, component).c_str(),
-           message.c_str());
+    fprintf(stderr,
+            "[%s] [%s] %s\n",
+            AnsiColor::colorize(logColor(level), StringUtil::toString(level)).c_str(),
+            AnsiColor::colorize(componentColor, component).c_str(),
+            message.c_str());
   } else {
-    printf("[%s] [%s] %s\n", logLevelToStr(level), component.c_str(), message.c_str());
-    fflush(stdout);
+    fprintf(stderr,
+            "[%s] [%s] %s\n",
+            logLevelToStr(level),
+            component.c_str(),
+            message.c_str());
+    fflush(stderr);
   }
 }
 
