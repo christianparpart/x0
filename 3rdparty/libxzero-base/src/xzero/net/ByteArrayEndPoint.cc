@@ -81,13 +81,11 @@ size_t ByteArrayEndPoint::fill(Buffer* sink) {
   n = sink->size() - n;
   readPos_ += n;
   TRACE("$0 fill: $1 bytes", this, n);
-  TRACE("$0", input_.ref(readPos_ - n));
   return n;
 }
 
 size_t ByteArrayEndPoint::flush(const BufferRef& source) {
   TRACE("$0 flush: $1 bytes", this, source.size());
-  TRACE("$0", source);
 
   if (closed_) {
     return 0;
