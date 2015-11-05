@@ -12,10 +12,15 @@
 #include <vector>
 #include <xzero/thread/Future.h>
 #include <xzero/http/client/HttpClient.h>
+#include <xzero/http/HttpRequestInfo.h>
+#include <xzero/http/HttpResponseInfo.h>
 #include <xzero/net/IPAddress.h>
 #include <xzero/CompletionHandler.h>
 #include <xzero/Duration.h>
+#include <xzero/Uri.h>
 #include <xzero/stdtypes.h>
+#include <utility>
+#include <istream>
 
 namespace xzero {
 namespace http {
@@ -43,9 +48,98 @@ private:
   std::list<UniquePtr<HttpClient>> clients_;
 };
 
-class HttpClusterScheduler {
-  // TODO
+/*!
+ * Reflects the result of a request scheduling attempt.
+ */
+enum class SchedulerStatus {
+  //! Request not scheduled, as all backends are offline and/or disabled.
+  Unavailable,
+
+  //! Request scheduled, Backend accepted request.
+  Success,
+
+  //!< Request not scheduled, as all backends available but overloaded or offline/disabled.
+  Overloaded
 };
+
+// {{{ ClientAbortAction
+/**
+ * Action/behavior how to react on client-side aborts.
+ */
+enum class ClientAbortAction {
+  /**
+   * Ignores the client abort.
+   * That is, the upstream server will not notice that the client did abort.
+   */
+  Ignore = 0,
+
+  /**
+   * Close both endpoints.
+   *
+   * That is, closes connection to the upstream server as well as finalizes
+   * closing the client connection.
+   */
+  Close = 1,
+
+  /**
+   * Notifies upstream.
+   *
+   * That is, the upstream server will be gracefully notified.
+   * For FastCGI an \c AbortRequest message will be sent to upstream.
+   * For HTTP this will cause the connection to the upstream server
+   * to be closed (same as \c Close action).
+   */
+  Notify = 2,
+};
+
+// Try<ClientAbortAction> parseClientAbortAction(
+//     const BufferRef& value);
+// 
+// std::string tos(ClientAbortAction value);
+// }}}
+
+class HttpClusterNotes {
+ public:
+
+ private:
+  HttpListener* responseListener_;
+
+  // Number of request schedule attempts.
+  size_t tryCount;
+
+  // the bucket (node) this request is to be scheduled via.
+  //TokenShaper<RequestNotes>::Node* bucket;
+};
+
+class HttpClusterScheduler { // {{{
+ public:
+  typedef std::vector<std::unique_ptr<HttpClusterMember>> MemberList;
+
+  explicit HttpClusterScheduler(const std::string& name, MemberList* members);
+  virtual ~HttpClusterScheduler();
+
+  const std::string& name() const { return name_; }
+  MemberList& members() const { return *members_; }
+
+  virtual SchedulerStatus schedule(HttpClusterNotes* cn) = 0;
+
+ protected:
+  std::string name_;
+  MemberList* members_;
+};
+
+class RoundRobin : public HttpClusterScheduler {
+ public:
+  RoundRobin(MemberList* members) : HttpClusterScheduler("rr", members) {}
+  SchedulerStatus schedule(HttpClusterNotes* cn) override;
+};
+
+class Chance : public HttpClusterScheduler {
+ public:
+  Chance(MemberList* members) : HttpClusterScheduler("rr", members) {}
+  SchedulerStatus schedule(HttpClusterNotes* cn) override;
+};
+// }}}
 
 class HttpHealthCheck {
  public:
@@ -67,7 +161,22 @@ class HttpHealthCheck {
 class HttpCluster {
 public:
   HttpCluster();
+
+  HttpCluster(const std::string& name,
+              bool enabled,
+              bool stickyOfflineMode,
+              bool allowXSendfile,
+              bool enqueueOnUnavailable,
+              size_t queueLimit,
+              Duration queueTimeout,
+              Duration retryAfter,
+              size_t maxRetryCount);
+
   ~HttpCluster();
+
+  // {{{ configuration
+  const std::string& name() const { return name_; }
+  void setName(const std::string& name) { name_ = name; }
 
   bool isEnabled() const { return enabled_; }
   void setEnabled(bool value) { enabled_ = value; }
@@ -95,15 +204,8 @@ public:
   size_t maxRetryCount() const { return maxRetryCount_; }
   void setMaxRetryCount(size_t value) { maxRetryCount_ = value; }
 
-  //! Retrieves the configuration as a text string.
-  std::string configuration() const;
-
-  /**
-   * Sets the cluster configuration as defined by given string.
-   *
-   * @see std::string configuration() const
-   */
-  void setConfiguration(const std::string& configuration);
+  void changeScheduler(UniquePtr<HttpClusterScheduler> scheduler);
+  HttpClusterScheduler* clusterScheduler() const { return scheduler_.get(); }
 
   /**
    * Adds a new member to the HTTP cluster.
@@ -127,21 +229,33 @@ public:
    * @param name human readable name of the member to be removed.
    */
   void removeMember(const std::string& name);
+  // }}}
 
-  void changeScheduler(UniquePtr<HttpClusterScheduler> scheduler);
-  HttpClusterScheduler* clusterScheduler() const { return scheduler_.get(); }
+  // {{{ serialization
+  /**
+   * Retrieves the configuration as a text string.
+   */
+  std::string configuration() const;
+
+  /**
+   * Sets the cluster configuration as defined by given string.
+   *
+   * @see std::string configuration() const
+   */
+  void setConfiguration(const std::string& configuration);
+  // }}}
 
   void send(HttpRequestInfo&& requestInfo,
             const std::string& requestBody,
             HttpListener* responseListener);
 
-  Future<HttpResponseMessage> send(
+  Future<std::pair<HttpResponseInfo, std::unique_ptr<std::istream>>> send(
       HttpRequestInfo&& requestInfo,
-      const std::string& requestBody = "");
+      const std::string& requestBody);
 
 private:
-  std::vector<HttpClusterMember> members_;
-  UniquePtr<HttpClusterScheduler> scheduler_;
+  // cluster's human readable representative name.
+  std::string name_;
 
   // whether this director actually load balances or raises a 503
   // when being disabled temporarily.
@@ -171,6 +285,12 @@ private:
 
   // path to the local directory this director is serialized from/to.
   std::string storagePath_;
+
+  // cluster member vector
+  std::vector<HttpClusterMember> members_;
+
+  // member scheduler
+  UniquePtr<HttpClusterScheduler> scheduler_;
 };
 
 } // namespace client
