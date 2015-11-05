@@ -6,31 +6,27 @@
 // the terms of the GNU Affero General Public License v3.0.
 // You should have received a copy of the GNU Affero General Public License
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
-
 #pragma once
 
-#include <xzero/Api.h>
-#include <xzero/sysconfig.h>
-#include <cstdint>
+#include <xzero/io/OutputStream.h>
 
 namespace xzero {
 
-class OutputStreamVisitor {
+class FileOutputStream : public OutputStream {
  public:
-  virtual ~OutputStreamVisitor() {}
+  FileOutputStream(int handle, bool closeOnDestroy)
+      : handle_(handle), closeOnDestroy_(closeOnDestroy) {}
 
-  virtual void visit(FileOutputStream* stream) = 0;
-  virtual void visit(BufferOutputStream* stream) = 0;
-};
+  ~FileOutputStream();
 
-class OutputStream {
- public:
-  virtual ~OutputStream() {}
+  int handle() const XZERO_NOEXCEPT { return handle_; }
 
-  virtual void write(const char* buf, size_t size) = 0;
+  // OutputStream overrides
+  void write(const char* buf, size_t size) override;
 
-  void write(const std::string& data);
-  void printf(const char* fmt, ...);
+ private:
+  int handle_;
+  bool closeOnDestroy_;
 };
 
 } // namespace xzero

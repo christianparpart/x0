@@ -7,30 +7,16 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-#pragma once
-
-#include <xzero/Api.h>
-#include <xzero/sysconfig.h>
-#include <cstdint>
+#include <xzero/io/OutputStream.h>
 
 namespace xzero {
 
-class OutputStreamVisitor {
- public:
-  virtual ~OutputStreamVisitor() {}
+void OutputStream::write(const std::string& data) {
+  // TODO
+}
 
-  virtual void visit(FileOutputStream* stream) = 0;
-  virtual void visit(BufferOutputStream* stream) = 0;
-};
-
-class OutputStream {
- public:
-  virtual ~OutputStream() {}
-
-  virtual void write(const char* buf, size_t size) = 0;
-
-  void write(const std::string& data);
-  void printf(const char* fmt, ...);
-};
+void OutputStream::printf(const char* fmt, ...) {
+  // TODO
+}
 
 } // namespace xzero

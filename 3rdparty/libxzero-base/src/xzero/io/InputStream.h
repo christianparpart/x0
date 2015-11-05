@@ -16,6 +16,19 @@ namespace xzero {
 class Buffer;
 class OutputStream;
 
+class StringInputStream;
+class BufferInputStream;
+class FileInputStream;
+
+class InputStreamVisitor {
+ public:
+  virtual ~InputStreamVisitor() {}
+
+  virtual void visit(StringInputStream* stream) = 0;
+  virtual void visit(BufferInputStream* stream) = 0;
+  virtual void visit(FileInputStream* stream) = 0;
+};
+
 class InputStream {
  public:
   virtual ~InputStream() {}
