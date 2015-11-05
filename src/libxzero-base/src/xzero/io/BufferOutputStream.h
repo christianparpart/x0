@@ -11,16 +11,18 @@
 
 namespace xzero {
 
+class Buffer;
+
 class BufferOutputStream : public OutputStream {
  public:
-  BufferOutputStream(Buffer* sink) : sink_(sink) {}
+  BufferOutputStream(Buffer* buffer) : buffer_(buffer) {}
 
   Buffer* buffer() const { return buffer_; }
 
   void write(const char* buf, size_t size) override;
 
  private:
-  Buffer* sink_;
+  Buffer* buffer_;
 };
 
 } // namespace xzero

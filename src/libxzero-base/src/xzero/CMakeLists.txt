@@ -142,7 +142,6 @@ set(xzero_base_SRC
   io/MemoryFileRepository.cc
   io/MemoryMap.cc
   io/PageManager.cc
-
   io/InputStream.cc
   io/FileInputStream.cc
   io/BufferInputStream.cc

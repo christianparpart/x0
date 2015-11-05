@@ -12,15 +12,21 @@
 #include <xzero/Api.h>
 #include <xzero/sysconfig.h>
 #include <cstdint>
+#include <string>
 
 namespace xzero {
+
+class StringOutputStream;
+class BufferOutputStream;
+class FileOutputStream;
 
 class OutputStreamVisitor {
  public:
   virtual ~OutputStreamVisitor() {}
 
-  virtual void visit(FileOutputStream* stream) = 0;
+  virtual void visit(StringOutputStream* stream) = 0;
   virtual void visit(BufferOutputStream* stream) = 0;
+  virtual void visit(FileOutputStream* stream) = 0;
 };
 
 class OutputStream {

@@ -6,11 +6,12 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 #include <xzero/io/BufferOutputStream.h>
+#include <xzero/Buffer.h>
 
 namespace xzero {
 
 void BufferOutputStream::write(const char* buf, size_t size) {
-  sink_->push_back(buf, size);
+  buffer_->push_back(buf, size);
 }
 
 } // namespace xzero
