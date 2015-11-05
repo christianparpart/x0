@@ -158,6 +158,7 @@ bool InetEndPoint::isOpen() const XZERO_NOEXCEPT {
 
 void InetEndPoint::close() {
   if (isOpen()) {
+    TRACE("close() fd=$0", handle_);
     ::close(handle_);
     handle_ = -1;
 
@@ -511,8 +512,12 @@ void InetEndPoint::connectAsync(
 RefPtr<InetEndPoint> InetEndPoint::connect(
     const IPAddress& ipaddr, int port,
     Duration timeout, Scheduler* scheduler) {
-  RefPtr<InetEndPoint> ep =
-      std::move(connectAsync(ipaddr, port, timeout, scheduler).get());
+  Future<RefPtr<InetEndPoint>> f =
+      connectAsync(ipaddr, port, timeout, scheduler);
+  f.wait();
+
+  RefPtr<InetEndPoint> ep = f.get();
+
   ep->setBlocking(true);
   return ep;
 }
