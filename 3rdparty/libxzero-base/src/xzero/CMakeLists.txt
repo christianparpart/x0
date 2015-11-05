@@ -223,6 +223,7 @@ set(xzero_base_SRC
   http/client/HttpClient.cc
   http/client/HttpTransport.cc
   http/client/Http1Connection.cc
+  http/client/HttpCluster.cc
 )
 
 configure_file(
