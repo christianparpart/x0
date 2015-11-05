@@ -143,6 +143,13 @@ set(xzero_base_SRC
   io/MemoryMap.cc
   io/PageManager.cc
 
+  io/InputStream.cc
+  io/FileInputStream.cc
+  io/BufferInputStream.cc
+  io/OutputStream.cc
+  io/FileOutputStream.cc
+  io/BufferOutputStream.cc
+
   logging/ConsoleLogTarget.cc
   logging/LogLevel.cc
   logging/LogTarget.cc
