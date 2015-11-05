@@ -12,9 +12,15 @@
 #include <xzero-flow/AST.h>
 #include <xzero-flow/ir/Instr.h>
 
-namespace x0d {
+namespace xzero {
+  namespace http {
+    namespace client {
+      class HttpCluster;
+    }
+  }
+}
 
-class ProxyCluster;
+namespace x0d {
 
 class ProxyModule : public XzeroModule {
  public:
@@ -47,14 +53,14 @@ class ProxyModule : public XzeroModule {
   void balance(XzeroContext* cx,
                const std::string& directorName,
                const std::string& bucketName);
+
   void pass(XzeroContext* cx,
             const std::string& directorName,
             const std::string& backendName);
 
-
  private:
   std::string pseudonym_;
-  std::list<ProxyCluster*> clusters_;
+  std::list<std::unique_ptr<xzero::http::client::HttpCluster>> clusters_;
 };
 
 } // namespace x0d

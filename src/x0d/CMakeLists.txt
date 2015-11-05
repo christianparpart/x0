@@ -51,7 +51,7 @@ set(x0d_SRC
   modules/userdir.cc
 
   # HTTP proxy module
-  # modules/proxy/ProxyModule.cc
+  modules/proxy/ProxyModule.cc
   # modules/proxy/ProxyCluster.cc
   # modules/proxy/Scheduler.cc
   # modules/proxy/LeastLoadScheduler.cc

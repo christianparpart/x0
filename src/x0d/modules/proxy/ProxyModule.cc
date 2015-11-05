@@ -8,6 +8,7 @@
 
 #include "ProxyModule.h"
 #include "XzeroContext.h"
+#include <xzero/http/client/HttpCluster.h>
 #include <xzero/http/HttpRequest.h>
 #include <xzero/http/HttpResponse.h>
 #include <xzero/io/FileUtil.h>
@@ -74,14 +75,14 @@ ProxyModule::ProxyModule(XzeroDaemon* d)
   mainHandler("proxy.haproxy_monitor", &ProxyModule::proxy_haproxy_monitor)
       .param<FlowString>("prefix", "/");
 
-#if defined(ENABLE_DIRECTOR_CACHE)
   mainFunction("proxy.cache", &ProxyModule::proxy_cache_enabled,
                FlowType::Boolean);
   mainFunction("proxy.cache.key", &ProxyModule::proxy_cache_key,
                FlowType::String);
   mainFunction("proxy.cache.ttl", &ProxyModule::proxy_cache_ttl,
                FlowType::Number);
-#endif
+
+  clusters_.emplace_back(new client::HttpCluster());
 }
 
 ProxyModule::~ProxyModule() {
