@@ -30,7 +30,7 @@ add_custom_target(release
     WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
 )
 
-add_subdirectory(3rdparty/libxzero-base/src/xzero)
-add_subdirectory(3rdparty/libxzero-flow/src/xzero-flow)
+add_subdirectory(src/libxzero-base/src/xzero)
+add_subdirectory(src/libxzero-flow/src/xzero-flow)
 add_subdirectory(src/x0d)
 add_subdirectory(src/xurl)
