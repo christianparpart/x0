@@ -23,6 +23,9 @@
 #include <istream>
 
 namespace xzero {
+
+class InputStream;
+
 namespace http {
 namespace client {
 
@@ -100,6 +103,9 @@ enum class ClientAbortAction {
 
 class HttpClusterNotes {
  public:
+  HttpClusterNotes();
+
+  HttpListener* responseListener() const { return responseListener_; }
 
  private:
   HttpListener* responseListener_;
@@ -249,7 +255,7 @@ public:
             const std::string& requestBody,
             HttpListener* responseListener);
 
-  Future<std::pair<HttpResponseInfo, std::unique_ptr<std::istream>>> send(
+  Future<std::pair<HttpResponseInfo, std::unique_ptr<InputStream>>> send(
       HttpRequestInfo&& requestInfo,
       const std::string& requestBody);
 
