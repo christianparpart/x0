@@ -10,8 +10,9 @@
 
 namespace xzero {
 
-void BufferOutputStream::write(const char* buf, size_t size) {
+int BufferOutputStream::write(const char* buf, size_t size) {
   buffer_->push_back(buf, size);
+  return size;
 }
 
 } // namespace xzero

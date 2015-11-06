@@ -22,7 +22,7 @@ class FileOutputStream : public OutputStream {
   int handle() const XZERO_NOEXCEPT { return handle_; }
 
   // OutputStream overrides
-  void write(const char* buf, size_t size) override;
+  int write(const char* buf, size_t size) override;
 
  private:
   int handle_;

@@ -19,7 +19,7 @@ class BufferOutputStream : public OutputStream {
 
   Buffer* buffer() const { return buffer_; }
 
-  void write(const char* buf, size_t size) override;
+  int write(const char* buf, size_t size) override;
 
  private:
   Buffer* buffer_;

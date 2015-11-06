@@ -8,15 +8,33 @@
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 #include <xzero/io/OutputStream.h>
+#include <xzero/RuntimeError.h>
 
 namespace xzero {
 
-void OutputStream::write(const std::string& data) {
-  // TODO
+int OutputStream::write(const std::string& data) {
+  return write(data.data(), data.size());
 }
 
-void OutputStream::printf(const char* fmt, ...) {
-  // TODO
+int OutputStream::printf(const char* fmt, ...) {
+  char buf[8192];
+
+  va_list args;
+  va_start(args, fmt);
+  int pos = vsnprintf(buf, sizeof(buf), fmt, args);
+  va_end(args);
+
+  if (pos < 0) {
+    RAISE_ERRNO(errno);
+  }
+
+  if (pos < sizeof(buf)) {
+    write(buf, pos);
+  } else {
+    RAISE_ERRNO(errno);
+  }
+
+  return pos;
 }
 
 } // namespace xzero

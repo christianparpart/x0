@@ -33,10 +33,10 @@ class OutputStream {
  public:
   virtual ~OutputStream() {}
 
-  virtual void write(const char* buf, size_t size) = 0;
+  virtual int write(const char* buf, size_t size) = 0;
 
-  void write(const std::string& data);
-  void printf(const char* fmt, ...);
+  int write(const std::string& data);
+  int printf(const char* fmt, ...);
 };
 
 } // namespace xzero

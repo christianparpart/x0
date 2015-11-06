@@ -19,11 +19,12 @@ FileOutputStream::~FileOutputStream() {
   }
 }
 
-void FileOutputStream::write(const char* buf, size_t size) {
+int FileOutputStream::write(const char* buf, size_t size) {
   ssize_t n = ::write(handle_, buf, size);
   if (n < 0) {
     RAISE_ERRNO(errno);
   }
+  return n;
 }
 
 } // namespace xzero
