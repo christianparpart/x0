@@ -9,9 +9,21 @@
 
 #include <xzero/io/FileOutputStream.h>
 #include <xzero/RuntimeError.h>
+#include <xzero/Buffer.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
 #include <unistd.h>
 
 namespace xzero {
+
+FileOutputStream::FileOutputStream(const std::string& path)
+    : handle_(::open(path.c_str(), O_WRONLY | O_CREAT)),
+      closeOnDestroy_(true) {
+  if (handle_ < 0) {
+    RAISE_ERRNO(errno);
+  }
+}
 
 FileOutputStream::~FileOutputStream() {
   if (closeOnDestroy_) {

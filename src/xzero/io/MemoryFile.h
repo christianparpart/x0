@@ -36,8 +36,8 @@ class XZERO_BASE_API MemoryFile : public File {
   bool isDirectory() const XZERO_NOEXCEPT override;
   bool isExecutable() const XZERO_NOEXCEPT override;
   int createPosixChannel(OpenFlags flags) override;
-  std::unique_ptr<std::istream> createInputChannel() override;
-  std::unique_ptr<std::ostream> createOutputChannel() override;
+  std::unique_ptr<InputStream> createInputChannel() override;
+  std::unique_ptr<OutputStream> createOutputChannel() override;
   std::unique_ptr<MemoryMap> createMemoryMap(bool rw = true) override;
 
  private:

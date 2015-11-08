@@ -12,7 +12,6 @@
 #include <xzero/Api.h>
 #include <xzero/Buffer.h>
 #include <functional>
-#include <iosfwd>
 #include <string>
 #include <memory>
 #include <fcntl.h> // O_* flags for createPosixChannel()
@@ -20,6 +19,8 @@
 namespace xzero {
 
 class MemoryMap;
+class InputStream;
+class OutputStream;
 
 /**
  * HTTP servable file.
@@ -81,10 +82,10 @@ class XZERO_BASE_API File {
   virtual int createPosixChannel(OpenFlags oflags) = 0;
 
   /** Creates an input stream for given file. */
-  virtual std::unique_ptr<std::istream> createInputChannel() = 0;
+  virtual std::unique_ptr<InputStream> createInputChannel() = 0;
 
   /** Creates an output stream for given file. */
-  virtual std::unique_ptr<std::ostream> createOutputChannel() = 0;
+  virtual std::unique_ptr<OutputStream> createOutputChannel() = 0;
 
   /** Creates a memory-map for a given file.
    *

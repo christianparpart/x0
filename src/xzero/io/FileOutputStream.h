@@ -14,12 +14,14 @@ namespace xzero {
 
 class FileOutputStream : public OutputStream {
  public:
+  FileOutputStream(const std::string& path);
+
   FileOutputStream(int handle, bool closeOnDestroy)
       : handle_(handle), closeOnDestroy_(closeOnDestroy) {}
 
   ~FileOutputStream();
 
-  int handle() const XZERO_NOEXCEPT { return handle_; }
+  int handle() const noexcept { return handle_; }
 
   // OutputStream overrides
   int write(const char* buf, size_t size) override;

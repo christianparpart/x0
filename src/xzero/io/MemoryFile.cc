@@ -10,6 +10,8 @@
 #include <xzero/io/MemoryFile.h>
 #include <xzero/io/MemoryMap.h>
 #include <xzero/io/FileDescriptor.h>
+#include <xzero/io/FileInputStream.h>
+#include <xzero/io/FileOutputStream.h>
 #include <xzero/Buffer.h>
 #include <xzero/hash/FNV.h>
 #include <xzero/io/FileUtil.h>
@@ -148,19 +150,17 @@ int MemoryFile::createPosixChannel(OpenFlags oflags) {
 #endif
 }
 
-std::unique_ptr<std::istream> MemoryFile::createInputChannel() {
+std::unique_ptr<InputStream> MemoryFile::createInputChannel() {
 #if defined(XZERO_MEMORYFILE_USE_TMPFILE)
-  return std::unique_ptr<std::istream>(
-      new std::ifstream(fspath_, std::ios::binary));
+  return std::unique_ptr<InputStream>(new FileInputStream(fspath_));
 #else
   RAISE(RuntimeError, "Not implemented.");
 #endif
 }
 
-std::unique_ptr<std::ostream> MemoryFile::createOutputChannel() {
+std::unique_ptr<OutputStream> MemoryFile::createOutputChannel() {
 #if defined(XZERO_MEMORYFILE_USE_TMPFILE)
-  return std::unique_ptr<std::ostream>(
-      new std::ofstream(fspath_, std::ios::binary));
+  return std::unique_ptr<OutputStream>(new FileOutputStream(fspath_));
 #else
   RAISE(RuntimeError, "Not implemented.");
 #endif

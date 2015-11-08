@@ -11,6 +11,8 @@
 #include <xzero/io/LocalFileRepository.h>
 #include <xzero/io/MemoryMap.h>
 #include <xzero/io/FileDescriptor.h>
+#include <xzero/io/FileInputStream.h>
+#include <xzero/io/FileOutputStream.h>
 #include <xzero/MimeTypes.h>
 #include <xzero/RuntimeError.h>
 #include <xzero/sysconfig.h>
@@ -105,14 +107,12 @@ int LocalFile::createPosixChannel(OpenFlags oflags) {
   return ::open(path().c_str(), to_posix(oflags));
 }
 
-std::unique_ptr<std::istream> LocalFile::createInputChannel() {
-  return std::unique_ptr<std::istream>(
-      new std::ifstream(path(), std::ios::binary));
+std::unique_ptr<InputStream> LocalFile::createInputChannel() {
+  return std::unique_ptr<InputStream>(new FileInputStream(path()));
 }
 
-std::unique_ptr<std::ostream> LocalFile::createOutputChannel() {
-  return std::unique_ptr<std::ostream>(
-      new std::ofstream(path(), std::ios::binary));
+std::unique_ptr<OutputStream> LocalFile::createOutputChannel() {
+  return std::unique_ptr<OutputStream>(new FileOutputStream(path()));
 }
 
 std::unique_ptr<MemoryMap> LocalFile::createMemoryMap(bool rw) {
