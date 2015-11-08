@@ -52,7 +52,6 @@ LogFile::~LogFile() {
 
 void LogFile::write(Buffer&& message) {
   output_->write(message.data(), message.size());
-  output_->flush();
 }
 
 void LogFile::cycle() {

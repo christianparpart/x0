@@ -11,6 +11,7 @@
 #include <xzero/io/File.h>
 #include <xzero/io/LocalFile.h>
 #include <xzero/io/LocalFileRepository.h>
+#include <xzero/io/OutputStream.h>
 #include <xzero/Option.h>
 #include <ostream>
 
@@ -26,7 +27,7 @@ class LogFile {
 
  private:
   std::shared_ptr<xzero::File> file_;
-  std::unique_ptr<std::ostream> output_;
+  std::unique_ptr<xzero::OutputStream> output_;
 };
 
 class AccesslogModule : public XzeroModule {
