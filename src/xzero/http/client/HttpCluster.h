@@ -12,12 +12,15 @@
 #include <vector>
 #include <xzero/thread/Future.h>
 #include <xzero/http/client/HttpClient.h>
+#include <xzero/http/client/HttpClusterMember.h>
+#include <xzero/http/client/HttpHealthCheck.h>
 #include <xzero/http/HttpRequestInfo.h>
 #include <xzero/http/HttpResponseInfo.h>
 #include <xzero/net/IPAddress.h>
 #include <xzero/CompletionHandler.h>
 #include <xzero/Duration.h>
 #include <xzero/Uri.h>
+#include <xzero/TokenShaper.h>
 #include <xzero/stdtypes.h>
 #include <utility>
 #include <istream>
@@ -29,27 +32,8 @@ class InputStream;
 namespace http {
 namespace client {
 
-class HttpClusterMember {
-public:
-  HttpClusterMember(
-      const std::string& name,
-      const IPAddress& ipaddr,
-      int port,
-      const std::string& protocol, // http, https, fastcgi, h2, ...
-      size_t capacity,
-      Duration healthCheckInterval);
-
-private:
-  std::string name_;
-  IPAddress ipaddress_;
-  int port_;
-  std::string protocol_;
-  size_t capacity_;
-
-  bool enabled_;
-
-  std::list<UniquePtr<HttpClient>> clients_;
-};
+class HttpHealthCheck;
+class HttpClusterMember;
 
 /*!
  * Reflects the result of a request scheduling attempt.
@@ -65,45 +49,9 @@ enum class SchedulerStatus {
   Overloaded
 };
 
-// {{{ ClientAbortAction
-/**
- * Action/behavior how to react on client-side aborts.
- */
-enum class ClientAbortAction {
-  /**
-   * Ignores the client abort.
-   * That is, the upstream server will not notice that the client did abort.
-   */
-  Ignore = 0,
-
-  /**
-   * Close both endpoints.
-   *
-   * That is, closes connection to the upstream server as well as finalizes
-   * closing the client connection.
-   */
-  Close = 1,
-
-  /**
-   * Notifies upstream.
-   *
-   * That is, the upstream server will be gracefully notified.
-   * For FastCGI an \c AbortRequest message will be sent to upstream.
-   * For HTTP this will cause the connection to the upstream server
-   * to be closed (same as \c Close action).
-   */
-  Notify = 2,
-};
-
-// Try<ClientAbortAction> parseClientAbortAction(
-//     const BufferRef& value);
-// 
-// std::string tos(ClientAbortAction value);
-// }}}
-
-class HttpClusterNotes {
+class HttpClusterTicket { // XXX I hope I'll not need you.
  public:
-  HttpClusterNotes();
+  HttpClusterTicket();
 
   HttpListener* responseListener() const { return responseListener_; }
 
@@ -114,7 +62,7 @@ class HttpClusterNotes {
   size_t tryCount;
 
   // the bucket (node) this request is to be scheduled via.
-  //TokenShaper<RequestNotes>::Node* bucket;
+  TokenShaper<HttpClusterTicket>::Node* bucket;
 };
 
 class HttpClusterScheduler { // {{{
@@ -127,7 +75,7 @@ class HttpClusterScheduler { // {{{
   const std::string& name() const { return name_; }
   MemberList& members() const { return *members_; }
 
-  virtual SchedulerStatus schedule(HttpClusterNotes* cn) = 0;
+  virtual SchedulerStatus schedule(HttpClusterTicket* cn) = 0;
 
  protected:
   std::string name_;
@@ -137,32 +85,15 @@ class HttpClusterScheduler { // {{{
 class RoundRobin : public HttpClusterScheduler {
  public:
   RoundRobin(MemberList* members) : HttpClusterScheduler("rr", members) {}
-  SchedulerStatus schedule(HttpClusterNotes* cn) override;
+  SchedulerStatus schedule(HttpClusterTicket* cn) override;
 };
 
 class Chance : public HttpClusterScheduler {
  public:
   Chance(MemberList* members) : HttpClusterScheduler("rr", members) {}
-  SchedulerStatus schedule(HttpClusterNotes* cn) override;
+  SchedulerStatus schedule(HttpClusterTicket* cn) override;
 };
 // }}}
-
-class HttpHealthCheck {
- public:
-  HttpHealthCheck(
-      const Uri& url,
-      Duration interval,
-      const std::vector<HttpStatus>& successCodes = {HttpStatus::Ok});
-
-  const Uri& url() const { return url_; }
-  Duration interval() const { return interval_; }
-  const std::vector<HttpStatus>& successCodes() const { return successCodes_; };
-
- private:
-  Uri url_;
-  Duration interval_;
-  std::vector<HttpStatus> successCodes_;
-};
 
 class HttpCluster {
 public:
@@ -251,8 +182,24 @@ public:
   void setConfiguration(const std::string& configuration);
   // }}}
 
+  /**
+   * Passes given request to a cluster member to be served.
+   * @param requestInfo HTTP request info.
+   * @param requestBody HTTP request body,
+   * @param responseListener HTTP response message listener.
+   */
   void send(HttpRequestInfo&& requestInfo,
             const std::string& requestBody,
+            HttpListener* responseListener);
+
+  /**
+   * Passes given request to a cluster member to be served.
+   * @param requestInfo HTTP request info.
+   * @param requestBody HTTP request body,
+   * @param responseListener HTTP response message listener.
+   */
+  void send(HttpRequestInfo&& requestInfo,
+            std::unique_ptr<InputStream> requestBody,
             HttpListener* responseListener);
 
   Future<std::pair<HttpResponseInfo, std::unique_ptr<InputStream>>> send(
