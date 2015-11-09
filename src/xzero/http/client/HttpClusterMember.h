@@ -12,8 +12,7 @@
 #include <vector>
 #include <xzero/thread/Future.h>
 #include <xzero/http/client/HttpClient.h>
-#include <xzero/http/HttpRequestInfo.h>
-#include <xzero/http/HttpResponseInfo.h>
+#include <xzero/http/client/HttpClusterSchedulerStatus.h>
 #include <xzero/net/IPAddress.h>
 #include <xzero/CompletionHandler.h>
 #include <xzero/Duration.h>
@@ -30,6 +29,7 @@ namespace http {
 namespace client {
 
 class HttpHealthCheck;
+class HttpClusterRequest;
 
 class HttpClusterMember {
 public:
@@ -57,6 +57,8 @@ public:
   void setCapacity(size_t value);
 
   HttpHealthCheck* healthCheck() const { return healthCheck_.get(); }
+
+  HttpClusterSchedulerStatus trySchedule(HttpClusterRequest* cr);
 
 private:
   std::string name_;

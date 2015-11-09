@@ -13,6 +13,7 @@
 #include <xzero/thread/Future.h>
 #include <xzero/http/client/HttpClient.h>
 #include <xzero/http/client/HttpClusterMember.h>
+#include <xzero/http/client/HttpClusterScheduler.h>
 #include <xzero/http/client/HttpHealthCheck.h>
 #include <xzero/http/HttpRequestInfo.h>
 #include <xzero/http/HttpResponseInfo.h>
@@ -20,7 +21,6 @@
 #include <xzero/CompletionHandler.h>
 #include <xzero/Duration.h>
 #include <xzero/Uri.h>
-#include <xzero/TokenShaper.h>
 #include <xzero/stdtypes.h>
 #include <utility>
 #include <istream>
@@ -30,70 +30,14 @@ namespace xzero {
 class InputStream;
 
 namespace http {
+
+class HttpListener;
+
 namespace client {
 
 class HttpHealthCheck;
 class HttpClusterMember;
-
-/*!
- * Reflects the result of a request scheduling attempt.
- */
-enum class SchedulerStatus {
-  //! Request not scheduled, as all backends are offline and/or disabled.
-  Unavailable,
-
-  //! Request scheduled, Backend accepted request.
-  Success,
-
-  //!< Request not scheduled, as all backends available but overloaded or offline/disabled.
-  Overloaded
-};
-
-class HttpClusterTicket { // XXX I hope I'll not need you.
- public:
-  HttpClusterTicket();
-
-  HttpListener* responseListener() const { return responseListener_; }
-
- private:
-  HttpListener* responseListener_;
-
-  // Number of request schedule attempts.
-  size_t tryCount;
-
-  // the bucket (node) this request is to be scheduled via.
-  TokenShaper<HttpClusterTicket>::Node* bucket;
-};
-
-class HttpClusterScheduler { // {{{
- public:
-  typedef std::vector<std::unique_ptr<HttpClusterMember>> MemberList;
-
-  explicit HttpClusterScheduler(const std::string& name, MemberList* members);
-  virtual ~HttpClusterScheduler();
-
-  const std::string& name() const { return name_; }
-  MemberList& members() const { return *members_; }
-
-  virtual SchedulerStatus schedule(HttpClusterTicket* cn) = 0;
-
- protected:
-  std::string name_;
-  MemberList* members_;
-};
-
-class RoundRobin : public HttpClusterScheduler {
- public:
-  RoundRobin(MemberList* members) : HttpClusterScheduler("rr", members) {}
-  SchedulerStatus schedule(HttpClusterTicket* cn) override;
-};
-
-class Chance : public HttpClusterScheduler {
- public:
-  Chance(MemberList* members) : HttpClusterScheduler("rr", members) {}
-  SchedulerStatus schedule(HttpClusterTicket* cn) override;
-};
-// }}}
+class HttpClusterScheduler;
 
 class HttpCluster {
 public:
