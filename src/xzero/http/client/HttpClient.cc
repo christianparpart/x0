@@ -66,6 +66,10 @@ void HttpClient::completed() {
   transport_->completed();
 }
 
+Future<HttpClient*> HttpClient::waitForResponse() {
+  return promise_.future();
+}
+
 const HttpResponseInfo& HttpClient::responseInfo() const noexcept {
   return responseInfo_;
 }
@@ -101,11 +105,12 @@ void HttpClient::onMessageContent(const BufferRef& chunk) {
 
 void HttpClient::onMessageEnd() {
   TRACE("onMessageEnd()");
-  //endpoint_->close();
+  promise_.success(this);
 }
 
 void HttpClient::onProtocolError(HttpStatus code, const std::string& message) {
   logError("HttpClient", "Protocol Error. $0; $1", code, message);
+  promise_.failure(Status::ForeignError);
 }
 
 } // namespace client

@@ -86,6 +86,8 @@ class HttpClient : public HttpListener {
 
   HttpResponseInfo responseInfo_;
   Buffer responseBody_;
+
+  Promise<HttpClient*> promise_;
 };
 
 } // namespace client
