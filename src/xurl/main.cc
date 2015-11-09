@@ -96,6 +96,7 @@ void XUrl::addRequestHeader(const std::string& field) {
 int XUrl::run(int argc, const char* argv[]) {
   CLI cli;
   cli.defineBool("help", 'h', "Prints this help.");
+  cli.defineBool("head", 'I', "Performs a HEAD request");
   cli.defineString("output", 'o', "PATH", "Write response body to given file.");
   cli.defineString("log-level", 0, "STRING", "Log level.", "info");
   cli.defineString("method", 'X', "METHOD", "HTTP method", "GET");
@@ -177,9 +178,14 @@ void XUrl::query(const Uri& uri) {
 void XUrl::connected(RefPtr<InetEndPoint> ep, const Uri& uri) {
   HttpClient http(&scheduler_, ep.as<EndPoint>());
 
+  std::string method = flags_.getString("method");
+  if (flags_.getBool("head")) {
+    method = "HEAD";
+  }
+
   requestHeaders_.overwrite("Host", uri.hostAndPort());
   HttpRequestInfo req(HttpVersion::VERSION_1_1,
-                      flags_.getString("method"),
+                      method,
                       uri.pathAndQuery(),
                       body_.size(),
                       requestHeaders_);
