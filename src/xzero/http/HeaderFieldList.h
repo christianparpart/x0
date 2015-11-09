@@ -27,6 +27,8 @@ class XZERO_HTTP_API HeaderFieldList {
   HeaderFieldList& operator=(const HeaderFieldList&) = default;
   HeaderFieldList(const std::initializer_list<std::pair<std::string, std::string>>& init);
 
+  void push_back(const HeaderFieldList& list);
+  void push_back(HeaderFieldList&& list);
   void push_back(HeaderField&& field);
   void push_back(const std::string& name, const std::string& value);
   void overwrite(const std::string& name, const std::string& value);
