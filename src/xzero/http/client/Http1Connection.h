@@ -95,6 +95,7 @@ public:
   Buffer inputBuffer_;
   size_t inputOffset_;
 
+  bool expectsBody_;
   bool responseComplete_;
   size_t keepAliveCount_;
 };

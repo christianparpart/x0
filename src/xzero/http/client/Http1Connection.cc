@@ -34,6 +34,7 @@ Http1Connection::Http1Connection(HttpListener* channel,
       parser_(http1::Parser::RESPONSE, this),
       inputBuffer_(),
       inputOffset_(0),
+      expectsBody_(true),
       responseComplete_(false),
       keepAliveCount_(0) {
 }
@@ -52,6 +53,7 @@ void Http1Connection::send(HttpRequestInfo&& requestInfo,
                            const BufferRef& chunk,
                            CompletionHandler onComplete) {
   setCompleter(onComplete);
+  expectsBody_ = requestInfo.method() != "HEAD";
   generator_.generateRequest(requestInfo, chunk);
   wantFlush();
 }
@@ -60,6 +62,7 @@ void Http1Connection::send(HttpRequestInfo&& requestInfo,
                            Buffer&& chunk,
                            CompletionHandler onComplete) {
   setCompleter(onComplete);
+  expectsBody_ = requestInfo.method() != "HEAD";
   generator_.generateRequest(requestInfo, chunk);
   wantFlush();
 }
@@ -68,6 +71,7 @@ void Http1Connection::send(HttpRequestInfo&& requestInfo,
                            FileRef&& chunk,
                            CompletionHandler onComplete) {
   setCompleter(onComplete);
+  expectsBody_ = requestInfo.method() != "HEAD";
   generator_.generateRequest(requestInfo, std::move(chunk));
   wantFlush();
 }
@@ -187,6 +191,17 @@ void Http1Connection::invokeCompleter(bool success) {
 void Http1Connection::onMessageBegin(HttpVersion version,
                                      HttpStatus code,
                                      const BufferRef& text) {
+  switch (code) {
+    case /*100*/ HttpStatus::ContinueRequest:
+    case /*101*/ HttpStatus::SwitchingProtocols:
+    case /*204*/ HttpStatus::NoContent:
+    case /*205*/ HttpStatus::ResetContent:
+    case /*304*/ HttpStatus::NotModified:
+      expectsBody_ = false;
+      break;
+    default:
+      break;
+  }
   channel_->onMessageBegin(version, code, text);
 }
 
@@ -197,6 +212,9 @@ void Http1Connection::onMessageHeader(const BufferRef& name,
 
 void Http1Connection::onMessageHeaderEnd() {
   channel_->onMessageHeaderEnd();
+  if (!expectsBody_) {
+    onMessageEnd();
+  }
 }
 
 void Http1Connection::onMessageContent(const BufferRef& chunk) {
