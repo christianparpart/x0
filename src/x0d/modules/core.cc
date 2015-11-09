@@ -100,6 +100,8 @@ unsigned long long CoreModule::setrlimit(
 }
 
 int CoreModule::cpuCount() {
+  static int numCPU_ = -1;
+
   if (numCPU_ < 0) {
     numCPU_ = sysconf(_SC_NPROCESSORS_ONLN);
     if (numCPU_ < 0) {
@@ -113,7 +115,6 @@ int CoreModule::cpuCount() {
 
 CoreModule::CoreModule(XzeroDaemon* d)
     : XzeroModule(d, "core"),
-      numCPU_(-1),
       fileHandler_() {
 
   // setup functions

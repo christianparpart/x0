@@ -77,6 +77,12 @@ XzeroDaemon::XzeroDaemon()
       http1_(),
       config_(new Config) {
 
+  // defaulting worker/affinities to total host CPU count
+  config_->workers = CoreModule::cpuCount();
+  config_->workerAffinities.resize(config_->workers);
+  for (int i = 0; i < config_->workers; ++i)
+    config_->workerAffinities[i] = i;
+
   loadModule<CoreModule>();
   loadModule<AccessModule>();
   loadModule<AccesslogModule>();
@@ -323,10 +329,8 @@ void XzeroDaemon::validateContext(const std::string& entrypointHandlerName,
 
 void XzeroDaemon::run() {
   server_->start();
-
   runOneThread(0);
   logTrace("x0d", "Main loop quit. Shutting down.");
-
   server_->stop();
 }
 
