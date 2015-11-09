@@ -16,6 +16,7 @@ namespace xzero {
   namespace http {
     namespace client {
       class HttpCluster;
+      class HttpClient;
     }
   }
 }
@@ -57,6 +58,17 @@ class ProxyModule : public XzeroModule {
   void pass(XzeroContext* cx,
             const std::string& directorName,
             const std::string& backendName);
+
+  void proxyHttpConnected(xzero::RefPtr<xzero::InetEndPoint> ep,
+                          XzeroContext* cx);
+  void proxyHttpConnectFailed(xzero::Status error,
+                              const xzero::IPAddress& ipaddr, int port,
+                              XzeroContext* cx);
+  void proxyHttpRespond(xzero::http::client::HttpClient* client,
+                        XzeroContext* cx);
+  void proxyHttpRespondFailure(const xzero::Status& status,
+                               xzero::http::client::HttpClient* cli,
+                               XzeroContext* cx);
 
  private:
   std::string pseudonym_;

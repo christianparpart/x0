@@ -9,8 +9,10 @@
 #include "ProxyModule.h"
 #include "XzeroContext.h"
 #include <xzero/http/client/HttpCluster.h>
+#include <xzero/http/client/HttpClient.h>
 #include <xzero/http/HttpRequest.h>
 #include <xzero/http/HttpResponse.h>
+#include <xzero/net/InetEndPoint.h>
 #include <xzero/io/FileUtil.h>
 #include <xzero/WallClock.h>
 #include <xzero/StringUtil.h>
@@ -120,14 +122,78 @@ bool ProxyModule::proxy_fcgi(XzeroContext* cx, xzero::flow::vm::Params& args) {
 }
 
 bool ProxyModule::proxy_http(XzeroContext* cx, xzero::flow::vm::Params& args) {
-  // .param<IPAddress>("address", IPAddress("0.0.0.0"))
-  // .param<int>("port")
-  // .param<FlowString>("on_client_abort", "close");
+  IPAddress ipaddr = args.getIPAddress(1);
+  FlowNumber port = args.getInt(2);
+  FlowString onClientAbortStr = args.getString(3);
+  Duration connectTimeout = Duration::fromSeconds(16);
+  Scheduler* scheduler = static_cast<Scheduler*>(cx->response()->executor());
 
-  // RefPtr<EndPoint> ep = nullptr;
-  // HttpClient* client = new HttpClient(scheduler, ep);
+  InetEndPoint::connectAsync(
+      ipaddr,
+      port,
+      connectTimeout,
+      scheduler,
+      std::bind(&ProxyModule::proxyHttpConnected, this,
+                std::placeholders::_1, cx),
+      std::bind(&ProxyModule::proxyHttpConnectFailed, this,
+                std::placeholders::_1, ipaddr, port, cx));
 
-  return false; // TODO
+  return true;
+}
+
+void ProxyModule::proxyHttpConnected(RefPtr<InetEndPoint> ep, XzeroContext* cx) {
+  Scheduler* scheduler = static_cast<Scheduler*>(cx->response()->executor());
+  HttpRequest* request = cx->request();
+
+  // TODO: make_shared<client::HttpClient>(scheduler, ep.as<EndPoint>())
+  client::HttpClient* cli = new client::HttpClient(scheduler, ep.as<EndPoint>());
+
+  size_t requestBodySize = 0; // TODO
+
+  HttpRequestInfo requestInfo(
+      HttpVersion::VERSION_1_1,
+      request->unparsedMethod(),
+      request->unparsedUri(),
+      requestBodySize,
+      request->headers());
+
+  cli->send(std::move(requestInfo));
+  cli->completed();
+
+  Future<client::HttpClient*> f = cli->waitForResponse();
+  f.onSuccess(std::bind(&ProxyModule::proxyHttpRespond, this, cli, cx));
+  f.onFailure(std::bind(&ProxyModule::proxyHttpRespondFailure, this,
+                        std::placeholders::_1, cli, cx));
+}
+
+void ProxyModule::proxyHttpRespond(client::HttpClient* cli,
+                                   XzeroContext* cx) {
+  cx->response()->setStatus(cli->responseInfo().status());
+  cx->response()->setReason(cli->responseInfo().reason());
+  cx->response()->headers().push_back(cli->responseInfo().headers());
+  cx->response()->output()->write(cli->responseBody());
+  cx->response()->completed();
+}
+
+void ProxyModule::proxyHttpRespondFailure(const Status& status,
+                                          client::HttpClient* cli,
+                                          XzeroContext* cx) {
+  logError("proxy", "Failure detected while receiving upstream response. $0", status);
+  cx->response()->setStatus(HttpStatus::BadGateway);
+  cx->response()->completed();
+}
+
+void ProxyModule::proxyHttpConnectFailed(
+    Status error,
+    const IPAddress& ipaddr,
+    int port,
+    XzeroContext* cx) {
+  logError("proxy",
+           "Coould not connect to $0:$1. $2",
+           ipaddr, port, error);
+
+  cx->response()->setStatus(HttpStatus::ServiceUnavailable);
+  cx->response()->completed();
 }
 
 bool ProxyModule::proxy_haproxy_monitor(XzeroContext* cx, xzero::flow::vm::Params& args) {
