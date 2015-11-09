@@ -201,7 +201,7 @@ bool HttpFileHandler::handleClientCache(const File& transferFile,
     const std::string& value = request->headers().get("If-Unmodified-Since");
     if (value.empty()) continue;
 
-    UnixTime dt(UnixTime::parseString(value, timeFormat));
+    UnixTime dt(UnixTime::parseString(value, timeFormat).get());
 
     if (transferFile.mtime() <= dt.unixtime()) continue;
 
