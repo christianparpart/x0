@@ -18,6 +18,7 @@
 #include "modules/dirlisting.h"
 #include "modules/empty_gif.h"
 #include "modules/userdir.h"
+#include "modules/proxy/ProxyModule.h"
 
 #include <xzero/http/HttpRequest.h>
 #include <xzero/http/HttpResponse.h>
@@ -91,6 +92,7 @@ XzeroDaemon::XzeroDaemon()
   loadModule<DirlistingModule>();
   loadModule<EmptyGifModule>();
   loadModule<UserdirModule>();
+  loadModule<ProxyModule>();
 }
 
 XzeroDaemon::~XzeroDaemon() {
