@@ -120,6 +120,13 @@ bool ProxyModule::proxy_fcgi(XzeroContext* cx, xzero::flow::vm::Params& args) {
 }
 
 bool ProxyModule::proxy_http(XzeroContext* cx, xzero::flow::vm::Params& args) {
+  // .param<IPAddress>("address", IPAddress("0.0.0.0"))
+  // .param<int>("port")
+  // .param<FlowString>("on_client_abort", "close");
+
+  // RefPtr<EndPoint> ep = nullptr;
+  // HttpClient* client = new HttpClient(scheduler, ep);
+
   return false; // TODO
 }
 
@@ -132,7 +139,7 @@ bool ProxyModule::proxy_haproxy_stats(XzeroContext* cx, xzero::flow::vm::Params&
 }
 
 bool ProxyModule::proxy_roadwarrior_verify(xzero::flow::Instr* instr) {
-  return false; // TODO
+  return true; // TODO
 }
 
 void ProxyModule::proxy_cache_enabled(XzeroContext* cx, xzero::flow::vm::Params& args) {

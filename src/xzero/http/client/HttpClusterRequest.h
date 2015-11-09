@@ -10,6 +10,7 @@
 
 #include <xzero/http/HttpRequestInfo.h>
 #include <xzero/TokenShaper.h>
+#include <xzero/io/InputStream.h>
 #include <memory>
 
 namespace xzero {
@@ -24,7 +25,10 @@ namespace client {
 
 class HttpClusterRequest {
  public:
-  HttpClusterRequest();
+  HttpClusterRequest(HttpRequestInfo&& requestInfo,
+                     std::unique_ptr<InputStream> requestBody,
+                     HttpListener* responseListener);
+  virtual ~HttpClusterRequest();
 
   HttpListener* responseListener() const { return responseListener_; }
 

@@ -40,7 +40,7 @@ public:
       int port,
       const std::string& protocol, // http, https, fastcgi, h2, ...
       size_t capacity,
-      std::unique_ptr<HttpHealthCheck> healthCheck = nullptr);
+      std::unique_ptr<HttpHealthCheck> healthCheck);
 
   Scheduler* scheduler() const { return scheduler_; }
 
@@ -58,7 +58,7 @@ public:
 
   HttpHealthCheck* healthCheck() const { return healthCheck_.get(); }
 
-  HttpClusterSchedulerStatus trySchedule(HttpClusterRequest* cr);
+  HttpClusterSchedulerStatus tryProcess(HttpClusterRequest* cr);
 
 private:
   std::string name_;

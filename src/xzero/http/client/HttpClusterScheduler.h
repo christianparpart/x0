@@ -9,10 +9,16 @@
 #pragma once
 
 #include <xzero/http/client/HttpClusterSchedulerStatus.h>
+#include <vector>
+#include <string>
+#include <memory>
 
 namespace xzero {
 namespace http {
 namespace client {
+
+class HttpClusterMember;
+class HttpClusterRequest;
 
 class HttpClusterScheduler {
  public:
@@ -28,6 +34,7 @@ class HttpClusterScheduler {
 
   class Chance;
   class RoundRobin;
+  class LeastLoad; // TODO
 
  protected:
   std::string name_;
@@ -36,8 +43,14 @@ class HttpClusterScheduler {
 
 class HttpClusterScheduler::RoundRobin : public HttpClusterScheduler {
  public:
-  RoundRobin(MemberList* members) : HttpClusterScheduler("rr", members) {}
+  RoundRobin(MemberList* members)
+      : HttpClusterScheduler("rr", members),
+        next_(0) {}
+
   HttpClusterSchedulerStatus schedule(HttpClusterRequest* cn) override;
+
+ private:
+  size_t next_;
 };
 
 class HttpClusterScheduler::Chance : public HttpClusterScheduler {

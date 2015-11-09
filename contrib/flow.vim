@@ -127,9 +127,9 @@ if exists("flow_x0")
 	syn match flowCoreFunctions '\<auth\.pam\>'
 	syn match flowCoreFunctions '\<auth\.require\>'
 
-	" plugin: director
-	syn match flowCoreFunctions '\<director\.\(load\|cache\)\>'
-	syn match flowCoreHandler '\<director\.\(balance\|pass\|api\|fcgi\|http\|haproxy_stats\|haproxy_monitor\)\>'
+	" plugin: proxy
+	syn match flowCoreFunctions '\<proxy\.\(load\|cache\)\>'
+	syn match flowCoreHandler '\<proxy\.\(balance\|pass\|api\|fcgi\|http\|haproxy_stats\|haproxy_monitor\)\>'
 endif
 
 " ---------------------------------------------------------------------------------
