@@ -17,17 +17,14 @@
 #include <xzero/Tokenizer.h>
 #include <xzero/Buffer.h>
 #include <xzero/RuntimeError.h>
+#include <xzero/logging.h>
 #include <xzero/sysconfig.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
 
-#if 0
-#define TRACE(level, msg...) do { \
-  printf("FileHandler/%d: ", (level)); \
-  printf(msg); \
-  printf("\n"); \
-} while (0)
+#if 1 //!defined(NDEBUG)
+#define TRACE(msg...) logTrace("http.FileHandler", msg)
 #else
 #define TRACE(level, msg...) do {} while (0)
 #endif
