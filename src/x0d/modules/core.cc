@@ -93,8 +93,8 @@ unsigned long long CoreModule::setrlimit(
   }
 
   logTrace("x0d",
-      "Set resource limit on %s from %lld to %lld.",
-      rc2str(resource), hlast, hvalue);
+           "Set resource limit on $0 from $1 to $2.",
+           rc2str(resource), hlast, hvalue);
 
   return value;
 }
