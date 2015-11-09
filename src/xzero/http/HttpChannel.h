@@ -20,6 +20,7 @@
 namespace xzero {
 
 class FileRef;
+class Executor;
 
 namespace http {
 
@@ -51,6 +52,7 @@ XZERO_HTTP_API std::string to_string(HttpChannelState state);
 class XZERO_HTTP_API HttpChannel : public HttpListener {
  public:
   HttpChannel(HttpTransport* transport,
+              Executor* executor,
               const HttpHandler& handler,
               std::unique_ptr<HttpInput>&& input,
               size_t maxRequestUriLength,
@@ -58,6 +60,8 @@ class XZERO_HTTP_API HttpChannel : public HttpListener {
               HttpDateGenerator* dateGenerator,
               HttpOutputCompressor* outputCompressor);
   ~HttpChannel();
+
+  Executor* executor() const noexcept;
 
   /**
    * Resets the channel state.
@@ -175,6 +179,7 @@ class XZERO_HTTP_API HttpChannel : public HttpListener {
   size_t maxRequestBodyLength_;
   HttpChannelState state_;
   HttpTransport* transport_;
+  Executor* executor_;
   std::unique_ptr<HttpRequest> request_;
   std::unique_ptr<HttpResponse> response_;
   HttpDateGenerator* dateGenerator_;
@@ -185,6 +190,10 @@ class XZERO_HTTP_API HttpChannel : public HttpListener {
   Signal<void()> onPostProcess_;
   Signal<void()> onResponseEnd_;
 };
+
+inline Executor* HttpChannel::executor() const noexcept {
+  return executor_;
+}
 
 }  // namespace http
 }  // namespace xzero

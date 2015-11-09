@@ -57,7 +57,7 @@ void Transport::run(HttpVersion version, const std::string& method,
   isAborted_ = false;
 
   std::unique_ptr<Input> input(new Input());
-  channel_.reset(new HttpChannel(this, handler_, std::move(input),
+  channel_.reset(new HttpChannel(this, executor_, handler_, std::move(input),
                                  maxRequestUriLength_, maxRequestBodyLength_,
                                  dateGenerator_,
                                  outputCompressor_));

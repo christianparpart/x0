@@ -29,6 +29,10 @@ HttpResponse::HttpResponse(HttpChannel* channel,
   //.
 }
 
+Executor* HttpResponse::executor() const noexcept {
+  return channel_->executor();
+}
+
 void HttpResponse::recycle() {
   committed_ = false;
   version_ = HttpVersion::UNKNOWN;

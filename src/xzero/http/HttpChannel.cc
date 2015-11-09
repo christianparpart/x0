@@ -47,7 +47,9 @@ std::string to_string(HttpChannelState state) {
   }
 }
 
-HttpChannel::HttpChannel(HttpTransport* transport, const HttpHandler& handler,
+HttpChannel::HttpChannel(HttpTransport* transport,
+                         Executor* executor,
+                         const HttpHandler& handler,
                          std::unique_ptr<HttpInput>&& input,
                          size_t maxRequestUriLength,
                          size_t maxRequestBodyLength,
@@ -57,6 +59,7 @@ HttpChannel::HttpChannel(HttpTransport* transport, const HttpHandler& handler,
       maxRequestBodyLength_(maxRequestBodyLength),
       state_(HttpChannelState::READING),
       transport_(transport),
+      executor_(executor),
       request_(new HttpRequest(std::move(input))),
       response_(new HttpResponse(this, createOutput())),
       dateGenerator_(dateGenerator),

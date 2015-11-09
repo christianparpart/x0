@@ -16,6 +16,9 @@
 #include <memory>
 
 namespace xzero {
+
+class Executor;
+
 namespace http {
 
 class HttpChannel;
@@ -37,6 +40,8 @@ class XZERO_HTTP_API HttpResponse {
 
  public:
   HttpResponse(HttpChannel* channel, std::unique_ptr<HttpOutput>&& output);
+
+  Executor* executor() const noexcept;
 
   void recycle();
 

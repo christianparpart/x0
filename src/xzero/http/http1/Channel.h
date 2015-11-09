@@ -21,6 +21,7 @@ class Connection;
 class Channel : public HttpChannel {
  public:
   Channel(Connection* transport,
+          Executor* executor,
           const HttpHandler& handler,
           std::unique_ptr<HttpInput>&& input,
           size_t maxRequestUriLength,

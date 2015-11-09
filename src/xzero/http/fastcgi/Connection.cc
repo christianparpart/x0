@@ -177,6 +177,7 @@ void HttpFastCgiTransport::send(const BufferRef& chunk, CompletionHandler onComp
 class HttpFastCgiChannel : public HttpChannel { // {{{
  public:
   HttpFastCgiChannel(HttpTransport* transport,
+                     Executor* executor,
                      const HttpHandler& handler,
                      std::unique_ptr<HttpInput>&& input,
                      size_t maxRequestUriLength,
@@ -188,6 +189,7 @@ class HttpFastCgiChannel : public HttpChannel { // {{{
 
 HttpFastCgiChannel::HttpFastCgiChannel(
     HttpTransport* transport,
+    Executor* executor,
     const HttpHandler& handler,
     std::unique_ptr<HttpInput>&& input,
     size_t maxRequestUriLength,
@@ -195,6 +197,7 @@ HttpFastCgiChannel::HttpFastCgiChannel(
     HttpDateGenerator* dateGenerator,
     HttpOutputCompressor* outputCompressor)
     : HttpChannel(transport,
+                  executor,
                   handler,
                   std::move(input),
                   maxRequestUriLength,
@@ -365,6 +368,7 @@ HttpChannel* Connection::createChannel(int request) {
     auto transport = new HttpFastCgiTransport(this, request, &writer_);
     std::unique_ptr<HttpFastCgiChannel> channel(new HttpFastCgiChannel(
        transport,
+       executor(),
        handler_,
        std::unique_ptr<HttpInput>(new HttpBufferedInput()),
        maxRequestUriLength_,

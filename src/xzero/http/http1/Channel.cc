@@ -18,13 +18,14 @@ namespace http {
 namespace http1 {
 
 Channel::Channel(Connection* transport,
+                 Executor* executor,
                  const HttpHandler& handler,
                  std::unique_ptr<HttpInput>&& input,
                  size_t maxRequestUriLength,
                  size_t maxRequestBodyLength,
                  HttpDateGenerator* dateGenerator,
                  HttpOutputCompressor* outputCompressor)
-    : HttpChannel(transport, handler, std::move(input),
+    : HttpChannel(transport, executor, handler, std::move(input),
                   maxRequestUriLength, maxRequestBodyLength,
                   dateGenerator, outputCompressor),
       persistent_(false),
