@@ -476,6 +476,7 @@ void CoreModule::ssl_context(Params& args) {
 void CoreModule::workers(Params& args) {
   int workerCount = args.getInt(1);
   daemon().config_->workers = workerCount;
+  daemon().config_->workerAffinities.clear();
 
   if (workerCount == cpuCount()) {
     logDebug("x0d", "Worker count equals CPU count. Defining linear processor affinity.");
