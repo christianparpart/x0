@@ -86,7 +86,7 @@ void Generator::generateResponseInfo(const HttpResponseInfo& info) {
   generateResponseLine(info);
 
   if (static_cast<int>(info.status()) >= 200) {
-    generateHeaders(info);
+    generateHeaders(info, isContentForbidden(info.status()));
   } else {
     buffer_.push_back("\r\n");
   }
@@ -215,7 +215,7 @@ void Generator::generateResponseLine(const HttpResponseInfo& info) {
   buffer_.push_back("\r\n");
 }
 
-void Generator::generateHeaders(const HttpInfo& info) {
+void Generator::generateHeaders(const HttpInfo& info, bool bodyForbidden) {
   chunked_ = info.hasContentLength() == false || info.hasTrailers();
   contentLength_ = info.contentLength();
 
@@ -239,12 +239,14 @@ void Generator::generateHeaders(const HttpInfo& info) {
     buffer_.push_back("\r\n");
   }
 
-  if (chunked_) {
-    buffer_.push_back("Transfer-Encoding: chunked\r\n");
-  } else {
-    buffer_.push_back("Content-Length: ");
-    buffer_.push_back(info.contentLength());
-    buffer_.push_back("\r\n");
+  if (!bodyForbidden) {
+    if (chunked_) {
+      buffer_.push_back("Transfer-Encoding: chunked\r\n");
+    } else {
+      buffer_.push_back("Content-Length: ");
+      buffer_.push_back(info.contentLength());
+      buffer_.push_back("\r\n");
+    }
   }
 
   buffer_.push_back("\r\n");

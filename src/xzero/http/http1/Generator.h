@@ -108,7 +108,7 @@ class XZERO_HTTP_API Generator {
  private:
   void generateRequestLine(const HttpRequestInfo& info);
   void generateResponseLine(const HttpResponseInfo& info);
-  void generateHeaders(const HttpInfo& info);
+  void generateHeaders(const HttpInfo& info, bool bodyForbidden = false);
   void generateResponseInfo(const HttpResponseInfo& info);
   void flushBuffer();
 
