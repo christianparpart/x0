@@ -1,5 +1,11 @@
 ### Migration Tasks
 
+- [ ] access to Scheduler API from within HttpRequest or XzeroContext;
+      consider merging `Scheduler` and `Executor`;
+      consider using `Scheduler` instead of `Executor` in net and http code;
+- [ ] (flow) tag flow handlers to never return (aka. always handle),
+      thus, enabling the compiler to give a warning on dead code after
+      this handler.
 - [ ] HttpRequest: reuse of HttpRequestInfo
 - [ ] HttpResponse: reuse of HttpResponseInfo
 - [x] migrate DateTime to UnixTime/CivilTime
@@ -25,6 +31,7 @@
       but the: "Welcome on ${sys.hostname()}" is working.
 - [ ] (flow) `var x = call1 + '.' + call2;` not working. fix me.
 - [ ] revive HTTP client side abort notification API
+- [ ] console logger to also log timestamps, can be disabled (enabled by default)
 
 ### Proxy Plugin
 
