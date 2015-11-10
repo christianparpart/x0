@@ -150,7 +150,7 @@ Buffer formatLog(XzeroContext* cx, const BufferRef& format) { // {{{
         result.push_back(static_cast<int>(response->status()));
         ++i;
         break;
-      case 'h':  // request vhost
+      case 'v':  // request vhost
         result.push_back(request->headers().get("Host"));
         ++i;
         break;
@@ -178,7 +178,11 @@ Buffer formatLog(XzeroContext* cx, const BufferRef& format) { // {{{
         result.push_back(request->query());
         ++i;
         break;
-      case 'R':  // remote addr
+      case 'l':  // identd user name
+        result.push_back("-");
+        ++i;
+        break;
+      case 'h':  // remote addr
         result.push_back(cx->remoteIP().c_str());
         ++i;
         break;
@@ -188,7 +192,7 @@ Buffer formatLog(XzeroContext* cx, const BufferRef& format) { // {{{
         result.push_back(request->unparsedUri());
         result.push_back(' ');
         result.push_back("HTTP/");
-        result.push_back(to_string(request->version()));
+        result.push_back(StringUtil::toString(request->version()));
         ++i;
         break;
       case 'T': {  // request time duration
@@ -199,21 +203,26 @@ Buffer formatLog(XzeroContext* cx, const BufferRef& format) { // {{{
         ++i;
         break;
       }
-      case 't':  // local time
-        //FIXME result.push_back(cx->now().htlog_str());
+      case 't': { // local time
+        std::time_t ts = UnixTime::now().unixtime();
+        struct tm tm;
+        if (localtime_r(&ts, &tm) != nullptr) {
+          char buf[256];
+          ssize_t n = std::strftime(buf, sizeof(buf), "[%d/%b/%Y:%T %z]", &tm);
+          if (n != 0) {
+            result.push_back(buf, n);
+          }
+        }
         ++i;
         break;
-      case 'U':  // username
+      }
+      case 'u':  // username
         ++i;
         if (!request->username().empty()) {
           result.push_back(request->username());
         } else {
           result.push_back('-');
         }
-        break;
-      case 'u':  // request uri
-        result.push_back(request->unparsedUri());
-        ++i;
         break;
       default:
         RAISE(RuntimeError, "Unknown format identifier.");
@@ -252,10 +261,10 @@ AccesslogModule::AccesslogModule(XzeroDaemon* d)
       logfiles_() {
 
   formats_["combined"] =
-      "%R - %U [%t] \"%r\" %c %O \"%>{Referer}\" \"%>{User-Agent}\"";
+      "%h %l %u %t \"%r\" %c %O \"%>{Referer}\" \"%>{User-Agent}\"";
 
   formats_["main"] =
-      "%R - [%t] \"%r\" %c %O \"%>{User-Agent}\" \"%>{Referer}\"";
+      "%h %l %t \"%r\" %c %O \"%>{User-Agent}\" \"%>{Referer}\"";
 
   setupFunction("accesslog.format", &AccesslogModule::accesslog_format)
       .param<FlowString>("id")

@@ -919,9 +919,14 @@ request cookie value
 
 HTTP response status code
 
+=item B<%l>
+
+Remote logname as provided by identd, if available.
+(Not implemented yet.)
+
 =item B<%h>
 
-HTTP Host header
+Remote address
 
 =item B<%i>
 
@@ -947,10 +952,6 @@ HTTP request path
 
 HTTP request query
 
-=item B<%R>
-
-Remote address
-
 =item B<%r>
 
 HTTP request line
@@ -964,20 +965,20 @@ human readable timestamp
 request time, the time in "seconds.milliseconds" it took to serve the request
 from the first byte read to the last byte transmitted.
 
-=item B<%U>
+=item B<%u>
 
 HTTP authenticated username
 
-=item B<%u>
+=item B<%v>
 
-HTTP Request URI
+HTTP host header
 
 =back
 
 Example:
 
  handler setup {
-   accesslog.format 'custom', "%c|%t|%T|%r|%h|%>{User-Agent}";
+   accesslog.format 'custom', "%c|%t|%T|%r|%v|%>{User-Agent}";
  }
 
  handler main {
