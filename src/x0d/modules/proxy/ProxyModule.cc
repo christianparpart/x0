@@ -171,6 +171,7 @@ void ProxyModule::proxyHttpRespond(client::HttpClient* cli,
   cx->response()->setStatus(cli->responseInfo().status());
   cx->response()->setReason(cli->responseInfo().reason());
   cx->response()->headers().push_back(cli->responseInfo().headers());
+  cx->response()->setContentLength(cli->responseBody().size());
   cx->response()->output()->write(cli->responseBody());
   cx->response()->completed();
 }
