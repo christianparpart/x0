@@ -11,10 +11,10 @@
 
 #include <xzero/Api.h>
 #include <xzero/sysconfig.h>
-#include <xzero/IdleTimeout.h>
 #include <xzero/thread/Future.h>
 #include <xzero/net/EndPoint.h>
 #include <xzero/net/IPAddress.h>
+#include <xzero/executor/Executor.h>
 #include <atomic>
 
 namespace xzero {
@@ -31,9 +31,9 @@ class XZERO_BASE_API InetEndPoint : public EndPoint {
    *
    * @param socket system file handle representing the server-side socket to
    *               the client.
-   * @param scheduler the task scheduler to be used for I/O & timeout completion.
+   * @param executor the task scheduler to be used for I/O & timeout completion.
    */
-  InetEndPoint(int socket, InetConnector* connector, Scheduler* scheduler);
+  InetEndPoint(int socket, InetConnector* connector, Executor* executor);
 
   /**
    * Initializes a client-side InetEndPoint.
@@ -44,11 +44,11 @@ class XZERO_BASE_API InetEndPoint : public EndPoint {
    *                      that is: @c AF_INET or @c AF_INET6.
    * @param readTimeout read-readiness timeout.
    * @param writeTimeout write-readiness timeout.
-   * @param scheduler the task scheduler to be used for I/O & timeout completion.
+   * @param executor the task scheduler to be used for I/O & timeout completion.
    */
   InetEndPoint(int socket, int addressFamily,
                Duration readTimeout, Duration writeTimeout,
-               Scheduler* scheduler);
+               Executor* executor);
 
   ~InetEndPoint();
 
@@ -64,17 +64,17 @@ class XZERO_BASE_API InetEndPoint : public EndPoint {
    */
   static Future<RefPtr<InetEndPoint>> connectAsync(
       const IPAddress& ipaddr, int port,
-      Duration timeout, Scheduler* scheduler);
+      Duration timeout, Executor* executor);
 
   static void connectAsync(
       const IPAddress& ipaddr, int port,
-      Duration timeout, Scheduler* scheduler,
+      Duration timeout, Executor* executor,
       std::function<void(RefPtr<InetEndPoint>)> onSuccess,
       std::function<void(Status)> onError);
 
   static RefPtr<InetEndPoint> connect(
       const IPAddress& ipaddr, int port,
-      Duration timeout, Scheduler* scheduler);
+      Duration timeout, Executor* executor);
 
   int handle() const noexcept { return handle_; }
 
@@ -124,11 +124,10 @@ class XZERO_BASE_API InetEndPoint : public EndPoint {
 
  private:
   InetConnector* connector_;
-  Scheduler* scheduler_;
+  Executor* executor_;
   Duration readTimeout_;
   Duration writeTimeout_;
-  IdleTimeout idleTimeout_;
-  Scheduler::HandleRef io_;
+  Executor::HandleRef io_;
   int handle_;
   int addressFamily_;
   bool isCorking_;

@@ -8,6 +8,7 @@
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 #include <xzero/executor/DirectExecutor.h>
+#include <xzero/RuntimeError.h>
 #include <xzero/logging.h>
 #include <stdio.h>
 
@@ -47,6 +48,18 @@ void DirectExecutor::execute(Task task) {
   }
 
   running_--;
+}
+
+Executor::HandleRef DirectExecutor::executeOnReadable(int fd, Task task, Duration timeout, Task onTimeout) {
+  RAISE(NotImplementedError); // TODO
+}
+
+Executor::HandleRef DirectExecutor::executeOnWritable(int fd, Task task, Duration timeout, Task onTimeout) {
+  RAISE(NotImplementedError); // TODO
+}
+
+void DirectExecutor::cancelFD(int fd) {
+  RAISE(NotImplementedError); // TODO
 }
 
 std::string DirectExecutor::toString() const {

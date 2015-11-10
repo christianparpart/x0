@@ -24,7 +24,7 @@ namespace xzero {
 
 class EndPoint;
 class IPAddress;
-class Scheduler;
+class Executor;
 class FileRef;
 
 namespace http {
@@ -43,7 +43,7 @@ class HttpTransport;
  */
 class HttpClient : public HttpListener {
  public:
-  HttpClient(Scheduler* scheduler, RefPtr<EndPoint> endpoint);
+  HttpClient(Executor* executor, RefPtr<EndPoint> endpoint);
   ~HttpClient();
 
   void send(HttpRequestInfo&& requestInfo,
@@ -79,7 +79,7 @@ class HttpClient : public HttpListener {
   void onProtocolError(HttpStatus code, const std::string& message) override;
 
  private:
-  Scheduler* scheduler_;
+  Executor* executor_;
 
   RefPtr<EndPoint> endpoint_;
   UniquePtr<HttpTransport> transport_;

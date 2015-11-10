@@ -12,23 +12,23 @@
 
 namespace xzero {
 
-inline void Scheduler::Handle::reset(Task onCancel) {
+inline void Executor::Handle::reset(Task onCancel) {
   std::lock_guard<std::mutex> lk(mutex_);
 
   isCancelled_.store(false);
   onCancel_ = onCancel;
 }
 
-inline bool Scheduler::Handle::isCancelled() const {
+inline bool Executor::Handle::isCancelled() const {
   return isCancelled_.load();
 }
 
-inline void Scheduler::Handle::setCancelHandler(Task task) {
+inline void Executor::Handle::setCancelHandler(Task task) {
   std::lock_guard<std::mutex> lk(mutex_);
   onCancel_ = task;
 }
 
-inline void Scheduler::Handle::cancel() {
+inline void Executor::Handle::cancel() {
   std::lock_guard<std::mutex> lk(mutex_);
 
   for (;;) {
@@ -47,7 +47,7 @@ inline void Scheduler::Handle::cancel() {
   }
 }
 
-inline void Scheduler::Handle::fire(Task task) {
+inline void Executor::Handle::fire(Task task) {
   std::lock_guard<std::mutex> lk(mutex_);
 
   if (!isCancelled_.load()) {
@@ -55,11 +55,11 @@ inline void Scheduler::Handle::fire(Task task) {
   }
 }
 
-inline Scheduler::HandleRef Scheduler::executeOnReadable(int fd, Task task) {
+inline Executor::HandleRef Executor::executeOnReadable(int fd, Task task) {
   return executeOnReadable(fd, task, Duration::fromDays(5 * 365), nullptr);
 }
 
-inline Scheduler::HandleRef Scheduler::executeOnWritable(int fd, Task task) {
+inline Executor::HandleRef Executor::executeOnWritable(int fd, Task task) {
   return executeOnWritable(fd, task, Duration::fromDays(5 * 365), nullptr);
 }
 

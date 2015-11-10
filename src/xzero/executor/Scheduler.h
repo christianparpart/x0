@@ -10,17 +10,10 @@
 #pragma once
 
 #include <xzero/Duration.h>
-#include <xzero/MonotonicTime.h>
 #include <xzero/UnixTime.h>
-#include <xzero/RefCounted.h>
-#include <xzero/RefPtr.h>
-#include <xzero/ExceptionHandler.h>
 #include <xzero/executor/Executor.h>
-#include <vector>
 #include <functional>
 #include <memory>
-#include <mutex>
-#include <atomic>
 
 namespace xzero {
 
@@ -31,35 +24,6 @@ class Wakeup;
  */
 class Scheduler : public Executor {
  public:
-  struct Handle : public RefCounted { // {{{
-   public:
-    Handle()
-        : Handle(nullptr) {}
-
-    explicit Handle(Task onCancel)
-        : mutex_(),
-          isCancelled_(false),
-          onCancel_(onCancel) {}
-
-    bool isCancelled() const;
-
-    void cancel();
-    void fire(Task task);
-
-    void reset(Task onCancel);
-
-    void setCancelHandler(Task task);
-
-   private:
-    std::mutex mutex_;
-    std::atomic<bool> isCancelled_;
-    Task onCancel_;
-  }; // }}}
-
-  typedef RefPtr<Handle> HandleRef;
-  //typedef std::shared_ptr<Handle> HandleRef;
-  //typedef Handle* HandleRef;
-
   Scheduler(std::unique_ptr<ExceptionHandler> eh)
       : Executor(std::move(eh)) {}
 
@@ -75,51 +39,6 @@ class Scheduler : public Executor {
    * Runs given task at given time.
    */
   virtual HandleRef executeAt(UnixTime ts, Task task) = 0;
-
-  /**
-   * Runs given task when given selectable is non-blocking readable.
-   *
-   * @param fd file descriptor to watch for non-blocking readability.
-   * @param task Task to execute upon given event.
-   * @param timeout Duration to wait for readability.
-   *                When this timeout is hit and no readable-event was
-   *                generated yet, the @p onTimeout task will be invoked
-   *                instead and the selectable will no longer be watched on.
-   */
-  virtual HandleRef executeOnReadable(
-      int fd, Task task,
-      Duration timeout, Task onTimeout) = 0;
-
-  /**
-   * Runs given task when given selectable is non-blocking readable.
-   *
-   * @param fd file descriptor to watch for non-blocking readability.
-   * @param task Task to execute upon given event.
-   */
-  HandleRef executeOnReadable(int fd, Task task);
-
-  /**
-   * Runs given task when given selectable is non-blocking writable.
-   *
-   * @param fd file descriptor to watch for non-blocking readability.
-   * @param task Task to execute upon given event.
-   * @param timeout timeout to wait for readability. When the timeout is hit
-   *                and no readable-event was generated yet, an
-   *                the task isstill fired but fd will raise with ETIMEDOUT.
-   */
-  virtual HandleRef executeOnWritable(
-      int fd, Task task,
-      Duration timeout, Task onTimeout) = 0;
-
-  /**
-   * Runs given task when given selectable is non-blocking writable.
-   *
-   * @param fd file descriptor to watch for non-blocking readability.
-   * @param task Task to execute upon given event.
-   */
-  HandleRef executeOnWritable(int fd, Task task);
-
-  virtual void cancelFD(int fd) = 0;
 
   /**
    * Executes @p task  when given @p wakeup triggered a wakeup event
@@ -196,5 +115,3 @@ class Scheduler : public Executor {
 };
 
 }  // namespace xzero
-
-#include <xzero/executor/Scheduler-inl.h>

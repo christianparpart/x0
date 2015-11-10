@@ -21,16 +21,16 @@ namespace xzero {
 namespace http {
 namespace client {
 
-HttpClient::HttpClient(Scheduler* scheduler,
+HttpClient::HttpClient(Executor* executor,
                        RefPtr<EndPoint> endpoint)
-    : scheduler_(scheduler),
+    : executor_(executor),
       endpoint_(endpoint),
       transport_(nullptr),
       responseInfo_(),
       responseBody_() {
 
   if (endpoint_) {
-    transport_.reset(new Http1Connection(this, endpoint_.get(), scheduler_));
+    transport_.reset(new Http1Connection(this, endpoint_.get(), executor_));
   }
 }
 

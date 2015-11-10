@@ -32,7 +32,11 @@ class ThreadedExecutor : public Executor {
   void execute(const std::string& name, Task task);
 
   void execute(Task task) override;
+  HandleRef executeOnReadable(int fd, Task task, Duration timeout, Task onTimeout) override;
+  HandleRef executeOnWritable(int fd, Task task, Duration timeout, Task onTimeout) override;
+  void cancelFD(int fd) override;
   std::string toString() const override;
+
   void joinAll();
 
  private:

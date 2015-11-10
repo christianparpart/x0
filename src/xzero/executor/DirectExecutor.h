@@ -26,8 +26,11 @@ class DirectExecutor : public Executor {
     bool recursive = false,
     std::unique_ptr<xzero::ExceptionHandler> eh = nullptr);
 
-  void execute(Task task) override;
   std::string toString() const override;
+  void execute(Task task) override;
+  HandleRef executeOnReadable(int fd, Task task, Duration timeout, Task onTimeout) override;
+  HandleRef executeOnWritable(int fd, Task task, Duration timeout, Task onTimeout) override;
+  void cancelFD(int fd) override;
 
   /** Tests whether this executor is currently running some task. */
   bool isRunning() const { return running_ > 0; }

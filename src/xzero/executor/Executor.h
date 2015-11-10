@@ -11,10 +11,14 @@
 
 #include <xzero/executor/SafeCall.h>
 #include <xzero/ExceptionHandler.h>
+#include <xzero/RefCounted.h>
+#include <xzero/RefPtr.h>
+#include <xzero/Duration.h>
 #include <xzero/sysconfig.h>
 
+#include <mutex>
+#include <atomic>
 #include <exception>
-#include <deque>
 #include <functional>
 #include <string>
 
@@ -32,11 +36,44 @@ namespace xzero {
  */
 class Executor {
  public:
+  typedef std::function<void()> Task;
+
+  struct Handle : public RefCounted { // {{{
+   public:
+    Handle()
+        : Handle(nullptr) {}
+
+    explicit Handle(Task onCancel)
+        : mutex_(),
+          isCancelled_(false),
+          onCancel_(onCancel) {}
+
+    bool isCancelled() const;
+
+    void cancel();
+    void fire(Task task);
+
+    void reset(Task onCancel);
+
+    void setCancelHandler(Task task);
+
+   private:
+    std::mutex mutex_;
+    std::atomic<bool> isCancelled_;
+    Task onCancel_;
+  }; // }}}
+  typedef RefPtr<Handle> HandleRef;
+
   explicit Executor(std::unique_ptr<xzero::ExceptionHandler> eh);
 
   virtual ~Executor();
 
-  typedef std::function<void()> Task;
+  void setExceptionHandler(std::unique_ptr<ExceptionHandler> eh);
+
+  /**
+   * Retrieves a human readable name of this executor (for introspection only).
+   */
+  virtual std::string toString() const = 0;
 
   /**
    * Executes given task.
@@ -44,11 +81,49 @@ class Executor {
   virtual void execute(Task task) = 0;
 
   /**
-   * Retrieves a human readable name of this executor (for introspection only).
+   * Runs given task when given selectable is non-blocking readable.
+   *
+   * @param fd file descriptor to watch for non-blocking readability.
+   * @param task Task to execute upon given event.
+   * @param timeout Duration to wait for readability.
+   *                When this timeout is hit and no readable-event was
+   *                generated yet, the @p onTimeout task will be invoked
+   *                instead and the selectable will no longer be watched on.
    */
-  virtual std::string toString() const = 0;
+  virtual HandleRef executeOnReadable(
+      int fd, Task task,
+      Duration timeout, Task onTimeout) = 0;
 
-  void setExceptionHandler(std::unique_ptr<ExceptionHandler> eh);
+  /**
+   * Runs given task when given selectable is non-blocking writable.
+   *
+   * @param fd file descriptor to watch for non-blocking readability.
+   * @param task Task to execute upon given event.
+   * @param timeout timeout to wait for readability. When the timeout is hit
+   *                and no readable-event was generated yet, an
+   *                the task isstill fired but fd will raise with ETIMEDOUT.
+   */
+  virtual HandleRef executeOnWritable(
+      int fd, Task task,
+      Duration timeout, Task onTimeout) = 0;
+
+  virtual void cancelFD(int fd) = 0;
+
+  /**
+   * Runs given task when given selectable is non-blocking readable.
+   *
+   * @param fd file descriptor to watch for non-blocking readability.
+   * @param task Task to execute upon given event.
+   */
+  HandleRef executeOnReadable(int fd, Task task);
+
+  /**
+   * Runs given task when given selectable is non-blocking writable.
+   *
+   * @param fd file descriptor to watch for non-blocking readability.
+   * @param task Task to execute upon given event.
+   */
+  HandleRef executeOnWritable(int fd, Task task);
 
  protected:
   void safeCall(std::function<void()> callee) noexcept;
@@ -58,3 +133,5 @@ class Executor {
 };
 
 } // namespace xzero
+
+#include <xzero/executor/Executor-inl.h>

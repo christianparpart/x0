@@ -8,6 +8,7 @@
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 #include <xzero/executor/ThreadedExecutor.h>
+#include <xzero/RuntimeError.h>
 #include <xzero/sysconfig.h>
 #include <memory>
 #include <algorithm>
@@ -105,6 +106,18 @@ void ThreadedExecutor::execute(Task task) {
   }));
   std::lock_guard<std::mutex> lock(mutex_);
   threads_.push_back(tid);
+}
+
+Executor::HandleRef ThreadedExecutor::executeOnReadable(int fd, Task task, Duration timeout, Task onTimeout) {
+  RAISE(NotImplementedError); // TODO
+}
+
+Executor::HandleRef ThreadedExecutor::executeOnWritable(int fd, Task task, Duration timeout, Task onTimeout) {
+  RAISE(NotImplementedError); // TODO
+}
+
+void ThreadedExecutor::cancelFD(int fd) {
+  RAISE(NotImplementedError); // TODO
 }
 
 std::string ThreadedExecutor::toString() const {

@@ -38,19 +38,16 @@ namespace xzero {
 
 InetEndPoint::InetEndPoint(int socket,
                            InetConnector* connector,
-                           Scheduler* scheduler)
+                           Executor* executor)
     : EndPoint(),
       connector_(connector),
-      scheduler_(scheduler),
+      executor_(executor),
       readTimeout_(connector->readTimeout()),
       writeTimeout_(connector->writeTimeout()),
-      idleTimeout_(connector->scheduler()),
       io_(),
       handle_(socket),
       addressFamily_(connector->addressFamily()),
       isCorking_(false) {
-
-  idleTimeout_.setCallback(std::bind(&InetEndPoint::onTimeout, this));
   TRACE("$0 ctor fd=$1", this, handle_);
 }
 
@@ -58,19 +55,16 @@ InetEndPoint::InetEndPoint(int socket,
                            int addressFamily,
                            Duration readTimeout,
                            Duration writeTimeout,
-                           Scheduler* scheduler)
+                           Executor* executor)
     : EndPoint(),
       connector_(nullptr),
-      scheduler_(scheduler),
+      executor_(executor),
       readTimeout_(readTimeout),
       writeTimeout_(writeTimeout),
-      idleTimeout_(scheduler),
       io_(),
       handle_(socket),
       addressFamily_(addressFamily),
       isCorking_(false) {
-
-  idleTimeout_.setCallback(std::bind(&InetEndPoint::onTimeout, this));
   TRACE("$0 ctor", this);
 }
 
@@ -315,11 +309,12 @@ void InetEndPoint::wantFill() {
   TRACE("$0 wantFill()", this);
   // TODO: abstract away the logic of TCP_DEFER_ACCEPT
 
-  //FIXME: idleTimeout_.activate(readTimeout());
   if (!io_) {
-    io_ = scheduler_->executeOnReadable(
+    io_ = executor_->executeOnReadable(
         handle(),
-        std::bind(&InetEndPoint::fillable, this));
+        std::bind(&InetEndPoint::fillable, this),
+        readTimeout(),
+        std::bind(&InetEndPoint::onTimeout, this));
   }
 }
 
@@ -340,12 +335,13 @@ void InetEndPoint::fillable() {
 
 void InetEndPoint::wantFlush() {
   TRACE("$0 wantFlush() $1", this, io_.get() ? "again" : "first time");
-  //FIXME: idleTimeout_.activate(writeTimeout());
 
   if (!io_) {
-    io_ = scheduler_->executeOnWritable(
+    io_ = executor_->executeOnWritable(
         handle(),
-        std::bind(&InetEndPoint::flushable, this));
+        std::bind(&InetEndPoint::flushable, this),
+        writeTimeout(),
+        std::bind(&InetEndPoint::onTimeout, this));
   }
 }
 
@@ -420,7 +416,7 @@ std::string StringUtil::toString(InetConnectState* obj) {
 
 Future<RefPtr<InetEndPoint>> InetEndPoint::connectAsync(
     const IPAddress& ipaddr, int port,
-    Duration timeout, Scheduler* scheduler) {
+    Duration timeout, Executor* executor) {
   int fd = socket(ipaddr.family(), SOCK_STREAM, IPPROTO_TCP);
   if (fd < 0)
     RAISE_ERRNO(errno);
@@ -430,7 +426,7 @@ Future<RefPtr<InetEndPoint>> InetEndPoint::connectAsync(
 
   try {
     TRACE("connectAsync: to $0 port $1", ipaddr, port);
-    ep = new InetEndPoint(fd, ipaddr.family(), timeout, timeout, scheduler);
+    ep = new InetEndPoint(fd, ipaddr.family(), timeout, timeout, executor);
     ep->setBlocking(false);
 
     switch (ipaddr.family()) {
@@ -450,7 +446,7 @@ Future<RefPtr<InetEndPoint>> InetEndPoint::connectAsync(
             return promise.future();
           } else {
             TRACE("connectAsync: backgrounding");
-            scheduler->executeOnWritable(fd,
+            executor->executeOnWritable(fd,
                 std::bind(&InetConnectState::onConnectComplete,
                           new InetConnectState(std::move(ep), promise)));
             return promise.future();
@@ -473,7 +469,7 @@ Future<RefPtr<InetEndPoint>> InetEndPoint::connectAsync(
             RAISE_ERRNO(errno);
           } else {
             TRACE("connectAsync: backgrounding");
-            scheduler->executeOnWritable(fd,
+            executor->executeOnWritable(fd,
                 std::bind(&InetConnectState::onConnectComplete,
                           new InetConnectState(std::move(ep), promise)));
             return promise.future();
@@ -497,11 +493,11 @@ Future<RefPtr<InetEndPoint>> InetEndPoint::connectAsync(
 
 void InetEndPoint::connectAsync(
     const IPAddress& ipaddr, int port,
-    Duration timeout, Scheduler* scheduler,
+    Duration timeout, Executor* executor,
     std::function<void(RefPtr<InetEndPoint>)> onSuccess,
     std::function<void(Status)> onError) {
   Future<RefPtr<InetEndPoint>> f = connectAsync(
-      ipaddr, port, timeout, scheduler);
+      ipaddr, port, timeout, executor);
 
   f.onSuccess([onSuccess] (const RefPtr<InetEndPoint>& x) {
       onSuccess(const_cast<RefPtr<InetEndPoint>&>(x));
@@ -511,9 +507,9 @@ void InetEndPoint::connectAsync(
 
 RefPtr<InetEndPoint> InetEndPoint::connect(
     const IPAddress& ipaddr, int port,
-    Duration timeout, Scheduler* scheduler) {
+    Duration timeout, Executor* executor) {
   Future<RefPtr<InetEndPoint>> f =
-      connectAsync(ipaddr, port, timeout, scheduler);
+      connectAsync(ipaddr, port, timeout, executor);
   f.wait();
 
   RefPtr<InetEndPoint> ep = f.get();
