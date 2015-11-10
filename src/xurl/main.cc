@@ -87,6 +87,8 @@ XUrl::XUrl()
       connectTimeout_(Duration::fromSeconds(4))
 {
   Application::logToStderr(LogLevel::Info);
+
+  requestHeaders_.push_back("User-Agent", "xurl/" PACKAGE_VERSION);
 }
 
 void XUrl::addRequestHeader(const std::string& field) {
