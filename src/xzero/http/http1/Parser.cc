@@ -729,12 +729,13 @@ std::size_t Parser::parseFragment(const BufferRef& chunk) {
         if (iequals(name_, "Content-Length")) {
           contentLength_ = value_.toInt();
           TRACE("set content length to: $0", contentLength_);
-          onMessageHeader(name_, value_);
+          // do not pass header to upper layer
+          // as this is an HTTP/1 transport-layer specific header
         } else if (iequals(name_, "Transfer-Encoding")) {
           if (iequals(value_, "chunked")) {
             chunked_ = true;
-            // do not pass header to the upper layer if we've
-            // processed it
+            // do not pass header to upper layer
+            // as this is an HTTP/1 transport-layer specific header
           } else {
             onMessageHeader(name_, value_);
           }

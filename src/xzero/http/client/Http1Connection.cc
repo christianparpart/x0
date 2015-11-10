@@ -45,6 +45,7 @@ Http1Connection::~Http1Connection() {
 void Http1Connection::send(HttpRequestInfo&& requestInfo,
                            CompletionHandler onComplete) {
   setCompleter(onComplete);
+  expectsBody_ = requestInfo.method() != "HEAD";
   generator_.generateRequest(requestInfo);
   wantFlush();
 }
@@ -145,12 +146,8 @@ void Http1Connection::onFillable() {
 }
 
 void Http1Connection::parseFragment() {
-  try {
-    size_t n = parser_.parseFragment(inputBuffer_.ref(inputOffset_));
-    inputOffset_ += n;
-  } catch (const std::exception& e) {
-    RAISE(ForeignError);
-  }
+  size_t n = parser_.parseFragment(inputBuffer_.ref(inputOffset_));
+  inputOffset_ += n;
 }
 
 void Http1Connection::onFlushable() {
