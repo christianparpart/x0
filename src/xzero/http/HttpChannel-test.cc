@@ -15,7 +15,7 @@
 #include <xzero/http/HttpOutput.h>
 #include <xzero/http/BadMessage.h>
 
-#include <xzero/executor/DirectExecutor.h>
+#include <xzero/executor/LocalExecutor.h>
 #include <xzero/Buffer.h>
 
 #include <gtest/gtest.h>
@@ -33,14 +33,14 @@ void sendError504(HttpRequest* request, HttpResponse* response) {
 }
 
 TEST(http_HttpChannel, sameVersion) {
-  DirectExecutor executor;
+  LocalExecutor executor;
   mock::Transport transport(&executor, &handlerOk);
   transport.run(HttpVersion::VERSION_1_0, "GET", "/", {}, "");
   ASSERT_EQ(HttpVersion::VERSION_1_0, transport.responseInfo().version());
 }
 
 TEST(http_HttpChannel, sendError504) {
-  DirectExecutor executor;
+  LocalExecutor executor;
   mock::Transport transport(&executor, &sendError504);
   transport.run(HttpVersion::VERSION_1_0, "GET", "/", {}, "");
   ASSERT_EQ((int)HttpStatus::GatewayTimeout, (int)transport.responseInfo().status());
@@ -48,35 +48,35 @@ TEST(http_HttpChannel, sendError504) {
 }
 
 TEST(http_HttpChannel, invalidRequestPath_escapeDocumentRoot1) {
-  DirectExecutor executor;
+  LocalExecutor executor;
   mock::Transport transport(&executor, &handlerOk);
   transport.run(HttpVersion::VERSION_1_0, "GET", "/../../etc/passwd", {}, "");
   ASSERT_EQ(HttpStatus::BadRequest, transport.responseInfo().status());
 }
 
 TEST(http_HttpChannel, invalidRequestPath_escapeDocumentRoot2) {
-  DirectExecutor executor;
+  LocalExecutor executor;
   mock::Transport transport(&executor, &handlerOk);
   transport.run(HttpVersion::VERSION_1_0, "GET", "/..\%2f..\%2fetc/passwd", {}, "");
   ASSERT_EQ(HttpStatus::BadRequest, transport.responseInfo().status());
 }
 
 TEST(http_HttpChannel, invalidRequestPath_injectNullByte1) {
-  DirectExecutor executor;
+  LocalExecutor executor;
   mock::Transport transport(&executor, &handlerOk);
   transport.run(HttpVersion::VERSION_1_0, "GET", "/foo%00", {}, "");
   ASSERT_EQ(HttpStatus::BadRequest, transport.responseInfo().status());
 }
 
 TEST(http_HttpChannel, invalidRequestPath_injectNullByte2) {
-  DirectExecutor executor;
+  LocalExecutor executor;
   mock::Transport transport(&executor, &handlerOk);
   transport.run(HttpVersion::VERSION_1_0, "GET", "/foo%00/bar", {}, "");
   ASSERT_EQ(HttpStatus::BadRequest, transport.responseInfo().status());
 }
 
 TEST(http_HttpChannel, missingHostHeader) {
-  DirectExecutor executor;
+  LocalExecutor executor;
   mock::Transport transport(&executor, &handlerOk);
   transport.run(HttpVersion::VERSION_1_1, "GET", "/", {}, "");
   ASSERT_EQ(HttpStatus::BadRequest, transport.responseInfo().status());
@@ -89,7 +89,7 @@ TEST(http_HttpChannel, missingHostHeader) {
 }
 
 TEST(http_HttpChannel, multipleHostHeaders) {
-  DirectExecutor executor;
+  LocalExecutor executor;
   mock::Transport transport(&executor, &handlerOk);
   transport.run(HttpVersion::VERSION_1_1, "GET", "/", {
       {"Host", "foo"}, {"Host", "bar"}}, "");
@@ -97,7 +97,7 @@ TEST(http_HttpChannel, multipleHostHeaders) {
 }
 
 TEST(http_HttpChannel, unhandledException1) {
-  DirectExecutor executor;
+  LocalExecutor executor;
   mock::Transport transport(&executor, [](HttpRequest*, HttpResponse*) {
     throw std::runtime_error("me, the unhandled");
   });
@@ -107,7 +107,7 @@ TEST(http_HttpChannel, unhandledException1) {
 }
 
 TEST(http_HttpChannel, unhandledException2) {
-  DirectExecutor executor;
+  LocalExecutor executor;
   mock::Transport transport(&executor, [](HttpRequest*, HttpResponse*) {
     throw 42;
   });
@@ -116,7 +116,7 @@ TEST(http_HttpChannel, unhandledException2) {
 }
 
 TEST(http_HttpChannel, completed_invoked_before_contentLength_satisfied) {
-  DirectExecutor executor;
+  LocalExecutor executor;
   mock::Transport transport(&executor, [](HttpRequest* request,
                                           HttpResponse* response) {
     response->setStatus(HttpStatus::Ok);
@@ -135,7 +135,7 @@ TEST(http_HttpChannel, completed_invoked_before_contentLength_satisfied) {
 }
 
 TEST(http_HttpChannel, trailer1) {
-  DirectExecutor executor;
+  LocalExecutor executor;
   mock::Transport transport(&executor, [](HttpRequest* request,
                                           HttpResponse* response) {
     response->setStatus(HttpStatus::Ok);

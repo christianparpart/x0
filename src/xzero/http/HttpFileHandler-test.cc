@@ -16,7 +16,7 @@
 #include <xzero/http/BadMessage.h>
 #include <xzero/http/HttpFileHandler.h>
 #include <xzero/io/LocalFileRepository.h>
-#include <xzero/executor/DirectExecutor.h>
+#include <xzero/executor/LocalExecutor.h>
 #include <xzero/io/FileUtil.h>
 #include <xzero/MimeTypes.h>
 #include <xzero/Buffer.h>
@@ -45,7 +45,7 @@ void staticfileHandler(HttpRequest* request, HttpResponse* response) {
 }
 
 TEST(http_HttpFileHandler, GET_FileNotFound) {
-  DirectExecutor executor;
+  LocalExecutor executor;
   mock::Transport transport(&executor, &staticfileHandler);
   transport.run(HttpVersion::VERSION_1_1, "GET", "/notfound.txt",
       {{"Host", "test"}}, "");

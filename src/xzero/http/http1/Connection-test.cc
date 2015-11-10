@@ -11,7 +11,7 @@
 #include <xzero/http/HttpRequest.h>
 #include <xzero/http/HttpResponse.h>
 #include <xzero/http/HttpOutput.h>
-#include <xzero/executor/DirectExecutor.h>
+#include <xzero/executor/LocalExecutor.h>
 #include <xzero/logging/LogTarget.h>
 #include <xzero/logging/LogAggregator.h>
 #include <xzero/net/Server.h>
@@ -53,7 +53,7 @@ static const Duration maxKeepAlive = Duration::fromSeconds(30);
 #define SCOPED_LOGGER() ScopedLogger _scoped_logger_;
 #define MOCK_HTTP1_SERVER(server, localConnector, executor)                     \
   xzero::Server server;                                                        \
-  xzero::DirectExecutor executor(false);                                       \
+  xzero::LocalExecutor executor(false);                                       \
   auto localConnector = server.addConnector<xzero::LocalConnector>(&executor); \
   auto http = localConnector->addConnectionFactory<                            \
                                  xzero::http::http1::ConnectionFactory>(       \

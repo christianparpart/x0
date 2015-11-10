@@ -31,7 +31,7 @@ namespace xzero {
  * can distinguish in different execution models, such as threading,
  * sequential or inline execution.
  *
- * @see DirectExecutor
+ * @see LocalExecutor
  * @see ThreadPool
  */
 class Executor {

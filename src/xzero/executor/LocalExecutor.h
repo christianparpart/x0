@@ -20,9 +20,9 @@ namespace xzero {
  *
  * @note Not thread-safe.
  */
-class DirectExecutor : public Executor {
+class LocalExecutor : public Executor {
  public:
-  DirectExecutor(
+  LocalExecutor(
     bool recursive = false,
     std::unique_ptr<xzero::ExceptionHandler> eh = nullptr);
 

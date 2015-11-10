@@ -7,7 +7,8 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-#include <xzero/executor/DirectExecutor.h>
+#include <xzero/executor/LocalExecutor.h>
+#include <xzero/executor/PosixScheduler.h>
 #include <xzero/RuntimeError.h>
 #include <xzero/logging.h>
 #include <stdio.h>
@@ -15,12 +16,12 @@
 namespace xzero {
 
 #ifndef NDEBUG
-#define TRACE(msg...) logTrace("executor.DirectExecutor", msg)
+#define TRACE(msg...) logTrace("executor.LocalExecutor", msg)
 #else
 #define TRACE(msg...) do {} while (0)
 #endif
 
-DirectExecutor::DirectExecutor(
+LocalExecutor::LocalExecutor(
     bool recursive,
     std::unique_ptr<xzero::ExceptionHandler> eh)
     : Executor(std::move(eh)),
@@ -29,7 +30,7 @@ DirectExecutor::DirectExecutor(
       deferred_() {
 }
 
-void DirectExecutor::execute(Task task) {
+void LocalExecutor::execute(Task task) {
   if (isRunning() && !isRecursive()) {
     deferred_.emplace_back(std::move(task));
     TRACE("$0 execute: enqueue task ($1)", this, deferred_.size());
@@ -50,27 +51,41 @@ void DirectExecutor::execute(Task task) {
   running_--;
 }
 
-Executor::HandleRef DirectExecutor::executeOnReadable(int fd, Task task, Duration timeout, Task onTimeout) {
+Executor::HandleRef LocalExecutor::executeOnReadable(int fd, Task task, Duration timeout, Task onTimeout) {
+  try {
+    PosixScheduler::waitForReadable(fd, timeout);
+  } catch (...) {
+    onTimeout();
+    return nullptr;
+  }
+  task();
+  return nullptr;
+}
+
+Executor::HandleRef LocalExecutor::executeOnWritable(int fd, Task task, Duration timeout, Task onTimeout) {
+  try {
+    PosixScheduler::waitForWritable(fd, timeout);
+  } catch (...) {
+    onTimeout();
+    return nullptr;
+  }
+  task();
+  return nullptr;
+}
+
+void LocalExecutor::cancelFD(int fd) {
   RAISE(NotImplementedError); // TODO
 }
 
-Executor::HandleRef DirectExecutor::executeOnWritable(int fd, Task task, Duration timeout, Task onTimeout) {
-  RAISE(NotImplementedError); // TODO
-}
-
-void DirectExecutor::cancelFD(int fd) {
-  RAISE(NotImplementedError); // TODO
-}
-
-std::string DirectExecutor::toString() const {
+std::string LocalExecutor::toString() const {
   char buf[128];
-  snprintf(buf, sizeof(buf), "DirectExecutor@%p", this);
+  snprintf(buf, sizeof(buf), "LocalExecutor@%p", this);
   return buf;
 }
 
 template<>
-std::string StringUtil::toString(DirectExecutor* value) {
-  return StringUtil::format("DirectExecutor[$0]", (void*)value);
+std::string StringUtil::toString(LocalExecutor* value) {
+  return StringUtil::format("LocalExecutor[$0]", (void*)value);
 }
 
 } // namespace xzero
