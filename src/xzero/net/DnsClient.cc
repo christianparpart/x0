@@ -90,6 +90,8 @@ const std::vector<IPAddress>& DnsClient::lookupIP(
   for (addrinfo* ri = res; ri != nullptr; ri = ri->ai_next)
     list.emplace_back(reinterpret_cast<InetType*>(ri->ai_addr));
 
+  freeaddrinfo(res);
+
   return (*cache)[name] = list;
 }
 
