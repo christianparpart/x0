@@ -126,13 +126,13 @@ bool ProxyModule::proxy_http(XzeroContext* cx, xzero::flow::vm::Params& args) {
   FlowNumber port = args.getInt(2);
   FlowString onClientAbortStr = args.getString(3);
   Duration connectTimeout = Duration::fromSeconds(16);
-  Scheduler* scheduler = static_cast<Scheduler*>(cx->response()->executor());
+  Executor* executor = cx->response()->executor();
 
   InetEndPoint::connectAsync(
       ipaddr,
       port,
       connectTimeout,
-      scheduler,
+      executor,
       std::bind(&ProxyModule::proxyHttpConnected, this,
                 std::placeholders::_1, cx),
       std::bind(&ProxyModule::proxyHttpConnectFailed, this,
@@ -142,11 +142,11 @@ bool ProxyModule::proxy_http(XzeroContext* cx, xzero::flow::vm::Params& args) {
 }
 
 void ProxyModule::proxyHttpConnected(RefPtr<InetEndPoint> ep, XzeroContext* cx) {
-  Scheduler* scheduler = static_cast<Scheduler*>(cx->response()->executor());
+  Executor* executor = cx->response()->executor();
   HttpRequest* request = cx->request();
 
   // TODO: make_shared<client::HttpClient>(scheduler, ep.as<EndPoint>())
-  client::HttpClient* cli = new client::HttpClient(scheduler, ep.as<EndPoint>());
+  client::HttpClient* cli = new client::HttpClient(executor, ep.as<EndPoint>());
 
   size_t requestBodySize = 0; // TODO
 
