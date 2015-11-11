@@ -277,34 +277,6 @@ size_t InetEndPoint::flush(int fd, off_t offset, size_t size) {
 #endif
 }
 
-void InetEndPoint::onReadable() XZERO_NOEXCEPT {
-  RefPtr<EndPoint> _guard(this);
-
-  try {
-    connection()->onFillable();
-  } catch (const std::exception& e) {
-    connection()->onInterestFailure(e);
-  } catch (...) {
-    connection()->onInterestFailure(
-        EXCEPTION(RuntimeError, (int) Status::CaughtUnknownExceptionError,
-                  StatusCategory::get()));
-  }
-}
-
-void InetEndPoint::onWritable() XZERO_NOEXCEPT {
-  RefPtr<EndPoint> _guard(this);
-
-  try {
-    connection()->onFlushable();
-  } catch (const std::exception& e) {
-    connection()->onInterestFailure(e);
-  } catch (...) {
-    connection()->onInterestFailure(
-        EXCEPTION(RuntimeError, (int) Status::CaughtUnknownExceptionError,
-                  StatusCategory::get()));
-  }
-}
-
 void InetEndPoint::wantFill() {
   TRACE("$0 wantFill()", this);
   // TODO: abstract away the logic of TCP_DEFER_ACCEPT

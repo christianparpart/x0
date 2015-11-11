@@ -115,9 +115,6 @@ class XZERO_BASE_API InetEndPoint : public EndPoint {
   Option<IPAddress> remoteIP() const override;
 
  private:
-  void onReadable() XZERO_NOEXCEPT;
-  void onWritable() XZERO_NOEXCEPT;
-
   void fillable();
   void flushable();
   void onTimeout();
