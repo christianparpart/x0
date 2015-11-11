@@ -33,7 +33,7 @@ namespace xzero {
 
 #define ERROR(msg...) logError("PosixScheduler", msg)
 
-#if 0 // !defined(NDEBUG)
+#if !defined(NDEBUG)
 #define TRACE(msg...) logTrace("PosixScheduler", msg)
 #else
 #define TRACE(msg...) do {} while (0)
@@ -178,8 +178,14 @@ Scheduler::HandleRef PosixScheduler::insertIntoTimersList(MonotonicTime dt,
 }
 
 void PosixScheduler::collectTimeouts(std::list<Task>* result) {
-  for (Watcher* w = firstWatcher_; w && w->timeout <= now(); ) {
-    //TRACE("collectTimeouts: timeouting $0", *w);
+  const auto nextTimedout = [this]() -> Watcher* {
+    return firstWatcher_ && firstWatcher_->timeout <= now()
+        ? firstWatcher_
+        : nullptr;
+  };
+
+  while (Watcher* w = nextTimedout()) {
+    TRACE("collectTimeouts: timing out $0", *w);
     result->push_back([w] { w->fire(w->onTimeout); });
     switch (w->mode) {
       case Mode::READABLE: readerCount_--; break;
@@ -188,15 +194,14 @@ void PosixScheduler::collectTimeouts(std::list<Task>* result) {
     w = unlinkWatcher(w);
   }
 
-  for (;;) {
-    if (timers_.empty())
-      break;
+  const auto nextTimer = [this]() -> RefPtr<Timer> {
+    return !timers_.empty() && timers_.front()->when >= now()
+        ? timers_.front()
+        : nullptr;
+  };
 
-    const RefPtr<Timer>& job = timers_.front();
-
-    if (job->when > now())
-      break;
-
+  while (RefPtr<Timer> job = nextTimer()) {
+    TRACE("collect next timer");
     result->push_back([job] { job->fire(job->action); });
     timers_.pop_front();
   }
