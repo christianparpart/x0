@@ -30,43 +30,22 @@ HttpClient::HttpClient(Executor* executor,
       responseBody_() {
 
   if (endpoint_) {
-    transport_.reset(new Http1Connection(this, endpoint_.get(), executor_));
+    // is not being freed here explicitely, as the endpoint will own that
+    transport_ = new Http1Connection(this, endpoint_.get(), executor_);
   }
 }
 
 HttpClient::~HttpClient() {
-  // FIXME: ownership of transport
-  transport_.release();
 }
 
 void HttpClient::send(HttpRequestInfo&& requestInfo,
-                      CompletionHandler ch) {
-  transport_->send(std::move(requestInfo), ch);
+                      const std::string& requestBody) {
+  transport_->send(std::move(requestInfo), nullptr);
+  transport_->send(requestBody, nullptr);
 }
 
-void HttpClient::send(HttpRequestInfo&& requestInfo,
-                      const std::string& requestBody,
-                      CompletionHandler ch) {
-  transport_->send(std::move(requestInfo), requestBody, ch);
-}
-
-void HttpClient::send(const BufferRef& requestBodyChunk, CompletionHandler ch) {
-  transport_->send(requestBodyChunk, ch);
-}
-
-void HttpClient::send(Buffer&& requestBodyChunk, CompletionHandler ch) {
-  transport_->send(std::move(requestBodyChunk), ch);
-}
-
-void HttpClient::send(FileRef&& requestBodyChunk, CompletionHandler ch) {
-  transport_->send(std::move(requestBodyChunk), ch);
-}
-
-void HttpClient::completed() {
+Future<HttpClient*> HttpClient::completed() {
   transport_->completed();
-}
-
-Future<HttpClient*> HttpClient::waitForResponse() {
   return promise_.future();
 }
 

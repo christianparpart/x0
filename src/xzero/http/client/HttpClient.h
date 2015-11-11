@@ -46,19 +46,11 @@ class HttpClient : public HttpListener {
   HttpClient(Executor* executor, RefPtr<EndPoint> endpoint);
   ~HttpClient();
 
-  void send(HttpRequestInfo&& requestInfo,
-            CompletionHandler ch = nullptr);
-  void send(HttpRequestInfo&& requestInfo,
-            const std::string& requestBody,
-            CompletionHandler ch = nullptr);
-  void send(const BufferRef& requestBodyChunk, CompletionHandler ch = nullptr);
-  void send(Buffer&& requestBodyChunk, CompletionHandler ch = nullptr);
-  void send(FileRef&& requestBodyChunk, CompletionHandler ch = nullptr);
-  void completed();
+  void send(HttpRequestInfo&& requestInfo, const std::string& requestBody);
 
-  Future<HttpClient*> waitForResponse();
-  void streamResponse(HttpListener* responseListener);
+  Future<HttpClient*> completed();
 
+  // response message accessor
   const HttpResponseInfo& responseInfo() const noexcept;
   const Buffer& responseBody() const noexcept;
 
@@ -82,7 +74,7 @@ class HttpClient : public HttpListener {
   Executor* executor_;
 
   RefPtr<EndPoint> endpoint_;
-  UniquePtr<HttpTransport> transport_;
+  HttpTransport* transport_;
 
   HttpResponseInfo responseInfo_;
   Buffer responseBody_;
