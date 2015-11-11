@@ -298,6 +298,11 @@ void Connection::parseFragment() {
           inputOffset_, inputBuffer_.size(), n,
           parser_.state());
     inputOffset_ += n;
+
+    // on a partial read we must make sure that we wait for more input
+    if (parser_.state() != Parser::MESSAGE_BEGIN) {
+      wantFill();
+    }
   } catch (const BadMessage& e) {
     TRACE("$0 parseFragment: BadMessage caught (while in state $1). $2",
           this, to_string(channel_->state()), e.what());
