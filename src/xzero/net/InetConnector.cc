@@ -533,8 +533,8 @@ void InetConnector::onEndPointClosed(EndPoint* endpoint) {
   assert(i != connectedEndPoints_.end());
 
   if (i != connectedEndPoints_.end()) {
-    connectedEndPoints_.erase(i);
     endpoint->connection()->onClose();
+    connectedEndPoints_.erase(i);
   }
 }
 
