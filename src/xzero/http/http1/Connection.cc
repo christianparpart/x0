@@ -294,8 +294,9 @@ void Connection::parseFragment() {
     TRACE("parseFragment: calling parseFragment ($0 into $1)",
           inputOffset_, inputBuffer_.size());
     size_t n = parser_.parseFragment(inputBuffer_.ref(inputOffset_));
-    TRACE("parseFragment: called ($0 into $1) => $2",
-          inputOffset_, inputBuffer_.size(), n);
+    TRACE("parseFragment: called ($0 into $1) => $2 ($3)",
+          inputOffset_, inputBuffer_.size(), n,
+          parser_.state());
     inputOffset_ += n;
   } catch (const BadMessage& e) {
     TRACE("$0 parseFragment: BadMessage caught (while in state $1). $2",
