@@ -79,7 +79,7 @@ if exists("flow_x0")
 	syn keyword flowCoreFunctions listen pathinfo user
 	syn match flowCoreFunctions '\<\(mimetypes\.default\|mimetypes\)\>'
 	syn match flowCoreFunctions '\<plugin\.\(directory\|load\)\>'
-	syn match flowCoreFunctions '\<proxy\.\(reverse\)\>'
+	syn match flowCoreFunctions '\<proxy\.\(pseudonym\)\>'
 	syn match flowCoreFunctions '\<\(workers\)\>'
 	syn match flowCoreFunctions '\<cgi\.\(mapping\|prefix\|exec\|map\)\>'
 	syn match flowCoreFunctions '\<rrd\(\.\(filename\|step\)\)\?\>'
@@ -87,7 +87,7 @@ if exists("flow_x0")
 	syn match flowCoreFunctions '\<error\.\(handler\)\>'
 	syn match flowCoreFunctions '\<req\.\(accept_language\)\>'
 	syn match flowCoreFunctions '\<log\(\.\(err\|warn\|notice\|info\|diag\|debug\)\)\?\>'
-	syn match flowCoreVar '\<sys\.\(env\|pid\|cwd\|now\|now_str\|cpu_count\)\>'
+	syn match flowCoreVar '\<sys\.\(env\|pid\|cwd\|now\|now_str\|cpu_count\|hostname\|domainname\)\>'
 	syn match flowCoreVar '\<req\.\(method\|host\|path\|url\|header\|cookie\|remoteip\|remoteport\|localip\|localport\)\>'
 	syn match flowCoreVar '\<phys\.\(path\|exists\|is_reg\|is_dir\|is_exe\|size\|mtime\|mimetype\)\>'
 	syn match flowCoreVar '\<server\.\(advertise\|tags\)\>'
