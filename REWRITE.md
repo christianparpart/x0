@@ -1,13 +1,8 @@
 ### Migration Tasks
 
-- [ ] access to Scheduler API from within HttpRequest or XzeroContext;
+- [x] access to Scheduler API from within HttpRequest or XzeroContext;
       consider merging `Scheduler` and `Executor`;
       consider using `Scheduler` instead of `Executor` in net and http code;
-- [ ] (flow) tag flow handlers to never return (aka. always handle),
-      thus, enabling the compiler to give a warning on dead code after
-      this handler.
-- [ ] HttpRequest: reuse of HttpRequestInfo
-- [ ] HttpResponse: reuse of HttpResponseInfo
 - [x] migrate DateTime to UnixTime/CivilTime
 - [x] backport PosixScheduler changes from stx
 - [x] make use of MonotonicTimer/Clock
@@ -20,32 +15,37 @@
 - [x] revive `tcp_fin_timeout`
 - [x] revive `tcp_cork`
 - [x] revive `tcp_nodelay`
-- [ ] revive `lingering`
-- [ ] revive `max_connections`
 - [x] pull InputStream/OutputStream API from stx (away from istream/ostream)?
-- [ ] (make thread safe) File::lastModified()
-- [ ] how to convert from UnixTime to CivilTime to get the current
-- [ ] FileRef to be renamed to FileHandle/FileHandle or alike?
 - [x] (flow) String interpolation doesn't allow function calls without ()'s.
       Example: "Welcome on ${sys.hostname}" is not working,
       but the: "Welcome on ${sys.hostname()}" is working.
+- [ ] HttpRequest: reuse of HttpRequestInfo
+- [ ] HttpResponse: reuse of HttpResponseInfo
+- [ ] revive `lingering`
+- [ ] revive `max_connections`
+- [ ] (make thread safe) File::lastModified()
+- [ ] how to convert from UnixTime to CivilTime to get the current
+- [ ] FileRef to be renamed to FileHandle/FileHandle or alike?
 - [ ] (flow) `var x = call1 + '.' + call2;` not working. fix me.
 - [ ] revive HTTP client side abort notification API
 - [ ] console logger to also log timestamps, can be disabled (enabled by default)
+- [ ] (flow) tag flow handlers to never return (aka. always handle),
+      thus, enabling the compiler to give a warning on dead code after
+      this handler.
 
 ### Proxy Plugin
 
 - [x] HttpClient: basic HTTP client API with generic transport layer (HTTP1, ...)
-- [ ] HttpClient: support FastCGI
-- [ ] HttpClient: support UNIX domain socket alongside with TCP/IP
-- [ ] flow-api: `proxy.http(ipaddr, port)`
-- [ ] flow-api: `proxy.fcgi(ipaddr, port)`
 - [x] HttpClusterScheduler
 - [x] HttpClusterScheduler::RoundRobin
 - [x] HttpClusterScheduler::Chance
+- [x] flow-api: `proxy.http(ipaddr, port)`
 - [ ] HttpClusterMember, proxies to HttpClient, with constraints (such as capacity)
 - [ ] HttpCluster: basic load balancing to HTTP/1 upstreams
 - [ ] HttpHealthCheck: monitor an HTTP upstream (transport protocol independant)
+- [ ] HttpClient: support FastCGI
+- [ ] flow-api: `proxy.fcgi(ipaddr, port)`
+- [ ] HttpClient: support UNIX domain socket alongside with TCP/IP
 
 ### Feature Stories
 
