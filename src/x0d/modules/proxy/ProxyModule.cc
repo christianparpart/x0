@@ -148,7 +148,8 @@ void ProxyModule::proxyHttpConnected(RefPtr<InetEndPoint> ep, XzeroContext* cx) 
   // TODO: make_shared<client::HttpClient>(scheduler, ep.as<EndPoint>())
   client::HttpClient* cli = new client::HttpClient(executor, ep.as<EndPoint>());
 
-  size_t requestBodySize = 0; // TODO
+  std::string requestBody = ""; // TODO
+  size_t requestBodySize = requestBody.size();
 
   HttpRequestInfo requestInfo(
       HttpVersion::VERSION_1_1,
@@ -157,23 +158,59 @@ void ProxyModule::proxyHttpConnected(RefPtr<InetEndPoint> ep, XzeroContext* cx) 
       requestBodySize,
       request->headers());
 
-  cli->send(std::move(requestInfo));
-  cli->completed();
+  cli->send(std::move(requestInfo), requestBody);
 
-  Future<client::HttpClient*> f = cli->waitForResponse();
+  Future<client::HttpClient*> f = cli->completed();
+
   f.onSuccess(std::bind(&ProxyModule::proxyHttpRespond, this, cli, cx));
   f.onFailure(std::bind(&ProxyModule::proxyHttpRespondFailure, this,
                         std::placeholders::_1, cli, cx));
 }
 
+static bool isConnectionHeader(const std::string& name) {
+  static const std::vector<std::string> connectionHeaderFields = {
+    "Connection",
+    "Content-Length",
+    "Close",
+    "Keep-Alive",
+    "TE",
+    "Trailer",
+    "Transfer-Encoding",
+    "Upgrade",
+    "Via",
+  };
+
+  for (const auto& test: connectionHeaderFields)
+    if (iequals(name, test))
+      return true;
+
+  return false;
+}
+
 void ProxyModule::proxyHttpRespond(client::HttpClient* cli,
                                    XzeroContext* cx) {
+  for (const HeaderField& field: cli->responseInfo().headers()) {
+    if (!isConnectionHeader(field.name())) {
+      cx->response()->headers().push_back(field.name(), field.value());
+    }
+  }
+  addVia(cx);
   cx->response()->setStatus(cli->responseInfo().status());
   cx->response()->setReason(cli->responseInfo().reason());
-  cx->response()->headers().push_back(cli->responseInfo().headers());
   cx->response()->setContentLength(cli->responseBody().size());
   cx->response()->output()->write(cli->responseBody());
   cx->response()->completed();
+}
+
+void ProxyModule::addVia(XzeroContext* cx) {
+  char buf[128];
+  snprintf(buf, sizeof(buf), "%s %s",
+           StringUtil::toString(cx->request()->version()).c_str(),
+           pseudonym_.c_str());
+
+  // RFC 7230, section 5.7.1: makes it clear, that we put ourselfs into the
+  // front of the Via-list.
+  cx->response()->headers().prepend("Via", buf);
 }
 
 void ProxyModule::proxyHttpRespondFailure(const Status& status,
