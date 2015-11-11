@@ -33,6 +33,14 @@ class XZERO_HTTP_API HeaderField {
   const std::string& value() const { return value_; }
   void setValue(const std::string& value) { value_ = value; }
 
+  void prependValue(const std::string& value, const std::string& delim = "") {
+    if (value_.empty()) {
+      value_ = value;
+    } else {
+      value_ = value + delim + value_;
+    }
+  }
+
   void appendValue(const std::string& value, const std::string& delim = "") {
     if (value_.empty()) {
       value_ = value;

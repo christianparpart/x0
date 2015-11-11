@@ -45,6 +45,19 @@ void HeaderFieldList::overwrite(const std::string& name,
   push_back(name, value);
 }
 
+void HeaderFieldList::prepend(const std::string& name,
+                              const std::string& value,
+                              const std::string& delim) {
+  for (HeaderField& field : entries_) {
+    if (iequals(field.name(), name)) {
+      field.prependValue(value, delim);
+      return;
+    }
+  }
+
+  push_back(name, value);
+}
+
 void HeaderFieldList::append(const std::string& name,
                              const std::string& value,
                              const std::string& delim) {

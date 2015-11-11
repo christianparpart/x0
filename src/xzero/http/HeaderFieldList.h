@@ -32,6 +32,8 @@ class XZERO_HTTP_API HeaderFieldList {
   void push_back(HeaderField&& field);
   void push_back(const std::string& name, const std::string& value);
   void overwrite(const std::string& name, const std::string& value);
+  void prepend(const std::string& name, const std::string& value,
+               const std::string& delim = "");
   void append(const std::string& name, const std::string& value,
               const std::string& delim = "");
   void remove(const std::string& name);
