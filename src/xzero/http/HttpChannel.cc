@@ -218,7 +218,9 @@ HttpResponseInfo HttpChannel::commitInline() {
   if (!info.headers().contains("Server"))
     info.headers().push_back("Server", "xzero/" XZERO_BASE_VERSION);
 
-  if (dateGenerator_ && static_cast<int>(response_->status()) >= 200) {
+  if (!info.headers().contains("Date") &&
+      dateGenerator_ &&
+      static_cast<int>(response_->status()) >= 200) {
     Buffer date;
     dateGenerator_->fill(&date);
     info.headers().push_back("Date", date.str());
