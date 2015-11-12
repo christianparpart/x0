@@ -150,12 +150,16 @@ Buffer formatLog(XzeroContext* cx, const BufferRef& format) { // {{{
         result.push_back(static_cast<int>(response->status()));
         ++i;
         break;
-      case 'v':  // request vhost
-        result.push_back(request->headers().get("Host"));
+      case 'h':  // remote addr
+        result.push_back(cx->remoteIP().c_str());
         ++i;
         break;
       case 'I':  // received bytes (transport level)
         result.push_back(std::to_string(cx->bytesReceived()));
+        ++i;
+        break;
+      case 'l':  // identd user name
+        result.push_back("-");
         ++i;
         break;
       case 'm':  // request method
@@ -174,16 +178,11 @@ Buffer formatLog(XzeroContext* cx, const BufferRef& format) { // {{{
         result.push_back(request->path());
         ++i;
         break;
-      case 'q':  // query args
-        result.push_back(request->query());
-        ++i;
-        break;
-      case 'l':  // identd user name
-        result.push_back("-");
-        ++i;
-        break;
-      case 'h':  // remote addr
-        result.push_back(cx->remoteIP().c_str());
+      case 'q':  // query string with leading '?' or empty if none
+        if (request->query().empty()) {
+          result.push_back('?');
+          result.push_back(request->query());
+        }
         ++i;
         break;
       case 'r':  // request line
@@ -216,13 +215,21 @@ Buffer formatLog(XzeroContext* cx, const BufferRef& format) { // {{{
         ++i;
         break;
       }
-      case 'u':  // username
+      case 'U': // URL path (without query string)
+        result.push_back(request->path());
         ++i;
+        break;
+      case 'u':  // username
         if (!request->username().empty()) {
           result.push_back(request->username());
         } else {
           result.push_back('-');
         }
+        ++i;
+        break;
+      case 'v':  // request vhost
+        result.push_back(request->headers().get("Host"));
+        ++i;
         break;
       default:
         RAISE(RuntimeError, "Unknown format identifier.");

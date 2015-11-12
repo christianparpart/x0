@@ -952,6 +952,10 @@ HTTP request path
 
 HTTP request query
 
+=item B<%q>
+
+HTTP request query with leading B<?> if available, or an empty string.
+
 =item B<%r>
 
 HTTP request line
@@ -968,6 +972,10 @@ from the first byte read to the last byte transmitted.
 =item B<%u>
 
 HTTP authenticated username
+
+=item B<%U>
+
+HTTP request path without query part
 
 =item B<%v>
 
