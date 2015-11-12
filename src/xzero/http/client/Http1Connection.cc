@@ -210,7 +210,7 @@ void Http1Connection::onMessageHeader(const BufferRef& name,
 void Http1Connection::onMessageHeaderEnd() {
   TRACE("onMessageHeaderEnd! expectsBody=$0", expectsBody_);
   channel_->onMessageHeaderEnd();
-  if (expectsBody_ == false) {
+  if (parser_.isContentExpected() && !expectsBody_) {
     onMessageEnd();
   }
 }
