@@ -59,7 +59,7 @@ const Buffer& HttpClient::responseBody() const noexcept {
 
 void HttpClient::onMessageBegin(HttpVersion version, HttpStatus code,
                                 const BufferRef& text) {
-  TRACE("onMessageBegin($0, $1, $2)", version, code, text);
+  TRACE("onMessageBegin($0, $1, $2)", version, (int)code, text);
 
   responseInfo_.setVersion(version);
   responseInfo_.setStatus(code);
