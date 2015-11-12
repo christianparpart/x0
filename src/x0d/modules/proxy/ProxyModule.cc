@@ -141,12 +141,16 @@ bool ProxyModule::proxy_http(XzeroContext* cx, xzero::flow::vm::Params& args) {
   return true;
 }
 
+struct ProxyHttpHandler : CustomData {
+  client::HttpClient client;
+
+  ProxyHttpHandler(Executor* e, RefPtr<EndPoint> ep) :
+    client(e, ep) {}
+};
+
 void ProxyModule::proxyHttpConnected(RefPtr<InetEndPoint> ep, XzeroContext* cx) {
   Executor* executor = cx->response()->executor();
   HttpRequest* request = cx->request();
-
-  // TODO: make_shared<client::HttpClient>(scheduler, ep.as<EndPoint>())
-  client::HttpClient* cli = new client::HttpClient(executor, ep.as<EndPoint>());
 
   std::string requestBody = ""; // TODO
   size_t requestBodySize = requestBody.size();
@@ -158,13 +162,15 @@ void ProxyModule::proxyHttpConnected(RefPtr<InetEndPoint> ep, XzeroContext* cx) 
       requestBodySize,
       request->headers());
 
-  cli->send(std::move(requestInfo), requestBody);
+  ProxyHttpHandler* handler =
+      cx->setCustomData<ProxyHttpHandler>(this, executor, ep.as<EndPoint>());
 
-  Future<client::HttpClient*> f = cli->completed();
+  handler->client.send(std::move(requestInfo), requestBody);
 
-  f.onSuccess(std::bind(&ProxyModule::proxyHttpRespond, this, cli, cx));
+  Future<client::HttpClient*> f = handler->client.completed();
+  f.onSuccess(std::bind(&ProxyModule::proxyHttpRespond, this, cx));
   f.onFailure(std::bind(&ProxyModule::proxyHttpRespondFailure, this,
-                        std::placeholders::_1, cli, cx));
+                        std::placeholders::_1, cx));
 }
 
 static bool isConnectionHeader(const std::string& name) {
@@ -187,8 +193,10 @@ static bool isConnectionHeader(const std::string& name) {
   return false;
 }
 
-void ProxyModule::proxyHttpRespond(client::HttpClient* cli,
-                                   XzeroContext* cx) {
+void ProxyModule::proxyHttpRespond(XzeroContext* cx) {
+  ProxyHttpHandler* handler = cx->customData<ProxyHttpHandler>(this);
+  client::HttpClient* cli = &handler->client;
+
   for (const HeaderField& field: cli->responseInfo().headers()) {
     if (!isConnectionHeader(field.name())) {
       cx->response()->headers().push_back(field.name(), field.value());
@@ -214,7 +222,6 @@ void ProxyModule::addVia(XzeroContext* cx) {
 }
 
 void ProxyModule::proxyHttpRespondFailure(const Status& status,
-                                          client::HttpClient* cli,
                                           XzeroContext* cx) {
   logError("proxy", "Failure detected while receiving upstream response. $0", status);
   cx->response()->setStatus(HttpStatus::BadGateway);

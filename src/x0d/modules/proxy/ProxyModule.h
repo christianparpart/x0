@@ -64,10 +64,8 @@ class ProxyModule : public XzeroModule {
   void proxyHttpConnectFailed(xzero::Status error,
                               const xzero::IPAddress& ipaddr, int port,
                               XzeroContext* cx);
-  void proxyHttpRespond(xzero::http::client::HttpClient* client,
-                        XzeroContext* cx);
+  void proxyHttpRespond(XzeroContext* cx);
   void proxyHttpRespondFailure(const xzero::Status& status,
-                               xzero::http::client::HttpClient* cli,
                                XzeroContext* cx);
 
  private:
