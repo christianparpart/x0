@@ -32,6 +32,7 @@
 - [ ] (flow) tag flow handlers to never return (aka. always handle),
       thus, enabling the compiler to give a warning on dead code after
       this handler.
+- [ ] (bug) timeout problem in InetEndPoint, found via `xurl -> x0d -> local`
 
 ### Proxy Plugin
 
@@ -40,6 +41,8 @@
 - [x] HttpClusterScheduler::RoundRobin
 - [x] HttpClusterScheduler::Chance
 - [x] flow-api: `proxy.http(ipaddr, port)`
+- [ ] webdav.put() implements PUT method
+- [ ] proxy.http: support request body
 - [ ] HttpClusterMember, proxies to HttpClient, with constraints (such as capacity)
 - [ ] HttpCluster: basic load balancing to HTTP/1 upstreams
 - [ ] HttpHealthCheck: monitor an HTTP upstream (transport protocol independant)
