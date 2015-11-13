@@ -49,6 +49,7 @@ set(x0d_SRC
   modules/dirlisting.cc
   modules/empty_gif.cc
   modules/userdir.cc
+  modules/webdav.cc
 
   # HTTP proxy module
   modules/proxy/ProxyModule.cc
