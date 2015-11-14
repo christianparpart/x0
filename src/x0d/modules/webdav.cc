@@ -25,26 +25,44 @@ namespace x0d {
 WebdavModule::WebdavModule(x0d::XzeroDaemon* d)
     : XzeroModule(d, "webdav") {
 
-  // mainHandler("webdav.propfind", &WebdavModule::webdav_propfind);   // 9.1
-  // mainHandler("webdav.proppatch", &WebdavModule::webdav_proppatch); // 9.2
-  mainHandler("webdav.mkcol", &WebdavModule::webdav_mkcol);         // 9.3
-  // mainHandler("webdav.get", &WebdavModule::webdav_get);             // 9.4
-  // mainHandler("webdav.post", &WebdavModule::webdav_post);           // 9.5
-  // mainHandler("webdav.delete", &WebdavModule::webdav_delete);       // 9.6
-  mainHandler("webdav.put", &WebdavModule::webdav_put);             // 9.7
-  // mainHandler("webdav.copy", &WebdavModule::webdav_copy);           // 9.8
-  // mainHandler("webdav.move", &WebdavModule::webdav_move);           // 9.9
-  // mainHandler("webdav.lock", &WebdavModule::webdav_lock);           // 9.10
-  // mainHandler("webdav.unlock", &WebdavModule::webdav_unlock);       // 9.11
+  mainHandler("webdav", &WebdavModule::webdav);
 }
 
-bool WebdavModule::webdav_mkcol(XzeroContext* cx, Params& args) {
+bool WebdavModule::webdav(XzeroContext* cx, Params& args) {
+  switch (cx->request()->method()) {
+    case HttpMethod::PROPFIND:    // 9.1
+      return todo(cx);
+    case HttpMethod::PROPPATCH:   // 9.3
+      return todo(cx);
+    case HttpMethod::MKCOL:       // 9.3
+      return webdav_mkcol(cx);
+    case HttpMethod::GET:         // 9.4
+      return webdav_get(cx);
+    case HttpMethod::POST:        // 9.5
+      return todo(cx);
+    case HttpMethod::DELETE:      // 9.6
+      return todo(cx);
+    case HttpMethod::PUT:         // 9.7
+      return webdav_put(cx);
+    case HttpMethod::COPY:        // 9.8
+      return todo(cx);
+    case HttpMethod::MOVE:        // 9.9
+      return todo(cx);
+    case HttpMethod::LOCK:        // 9.10
+      return todo(cx);
+    case HttpMethod::UNLOCK:      // 9.11
+      return todo(cx);
+    default:
+      return false;
+  }
+}
+
+bool WebdavModule::webdav_mkcol(XzeroContext* cx) {
+  if (!cx->file())
+    return false;
+
   if (!cx->verifyDirectoryDepth())
     return true;
-
-  if (!cx->file()) {
-    return false;
-  }
 
   if (cx->file()->isDirectory()) {
     cx->response()->setStatus(HttpStatus::Ok);
@@ -67,12 +85,18 @@ bool WebdavModule::webdav_mkcol(XzeroContext* cx, Params& args) {
   return true;
 }
 
-bool WebdavModule::webdav_put(XzeroContext* cx, Params& args) {
-  // TODO: pre-allocate full storage in advance
-  // TODO: attempt native file rename/move into target location if possible
-
+bool WebdavModule::webdav_get(XzeroContext* cx) {
   if (!cx->verifyDirectoryDepth())
     return true;
+
+  return daemon().fileHandler().handle(cx->request(),
+                                       cx->response(),
+                                       cx->file());
+}
+
+bool WebdavModule::webdav_put(XzeroContext* cx) {
+  // TODO: pre-allocate full storage in advance
+  // TODO: attempt native file rename/move into target location if possible
 
   if (!cx->file())
     return false;
@@ -83,6 +107,9 @@ bool WebdavModule::webdav_put(XzeroContext* cx, Params& args) {
     cx->response()->completed();
     return true;
   }
+
+  if (!cx->verifyDirectoryDepth())
+    return true;
 
   Buffer content;
   cx->request()->input()->read(&content);
@@ -104,6 +131,12 @@ bool WebdavModule::webdav_put(XzeroContext* cx, Params& args) {
   cx->response()->setStatus(HttpStatus::Created);
   cx->response()->completed();
 
+  return true;
+}
+
+bool WebdavModule::todo(XzeroContext* cx) {
+  cx->response()->setStatus(HttpStatus::NotImplemented);
+  cx->response()->completed();
   return true;
 }
 
