@@ -80,4 +80,26 @@ bool XzeroContext::verifyDirectoryDepth() {
   return true;
 }
 
+void XzeroContext::onContentAvailable() {
+}
+
+void XzeroContext::onAllDataRead() {
+  bool handled = runner_->run();
+  if (!handled) {
+    response_->setStatus(HttpStatus::NotFound);
+    response_->completed();
+  }
+}
+
+void XzeroContext::run() {
+  if (request_->expect100Continue()) {
+    response_->send100Continue(
+        std::bind(&HttpInput::setListener, request_->input(), this));
+  }
+}
+
+void XzeroContext::onError(const std::string& errorMessage) {
+  logError("XzeroContext", "HttpInputListener error. $0", errorMessage);
+}
+
 } // namespace x0d

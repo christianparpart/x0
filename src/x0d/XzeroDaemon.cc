@@ -286,11 +286,7 @@ std::unique_ptr<Scheduler> XzeroDaemon::newScheduler() {
 
 void XzeroDaemon::handleRequest(HttpRequest* request, HttpResponse* response) {
   XzeroContext* cx = new XzeroContext(main_, request, response);
-  bool handled = cx->run();
-  if (!handled) {
-    response->setStatus(HttpStatus::NotFound);
-    response->completed();
-  }
+  cx->run();
 }
 
 void XzeroDaemon::validateConfig() {

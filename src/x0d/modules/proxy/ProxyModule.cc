@@ -148,6 +148,16 @@ struct ProxyHttpHandler : CustomData {
     client(e, ep) {}
 };
 
+static HeaderFieldList filter(const HeaderFieldList& list,
+                              std::function<bool(const HeaderField&)> test) {
+  HeaderFieldList result;
+
+  for (const HeaderField& field: list)
+    if (test(field))
+      result.push_back(field);
+
+  return result;
+}
 void ProxyModule::proxyHttpConnected(RefPtr<InetEndPoint> ep, XzeroContext* cx) {
   Executor* executor = cx->response()->executor();
   HttpRequest* request = cx->request();
@@ -155,12 +165,28 @@ void ProxyModule::proxyHttpConnected(RefPtr<InetEndPoint> ep, XzeroContext* cx) 
   std::string requestBody = ""; // TODO
   size_t requestBodySize = requestBody.size();
 
+  auto skipConnectFields = [](const HeaderField& f) -> bool {
+    static const std::vector<std::string> connectionHeaderFields = {
+      "Connection",
+      "Content-Length",
+      "Trailer",
+      "Transfer-Encoding",
+      "Upgrade",
+    };
+
+    for (const auto& name: connectionHeaderFields)
+      if (iequals(name, f.name()))
+        return false;
+
+    return true;
+  };
+
   HttpRequestInfo requestInfo(
       HttpVersion::VERSION_1_1,
       request->unparsedMethod(),
       request->unparsedUri(),
       requestBodySize,
-      request->headers());
+      filter(request->headers(), skipConnectFields));
 
   ProxyHttpHandler* handler =
       cx->setCustomData<ProxyHttpHandler>(this, executor, ep.as<EndPoint>());

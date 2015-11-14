@@ -12,6 +12,7 @@
 #include <xzero/Duration.h>
 #include <xzero/io/File.h>
 #include <xzero/CustomDataMgr.h>
+#include <xzero/http/HttpInputListener.h>
 #include <xzero-flow/vm/Params.h>
 #include <xzero-flow/vm/Runner.h>
 #include <string>
@@ -36,7 +37,7 @@ namespace x0d {
  * Contains all the necessary references to everything you (may) need
  * during request handling.
  */
-class XzeroContext {
+class XzeroContext : public xzero::http::HttpInputListener {
   CUSTOMDATA_API_INLINE
  public:
   XzeroContext(
@@ -62,7 +63,7 @@ class XzeroContext {
 
   xzero::flow::vm::Runner* runner() const noexcept { return runner_.get(); }
 
-  bool run() const { return runner_->run(); }
+  void run();
 
   const xzero::IPAddress& remoteIP() const;
   int remotePort() const;
@@ -81,6 +82,11 @@ class XzeroContext {
       return false;
     }
   }
+
+  // HttpInputListener API
+  void onContentAvailable() override;
+  void onAllDataRead() override;
+  void onError(const std::string& errorMessage) override;
 
  private:
   std::unique_ptr<xzero::flow::vm::Runner> runner_; //!< Flow VM execution unit.
