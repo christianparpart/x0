@@ -41,6 +41,9 @@
 - [x] HttpClusterScheduler::RoundRobin
 - [x] HttpClusterScheduler::Chance
 - [x] flow-api: `proxy.http(ipaddr, port)`
+- [ ] x0d: 100-continue - pre-read HttpInput buffer
+  - ideally chached into a file if larger than N bytes
+  - support `max_request_body`
 - [ ] webdav.put() implements PUT method
 - [ ] proxy.http: support request body
 - [ ] HttpClusterMember, proxies to HttpClient, with constraints (such as capacity)
@@ -49,6 +52,7 @@
 - [ ] HttpClient: support FastCGI
 - [ ] flow-api: `proxy.fcgi(ipaddr, port)`
 - [ ] HttpClient: support UNIX domain socket alongside with TCP/IP
+- [ ] properly proxy 'Expect: 100-continue' (request/response must be forwarded)
 
 ### Feature Stories
 
