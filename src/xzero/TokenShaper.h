@@ -21,7 +21,7 @@
 #include <algorithm>
 #include <stdint.h>
 #include <cassert>
-#include <pthread.h>
+#include <mutex>
 
 namespace xzero {
 
@@ -248,7 +248,7 @@ class TokenShaper<T>::Node {
   Callback onTimeout_;  //!< Callback, invoked when the token has been queued
                         //and just timed out.
 
-  pthread_spinlock_t lock_;
+  std::mutex lock_;
 };
 // }}}
 // {{{ TokenShaper<T> impl
@@ -330,14 +330,13 @@ TokenShaper<T>::Node::Node(Scheduler* scheduler, const std::string& name,
       queue_(),
       dequeueOffset_(0),
       onTimeout_() {
-  if (parent_) onTimeout_ = parent_->onTimeout_;
-
-  pthread_spin_init(&lock_, PTHREAD_PROCESS_PRIVATE);
+  if (parent_) {
+    onTimeout_ = parent_->onTimeout_;
+  }
 }
 
 template <typename T>
 TokenShaper<T>::Node::~Node() {
-  pthread_spin_destroy(&lock_);
 }
 
 template <typename T>
@@ -579,14 +578,14 @@ size_t TokenShaper<T>::Node::get(size_t n) {
 
   // Attempt to borrow tokens from parent if and only if the resulting node's
   // rate does not exceed its ceiling.
-  pthread_spin_lock(&lock_);
+  {
+    std::lock_guard<std::mutex> _l(lock_);
 
-  if (actualRate() + n <= ceil() && parent_ && parent_->get(n))
-    actualRate_ += n;
-  else
-    n = 0;
-
-  pthread_spin_unlock(&lock_);
+    if (actualRate() + n <= ceil() && parent_ && parent_->get(n))
+      actualRate_ += n;
+    else
+      n = 0;
+  }
 
   // Acquiring %n tokens failed, so return 0 as indication.
   return n;
