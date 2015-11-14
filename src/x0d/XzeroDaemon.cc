@@ -76,6 +76,7 @@ XzeroDaemon::XzeroDaemon()
       setupApi_(),
       mainApi_(),
       optimizationLevel_(1),
+      fileHandler_(),
       http1_(),
       config_(new Config) {
 

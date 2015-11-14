@@ -114,8 +114,7 @@ int CoreModule::cpuCount() {
 }
 
 CoreModule::CoreModule(XzeroDaemon* d)
-    : XzeroModule(d, "core"),
-      fileHandler_() {
+    : XzeroModule(d, "core") {
 
   // setup functions
   setupFunction("listen", &CoreModule::listen)
@@ -723,7 +722,9 @@ bool CoreModule::staticfile(XzeroContext* cx, Params& args) {
   if (!cx->verifyDirectoryDepth())
     return true;
 
-  return fileHandler_.handle(cx->request(), cx->response(), cx->file());
+  return daemon().fileHandler().handle(cx->request(),
+                                       cx->response(),
+                                       cx->file());
 }
 
 bool CoreModule::precompressed(XzeroContext* cx, Params& args) {
@@ -770,7 +771,9 @@ bool CoreModule::precompressed(XzeroContext* cx, Params& args) {
         cx->setFile(pc);
 
         cx->response()->setHeader("Content-Encoding", encoding.id);
-        return fileHandler_.handle(cx->request(), cx->response(), cx->file());
+        return daemon().fileHandler().handle(cx->request(),
+                                             cx->response(),
+                                             cx->file());
       }
     }
   }

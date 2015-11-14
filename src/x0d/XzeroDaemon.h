@@ -19,6 +19,7 @@
 #include <xzero/net/InetConnector.h>
 #include <xzero/executor/ThreadedExecutor.h>
 #include <xzero/executor/NativeScheduler.h>
+#include <xzero/http/HttpFileHandler.h>
 #include <xzero/http/http1/ConnectionFactory.h>
 #include <xzero-flow/AST.h>
 #include <xzero-flow/ir/IRProgram.h>
@@ -147,6 +148,7 @@ class XzeroDaemon : public xzero::flow::vm::Runtime {
 
   xzero::MimeTypes& mimetypes() noexcept { return mimetypes_; }
   xzero::LocalFileRepository& vfs() noexcept { return vfs_; }
+  xzero::http::HttpFileHandler& fileHandler() noexcept { return fileHandler_; }
 
   template<typename T>
   T* loadModule();
@@ -181,6 +183,7 @@ class XzeroDaemon : public xzero::flow::vm::Runtime {
   int optimizationLevel_;
 
   // HTTP
+  xzero::http::HttpFileHandler fileHandler_;
   std::shared_ptr<xzero::http::http1::ConnectionFactory> http1_;
 
   // setup phase

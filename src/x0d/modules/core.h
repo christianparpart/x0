@@ -11,7 +11,6 @@
 #include <xzero/MimeTypes.h>
 #include <xzero/logging.h>
 #include <xzero/io/LocalFileRepository.h>
-#include <xzero/http/HttpFileHandler.h>
 #include <xzero-flow/AST.h>
 #include <xzero-flow/ir/Instr.h>
 #include <xzero-flow/ir/BasicBlock.h>
@@ -145,9 +144,6 @@ class CoreModule : public XzeroModule {
   void regex_group(XzeroContext* cx, Params& args);
   void req_accept_language(XzeroContext* cx, Params& args);
   bool verify_req_accept_language(xzero::flow::Instr* call);
-
- private:
-  xzero::http::HttpFileHandler fileHandler_;
 };
 
 } // namespace x0d
