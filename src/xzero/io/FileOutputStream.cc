@@ -18,7 +18,7 @@
 namespace xzero {
 
 FileOutputStream::FileOutputStream(const std::string& path)
-    : handle_(::open(path.c_str(), O_WRONLY | O_CREAT)),
+    : handle_(::open(path.c_str(), O_WRONLY | O_CREAT, 0666)),
       closeOnDestroy_(true) {
   if (handle_ < 0) {
     RAISE_ERRNO(errno);
