@@ -297,6 +297,21 @@ void HttpChannel::onMessageHeaderEnd() {
 }
 
 void HttpChannel::handleRequest() {
+  if (request_->headers().contains("Content-Length")) {
+    size_t n = std::stoi(request_->headers().get("Content-Length"));
+
+    if (n > maxRequestBodyLength_) {
+      if (request_->expect100Continue()) {
+        request_->setExpect100Continue(false);
+        response_->setStatus(HttpStatus::ExpectationFailed);
+      } else {
+        response_->setStatus(HttpStatus::PayloadTooLarge);
+      }
+      response_->completed();
+      return;
+    }
+  }
+
   try {
     handler_(request(), response());
   } catch (std::exception& e) {
