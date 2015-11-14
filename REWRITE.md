@@ -19,6 +19,7 @@
 - [x] (flow) String interpolation doesn't allow function calls without ()'s.
       Example: "Welcome on ${sys.hostname}" is not working,
       but the: "Welcome on ${sys.hostname()}" is working.
+- [x] revive `max_request_body`
 - [ ] HttpRequest: reuse of HttpRequestInfo
 - [ ] HttpResponse: reuse of HttpResponseInfo
 - [ ] revive `lingering`
@@ -41,9 +42,8 @@
 - [x] HttpClusterScheduler::RoundRobin
 - [x] HttpClusterScheduler::Chance
 - [x] flow-api: `proxy.http(ipaddr, port)`
-- [ ] x0d: 100-continue - pre-read HttpInput buffer
-  - ideally chached into a file if larger than N bytes
-  - support `max_request_body`
+- [x] x0d: 100-continue - pre-read HttpInput
+- [ ] HttpInput: offload into local tmpfile if payload > N bytes
 - [ ] webdav.put() implements PUT method
 - [ ] proxy.http: support request body
 - [ ] HttpClusterMember, proxies to HttpClient, with constraints (such as capacity)
