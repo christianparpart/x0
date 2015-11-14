@@ -7,7 +7,8 @@ class WebdavModule : public XzeroModule {
   explicit WebdavModule(XzeroDaemon* d);
 
   // main handlers
-  bool put(XzeroContext* cx, Params& args);
+  bool webdav_mkcol(XzeroContext* cx, Params& args);
+  bool webdav_put(XzeroContext* cx, Params& args);
 };
 
 } // namespace x0d
