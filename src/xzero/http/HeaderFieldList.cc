@@ -30,6 +30,10 @@ void HeaderFieldList::push_back(HeaderFieldList&& list) {
     push_back(std::move(field));
 }
 
+void HeaderFieldList::push_back(const HeaderField& field) {
+  entries_.emplace_back(field);
+}
+
 void HeaderFieldList::push_back(HeaderField&& field) {
   entries_.emplace_back(std::move(field));
 }
