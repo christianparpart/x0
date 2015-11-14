@@ -105,16 +105,13 @@ void Connection::abort() {
 void Connection::completed() {
   TRACE("$0 completed", this);
 
-  if (onComplete_)
-    RAISE(IllegalStateError, "there is still another completion hook.");
-
   if (channel_->request()->method() != HttpMethod::HEAD &&
       !generator_.isChunked() &&
       generator_.pendingContentLength() > 0)
     RAISE(IllegalStateError, "Invalid State. Response not fully written but completed() invoked.");
 
-  onComplete_ = std::bind(&Connection::onResponseComplete, this,
-                          std::placeholders::_1);
+  setCompleter(std::bind(&Connection::onResponseComplete, this,
+                         std::placeholders::_1));
 
   generator_.generateTrailer(channel_->response()->trailers());
   wantFlush();
@@ -153,10 +150,9 @@ void Connection::onResponseComplete(bool succeed) {
 }
 
 void Connection::send(HttpResponseInfo&& responseInfo,
-                          const BufferRef& chunk,
-                          CompletionHandler onComplete) {
-  if (onComplete && onComplete_)
-    RAISE(IllegalStateError, "There is still another completion hook.");
+                      const BufferRef& chunk,
+                      CompletionHandler onComplete) {
+  setCompleter(onComplete, responseInfo.status());
 
   TRACE("$0 send(BufferRef, status=$1, persistent=$2, chunkSize=$2)",
         this, responseInfo.status(), channel_->isPersistent() ? "yes" : "no",
@@ -168,15 +164,13 @@ void Connection::send(HttpResponseInfo&& responseInfo,
     endpoint()->setCorking(true);
 
   generator_.generateResponse(responseInfo, chunk);
-  onComplete_ = std::move(onComplete);
   wantFlush();
 }
 
 void Connection::send(HttpResponseInfo&& responseInfo,
-                          Buffer&& chunk,
-                          CompletionHandler onComplete) {
-  if (onComplete && onComplete_)
-    RAISE(IllegalStateError, "There is still another completion hook.");
+                      Buffer&& chunk,
+                      CompletionHandler onComplete) {
+  setCompleter(onComplete, responseInfo.status());
 
   TRACE("$0 send(Buffer, status=$1, persistent=$2, chunkSize=$3)",
         this, responseInfo.status(), channel_->isPersistent() ? "yes" : "no",
@@ -189,15 +183,13 @@ void Connection::send(HttpResponseInfo&& responseInfo,
     endpoint()->setCorking(true);
 
   generator_.generateResponse(responseInfo, std::move(chunk));
-  onComplete_ = std::move(onComplete);
   wantFlush();
 }
 
 void Connection::send(HttpResponseInfo&& responseInfo,
-                          FileRef&& chunk,
-                          CompletionHandler onComplete) {
-  if (onComplete && onComplete_)
-    RAISE(IllegalStateError, "There is still another completion hook.");
+                      FileRef&& chunk,
+                      CompletionHandler onComplete) {
+  setCompleter(onComplete, responseInfo.status());
 
   TRACE("$0 send(FileRef, status=$1, persistent=$2, fileRef.fd=$3, chunkSize=$4)",
         this, responseInfo.status(), channel_->isPersistent() ? "yes" : "no",
@@ -210,8 +202,40 @@ void Connection::send(HttpResponseInfo&& responseInfo,
     endpoint()->setCorking(true);
 
   generator_.generateResponse(responseInfo, std::move(chunk));
-  onComplete_ = std::move(onComplete);
   wantFlush();
+}
+
+void Connection::setCompleter(CompletionHandler cb) {
+  if (cb && onComplete_)
+    RAISE(IllegalStateError, "There is still another completion hook.");
+
+  onComplete_ = std::move(cb);
+}
+
+void Connection::setCompleter(CompletionHandler onComplete, HttpStatus status) {
+  // make sure, that on ContinueRequest we do actually continue with
+  // the prior request
+
+  if (status != HttpStatus::ContinueRequest) {
+    setCompleter(onComplete);
+  } else {
+    setCompleter([this, onComplete](bool s) {
+      logNotice("http1.Connection", "[ContinueRequest] onComplete!");
+      wantFill();
+      if (onComplete) {
+        onComplete(s);
+      }
+    });
+  }
+}
+
+void Connection::invokeCompleter(bool success) {
+  if (onComplete_) {
+    TRACE("$0 invoking completion callback", this);
+    auto callback = std::move(onComplete_);
+    onComplete_ = nullptr;
+    callback(success);
+  }
 }
 
 void Connection::patchResponseInfo(HttpResponseInfo& responseInfo) {
@@ -235,38 +259,24 @@ void Connection::patchResponseInfo(HttpResponseInfo& responseInfo) {
 }
 
 void Connection::send(Buffer&& chunk, CompletionHandler onComplete) {
-  if (onComplete && onComplete_)
-    RAISE(IllegalStateError, "There is still another completion hook.");
-
+  setCompleter(onComplete);
   TRACE("$0 send(Buffer, chunkSize=$1)", this, chunk.size());
-
   generator_.generateBody(std::move(chunk));
-  onComplete_ = std::move(onComplete);
-
   wantFlush();
 }
 
 void Connection::send(const BufferRef& chunk,
                           CompletionHandler onComplete) {
-  if (onComplete && onComplete_)
-    RAISE(IllegalStateError, "There is still another completion hook.");
-
+  setCompleter(onComplete);
   TRACE("$0 send(BufferRef, chunkSize=$1)", this, chunk.size());
-
   generator_.generateBody(chunk);
-  onComplete_ = std::move(onComplete);
-
   wantFlush();
 }
 
 void Connection::send(FileRef&& chunk, CompletionHandler onComplete) {
-  if (onComplete && onComplete_)
-    RAISE(IllegalStateError, "There is still another completion hook.");
-
+  setCompleter(onComplete);
   TRACE("$0 send(FileRef, chunkSize=$1)", this, chunk.size());
-
   generator_.generateBody(std::move(chunk));
-  onComplete_ = std::move(onComplete);
   wantFlush();
 }
 
@@ -331,12 +341,7 @@ void Connection::onFlushable() {
           (onComplete_ ? "onComplete cb set" : "onComplete cb not set"));
     channel_->setState(HttpChannelState::HANDLING);
 
-    if (onComplete_) {
-      TRACE("$0 onFlushable: invoking completion callback", this);
-      auto callback = std::move(onComplete_);
-      onComplete_ = nullptr;
-      callback(true);
-    }
+    invokeCompleter(true);
   } else {
     // continue flushing as we still have data pending
     wantFlush();
@@ -350,16 +355,7 @@ void Connection::onInterestFailure(const std::exception& error) {
   // TODO: improve logging here, as this eats our exception here.
   // e.g. via (factory or connector)->error(error);
   logError("Connection", error, "Unhandled exception caught in I/O loop");
-
-  auto callback = std::move(onComplete_);
-  onComplete_ = nullptr;
-
-  // notify the callback that we failed doing something wrt. I/O.
-  if (callback) {
-    TRACE("$0 onInterestFailure: invoking onComplete(false)", this);
-    callback(false);
-  }
-
+  invokeCompleter(false);
   abort();
 }
 

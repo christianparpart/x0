@@ -62,6 +62,10 @@ class XZERO_HTTP_API Connection : public ::xzero::Connection,
   void send(FileRef&& chunk, CompletionHandler onComplete) override;
 
  private:
+  void setCompleter(CompletionHandler cb);
+  void setCompleter(CompletionHandler cb, HttpStatus status);
+  void invokeCompleter(bool success);
+
   void patchResponseInfo(HttpResponseInfo& info);
   void parseFragment();
   void onResponseComplete(bool succeed);
