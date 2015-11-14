@@ -7,6 +7,8 @@
 
 #include <xzero/http/HttpMethod.h>
 #include <xzero/StringUtil.h>
+#include <unordered_map>
+#include <string>
 
 namespace xzero {
 
@@ -30,32 +32,38 @@ std::string to_string(HttpMethod value) {
     case HttpMethod::DELETE: SRET("DELETE");
     case HttpMethod::TRACE: SRET("TRACE");
     case HttpMethod::CONNECT: SRET("CONNECT");
-    default: SRET("UNDEFINED_METHOD");
+    case HttpMethod::PROPFIND: SRET("PROPFIND");
+    case HttpMethod::PROPPATCH: SRET("PROPPATCH");
+    case HttpMethod::MKCOL: SRET("MKCOL");
+    case HttpMethod::COPY: SRET("COPY");
+    case HttpMethod::MOVE: SRET("MOVE");
+    case HttpMethod::LOCK: SRET("LOCK");
+    case HttpMethod::UNLOCK: SRET("UNLOCK");
   }
+  SRET("UNDEFINED_METHOD");
 }
 
-#define SCMP(lhs, rhs, result) \
-  (lhs) == (rhs) ? (result) : (HttpMethod::UNKNOWN_METHOD)
-
 HttpMethod to_method(const std::string& value) {
-  if (value.empty())
-    return HttpMethod::UNKNOWN_METHOD;
+  static const std::unordered_map<std::string, HttpMethod> map = {
+    { "CONNECT", HttpMethod::CONNECT},
+    { "COPY", HttpMethod::COPY },
+    { "DELETE", HttpMethod::DELETE },
+    { "GET", HttpMethod::GET },
+    { "HEAD", HttpMethod::HEAD },
+    { "MKCOL", HttpMethod::MKCOL },
+    { "MOVE", HttpMethod::MOVE },
+    { "OPTIONS", HttpMethod::OPTIONS},
+    { "POST", HttpMethod::POST},
+    { "PROPFIND", HttpMethod::PROPFIND },
+    { "PROPPATCH", HttpMethod::PROPPATCH },
+    { "PUT", HttpMethod::PUT },
+    { "TRACE", HttpMethod::TRACE },
+  };
 
-  switch (value[0]) {
-    case 'O': return SCMP(value, "OPTIONS", HttpMethod::OPTIONS);
-    case 'G': return SCMP(value, "GET", HttpMethod::GET);
-    case 'H': return SCMP(value, "HEAD", HttpMethod::HEAD);
-    case 'D': return SCMP(value, "DELETE", HttpMethod::DELETE);
-    case 'T': return SCMP(value, "TRACE", HttpMethod::TRACE);
-    case 'C': return SCMP(value, "CONNECT", HttpMethod::CONNECT);
-    case 'P': return value == "POST"
-                ? HttpMethod::POST
-                : value == "PUT"
-                  ? HttpMethod::PUT
-                  : HttpMethod::UNKNOWN_METHOD;
-    default:
-      return HttpMethod::UNKNOWN_METHOD;
-  }
+  const auto i = map.find(value);
+  if (i != map.end())
+    return i->second;
+  return HttpMethod::UNKNOWN_METHOD;
 }
 
 } // namespace http

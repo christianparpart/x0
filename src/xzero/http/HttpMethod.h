@@ -23,6 +23,14 @@ enum class HttpMethod {
   DELETE,
   TRACE,
   CONNECT,
+
+  PROPFIND,
+  PROPPATCH,
+  MKCOL,
+  COPY,
+  MOVE,
+  LOCK,
+  UNLOCK,
 };
 
 XZERO_HTTP_API std::string to_string(HttpMethod value);
