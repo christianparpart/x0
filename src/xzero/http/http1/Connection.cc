@@ -220,7 +220,6 @@ void Connection::setCompleter(CompletionHandler onComplete, HttpStatus status) {
     setCompleter(onComplete);
   } else {
     setCompleter([this, onComplete](bool s) {
-      logNotice("http1.Connection", "[ContinueRequest] onComplete!");
       wantFill();
       if (onComplete) {
         onComplete(s);
