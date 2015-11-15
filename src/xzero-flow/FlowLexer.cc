@@ -475,6 +475,7 @@ FlowToken FlowLexer::nextToken() {
       ++interpolationDepth_;
       return token_ = parseInterpolationFragment(true);
     case '0':
+      return parseNumber(8);
     case '1':
     case '2':
     case '3':
@@ -484,7 +485,7 @@ FlowToken FlowLexer::nextToken() {
     case '7':
     case '8':
     case '9':
-      return parseNumber();
+      return parseNumber(10);
     default:
       if (std::isalpha(currentChar()) || currentChar() == '_')
         return token_ = parseIdent();
@@ -588,12 +589,12 @@ FlowToken FlowLexer::parseInterpolationFragment(bool start) {
   }
 }
 
-FlowToken FlowLexer::parseNumber() {
+FlowToken FlowLexer::parseNumber(int base) {
   stringValue_.clear();
   numberValue_ = 0;
 
-  while (std::isdigit(currentChar())) {
-    numberValue_ *= 10;
+  while (currentChar() >= '0' && (currentChar() - '0') < base) {
+    numberValue_ *= base;
     numberValue_ += currentChar() - '0';
     stringValue_ += static_cast<char>(currentChar());
     nextChar();
@@ -603,9 +604,11 @@ FlowToken FlowLexer::parseNumber() {
   if (stringValue_.size() <= 4 && currentChar() == ':')
     return continueParseIPv6(true);
 
-  if (stringValue_.size() < 4 && isHexChar()) return continueParseIPv6(false);
+  if (stringValue_.size() < 4 && isHexChar())
+    return continueParseIPv6(false);
 
-  if (currentChar() != '.') return token_ = FlowToken::Number;
+  if (currentChar() != '.')
+    return token_ = FlowToken::Number;
 
   // 2nd IP component
   stringValue_ += '.';

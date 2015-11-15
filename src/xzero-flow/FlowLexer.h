@@ -76,7 +76,7 @@ class XZERO_FLOW_API FlowLexer {
   bool consumeSpace();  // potentially enters new or leaves current context
   void processCommand(const std::string& line);
 
-  FlowToken parseNumber();
+  FlowToken parseNumber(int base);
   FlowToken parseString(bool raw);
   FlowToken parseString(char delimiter, FlowToken result);
   FlowToken parseInterpolationFragment(bool start);
