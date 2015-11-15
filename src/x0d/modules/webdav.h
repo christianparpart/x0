@@ -12,7 +12,7 @@ class WebdavModule : public XzeroModule {
  private:
   bool webdav_mkcol(XzeroContext* cx);
   bool webdav_get(XzeroContext* cx);
-  bool webdav_put(XzeroContext* cx);
+  bool webdav_put(XzeroContext* cx, Params& args);
   bool todo(XzeroContext* cx);
 };
 

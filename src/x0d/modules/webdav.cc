@@ -25,7 +25,8 @@ namespace x0d {
 WebdavModule::WebdavModule(x0d::XzeroDaemon* d)
     : XzeroModule(d, "webdav") {
 
-  mainHandler("webdav", &WebdavModule::webdav);
+  mainHandler("webdav", &WebdavModule::webdav)
+      .param<int>("access", 0600);
 }
 
 bool WebdavModule::webdav(XzeroContext* cx, Params& args) {
@@ -43,7 +44,7 @@ bool WebdavModule::webdav(XzeroContext* cx, Params& args) {
     case HttpMethod::DELETE:      // 9.6
       return todo(cx);
     case HttpMethod::PUT:         // 9.7
-      return webdav_put(cx);
+      return webdav_put(cx, args);
     case HttpMethod::COPY:        // 9.8
       return todo(cx);
     case HttpMethod::MOVE:        // 9.9
@@ -94,7 +95,7 @@ bool WebdavModule::webdav_get(XzeroContext* cx) {
                                        cx->file());
 }
 
-bool WebdavModule::webdav_put(XzeroContext* cx) {
+bool WebdavModule::webdav_put(XzeroContext* cx, Params& args) {
   // TODO: pre-allocate full storage in advance
   // TODO: attempt native file rename/move into target location if possible
 
@@ -117,7 +118,8 @@ bool WebdavModule::webdav_put(XzeroContext* cx) {
   logDebug("webdav", "put filename: $0", cx->file()->path());
 
   //bool didNotExistBefore = !cx->file()->exists();
-  std::unique_ptr<OutputStream> output = cx->file()->createOutputChannel();
+  int mode = args.getInt(1);
+  std::unique_ptr<OutputStream> output = cx->file()->createOutputChannel(mode);
 
   // if (!output->tryAllocate(content.size())) {
   //   if (didNotExistBefore)
