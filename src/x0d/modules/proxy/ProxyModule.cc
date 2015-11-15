@@ -67,7 +67,7 @@ ProxyModule::ProxyModule(XzeroDaemon* d)
 
   mainHandler("proxy.http", &ProxyModule::proxy_http)
       .verifier(&ProxyModule::proxy_roadwarrior_verify, this)
-      .param<IPAddress>("address", IPAddress("0.0.0.0"))
+      .param<IPAddress>("address")
       .param<int>("port")
       .param<FlowString>("on_client_abort", "close");
 
