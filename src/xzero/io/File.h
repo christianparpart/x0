@@ -84,8 +84,12 @@ class XZERO_BASE_API File {
   /** Creates an input stream for given file. */
   virtual std::unique_ptr<InputStream> createInputChannel() = 0;
 
-  /** Creates an output stream for given file. */
-  virtual std::unique_ptr<OutputStream> createOutputChannel() = 0;
+  /**
+   * Creates an output stream for given file.
+   *
+   * @param mode create mode.
+   */
+  virtual std::unique_ptr<OutputStream> createOutputChannel(int mode = 0666) = 0;
 
   /** Creates a memory-map for a given file.
    *

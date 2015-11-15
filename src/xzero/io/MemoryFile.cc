@@ -158,9 +158,9 @@ std::unique_ptr<InputStream> MemoryFile::createInputChannel() {
 #endif
 }
 
-std::unique_ptr<OutputStream> MemoryFile::createOutputChannel() {
+std::unique_ptr<OutputStream> MemoryFile::createOutputChannel(int mode) {
 #if defined(XZERO_MEMORYFILE_USE_TMPFILE)
-  return std::unique_ptr<OutputStream>(new FileOutputStream(fspath_));
+  return std::unique_ptr<OutputStream>(new FileOutputStream(fspath_, mode));
 #else
   RAISE(RuntimeError, "Not implemented.");
 #endif

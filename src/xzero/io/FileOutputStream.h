@@ -14,7 +14,7 @@ namespace xzero {
 
 class FileOutputStream : public OutputStream {
  public:
-  FileOutputStream(const std::string& path);
+  FileOutputStream(const std::string& path, int mode);
 
   FileOutputStream(int handle, bool closeOnDestroy)
       : handle_(handle), closeOnDestroy_(closeOnDestroy) {}
