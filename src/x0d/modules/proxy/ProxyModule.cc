@@ -6,6 +6,12 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 
+/*
+ * Noteworthy
+ *
+ * - does not forward Expect request header to upstream
+ */
+
 #include "ProxyModule.h"
 #include "XzeroContext.h"
 #include <xzero/http/client/HttpCluster.h>
@@ -158,17 +164,20 @@ static HeaderFieldList filter(const HeaderFieldList& list,
 
   return result;
 }
+
 void ProxyModule::proxyHttpConnected(RefPtr<InetEndPoint> ep, XzeroContext* cx) {
   Executor* executor = cx->response()->executor();
   HttpRequest* request = cx->request();
 
-  std::string requestBody = ""; // TODO
+  Buffer requestBody;
+  request->input()->read(&requestBody);
   size_t requestBodySize = requestBody.size();
 
   auto skipConnectFields = [](const HeaderField& f) -> bool {
     static const std::vector<std::string> connectionHeaderFields = {
       "Connection",
       "Content-Length",
+      "Expect",
       "Trailer",
       "Transfer-Encoding",
       "Upgrade",
