@@ -40,7 +40,7 @@ TEST(HttpClient, test_http1_default) {
   HttpClient cli(&sched, ep.as<EndPoint>());
 
   HttpRequestInfo req(HttpVersion::VERSION_1_1, "GET", "/", 0, {});
-  std::string body;
+  BufferRef body;
 
   cli.send(std::move(req), body);
 

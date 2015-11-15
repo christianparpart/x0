@@ -39,7 +39,7 @@ HttpClient::~HttpClient() {
 }
 
 void HttpClient::send(HttpRequestInfo&& requestInfo,
-                      const std::string& requestBody) {
+                      const BufferRef& requestBody) {
   transport_->send(std::move(requestInfo), nullptr);
   transport_->send(requestBody, nullptr);
 }
