@@ -92,19 +92,21 @@ Option<std::pair<IPAddress, int>> InetEndPoint::remoteAddress() const {
     case AF_INET6: {
       sockaddr_in6 saddr;
       socklen_t slen = sizeof(saddr);
-      if (getpeername(handle_, (sockaddr*)&saddr, &slen) == 0) {
-        result.first = IPAddress(&saddr);
-        result.second = ntohs(saddr.sin6_port);
-      }
+      if (getpeername(handle_, (sockaddr*)&saddr, &slen) < 0)
+        return None();
+
+      result.first = IPAddress(&saddr);
+      result.second = ntohs(saddr.sin6_port);
       break;
     }
     case AF_INET: {
       sockaddr_in saddr;
       socklen_t slen = sizeof(saddr);
-      if (getpeername(handle_, (sockaddr*)&saddr, &slen) == 0) {
-        result.first = IPAddress(&saddr);
-        result.second = ntohs(saddr.sin_port);
-      }
+      if (getpeername(handle_, (sockaddr*)&saddr, &slen) < 0)
+        return None();
+
+      result.first = IPAddress(&saddr);
+      result.second = ntohs(saddr.sin_port);
       break;
     }
     default:
@@ -358,23 +360,30 @@ Option<IPAddress> InetEndPoint::remoteIP() const {
 
 class InetConnectState {
  public:
+  IPAddress ipaddr_;
+  int port_;
   RefPtr<InetEndPoint> ep_;
   Promise<RefPtr<InetEndPoint>> promise_;
 
-  InetConnectState(RefPtr<InetEndPoint>&& ep,
+  InetConnectState(const IPAddress& ipaddr, int port,
+                   RefPtr<InetEndPoint>&& ep,
                    const Promise<RefPtr<InetEndPoint>>& promise)
-      : ep_(std::move(ep)),
-        promise_(promise) {}
+      : ipaddr_(ipaddr), port_(port), ep_(std::move(ep)), promise_(promise) {
+  }
 
   void onConnectComplete() {
     int val = 0;
     socklen_t vlen = sizeof(val);
     if (getsockopt(ep_->handle(), SOL_SOCKET, SO_ERROR, &val, &vlen) == 0) {
-      TRACE("$0 onConnectComplete: connected.", this);
-      promise_.success(std::move(ep_));
+      if (val == 0) {
+        TRACE("$0 onConnectComplete: connected $1. $2", this, val, strerror(val));
+        promise_.success(std::move(ep_));
+      } else {
+        logError("InetEndPoint", "Connection to $0:$1 failed. $2", ipaddr_, port_, strerror(val));
+        promise_.failure(Status::IOError); // dislike: wanna pass errno val here.
+      }
     } else {
-      TRACE("$0 onConnectComplete: failure $1. $2",
-            this, val, strerror(val));
+      logError("InetEndPoint", "Connection to $0:$1 failed. $2", ipaddr_, port_, strerror(val));
       promise_.failure(Status::IOError); // dislike: wanna pass errno val here.
     }
     delete this;
@@ -420,7 +429,8 @@ Future<RefPtr<InetEndPoint>> InetEndPoint::connectAsync(
             TRACE("connectAsync: backgrounding");
             executor->executeOnWritable(fd,
                 std::bind(&InetConnectState::onConnectComplete,
-                          new InetConnectState(std::move(ep), promise)));
+                          new InetConnectState(ipaddr, port, std::move(ep),
+                                               promise)));
             return promise.future();
           }
         }
@@ -443,7 +453,8 @@ Future<RefPtr<InetEndPoint>> InetEndPoint::connectAsync(
             TRACE("connectAsync: backgrounding");
             executor->executeOnWritable(fd,
                 std::bind(&InetConnectState::onConnectComplete,
-                          new InetConnectState(std::move(ep), promise)));
+                          new InetConnectState(ipaddr, port, std::move(ep),
+                                               promise)));
             return promise.future();
           }
         }
