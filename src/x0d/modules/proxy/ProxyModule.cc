@@ -23,7 +23,7 @@
 #include <xzero/WallClock.h>
 #include <xzero/StringUtil.h>
 #include <xzero/RuntimeError.h>
-#include <xzero/Tokenizer.h>
+#include <xzero/logging.h>
 #include <xzero-flow/AST.h>
 #include <xzero-flow/ir/Instr.h>
 #include <xzero-flow/ir/BasicBlock.h>
@@ -46,6 +46,8 @@ namespace x0d {
 using namespace xzero;
 using namespace xzero::http;
 using namespace xzero::flow;
+
+#define TRACE(msg...) logTrace("proxy", msg)
 
 ProxyModule::ProxyModule(XzeroDaemon* d)
     : XzeroModule(d, "proxy"),
@@ -134,6 +136,7 @@ bool ProxyModule::proxy_http(XzeroContext* cx, xzero::flow::vm::Params& args) {
   Duration connectTimeout = Duration::fromSeconds(16);
   Executor* executor = cx->response()->executor();
 
+  TRACE("connectAsync: $0:$1", ipaddr, port);
   InetEndPoint::connectAsync(
       ipaddr,
       port,
