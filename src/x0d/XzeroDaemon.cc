@@ -86,16 +86,16 @@ XzeroDaemon::XzeroDaemon()
   for (int i = 0; i < config_->workers; ++i)
     config_->workerAffinities[i] = i;
 
-  loadModule<CoreModule>();
   loadModule<AccessModule>();
   loadModule<AccesslogModule>();
   loadModule<AuthModule>();
   loadModule<CompressModule>();
+  loadModule<CoreModule>();
   loadModule<DirlistingModule>();
   loadModule<EmptyGifModule>();
+  loadModule<ProxyModule>();
   loadModule<UserdirModule>();
   loadModule<WebdavModule>();
-  loadModule<ProxyModule>();
 }
 
 XzeroDaemon::~XzeroDaemon() {
