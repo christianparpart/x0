@@ -95,6 +95,8 @@ void XzeroContext::run() {
   if (request_->expect100Continue()) {
     response_->send100Continue(
         std::bind(&HttpInput::setListener, request_->input(), this));
+  } else {
+    onAllDataRead();
   }
 }
 
