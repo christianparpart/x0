@@ -3,9 +3,10 @@
 #include <xzero/http/HeaderFieldList.h>
 #include <xzero/net/InetEndPoint.h>
 #include <xzero/executor/NativeScheduler.h>
+#include <xzero/net/DnsClient.h>
+#include <xzero/io/FileUtil.h>
 #include <xzero/Application.h>
 #include <xzero/RuntimeError.h>
-#include <xzero/net/DnsClient.h>
 #include <xzero/Uri.h>
 #include <xzero/cli/CLI.h>
 #include <xzero/cli/Flags.h>
@@ -103,6 +104,7 @@ int XUrl::run(int argc, const char* argv[]) {
   cli.defineString("log-level", 0, "STRING", "Log level.", "info");
   cli.defineString("method", 'X', "METHOD", "HTTP method", "GET");
   cli.defineNumber("connect-timeout", 0, "MS", "TCP connect() timeout", Duration::fromSeconds(10).milliseconds(), nullptr);
+  cli.defineString("upload-file", 'T', "PATH", "Uploads given file.", "");
   cli.defineString("header", 'H', "HEADER", "Adds a custom request header",
       std::bind(&XUrl::addRequestHeader, this, std::placeholders::_1));
   cli.defineBool("ipv4", '4', "Favor IPv4 for TCP/IP communication.");
@@ -185,6 +187,11 @@ void XUrl::connected(RefPtr<InetEndPoint> ep, const Uri& uri) {
     method = "HEAD";
   }
 
+  if (!flags_.getString("upload-file").empty()) {
+    method = "PUT";
+    body_ = FileUtil::read(flags_.getString("upload-file"));
+  }
+
   requestHeaders_.overwrite("Host", uri.hostAndPort());
   HttpRequestInfo req(HttpVersion::VERSION_1_1,
                       method,
@@ -197,7 +204,7 @@ void XUrl::connected(RefPtr<InetEndPoint> ep, const Uri& uri) {
     logInfo("xurl", "< $0: $1", field.name(), field.value());
   }
 
-  http.send(std::move(req), body_.str());
+  http.send(std::move(req), body_);
   http.completed();
 
   scheduler_.runLoop();
