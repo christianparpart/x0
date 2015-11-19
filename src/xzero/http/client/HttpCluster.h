@@ -94,6 +94,16 @@ public:
   /**
    * Adds a new member to the HTTP cluster.
    *
+   * @param ipaddr upstream IP address
+   * @param port TCP port number
+   * @param capacity number of concurrent requests this member can handle at
+   *                 most.
+   */
+  void addMember(const IPAddress& ipaddr, int port, size_t capacity);
+
+  /**
+   * Adds a new member to the HTTP cluster.
+   *
    * @param name human readable name for the given member.
    * @param ipaddr upstream IP address
    * @param port TCP port number
@@ -150,10 +160,6 @@ public:
   void send(const HttpRequestInfo& requestInfo,
             std::unique_ptr<InputStream> requestBody,
             HttpListener* responseListener);
-
-  Future<std::pair<HttpResponseInfo, std::unique_ptr<InputStream>>> send(
-      HttpRequestInfo&& requestInfo,
-      const std::string& requestBody);
 
 private:
   // cluster's human readable representative name.

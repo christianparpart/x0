@@ -60,6 +60,11 @@ void HttpCluster::setConfiguration(const std::string& text) {
   // TODO
 }
 
+void HttpCluster::addMember(const IPAddress& ipaddr, int port, size_t capacity) {
+  addMember(StringUtil::format("$0:$1", ipaddr, port),
+            ipaddr, port, capacity, true);
+}
+
 void HttpCluster::addMember(const std::string& name,
                             const IPAddress& ipaddr,
                             int port,

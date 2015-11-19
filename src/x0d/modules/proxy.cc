@@ -132,7 +132,11 @@ bool ProxyModule::verify_proxy_cluster(xzero::flow::Instr* call) {
 
   std::shared_ptr<HttpCluster> cluster(new HttpCluster(nameArg->get()));
 
-  cluster->setConfiguration(FileUtil::read(path).str());
+  if (FileUtil::exists(path))
+    cluster->setConfiguration(FileUtil::read(path).str());
+  else {
+    cluster->addMember("demo1", IPAddress("127.0.0.1"), 3000, 10, true);
+  }
 
   clusterMap_[nameArg->get()] = cluster;
 
