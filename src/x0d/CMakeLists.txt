@@ -48,20 +48,9 @@ set(x0d_SRC
   modules/core.cc
   modules/dirlisting.cc
   modules/empty_gif.cc
+  modules/proxy.cc
   modules/userdir.cc
   modules/webdav.cc
-
-  # HTTP proxy module
-  modules/proxy/ProxyModule.cc
-  # modules/proxy/ProxyCluster.cc
-  # modules/proxy/Scheduler.cc
-  # modules/proxy/LeastLoadScheduler.cc
-  # modules/proxy/RoundRobinScheduler.cc
-  # modules/proxy/ChanceScheduler.cc
-  # modules/proxy/HealthMonitor.cc
-  # modules/proxy/CacheObject.cc
-  # modules/proxy/ProxyApi.cc
-  # modules/proxy/HaproxyApi.cc
 )
 
 set(LIBS pam)

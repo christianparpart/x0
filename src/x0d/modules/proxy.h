@@ -12,6 +12,11 @@
 #include <xzero-flow/AST.h>
 #include <xzero-flow/ir/Instr.h>
 
+#include <memory>
+#include <string>
+#include <unordered_map>
+#include <list>
+
 namespace xzero {
   namespace http {
     namespace client {
@@ -70,7 +75,11 @@ class ProxyModule : public XzeroModule {
 
  private:
   std::string pseudonym_;
-  std::list<std::unique_ptr<xzero::http::client::HttpCluster>> clusters_;
+
+  std::unordered_map<
+      std::string,
+      std::shared_ptr<xzero::http::client::HttpCluster>>
+          clusterMap_;
 };
 
 } // namespace x0d

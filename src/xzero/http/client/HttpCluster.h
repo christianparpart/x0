@@ -38,10 +38,13 @@ namespace client {
 class HttpHealthCheck;
 class HttpClusterMember;
 class HttpClusterScheduler;
+class HttpCache;
 
 class HttpCluster {
 public:
   HttpCluster();
+
+  explicit HttpCluster(const std::string& name);
 
   HttpCluster(const std::string& name,
               bool enabled,
@@ -128,21 +131,23 @@ public:
 
   /**
    * Passes given request to a cluster member to be served.
+   *
    * @param requestInfo HTTP request info.
    * @param requestBody HTTP request body,
    * @param responseListener HTTP response message listener.
    */
-  void send(HttpRequestInfo&& requestInfo,
+  void send(const HttpRequestInfo& requestInfo,
             const std::string& requestBody,
             HttpListener* responseListener);
 
   /**
    * Passes given request to a cluster member to be served.
+   *
    * @param requestInfo HTTP request info.
    * @param requestBody HTTP request body,
    * @param responseListener HTTP response message listener.
    */
-  void send(HttpRequestInfo&& requestInfo,
+  void send(const HttpRequestInfo& requestInfo,
             std::unique_ptr<InputStream> requestBody,
             HttpListener* responseListener);
 
@@ -184,7 +189,7 @@ private:
   std::string storagePath_;
 
   // cluster member vector
-  std::vector<HttpClusterMember> members_;
+  std::list<HttpClusterMember> members_;
 
   // member scheduler
   UniquePtr<HttpClusterScheduler> scheduler_;

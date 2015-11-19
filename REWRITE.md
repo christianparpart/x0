@@ -43,16 +43,16 @@
 - [x] HttpClusterScheduler::Chance
 - [x] flow-api: `proxy.http(ipaddr, port)`
 - [x] x0d: 100-continue - pre-read HttpInput
+- [x] webdav implements PUT method
+- [x] proxy.http: support request body
 - [ ] HttpInput: offload into local tmpfile if payload > N bytes
-- [ ] webdav.put() implements PUT method
-- [ ] proxy.http: support request body
 - [ ] HttpClusterMember, proxies to HttpClient, with constraints (such as capacity)
 - [ ] HttpCluster: basic load balancing to HTTP/1 upstreams
 - [ ] HttpHealthCheck: monitor an HTTP upstream (transport protocol independant)
 - [ ] HttpClient: support FastCGI
 - [ ] flow-api: `proxy.fcgi(ipaddr, port)`
 - [ ] HttpClient: support UNIX domain socket alongside with TCP/IP
-- [ ] properly proxy 'Expect: 100-continue' (request/response must be forwarded)
+- [ ] proxy: properly proxy 'Expect: 100-continue' (Expect-header must be forwarded)
 
 ### Feature Stories
 

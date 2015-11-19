@@ -145,6 +145,7 @@ set(xzero_base_SRC
   io/InputStream.cc
   io/FileInputStream.cc
   io/BufferInputStream.cc
+  io/StringInputStream.cc
   io/OutputStream.cc
   io/FileOutputStream.cc
   io/BufferOutputStream.cc

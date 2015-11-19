@@ -19,7 +19,7 @@
 #include "modules/empty_gif.h"
 #include "modules/userdir.h"
 #include "modules/webdav.h"
-#include "modules/proxy/ProxyModule.h"
+#include "modules/proxy.h"
 
 #include <xzero/http/HttpRequest.h>
 #include <xzero/http/HttpResponse.h>

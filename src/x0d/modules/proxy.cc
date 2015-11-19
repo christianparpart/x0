@@ -12,12 +12,13 @@
  * - does not forward Expect request header to upstream
  */
 
-#include "ProxyModule.h"
+#include "proxy.h"
 #include "XzeroContext.h"
 #include <xzero/http/client/HttpCluster.h>
 #include <xzero/http/client/HttpClient.h>
 #include <xzero/http/HttpRequest.h>
 #include <xzero/http/HttpResponse.h>
+#include <xzero/io/FileUtil.h>
 #include <xzero/net/InetEndPoint.h>
 #include <xzero/io/FileUtil.h>
 #include <xzero/WallClock.h>
@@ -52,7 +53,7 @@ using namespace xzero::flow;
 ProxyModule::ProxyModule(XzeroDaemon* d)
     : XzeroModule(d, "proxy"),
       pseudonym_("x0d"),
-      clusters_() {
+      clusterMap_() {
 
   setupFunction("proxy.pseudonym", &ProxyModule::proxy_pseudonym,
                 FlowType::String);
@@ -91,8 +92,6 @@ ProxyModule::ProxyModule(XzeroDaemon* d)
                FlowType::String);
   mainFunction("proxy.cache.ttl", &ProxyModule::proxy_cache_ttl,
                FlowType::Number);
-
-  clusters_.emplace_back(new client::HttpCluster());
 }
 
 ProxyModule::~ProxyModule() {
@@ -103,18 +102,55 @@ void ProxyModule::proxy_pseudonym(xzero::flow::vm::Params& args) {
 }
 
 bool ProxyModule::verify_proxy_cluster(xzero::flow::Instr* call) {
-  return false; // TODO
+  auto program = call->parent()->parent()->parent();
+
+  auto nameArg = dynamic_cast<ConstantString*>(call->operand(1));
+  if (nameArg == nullptr) {
+    logError("x0d", "proxy.cluster: name parameter must be a literal.");
+    return false;
+  }
+
+  if (nameArg->get().empty()) {
+    logError("x0d", "Setting empty proxy.cluster name is not allowed.");
+    return false;
+  }
+
+  // pathArg
+  auto pathArg = dynamic_cast<ConstantString*>(call->operand(2));
+  if (pathArg == nullptr) {
+    logError("x0d", "proxy.cluster: path parameter must be a literal.");
+    return false;
+  }
+
+  std::string path = pathArg->get().empty()
+      ? "/var/tmp/" + nameArg->get() + ".cluster.conf"
+      : pathArg->get();
+
+  call->replaceOperand(pathArg, program->get(path));
+
+  using client::HttpCluster;
+
+  std::shared_ptr<HttpCluster> cluster(new HttpCluster(nameArg->get()));
+
+  cluster->setConfiguration(FileUtil::read(path).str());
+
+  clusterMap_[nameArg->get()] = cluster;
+
+  return true;
 }
 
 bool ProxyModule::proxy_cluster(XzeroContext* cx, Params& args) {
-  /*
-   * @param name
-   * @param path
-   * @param bucket
-   * @param backend
-   */
+  auto& cluster = clusterMap_[args.getString(1).str()];
 
-  return false; // TODO
+  TRACE("proxy.cluster: $0", cluster->name());
+
+  HttpRequestInfo requestInfo; // TODO: cx->request();
+  std::string requestBody; // TODO: cx->request()->input();
+  HttpListener* responseListener = nullptr; // TODO: cx->response();
+
+  cluster->send(requestInfo, requestBody, responseListener);
+
+  return true;
 }
 
 bool ProxyModule::proxy_pass(XzeroContext* cx, xzero::flow::vm::Params& args) {

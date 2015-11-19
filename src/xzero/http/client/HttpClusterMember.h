@@ -23,6 +23,7 @@
 
 namespace xzero {
 
+class Executor;
 class InputStream;
 
 namespace http {
@@ -34,15 +35,18 @@ class HttpClusterRequest;
 class HttpClusterMember {
 public:
   HttpClusterMember(
-      Scheduler* scheduler,
+      Executor* executor,
       const std::string& name,
       const IPAddress& ipaddr,
       int port,
-      const std::string& protocol, // http, https, fastcgi, h2, ...
       size_t capacity,
+      bool enabled,
+      const std::string& protocol, // http, https, fastcgi, h2, ...
       std::unique_ptr<HttpHealthCheck> healthCheck);
 
-  Scheduler* scheduler() const { return scheduler_; }
+  ~HttpClusterMember();
+
+  Executor* executor() const { return executor_; }
 
   const std::string& name() const { return name_; }
   void setName(const std::string& name);
@@ -70,7 +74,7 @@ private:
 
   bool enabled_;
 
-  Scheduler* scheduler_;
+  Executor* executor_;
   std::list<UniquePtr<HttpClient>> clients_;
 };
 

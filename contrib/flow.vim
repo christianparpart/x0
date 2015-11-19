@@ -129,7 +129,7 @@ if exists("flow_x0")
 
 	" plugin: proxy
 	syn match flowCoreFunctions '\<proxy\.\(load\|cache\)\>'
-	syn match flowCoreHandler '\<proxy\.\(balance\|pass\|api\|fcgi\|http\|haproxy_stats\|haproxy_monitor\)\>'
+	syn match flowCoreHandler '\<proxy\.\(cluster\|pass\|api\|fcgi\|http\|haproxy_stats\|haproxy_monitor\)\>'
 endif
 
 " ---------------------------------------------------------------------------------
