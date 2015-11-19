@@ -93,14 +93,6 @@ void HttpCluster::removeMember(const std::string& name) {
 }
 
 void HttpCluster::send(const HttpRequestInfo& requestInfo,
-                       const std::string& requestBody,
-                       HttpListener* responseListener) {
-  send(requestInfo,
-       std::unique_ptr<InputStream>(new StringInputStream(&requestBody)),
-       responseListener);
-}
-
-void HttpCluster::send(const HttpRequestInfo& requestInfo,
                        std::unique_ptr<InputStream> requestBody,
                        HttpListener* responseListener) {
   // TODO

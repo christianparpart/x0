@@ -147,17 +147,6 @@ public:
    * @param responseListener HTTP response message listener.
    */
   void send(const HttpRequestInfo& requestInfo,
-            const std::string& requestBody,
-            HttpListener* responseListener);
-
-  /**
-   * Passes given request to a cluster member to be served.
-   *
-   * @param requestInfo HTTP request info.
-   * @param requestBody HTTP request body,
-   * @param responseListener HTTP response message listener.
-   */
-  void send(const HttpRequestInfo& requestInfo,
             std::unique_ptr<InputStream> requestBody,
             HttpListener* responseListener);
 
