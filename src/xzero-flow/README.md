@@ -1,6 +1,26 @@
 Flow Control Configuration Language
 ===================================
 
+```!sh
+# Example Flow:
+handler main {
+  if req.path =^ '/private/' {
+    return 403;
+  }
+  docroot '/var/www';
+  staticfile;
+}
+```
+
+### Features
+
+* Dedicated language for programming control flow (without loops).
+* Optimizing Compiler.
+* Virtual Machine Instruction Set is optimized for our usecase.
+* Virtual Machine supports direct threading and indirect threading.
+* Powerful C++ API to extend Flow with functions and handlers.
+* ...
+
 Flow Engine Rewrite
 ===================
 
