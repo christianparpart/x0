@@ -8,6 +8,7 @@
 #pragma once
 
 #include <xzero/Buffer.h>
+#include <xzero/io/Filter.h>
 #include <list>
 #include <memory>
 
@@ -204,14 +205,14 @@ class HttpCache {
 /**
  * HTTP response filter, used to populate a cache-object with a fresh response.
  */
-class HttpCache::Builder : public HttpFilter {
+class HttpCache::Builder : public Filter {
  private:
   ConcreteObject* object_;
 
  public:
   explicit Builder(ConcreteObject* object);
 
-  Buffer process(const BufferRef& chunk) override;
+  void filter(const BufferRef& input, Buffer* output, bool last) override;
 };
 
 /**
