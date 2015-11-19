@@ -145,10 +145,12 @@ public:
    * @param requestInfo HTTP request info.
    * @param requestBody HTTP request body,
    * @param responseListener HTTP response message listener.
+   * @param executor Executor to use for async I/O operations.
    */
   void send(const HttpRequestInfo& requestInfo,
             std::unique_ptr<InputStream> requestBody,
-            HttpListener* responseListener);
+            HttpListener* responseListener,
+            Executor* executor);
 
 private:
   // cluster's human readable representative name.
