@@ -45,8 +45,8 @@ void Generator::generateRequest(const HttpRequestInfo& info) {
   paramsWriter.encode("SERVER_PROTOCOL", to_string(info.version()));
   if (info.headers().contains("Host"))
     paramsWriter.encode("SERVER_NAME", info.headers().get("Host"));
-  paramsWriter.encode("REQUEST_METHOD", info.method());
-  paramsWriter.encode("REQUEST_URI", info.entity());
+  paramsWriter.encode("REQUEST_METHOD", info.unparsedMethod());
+  paramsWriter.encode("REQUEST_URI", info.unparsedUri());
 
   // TODO: we should set these too when talking to a PHP-FPM server for example
   // paramsWriter.encode("QUERY_STRING", "");

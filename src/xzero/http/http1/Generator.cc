@@ -170,9 +170,9 @@ void Generator::generateBody(FileRef&& chunk) {
 }
 
 void Generator::generateRequestLine(const HttpRequestInfo& info) {
-  buffer_.push_back(info.method());
+  buffer_.push_back(info.unparsedMethod());
   buffer_.push_back(' ');
-  buffer_.push_back(info.entity());
+  buffer_.push_back(info.unparsedUri());
 
   switch (info.version()) {
     case HttpVersion::VERSION_0_9:

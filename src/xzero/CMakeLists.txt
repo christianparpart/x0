@@ -202,6 +202,7 @@ set(xzero_base_SRC
   http/HttpOutput.cc
   http/HttpOutputCompressor.cc
   http/HttpRequest.cc
+  http/HttpRequestInfo.cc
   http/HttpResponse.cc
   http/HttpService.cc
   http/HttpStatus.cc

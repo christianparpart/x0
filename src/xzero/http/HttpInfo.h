@@ -30,7 +30,6 @@ class XZERO_HTTP_API HttpInfo {
 
   /** Retrieves the HTTP message version. */
   HttpVersion version() const XZERO_NOEXCEPT { return version_; }
-
   void setVersion(HttpVersion version) { version_ = version; }
 
   /** Retrieves the HTTP response headers. */
@@ -54,6 +53,8 @@ class XZERO_HTTP_API HttpInfo {
 
   void setTrailers(const HeaderFieldList& list) { trailers_ = list; }
 
+  void reset();
+
  protected:
   HttpVersion version_;
   size_t contentLength_;
@@ -69,6 +70,13 @@ inline HttpInfo::HttpInfo(HttpVersion version, size_t contentLength,
       headers_(headers),
       trailers_(trailers) {
   //.
+}
+
+inline void HttpInfo::reset() {
+  version_ = HttpVersion::UNKNOWN;
+  contentLength_ = 0;
+  headers_.reset();
+  trailers_.reset();
 }
 
 }  // namespace http

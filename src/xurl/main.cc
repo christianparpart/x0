@@ -199,7 +199,9 @@ void XUrl::connected(RefPtr<InetEndPoint> ep, const Uri& uri) {
                       body_.size(),
                       requestHeaders_);
 
-  logInfo("xurl", "$0 $1 HTTP/$2", req.method(), req.entity(), req.version());
+  logInfo("xurl", "$0 $1 HTTP/$2",
+          req.unparsedMethod(), req.unparsedUri(), req.version());
+
   for (const HeaderField& field: req.headers()) {
     logInfo("xurl", "< $0: $1", field.name(), field.value());
   }

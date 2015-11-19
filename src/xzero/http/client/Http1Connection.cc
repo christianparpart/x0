@@ -45,7 +45,7 @@ Http1Connection::~Http1Connection() {
 void Http1Connection::send(HttpRequestInfo&& requestInfo,
                            CompletionHandler onComplete) {
   setCompleter(onComplete);
-  expectsBody_ = requestInfo.method() != "HEAD";
+  expectsBody_ = requestInfo.method() != HttpMethod::HEAD;
   generator_.generateRequest(requestInfo);
   wantFlush();
 }
@@ -54,7 +54,7 @@ void Http1Connection::send(HttpRequestInfo&& requestInfo,
                            const BufferRef& chunk,
                            CompletionHandler onComplete) {
   setCompleter(onComplete);
-  expectsBody_ = requestInfo.method() != "HEAD";
+  expectsBody_ = requestInfo.method() != HttpMethod::HEAD;
   generator_.generateRequest(requestInfo, chunk);
   wantFlush();
 }
@@ -63,7 +63,7 @@ void Http1Connection::send(HttpRequestInfo&& requestInfo,
                            Buffer&& chunk,
                            CompletionHandler onComplete) {
   setCompleter(onComplete);
-  expectsBody_ = requestInfo.method() != "HEAD";
+  expectsBody_ = requestInfo.method() != HttpMethod::HEAD;
   generator_.generateRequest(requestInfo, chunk);
   wantFlush();
 }
@@ -72,7 +72,7 @@ void Http1Connection::send(HttpRequestInfo&& requestInfo,
                            FileRef&& chunk,
                            CompletionHandler onComplete) {
   setCompleter(onComplete);
-  expectsBody_ = requestInfo.method() != "HEAD";
+  expectsBody_ = requestInfo.method() != HttpMethod::HEAD;
   generator_.generateRequest(requestInfo, std::move(chunk));
   wantFlush();
 }

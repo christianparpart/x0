@@ -24,19 +24,32 @@ class XZERO_HTTP_API HttpRequestInfo : public HttpInfo {
   HttpRequestInfo();
 
   HttpRequestInfo(HttpVersion version, const HttpMethod method,
-                  const std::string& entity, size_t contentLength,
+                  const std::string& uri, size_t contentLength,
                   const HeaderFieldList& headers);
 
   HttpRequestInfo(HttpVersion version, const std::string& method,
-                  const std::string& entity, size_t contentLength,
+                  const std::string& uri, size_t contentLength,
                   const HeaderFieldList& headers);
 
-  const std::string& method() const XZERO_NOEXCEPT { return method_; }
-  const std::string& entity() const XZERO_NOEXCEPT { return entity_; }
+  HttpMethod method() const noexcept { return method_; }
+  const std::string& unparsedMethod() const noexcept { return unparsedMethod_; }
+  void setMethod(const std::string& value);
+
+  bool setUri(const std::string& uri);
+  const std::string& unparsedUri() const noexcept { return unparsedUri_; }
+  const std::string& path() const noexcept { return path_; }
+  const std::string& query() const noexcept { return query_; }
+  int directoryDepth() const noexcept { return directoryDepth_; }
+
+  void reset();
 
  private:
-  std::string method_;
-  std::string entity_;
+  std::string unparsedMethod_;
+  HttpMethod method_;
+  std::string unparsedUri_;
+  std::string path_;
+  std::string query_;
+  int directoryDepth_;
 };
 
 inline HttpRequestInfo::HttpRequestInfo()
@@ -45,20 +58,25 @@ inline HttpRequestInfo::HttpRequestInfo()
 
 inline HttpRequestInfo::HttpRequestInfo(HttpVersion version,
                                         HttpMethod method,
-                                        const std::string& entity,
+                                        const std::string& uri,
                                         size_t contentLength,
                                         const HeaderFieldList& headers)
-    : HttpRequestInfo(version, to_string(method), entity, contentLength, headers) {
+    : HttpRequestInfo(version, to_string(method), uri, contentLength, headers) {
 }
 
 inline HttpRequestInfo::HttpRequestInfo(HttpVersion version,
                                         const std::string& method,
-                                        const std::string& entity,
+                                        const std::string& uri,
                                         size_t contentLength,
                                         const HeaderFieldList& headers)
     : HttpInfo(version, contentLength, headers, {}),
-      method_(method),
-      entity_(entity) {
+      unparsedMethod_(method),
+      method_(to_method(method)),
+      unparsedUri_(),
+      path_(),
+      query_(),
+      directoryDepth_(0) {
+  setUri(uri);
 }
 
 }  // namespace http

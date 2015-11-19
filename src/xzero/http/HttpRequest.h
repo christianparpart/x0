@@ -11,6 +11,7 @@
 #include <xzero/sysconfig.h>
 #include <xzero/Buffer.h>
 #include <xzero/io/File.h>
+#include <xzero/http/HttpRequestInfo.h>
 #include <xzero/http/HeaderFieldList.h>
 #include <xzero/http/HttpVersion.h>
 #include <xzero/http/HttpMethod.h>
@@ -25,7 +26,7 @@ namespace http {
 /**
  * Represents an HTTP request message.
  */
-class XZERO_HTTP_API HttpRequest {
+class XZERO_HTTP_API HttpRequest : public HttpRequestInfo {
  public:
   HttpRequest();
   explicit HttpRequest(std::unique_ptr<HttpInput>&& input);
@@ -38,22 +39,6 @@ class XZERO_HTTP_API HttpRequest {
 
   size_t bytesReceived() const noexcept { return bytesReceived_; }
   void setBytesReceived(size_t n) { bytesReceived_ = n; }
-
-  HttpMethod method() const XZERO_NOEXCEPT { return method_; }
-  const std::string& unparsedMethod() const XZERO_NOEXCEPT { return unparsedMethod_; }
-  void setMethod(const std::string& value);
-
-  bool setUri(const std::string& uri);
-  const std::string& unparsedUri() const XZERO_NOEXCEPT { return unparsedUri_; }
-  const std::string& path() const XZERO_NOEXCEPT { return path_; }
-  const std::string& query() const XZERO_NOEXCEPT { return query_; }
-  int directoryDepth() const XZERO_NOEXCEPT { return directoryDepth_; }
-
-  HttpVersion version() const XZERO_NOEXCEPT { return version_; }
-  void setVersion(HttpVersion version) { version_ = version; }
-
-  const HeaderFieldList& headers() const XZERO_NOEXCEPT { return headers_; }
-  HeaderFieldList& headers() { return headers_; }
 
   const std::string& host() const XZERO_NOEXCEPT { return host_; }
   void setHost(const std::string& value);
@@ -76,21 +61,10 @@ class XZERO_HTTP_API HttpRequest {
   Option<IPAddress> remoteIP_;
   size_t bytesReceived_;
 
-  HttpMethod method_;
-  std::string unparsedMethod_;
-
-  std::string unparsedUri_;
-  std::string path_;
-  std::string query_;
-  int directoryDepth_;
-
-  HttpVersion version_;
-
   bool secure_;
   bool expect100Continue_;
   std::string host_;
 
-  HeaderFieldList headers_;
   std::unique_ptr<HttpInput> input_;
 
   std::string username_; // the client's username, if authenticated
