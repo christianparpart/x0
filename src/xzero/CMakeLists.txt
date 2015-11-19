@@ -149,6 +149,7 @@ set(xzero_base_SRC
   io/OutputStream.cc
   io/FileOutputStream.cc
   io/BufferOutputStream.cc
+  io/StringOutputStream.cc
 
   logging/ConsoleLogTarget.cc
   logging/LogLevel.cc
