@@ -120,6 +120,18 @@ void ThreadedExecutor::cancelFD(int fd) {
   RAISE(NotImplementedError); // TODO
 }
 
+Executor::HandleRef ThreadedExecutor::executeAfter(Duration delay, Task task) {
+  RAISE(NotImplementedError); // TODO
+}
+
+Executor::HandleRef ThreadedExecutor::executeAt(UnixTime ts, Task task) {
+  RAISE(NotImplementedError); // TODO
+}
+
+void ThreadedExecutor::executeOnWakeup(Task task, Wakeup* wakeup, long generation) {
+  RAISE(NotImplementedError); // TODO
+}
+
 std::string ThreadedExecutor::toString() const {
   char buf[32];
   snprintf(buf, sizeof(buf), "ThreadedExecutor@%p", this);

@@ -14,6 +14,7 @@
 #include <xzero/RefCounted.h>
 #include <xzero/RefPtr.h>
 #include <xzero/Duration.h>
+#include <xzero/UnixTime.h>
 #include <xzero/sysconfig.h>
 
 #include <mutex>
@@ -23,6 +24,8 @@
 #include <string>
 
 namespace xzero {
+
+class Wakeup;
 
 /**
  * Closure Execution Service API.
@@ -124,6 +127,39 @@ class Executor {
    * @param task Task to execute upon given event.
    */
   HandleRef executeOnWritable(int fd, Task task);
+
+  /**
+   * Schedules given task to be run after given delay.
+   *
+   * @param task the actual task to be executed.
+   * @param delay the timespan to wait before actually executing the task.
+   */
+  virtual HandleRef executeAfter(Duration delay, Task task) = 0;
+
+  /**
+   * Runs given task at given time.
+   */
+  virtual HandleRef executeAt(UnixTime ts, Task task) = 0;
+
+  /**
+   * Executes @p task when given @p wakeup triggered a wakeup event
+   * for >= @p generation.
+   *
+   * @param task Task to invoke when the wakeup is triggered.
+   * @param wakeup Wakeup object to watch
+   * @param generation Generation number to match at least.
+   */
+  virtual void executeOnWakeup(Task task, Wakeup* wakeup, long generation) = 0;
+
+  /**
+   * Run the provided task when the wakeup handle is woken up.
+   */
+  void executeOnNextWakeup(std::function<void()> task, Wakeup* wakeup);
+
+  /**
+   * Run the provided task when the wakeup handle is woken up.
+   */
+  void executeOnFirstWakeup(std::function<void()> task, Wakeup* wakeup);
 
  protected:
   void safeCall(std::function<void()> callee) noexcept;

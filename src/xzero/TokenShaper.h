@@ -11,7 +11,7 @@
 #include <xzero/JsonWriter.h>
 #include <xzero/MonotonicTime.h>
 #include <xzero/MonotonicClock.h>
-#include <xzero/executor/Scheduler.h>
+#include <xzero/executor/Executor.h>
 
 #include <functional>
 #include <algorithm>
@@ -93,13 +93,13 @@ class TokenShaper {
  public:
   class Node;
 
-  TokenShaper(Scheduler* scheduler, size_t size);
+  TokenShaper(Executor* executor, size_t size);
   ~TokenShaper();
 
   template <typename H>
   void setTimeoutHandler(H handler);
 
-  Scheduler* scheduler() const { return root_->scheduler_; }
+  Executor* executor() const { return root_->executor_; }
 
   size_t size() const;
   void resize(size_t capacity);
@@ -158,7 +158,7 @@ class TokenShaper<T>::Node {
   size_t actualChildOverRate() const;
 
   // parent/child node access
-  static TokenShaper<T>::Node* createRoot(Scheduler* scheduler, size_t tokens);
+  static TokenShaper<T>::Node* createRoot(Executor* executor, size_t tokens);
   TokenShaperError createChild(const std::string& name, float rate,
                                float ceil = 0);
   TokenShaper<T>::Node* findChild(const std::string& name) const;
@@ -206,7 +206,7 @@ class TokenShaper<T>::Node {
   void onTimeout();
 
  private:
-  Node(Scheduler* scheduler, const std::string& name, size_t tokenRate,
+  Node(Executor* executor, const std::string& name, size_t tokenRate,
        size_t tokenCeil, float prate, float pceil,
        TokenShaper<T>::Node* parent);
 
@@ -219,7 +219,7 @@ class TokenShaper<T>::Node {
     QueueItem(T* _token, MonotonicTime _ctime) : token(_token), ctime(_ctime) {}
   };
 
-  Scheduler* scheduler_; //!< used for queue timeout management.
+  Executor* executor_; //!< used for queue timeout management.
 
   std::string name_;  //!< bucket name
 
@@ -253,8 +253,8 @@ class TokenShaper<T>::Node {
 // }}}
 // {{{ TokenShaper<T> impl
 template <typename T>
-TokenShaper<T>::TokenShaper(Scheduler* scheduler, size_t size)
-    : root_(Node::createRoot(scheduler, size)) {}
+TokenShaper<T>::TokenShaper(Executor* executor, size_t size)
+    : root_(Node::createRoot(executor, size)) {}
 
 template <typename T>
 TokenShaper<T>::~TokenShaper() {
@@ -312,10 +312,10 @@ void TokenShaper<T>::writeJSON(JsonWriter& json) const {
 // }}}
 // {{{ TokenShaper<T>::Node impl
 template <typename T>
-TokenShaper<T>::Node::Node(Scheduler* scheduler, const std::string& name,
+TokenShaper<T>::Node::Node(Executor* executor, const std::string& name,
                            size_t tokenRate, size_t tokenCeil, float rate,
                            float ceil, TokenShaper<T>::Node* parent)
-    : scheduler_(scheduler),
+    : executor_(executor),
       name_(name),
       rate_(tokenRate),
       ceil_(tokenCeil),
@@ -472,8 +472,8 @@ void TokenShaper<T>::Node::update() {
 
 template <typename T>
 typename TokenShaper<T>::Node* TokenShaper<T>::Node::createRoot(
-    Scheduler* scheduler, size_t tokens) {
-  return new TokenShaper<T>::Node(scheduler, "root", tokens, tokens,
+    Executor* executor, size_t tokens) {
+  return new TokenShaper<T>::Node(executor, "root", tokens, tokens,
                                   1.0f, 1.0f, nullptr);
 }
 
@@ -492,7 +492,7 @@ TokenShaperError TokenShaper<T>::Node::createChild(const std::string& name,
   size_t tokenRate = rate_ * rate;
   size_t tokenCeil = ceil_ * ceil;
   TokenShaper<T>::Node* b = new TokenShaper<T>::Node(
-      scheduler_, name, tokenRate, tokenCeil, rate, ceil, this);
+      executor_, name, tokenRate, tokenCeil, rate, ceil, this);
   children_.push_back(b);
   return TokenShaperError::Success;
 }
@@ -719,7 +719,7 @@ void TokenShaper<T>::Node::updateQueueTimer() {
   // TRACE("updateQueueTimer: starting new timer with ttl %.2f secs (%llu ms)",
   //       ttl.value(), ttl.totalMilliseconds());
 
-  scheduler_->executeAfter(
+  executor_->executeAfter(
       ttl,
       std::bind(&TokenShaper<T>::Node::updateQueueTimer, this));
 }

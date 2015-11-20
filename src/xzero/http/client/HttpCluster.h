@@ -19,6 +19,7 @@
 #include <xzero/http/HttpResponseInfo.h>
 #include <xzero/net/IPAddress.h>
 #include <xzero/CompletionHandler.h>
+#include <xzero/TokenShaper.h>
 #include <xzero/Duration.h>
 #include <xzero/Counter.h>
 #include <xzero/Uri.h>
@@ -29,6 +30,7 @@
 namespace xzero {
 
 class InputStream;
+class Executor;
 
 namespace http {
 
@@ -43,11 +45,10 @@ class HttpCache;
 
 class HttpCluster {
  public:
-  HttpCluster();
-
-  explicit HttpCluster(const std::string& name);
+  HttpCluster(const std::string& name, Executor* executor);
 
   HttpCluster(const std::string& name,
+              Executor* executor,
               bool enabled,
               bool stickyOfflineMode,
               bool allowXSendfile,
@@ -88,6 +89,15 @@ class HttpCluster {
 
   size_t maxRetryCount() const { return maxRetryCount_; }
   void setMaxRetryCount(size_t value) { maxRetryCount_ = value; }
+
+  typedef TokenShaper<HttpClusterRequest> RequestShaper;
+
+  TokenShaperError createBucket(const std::string& name, float rate, float ceil);
+  RequestShaper::Node* findBucket(const std::string& name) const;
+  RequestShaper::Node* rootBucket() const { return shaper()->rootNode(); }
+  bool eachBucket(std::function<bool(RequestShaper::Node*)> body);
+  const RequestShaper* shaper() const { return &shaper_; }
+  RequestShaper* shaper() { return &shaper_; }
 
   void changeScheduler(UniquePtr<HttpClusterScheduler> scheduler);
   HttpClusterScheduler* clusterScheduler() const { return scheduler_.get(); }
@@ -189,6 +199,8 @@ class HttpCluster {
 
   // path to the local directory this director is serialized from/to.
   std::string storagePath_;
+
+  RequestShaper shaper_;
 
   // cluster member vector
   std::list<HttpClusterMember> members_;

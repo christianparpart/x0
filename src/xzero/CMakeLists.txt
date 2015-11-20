@@ -125,7 +125,6 @@ set(xzero_base_SRC
   executor/LocalExecutor.cc
   executor/LocalScheduler.cc
   executor/PosixScheduler.cc
-  executor/Scheduler.cc
   executor/ThreadedExecutor.cc
   executor/ThreadPool.cc
 

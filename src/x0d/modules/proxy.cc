@@ -131,7 +131,9 @@ bool ProxyModule::verify_proxy_cluster(xzero::flow::Instr* call) {
 
   using client::HttpCluster;
 
-  std::shared_ptr<HttpCluster> cluster(new HttpCluster(nameArg->get()));
+  Executor* executor = nullptr; // TODO
+
+  std::shared_ptr<HttpCluster> cluster(new HttpCluster(nameArg->get(), executor));
 
   if (FileUtil::exists(path))
     cluster->setConfiguration(FileUtil::read(path).str());

@@ -77,6 +77,18 @@ void LocalExecutor::cancelFD(int fd) {
   RAISE(NotImplementedError); // TODO
 }
 
+Executor::HandleRef LocalExecutor::executeAfter(Duration delay, Task task) {
+  RAISE(NotImplementedError); // TODO
+}
+
+Executor::HandleRef LocalExecutor::executeAt(UnixTime ts, Task task) {
+  RAISE(NotImplementedError); // TODO
+}
+
+void LocalExecutor::executeOnWakeup(Task task, Wakeup* wakeup, long generation) {
+  RAISE(NotImplementedError); // TODO
+}
+
 std::string LocalExecutor::toString() const {
   char buf[128];
   snprintf(buf, sizeof(buf), "LocalExecutor@%p", this);

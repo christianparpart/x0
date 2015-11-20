@@ -9,15 +9,11 @@
 
 #pragma once
 
-#include <xzero/Duration.h>
-#include <xzero/UnixTime.h>
 #include <xzero/executor/Executor.h>
 #include <functional>
 #include <memory>
 
 namespace xzero {
-
-class Wakeup;
 
 /**
  * Interface for scheduling tasks.
@@ -26,39 +22,6 @@ class Scheduler : public Executor {
  public:
   Scheduler(std::unique_ptr<ExceptionHandler> eh)
       : Executor(std::move(eh)) {}
-
-  /**
-   * Schedules given task to be run after given delay.
-   *
-   * @param task the actual task to be executed.
-   * @param delay the timespan to wait before actually executing the task.
-   */
-  virtual HandleRef executeAfter(Duration delay, Task task) = 0;
-
-  /**
-   * Runs given task at given time.
-   */
-  virtual HandleRef executeAt(UnixTime ts, Task task) = 0;
-
-  /**
-   * Executes @p task  when given @p wakeup triggered a wakeup event
-   * for >= @p generation.
-   *
-   * @param task Task to invoke when the wakeup is triggered.
-   * @param wakeup Wakeup object to watch
-   * @param generation Generation number to match at least.
-   */
-  virtual void executeOnWakeup(Task task, Wakeup* wakeup, long generation) = 0;
-
-  /**
-   * Run the provided task when the wakeup handle is woken up.
-   */
-  void executeOnNextWakeup(std::function<void()> task, Wakeup* wakeup);
-
-  /**
-   * Run the provided task when the wakeup handle is woken up.
-   */
-  void executeOnFirstWakeup(std::function<void()> task, Wakeup* wakeup);
 
   /**
    * Retrieves the number of active timers.

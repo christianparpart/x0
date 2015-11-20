@@ -35,6 +35,9 @@ class ThreadedExecutor : public Executor {
   HandleRef executeOnReadable(int fd, Task task, Duration timeout, Task onTimeout) override;
   HandleRef executeOnWritable(int fd, Task task, Duration timeout, Task onTimeout) override;
   void cancelFD(int fd) override;
+  HandleRef executeAfter(Duration delay, Task task) override;
+  HandleRef executeAt(UnixTime ts, Task task) override;
+  void executeOnWakeup(Task task, Wakeup* wakeup, long generation) override;
   std::string toString() const override;
 
   void joinAll();

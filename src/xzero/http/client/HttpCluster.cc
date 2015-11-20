@@ -19,12 +19,9 @@ namespace client {
 # define TRACE(msg...) do {} while (0)
 #endif
 
-HttpCluster::HttpCluster()
-    : HttpCluster("default") {
-}
-
-HttpCluster::HttpCluster(const std::string& name)
+HttpCluster::HttpCluster(const std::string& name, Executor* executor)
     : HttpCluster(name,
+                  executor,
                   true,                      // enabled
                   false,                     // stickyOfflineMode
                   true,                      // allowXSendfile
@@ -36,6 +33,7 @@ HttpCluster::HttpCluster(const std::string& name)
 }
 
 HttpCluster::HttpCluster(const std::string& name,
+                         Executor* executor,
                          bool enabled,
                          bool stickyOfflineMode,
                          bool allowXSendfile,
@@ -54,6 +52,7 @@ HttpCluster::HttpCluster(const std::string& name,
       retryAfter_(retryAfter),
       maxRetryCount_(maxRetryCount),
       storagePath_("TODO"),
+      shaper_(executor, 0),
       members_(),
       scheduler_() {
 }
