@@ -9,6 +9,8 @@
 #pragma once
 
 #include <xzero/http/HttpRequestInfo.h>
+#include <xzero/http/HttpListener.h>
+#include <xzero/CustomDataMgr.h>
 #include <xzero/TokenShaper.h>
 #include <xzero/io/InputStream.h>
 #include <memory>
@@ -19,22 +21,19 @@ class InputStream;
 class Executor;
 
 namespace http {
-
-class HttpListener;
-
 namespace client {
 
 class HttpClusterMember;
 
-struct HttpClusterRequest {
+struct HttpClusterRequest : public CustomData {
   HttpClusterRequest(const HttpRequestInfo& _requestInfo,
                      std::unique_ptr<InputStream> _requestBody,
-                     HttpListener* _responseListener,
+                     std::unique_ptr<HttpListener> _responseListener,
                      Executor* _executor);
 
   const HttpRequestInfo& requestInfo;
   std::unique_ptr<InputStream> requestBody;
-  HttpListener* responseListener;
+  std::unique_ptr<HttpListener> responseListener;
   Executor* executor;
 
   // the bucket (node) this request is to be scheduled via

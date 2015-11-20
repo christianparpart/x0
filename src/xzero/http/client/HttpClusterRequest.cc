@@ -1,4 +1,5 @@
 #include <xzero/http/client/HttpClusterRequest.h>
+#include <assert.h>
 
 namespace xzero {
 namespace http {
@@ -6,11 +7,11 @@ namespace client {
 
 HttpClusterRequest::HttpClusterRequest(const HttpRequestInfo& _requestInfo,
                                        std::unique_ptr<InputStream> _requestBody,
-                                       HttpListener* _responseListener,
+                                       std::unique_ptr<HttpListener> _responseListener,
                                        Executor* executor)
     : requestInfo(_requestInfo),
       requestBody(std::move(_requestBody)),
-      responseListener(_responseListener),
+      responseListener(std::move(_responseListener)),
       bucket(nullptr),
       backend(nullptr),
       tryCount(0),

@@ -381,7 +381,7 @@ void XzeroDaemon::terminate() {
 Scheduler* XzeroDaemon::selectClientScheduler() {
   // TODO: support least-load
 
-  if (++lastWorker_ == schedulers_.size())
+  if (++lastWorker_ >= schedulers_.size())
     lastWorker_ = 0;
 
   return schedulers_[lastWorker_].get();

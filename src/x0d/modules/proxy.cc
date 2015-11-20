@@ -135,14 +135,13 @@ bool ProxyModule::verify_proxy_cluster(xzero::flow::Instr* call) {
 
   using client::HttpCluster;
 
-  Executor* executor = daemon().selectClientScheduler();
-
-  std::shared_ptr<HttpCluster> cluster(new HttpCluster(nameArg->get(), executor));
+  std::shared_ptr<HttpCluster> cluster(new HttpCluster(nameArg->get(), nullptr));
 
   if (FileUtil::exists(path))
     cluster->setConfiguration(FileUtil::read(path).str());
   else {
-    cluster->addMember("demo1", IPAddress("127.0.0.1"), 3000, 10, true);
+    cluster->addMember("demo1", IPAddress("127.0.0.1"), 3001, 10, true);
+    cluster->setEnabled(false);
   }
 
   clusterMap_[nameArg->get()] = cluster;
@@ -150,7 +149,13 @@ bool ProxyModule::verify_proxy_cluster(xzero::flow::Instr* call) {
   return true;
 }
 
-class HttpResponseBuilder : public HttpListener, public CustomData  { // {{{
+void ProxyModule::onPostConfig() {
+  for (auto& c: clusterMap_) {
+    c.second->shaper()->setExecutor(daemon().selectClientScheduler());
+  }
+}
+
+class HttpResponseBuilder : public HttpListener { // {{{
  public:
   explicit HttpResponseBuilder(HttpResponse* response);
 
@@ -225,10 +230,10 @@ bool ProxyModule::proxy_cluster(XzeroContext* cx, Params& args) {
 
   TRACE("proxy.cluster: $0", cluster->name());
 
-  HttpClusterRequest* cr = new HttpClusterRequest(
+  HttpClusterRequest* cr = cx->setCustomData<HttpClusterRequest>(this,
       *cx->request(),
       std::unique_ptr<InputStream>(new HttpInputStream(cx->request()->input())),
-      cx->setCustomData<HttpResponseBuilder>(this, cx->response()),
+      std::unique_ptr<HttpListener>(new HttpResponseBuilder(cx->response())),
       cx->response()->executor());
 
   HttpCluster::RequestShaper::Node* bucket = cluster->rootBucket();

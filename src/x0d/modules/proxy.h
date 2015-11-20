@@ -73,6 +73,8 @@ class ProxyModule : public XzeroModule {
   void proxyHttpRespondFailure(const xzero::Status& status,
                                XzeroContext* cx);
 
+  void onPostConfig() override;
+
  private:
   std::string pseudonym_;
 

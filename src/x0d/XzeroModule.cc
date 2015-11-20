@@ -33,6 +33,9 @@ XzeroModule::~XzeroModule() {
 }
 
 // {{{ hook setup API
+void XzeroModule::onPostConfig() {
+}
+
 void XzeroModule::onCycleLogs(std::function<void()> cb) {
   auto handle = daemon().onCycleLogs.connect(cb);
   cleanups_.push_back([=]() { daemon().onCycleLogs.disconnect(handle); });

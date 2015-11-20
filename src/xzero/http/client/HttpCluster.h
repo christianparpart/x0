@@ -92,6 +92,8 @@ class HttpCluster {
 
   typedef TokenShaper<HttpClusterRequest> RequestShaper;
 
+  void setExecutor(Executor* executor);
+
   TokenShaperError createBucket(const std::string& name, float rate, float ceil);
   RequestShaper::Node* findBucket(const std::string& name) const;
   RequestShaper::Node* rootBucket() const { return shaper()->rootNode(); }

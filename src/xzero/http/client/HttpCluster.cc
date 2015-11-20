@@ -110,6 +110,14 @@ void HttpCluster::removeMember(const std::string& name) {
   }
 }
 
+void HttpCluster::setExecutor(Executor* executor) {
+  shaper()->setExecutor(executor);
+}
+
+void HttpCluster::send(HttpClusterRequest* cr) {
+  send(cr, rootBucket());
+}
+
 void HttpCluster::send(HttpClusterRequest* cr, RequestShaper::Node* bucket) {
   if (!enabled_) {
     serviceUnavailable(cr);

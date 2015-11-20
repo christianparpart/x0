@@ -74,6 +74,8 @@ class XzeroModule {
       bool (Class::*method)(XzeroContext*, Params&),
       ArgTypes... argTypes);
 
+  virtual void onPostConfig();
+
   void onCycleLogs(std::function<void()> callback);
   void onConnectionOpen(std::function<void(xzero::Connection*)> callback);
   void onConnectionClose(std::function<void(xzero::Connection*)> callback);

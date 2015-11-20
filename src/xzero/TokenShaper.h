@@ -100,6 +100,7 @@ class TokenShaper {
   void setTimeoutHandler(H handler);
 
   Executor* executor() const { return root_->executor_; }
+  void setExecutor(Executor* executor);
 
   size_t size() const;
   void resize(size_t capacity);
@@ -198,6 +199,8 @@ class TokenShaper<T>::Node {
 
   void writeJSON(JsonWriter& json) const;
 
+  void setExecutor(Executor* executor);
+
  private:
   friend class TokenShaper;
   void update(size_t n);
@@ -265,6 +268,11 @@ template <typename T>
 template <typename H>
 void TokenShaper<T>::setTimeoutHandler(H handler) {
   root_->setTimeoutHandler(handler);
+}
+
+template <typename T>
+void TokenShaper<T>::setExecutor(Executor* executor) {
+  root_->setExecutor(executor);
 }
 
 template <typename T>
@@ -340,10 +348,21 @@ TokenShaper<T>::Node::~Node() {
 }
 
 template <typename T>
+void TokenShaper<T>::Node::setExecutor(Executor* executor) {
+  executor_ = executor;
+
+  for (const auto child : children_) {
+    child->setExecutor(executor);
+  }
+}
+
+template <typename T>
 float TokenShaper<T>::Node::childRateP() const {
   float sum = 0;
 
-  for (const auto child : children_) sum += child->rateP();
+  for (const auto child : children_) {
+    sum += child->rateP();
+  }
 
   return sum;
 }
