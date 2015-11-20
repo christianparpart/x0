@@ -19,6 +19,7 @@
 #include <xzero/http/HttpRequest.h>
 #include <xzero/http/HttpResponse.h>
 #include <xzero/io/FileUtil.h>
+#include <xzero/io/BufferInputStream.h>
 #include <xzero/net/InetEndPoint.h>
 #include <xzero/io/FileUtil.h>
 #include <xzero/WallClock.h>
@@ -143,16 +144,86 @@ bool ProxyModule::verify_proxy_cluster(xzero::flow::Instr* call) {
   return true;
 }
 
+class HttpResponseBuilder : public HttpListener, public CustomData  { // {{{
+ public:
+  explicit HttpResponseBuilder(HttpResponse* response);
+
+  void onMessageBegin(HttpVersion version, HttpStatus code, const BufferRef& text) override;
+  void onMessageHeader(const BufferRef& name, const BufferRef& value) override;
+  void onMessageHeaderEnd() override;
+  void onMessageContent(const BufferRef& chunk) override;
+  void onMessageEnd() override;
+  void onProtocolError(HttpStatus code, const std::string& message) override;
+
+ private:
+  HttpResponse* response_;
+};
+
+HttpResponseBuilder::HttpResponseBuilder(HttpResponse* response)
+    : response_(response) {
+}
+
+void HttpResponseBuilder::onMessageBegin(HttpVersion version, HttpStatus code, const BufferRef& text) {
+  response_->setStatus(code);
+  response_->setReason(text.str());
+}
+
+void HttpResponseBuilder::onMessageHeader(const BufferRef& name, const BufferRef& value) {
+  // TODO: skip connection-level headers
+  response_->headers().push_back(name.str(), value.str());
+}
+
+void HttpResponseBuilder::onMessageHeaderEnd() {
+}
+
+void HttpResponseBuilder::onMessageContent(const BufferRef& chunk) {
+  response_->output()->write(chunk);
+}
+
+void HttpResponseBuilder::onMessageEnd() {
+  response_->completed();
+}
+
+void HttpResponseBuilder::onProtocolError(HttpStatus code, const std::string& message) {
+}
+// }}}
+class HttpInputStream : public InputStream { // {{{
+ public:
+  explicit HttpInputStream(HttpInput* input);
+  size_t read(Buffer* target, size_t n) override;
+  size_t transferTo(OutputStream* target) override;
+
+ private:
+  HttpInput* input_;
+};
+
+HttpInputStream::HttpInputStream(HttpInput* input)
+    : input_(input) {
+}
+
+size_t HttpInputStream::read(Buffer* target, size_t n) {
+  size_t oldsize = target->size();
+  target->reserve(target->size() + n);
+  input_->read(target);
+  return target->size() - oldsize;
+}
+
+size_t HttpInputStream::transferTo(OutputStream* target) {
+  return 0; // TODO (unused, actually)
+}
+
+// }}}
+
 bool ProxyModule::proxy_cluster(XzeroContext* cx, Params& args) {
   auto& cluster = clusterMap_[args.getString(1).str()];
 
   TRACE("proxy.cluster: $0", cluster->name());
 
-  HttpRequestInfo requestInfo; // TODO: cx->request();
-  std::string requestBody; // TODO: cx->request()->input();
-  HttpListener* responseListener = nullptr; // TODO: cx->response();
-
-  cluster->send(requestInfo, requestBody, responseListener);
+  cluster->send(
+      *cx->request(),
+      std::unique_ptr<InputStream>(new HttpInputStream(cx->request()->input())),
+      cx->setCustomData<HttpResponseBuilder>(this, cx->response()),
+      cx->response()->executor());
 
   return true;
 }

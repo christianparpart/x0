@@ -20,6 +20,7 @@
 #include <xzero/net/IPAddress.h>
 #include <xzero/CompletionHandler.h>
 #include <xzero/Duration.h>
+#include <xzero/Counter.h>
 #include <xzero/Uri.h>
 #include <xzero/stdtypes.h>
 #include <utility>
@@ -41,7 +42,7 @@ class HttpClusterScheduler;
 class HttpCache;
 
 class HttpCluster {
-public:
+ public:
   HttpCluster();
 
   explicit HttpCluster(const std::string& name);
@@ -152,7 +153,11 @@ public:
             HttpListener* responseListener,
             Executor* executor);
 
-private:
+ private:
+  void serviceUnavailable(HttpClusterRequest* cr);
+  bool tryEnqueue(HttpClusterRequest* rn);
+
+ private:
   // cluster's human readable representative name.
   std::string name_;
 
@@ -190,6 +195,12 @@ private:
 
   // member scheduler
   UniquePtr<HttpClusterScheduler> scheduler_;
+
+  // statistical counter of how many requests are currently queued.
+  Counter queued_;
+
+  // statistical number of how many requests has been dropped so far.
+  std::atomic<unsigned long long> dropped_;
 };
 
 } // namespace client

@@ -4,11 +4,20 @@
 #include <xzero/http/client/HttpHealthCheck.h>
 #include <xzero/io/StringInputStream.h>
 #include <xzero/io/InputStream.h>
+#include <xzero/logging.h>
 #include <algorithm>
 
 namespace xzero {
 namespace http {
 namespace client {
+
+#ifndef NDEBUG
+# define DEBUG(msg...) logDebug("http.client.HttpCluster", msg)
+# define TRACE(msg...) logTrace("http.client.HttpCluster", msg)
+#else
+# define DEBUG(msg...) do {} while (0)
+# define TRACE(msg...) do {} while (0)
+#endif
 
 HttpCluster::HttpCluster()
     : HttpCluster("default") {
@@ -96,7 +105,92 @@ void HttpCluster::send(const HttpRequestInfo& requestInfo,
                        std::unique_ptr<InputStream> requestBody,
                        HttpListener* responseListener,
                        Executor* executor) {
-  // TODO
+
+  TokenShaper<HttpClusterRequest>::Node* bucket = nullptr; // TODO
+
+  HttpClusterRequest* cr = new HttpClusterRequest(
+      requestInfo,
+      std::move(requestBody),
+      responseListener,
+      bucket,
+      executor);
+
+  if (!enabled_) {
+    serviceUnavailable(cr);
+    return;
+  }
+
+  if (cr->bucket->get(1)) {
+    HttpClusterSchedulerStatus status = scheduler_->schedule(cr);
+    if (status == HttpClusterSchedulerStatus::Success)
+      return;
+
+    cr->bucket->put(1);
+    cr->tokens = 0;
+
+    if (status == HttpClusterSchedulerStatus::Unavailable &&
+        !enqueueOnUnavailable_) {
+      serviceUnavailable(cr);
+    } else {
+      tryEnqueue(cr);
+    }
+  } else if (cr->bucket->ceil() > 0 || enqueueOnUnavailable_) {
+    // there are tokens available (for rent) and we prefer to wait if unavailable
+    tryEnqueue(cr);
+  } else {
+    serviceUnavailable(cr);
+  }
+}
+
+void HttpCluster::serviceUnavailable(HttpClusterRequest* cr) {
+  cr->responseListener->onMessageBegin(
+      HttpVersion::VERSION_1_1,
+      HttpStatus::ServiceUnavailable,
+      BufferRef(StringUtil::toString(HttpStatus::ServiceUnavailable)));
+
+  if (retryAfter() != Duration::Zero) {
+    char value[64];
+    int vs = snprintf(value, sizeof(value), "%lu", retryAfter().seconds());
+    cr->responseListener->onMessageHeader(
+        BufferRef("Retry-After"), BufferRef(value, vs));
+  }
+
+  cr->responseListener->onMessageHeaderEnd();
+  cr->responseListener->onMessageEnd();
+
+  ++dropped_;
+}
+
+/**
+ * Attempts to enqueue the request, respecting limits.
+ *
+ * Attempts to enqueue the request on the associated bucket.
+ * If enqueuing fails, it instead finishes the request with a 503 (Service
+ * Unavailable).
+ *
+ * @retval true request could be enqueued.
+ * @retval false request could not be enqueued. A 503 error response has been
+ *               sent out instead.
+ */
+bool HttpCluster::tryEnqueue(HttpClusterRequest* cr) {
+  if (cr->bucket->queued().current() < queueLimit()) {
+    cr->backend = nullptr;
+    cr->bucket->enqueue(cr);
+    ++queued_;
+
+    TRACE("Director $0 [$1] overloaded. Enqueueing request ($2).",
+          name(),
+          cr->bucket->name(),
+          cr->bucket->queued().current());
+
+    return true;
+  }
+
+  TRACE("director: '$0' queue limit $1 reached.", name(), queueLimit());
+
+  serviceUnavailable(cr);
+
+  return false;
 }
 
 } // namespace client

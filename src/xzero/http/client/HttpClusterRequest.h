@@ -16,6 +16,7 @@
 namespace xzero {
 
 class InputStream;
+class Executor;
 
 namespace http {
 
@@ -23,23 +24,31 @@ class HttpListener;
 
 namespace client {
 
-class HttpClusterRequest {
- public:
-  HttpClusterRequest(HttpRequestInfo&& requestInfo,
-                     std::unique_ptr<InputStream> requestBody,
-                     HttpListener* responseListener);
-  virtual ~HttpClusterRequest();
+class HttpClusterMember;
 
-  HttpListener* responseListener() const { return responseListener_; }
+struct HttpClusterRequest {
+  HttpClusterRequest(const HttpRequestInfo& _requestInfo,
+                     std::unique_ptr<InputStream> _requestBody,
+                     HttpListener* _responseListener,
+                     TokenShaper<HttpClusterRequest>::Node* _bucket,
+                     Executor* _executor);
 
- private:
-  HttpRequestInfo requestInfo_;
-  std::unique_ptr<InputStream> requestBody_;
-  HttpListener* responseListener_;
-  size_t tryCount_;
+  const HttpRequestInfo& requestInfo;
+  std::unique_ptr<InputStream> requestBody;
+  HttpListener* responseListener;
+  Executor* executor;
 
-  // the bucket (node) this request is to be scheduled via.
-  TokenShaper<HttpClusterRequest>::Node* bucket_;
+  // the bucket (node) this request is to be scheduled via
+  TokenShaper<HttpClusterRequest>::Node* bucket;
+
+  // designated backend to serve this request
+  HttpClusterMember* backend;
+
+  // number of scheduling attempts
+  size_t tryCount;
+
+  // contains the number of currently acquired tokens by this request
+  size_t tokens;
 };
 
 } // namespace http

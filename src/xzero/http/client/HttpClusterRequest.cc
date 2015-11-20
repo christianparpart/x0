@@ -4,17 +4,18 @@ namespace xzero {
 namespace http {
 namespace client {
 
-HttpClusterRequest::HttpClusterRequest(HttpRequestInfo&& requestInfo,
-                                       std::unique_ptr<InputStream> requestBody,
-                                       HttpListener* responseListener)
-    : requestInfo_(std::move(requestInfo)),
-      requestBody_(std::move(requestBody)),
-      responseListener_(responseListener),
-      tryCount_(0),
-      bucket_(nullptr) {
-}
-
-HttpClusterRequest::~HttpClusterRequest() {
+HttpClusterRequest::HttpClusterRequest(const HttpRequestInfo& _requestInfo,
+                                       std::unique_ptr<InputStream> _requestBody,
+                                       HttpListener* _responseListener,
+                                       TokenShaper<HttpClusterRequest>::Node* _bucket,
+                                       Executor* executor)
+    : requestInfo(_requestInfo),
+      requestBody(std::move(_requestBody)),
+      responseListener(_responseListener),
+      bucket(_bucket),
+      backend(nullptr),
+      tryCount(0),
+      tokens(0) {
 }
 
 } // namespace http
