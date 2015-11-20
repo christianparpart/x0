@@ -94,11 +94,13 @@ set(xzero_base_SRC
   Buffer.cc
   BufferUtil.cc
   CivilTime.cc
+  Counter.cc
   Duration.cc
   ExceptionHandler.cc
   IEEE754.cc
   ISO8601.cc
   IdleTimeout.cc
+  JsonWriter.cc
   MimeTypes.cc
   MonotonicClock.cc
   MonotonicTime.cc
