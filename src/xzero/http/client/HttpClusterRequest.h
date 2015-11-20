@@ -30,7 +30,6 @@ struct HttpClusterRequest {
   HttpClusterRequest(const HttpRequestInfo& _requestInfo,
                      std::unique_ptr<InputStream> _requestBody,
                      HttpListener* _responseListener,
-                     TokenShaper<HttpClusterRequest>::Node* _bucket,
                      Executor* _executor);
 
   const HttpRequestInfo& requestInfo;

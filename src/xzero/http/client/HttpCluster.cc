@@ -92,6 +92,16 @@ void HttpCluster::addMember(const std::string& name,
                         std::move(healthCheck));
 }
 
+HttpClusterMember* HttpCluster::findMember(const std::string& name) {
+  auto i = std::find_if(members_.begin(), members_.end(),
+      [&](const HttpClusterMember& m) -> bool { return m.name() == name; });
+  if (i != members_.end()) {
+    return &*i;
+  } else {
+    return nullptr;
+  }
+}
+
 void HttpCluster::removeMember(const std::string& name) {
   auto i = std::find_if(members_.begin(), members_.end(),
       [&](const HttpClusterMember& m) -> bool { return m.name() == name; });
@@ -100,24 +110,13 @@ void HttpCluster::removeMember(const std::string& name) {
   }
 }
 
-void HttpCluster::send(const HttpRequestInfo& requestInfo,
-                       std::unique_ptr<InputStream> requestBody,
-                       HttpListener* responseListener,
-                       Executor* executor) {
-
-  TokenShaper<HttpClusterRequest>::Node* bucket = nullptr; // TODO
-
-  HttpClusterRequest* cr = new HttpClusterRequest(
-      requestInfo,
-      std::move(requestBody),
-      responseListener,
-      bucket,
-      executor);
-
+void HttpCluster::send(HttpClusterRequest* cr, RequestShaper::Node* bucket) {
   if (!enabled_) {
     serviceUnavailable(cr);
     return;
   }
+
+  cr->bucket = bucket;
 
   if (cr->bucket->get(1)) {
     HttpClusterSchedulerStatus status = scheduler_->schedule(cr);

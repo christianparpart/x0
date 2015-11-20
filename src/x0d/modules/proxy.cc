@@ -15,6 +15,7 @@
 #include "proxy.h"
 #include "XzeroContext.h"
 #include <xzero/http/client/HttpCluster.h>
+#include <xzero/http/client/HttpClusterRequest.h>
 #include <xzero/http/client/HttpClient.h>
 #include <xzero/http/HttpRequest.h>
 #include <xzero/http/HttpResponse.h>
@@ -48,6 +49,9 @@ namespace x0d {
 using namespace xzero;
 using namespace xzero::http;
 using namespace xzero::flow;
+
+using xzero::http::client::HttpClusterRequest;
+using xzero::http::client::HttpCluster;
 
 #define TRACE(msg...) logTrace("proxy", msg)
 
@@ -131,7 +135,7 @@ bool ProxyModule::verify_proxy_cluster(xzero::flow::Instr* call) {
 
   using client::HttpCluster;
 
-  Executor* executor = nullptr; // TODO
+  Executor* executor = daemon().selectClientScheduler();
 
   std::shared_ptr<HttpCluster> cluster(new HttpCluster(nameArg->get(), executor));
 
@@ -221,11 +225,15 @@ bool ProxyModule::proxy_cluster(XzeroContext* cx, Params& args) {
 
   TRACE("proxy.cluster: $0", cluster->name());
 
-  cluster->send(
+  HttpClusterRequest* cr = new HttpClusterRequest(
       *cx->request(),
       std::unique_ptr<InputStream>(new HttpInputStream(cx->request()->input())),
       cx->setCustomData<HttpResponseBuilder>(this, cx->response()),
       cx->response()->executor());
+
+  HttpCluster::RequestShaper::Node* bucket = cluster->rootBucket();
+
+  cluster->send(cr, bucket);
 
   return true;
 }

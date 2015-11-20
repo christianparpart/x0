@@ -128,6 +128,8 @@ class HttpCluster {
                  size_t capacity,
                  bool enabled);
 
+  HttpClusterMember* findMember(const std::string& name);
+
   /**
    * Removes member by name.
    *
@@ -153,15 +155,20 @@ class HttpCluster {
   /**
    * Passes given request to a cluster member to be served.
    *
-   * @param requestInfo HTTP request info.
-   * @param requestBody HTTP request body,
-   * @param responseListener HTTP response message listener.
-   * @param executor Executor to use for async I/O operations.
+   * Uses the root bucket.
+   *
+   * @param cr request to schedule
    */
-  void send(const HttpRequestInfo& requestInfo,
-            std::unique_ptr<InputStream> requestBody,
-            HttpListener* responseListener,
-            Executor* executor);
+  void send(HttpClusterRequest* cr);
+
+  /**
+   * Passes given request @p cr to a cluster member to be served,
+   * honoring given @p bucket.
+   *
+   * @param cr request to schedule
+   * @param bucket a TokenShaper bucket to allocate this request into.
+   */
+  void send(HttpClusterRequest* cr, RequestShaper::Node* bucket);
 
  private:
   void serviceUnavailable(HttpClusterRequest* cr);
