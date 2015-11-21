@@ -58,6 +58,7 @@ using xzero::http::client::HttpCluster;
 ProxyModule::ProxyModule(XzeroDaemon* d)
     : XzeroModule(d, "proxy"),
       pseudonym_("x0d"),
+      clusterInit_(),
       clusterMap_() {
 
   setupFunction("proxy.pseudonym", &ProxyModule::proxy_pseudonym,
@@ -103,7 +104,15 @@ ProxyModule::~ProxyModule() {
 }
 
 void ProxyModule::proxy_pseudonym(xzero::flow::vm::Params& args) {
-  pseudonym_ = args.getString(1).str();
+  std::string value = args.getString(1).str();
+
+  for (char ch: value) {
+    if (!std::isalnum(ch) && ch != '_' && ch != '-' && ch != '.') {
+      RAISE(ConfigurationError, "Invalid character found in proxy.pseudonym");
+    }
+  }
+
+  pseudonym_ = value;
 }
 
 bool ProxyModule::verify_proxy_cluster(xzero::flow::Instr* call) {
@@ -133,26 +142,33 @@ bool ProxyModule::verify_proxy_cluster(xzero::flow::Instr* call) {
 
   call->replaceOperand(pathArg, program->get(path));
 
-  using client::HttpCluster;
-
-  std::shared_ptr<HttpCluster> cluster(new HttpCluster(nameArg->get(), nullptr));
-
-  if (FileUtil::exists(path))
-    cluster->setConfiguration(FileUtil::read(path).str());
-  else {
-    cluster->addMember("demo1", IPAddress("127.0.0.1"), 3001, 10, true);
-    cluster->setEnabled(false);
-  }
-
-  clusterMap_[nameArg->get()] = cluster;
+  clusterInit_[nameArg->get()] = path;
 
   return true;
 }
 
 void ProxyModule::onPostConfig() {
-  for (auto& c: clusterMap_) {
-    c.second->shaper()->setExecutor(daemon().selectClientScheduler());
+  using client::HttpCluster;
+
+  for (const auto& init: clusterInit_) {
+    std::string name = init.first;
+    std::string path = init.second;
+    Executor* executor = daemon().selectClientScheduler();
+
+    TRACE("Initializing cluster $0. $1", name, path);
+
+    std::shared_ptr<HttpCluster> cluster(new HttpCluster(name, executor));
+
+    if (FileUtil::exists(path))
+      cluster->setConfiguration(FileUtil::read(path).str());
+    else {
+      cluster->addMember("demo1", IPAddress("127.0.0.1"), 3001, 10, true);
+      cluster->setEnabled(false);
+    }
+
+    clusterMap_[name] = cluster;
   }
+  clusterInit_.clear();
 }
 
 class HttpResponseBuilder : public HttpListener { // {{{
@@ -227,8 +243,22 @@ size_t HttpInputStream::transferTo(OutputStream* target) {
 
 bool ProxyModule::proxy_cluster(XzeroContext* cx, Params& args) {
   auto& cluster = clusterMap_[args.getString(1).str()];
+  std::string bucketName = args.getString(3).str();
+  std::string backendName = args.getString(4).str();
 
   TRACE("proxy.cluster: $0", cluster->name());
+
+  HttpCluster::RequestShaper::Node* bucket = cluster->rootBucket();
+  if (!bucketName.empty()) {
+    auto foundBucket = cluster->findBucket(bucketName);
+    if (foundBucket) {
+      bucket = foundBucket;
+    } else {
+      logError("proxy", "Cluster $0 is missing bucket $1. Defaulting to $2",
+               cluster->name(), bucketName, bucket->name());
+    }
+  }
+
 
   HttpClusterRequest* cr = cx->setCustomData<HttpClusterRequest>(this,
       *cx->request(),
@@ -236,9 +266,7 @@ bool ProxyModule::proxy_cluster(XzeroContext* cx, Params& args) {
       std::unique_ptr<HttpListener>(new HttpResponseBuilder(cx->response())),
       cx->response()->executor());
 
-  HttpCluster::RequestShaper::Node* bucket = cluster->rootBucket();
-
-  cluster->send(cr, bucket);
+  cluster->schedule(cr, bucket);
 
   return true;
 }

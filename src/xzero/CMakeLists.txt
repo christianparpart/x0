@@ -237,7 +237,7 @@ set(xzero_base_SRC
   http/client/HttpClusterMember.cc
   http/client/HttpClusterRequest.cc
   http/client/HttpClusterScheduler.cc
-  http/client/HttpHealthCheck.cc
+  http/client/HttpHealthMonitor.cc
 )
 
 configure_file(

@@ -29,7 +29,7 @@ class InputStream;
 namespace http {
 namespace client {
 
-class HttpHealthCheck;
+class HttpHealthMonitor;
 class HttpClusterRequest;
 
 class HttpClusterMember {
@@ -42,7 +42,7 @@ public:
       size_t capacity,
       bool enabled,
       const std::string& protocol, // http, https, fastcgi, h2, ...
-      std::unique_ptr<HttpHealthCheck> healthCheck);
+      std::unique_ptr<HttpHealthMonitor> healthMonitor);
 
   ~HttpClusterMember();
 
@@ -60,7 +60,10 @@ public:
   size_t capacity() const { return capacity_; }
   void setCapacity(size_t value);
 
-  HttpHealthCheck* healthCheck() const { return healthCheck_.get(); }
+  bool isEnabled() const noexcept { return enabled_; }
+  void setEnabled(bool value) { enabled_ = value; }
+
+  HttpHealthMonitor* healthMonitor() const { return healthMonitor_.get(); }
 
   HttpClusterSchedulerStatus tryProcess(HttpClusterRequest* cr);
 
@@ -68,9 +71,9 @@ private:
   std::string name_;
   IPAddress ipaddress_;
   int port_;
-  std::string protocol_;
+  std::string protocol_; // "http" | "fastcgi"
   size_t capacity_;
-  std::unique_ptr<HttpHealthCheck> healthCheck_;
+  std::unique_ptr<HttpHealthMonitor> healthMonitor_;
 
   bool enabled_;
 

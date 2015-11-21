@@ -10,6 +10,7 @@
 
 #include <xzero/http/HttpRequestInfo.h>
 #include <xzero/http/HttpListener.h>
+#include <xzero/executor/Executor.h>
 #include <xzero/CustomDataMgr.h>
 #include <xzero/TokenShaper.h>
 #include <xzero/io/InputStream.h>
@@ -18,7 +19,6 @@
 namespace xzero {
 
 class InputStream;
-class Executor;
 
 namespace http {
 namespace client {
@@ -31,6 +31,7 @@ struct HttpClusterRequest : public CustomData {
                      std::unique_ptr<HttpListener> _responseListener,
                      Executor* _executor);
 
+  MonotonicTime ctime;
   const HttpRequestInfo& requestInfo;
   std::unique_ptr<InputStream> requestBody;
   std::unique_ptr<HttpListener> responseListener;
@@ -47,6 +48,8 @@ struct HttpClusterRequest : public CustomData {
 
   // contains the number of currently acquired tokens by this request
   size_t tokens;
+
+  void post(Executor::Task task) { executor->execute(task); }
 };
 
 } // namespace http

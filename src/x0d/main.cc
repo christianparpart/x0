@@ -124,7 +124,7 @@ int main(int argc, const char* argv[]) {
 
     x0d.run();
   } catch (const std::exception& e) {
-    fprintf(stderr, "%s\n", e.what());
+    fprintf(stderr, "Unhandled exception caught. %s\n", e.what());
     return 1;
   }
 

@@ -78,6 +78,9 @@ class ProxyModule : public XzeroModule {
  private:
   std::string pseudonym_;
 
+  // list of clusters by {name, path} to initialize
+  std::unordered_map<std::string, std::string> clusterInit_;
+
   std::unordered_map<
       std::string,
       std::shared_ptr<xzero::http::client::HttpCluster>>

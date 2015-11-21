@@ -14,7 +14,7 @@
 #include <xzero/http/client/HttpClient.h>
 #include <xzero/http/client/HttpClusterMember.h>
 #include <xzero/http/client/HttpClusterScheduler.h>
-#include <xzero/http/client/HttpHealthCheck.h>
+#include <xzero/http/client/HttpHealthMonitor.h>
 #include <xzero/http/HttpRequestInfo.h>
 #include <xzero/http/HttpResponseInfo.h>
 #include <xzero/net/IPAddress.h>
@@ -38,7 +38,6 @@ class HttpListener;
 
 namespace client {
 
-class HttpHealthCheck;
 class HttpClusterMember;
 class HttpClusterScheduler;
 class HttpCache;
@@ -56,7 +55,10 @@ class HttpCluster {
               size_t queueLimit,
               Duration queueTimeout,
               Duration retryAfter,
-              size_t maxRetryCount);
+              size_t maxRetryCount,
+              Duration connectTimeout,
+              Duration readTimeout,
+              Duration writeTimeout);
 
   ~HttpCluster();
 
@@ -90,14 +92,25 @@ class HttpCluster {
   size_t maxRetryCount() const { return maxRetryCount_; }
   void setMaxRetryCount(size_t value) { maxRetryCount_ = value; }
 
-  typedef TokenShaper<HttpClusterRequest> RequestShaper;
+  Duration connectTimeout() const noexcept { return connectTimeout_; }
+  void setConnectTimeout(Duration value) { connectTimeout_ = value; }
 
+  Duration readTimeout() const noexcept { return readTimeout_; }
+  void setReadTimeout(Duration value) { readTimeout_ = value; }
+
+  Duration writeTimeout() const noexcept { return writeTimeout_; }
+  void setWriteTimeout(Duration value) { writeTimeout_ = value; }
+
+  typedef TokenShaper<HttpClusterRequest> RequestShaper;
+  typedef RequestShaper::Node Bucket;
+
+  Executor* executor() const noexcept { return executor_; }
   void setExecutor(Executor* executor);
 
   TokenShaperError createBucket(const std::string& name, float rate, float ceil);
-  RequestShaper::Node* findBucket(const std::string& name) const;
-  RequestShaper::Node* rootBucket() const { return shaper()->rootNode(); }
-  bool eachBucket(std::function<bool(RequestShaper::Node*)> body);
+  Bucket* findBucket(const std::string& name) const;
+  Bucket* rootBucket() const { return shaper()->rootNode(); }
+  bool eachBucket(std::function<bool(Bucket*)> body);
   const RequestShaper* shaper() const { return &shaper_; }
   RequestShaper* shaper() { return &shaper_; }
 
@@ -161,7 +174,7 @@ class HttpCluster {
    *
    * @param cr request to schedule
    */
-  void send(HttpClusterRequest* cr);
+  void schedule(HttpClusterRequest* cr);
 
   /**
    * Passes given request @p cr to a cluster member to be served,
@@ -170,11 +183,19 @@ class HttpCluster {
    * @param cr request to schedule
    * @param bucket a TokenShaper bucket to allocate this request into.
    */
-  void send(HttpClusterRequest* cr, RequestShaper::Node* bucket);
+  void schedule(HttpClusterRequest* cr, Bucket* bucket);
 
  private:
-  void serviceUnavailable(HttpClusterRequest* cr);
+  void reschedule(HttpClusterRequest* cr);
+  void serviceUnavailable(HttpClusterRequest* cr, HttpStatus status = HttpStatus::ServiceUnavailable);
+  bool verifyTryCount(HttpClusterRequest* cr);
   bool tryEnqueue(HttpClusterRequest* rn);
+  void dequeueTo(HttpClusterMember* backend);
+  HttpClusterRequest* dequeue();
+  void onTimeout(HttpClusterRequest* cr);
+  void onBackendStateChanged(HttpClusterMember* backend,
+                             HttpHealthMonitor* healthMonitor,
+                             HttpHealthMonitor::State oldState);
 
  private:
   // cluster's human readable representative name.
@@ -206,13 +227,25 @@ class HttpCluster {
   // number of attempts to pass request to a backend before giving up
   size_t maxRetryCount_;
 
+  // backend connect() timeout
+  Duration connectTimeout_;
+
+  // backend response read timeout
+  Duration readTimeout_;
+
+  // backend request write timeout
+  Duration writeTimeout_;
+
+  // Executor used for request shaping and health checking
+  Executor* executor_;
+
   // path to the local directory this director is serialized from/to.
   std::string storagePath_;
 
   RequestShaper shaper_;
 
   // cluster member vector
-  std::list<HttpClusterMember> members_;
+  std::list<HttpClusterMember*> members_;
 
   // member scheduler
   UniquePtr<HttpClusterScheduler> scheduler_;

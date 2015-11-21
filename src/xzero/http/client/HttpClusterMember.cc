@@ -1,5 +1,5 @@
 #include <xzero/http/client/HttpClusterMember.h>
-#include <xzero/http/client/HttpHealthCheck.h>
+#include <xzero/http/client/HttpHealthMonitor.h>
 
 namespace xzero {
 namespace http {
@@ -13,13 +13,13 @@ HttpClusterMember::HttpClusterMember(
     size_t capacity,
     bool enabled,
     const std::string& protocol,
-    std::unique_ptr<HttpHealthCheck> healthCheck)
+    std::unique_ptr<HttpHealthMonitor> healthMonitor)
     : name_(name),
       ipaddress_(ipaddr),
       port_(port),
       protocol_(protocol),
       capacity_(capacity),
-      healthCheck_(std::move(healthCheck)),
+      healthMonitor_(std::move(healthMonitor)),
       enabled_(enabled),
       executor_(executor),
       clients_() {

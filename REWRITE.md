@@ -20,8 +20,8 @@
       Example: "Welcome on ${sys.hostname}" is not working,
       but the: "Welcome on ${sys.hostname()}" is working.
 - [x] revive `max_request_body`
-- [ ] HttpRequest: reuse of HttpRequestInfo
-- [ ] HttpResponse: reuse of HttpResponseInfo
+- [x] HttpRequest: reuse of HttpRequestInfo
+- [ ] HttpResponse: reuse of HttpResponseInfo (NEEDED?)
 - [ ] revive `lingering`
 - [ ] revive `max_connections`
 - [ ] (make thread safe) File::lastModified()
@@ -45,14 +45,18 @@
 - [x] x0d: 100-continue - pre-read HttpInput
 - [x] webdav implements PUT method
 - [x] proxy.http: support request body
-- [ ] HttpInput: offload into local tmpfile if payload > N bytes
+- [ ] HttpHealthMonitor: monitor an HTTP upstream (transport protocol independant)
 - [ ] HttpClusterMember, proxies to HttpClient, with constraints (such as capacity)
 - [ ] HttpCluster: basic load balancing to HTTP/1 upstreams
-- [ ] HttpHealthCheck: monitor an HTTP upstream (transport protocol independant)
-- [ ] HttpClient: support FastCGI
 - [ ] flow-api: `proxy.fcgi(ipaddr, port)`
+
+#### beautify proxy plugin
+
+- [ ] HttpInput: offload into local tmpfile if payload > N bytes
+- [ ] Executor::HandleRef -> `<xzero/Action.h>` or similar to make it more generic
 - [ ] HttpClient: support UNIX domain socket alongside with TCP/IP
 - [ ] proxy: properly proxy 'Expect: 100-continue' (Expect-header must be forwarded)
+- [ ] HttpClient: support FastCGI
 
 ### Feature Stories
 
