@@ -90,9 +90,10 @@ void HttpCluster::addMember(const std::string& name,
                             int port,
                             size_t capacity,
                             bool enabled) {
-  Executor* executor = nullptr;
-  std::string protocol = "http";
-  std::unique_ptr<HttpHealthMonitor> healthCheck = nullptr;
+  Executor* executor = executor_; // TODO: get as function arg for passing:  daemon().selectClientScheduler()
+  std::string protocol = "http";  // TODO: get as function arg
+  std::unique_ptr<HttpHealthMonitor> healthCheck(
+      new HttpHealthMonitor(executor, healthCheckUri()));
 
   HttpClusterMember* backend = new HttpClusterMember(executor,
                                                      name,

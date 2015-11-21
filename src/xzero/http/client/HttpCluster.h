@@ -151,6 +151,9 @@ class HttpCluster {
    * @param name human readable name of the member to be removed.
    */
   void removeMember(const std::string& name);
+
+  const Uri& healthCheckUri() const noexcept { return healthCheckUri_; }
+  void setHealthCheckUri(const Uri& uri) { healthCheckUri_ = uri; }
   // }}}
 
   // {{{ serialization
@@ -246,6 +249,9 @@ class HttpCluster {
 
   // cluster member vector
   std::list<HttpClusterMember*> members_;
+
+  // test-URL for health checking
+  Uri healthCheckUri_;
 
   // member scheduler
   UniquePtr<HttpClusterScheduler> scheduler_;
