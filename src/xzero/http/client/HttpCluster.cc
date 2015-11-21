@@ -92,8 +92,18 @@ void HttpCluster::addMember(const std::string& name,
                             bool enabled) {
   Executor* executor = executor_; // TODO: get as function arg for passing:  daemon().selectClientScheduler()
   std::string protocol = "http";  // TODO: get as function arg
-  std::unique_ptr<HttpHealthMonitor> healthCheck(
-      new HttpHealthMonitor(executor, healthCheckUri()));
+  int healthCheckSuccessThreshold = 3;
+  const std::vector<HttpStatus> healthCheckSuccessCodes = { HttpStatus::Ok };
+
+  std::unique_ptr<HttpHealthMonitor> healthMonitor(
+      new HttpHealthMonitor(executor, ipaddr, port, healthCheckUri(),
+                    Duration::fromSeconds(4), // interval
+                    HttpHealthMonitor::Mode::Paranoid,
+                    healthCheckSuccessThreshold,
+                    healthCheckSuccessCodes,
+                    connectTimeout(),
+                    readTimeout(),
+                    writeTimeout()));
 
   HttpClusterMember* backend = new HttpClusterMember(executor,
                                                      name,
@@ -102,10 +112,10 @@ void HttpCluster::addMember(const std::string& name,
                                                      capacity,
                                                      enabled,
                                                      protocol,
-                                                     std::move(healthCheck));
+                                                     std::move(healthMonitor));
 
-  backend->healthMonitor()->setStateChangeCallback([this, backend](
-      HttpHealthMonitor*, HttpHealthMonitor::State oldState) {
+  backend->healthMonitor()->setStateChangeCallback(
+      [this, backend] (HttpHealthMonitor*, HttpHealthMonitor::State oldState) {
     onBackendStateChanged(backend, backend->healthMonitor(), oldState);
   });
 

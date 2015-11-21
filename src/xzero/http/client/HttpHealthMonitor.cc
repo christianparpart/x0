@@ -1,8 +1,10 @@
 #include <xzero/http/client/HttpHealthMonitor.h>
+#include <xzero/net/InetEndPoint.h>
 #include <xzero/io/InputStream.h>
 #include <xzero/StringUtil.h>
 #include <xzero/logging.h>
 #include <xzero/JsonWriter.h>
+#include <algorithm>
 
 #ifndef NDEBUG
 # define DEBUG(msg...) logDebug("http.client.HttpHealthMonitor", msg)
@@ -41,27 +43,28 @@ std::string StringUtil::toString(http::client::HttpHealthMonitor::Mode mode) {
 namespace http {
 namespace client {
 
-HttpHealthMonitor::HttpHealthMonitor(Executor* executor, const Uri& url)
-    : HttpHealthMonitor(executor,
-                        url,                      // target url
-                        Duration::fromSeconds(2), // interval
-                        Mode::Opportunistic,      // monitor mode
-                        3,                        // successThreshold
-                        {HttpStatus::Ok}) {       // successCodes
-}
-
 HttpHealthMonitor::HttpHealthMonitor(Executor* executor,
-                                     const Uri& url,
+                                     const IPAddress& ipaddr,
+                                     int port,
+                                     const Uri& testUrl,
                                      Duration interval,
                                      Mode mode,
                                      unsigned successThreshold,
-                                     const std::vector<HttpStatus>& successCodes)
+                                     const std::vector<HttpStatus>& successCodes,
+                                     Duration connectTimeout,
+                                     Duration readTimeout,
+                                     Duration writeTimeout)
     : executor_(executor),
       timerHandle_(),
-      url_(url),
+      ipaddr_(ipaddr),
+      port_(port),
+      testUrl_(testUrl),
       interval_(interval),
       successCodes_(successCodes),
       mode_(mode),
+      connectTimeout_(connectTimeout),
+      readTimeout_(readTimeout),
+      writeTimeout_(writeTimeout),
       successThreshold_(successThreshold),
       onStateChange_(),
       state_(State::Undefined),
@@ -121,11 +124,8 @@ void HttpHealthMonitor::recheck() {
   executor_->execute(std::bind(&HttpHealthMonitor::start, this));
 }
 
-void HttpHealthMonitor::onCheckNow() {
-  // TODO
-}
-
 void HttpHealthMonitor::logSuccess() {
+  DEBUG("logSuccess!");
   ++consecutiveSuccessCount_;
 
   if (consecutiveSuccessCount_ >= successThreshold_) {
@@ -143,6 +143,57 @@ void HttpHealthMonitor::logFailure() {
   setState(State::Offline);
 
   recheck();
+}
+
+void HttpHealthMonitor::onCheckNow() {
+  Future<RefPtr<InetEndPoint>> ep =
+      InetEndPoint::connectAsync(ipaddr_, port_, connectTimeout(), executor_);
+
+  ep.onFailure(std::bind(&HttpHealthMonitor::onConnectFailure, this, std::placeholders::_1));
+  ep.onSuccess(std::bind(&HttpHealthMonitor::onConnected, this, std::placeholders::_1));
+}
+
+void HttpHealthMonitor::onConnectFailure(Status status) {
+  DEBUG("Connecting to backend failed. $0", status);
+  logFailure();
+}
+
+void HttpHealthMonitor::onConnected(const RefPtr<InetEndPoint>& ep) {
+  client_ = std::unique_ptr<HttpClient>(new HttpClient(executor_, ep.as<EndPoint>()));
+
+  BufferRef requestBody;
+
+  HttpRequestInfo requestInfo(HttpVersion::VERSION_1_1,
+                              HttpMethod::GET,
+                              testUrl_.pathAndQuery(),
+                              requestBody.size(),
+                              { {"Host", testUrl_.hostAndPort()},
+                                {"User-Agent", "HttpHealthMonitor"} } );
+
+  client_->send(std::move(requestInfo), requestBody);
+  Future<HttpClient*> f = client_->completed();
+  f.onFailure(std::bind(&HttpHealthMonitor::onRequestFailure, this, std::placeholders::_1));
+  f.onSuccess(std::bind(&HttpHealthMonitor::onResponseReceived, this, std::placeholders::_1));
+}
+
+void HttpHealthMonitor::onRequestFailure(Status status) {
+  logFailure();
+  recheck();
+}
+
+void HttpHealthMonitor::onResponseReceived(HttpClient* client) {
+  auto i = std::find(successCodes_.begin(),
+                     successCodes_.end(),
+                     client->responseInfo().status());
+  if (i == successCodes_.end()) {
+    DEBUG("received bad response status code. $0 ($1)",
+          (int) client->responseInfo().status(),
+          client->responseInfo().status());
+    logFailure();
+    return;
+  }
+
+  logSuccess();
 }
 
 JsonWriter& operator<<(JsonWriter& json, const HttpHealthMonitor& monitor) {

@@ -46,12 +46,15 @@
 - [x] webdav implements PUT method
 - [x] proxy.http: support request body
 - [ ] HttpHealthMonitor: monitor an HTTP upstream (transport protocol independant)
+  - paranoid
+  - opportunistic
+  - lazy
 - [ ] HttpClusterMember, proxies to HttpClient, with constraints (such as capacity)
 - [ ] HttpCluster: basic load balancing to HTTP/1 upstreams
+
+#### proxy: stage 2
+
 - [ ] flow-api: `proxy.fcgi(ipaddr, port)`
-
-#### beautify proxy plugin
-
 - [ ] HttpInput: offload into local tmpfile if payload > N bytes
 - [ ] Executor::HandleRef -> `<xzero/Action.h>` or similar to make it more generic
 - [ ] HttpClient: support UNIX domain socket alongside with TCP/IP

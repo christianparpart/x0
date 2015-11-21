@@ -21,6 +21,9 @@
 #include <vector>
 
 namespace xzero {
+
+class InetEndPoint;
+
 namespace http {
 namespace client {
 
@@ -29,14 +32,17 @@ class HttpHealthMonitor {
   enum class Mode { Paranoid, Opportunistic, Lazy };
   enum class State { Undefined, Offline, Online };
 
-  HttpHealthMonitor(Executor* executor, const Uri& url);
-
   HttpHealthMonitor(Executor* executor,
-                    const Uri& url,
+                    const IPAddress& ipaddr,
+                    int port,
+                    const Uri& testUrl,
                     Duration interval,
                     Mode mode,
                     unsigned successThreshold,
-                    const std::vector<HttpStatus>& successCodes);
+                    const std::vector<HttpStatus>& successCodes,
+                    Duration connectTimeout,
+                    Duration readTimeout,
+                    Duration writeTimeout);
 
   ~HttpHealthMonitor();
 
@@ -46,14 +52,23 @@ class HttpHealthMonitor {
   unsigned successThreshold() const noexcept { return successThreshold_; }
   void setSuccessThreshold(unsigned value) { successThreshold_ = value; }
 
-  void setUrl(const Uri& url);
-  const Uri& url() const { return url_; }
+  void setTestUrl(const Uri& url);
+  const Uri& testUrl() const { return testUrl_; }
 
   Duration interval() const { return interval_; }
   void setInterval(const Duration& interval);
 
   const std::vector<HttpStatus>& successCodes() const { return successCodes_; };
   void setSuccessCodes(const std::vector<HttpStatus>& codes);
+
+  Duration connectTimeout() const noexcept { return connectTimeout_; }
+  void setConnectTimeout(Duration value) { connectTimeout_ = value; }
+
+  Duration readTimeout() const noexcept { return readTimeout_; }
+  void setReadTimeout(Duration value) { readTimeout_ = value; }
+
+  Duration writeTimeout() const noexcept { return writeTimeout_; }
+  void setWriteTimeout(Duration value) { writeTimeout_ = value; }
 
   void setStateChangeCallback(
       const std::function<void(HttpHealthMonitor*, State)>& callback);
@@ -66,18 +81,26 @@ class HttpHealthMonitor {
   void start();
   void stop();
   void recheck();
-  void onCheckNow();
   void logSuccess();
   void logFailure();
+  void onCheckNow();
+  void onConnectFailure(Status status);
+  void onConnected(const RefPtr<InetEndPoint>& ep);
+  void onRequestFailure(Status status);
+  void onResponseReceived(HttpClient* client);
 
  private:
   Executor* executor_;
   Executor::HandleRef timerHandle_;
-
-  Uri url_;
+  IPAddress ipaddr_;
+  int port_;
+  Uri testUrl_;
   Duration interval_;
   std::vector<HttpStatus> successCodes_;
   Mode mode_;
+  Duration connectTimeout_;
+  Duration readTimeout_;
+  Duration writeTimeout_;
 
   // number of consecutive succeeding responses before marking changing state to *online*.
   unsigned successThreshold_;
