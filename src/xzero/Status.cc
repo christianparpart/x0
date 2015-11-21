@@ -32,7 +32,7 @@ StatusCategory& StatusCategory::get() {
 }
 
 const char* StatusCategory::name() const noexcept {
-  return "CortexStatus";
+  return "Status";
 }
 
 std::string StatusCategory::message(int ec) const {
