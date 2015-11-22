@@ -48,6 +48,8 @@
 - [x] HttpHealthMonitor: monitor an HTTP upstream
 - [ ] HttpClusterMember, proxies to HttpClient, with constraints (such as capacity)
 - [ ] HttpCluster: basic load balancing to HTTP/1 upstreams
+- [ ] HttpClient: an easier way to connect to an endpoint AND issue the request
+      (in one line)
 
 #### proxy: stage 2
 
