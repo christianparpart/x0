@@ -210,8 +210,9 @@ class HttpCluster {
   void dequeueTo(HttpClusterMember* backend);
   HttpClusterRequest* dequeue();
   void onTimeout(HttpClusterRequest* cr);
-  void onBackendStateChanged(HttpClusterMember* backend,
-                             HttpHealthMonitor::State oldState);
+  void onBackendEnabledChanged(HttpClusterMember* backend);
+  void onBackendHealthStateChanged(HttpClusterMember* backend,
+                                   HttpHealthMonitor::State oldState);
 
  private:
   // cluster's human readable representative name.
@@ -278,6 +279,9 @@ class HttpCluster {
 
   // member scheduler
   UniquePtr<HttpClusterScheduler> scheduler_;
+
+  // statistical counter for accumulated cluster load (all members)
+  Counter load_;
 
   // statistical counter of how many requests are currently queued.
   Counter queued_;

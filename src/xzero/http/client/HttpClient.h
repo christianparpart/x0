@@ -40,6 +40,9 @@ class HttpTransport;
  *
  * It can process one message-exchange at a time and can be reused after
  * for more message exchanges.
+ *
+ * Abstracts away the underlying transport protocol, such as
+ * HTTP/1, HTTP/2, HTTPS, FastCGI.
  */
 class HttpClient : public HttpListener {
  public:
@@ -53,12 +56,6 @@ class HttpClient : public HttpListener {
   // response message accessor
   const HttpResponseInfo& responseInfo() const noexcept;
   const Buffer& responseBody() const noexcept;
-
-  // convinience helper
-  Future<HttpClient*> GET(const std::string& path, const HeaderFieldList& headers);
-  Future<HttpClient*> POST(const std::string& path, const HeaderFieldList& headers, Buffer&& body);
-  Future<HttpClient*> PUT(const std::string& path, const HeaderFieldList& headers, Buffer&& body);
-  Future<HttpClient*> DELETE(const std::string& path, const HeaderFieldList& headers);
 
  private:
   // HttpListener overrides

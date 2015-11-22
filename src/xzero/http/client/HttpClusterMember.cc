@@ -1,9 +1,19 @@
 #include <xzero/http/client/HttpClusterMember.h>
+#include <xzero/http/client/HttpClusterRequest.h>
 #include <xzero/http/client/HttpHealthMonitor.h>
+#include <xzero/logging.h>
 
 namespace xzero {
 namespace http {
 namespace client {
+
+#ifndef NDEBUG
+# define DEBUG(msg...) logDebug("http.client.HttpClusterMember", msg)
+# define TRACE(msg...) logTrace("http.client.HttpClusterMember", msg)
+#else
+# define DEBUG(msg...) do {} while (0)
+# define TRACE(msg...) do {} while (0)
+#endif
 
 HttpClusterMember::HttpClusterMember(
     Executor* executor,
@@ -12,6 +22,8 @@ HttpClusterMember::HttpClusterMember(
     int port,
     size_t capacity,
     bool enabled,
+    bool terminateProtection,
+    std::function<void(HttpClusterMember*)> onEnabledChanged,
     const std::string& protocol,
     Duration connectTimeout,
     Duration readTimeout,
@@ -27,6 +39,8 @@ HttpClusterMember::HttpClusterMember(
       port_(port),
       capacity_(capacity),
       enabled_(enabled),
+      terminateProtection_(terminateProtection),
+      onEnabledChanged_(onEnabledChanged),
       protocol_(protocol),
       connectTimeout_(connectTimeout),
       readTimeout_(readTimeout),
@@ -50,7 +64,36 @@ HttpClusterMember::~HttpClusterMember() {
 }
 
 HttpClusterSchedulerStatus HttpClusterMember::tryProcess(HttpClusterRequest* cr) {
-  return HttpClusterSchedulerStatus::Unavailable; // TODO
+  if (!isEnabled())
+    return HttpClusterSchedulerStatus::Unavailable;
+
+  if (!healthMonitor_->isOnline())
+    return HttpClusterSchedulerStatus::Unavailable;
+
+  std::lock_guard<std::mutex> lock(lock_);
+
+  if (capacity_ && load_.current() >= capacity_)
+    return HttpClusterSchedulerStatus::Overloaded;
+
+  TRACE("Processing request by backend $0 $1:$2", name(), ipaddress_, port_);
+
+  //cr->request->responseHeaders.overwrite("X-Director-Backend", name());
+
+  ++load_;
+  cr->backend = this;
+
+  if (!process(cr)) {
+    --load_;
+    cr->backend = nullptr;
+    healthMonitor()->setState(HttpHealthMonitor::State::Offline);
+    return HttpClusterSchedulerStatus::Unavailable;
+  }
+
+  return HttpClusterSchedulerStatus::Success;
+}
+
+bool HttpClusterMember::process(HttpClusterRequest* cr) {
+  return false;
 }
 
 } // namespace client

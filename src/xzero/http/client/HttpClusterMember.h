@@ -17,10 +17,11 @@
 #include <xzero/net/IPAddress.h>
 #include <xzero/CompletionHandler.h>
 #include <xzero/Duration.h>
+#include <xzero/Counter.h>
 #include <xzero/Uri.h>
 #include <xzero/stdtypes.h>
+#include <mutex>
 #include <utility>
-#include <istream>
 
 namespace xzero {
 
@@ -44,6 +45,8 @@ public:
       int port,
       size_t capacity,
       bool enabled,
+      bool terminateProtection,
+      std::function<void(HttpClusterMember*)> onEnabledChanged,
       const std::string& protocol, // http, https, fastcgi, h2, ...
       Duration connectTimeout,
       Duration readTimeout,
@@ -73,9 +76,13 @@ public:
   bool isEnabled() const noexcept { return enabled_; }
   void setEnabled(bool value) { enabled_ = value; }
 
+  bool terminateProtection() const { return terminateProtection_; }
+  void setTerminateProtection(bool value) { terminateProtection_ = value; }
+
   HttpHealthMonitor* healthMonitor() const { return healthMonitor_.get(); }
 
   HttpClusterSchedulerStatus tryProcess(HttpClusterRequest* cr);
+  bool process(HttpClusterRequest* cr);
 
 private:
   Executor* executor_;
@@ -84,11 +91,15 @@ private:
   int port_;
   size_t capacity_;
   bool enabled_;
+  bool terminateProtection_;
+  Counter load_;
+  std::function<void(HttpClusterMember*)> onEnabledChanged_;
   std::string protocol_; // "http" | "fastcgi"
   Duration connectTimeout_;
   Duration readTimeout_;
   Duration writeTimeout_;
   std::unique_ptr<HttpHealthMonitor> healthMonitor_;
+  std::mutex lock_;
 
   std::list<UniquePtr<HttpClient>> clients_;
 };

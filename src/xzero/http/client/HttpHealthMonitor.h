@@ -75,13 +75,14 @@ class HttpHealthMonitor {
   State state() const { return state_; }
   bool isOnline() const { return state_ == State::Online; }
 
+  void setState(State value);
+
  private:
   void start();
   void stop();
   void recheck();
   void logSuccess();
   void logFailure();
-  void setState(State value);
   void onCheckNow();
   void onConnectFailure(Status status);
   void onConnected(const RefPtr<InetEndPoint>& ep);

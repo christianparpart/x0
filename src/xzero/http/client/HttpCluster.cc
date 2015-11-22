@@ -70,16 +70,17 @@ HttpCluster::HttpCluster(const std::string& name,
       writeTimeout_(writeTimeout),
       executor_(executor),
       storagePath_("TODO"), // TODO
-      shaper_(executor, 0),
+      shaper_(executor, 0,
+              std::bind(&HttpCluster::onTimeout, this, std::placeholders::_1)),
       members_(),
       healthCheckUri_(healthCheckUri),
       healthCheckInterval_(healthCheckInterval),
       healthCheckSuccessThreshold_(healthCheckSuccessThreshold),
       healthCheckSuccessCodes_(healthCheckSuccessCodes),
-      scheduler_()
-{
-  shaper_.setTimeoutHandler(
-      std::bind(&HttpCluster::onTimeout, this, std::placeholders::_1));
+      scheduler_(),
+      load_(),
+      queued_(),
+      dropped_() {
 }
 
 HttpCluster::~HttpCluster() {
@@ -103,11 +104,9 @@ void HttpCluster::addMember(const std::string& name,
                             int port,
                             size_t capacity,
                             bool enabled) {
-  Executor* executor = executor_; // TODO: get as function arg for passing:  daemon().selectClientScheduler()
-  std::string protocol = "http";  // TODO: get as function arg
-  int healthCheckSuccessThreshold = 3;
-  Duration healthCheckInterval = Duration::fromSeconds(1);
-  const std::vector<HttpStatus> healthCheckSuccessCodes = { HttpStatus::Ok };
+  const std::string protocol = "http";  // TODO: get as function arg
+  const bool terminateProtection = false;
+  Executor* const executor = executor_; // TODO: get as function arg for passing: daemon().selectClientScheduler()
 
   TRACE("addMember: $0 $1:$2", name, ipaddr, port);
 
@@ -118,24 +117,37 @@ void HttpCluster::addMember(const std::string& name,
       port,
       capacity,
       enabled,
+      terminateProtection,
+      std::bind(&HttpCluster::onBackendEnabledChanged, this,
+                std::placeholders::_1),
       protocol,
       connectTimeout(),
       readTimeout(),
       writeTimeout(),
       healthCheckUri(),
-      healthCheckInterval,
-      healthCheckSuccessThreshold,
-      healthCheckSuccessCodes,
-      std::bind(&HttpCluster::onBackendStateChanged, this,
+      healthCheckInterval(),
+      healthCheckSuccessThreshold(),
+      healthCheckSuccessCodes(),
+      std::bind(&HttpCluster::onBackendHealthStateChanged, this,
                 std::placeholders::_1,
                 std::placeholders::_2));
 
   members_.push_back(backend);
 }
 
-void HttpCluster::onBackendStateChanged(HttpClusterMember* backend,
+void HttpCluster::onBackendEnabledChanged(HttpClusterMember* backend) {
+  TRACE("onBackendEnabledChanged: $0 $1",
+        backend->name(), backend->isEnabled() ? "enabled" : "disabled");
+
+  if (backend->isEnabled())
+    shaper()->resize(shaper()->size() + backend->capacity());
+  else
+    shaper()->resize(shaper()->size() - backend->capacity());
+}
+
+void HttpCluster::onBackendHealthStateChanged(HttpClusterMember* backend,
                                         HttpHealthMonitor::State oldState) {
-  TRACE("onBackendStateChanged: health=$0 -> $1, enabled=$2",
+  TRACE("onBackendHealthStateChanged: health=$0 -> $1, enabled=$2",
         oldState,
         backend->healthMonitor()->state(),
         backend->isEnabled());
@@ -153,7 +165,7 @@ void HttpCluster::onBackendStateChanged(HttpClusterMember* backend,
 
     // backend is online and enabled
 
-    TRACE("onBackendStateChanged: adding capacity to shaper ($0 + $1)",
+    TRACE("onBackendHealthStateChanged: adding capacity to shaper ($0 + $1)",
            shaper()->size(), backend->capacity());
     shaper()->resize(shaper()->size() + backend->capacity());
 
@@ -172,7 +184,7 @@ void HttpCluster::onBackendStateChanged(HttpClusterMember* backend,
     // backend is offline and enabled
     shaper()->resize(shaper()->size() - backend->capacity());
 
-    TRACE("onBackendStateChanged: removing capacity from shaper ($0 - $1)",
+    TRACE("onBackendHealthStateChanged: removing capacity from shaper ($0 - $1)",
           shaper()->size(), backend->capacity());
   }
 }
