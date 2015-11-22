@@ -162,9 +162,9 @@ void ProxyModule::onPostConfig() {
     std::shared_ptr<HttpCluster> cluster(new HttpCluster(name, executor));
 
     if (FileUtil::exists(path)) {
-      TRACE("x");
       cluster->setConfiguration(FileUtil::read(path).str());
     } else {
+      cluster->setHealthCheckUri(Uri("http://xzero.io/hello.txt"));
       cluster->addMember("demo1", IPAddress("127.0.0.1"), 3001, 10, true);
       cluster->setEnabled(false);
     }

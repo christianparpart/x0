@@ -77,7 +77,6 @@ class HttpHealthMonitor {
   bool isOnline() const { return state_ == State::Online; }
 
  private:
-  void start();
   void stop();
   void recheck();
   void logSuccess();

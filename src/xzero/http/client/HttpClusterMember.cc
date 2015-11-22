@@ -13,15 +13,21 @@ HttpClusterMember::HttpClusterMember(
     size_t capacity,
     bool enabled,
     const std::string& protocol,
+    Duration connectTimeout,
+    Duration readTimeout,
+    Duration writeTimeout,
     std::unique_ptr<HttpHealthMonitor> healthMonitor)
-    : name_(name),
+    : executor_(executor),
+      name_(name),
       ipaddress_(ipaddr),
       port_(port),
-      protocol_(protocol),
       capacity_(capacity),
-      healthMonitor_(std::move(healthMonitor)),
       enabled_(enabled),
-      executor_(executor),
+      protocol_(protocol),
+      connectTimeout_(connectTimeout),
+      readTimeout_(readTimeout),
+      writeTimeout_(writeTimeout),
+      healthMonitor_(std::move(healthMonitor)),
       clients_() {
 }
 

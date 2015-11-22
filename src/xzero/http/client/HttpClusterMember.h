@@ -42,6 +42,9 @@ public:
       size_t capacity,
       bool enabled,
       const std::string& protocol, // http, https, fastcgi, h2, ...
+      Duration connectTimeout,
+      Duration readTimeout,
+      Duration writeTimeout,
       std::unique_ptr<HttpHealthMonitor> healthMonitor);
 
   ~HttpClusterMember();
@@ -68,16 +71,18 @@ public:
   HttpClusterSchedulerStatus tryProcess(HttpClusterRequest* cr);
 
 private:
+  Executor* executor_;
   std::string name_;
   IPAddress ipaddress_;
   int port_;
-  std::string protocol_; // "http" | "fastcgi"
   size_t capacity_;
+  bool enabled_;
+  std::string protocol_; // "http" | "fastcgi"
+  Duration connectTimeout_;
+  Duration readTimeout_;
+  Duration writeTimeout_;
   std::unique_ptr<HttpHealthMonitor> healthMonitor_;
 
-  bool enabled_;
-
-  Executor* executor_;
   std::list<UniquePtr<HttpClient>> clients_;
 };
 

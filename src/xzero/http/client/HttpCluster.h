@@ -152,8 +152,11 @@ class HttpCluster {
    */
   void removeMember(const std::string& name);
 
+  // // .... FIXME: proper API namespacing. maybe cluster->healthMonitor()->{testUri, interval, consecutiveSuccessCount, ...}
   const Uri& healthCheckUri() const noexcept { return healthCheckUri_; }
   void setHealthCheckUri(const Uri& uri) { healthCheckUri_ = uri; }
+  // Duration healthCheckInterval() const noexcept { return healthCheckInterval_; }
+  // void setHealthCheckInterval(Duration value);
   // }}}
 
   // {{{ serialization

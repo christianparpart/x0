@@ -60,7 +60,8 @@ HttpCluster::HttpCluster(const std::string& name,
       connectTimeout_(connectTimeout),
       readTimeout_(readTimeout),
       writeTimeout_(writeTimeout),
-      storagePath_("TODO"),
+      executor_(executor),
+      storagePath_("TODO"), // TODO
       shaper_(executor, 0),
       members_(),
       scheduler_()
@@ -115,6 +116,9 @@ void HttpCluster::addMember(const std::string& name,
                                                      capacity,
                                                      enabled,
                                                      protocol,
+                                                     connectTimeout(),
+                                                     readTimeout(),
+                                                     writeTimeout(),
                                                      std::move(healthMonitor));
 
   backend->healthMonitor()->setStateChangeCallback(

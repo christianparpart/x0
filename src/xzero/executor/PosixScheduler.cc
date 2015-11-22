@@ -23,6 +23,7 @@
 #include <sys/types.h>
 #include <sys/time.h>
 #include <sys/select.h>
+#include <sys/resource.h>
 #include <unistd.h>
 #include <fcntl.h>
 
@@ -82,11 +83,17 @@ PosixScheduler::PosixScheduler(
   fcntl(wakeupPipe_[0], F_SETFL, O_NONBLOCK);
   fcntl(wakeupPipe_[1], F_SETFL, O_NONBLOCK);
 
-  watchers_.resize(32768); // TODO: detect fd limit
+  struct rlimit rlim;
+  memset(&rlim, 0, sizeof(rlim));
+  getrlimit(RLIMIT_NOFILE, &rlim);
+  size_t nofile = rlim.rlim_max;
 
-  TRACE("ctor: wakeupPipe {read=$0, write=$1}",
+  watchers_.resize(nofile);
+
+  TRACE("ctor: wakeupPipe {read=$0, write=$1, nofile=$2}",
       wakeupPipe_[PIPE_READ_END],
-      wakeupPipe_[PIPE_WRITE_END]);
+      wakeupPipe_[PIPE_WRITE_END],
+      nofile);
 }
 
 PosixScheduler::PosixScheduler(std::unique_ptr<xzero::ExceptionHandler> eh)
@@ -123,6 +130,7 @@ std::string PosixScheduler::toString() const {
 }
 
 Scheduler::HandleRef PosixScheduler::executeAfter(Duration delay, Task task) {
+  TRACE("executeAfter: $0", delay);
   return insertIntoTimersList(now() + delay, task);
 }
 
@@ -178,6 +186,7 @@ Scheduler::HandleRef PosixScheduler::insertIntoTimersList(MonotonicTime dt,
 }
 
 void PosixScheduler::collectTimeouts(std::list<Task>* result) {
+  TRACE("collectTimeouts: consider $0 callbacks", timers_.size());
   const auto nextTimedout = [this]() -> Watcher* {
     return firstWatcher_ && firstWatcher_->timeout <= now()
         ? firstWatcher_
@@ -195,7 +204,7 @@ void PosixScheduler::collectTimeouts(std::list<Task>* result) {
   }
 
   const auto nextTimer = [this]() -> RefPtr<Timer> {
-    return !timers_.empty() && timers_.front()->when >= now()
+    return !timers_.empty() && timers_.front()->when <= now()
         ? timers_.front()
         : nullptr;
   };
@@ -450,13 +459,13 @@ void PosixScheduler::runLoopOnce() {
       wmark = std::max(wmark, w->fd);
     }
 
-    const Duration timeout = nextTimeout();
-    tv.tv_sec = static_cast<time_t>(timeout.seconds()),
-    tv.tv_usec = timeout.microseconds() % kMicrosPerSecond;
+    Duration nt = nextTimeout();
+    TRACE("nextTimeout = $0", nt);
+    tv = nt;
   }
 
-  TRACE("runLoopOnce(): select(wmark=$0, in=$1, out=$2, err=$3, tmo=$4)",
-        wmark + 1, incount, outcount, errcount, Duration(tv));
+  TRACE("runLoopOnce(): select(wmark=$0, in=$1, out=$2, err=$3, tmo=$4), timers=$5, tasks=$6",
+        wmark + 1, incount, outcount, errcount, Duration(tv), timers_.size(), tasks_.size());
   TRACE("runLoopOnce: $0", inspect(*this).c_str());
 
   int rv;
@@ -506,6 +515,7 @@ Duration PosixScheduler::nextTimeout() const {
 }
 
 void PosixScheduler::breakLoop() {
+  TRACE("breakLoop()");
   int dummy = 42;
   ::write(wakeupPipe_[PIPE_WRITE_END], &dummy, sizeof(dummy));
 }

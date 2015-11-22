@@ -73,7 +73,7 @@ HttpHealthMonitor::HttpHealthMonitor(Executor* executor,
       totalOfflineTime_(Duration::Zero),
       client_() {
   TRACE("ctor: $0:$1", ipaddr_, port_);
-  start();
+  onCheckNow();
 }
 
 HttpHealthMonitor::~HttpHealthMonitor() {
@@ -88,20 +88,18 @@ void HttpHealthMonitor::setStateChangeCallback(
   onStateChange_ = callback;
 }
 
-void HttpHealthMonitor::start() {
-  timerHandle_ = executor_->executeAfter(
-      interval_,
-      std::bind(&HttpHealthMonitor::onCheckNow, this));
-}
-
 void HttpHealthMonitor::stop() {
+  TRACE("stop");
   if (timerHandle_) {
     timerHandle_->cancel();
   }
 }
 
 void HttpHealthMonitor::recheck() {
-  executor_->execute(std::bind(&HttpHealthMonitor::start, this));
+  TRACE("recheck");
+  timerHandle_ = executor_->executeAfter(
+      interval_,
+      std::bind(&HttpHealthMonitor::onCheckNow, this));
 }
 
 void HttpHealthMonitor::logSuccess() {
@@ -130,23 +128,22 @@ void HttpHealthMonitor::logFailure() {
  * Forces a health-state change.
  */
 void HttpHealthMonitor::setState(State value) {
-  DEBUG("setState $0 -> $1", state_, value);
   assert(value != State::Undefined && "Setting state to Undefined is not allowed.");
   if (state_ == value)
     return;
 
+  DEBUG("setState $0 -> $1", state_, value);
+
   State oldState = state_;
   state_ = value;
-
-  //TRACE("setState: $0", state_);
 
   if (onStateChange_) {
     onStateChange_(this, oldState);
   }
 
-  if (state_ == State::Offline) {
-    executor_->execute(std::bind(&HttpHealthMonitor::start, this));
-  }
+  // if (state_ == State::Offline) {
+  //   executor_->execute(std::bind(&HttpHealthMonitor::start, this));
+  // }
 }
 
 void HttpHealthMonitor::onCheckNow() {
@@ -186,7 +183,6 @@ void HttpHealthMonitor::onConnected(const RefPtr<InetEndPoint>& ep) {
 void HttpHealthMonitor::onRequestFailure(Status status) {
   DEBUG("onRequestFailure");
   logFailure();
-  recheck();
 }
 
 void HttpHealthMonitor::onResponseReceived(HttpClient* client) {
