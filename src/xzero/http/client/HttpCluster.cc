@@ -95,14 +95,12 @@ void HttpCluster::addMember(const std::string& name,
   std::string protocol = "http";  // TODO: get as function arg
   int healthCheckSuccessThreshold = 3;
   Duration healthCheckInterval = Duration::fromSeconds(4);
-  HttpHealthMonitor::Mode healthCheckMode = HttpHealthMonitor::Mode::Paranoid;
   const std::vector<HttpStatus> healthCheckSuccessCodes = { HttpStatus::Ok };
 
   TRACE("addMember: $0 $1:$2", name, ipaddr, port);
   std::unique_ptr<HttpHealthMonitor> healthMonitor(
       new HttpHealthMonitor(executor, ipaddr, port, healthCheckUri(),
                     healthCheckInterval,
-                    healthCheckMode,
                     healthCheckSuccessThreshold,
                     healthCheckSuccessCodes,
                     connectTimeout(),

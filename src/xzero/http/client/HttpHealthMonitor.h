@@ -29,7 +29,6 @@ namespace client {
 
 class HttpHealthMonitor {
  public:
-  enum class Mode { Paranoid, Opportunistic, Lazy };
   enum class State { Undefined, Offline, Online };
 
   HttpHealthMonitor(Executor* executor,
@@ -37,7 +36,6 @@ class HttpHealthMonitor {
                     int port,
                     const Uri& testUrl,
                     Duration interval,
-                    Mode mode,
                     unsigned successThreshold,
                     const std::vector<HttpStatus>& successCodes,
                     Duration connectTimeout,
@@ -45,9 +43,6 @@ class HttpHealthMonitor {
                     Duration writeTimeout);
 
   ~HttpHealthMonitor();
-
-  Mode mode() const { return mode_; }
-  void setMode(Mode value);
 
   unsigned successThreshold() const noexcept { return successThreshold_; }
   void setSuccessThreshold(unsigned value) { successThreshold_ = value; }
@@ -96,7 +91,6 @@ class HttpHealthMonitor {
   Uri testUrl_;
   Duration interval_;
   std::vector<HttpStatus> successCodes_;
-  Mode mode_;
   Duration connectTimeout_;
   Duration readTimeout_;
   Duration writeTimeout_;

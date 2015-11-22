@@ -28,18 +28,6 @@ std::string StringUtil::toString(http::client::HttpHealthMonitor::State state) {
   }
 }
 
-template<>
-std::string StringUtil::toString(http::client::HttpHealthMonitor::Mode mode) {
-  switch (mode) {
-    case http::client::HttpHealthMonitor::Mode::Paranoid:
-      return "Paranoid";
-    case http::client::HttpHealthMonitor::Mode::Opportunistic:
-      return "Opportunistic";
-    case http::client::HttpHealthMonitor::Mode::Lazy:
-      return "Lazy";
-  }
-}
-
 namespace http {
 namespace client {
 
@@ -48,7 +36,6 @@ HttpHealthMonitor::HttpHealthMonitor(Executor* executor,
                                      int port,
                                      const Uri& testUrl,
                                      Duration interval,
-                                     Mode mode,
                                      unsigned successThreshold,
                                      const std::vector<HttpStatus>& successCodes,
                                      Duration connectTimeout,
@@ -61,7 +48,6 @@ HttpHealthMonitor::HttpHealthMonitor(Executor* executor,
       testUrl_(testUrl),
       interval_(interval),
       successCodes_(successCodes),
-      mode_(mode),
       connectTimeout_(connectTimeout),
       readTimeout_(readTimeout),
       writeTimeout_(writeTimeout),
@@ -203,7 +189,6 @@ void HttpHealthMonitor::onResponseReceived(HttpClient* client) {
 
 JsonWriter& operator<<(JsonWriter& json, const HttpHealthMonitor& monitor) {
   json.beginObject()
-      .name("mode")(StringUtil::toString(monitor.mode()))
       .name("state")(StringUtil::toString(monitor.state()))
       .name("interval")(monitor.interval().milliseconds())
       .endObject();
