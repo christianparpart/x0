@@ -92,8 +92,11 @@ template <typename T>
 class TokenShaper {
  public:
   class Node;
+  typedef std::function<void(T*)> TimeoutHandler;
 
-  TokenShaper(Executor* executor, size_t size);
+  TokenShaper(Executor* executor,
+              size_t size,
+              std::function<void(T*)> timeoutHandler);
   ~TokenShaper();
 
   template <typename H>
@@ -125,8 +128,6 @@ class TokenShaper {
 template <typename T>
 class TokenShaper<T>::Node {
  public:
-  typedef std::function<void(T*)> Callback;
-
   //! @todo must be thread safe to allow bucket iteration while modification
   typedef std::vector<TokenShaper<T>::Node*> BucketList;
 
@@ -137,7 +138,7 @@ class TokenShaper<T>::Node {
   float rateP() const { return ratePercent_; }
   float ceilP() const { return ceilPercent_; }
 
-  void setTimeoutHandler(Callback handler);
+  void setTimeoutHandler(TimeoutHandler handler);
   TokenShaperError setName(const std::string& value);
   TokenShaperError setRate(float value);
   TokenShaperError setCeil(float value);
@@ -248,15 +249,15 @@ class TokenShaper<T>::Node {
                                  //passed directly.
   size_t dequeueOffset_;  //!< dequeue-offset at which child to dequeue next.
 
-  Callback onTimeout_;  //!< Callback, invoked when the token has been queued
-                        //and just timed out.
+  TimeoutHandler onTimeout_;  //!< Callback, invoked when the token has been queued and just timed out.
 
   std::mutex lock_;
 };
 // }}}
 // {{{ TokenShaper<T> impl
 template <typename T>
-TokenShaper<T>::TokenShaper(Executor* executor, size_t size)
+TokenShaper<T>::TokenShaper(Executor* executor, size_t size,
+                            TimeoutHandler timeoutHandler)
     : root_(Node::createRoot(executor, size)) {}
 
 template <typename T>
@@ -403,11 +404,6 @@ size_t TokenShaper<T>::Node::actualChildOverRate() const {
   for (const auto& child : children_) sum += child->overRate();
 
   return sum;
-}
-
-template <typename T>
-void TokenShaper<T>::Node::setTimeoutHandler(Callback handler) {
-  onTimeout_ = handler;
 }
 
 template <typename T>
