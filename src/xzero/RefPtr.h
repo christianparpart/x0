@@ -170,10 +170,10 @@ inline T* RefPtr<T>::release() noexcept {
 
 template<typename T>
 inline void RefPtr<T>::reset() {
-  if (obj_)
+  if (obj_) {
     obj_->unref();
-
-  obj_ = nullptr;
+    obj_ = nullptr;
+  }
 }
 
 template<typename T>
