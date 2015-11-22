@@ -32,8 +32,10 @@ namespace xzero {
 
 #ifndef NDEBUG
 #define TRACE(msg...) logTrace("net.InetEndPoint", msg)
+#define DEBUG(msg...) logDebug("net.InetEndPoint", msg)
 #else
 #define TRACE(msg...) do {} while (0)
+#define DEBUG(msg...) do {} while (0)
 #endif
 
 InetEndPoint::InetEndPoint(int socket,
@@ -379,11 +381,11 @@ class InetConnectState {
         TRACE("$0 onConnectComplete: connected $1. $2", this, val, strerror(val));
         promise_.success(std::move(ep_));
       } else {
-        logError("InetEndPoint", "Connection to $0:$1 failed. $2", ipaddr_, port_, strerror(val));
+        DEBUG("Connection to $0:$1 failed. $2", ipaddr_, port_, strerror(val));
         promise_.failure(Status::IOError); // dislike: wanna pass errno val here.
       }
     } else {
-      logError("InetEndPoint", "Connection to $0:$1 failed. $2", ipaddr_, port_, strerror(val));
+      DEBUG("Connection to $0:$1 failed. $2", ipaddr_, port_, strerror(val));
       promise_.failure(Status::IOError); // dislike: wanna pass errno val here.
     }
     delete this;
