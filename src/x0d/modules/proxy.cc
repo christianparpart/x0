@@ -150,7 +150,9 @@ bool ProxyModule::verify_proxy_cluster(xzero::flow::Instr* call) {
 void ProxyModule::onPostConfig() {
   using client::HttpCluster;
 
+  TRACE("clusterInit count: $0", clusterInit_.size());
   for (const auto& init: clusterInit_) {
+    TRACE("clusterInit: $0", init.first);
     std::string name = init.first;
     std::string path = init.second;
     Executor* executor = daemon().selectClientScheduler();
@@ -159,9 +161,10 @@ void ProxyModule::onPostConfig() {
 
     std::shared_ptr<HttpCluster> cluster(new HttpCluster(name, executor));
 
-    if (FileUtil::exists(path))
+    if (FileUtil::exists(path)) {
+      TRACE("x");
       cluster->setConfiguration(FileUtil::read(path).str());
-    else {
+    } else {
       cluster->addMember("demo1", IPAddress("127.0.0.1"), 3001, 10, true);
       cluster->setEnabled(false);
     }

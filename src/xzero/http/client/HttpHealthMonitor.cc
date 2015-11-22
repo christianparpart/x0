@@ -72,6 +72,8 @@ HttpHealthMonitor::HttpHealthMonitor(Executor* executor,
       consecutiveSuccessCount_(0),
       totalOfflineTime_(Duration::Zero),
       client_() {
+  TRACE("ctor: $0:$1", ipaddr_, port_);
+  start();
 }
 
 HttpHealthMonitor::~HttpHealthMonitor() {
@@ -84,28 +86,6 @@ HttpHealthMonitor::~HttpHealthMonitor() {
 void HttpHealthMonitor::setStateChangeCallback(
     const std::function<void(HttpHealthMonitor*, State)>& callback) {
   onStateChange_ = callback;
-}
-
-/**
- * Forces a health-state change.
- */
-void HttpHealthMonitor::setState(State value) {
-  assert(value != State::Undefined && "Setting state to Undefined is not allowed.");
-  if (state_ == value)
-    return;
-
-  State oldState = state_;
-  state_ = value;
-
-  TRACE("setState: $0", state_);
-
-  if (onStateChange_) {
-    onStateChange_(this, oldState);
-  }
-
-  if (state_ == State::Offline) {
-    executor_->execute(std::bind(&HttpHealthMonitor::start, this));
-  }
 }
 
 void HttpHealthMonitor::start() {
@@ -139,13 +119,39 @@ void HttpHealthMonitor::logSuccess() {
 void HttpHealthMonitor::logFailure() {
   ++totalFailCount_;
   consecutiveSuccessCount_ = 0;
+  DEBUG("logFailure $0", totalFailCount_);
 
   setState(State::Offline);
 
   recheck();
 }
 
+/**
+ * Forces a health-state change.
+ */
+void HttpHealthMonitor::setState(State value) {
+  DEBUG("setState $0 -> $1", state_, value);
+  assert(value != State::Undefined && "Setting state to Undefined is not allowed.");
+  if (state_ == value)
+    return;
+
+  State oldState = state_;
+  state_ = value;
+
+  //TRACE("setState: $0", state_);
+
+  if (onStateChange_) {
+    onStateChange_(this, oldState);
+  }
+
+  if (state_ == State::Offline) {
+    executor_->execute(std::bind(&HttpHealthMonitor::start, this));
+  }
+}
+
 void HttpHealthMonitor::onCheckNow() {
+  DEBUG("onCheckNow");
+
   Future<RefPtr<InetEndPoint>> ep =
       InetEndPoint::connectAsync(ipaddr_, port_, connectTimeout(), executor_);
 
@@ -159,6 +165,7 @@ void HttpHealthMonitor::onConnectFailure(Status status) {
 }
 
 void HttpHealthMonitor::onConnected(const RefPtr<InetEndPoint>& ep) {
+  DEBUG("onConnected");
   client_ = std::unique_ptr<HttpClient>(new HttpClient(executor_, ep.as<EndPoint>()));
 
   BufferRef requestBody;
@@ -177,16 +184,18 @@ void HttpHealthMonitor::onConnected(const RefPtr<InetEndPoint>& ep) {
 }
 
 void HttpHealthMonitor::onRequestFailure(Status status) {
+  DEBUG("onRequestFailure");
   logFailure();
   recheck();
 }
 
 void HttpHealthMonitor::onResponseReceived(HttpClient* client) {
+  DEBUG("onResponseReceived");
   auto i = std::find(successCodes_.begin(),
                      successCodes_.end(),
                      client->responseInfo().status());
   if (i == successCodes_.end()) {
-    DEBUG("received bad response status code. $0 ($1)",
+    DEBUG("received bad response status code. $0 $1",
           (int) client->responseInfo().status(),
           client->responseInfo().status());
     logFailure();

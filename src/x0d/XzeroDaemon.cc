@@ -275,6 +275,10 @@ void XzeroDaemon::postConfig() {
           nullptr);
     }
   }
+
+  for (XzeroModule* module: modules_) {
+    module->onPostConfig();
+  }
 }
 
 std::unique_ptr<Scheduler> XzeroDaemon::newScheduler() {
