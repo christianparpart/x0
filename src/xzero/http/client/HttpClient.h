@@ -49,13 +49,18 @@ class HttpClient : public HttpListener {
   HttpClient(Executor* executor, RefPtr<EndPoint> endpoint);
   ~HttpClient();
 
+  // request builder
   void send(const HttpRequestInfo& requestInfo, const BufferRef& requestBody);
-
   Future<HttpClient*> completed();
 
   // response message accessor
   const HttpResponseInfo& responseInfo() const noexcept;
   const Buffer& responseBody() const noexcept;
+
+  // WIP brainstorming ideas
+  static Future<UniquePtr<HttpClient>> send(
+      const IPAddress& ipaddr, int port,
+      const HttpRequestInfo& requestInfo, const BufferRef& requestBody);
 
  private:
   // HttpListener overrides

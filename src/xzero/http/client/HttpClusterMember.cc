@@ -79,11 +79,11 @@ HttpClusterSchedulerStatus HttpClusterMember::tryProcess(HttpClusterRequest* cr)
 
   //cr->request->responseHeaders.overwrite("X-Director-Backend", name());
 
-  ++load_;
+  load_++;
   cr->backend = this;
 
   if (!process(cr)) {
-    --load_;
+    load_--;
     cr->backend = nullptr;
     healthMonitor()->setState(HttpHealthMonitor::State::Offline);
     return HttpClusterSchedulerStatus::Unavailable;
@@ -93,7 +93,24 @@ HttpClusterSchedulerStatus HttpClusterMember::tryProcess(HttpClusterRequest* cr)
 }
 
 bool HttpClusterMember::process(HttpClusterRequest* cr) {
-  return false;
+  Future<RefPtr<EndPoint>> f = endpoints_.acquire();
+  f.onSuccess(std::bind(&HttpClusterMember::onConnected, this,
+                        cr, std::placeholders::_1));
+  f.onFailure(std::bind(&HttpClusterMember::onConnectFailure, this,
+                        cr, std::placeholders::_1));
+  return true;
+}
+
+void HttpClusterMember::onConnectFailure(HttpClusterRequest* cr, Status status) {
+  healthMonitor()->setState(HttpHealthMonitor::State::Offline);
+  load_--;
+
+  cr->backend = nullptr;
+  // ...
+}
+
+void HttpClusterMember::onConnected(HttpClusterRequest* cr,
+                                    RefPtr<EndPoint> ep) {
 }
 
 } // namespace client
