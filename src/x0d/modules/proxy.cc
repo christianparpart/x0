@@ -165,6 +165,7 @@ void ProxyModule::onPostConfig() {
       cluster->setConfiguration(FileUtil::read(path).str());
     } else {
       cluster->setHealthCheckUri(Uri("http://xzero.io/hello.txt"));
+      cluster->setHealthCheckInterval(1);
       cluster->addMember("demo1", IPAddress("127.0.0.1"), 3001, 10, true);
       cluster->setEnabled(false);
     }

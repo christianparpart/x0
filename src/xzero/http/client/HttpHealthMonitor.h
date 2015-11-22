@@ -30,6 +30,7 @@ namespace client {
 class HttpHealthMonitor {
  public:
   enum class State { Undefined, Offline, Online };
+  typedef std::function<void(HttpHealthMonitor*, State)> StateChangeNotify;
 
   HttpHealthMonitor(Executor* executor,
                     const IPAddress& ipaddr,
@@ -40,21 +41,22 @@ class HttpHealthMonitor {
                     const std::vector<HttpStatus>& successCodes,
                     Duration connectTimeout,
                     Duration readTimeout,
-                    Duration writeTimeout);
+                    Duration writeTimeout,
+                    StateChangeNotify onStateChange);
 
   ~HttpHealthMonitor();
 
   unsigned successThreshold() const noexcept { return successThreshold_; }
   void setSuccessThreshold(unsigned value) { successThreshold_ = value; }
 
-  void setTestUrl(const Uri& url);
   const Uri& testUrl() const { return testUrl_; }
+  void setTestUrl(const Uri& value) { testUrl_ = value; }
 
   Duration interval() const { return interval_; }
-  void setInterval(const Duration& interval);
+  void setInterval(const Duration& value) { interval_ = value; }
 
   const std::vector<HttpStatus>& successCodes() const { return successCodes_; };
-  void setSuccessCodes(const std::vector<HttpStatus>& codes);
+  void setSuccessCodes(const std::vector<HttpStatus>& value) { successCodes_ = value; }
 
   Duration connectTimeout() const noexcept { return connectTimeout_; }
   void setConnectTimeout(Duration value) { connectTimeout_ = value; }
@@ -65,13 +67,16 @@ class HttpHealthMonitor {
   Duration writeTimeout() const noexcept { return writeTimeout_; }
   void setWriteTimeout(Duration value) { writeTimeout_ = value; }
 
-  void setStateChangeCallback(
-      const std::function<void(HttpHealthMonitor*, State)>& callback);
+  /**
+   * Sets the callback to be invoked on health state changes.
+   */
+  void setStateChangeCallback(StateChangeNotify onStateChange);
 
   State state() const { return state_; }
   bool isOnline() const { return state_ == State::Online; }
 
  private:
+  void start();
   void stop();
   void recheck();
   void logSuccess();

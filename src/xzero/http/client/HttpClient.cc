@@ -38,9 +38,9 @@ HttpClient::HttpClient(Executor* executor,
 HttpClient::~HttpClient() {
 }
 
-void HttpClient::send(HttpRequestInfo&& requestInfo,
+void HttpClient::send(const HttpRequestInfo& requestInfo,
                       const BufferRef& requestBody) {
-  transport_->send(std::move(requestInfo), nullptr);
+  transport_->send(requestInfo, nullptr);
   transport_->send(requestBody, nullptr);
 }
 

@@ -40,15 +40,15 @@ public:
   ~Http1Connection();
 
   // HttpTransport overrides
-  void send(HttpRequestInfo&& requestInfo,
+  void send(const HttpRequestInfo& requestInfo,
             CompletionHandler onComplete) override;
-  void send(HttpRequestInfo&& requestInfo,
+  void send(const HttpRequestInfo& requestInfo,
             const BufferRef& chunk,
             CompletionHandler onComplete) override;
-  void send(HttpRequestInfo&& requestInfo,
+  void send(const HttpRequestInfo& requestInfo,
             Buffer&& chunk,
             CompletionHandler onComplete) override;
-  void send(HttpRequestInfo&& requestInfo,
+  void send(const HttpRequestInfo& requestInfo,
             FileRef&& chunk,
             CompletionHandler onComplete) override;
   void send(const BufferRef& chunk, CompletionHandler onComplete) override;

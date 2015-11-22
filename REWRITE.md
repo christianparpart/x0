@@ -35,7 +35,7 @@
       this handler.
 - [ ] (bug) timeout problem in InetEndPoint, found via `xurl -> x0d -> local`
 
-### Proxy Plugin
+### proxy
 
 - [x] HttpClient: basic HTTP client API with generic transport layer (HTTP1, ...)
 - [x] HttpClusterScheduler
@@ -45,26 +45,23 @@
 - [x] x0d: 100-continue - pre-read HttpInput
 - [x] webdav implements PUT method
 - [x] proxy.http: support request body
-- [ ] HttpHealthMonitor: monitor an HTTP upstream (transport protocol independant)
-  - paranoid
-  - opportunistic
-  - lazy
+- [x] HttpHealthMonitor: monitor an HTTP upstream
 - [ ] HttpClusterMember, proxies to HttpClient, with constraints (such as capacity)
 - [ ] HttpCluster: basic load balancing to HTTP/1 upstreams
 
 #### proxy: stage 2
 
-- [ ] flow-api: `proxy.fcgi(ipaddr, port)`
 - [ ] HttpInput: offload into local tmpfile if payload > N bytes
-- [ ] Executor::HandleRef -> `<xzero/Action.h>` or similar to make it more generic
-- [ ] HttpClient: support UNIX domain socket alongside with TCP/IP
 - [ ] proxy: properly proxy 'Expect: 100-continue' (Expect-header must be forwarded)
-- [ ] HttpClient: support FastCGI
+- [ ] HttpClient: FastCGI
+- [ ] HttpClient: support UNIX domain socket alongside with TCP/IP
+- [ ] HttpHealthMonitor: FastCGI
+- [ ] flow-api: `proxy.fcgi(ipaddr, port)`
+- [ ] Executor::HandleRef -> `<xzero/Action.h>` or similar to make it more generic
 
 ### Feature Stories
 
 - [ ] port director plugin, yeah
-- [ ] port stx::HTTPConnectionPool into HttpClient / HttpClientProxy
 - [ ] x0d-signals: graceful shutdown (INT, TERM)
 - [ ] x0d-signals: logfile rotating (HUP)
 - [ ] x0d-signals: all the others (USR1, USR2, ...?)

@@ -42,7 +42,7 @@ Http1Connection::Http1Connection(HttpListener* channel,
 Http1Connection::~Http1Connection() {
 }
 
-void Http1Connection::send(HttpRequestInfo&& requestInfo,
+void Http1Connection::send(const HttpRequestInfo& requestInfo,
                            CompletionHandler onComplete) {
   setCompleter(onComplete);
   expectsBody_ = requestInfo.method() != HttpMethod::HEAD;
@@ -50,7 +50,7 @@ void Http1Connection::send(HttpRequestInfo&& requestInfo,
   wantFlush();
 }
 
-void Http1Connection::send(HttpRequestInfo&& requestInfo,
+void Http1Connection::send(const HttpRequestInfo& requestInfo,
                            const BufferRef& chunk,
                            CompletionHandler onComplete) {
   setCompleter(onComplete);
@@ -59,7 +59,7 @@ void Http1Connection::send(HttpRequestInfo&& requestInfo,
   wantFlush();
 }
 
-void Http1Connection::send(HttpRequestInfo&& requestInfo,
+void Http1Connection::send(const HttpRequestInfo& requestInfo,
                            Buffer&& chunk,
                            CompletionHandler onComplete) {
   setCompleter(onComplete);
@@ -68,7 +68,7 @@ void Http1Connection::send(HttpRequestInfo&& requestInfo,
   wantFlush();
 }
 
-void Http1Connection::send(HttpRequestInfo&& requestInfo,
+void Http1Connection::send(const HttpRequestInfo& requestInfo,
                            FileRef&& chunk,
                            CompletionHandler onComplete) {
   setCompleter(onComplete);

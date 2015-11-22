@@ -13,6 +13,7 @@
 #include <xzero/thread/Future.h>
 #include <xzero/http/client/HttpClient.h>
 #include <xzero/http/client/HttpClusterSchedulerStatus.h>
+#include <xzero/http/client/HttpHealthMonitor.h>
 #include <xzero/net/IPAddress.h>
 #include <xzero/CompletionHandler.h>
 #include <xzero/Duration.h>
@@ -29,11 +30,13 @@ class InputStream;
 namespace http {
 namespace client {
 
-class HttpHealthMonitor;
 class HttpClusterRequest;
 
 class HttpClusterMember {
 public:
+  typedef std::function<void(HttpClusterMember*, HttpHealthMonitor::State)>
+      StateChangeNotify;
+
   HttpClusterMember(
       Executor* executor,
       const std::string& name,
@@ -45,7 +48,11 @@ public:
       Duration connectTimeout,
       Duration readTimeout,
       Duration writeTimeout,
-      std::unique_ptr<HttpHealthMonitor> healthMonitor);
+      const Uri& healthCheckUri,
+      Duration healthCheckInterval,
+      unsigned healthCheckSuccessThreshold,
+      const std::vector<HttpStatus>& healthCheckSuccessCodes,
+      StateChangeNotify onHealthStateChange);
 
   ~HttpClusterMember();
 

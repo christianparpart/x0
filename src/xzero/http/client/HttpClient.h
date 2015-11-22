@@ -46,7 +46,7 @@ class HttpClient : public HttpListener {
   HttpClient(Executor* executor, RefPtr<EndPoint> endpoint);
   ~HttpClient();
 
-  void send(HttpRequestInfo&& requestInfo, const BufferRef& requestBody);
+  void send(const HttpRequestInfo& requestInfo, const BufferRef& requestBody);
 
   Future<HttpClient*> completed();
 

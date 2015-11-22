@@ -206,7 +206,7 @@ void XUrl::connected(RefPtr<InetEndPoint> ep, const Uri& uri) {
     logInfo("xurl", "< $0: $1", field.name(), field.value());
   }
 
-  http.send(std::move(req), body_);
+  http.send(req, body_);
   http.completed();
 
   scheduler_.runLoop();

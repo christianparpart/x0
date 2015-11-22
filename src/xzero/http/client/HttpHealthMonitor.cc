@@ -20,11 +20,11 @@ template<>
 std::string StringUtil::toString(http::client::HttpHealthMonitor::State state) {
   switch (state) {
     case http::client::HttpHealthMonitor::State::Undefined:
-      return "Undefined";
+      return "undefined";
     case http::client::HttpHealthMonitor::State::Offline:
-      return "Offline";
+      return "offline";
     case http::client::HttpHealthMonitor::State::Online:
-      return "Online";
+      return "online";
   }
 }
 
@@ -40,7 +40,8 @@ HttpHealthMonitor::HttpHealthMonitor(Executor* executor,
                                      const std::vector<HttpStatus>& successCodes,
                                      Duration connectTimeout,
                                      Duration readTimeout,
-                                     Duration writeTimeout)
+                                     Duration writeTimeout,
+                                     StateChangeNotify onStateChange)
     : executor_(executor),
       timerHandle_(),
       ipaddr_(ipaddr),
@@ -52,26 +53,26 @@ HttpHealthMonitor::HttpHealthMonitor(Executor* executor,
       readTimeout_(readTimeout),
       writeTimeout_(writeTimeout),
       successThreshold_(successThreshold),
-      onStateChange_(),
+      onStateChange_(onStateChange),
       state_(State::Undefined),
       totalFailCount_(0),
       consecutiveSuccessCount_(0),
       totalOfflineTime_(Duration::Zero),
       client_() {
   TRACE("ctor: $0:$1", ipaddr_, port_);
-  onCheckNow();
+  start();
 }
 
 HttpHealthMonitor::~HttpHealthMonitor() {
   stop();
 }
 
-/**
- * Sets the callback to be invoked on health state changes.
- */
-void HttpHealthMonitor::setStateChangeCallback(
-    const std::function<void(HttpHealthMonitor*, State)>& callback) {
-  onStateChange_ = callback;
+void HttpHealthMonitor::setStateChangeCallback(StateChangeNotify notify) {
+  onStateChange_ = notify;
+}
+
+void HttpHealthMonitor::start() {
+  onCheckNow();
 }
 
 void HttpHealthMonitor::stop() {
@@ -134,6 +135,8 @@ void HttpHealthMonitor::setState(State value) {
 
 void HttpHealthMonitor::onCheckNow() {
   DEBUG("onCheckNow");
+
+  timerHandle_.reset();
 
   Future<RefPtr<InetEndPoint>> ep =
       InetEndPoint::connectAsync(ipaddr_, port_, connectTimeout(), executor_);

@@ -16,7 +16,11 @@ HttpClusterMember::HttpClusterMember(
     Duration connectTimeout,
     Duration readTimeout,
     Duration writeTimeout,
-    std::unique_ptr<HttpHealthMonitor> healthMonitor)
+    const Uri& healthCheckUri,
+    Duration healthCheckInterval,
+    unsigned healthCheckSuccessThreshold,
+    const std::vector<HttpStatus>& healthCheckSuccessCodes,
+    StateChangeNotify onHealthStateChange)
     : executor_(executor),
       name_(name),
       ipaddress_(ipaddr),
@@ -27,7 +31,18 @@ HttpClusterMember::HttpClusterMember(
       connectTimeout_(connectTimeout),
       readTimeout_(readTimeout),
       writeTimeout_(writeTimeout),
-      healthMonitor_(std::move(healthMonitor)),
+      healthMonitor_(new HttpHealthMonitor(
+          executor,
+          ipaddr,
+          port,
+          healthCheckUri,
+          healthCheckInterval,
+          healthCheckSuccessThreshold,
+          healthCheckSuccessCodes,
+          connectTimeout,
+          readTimeout,
+          writeTimeout,
+          std::bind(onHealthStateChange, this, std::placeholders::_2))),
       clients_() {
 }
 

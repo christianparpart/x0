@@ -28,15 +28,15 @@ class HttpTransport {
  public:
   virtual ~HttpTransport();
 
-  virtual void send(HttpRequestInfo&& requestInfo,
+  virtual void send(const HttpRequestInfo& requestInfo,
                     CompletionHandler onComplete) = 0;
-  virtual void send(HttpRequestInfo&& requestInfo,
+  virtual void send(const HttpRequestInfo& requestInfo,
                     const BufferRef& chunk,
                     CompletionHandler onComplete) = 0;
-  virtual void send(HttpRequestInfo&& requestInfo,
+  virtual void send(const HttpRequestInfo& requestInfo,
                     Buffer&& chunk,
                     CompletionHandler onComplete) = 0;
-  virtual void send(HttpRequestInfo&& requestInfo,
+  virtual void send(const HttpRequestInfo& requestInfo,
                     FileRef&& chunk,
                     CompletionHandler onComplete) = 0;
   virtual void send(const BufferRef& chunk, CompletionHandler onComplete) = 0;

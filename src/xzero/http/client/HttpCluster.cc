@@ -32,7 +32,11 @@ HttpCluster::HttpCluster(const std::string& name, Executor* executor)
                   3,                          // maxRetryCount
                   Duration::fromSeconds(4),   // backend connect timeout
                   Duration::fromSeconds(30),  // backend response read timeout
-                  Duration::fromSeconds(8)) { // backend request write timeout
+                  Duration::fromSeconds(8),   // backend request write timeout
+                  Uri("http://healthcheck/"), // health check test URI
+                  Duration::fromSeconds(4),   // health check interval
+                  3,                          // health check success threshold
+                  {HttpStatus::Ok}) {         // health check success codes
 }
 
 HttpCluster::HttpCluster(const std::string& name,
@@ -47,7 +51,11 @@ HttpCluster::HttpCluster(const std::string& name,
                          size_t maxRetryCount,
                          Duration connectTimeout,
                          Duration readTimeout,
-                         Duration writeTimeout)
+                         Duration writeTimeout,
+                         const Uri& healthCheckUri,
+                         Duration healthCheckInterval,
+                         unsigned healthCheckSuccessThreshold,
+                         const std::vector<HttpStatus>& healthCheckSuccessCodes)
     : name_(name),
       enabled_(enabled),
       stickyOfflineMode_(stickyOfflineMode),
@@ -64,6 +72,10 @@ HttpCluster::HttpCluster(const std::string& name,
       storagePath_("TODO"), // TODO
       shaper_(executor, 0),
       members_(),
+      healthCheckUri_(healthCheckUri),
+      healthCheckInterval_(healthCheckInterval),
+      healthCheckSuccessThreshold_(healthCheckSuccessThreshold),
+      healthCheckSuccessCodes_(healthCheckSuccessCodes),
       scheduler_()
 {
   shaper_.setTimeoutHandler(
@@ -94,41 +106,34 @@ void HttpCluster::addMember(const std::string& name,
   Executor* executor = executor_; // TODO: get as function arg for passing:  daemon().selectClientScheduler()
   std::string protocol = "http";  // TODO: get as function arg
   int healthCheckSuccessThreshold = 3;
-  Duration healthCheckInterval = Duration::fromSeconds(4);
+  Duration healthCheckInterval = Duration::fromSeconds(1);
   const std::vector<HttpStatus> healthCheckSuccessCodes = { HttpStatus::Ok };
 
   TRACE("addMember: $0 $1:$2", name, ipaddr, port);
-  std::unique_ptr<HttpHealthMonitor> healthMonitor(
-      new HttpHealthMonitor(executor, ipaddr, port, healthCheckUri(),
-                    healthCheckInterval,
-                    healthCheckSuccessThreshold,
-                    healthCheckSuccessCodes,
-                    connectTimeout(),
-                    readTimeout(),
-                    writeTimeout()));
 
-  HttpClusterMember* backend = new HttpClusterMember(executor,
-                                                     name,
-                                                     ipaddr,
-                                                     port,
-                                                     capacity,
-                                                     enabled,
-                                                     protocol,
-                                                     connectTimeout(),
-                                                     readTimeout(),
-                                                     writeTimeout(),
-                                                     std::move(healthMonitor));
-
-  backend->healthMonitor()->setStateChangeCallback(
-      [this, backend] (HttpHealthMonitor*, HttpHealthMonitor::State oldState) {
-    onBackendStateChanged(backend, backend->healthMonitor(), oldState);
-  });
+  HttpClusterMember* backend = new HttpClusterMember(
+      executor,
+      name,
+      ipaddr,
+      port,
+      capacity,
+      enabled,
+      protocol,
+      connectTimeout(),
+      readTimeout(),
+      writeTimeout(),
+      healthCheckUri(),
+      healthCheckInterval,
+      healthCheckSuccessThreshold,
+      healthCheckSuccessCodes,
+      std::bind(&HttpCluster::onBackendStateChanged, this,
+                std::placeholders::_1,
+                std::placeholders::_2));
 
   members_.push_back(backend);
 }
 
 void HttpCluster::onBackendStateChanged(HttpClusterMember* backend,
-                                        HttpHealthMonitor* healthMonitor,
                                         HttpHealthMonitor::State oldState) {
   TRACE("onBackendStateChanged: health=$0 -> $1, enabled=$2",
         oldState,
@@ -136,10 +141,13 @@ void HttpCluster::onBackendStateChanged(HttpClusterMember* backend,
         backend->isEnabled());
 
   logInfo("HttpCluster",
-          "$0: backend '$1' is now $2.",
-          name(), backend->name(), healthMonitor->state());
+          "$0: backend '$1' ($2:$3) is now $4.",
+          name(), backend->name(),
+          backend->ipaddress(),
+          backend->port(),
+          backend->healthMonitor()->state());
 
-  if (healthMonitor->isOnline()) {
+  if (backend->healthMonitor()->isOnline()) {
     if (!backend->isEnabled())
       return;
 
@@ -186,6 +194,34 @@ void HttpCluster::removeMember(const std::string& name) {
     delete *i;
     members_.erase(i);
   }
+}
+
+void HttpCluster::setHealthCheckUri(const Uri& value) {
+  healthCheckUri_ = value;
+
+  for (HttpClusterMember* member: members_)
+    member->healthMonitor()->setTestUrl(value);
+}
+
+void HttpCluster::setHealthCheckInterval(Duration value) {
+  healthCheckInterval_ = value;
+
+  for (HttpClusterMember* member: members_)
+    member->healthMonitor()->setInterval(value);
+}
+
+void HttpCluster::setHealthCheckSuccessThreshold(unsigned value) {
+  healthCheckSuccessThreshold_ = value;
+
+  for (HttpClusterMember* member: members_)
+    member->healthMonitor()->setSuccessThreshold(value);
+}
+
+void HttpCluster::setHealthCheckSuccessCodes(const std::vector<HttpStatus>& value) {
+  healthCheckSuccessCodes_ = value;
+
+  for (HttpClusterMember* member: members_)
+    member->healthMonitor()->setSuccessCodes(value);
 }
 
 void HttpCluster::setExecutor(Executor* executor) {

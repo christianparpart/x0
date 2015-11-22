@@ -58,7 +58,11 @@ class HttpCluster {
               size_t maxRetryCount,
               Duration connectTimeout,
               Duration readTimeout,
-              Duration writeTimeout);
+              Duration writeTimeout,
+              const Uri& healthCheckUri,
+              Duration healthCheckInterval,
+              unsigned healthCheckSuccessThreshold,
+              const std::vector<HttpStatus>& healthCheckSuccessCodes);
 
   ~HttpCluster();
 
@@ -154,9 +158,16 @@ class HttpCluster {
 
   // // .... FIXME: proper API namespacing. maybe cluster->healthMonitor()->{testUri, interval, consecutiveSuccessCount, ...}
   const Uri& healthCheckUri() const noexcept { return healthCheckUri_; }
-  void setHealthCheckUri(const Uri& uri) { healthCheckUri_ = uri; }
-  // Duration healthCheckInterval() const noexcept { return healthCheckInterval_; }
-  // void setHealthCheckInterval(Duration value);
+  void setHealthCheckUri(const Uri& uri);
+
+  Duration healthCheckInterval() const noexcept { return healthCheckInterval_; }
+  void setHealthCheckInterval(Duration value);
+
+  unsigned healthCheckSuccessThreshold() const noexcept { return healthCheckSuccessThreshold_; }
+  void setHealthCheckSuccessThreshold(unsigned value);
+
+  const std::vector<HttpStatus>& healthCheckSuccessCodes() const noexcept { return healthCheckSuccessCodes_; }
+  void setHealthCheckSuccessCodes(const std::vector<HttpStatus>& value);
   // }}}
 
   // {{{ serialization
@@ -200,7 +211,6 @@ class HttpCluster {
   HttpClusterRequest* dequeue();
   void onTimeout(HttpClusterRequest* cr);
   void onBackendStateChanged(HttpClusterMember* backend,
-                             HttpHealthMonitor* healthMonitor,
                              HttpHealthMonitor::State oldState);
 
  private:
@@ -253,8 +263,18 @@ class HttpCluster {
   // cluster member vector
   std::list<HttpClusterMember*> members_;
 
-  // test-URL for health checking
+  // health check: test URL
   Uri healthCheckUri_;
+
+  // health-check: test interval
+  Duration healthCheckInterval_;
+
+  // health-check: number of consecutive success responsives before setting
+  // a backend (back to) online.
+  unsigned healthCheckSuccessThreshold_;
+
+  // health-check: list of HTTP status codes to treat as success.
+  std::vector<HttpStatus> healthCheckSuccessCodes_;
 
   // member scheduler
   UniquePtr<HttpClusterScheduler> scheduler_;
