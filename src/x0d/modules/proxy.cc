@@ -170,7 +170,7 @@ void ProxyModule::onPostConfig() {
       cluster->setHealthCheckInterval(Duration::fromSeconds(10));
       cluster->setHealthCheckSuccessThreshold(1);
       cluster->setHealthCheckSuccessCodes({HttpStatus::Ok});
-      cluster->addMember("demo1", IPAddress("127.0.0.1"), 3001, 10, true);
+      cluster->addMember("demo1", IPAddress("127.0.0.1"), 3001, 1, true);
       cluster->setEnabled(true);
     }
 

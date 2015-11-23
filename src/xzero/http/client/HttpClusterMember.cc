@@ -145,19 +145,19 @@ void HttpClusterMember::onResponseReceived(HttpClusterRequest* cr,
     return false;
   };
 
-  cr->responseListener->onMessageBegin(client->responseInfo().version(),
+  cr->onMessageBegin(client->responseInfo().version(),
                                        client->responseInfo().status(),
                                        BufferRef(client->responseInfo().reason()));
 
   for (const HeaderField& field: client->responseInfo().headers()) {
     if (!isConnectionHeader(field.name())) {
-      cr->responseListener->onMessageHeader(BufferRef(field.name()), BufferRef(field.value()));
+      cr->onMessageHeader(BufferRef(field.name()), BufferRef(field.value()));
     }
   }
 
-  cr->responseListener->onMessageHeaderEnd();
-  cr->responseListener->onMessageContent(client->responseBody());
-  cr->responseListener->onMessageEnd();
+  cr->onMessageHeaderEnd();
+  cr->onMessageContent(client->responseBody());
+  cr->onMessageEnd();
 }
 
 } // namespace client

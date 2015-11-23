@@ -8,6 +8,18 @@
 #include <algorithm>
 
 namespace xzero {
+  using http::client::HttpClusterSchedulerStatus;
+
+  template<> std::string StringUtil::toString(HttpClusterSchedulerStatus value) {
+    switch (value) {
+      case HttpClusterSchedulerStatus::Unavailable: return "Unavailable";
+      case HttpClusterSchedulerStatus::Success: return "Success";
+      case HttpClusterSchedulerStatus::Overloaded: return "Overloaded";
+    }
+  }
+}
+
+namespace xzero {
 namespace http {
 namespace client {
 
@@ -273,10 +285,12 @@ void HttpCluster::schedule(HttpClusterRequest* cr, Bucket* bucket) {
   }
 
   if (cr->bucket->get(1)) {
+    cr->tokens = 1;
     HttpClusterSchedulerStatus status = clusterScheduler()->schedule(cr);
     if (status == HttpClusterSchedulerStatus::Success)
       return;
 
+    logWarning("HttpCluster", "put back token, $0", status);
     cr->bucket->put(1);
     cr->tokens = 0;
 
@@ -287,9 +301,11 @@ void HttpCluster::schedule(HttpClusterRequest* cr, Bucket* bucket) {
       enqueue(cr);
     }
   } else if (cr->bucket->ceil() > 0 || enqueueOnUnavailable_) {
+    logWarning("HttpCluster", "enqueue cr");
     // there are tokens available (for rent) and we prefer to wait if unavailable
     enqueue(cr);
   } else {
+    logWarning("HttpCluster", "serviceUnavailable cr");
     serviceUnavailable(cr);
   }
 }
@@ -324,7 +340,7 @@ bool HttpCluster::verifyTryCount(HttpClusterRequest* cr) {
 }
 
 void HttpCluster::serviceUnavailable(HttpClusterRequest* cr, HttpStatus status) {
-  cr->responseListener->onMessageBegin(
+  cr->onMessageBegin(
       HttpVersion::VERSION_1_1,
       status,
       BufferRef(StringUtil::toString(HttpStatus::ServiceUnavailable)));
@@ -332,19 +348,19 @@ void HttpCluster::serviceUnavailable(HttpClusterRequest* cr, HttpStatus status) 
   // TODO: put into a more generic place where it affects all responses.
   //
   if (cr->bucket) {
-    cr->responseListener->onMessageHeader(BufferRef("Cluster-Bucket"),
-                                          BufferRef(cr->bucket->name()));
+    cr->onMessageHeader(BufferRef("Cluster-Bucket"),
+                        BufferRef(cr->bucket->name()));
   }
 
   if (retryAfter() != Duration::Zero) {
     char value[64];
     int vs = snprintf(value, sizeof(value), "%lu", retryAfter().seconds());
-    cr->responseListener->onMessageHeader(
+    cr->onMessageHeader(
         BufferRef("Retry-After"), BufferRef(value, vs));
   }
 
-  cr->responseListener->onMessageHeaderEnd();
-  cr->responseListener->onMessageEnd();
+  cr->onMessageHeaderEnd();
+  cr->onMessageEnd();
 
   ++dropped_;
 }

@@ -25,7 +25,8 @@ namespace client {
 
 class HttpClusterMember;
 
-struct HttpClusterRequest : public CustomData {
+struct HttpClusterRequest : public CustomData,
+                            public HttpListener {
   HttpClusterRequest(const HttpRequestInfo& _requestInfo,
                      std::unique_ptr<InputStream> _requestBody,
                      std::unique_ptr<HttpListener> _responseListener,
@@ -50,6 +51,15 @@ struct HttpClusterRequest : public CustomData {
   size_t tokens;
 
   void post(Executor::Task task) { executor->execute(task); }
+
+  // HttpListener overrides
+  void onMessageBegin(HttpVersion version, HttpStatus code,
+                      const BufferRef& text) override;
+  void onMessageHeader(const BufferRef& name, const BufferRef& value) override;
+  void onMessageHeaderEnd() override;
+  void onMessageContent(const BufferRef& chunk) override;
+  void onMessageEnd() override;
+  void onProtocolError(HttpStatus code, const std::string& message) override;
 };
 
 } // namespace http
