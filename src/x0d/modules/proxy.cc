@@ -142,7 +142,7 @@ bool ProxyModule::verify_proxy_cluster(xzero::flow::Instr* call) {
       ? "/var/tmp/" + nameArg->get() + ".cluster.conf"
       : pathArg->get();
 
-  call->replaceOperand(pathArg, program->get(path));
+  call->setOperand(2, program->get(path));
 
   clusterInit_[nameArg->get()] = path;
 
