@@ -9,11 +9,12 @@ namespace client {
 HttpClusterRequest::HttpClusterRequest(const HttpRequestInfo& _requestInfo,
                                        std::unique_ptr<InputStream> _requestBody,
                                        std::unique_ptr<HttpListener> _responseListener,
-                                       Executor* executor)
+                                       Executor* _executor)
     : ctime(MonotonicClock::now()),
       requestInfo(_requestInfo),
       requestBody(std::move(_requestBody)),
       responseListener(std::move(_responseListener)),
+      executor(_executor),
       bucket(nullptr),
       backend(nullptr),
       tryCount(0),
