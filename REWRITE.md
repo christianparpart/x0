@@ -46,10 +46,10 @@
 - [x] webdav implements PUT method
 - [x] proxy.http: support request body
 - [x] HttpHealthMonitor: monitor an HTTP upstream
+- [x] HttpClient: an easier way to connect to an endpoint AND issue the request
+      (in one line)
 - [ ] HttpClusterMember, proxies to HttpClient, with constraints (such as capacity)
 - [ ] HttpCluster: basic load balancing to HTTP/1 upstreams
-- [ ] HttpClient: an easier way to connect to an endpoint AND issue the request
-      (in one line)
 
 #### proxy: stage 2
 
