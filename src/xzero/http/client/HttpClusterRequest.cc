@@ -33,7 +33,6 @@ void HttpClusterRequest::onMessageHeader(const BufferRef& name,
 }
 
 void HttpClusterRequest::onMessageHeaderEnd() {
-  logNotice("HttpClusterRequest", "onMessageHeaderEnd");
   responseListener->onMessageHeaderEnd();
 }
 
@@ -42,10 +41,7 @@ void HttpClusterRequest::onMessageContent(const BufferRef& chunk) {
 }
 
 void HttpClusterRequest::onMessageEnd() {
-  logNotice("HttpClusterRequest", "onMessageEnd ($0 $1)", bucket != nullptr, tokens);
   if (bucket != nullptr && tokens != 0) {
-    logNotice("HttpClusterRequest", "put $0 tokens into bucket $1",
-        tokens, bucket->name());
     bucket->put(tokens);
   }
 
@@ -54,7 +50,6 @@ void HttpClusterRequest::onMessageEnd() {
 
 void HttpClusterRequest::onProtocolError(HttpStatus code,
                                          const std::string& message) {
-  logNotice("HttpClusterRequest", "onProtocolError");
   responseListener->onProtocolError(code, message);
 }
 
