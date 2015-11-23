@@ -126,6 +126,8 @@ void HttpClusterMember::onFailure(HttpClusterRequest* cr, Status status) {
 
 void HttpClusterMember::onResponseReceived(HttpClusterRequest* cr,
                                            const UniquePtr<HttpClient>& client) {
+  --load_;
+
   auto isConnectionHeader = [](const std::string& name) -> bool {
     static const std::vector<std::string> connectionHeaderFields = {
       "Connection",
