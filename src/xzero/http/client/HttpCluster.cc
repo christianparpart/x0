@@ -77,7 +77,7 @@ HttpCluster::HttpCluster(const std::string& name,
       healthCheckInterval_(healthCheckInterval),
       healthCheckSuccessThreshold_(healthCheckSuccessThreshold),
       healthCheckSuccessCodes_(healthCheckSuccessCodes),
-      scheduler_(),
+      scheduler_(new HttpClusterScheduler::RoundRobin(&members_)),
       load_(),
       queued_(),
       dropped_() {

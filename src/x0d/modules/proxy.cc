@@ -171,7 +171,7 @@ void ProxyModule::onPostConfig() {
       cluster->setHealthCheckSuccessThreshold(1);
       cluster->setHealthCheckSuccessCodes({HttpStatus::Ok});
       cluster->addMember("demo1", IPAddress("127.0.0.1"), 3001, 10, true);
-      cluster->setEnabled(false);
+      cluster->setEnabled(true);
     }
 
     clusterMap_[name] = cluster;
@@ -267,7 +267,6 @@ bool ProxyModule::proxy_cluster(XzeroContext* cx, Params& args) {
                cluster->name(), bucketName, bucket->name());
     }
   }
-
 
   HttpClusterRequest* cr = cx->setCustomData<HttpClusterRequest>(this,
       *cx->request(),

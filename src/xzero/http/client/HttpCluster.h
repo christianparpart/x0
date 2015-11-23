@@ -8,8 +8,6 @@
 
 #pragma once
 
-#include <list>
-#include <vector>
 #include <xzero/thread/Future.h>
 #include <xzero/http/client/HttpClient.h>
 #include <xzero/http/client/HttpClusterMember.h>
@@ -26,6 +24,8 @@
 #include <xzero/stdtypes.h>
 #include <utility>
 #include <istream>
+#include <vector>
+#include <list>
 
 namespace xzero {
 
@@ -262,7 +262,7 @@ class HttpCluster {
   RequestShaper shaper_;
 
   // cluster member vector
-  std::list<HttpClusterMember*> members_;
+  std::vector<HttpClusterMember*> members_;
 
   // health check: test URL
   Uri healthCheckUri_;

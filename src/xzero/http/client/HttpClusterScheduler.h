@@ -22,7 +22,7 @@ class HttpClusterRequest;
 
 class HttpClusterScheduler {
  public:
-  typedef std::vector<std::unique_ptr<HttpClusterMember>> MemberList;
+  typedef std::vector<HttpClusterMember*> MemberList;
 
   explicit HttpClusterScheduler(const std::string& name, MemberList* members);
   virtual ~HttpClusterScheduler();
