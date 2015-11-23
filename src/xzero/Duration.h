@@ -121,6 +121,7 @@ constexpr xzero::Duration operator "" _seconds(unsigned long long v);
 constexpr xzero::Duration operator "" _minutes(unsigned long long v);
 constexpr xzero::Duration operator "" _hours(unsigned long long v);
 constexpr xzero::Duration operator "" _days(unsigned long long v);
+constexpr xzero::Duration operator "" _years(unsigned long long v);
 
 #include <xzero/Duration_impl.h>
 #endif

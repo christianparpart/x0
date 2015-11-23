@@ -166,3 +166,7 @@ constexpr xzero::Duration operator "" _hours(unsigned long long v) {
 constexpr xzero::Duration operator "" _days(unsigned long long v) {
   return xzero::Duration::fromDays(v);
 }
+
+constexpr xzero::Duration operator "" _years(unsigned long long v) {
+  return xzero::Duration::fromDays(v * 365);
+}
