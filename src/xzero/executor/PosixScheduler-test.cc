@@ -83,9 +83,9 @@ TEST(PosixSchedulerTest, timeoutBreak) {
                            logTrace("x", "b_timeout_at: $0", b_timeout_at - start); };
 
   scheduler.executeOnReadable(a.readerFd(), a_fired,
-                              Duration::fromMilliseconds(500), a_timeout);
+                              500_milliseconds, a_timeout);
   scheduler.executeOnReadable(b.readerFd(), b_fired,
-                              Duration::fromMilliseconds(100), b_timeout);
+                              100_milliseconds, b_timeout);
 
   scheduler.runLoop();
 
@@ -101,7 +101,7 @@ TEST(PosixSchedulerTest, executeAfter_without_handle) {
   MonotonicTime firedAt;
   int fireCount = 0;
 
-  scheduler.executeAfter(Duration::fromMilliseconds(50), [&](){
+  scheduler.executeAfter(50_milliseconds, [&](){
     firedAt = MonotonicClock::now();
     fireCount++;
   });
@@ -121,7 +121,7 @@ TEST(PosixSchedulerTest, executeAfter_cancel_beforeRun) {
   PosixScheduler scheduler;
   int fireCount = 0;
 
-  auto handle = scheduler.executeAfter(Duration::fromSeconds(1), [&](){
+  auto handle = scheduler.executeAfter(1_seconds, [&](){
     printf("****** cancel_beforeRun: running action\n");
     fireCount++;
   });
@@ -137,11 +137,11 @@ TEST(PosixSchedulerTest, executeAfter_cancel_beforeRun2) {
   int fire1Count = 0;
   int fire2Count = 0;
 
-  auto handle1 = scheduler.executeAfter(Duration::fromSeconds(1), [&](){
+  auto handle1 = scheduler.executeAfter(1_seconds, [&](){
     fire1Count++;
   });
 
-  auto handle2 = scheduler.executeAfter(Duration::fromMilliseconds(10), [&](){
+  auto handle2 = scheduler.executeAfter(10_milliseconds, [&](){
     fire2Count++;
   });
 
@@ -193,7 +193,7 @@ TEST(PosixSchedulerTest, executeOnReadable_timeout) {
   auto onFire = [&] { fireCount++; };
   auto onTimeout = [&] { timeoutCount++; };
 
-  sched.executeOnReadable(pipe.readerFd(), onFire, Duration::fromMilliseconds(500), onTimeout);
+  sched.executeOnReadable(pipe.readerFd(), onFire, 500_milliseconds, onTimeout);
   sched.runLoopOnce();
 
   EXPECT_EQ(0, fireCount);
@@ -212,7 +212,7 @@ TEST(PosixSchedulerTest, executeOnReadable_timeout_on_cancelled) {
     timeoutCount++; };
 
   auto handle = sched.executeOnReadable(
-      pipe.readerFd(), onFire, Duration::fromMilliseconds(500), onTimeout);
+      pipe.readerFd(), onFire, 500_milliseconds, onTimeout);
 
   handle->cancel();
   sched.runLoopOnce();
@@ -249,7 +249,7 @@ TEST(PosixSchedulerTest, executeOnWritable) {
   SystemPipe pipe;
   int fireCount = 0;
   int timeoutCount = 0;
-  const Duration timeout = Duration::fromSeconds(1);
+  const Duration timeout = 1_seconds;
   const auto onFire = [&]() { fireCount++; };
   const auto onTimeout = [&]() { timeoutCount++; };
 

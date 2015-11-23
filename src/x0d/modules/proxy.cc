@@ -167,7 +167,7 @@ void ProxyModule::onPostConfig() {
       cluster->setConfiguration(FileUtil::read(path).str());
     } else {
       cluster->setHealthCheckUri(Uri("http://xzero.io/hello.txt"));
-      cluster->setHealthCheckInterval(Duration::fromSeconds(10));
+      cluster->setHealthCheckInterval(10_seconds);
       cluster->setHealthCheckSuccessThreshold(1);
       cluster->setHealthCheckSuccessCodes({HttpStatus::Ok});
       cluster->addMember("demo1", IPAddress("127.0.0.1"), 3001, 1, true);
@@ -342,9 +342,9 @@ bool ProxyModule::proxy_http(XzeroContext* cx, xzero::flow::vm::Params& args) {
   IPAddress ipaddr = args.getIPAddress(1);
   FlowNumber port = args.getInt(2);
   FlowString onClientAbortStr = args.getString(3);
-  Duration connectTimeout = Duration::fromSeconds(16);
-  Duration readTimeout = Duration::fromSeconds(60);
-  Duration writeTimeout = Duration::fromSeconds(8);
+  Duration connectTimeout = 16_seconds;
+  Duration readTimeout = 60_seconds;
+  Duration writeTimeout = 8_seconds;
   Executor* executor = cx->response()->executor();
 
   BufferRef requestBody; // TODO

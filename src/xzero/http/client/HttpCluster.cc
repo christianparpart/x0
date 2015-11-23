@@ -39,14 +39,14 @@ HttpCluster::HttpCluster(const std::string& name, Executor* executor)
                   true,                       // allowXSendfile
                   true,                       // enqueueOnUnavailable
                   1000,                       // queueLimit
-                  Duration::fromSeconds(30),  // queueTimeout
-                  Duration::fromSeconds(30),  // retryAfter
+                  30_seconds,                 // queueTimeout
+                  30_seconds,                 // retryAfter
                   3,                          // maxRetryCount
-                  Duration::fromSeconds(4),   // backend connect timeout
-                  Duration::fromSeconds(30),  // backend response read timeout
-                  Duration::fromSeconds(8),   // backend request write timeout
+                  4_seconds,                  // backend connect timeout
+                  30_seconds,                 // backend response read timeout
+                  8_seconds,                  // backend request write timeout
                   Uri("http://healthcheck/"), // health check test URI
-                  Duration::fromSeconds(4),   // health check interval
+                  4_seconds,                  // health check interval
                   3,                          // health check success threshold
                   {HttpStatus::Ok}) {         // health check success codes
 }

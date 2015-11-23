@@ -110,9 +110,9 @@ Future<UniquePtr<HttpClient>> HttpClient::sendAsync(
   if (ipaddresses.empty())
     RAISE(RuntimeError, "Host header does not resolve to an IP address.");
 
-  Duration connectTimeout = Duration::fromSeconds(4);
-  Duration readTimeout = Duration::fromSeconds(30);
-  Duration writeTimeout = Duration::fromSeconds(8);
+  Duration connectTimeout = 4_seconds;
+  Duration readTimeout = 30_seconds;
+  Duration writeTimeout = 8_seconds;
 
   return sendAsync(ipaddresses.front(), port, requestInfo, requestBody,
       connectTimeout, readTimeout, writeTimeout, executor);
@@ -133,9 +133,9 @@ Future<UniquePtr<HttpClient>> HttpClient::sendAsync(
   if (ipaddresses.empty())
     RAISE(RuntimeError, "Host header does not resolve to an IP address.");
 
-  Duration connectTimeout = Duration::fromSeconds(4);
-  Duration readTimeout = Duration::fromSeconds(30);
-  Duration writeTimeout = Duration::fromSeconds(8);
+  Duration connectTimeout = 4_seconds;
+  Duration readTimeout = 30_seconds;
+  Duration writeTimeout = 8_seconds;
 
   return sendAsync(ipaddresses.front(), url.port(), requestInfo, requestBody,
       connectTimeout, readTimeout, writeTimeout, executor);

@@ -505,11 +505,11 @@ Duration PosixScheduler::nextTimeout() const {
 
   const Duration a = !timers_.empty()
                  ? timers_.front()->when - now()
-                 : Duration::fromSeconds(60);
+                 : 60_seconds;
 
   const Duration b = firstWatcher_ != nullptr
                  ? firstWatcher_->timeout - now()
-                 : Duration::fromSeconds(61);
+                 : 61_seconds;
 
   return std::min(a, b);
 }

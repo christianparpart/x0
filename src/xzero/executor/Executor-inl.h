@@ -56,11 +56,11 @@ inline void Executor::Handle::fire(Task task) {
 }
 
 inline Executor::HandleRef Executor::executeOnReadable(int fd, Task task) {
-  return executeOnReadable(fd, task, Duration::fromDays(5 * 365), nullptr);
+  return executeOnReadable(fd, task, 5_years, nullptr);
 }
 
 inline Executor::HandleRef Executor::executeOnWritable(int fd, Task task) {
-  return executeOnWritable(fd, task, Duration::fromDays(5 * 365), nullptr);
+  return executeOnWritable(fd, task, 5_years, nullptr);
 }
 
 }  // namespace xzero

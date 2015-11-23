@@ -29,19 +29,19 @@ TEST(ThreadPoolTest, simple) {
   startTime = MonotonicClock::now();
 
   tp.execute([&]() {
-    usleep(Duration::fromMilliseconds(100).microseconds());
+    usleep(100_milliseconds .microseconds());
     e1 = true;
     end1 = MonotonicClock::now();
   });
 
   tp.execute([&]() {
-    usleep(Duration::fromMilliseconds(100).microseconds());
+    usleep(100_milliseconds .microseconds());
     e2 = true;
     end2 = MonotonicClock::now();
   });
 
   tp.execute([&]() {
-    usleep(Duration::fromMilliseconds(100).microseconds());
+    usleep(100_milliseconds .microseconds());
     e3 = true;
     end3 = MonotonicClock::now();
   });

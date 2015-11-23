@@ -18,7 +18,7 @@ ConnectionFactory::ConnectionFactory()
     : ConnectionFactory(4096,
                         4 * 1024 * 1024,
                         100,
-                        Duration::fromSeconds(8),
+                        8_seconds,
                         false,
                         false) {
 }

@@ -87,9 +87,9 @@ XUrl::XUrl()
                     new CatchAndLogExceptionHandler("xurl"))),
       flags_(),
       dns_(),
-      connectTimeout_(Duration::fromSeconds(4)),
-      readTimeout_(Duration::fromSeconds(60)),
-      writeTimeout_(Duration::fromSeconds(10))
+      connectTimeout_(4_seconds),
+      readTimeout_(60_seconds),
+      writeTimeout_(10_seconds)
 {
   Application::logToStderr(LogLevel::Info);
 
@@ -107,7 +107,7 @@ int XUrl::run(int argc, const char* argv[]) {
   cli.defineString("output", 'o', "PATH", "Write response body to given file.");
   cli.defineString("log-level", 0, "STRING", "Log level.", "info");
   cli.defineString("method", 'X', "METHOD", "HTTP method", "GET");
-  cli.defineNumber("connect-timeout", 0, "MS", "TCP connect() timeout", Duration::fromSeconds(10).milliseconds(), nullptr);
+  cli.defineNumber("connect-timeout", 0, "MS", "TCP connect() timeout", 10_seconds .milliseconds(), nullptr);
   cli.defineString("upload-file", 'T', "PATH", "Uploads given file.", "");
   cli.defineString("header", 'H', "HEADER", "Adds a custom request header",
       std::bind(&XUrl::addRequestHeader, this, std::placeholders::_1));

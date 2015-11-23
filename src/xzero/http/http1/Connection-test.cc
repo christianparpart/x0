@@ -48,7 +48,7 @@ class ScopedLogger { // {{{
 static const size_t maxRequestUriLength = 64;
 static const size_t maxRequestBodyLength = 128;
 static const size_t maxRequestCount = 5;
-static const Duration maxKeepAlive = Duration::fromSeconds(30);
+static const Duration maxKeepAlive = 30_seconds;
 
 #define SCOPED_LOGGER() ScopedLogger _scoped_logger_;
 #define MOCK_HTTP1_SERVER(server, localConnector, executor)                     \

@@ -50,15 +50,15 @@ struct Config {
   size_t requestHeaderBufferSize = 16 * 1024;     // 16 KB
   size_t requestBodyBufferSize = 16 * 1024;       // 16 KB
   size_t maxKeepAliveRequests = 100;
-  xzero::Duration maxKeepAlive = xzero::Duration::fromSeconds(8);
+  xzero::Duration maxKeepAlive = 8_seconds;
 
   bool tcpCork = false;
   bool tcpNoDelay = false;
   size_t maxConnections = 1024;
-  xzero::Duration maxReadIdle = xzero::Duration::fromSeconds(60);
-  xzero::Duration maxWriteIdle = xzero::Duration::fromSeconds(360);
-  xzero::Duration tcpFinTimeout = xzero::Duration::fromSeconds(60);
-  xzero::Duration lingering = xzero::Duration::fromSeconds(0);
+  xzero::Duration maxReadIdle = 60_seconds;
+  xzero::Duration maxWriteIdle = 360_seconds;
+  xzero::Duration tcpFinTimeout = 60_seconds;
+  xzero::Duration lingering = 0_seconds;
 
 #if 0
   // accesslog

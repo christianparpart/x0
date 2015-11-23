@@ -143,7 +143,7 @@ void HttpService::attachHttp1(Connector* connector) {
   size_t maxRequestUriLength = 1024;
   size_t maxRequestBodyLength = 64 * 1024 * 1024;
   size_t maxRequestCount = 100;
-  Duration maxKeepAlive = Duration::fromSeconds(8);
+  Duration maxKeepAlive = 8_seconds;
   bool corkStream = false;
   bool tcpNoDelay = false;
 
@@ -162,7 +162,7 @@ void HttpService::attachHttp1(Connector* connector) {
 void HttpService::attachFCGI(Connector* connector) {
   size_t maxRequestUriLength = 1024;
   size_t maxRequestBodyLength = 64 * 1024 * 1024;
-  Duration maxKeepAlive = Duration::fromSeconds(8);
+  Duration maxKeepAlive = 8_seconds;
 
   auto fcgi = connector->addConnectionFactory<http::fastcgi::ConnectionFactory>(
       maxRequestUriLength, maxRequestBodyLength, maxKeepAlive);

@@ -18,9 +18,9 @@ BackendManager::BackendManager(HttpWorker* worker, const std::string& name)
 #endif
       worker_(worker),
       name_(name),
-      connectTimeout_(Duration::fromSeconds(10)),
-      readTimeout_(Duration::fromSeconds(120)),
-      writeTimeout_(Duration::fromSeconds(10)),
+      connectTimeout_(10_seconds),
+      readTimeout_(120_seconds),
+      writeTimeout_(10_seconds),
       clientAbortAction_(ClientAbortAction::Close),
       load_() {
 }

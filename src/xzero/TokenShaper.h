@@ -335,7 +335,7 @@ TokenShaper<T>::Node::Node(Executor* executor, const std::string& name,
       actualRate_(),
       queued_(),
       dropped_(0),
-      queueTimeout_(Duration::fromSeconds(10)),
+      queueTimeout_(10_seconds),
       queue_(),
       dequeueOffset_(0),
       onTimeout_() {
