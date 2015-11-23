@@ -99,13 +99,13 @@ public:
   constexpr uint64_t hours() const noexcept;
   constexpr uint64_t days() const noexcept;
 
-  static inline Duration fromDays(uint64_t v);
-  static inline Duration fromHours(uint64_t v);
-  static inline Duration fromMinutes(uint64_t v);
-  static inline Duration fromSeconds(uint64_t v);
-  static inline Duration fromMilliseconds(uint64_t v);
-  static inline Duration fromMicroseconds(uint64_t v);
-  static inline Duration fromNanoseconds(uint64_t v);
+  static constexpr Duration fromDays(uint64_t v);
+  static constexpr Duration fromHours(uint64_t v);
+  static constexpr Duration fromMinutes(uint64_t v);
+  static constexpr Duration fromSeconds(uint64_t v);
+  static constexpr Duration fromMilliseconds(uint64_t v);
+  static constexpr Duration fromMicroseconds(uint64_t v);
+  static constexpr Duration fromNanoseconds(uint64_t v);
 
 protected:
   uint64_t micros_;
@@ -113,7 +113,14 @@ protected:
 
 std::string inspect(const Duration& value);
 
-}
+} // namespace xzero
+
+constexpr xzero::Duration operator "" _microseconds(unsigned long long v);
+constexpr xzero::Duration operator "" _milliseconds(unsigned long long v);
+constexpr xzero::Duration operator "" _seconds(unsigned long long v);
+constexpr xzero::Duration operator "" _minutes(unsigned long long v);
+constexpr xzero::Duration operator "" _hours(unsigned long long v);
+constexpr xzero::Duration operator "" _days(unsigned long long v);
 
 #include <xzero/Duration_impl.h>
 #endif

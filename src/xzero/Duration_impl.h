@@ -113,32 +113,56 @@ inline constexpr uint64_t Duration::days() const noexcept {
   return hours() / kHoursPerDay;
 }
 
-Duration Duration::fromDays(uint64_t v) {
+constexpr Duration Duration::fromDays(uint64_t v) {
   return Duration(v * kMicrosPerSecond * kSecondsPerDay);
 }
 
-Duration Duration::fromHours(uint64_t v) {
+constexpr Duration Duration::fromHours(uint64_t v) {
   return Duration(v * kMicrosPerSecond * kSecondsPerHour);
 }
 
-Duration Duration::fromMinutes(uint64_t v) {
+constexpr Duration Duration::fromMinutes(uint64_t v) {
   return Duration(v * kMicrosPerSecond * kSecondsPerMinute);
 }
 
-Duration Duration::fromSeconds(uint64_t v) {
+constexpr Duration Duration::fromSeconds(uint64_t v) {
   return Duration(v * kMicrosPerSecond);
 }
 
-Duration Duration::fromMilliseconds(uint64_t v) {
+constexpr Duration Duration::fromMilliseconds(uint64_t v) {
   return Duration(v * 1000);
 }
 
-Duration Duration::fromMicroseconds(uint64_t v) {
+constexpr Duration Duration::fromMicroseconds(uint64_t v) {
   return Duration(v);
 }
 
-Duration Duration::fromNanoseconds(uint64_t v) {
+constexpr Duration Duration::fromNanoseconds(uint64_t v) {
   return Duration(v / 1000);
 }
 
 } // namespace xzero
+
+constexpr xzero::Duration operator "" _microseconds(unsigned long long v) {
+  return xzero::Duration::fromMicroseconds(v);
+}
+
+constexpr xzero::Duration operator "" _milliseconds(unsigned long long v) {
+  return xzero::Duration::fromMilliseconds(v);
+}
+
+constexpr xzero::Duration operator "" _seconds(unsigned long long v) {
+  return xzero::Duration::fromSeconds(v);
+}
+
+constexpr xzero::Duration operator "" _minutes(unsigned long long v) {
+  return xzero::Duration::fromMinutes(v);
+}
+
+constexpr xzero::Duration operator "" _hours(unsigned long long v) {
+  return xzero::Duration::fromHours(v);
+}
+
+constexpr xzero::Duration operator "" _days(unsigned long long v) {
+  return xzero::Duration::fromDays(v);
+}
