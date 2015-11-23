@@ -51,8 +51,12 @@ std::string inspect(const Duration& value) {
   }
 
   if (msecs) {
-    if (i) sstr << ' ';
+    if (i++) sstr << ' ';
     sstr << msecs << "ms";
+  }
+
+  if (!i) {
+    sstr << "0s";
   }
 
   return sstr.str();
