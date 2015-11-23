@@ -131,7 +131,8 @@ void HttpClusterMember::onResponseReceived(HttpClusterRequest* cr,
   auto isConnectionHeader = [](const std::string& name) -> bool {
     static const std::vector<std::string> connectionHeaderFields = {
       "Connection",
-      "Content-Length",
+      // "Content-Length",  // XXX we want the upper layer to know the
+                            //     content-length in advance
       "Close",
       "Keep-Alive",
       "TE",

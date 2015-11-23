@@ -204,8 +204,12 @@ void HttpResponseBuilder::onMessageBegin(HttpVersion version, HttpStatus code, c
 }
 
 void HttpResponseBuilder::onMessageHeader(const BufferRef& name, const BufferRef& value) {
-  // TODO: skip connection-level headers
-  response_->headers().push_back(name.str(), value.str());
+  if (iequals(name, "Content-Length")) {
+    response_->setContentLength(value.toInt());
+  } else {
+    // TODO: skip connection-level headers
+    response_->headers().push_back(name.str(), value.str());
+  }
 }
 
 void HttpResponseBuilder::onMessageHeaderEnd() {
