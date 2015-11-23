@@ -120,6 +120,8 @@ void HttpCluster::addMember(const std::string& name,
       terminateProtection,
       std::bind(&HttpCluster::onBackendEnabledChanged, this,
                 std::placeholders::_1),
+      std::bind(&HttpCluster::reschedule, this,
+                std::placeholders::_1),
       protocol,
       connectTimeout(),
       readTimeout(),
@@ -282,22 +284,24 @@ void HttpCluster::schedule(HttpClusterRequest* cr, Bucket* bucket) {
         !enqueueOnUnavailable_) {
       serviceUnavailable(cr);
     } else {
-      tryEnqueue(cr);
+      enqueue(cr);
     }
   } else if (cr->bucket->ceil() > 0 || enqueueOnUnavailable_) {
     // there are tokens available (for rent) and we prefer to wait if unavailable
-    tryEnqueue(cr);
+    enqueue(cr);
   } else {
     serviceUnavailable(cr);
   }
 }
 
 void HttpCluster::reschedule(HttpClusterRequest* cr) {
+  TRACE("reschedule");
+
   if (verifyTryCount(cr)) {
     HttpClusterSchedulerStatus status = clusterScheduler()->schedule(cr);
 
     if (status != HttpClusterSchedulerStatus::Success) {
-      tryEnqueue(cr);
+      enqueue(cr);
     }
   }
 }
@@ -351,12 +355,8 @@ void HttpCluster::serviceUnavailable(HttpClusterRequest* cr, HttpStatus status) 
  * Attempts to enqueue the request on the associated bucket.
  * If enqueuing fails, it instead finishes the request with a 503 (Service
  * Unavailable).
- *
- * @retval true request could be enqueued.
- * @retval false request could not be enqueued. A 503 error response has been
- *               sent out instead.
  */
-bool HttpCluster::tryEnqueue(HttpClusterRequest* cr) {
+void HttpCluster::enqueue(HttpClusterRequest* cr) {
   if (cr->bucket->queued().current() < queueLimit()) {
     cr->backend = nullptr;
     cr->bucket->enqueue(cr);
@@ -366,15 +366,10 @@ bool HttpCluster::tryEnqueue(HttpClusterRequest* cr) {
           name(),
           cr->bucket->name(),
           cr->bucket->queued().current());
-
-    return true;
+  } else {
+    TRACE("director: '$0' queue limit $1 reached.", name(), queueLimit());
+    serviceUnavailable(cr);
   }
-
-  TRACE("director: '$0' queue limit $1 reached.", name(), queueLimit());
-
-  serviceUnavailable(cr);
-
-  return false;
 }
 
 /**

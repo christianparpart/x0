@@ -52,6 +52,8 @@ using namespace xzero::flow;
 
 using xzero::http::client::HttpClusterRequest;
 using xzero::http::client::HttpCluster;
+using xzero::http::client::HttpClient;
+
 
 #define TRACE(msg...) logTrace("proxy", msg)
 
@@ -165,7 +167,9 @@ void ProxyModule::onPostConfig() {
       cluster->setConfiguration(FileUtil::read(path).str());
     } else {
       cluster->setHealthCheckUri(Uri("http://xzero.io/hello.txt"));
-      cluster->setHealthCheckInterval(1);
+      cluster->setHealthCheckInterval(Duration::fromSeconds(10));
+      cluster->setHealthCheckSuccessThreshold(1);
+      cluster->setHealthCheckSuccessCodes({HttpStatus::Ok});
       cluster->addMember("demo1", IPAddress("127.0.0.1"), 3001, 10, true);
       cluster->setEnabled(false);
     }
@@ -247,6 +251,7 @@ size_t HttpInputStream::transferTo(OutputStream* target) {
 
 bool ProxyModule::proxy_cluster(XzeroContext* cx, Params& args) {
   auto& cluster = clusterMap_[args.getString(1).str()];
+  std::string path = args.getString(2).str();
   std::string bucketName = args.getString(3).str();
   std::string backendName = args.getString(4).str();
 
@@ -287,34 +292,6 @@ bool ProxyModule::proxy_fcgi(XzeroContext* cx, xzero::flow::vm::Params& args) {
   return false; // TODO
 }
 
-bool ProxyModule::proxy_http(XzeroContext* cx, xzero::flow::vm::Params& args) {
-  IPAddress ipaddr = args.getIPAddress(1);
-  FlowNumber port = args.getInt(2);
-  FlowString onClientAbortStr = args.getString(3);
-  Duration connectTimeout = Duration::fromSeconds(16);
-  Executor* executor = cx->response()->executor();
-
-  TRACE("connectAsync: $0:$1", ipaddr, port);
-  InetEndPoint::connectAsync(
-      ipaddr,
-      port,
-      connectTimeout,
-      executor,
-      std::bind(&ProxyModule::proxyHttpConnected, this,
-                std::placeholders::_1, cx),
-      std::bind(&ProxyModule::proxyHttpConnectFailed, this,
-                std::placeholders::_1, ipaddr, port, cx));
-
-  return true;
-}
-
-struct ProxyHttpHandler : CustomData {
-  client::HttpClient client;
-
-  ProxyHttpHandler(Executor* e, RefPtr<EndPoint> ep) :
-    client(e, ep) {}
-};
-
 static HeaderFieldList filter(const HeaderFieldList& list,
                               std::function<bool(const HeaderField&)> test) {
   HeaderFieldList result;
@@ -324,49 +301,6 @@ static HeaderFieldList filter(const HeaderFieldList& list,
       result.push_back(field);
 
   return result;
-}
-
-void ProxyModule::proxyHttpConnected(RefPtr<InetEndPoint> ep, XzeroContext* cx) {
-  Executor* executor = cx->response()->executor();
-  HttpRequest* request = cx->request();
-
-  Buffer requestBody;
-  request->input()->read(&requestBody);
-  size_t requestBodySize = requestBody.size();
-
-  auto skipConnectFields = [](const HeaderField& f) -> bool {
-    static const std::vector<std::string> connectionHeaderFields = {
-      "Connection",
-      "Content-Length",
-      "Expect",
-      "Trailer",
-      "Transfer-Encoding",
-      "Upgrade",
-    };
-
-    for (const auto& name: connectionHeaderFields)
-      if (iequals(name, f.name()))
-        return false;
-
-    return true;
-  };
-
-  HttpRequestInfo requestInfo(
-      HttpVersion::VERSION_1_1,
-      request->unparsedMethod(),
-      request->unparsedUri(),
-      requestBodySize,
-      filter(request->headers(), skipConnectFields));
-
-  ProxyHttpHandler* handler =
-      cx->setCustomData<ProxyHttpHandler>(this, executor, ep.as<EndPoint>());
-
-  handler->client.send(std::move(requestInfo), requestBody);
-
-  Future<client::HttpClient*> f = handler->client.completed();
-  f.onSuccess(std::bind(&ProxyModule::proxyHttpRespond, this, cx));
-  f.onFailure(std::bind(&ProxyModule::proxyHttpRespondFailure, this,
-                        std::placeholders::_1, cx));
 }
 
 static bool isConnectionHeader(const std::string& name) {
@@ -379,7 +313,6 @@ static bool isConnectionHeader(const std::string& name) {
     "Trailer",
     "Transfer-Encoding",
     "Upgrade",
-    "Via",
   };
 
   for (const auto& test: connectionHeaderFields)
@@ -389,21 +322,65 @@ static bool isConnectionHeader(const std::string& name) {
   return false;
 }
 
-void ProxyModule::proxyHttpRespond(XzeroContext* cx) {
-  ProxyHttpHandler* handler = cx->customData<ProxyHttpHandler>(this);
-  client::HttpClient* cli = &handler->client;
+auto skipConnectFields = [](const HeaderField& f) -> bool {
+  static const std::vector<std::string> connectionHeaderFields = {
+    "Connection",
+    "Content-Length",
+    "Expect",
+    "Trailer",
+    "Transfer-Encoding",
+    "Upgrade",
+  };
 
-  for (const HeaderField& field: cli->responseInfo().headers()) {
-    if (!isConnectionHeader(field.name())) {
-      cx->response()->headers().push_back(field.name(), field.value());
+  for (const auto& name: connectionHeaderFields)
+    if (iequals(name, f.name()))
+      return false;
+
+  return true;
+};
+
+bool ProxyModule::proxy_http(XzeroContext* cx, xzero::flow::vm::Params& args) {
+  IPAddress ipaddr = args.getIPAddress(1);
+  FlowNumber port = args.getInt(2);
+  FlowString onClientAbortStr = args.getString(3);
+  Duration connectTimeout = Duration::fromSeconds(16);
+  Duration readTimeout = Duration::fromSeconds(60);
+  Duration writeTimeout = Duration::fromSeconds(8);
+  Executor* executor = cx->response()->executor();
+
+  BufferRef requestBody; // TODO
+  size_t requestBodySize = requestBody.size();
+  HttpRequestInfo requestInfo(
+      HttpVersion::VERSION_1_1,
+      cx->request()->unparsedMethod(),
+      cx->request()->unparsedUri(),
+      requestBodySize,
+      filter(cx->request()->headers(), skipConnectFields));
+
+  Future<UniquePtr<HttpClient>> f = HttpClient::sendAsync(
+      ipaddr, port, requestInfo, requestBody,
+      connectTimeout, readTimeout, writeTimeout, executor);
+
+  f.onFailure([cx, ipaddr, port] (Status s) {
+    logError("proxy", "Failed to proxy to $0:$1. $2", ipaddr, port, s);
+    cx->response()->setStatus(HttpStatus::ServiceUnavailable);
+    cx->response()->completed();
+  });
+  f.onSuccess([this, cx] (const UniquePtr<HttpClient>& client) {
+    for (const HeaderField& field: client->responseInfo().headers()) {
+      if (!isConnectionHeader(field.name())) {
+        cx->response()->headers().push_back(field.name(), field.value());
+      }
     }
-  }
-  addVia(cx);
-  cx->response()->setStatus(cli->responseInfo().status());
-  cx->response()->setReason(cli->responseInfo().reason());
-  cx->response()->setContentLength(cli->responseBody().size());
-  cx->response()->output()->write(cli->responseBody());
-  cx->response()->completed();
+    addVia(cx);
+    cx->response()->setStatus(client->responseInfo().status());
+    cx->response()->setReason(client->responseInfo().reason());
+    cx->response()->setContentLength(client->responseBody().size());
+    cx->response()->output()->write(client->responseBody());
+    cx->response()->completed();
+  });
+
+  return true;
 }
 
 void ProxyModule::addVia(XzeroContext* cx) {
@@ -415,26 +392,6 @@ void ProxyModule::addVia(XzeroContext* cx) {
   // RFC 7230, section 5.7.1: makes it clear, that we put ourselfs into the
   // front of the Via-list.
   cx->response()->headers().prepend("Via", buf);
-}
-
-void ProxyModule::proxyHttpRespondFailure(const Status& status,
-                                          XzeroContext* cx) {
-  logError("proxy", "Failure detected while receiving upstream response. $0", status);
-  cx->response()->setStatus(HttpStatus::BadGateway);
-  cx->response()->completed();
-}
-
-void ProxyModule::proxyHttpConnectFailed(
-    Status error,
-    const IPAddress& ipaddr,
-    int port,
-    XzeroContext* cx) {
-  logError("proxy",
-           "Coould not connect to $0:$1. $2",
-           ipaddr, port, error);
-
-  cx->response()->setStatus(HttpStatus::ServiceUnavailable);
-  cx->response()->completed();
 }
 
 bool ProxyModule::proxy_haproxy_monitor(XzeroContext* cx, xzero::flow::vm::Params& args) {

@@ -20,6 +20,12 @@ HeaderFieldList::HeaderFieldList(
   }
 }
 
+HeaderFieldList::HeaderFieldList(const std::vector<std::pair<std::string, std::string>>& init) {
+  for (const auto& field: init) {
+    push_back(field.first, field.second);
+  }
+}
+
 void HeaderFieldList::push_back(const HeaderFieldList& list) {
   for (const HeaderField& field: list)
     push_back(field.name(), field.value());

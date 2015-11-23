@@ -85,7 +85,7 @@ class HttpHealthMonitor {
   void logFailure();
   void onCheckNow();
   void onConnectFailure(Status status);
-  void onConnected(const RefPtr<InetEndPoint>& ep);
+  void onConnected(const RefPtr<EndPoint>& ep);
   void onRequestFailure(Status status);
   void onResponseReceived(HttpClient* client);
 

@@ -68,7 +68,7 @@ class XUrl {
   IPAddress getIPAddress(const std::string& host);
   int getPort(const Uri& uri);
   void query(const Uri& uri);
-  void connected(RefPtr<InetEndPoint> ep, const Uri& uri);
+  void connected(RefPtr<EndPoint> ep, const Uri& uri);
   void connectFailure(Status error);
 
  private:
@@ -76,6 +76,8 @@ class XUrl {
   Flags flags_;
   DnsClient dns_;
   Duration connectTimeout_;
+  Duration readTimeout_;
+  Duration writeTimeout_;
   http::HeaderFieldList requestHeaders_;
   Buffer body_;
 };
@@ -85,7 +87,9 @@ XUrl::XUrl()
                     new CatchAndLogExceptionHandler("xurl"))),
       flags_(),
       dns_(),
-      connectTimeout_(Duration::fromSeconds(4))
+      connectTimeout_(Duration::fromSeconds(4)),
+      readTimeout_(Duration::fromSeconds(60)),
+      writeTimeout_(Duration::fromSeconds(10))
 {
   Application::logToStderr(LogLevel::Info);
 
@@ -172,15 +176,15 @@ void XUrl::query(const Uri& uri) {
   int port = getPort(uri);
 
   InetEndPoint::connectAsync(
-      ipaddr, port, connectTimeout_, &scheduler_,
+      ipaddr, port, connectTimeout_, readTimeout_, writeTimeout_, &scheduler_,
       std::bind(&XUrl::connected, this, std::placeholders::_1, uri),
       std::bind(&XUrl::connectFailure, this, std::placeholders::_1));
 
   scheduler_.runLoop();
 }
 
-void XUrl::connected(RefPtr<InetEndPoint> ep, const Uri& uri) {
-  HttpClient http(&scheduler_, ep.as<EndPoint>());
+void XUrl::connected(RefPtr<EndPoint> ep, const Uri& uri) {
+  HttpClient http(&scheduler_, ep);
 
   std::string method = flags_.getString("method");
   if (flags_.getBool("head")) {

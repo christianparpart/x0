@@ -1,6 +1,7 @@
 #include <xzero/http/client/HttpClusterMember.h>
 #include <xzero/http/client/HttpClusterRequest.h>
 #include <xzero/http/client/HttpHealthMonitor.h>
+#include <xzero/net/InetEndPoint.h>
 #include <xzero/logging.h>
 
 namespace xzero {
@@ -24,6 +25,7 @@ HttpClusterMember::HttpClusterMember(
     bool enabled,
     bool terminateProtection,
     std::function<void(HttpClusterMember*)> onEnabledChanged,
+    std::function<void(HttpClusterRequest*)> onProcessingFailed,
     const std::string& protocol,
     Duration connectTimeout,
     Duration readTimeout,
@@ -41,6 +43,7 @@ HttpClusterMember::HttpClusterMember(
       enabled_(enabled),
       terminateProtection_(terminateProtection),
       onEnabledChanged_(onEnabledChanged),
+      onProcessingFailed_(onProcessingFailed),
       protocol_(protocol),
       connectTimeout_(connectTimeout),
       readTimeout_(readTimeout),
@@ -79,11 +82,11 @@ HttpClusterSchedulerStatus HttpClusterMember::tryProcess(HttpClusterRequest* cr)
 
   //cr->request->responseHeaders.overwrite("X-Director-Backend", name());
 
-  load_++;
+  ++load_;
   cr->backend = this;
 
   if (!process(cr)) {
-    load_--;
+    --load_;
     cr->backend = nullptr;
     healthMonitor()->setState(HttpHealthMonitor::State::Offline);
     return HttpClusterSchedulerStatus::Unavailable;
@@ -93,24 +96,68 @@ HttpClusterSchedulerStatus HttpClusterMember::tryProcess(HttpClusterRequest* cr)
 }
 
 bool HttpClusterMember::process(HttpClusterRequest* cr) {
-  Future<RefPtr<EndPoint>> f = endpoints_.acquire();
-  f.onSuccess(std::bind(&HttpClusterMember::onConnected, this,
+  Future<UniquePtr<HttpClient>> f = HttpClient::sendAsync(
+      ipaddress_, port_,
+      cr->requestInfo,
+      BufferRef(), // FIXME: requestBody,
+      connectTimeout_,
+      readTimeout_,
+      writeTimeout_,
+      cr->executor);
+
+  f.onFailure(std::bind(&HttpClusterMember::onFailure, this,
                         cr, std::placeholders::_1));
-  f.onFailure(std::bind(&HttpClusterMember::onConnectFailure, this,
+  f.onSuccess(std::bind(&HttpClusterMember::onResponseReceived, this,
                         cr, std::placeholders::_1));
+
   return true;
 }
 
-void HttpClusterMember::onConnectFailure(HttpClusterRequest* cr, Status status) {
+void HttpClusterMember::onFailure(HttpClusterRequest* cr, Status status) {
+  --load_;
   healthMonitor()->setState(HttpHealthMonitor::State::Offline);
-  load_--;
 
   cr->backend = nullptr;
-  // ...
+
+  if (onProcessingFailed_) {
+    onProcessingFailed_(cr);
+  }
 }
 
-void HttpClusterMember::onConnected(HttpClusterRequest* cr,
-                                    RefPtr<EndPoint> ep) {
+void HttpClusterMember::onResponseReceived(HttpClusterRequest* cr,
+                                           const UniquePtr<HttpClient>& client) {
+  auto isConnectionHeader = [](const std::string& name) -> bool {
+    static const std::vector<std::string> connectionHeaderFields = {
+      "Connection",
+      "Content-Length",
+      "Close",
+      "Keep-Alive",
+      "TE",
+      "Trailer",
+      "Transfer-Encoding",
+      "Upgrade",
+    };
+
+    for (const auto& test: connectionHeaderFields)
+      if (iequals(name, test))
+        return true;
+
+    return false;
+  };
+
+  cr->responseListener->onMessageBegin(client->responseInfo().version(),
+                                       client->responseInfo().status(),
+                                       BufferRef(client->responseInfo().reason()));
+
+  for (const HeaderField& field: client->responseInfo().headers()) {
+    if (!isConnectionHeader(field.name())) {
+      cr->responseListener->onMessageHeader(BufferRef(field.name()), BufferRef(field.value()));
+    }
+  }
+
+  cr->responseListener->onMessageHeaderEnd();
+  cr->responseListener->onMessageContent(client->responseBody());
+  cr->responseListener->onMessageEnd();
 }
 
 } // namespace client

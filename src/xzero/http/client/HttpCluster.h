@@ -206,7 +206,7 @@ class HttpCluster {
   void reschedule(HttpClusterRequest* cr);
   void serviceUnavailable(HttpClusterRequest* cr, HttpStatus status = HttpStatus::ServiceUnavailable);
   bool verifyTryCount(HttpClusterRequest* cr);
-  bool tryEnqueue(HttpClusterRequest* rn);
+  void enqueue(HttpClusterRequest* cr);
   void dequeueTo(HttpClusterMember* backend);
   HttpClusterRequest* dequeue();
   void onTimeout(HttpClusterRequest* cr);

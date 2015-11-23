@@ -10,6 +10,7 @@
 #include <xzero/http/Api.h>
 #include <xzero/http/HeaderField.h>
 #include <string>
+#include <vector>
 #include <list>
 
 namespace xzero {
@@ -26,6 +27,7 @@ class XZERO_HTTP_API HeaderFieldList {
   HeaderFieldList& operator=(HeaderFieldList&&) = default;
   HeaderFieldList& operator=(const HeaderFieldList&) = default;
   HeaderFieldList(const std::initializer_list<std::pair<std::string, std::string>>& init);
+  HeaderFieldList(const std::vector<std::pair<std::string, std::string>>& init);
 
   void push_back(const HeaderFieldList& list);
   void push_back(HeaderFieldList&& list);

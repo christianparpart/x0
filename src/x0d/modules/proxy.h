@@ -64,7 +64,7 @@ class ProxyModule : public XzeroModule {
             const std::string& directorName,
             const std::string& backendName);
 
-  void proxyHttpConnected(xzero::RefPtr<xzero::InetEndPoint> ep,
+  void proxyHttpConnected(xzero::RefPtr<xzero::EndPoint> ep,
                           XzeroContext* cx);
   void proxyHttpConnectFailed(xzero::Status error,
                               const xzero::IPAddress& ipaddr, int port,

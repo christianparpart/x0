@@ -63,6 +63,7 @@
 
 ### Feature Stories
 
+- [ ] support Server Sent Events (HTTP SSE)
 - [ ] port director plugin, yeah
 - [ ] x0d-signals: graceful shutdown (INT, TERM)
 - [ ] x0d-signals: logfile rotating (HUP)

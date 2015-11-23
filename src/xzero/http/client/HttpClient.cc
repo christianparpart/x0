@@ -10,9 +10,11 @@
 #include <xzero/http/client/HttpTransport.h>
 #include <xzero/http/client/Http1Connection.h>
 #include <xzero/executor/Scheduler.h>
-#include <xzero/io/FileRef.h>
-#include <xzero/net/IPAddress.h>
 #include <xzero/net/InetEndPoint.h>
+#include <xzero/net/DnsClient.h>
+#include <xzero/net/IPAddress.h>
+#include <xzero/io/FileRef.h>
+#include <xzero/RuntimeError.h>
 #include <xzero/logging.h>
 
 #define TRACE(msg...) logTrace("HttpClient", msg)
@@ -90,6 +92,90 @@ void HttpClient::onMessageEnd() {
 void HttpClient::onProtocolError(HttpStatus code, const std::string& message) {
   logError("HttpClient", "Protocol Error. $0; $1", code, message);
   promise_.failure(Status::ForeignError);
+}
+
+Future<UniquePtr<HttpClient>> HttpClient::sendAsync(
+    const HttpRequestInfo& requestInfo, const BufferRef& requestBody,
+    Executor* executor) {
+
+  std::string host = requestInfo.headers().get("Host");
+  if (host.empty())
+    RAISE(RuntimeError, "No Host HTTP request header given.");
+
+  std::vector<std::string> parts = StringUtil::split(host, ":");
+  host = parts[0];
+  int port = parts.size() == 2 ? stoi(parts[1]) : 80;
+
+  std::vector<IPAddress> ipaddresses = DnsClient().ip(host);
+  if (ipaddresses.empty())
+    RAISE(RuntimeError, "Host header does not resolve to an IP address.");
+
+  Duration connectTimeout = Duration::fromSeconds(4);
+  Duration readTimeout = Duration::fromSeconds(30);
+  Duration writeTimeout = Duration::fromSeconds(8);
+
+  return sendAsync(ipaddresses.front(), port, requestInfo, requestBody,
+      connectTimeout, readTimeout, writeTimeout, executor);
+}
+
+Future<UniquePtr<HttpClient>> HttpClient::sendAsync(
+    const std::string& method,
+    const Uri& url,
+    const std::vector<std::pair<std::string, std::string>>& headers,
+    const BufferRef& requestBody,
+    Executor* executor) {
+
+  HttpRequestInfo requestInfo(HttpVersion::VERSION_1_1, method,
+                              url.pathAndQuery(), requestBody.size(),
+                              headers);
+
+  std::vector<IPAddress> ipaddresses = DnsClient().ip(url.host());
+  if (ipaddresses.empty())
+    RAISE(RuntimeError, "Host header does not resolve to an IP address.");
+
+  Duration connectTimeout = Duration::fromSeconds(4);
+  Duration readTimeout = Duration::fromSeconds(30);
+  Duration writeTimeout = Duration::fromSeconds(8);
+
+  return sendAsync(ipaddresses.front(), url.port(), requestInfo, requestBody,
+      connectTimeout, readTimeout, writeTimeout, executor);
+}
+
+Future<UniquePtr<HttpClient>> HttpClient::sendAsync(
+    const IPAddress& ipaddr,
+    int port,
+    const HttpRequestInfo& requestInfo,
+    const BufferRef& requestBody,
+    Duration connectTimeout,
+    Duration readTimeout,
+    Duration writeTimeout,
+    Executor* executor) {
+
+  Promise<UniquePtr<HttpClient>> promise;
+
+  Future<RefPtr<EndPoint>> fep = InetEndPoint::connectAsync(ipaddr, port,
+      connectTimeout, readTimeout, writeTimeout, executor);
+
+  fep.onFailure([promise](Status s) mutable {
+    promise.failure(s);
+  });
+
+  fep.onSuccess([promise, executor, requestInfo, requestBody]
+                (const RefPtr<EndPoint>& ep) mutable {
+      HttpClient* client = new HttpClient(executor, ep);
+
+      client->send(requestInfo, requestBody);
+      Future<HttpClient*> f = client->completed();
+      f.onFailure([promise, client](Status s) mutable {
+        delete client;
+        promise.failure(s);
+      });
+      f.onSuccess([promise, client](HttpClient*) mutable {
+        promise.success(std::unique_ptr<HttpClient>(client));
+      });
+  });
+
+  return promise.future();
 }
 
 } // namespace client

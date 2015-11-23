@@ -47,6 +47,7 @@ public:
       bool enabled,
       bool terminateProtection,
       std::function<void(HttpClusterMember*)> onEnabledChanged,
+      std::function<void(HttpClusterRequest*)> onProcessingFailed,
       const std::string& protocol, // http, https, fastcgi, h2, ...
       Duration connectTimeout,
       Duration readTimeout,
@@ -82,7 +83,11 @@ public:
   HttpHealthMonitor* healthMonitor() const { return healthMonitor_.get(); }
 
   HttpClusterSchedulerStatus tryProcess(HttpClusterRequest* cr);
+
+private:
   bool process(HttpClusterRequest* cr);
+  void onFailure(HttpClusterRequest* cr, Status status);
+  void onResponseReceived(HttpClusterRequest* cr, const UniquePtr<HttpClient>& client);
 
 private:
   Executor* executor_;
@@ -94,6 +99,7 @@ private:
   bool terminateProtection_;
   Counter load_;
   std::function<void(HttpClusterMember*)> onEnabledChanged_;
+  std::function<void(HttpClusterRequest*)> onProcessingFailed_;
   std::string protocol_; // "http" | "fastcgi"
   Duration connectTimeout_;
   Duration readTimeout_;

@@ -8,15 +8,18 @@
 
 #pragma once
 
+#include <xzero/Uri.h>
 #include <xzero/Buffer.h>
-#include <xzero/Duration.h>
 #include <xzero/RefPtr.h>
+#include <xzero/Duration.h>
 #include <xzero/CompletionHandler.h>
 #include <xzero/thread/Future.h>
 #include <xzero/http/HttpRequestInfo.h>
 #include <xzero/http/HttpResponseInfo.h>
 #include <xzero/http/HttpListener.h>
 #include <xzero/stdtypes.h>
+#include <vector>
+#include <utility>
 #include <memory>
 #include <string>
 
@@ -58,9 +61,24 @@ class HttpClient : public HttpListener {
   const Buffer& responseBody() const noexcept;
 
   // WIP brainstorming ideas
-  static Future<UniquePtr<HttpClient>> send(
+  static Future<UniquePtr<HttpClient>> sendAsync(
+      const std::string& method,
+      const Uri& url,
+      const std::vector<std::pair<std::string, std::string>>& headers,
+      const BufferRef& requestBody,
+      Executor* executor);
+
+  static Future<UniquePtr<HttpClient>> sendAsync(
+      const HttpRequestInfo& requestInfo, const BufferRef& requestBody,
+      Executor* executor);
+
+  static Future<UniquePtr<HttpClient>> sendAsync(
       const IPAddress& ipaddr, int port,
-      const HttpRequestInfo& requestInfo, const BufferRef& requestBody);
+      const HttpRequestInfo& requestInfo, const BufferRef& requestBody,
+      Duration connectTimeout,
+      Duration readTimeout,
+      Duration writeTimeout,
+      Executor* executor);
 
  private:
   // HttpListener overrides
