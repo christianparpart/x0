@@ -167,6 +167,7 @@ set(xzero_base_SRC
   net/DnsClient.cc
   net/EndPoint.cc
   net/EndPointWriter.cc
+  net/InetAddress.cc
   net/InetConnector.cc
   net/InetEndPoint.cc
   net/LocalConnector.cc
