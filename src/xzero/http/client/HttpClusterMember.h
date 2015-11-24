@@ -91,6 +91,10 @@ private:
   void onFailure(HttpClusterRequest* cr, Status status);
   void onResponseReceived(HttpClusterRequest* cr, const HttpClient& client);
 
+  void onConnected(HttpClusterRequest* cr, const RefPtr<EndPoint>& ep);
+  void onFailure2(HttpClusterRequest* cr, HttpClient* client, Status status);
+  void onResponseReceived2(HttpClusterRequest* cr, HttpClient* client);
+
 private:
   Executor* executor_;
   std::string name_;

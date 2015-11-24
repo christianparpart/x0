@@ -50,6 +50,11 @@
       (in one line)
 - [ ] HttpClusterMember, proxies to HttpClient, with constraints (such as capacity)
 - [ ] HttpCluster: basic load balancing to HTTP/1 upstreams
+- [ ] HttpInput: must be rewind()able, in order to be used multiple times
+      e.g. required for retransmitting a request to multiple upstreams if prior
+      failed.
+- [ ] fix (fd) resource leak bug while LB'ing, maybe related to HttpClient::sendAsync()
+- ...
 
 #### proxy: stage 2
 

@@ -102,6 +102,7 @@ void HttpClusterMember::release() {
 }
 
 bool HttpClusterMember::process(HttpClusterRequest* cr) {
+#if 0
   Future<HttpClient> f = HttpClient::sendAsync(
       ipaddress_, port_,
       cr->requestInfo,
@@ -115,6 +116,15 @@ bool HttpClusterMember::process(HttpClusterRequest* cr) {
                         cr, std::placeholders::_1));
   f.onSuccess(std::bind(&HttpClusterMember::onResponseReceived, this,
                         cr, std::placeholders::_1));
+#else
+  Future<RefPtr<EndPoint>> f = InetEndPoint::connectAsync(
+      ipaddress_, port_,
+      connectTimeout_, readTimeout_, writeTimeout_, cr->executor);
+  f.onFailure(std::bind(&HttpClusterMember::onFailure, this,
+                        cr, std::placeholders::_1));
+  f.onSuccess(std::bind(&HttpClusterMember::onConnected, this,
+                        cr, std::placeholders::_1));
+#endif
 
   return true;
 }
@@ -155,8 +165,8 @@ void HttpClusterMember::onResponseReceived(HttpClusterRequest* cr,
   };
 
   cr->onMessageBegin(client.responseInfo().version(),
-                                       client.responseInfo().status(),
-                                       BufferRef(client.responseInfo().reason()));
+                     client.responseInfo().status(),
+                     BufferRef(client.responseInfo().reason()));
 
   for (const HeaderField& field: client.responseInfo().headers()) {
     if (!isConnectionHeader(field.name())) {
@@ -167,6 +177,31 @@ void HttpClusterMember::onResponseReceived(HttpClusterRequest* cr,
   cr->onMessageHeaderEnd();
   cr->onMessageContent(client.responseBody());
   cr->onMessageEnd();
+}
+
+void HttpClusterMember::onConnected(HttpClusterRequest* cr,
+                                    const RefPtr<EndPoint>& ep) {
+  auto client = new HttpClient(cr->executor, ep);
+
+  BufferRef requestBody; // TODO
+
+  client->send(cr->requestInfo, requestBody);
+  Future<HttpClient*> f = client->completed();
+  f.onFailure(std::bind(&HttpClusterMember::onFailure2, this, cr, client, std::placeholders::_1));
+  f.onSuccess(std::bind(&HttpClusterMember::onResponseReceived2, this, cr, std::placeholders::_1));
+}
+
+void HttpClusterMember::onFailure2(HttpClusterRequest* cr,
+                                   HttpClient* client,
+                                   Status status) {
+  std::unique_ptr<HttpClient> owned(client);
+  onFailure(cr, status);
+}
+
+void HttpClusterMember::onResponseReceived2(HttpClusterRequest* cr,
+                                            HttpClient* client) {
+  std::unique_ptr<HttpClient> owned(client);
+  onResponseReceived(cr, *client);
 }
 
 } // namespace client

@@ -225,7 +225,7 @@ void HttpResponseBuilder::onMessageHeaderEnd() {
 }
 
 void HttpResponseBuilder::onMessageContent(const BufferRef& chunk) {
-  response_->output()->write(chunk);
+  response_->output()->write(Buffer(chunk));
 }
 
 void HttpResponseBuilder::onMessageEnd() {
