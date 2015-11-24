@@ -194,7 +194,7 @@ TEST(PosixSchedulerTest, executeOnReadable_timeout) {
   auto onTimeout = [&] { timeoutCount++; };
 
   sched.executeOnReadable(pipe.readerFd(), onFire, 500_milliseconds, onTimeout);
-  sched.runLoopOnce();
+  sched.runLoop();
 
   EXPECT_EQ(0, fireCount);
   EXPECT_EQ(1, timeoutCount);
