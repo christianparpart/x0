@@ -75,7 +75,7 @@ bool Connection::onReadTimeout() {
 
 template<>
 std::string StringUtil::toString(Connection* c) {
-  return StringUtil::format("Connection[$0]", c->endpoint()->remoteIP());
+  return StringUtil::format("Connection[$0]", c->endpoint()->remoteAddress());
 }
 
 // {{{ ConnectionListener impl

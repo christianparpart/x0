@@ -13,6 +13,7 @@ namespace xzero {
 
 class InetAddress {
  public:
+  InetAddress();
   InetAddress(const IPAddress& ipaddr, int port);
   InetAddress(const InetAddress&) = default;
   InetAddress& operator=(const InetAddress&) = default;

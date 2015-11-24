@@ -85,11 +85,10 @@ InetEndPoint::~InetEndPoint() {
   }
 }
 
-Option<std::pair<IPAddress, int>> InetEndPoint::remoteAddress() const {
+Option<InetAddress> InetEndPoint::remoteAddress() const {
   if (handle_ < 0)
     return None();
 
-  std::pair<IPAddress, int> result;
   switch (addressFamily()) {
     case AF_INET6: {
       sockaddr_in6 saddr;
@@ -97,9 +96,7 @@ Option<std::pair<IPAddress, int>> InetEndPoint::remoteAddress() const {
       if (getpeername(handle_, (sockaddr*)&saddr, &slen) < 0)
         return None();
 
-      result.first = IPAddress(&saddr);
-      result.second = ntohs(saddr.sin6_port);
-      break;
+      return InetAddress(IPAddress(&saddr), ntohs(saddr.sin6_port));
     }
     case AF_INET: {
       sockaddr_in saddr;
@@ -107,29 +104,25 @@ Option<std::pair<IPAddress, int>> InetEndPoint::remoteAddress() const {
       if (getpeername(handle_, (sockaddr*)&saddr, &slen) < 0)
         return None();
 
-      result.first = IPAddress(&saddr);
-      result.second = ntohs(saddr.sin_port);
-      break;
+      return InetAddress(IPAddress(&saddr), ntohs(saddr.sin_port));
     }
     default:
       RAISE(IllegalStateError, "Invalid address family.");
   }
-  return Some<std::pair<IPAddress, int>>(result);
+  return None();
 }
 
-Option<std::pair<IPAddress, int>> InetEndPoint::localAddress() const {
+Option<InetAddress> InetEndPoint::localAddress() const {
   if (handle_ < 0)
     return None();
 
-  std::pair<IPAddress, int> result;
   switch (addressFamily()) {
     case AF_INET6: {
       sockaddr_in6 saddr;
       socklen_t slen = sizeof(saddr);
 
       if (getsockname(handle_, (sockaddr*)&saddr, &slen) == 0) {
-        result.first = IPAddress(&saddr);
-        result.second = ntohs(saddr.sin6_port);
+        return InetAddress(IPAddress(&saddr), ntohs(saddr.sin6_port));
       }
       break;
     }
@@ -138,8 +131,7 @@ Option<std::pair<IPAddress, int>> InetEndPoint::localAddress() const {
       socklen_t slen = sizeof(saddr);
 
       if (getsockname(handle_, (sockaddr*)&saddr, &slen) == 0) {
-        result.first = IPAddress(&saddr);
-        result.second = ntohs(saddr.sin_port);
+        return InetAddress(IPAddress(&saddr), ntohs(saddr.sin_port));
       }
       break;
     }
@@ -147,7 +139,7 @@ Option<std::pair<IPAddress, int>> InetEndPoint::localAddress() const {
       break;
   }
 
-  return Some<std::pair<IPAddress, int>>(result);
+  return None();
 }
 
 bool InetEndPoint::isOpen() const XZERO_NOEXCEPT {
@@ -352,14 +344,6 @@ void InetEndPoint::setWriteTimeout(Duration timeout) {
   writeTimeout_ = timeout;
 }
 
-Option<IPAddress> InetEndPoint::remoteIP() const {
-  auto remote = remoteAddress();
-  if (remote.isEmpty())
-    return None();
-  else
-    return remote.get().first;
-}
-
 class InetConnectState {
  public:
   IPAddress ipaddr_;
@@ -516,11 +500,7 @@ RefPtr<EndPoint> InetEndPoint::connect(
 
 template<>
 std::string StringUtil::toString(InetEndPoint* ep) {
-  auto addr = ep->remoteAddress();
-  if (addr.isSome())
-    return StringUtil::format("$0:$1", addr->first, addr->second);
-  else
-    return "null";
+  return StringUtil::format("$0", ep->remoteAddress());
 }
 
 } // namespace xzero

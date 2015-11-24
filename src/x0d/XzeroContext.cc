@@ -49,8 +49,8 @@ xzero::Duration XzeroContext::duration() const {
 }
 
 const IPAddress& XzeroContext::remoteIP() const {
-  if (request_->remoteIP().isSome())
-    return request_->remoteIP().get();
+  if (request_->remoteAddress().isSome())
+    return request_->remoteAddress()->ipaddress();
 
   RAISE(RuntimeError, "Non-IP transport channels not supported");
 }

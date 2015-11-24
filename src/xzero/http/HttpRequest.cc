@@ -41,12 +41,12 @@ HttpRequest::HttpRequest(const std::string& method, const std::string& path,
   // .
 }
 
-void HttpRequest::setRemoteIP(const Option<IPAddress>& ip) {
-  remoteIP_ = ip;
+void HttpRequest::setRemoteAddress(const Option<InetAddress>& inet) {
+  remoteAddress_ = inet;
 }
 
-const Option<IPAddress>& HttpRequest::remoteIP() const {
-  return remoteIP_;
+const Option<InetAddress>& HttpRequest::remoteAddress() const {
+  return remoteAddress_;
 }
 
 void HttpRequest::recycle() {

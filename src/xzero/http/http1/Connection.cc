@@ -63,7 +63,7 @@ Connection::Connection(EndPoint* endpoint,
       requestMax_(maxRequestCount),
       corkStream_(corkStream) {
 
-  channel_->request()->setRemoteIP(endpoint->remoteIP());
+  channel_->request()->setRemoteAddress(endpoint->remoteAddress());
 
   parser_.setListener(channel_.get());
   TRACE("$0 ctor", this);
@@ -364,11 +364,7 @@ void Connection::onInterestFailure(const std::exception& error) {
 
 template <>
 std::string StringUtil::toString(http::http1::Connection* c) {
-  auto remote = c->endpoint()->remoteAddress();
-  if (remote.isEmpty())
-    return "<EOF>";
-  else
-    return StringUtil::format("$0:$1", remote->first, remote->second);
+  return StringUtil::format("$0:$1", c->endpoint()->remoteAddress());
 }
 
 }  // namespace xzero

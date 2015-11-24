@@ -12,6 +12,11 @@
 namespace xzero {
 
 template<>
+std::string StringUtil::toString(InetAddress addr) {
+  return StringUtil::format("$0:$1", addr.ipaddress(), addr.port());
+}
+
+template<>
 std::string StringUtil::toString(const InetAddress& addr) {
   return StringUtil::format("$0:$1", addr.ipaddress(), addr.port());
 }

@@ -376,8 +376,7 @@ HttpChannel* Connection::createChannel(int request) {
        dateGenerator_,
        outputCompressor_));
 
-    transport->setChannel(channel.get());
-    channel->request()->setRemoteIP(endpoint()->remoteIP());
+    channel->request()->setRemoteAddress(endpoint()->remoteAddress());
 
     return (channels_[request] = std::move(channel)).get();
   } catch (...) {

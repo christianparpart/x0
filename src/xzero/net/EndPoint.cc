@@ -26,11 +26,11 @@ void EndPoint::setConnection(Connection* connection) {
   connection_ = connection;
 }
 
-Option<IPAddress> EndPoint::remoteIP() const {
+Option<InetAddress> EndPoint::remoteAddress() const {
   return None();
 }
 
-Option<std::pair<IPAddress, int>> EndPoint::remoteAddress() const {
+Option<InetAddress> EndPoint::localAddress() const {
   return None();
 }
 

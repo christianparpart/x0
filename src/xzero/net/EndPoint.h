@@ -15,7 +15,7 @@
 #include <xzero/Duration.h>
 #include <xzero/RefCounted.h>
 #include <xzero/Option.h>
-#include <xzero/net/IPAddress.h>
+#include <xzero/net/InetAddress.h>
 #include <string>
 
 namespace xzero {
@@ -176,9 +176,8 @@ class EndPoint : public RefCounted {
    */
   virtual std::string toString() const = 0;
 
-  virtual Option<IPAddress> remoteIP() const;
-
-  virtual Option<std::pair<IPAddress, int>> remoteAddress() const;
+  virtual Option<InetAddress> remoteAddress() const;
+  virtual Option<InetAddress> localAddress() const;
 
  private:
   Connection* connection_;

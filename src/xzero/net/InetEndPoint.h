@@ -86,16 +86,6 @@ class XZERO_BASE_API InetEndPoint : public EndPoint {
    */
   int addressFamily() const noexcept { return addressFamily_; }
 
-  /**
-   * Retrieves remote address + port.
-   */
-  Option<std::pair<IPAddress, int>> remoteAddress() const override;
-
-  /**
-   * Retrieves local address + port.
-   */
-  Option<std::pair<IPAddress, int>> localAddress() const;
-
   // EndPoint overrides
   bool isOpen() const XZERO_NOEXCEPT override;
   void close() override;
@@ -115,7 +105,8 @@ class XZERO_BASE_API InetEndPoint : public EndPoint {
   Duration writeTimeout() override;
   void setReadTimeout(Duration timeout) override;
   void setWriteTimeout(Duration timeout) override;
-  Option<IPAddress> remoteIP() const override;
+  Option<InetAddress> remoteAddress() const override;
+  Option<InetAddress> localAddress() const override;
 
  private:
   void fillable();

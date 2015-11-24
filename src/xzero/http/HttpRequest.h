@@ -16,7 +16,7 @@
 #include <xzero/http/HttpVersion.h>
 #include <xzero/http/HttpMethod.h>
 #include <xzero/http/HttpInput.h>
-#include <xzero/net/IPAddress.h>
+#include <xzero/net/InetAddress.h>
 #include <xzero/Option.h>
 #include <memory>
 
@@ -34,8 +34,8 @@ class XZERO_HTTP_API HttpRequest : public HttpRequestInfo {
               HttpVersion version, bool secure, const HeaderFieldList& headers,
               std::unique_ptr<HttpInput>&& input);
 
-  void setRemoteIP(const Option<IPAddress>& ip);
-  const Option<IPAddress>& remoteIP() const;
+  void setRemoteAddress(const Option<InetAddress>& ip);
+  const Option<InetAddress>& remoteAddress() const;
 
   size_t bytesReceived() const noexcept { return bytesReceived_; }
   void setBytesReceived(size_t n) { bytesReceived_ = n; }
@@ -58,7 +58,7 @@ class XZERO_HTTP_API HttpRequest : public HttpRequestInfo {
   void recycle();
 
  private:
-  Option<IPAddress> remoteIP_;
+  Option<InetAddress> remoteAddress_;
   size_t bytesReceived_;
 
   bool secure_;
