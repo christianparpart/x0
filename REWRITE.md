@@ -48,8 +48,9 @@
 - [x] HttpHealthMonitor: monitor an HTTP upstream
 - [x] HttpClient: an easier way to connect to an endpoint AND issue the request
       (in one line)
-- [ ] HttpClusterMember, proxies to HttpClient, with constraints (such as capacity)
-- [ ] HttpCluster: basic load balancing to HTTP/1 upstreams
+- [x] HttpClusterMember, proxies to HttpClient, with constraints (such as capacity)
+- [x] HttpCluster: basic load balancing to HTTP/1 upstreams
+- [ ] use InetAddress instead of `pair<IPAddress, Port>`
 - [ ] HttpInput: must be rewind()able, in order to be used multiple times
       e.g. required for retransmitting a request to multiple upstreams if prior
       failed.
