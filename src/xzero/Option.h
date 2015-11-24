@@ -28,136 +28,56 @@ struct None {};
 template <typename T>
 class XZERO_BASE_API Option {
  public:
-  Option() : value_(), valid_(false) {}
-  Option(const None&) : value_(), valid_(false) {}
-  Option(const T& value) : value_(value), valid_(true) {}
-  Option(T&& value) : value_(std::move(value)), valid_(true) {}
+  Option();
+  Option(const None&);
+  Option(const T& value);
+  Option(const Option<T>& other);
+  Option(T&& value);
+  ~Option();
 
-  Option(const Option<T>& other) = default;
-  Option<T>& operator=(const Option<T>& other) = default;
+  Option<T>& operator=(const Option<T>& other);
+  Option<T>& operator=(Option<T>&& other);
 
-  Option<T>& operator=(Option<T>&& other) {
-    value_ = std::move(other.value_);
-    valid_ = other.valid_;
-    other.valid_ = false;
-    return *this;
-  }
+  bool isSome() const noexcept;
+  bool isNone() const noexcept;
+  bool isEmpty() const noexcept;
+  operator bool() const noexcept;
 
-  bool isSome() const { return valid_; }
-  bool isNone() const noexcept { return !valid_; }
-  bool isEmpty() const noexcept { return !valid_; }
-  operator bool() const { return isSome(); }
+  void reset();
+  void clear();
 
-  void reset() {
-    value_ = T();
-    valid_ = false;
-  }
+  void set(const Option<T>& other);
+  void set(Option<T>&& other);
+  void set(const T& other);
+  void set(T&& other);
 
-  void set(T&& value) {
-    value_ = std::move(value);
-    valid_ = true;
-  }
+  T& get();
+  const T& get() const;
 
-  void set(const T& value) {
-    value_ = value;
-    valid_ = true;
-  }
+  T& operator*();
+  const T& operator*() const;
 
-  T& get() {
-    require();
-    return value_;
-  }
+  T* operator->();
+  const T* operator->() const;
 
-  const T& get() const {
-    require();
-    return value_;
-  }
+  void require() const;
+  void requireNone() const;
 
-  T& operator*() {
-    require();
-    return value_;
-  }
-
-  const T& operator*() const {
-    require();
-    return value_;
-  }
-
-  T* operator->() {
-    require();
-    return &value_;
-  }
-
-  const T* operator->() const {
-    require();
-    return &value_;
-  }
-
-  void require() const {
-    if (isNone())
-      RAISE(OptionUncheckedAccessToInstance);
-  }
-
-  void requireNone() const {
-    if (!isNone())
-      RAISE(OptionUncheckedAccessToInstance);
-  }
-
-  void clear() {
-    value_ = T();
-    valid_ = false;
-  }
-
-  template <typename U>
-  Option<T> onSome(U block) const {
-    if (isSome())
-      block(get());
-
-    return *this;
-  }
-
-  template <typename U>
-  Option<T> onNone(U block) const {
-    if (isNone())
-      block();
-
-    return *this;
-  }
+  template <typename U> Option<T> onSome(U block) const;
+  template <typename U> Option<T> onNone(U block) const;
 
  private:
-  T value_;
+  unsigned char storage_[sizeof(T)];
   bool valid_;
 };
 
-template <typename T>
-inline bool operator==(const Option<T>& a, const Option<T>& b) {
-  if (a.isSome() && b.isSome())
-    return a.get() == b.get();
+template <typename T> bool operator==(const Option<T>& a, const Option<T>& b);
+template <typename T> bool operator==(const Option<T>& a, const None& b);
+template <typename T> bool operator!=(const Option<T>& a, const Option<T>& b);
+template <typename T> bool operator!=(const Option<T>& a, const None& b);
 
-  if (a.isNone() && b.isNone())
-    return true;
-
-  return false;
-}
-
-template <typename T>
-inline bool operator==(const Option<T>& a, const None& b) {
-  return a.isNone();
-}
-
-template <typename T>
-inline bool operator!=(const Option<T>& a, const Option<T>& b) {
-  return !(a == b);
-}
-
-template <typename T>
-inline bool operator!=(const Option<T>& a, const None& b) {
-  return !(a == b);
-}
-
-template <typename T>
-inline Option<T> Some(const T& value) {
-  return Option<T>(value);
-}
+template <typename T> Option<T> Some(const T& value);
 
 }  // namespace xzero
+
+#include <xzero/Option-inl.h>
