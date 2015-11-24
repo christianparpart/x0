@@ -11,6 +11,7 @@
 #include <xzero/Uri.h>
 #include <xzero/Buffer.h>
 #include <xzero/RefPtr.h>
+#include <xzero/Option.h>
 #include <xzero/Duration.h>
 #include <xzero/CompletionHandler.h>
 #include <xzero/thread/Future.h>
@@ -100,7 +101,7 @@ class HttpClient : public HttpListener {
   HttpResponseInfo responseInfo_;
   Buffer responseBody_;
 
-  Promise<HttpClient*> promise_;
+  Option<Promise<HttpClient*>> promise_;
 };
 
 } // namespace client

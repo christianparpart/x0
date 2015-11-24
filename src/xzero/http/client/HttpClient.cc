@@ -60,7 +60,8 @@ void HttpClient::send(const HttpRequestInfo& requestInfo,
 
 Future<HttpClient*> HttpClient::completed() {
   transport_->completed();
-  return promise_.future();
+  promise_ = Some(Promise<HttpClient*>());
+  return promise_->future();
 }
 
 const HttpResponseInfo& HttpClient::responseInfo() const noexcept {
@@ -98,12 +99,12 @@ void HttpClient::onMessageContent(const BufferRef& chunk) {
 
 void HttpClient::onMessageEnd() {
   TRACE("onMessageEnd()");
-  promise_.success(this);
+  promise_->success(this);
 }
 
 void HttpClient::onProtocolError(HttpStatus code, const std::string& message) {
   logError("HttpClient", "Protocol Error. $0; $1", code, message);
-  promise_.failure(Status::ForeignError);
+  promise_->failure(Status::ForeignError);
 }
 
 Future<HttpClient> HttpClient::sendAsync(
