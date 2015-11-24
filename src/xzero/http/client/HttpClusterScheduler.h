@@ -25,6 +25,7 @@ class HttpClusterScheduler {
   typedef std::vector<HttpClusterMember*> MemberList;
 
   explicit HttpClusterScheduler(const std::string& name, MemberList* members);
+
   virtual ~HttpClusterScheduler();
 
   const std::string& name() const { return name_; }
@@ -55,7 +56,9 @@ class HttpClusterScheduler::RoundRobin : public HttpClusterScheduler {
 
 class HttpClusterScheduler::Chance : public HttpClusterScheduler {
  public:
-  Chance(MemberList* members) : HttpClusterScheduler("rr", members) {}
+  Chance(MemberList* members)
+      : HttpClusterScheduler("rr", members) {}
+
   HttpClusterSchedulerStatus schedule(HttpClusterRequest* cn) override;
 };
 

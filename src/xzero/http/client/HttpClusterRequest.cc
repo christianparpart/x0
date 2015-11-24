@@ -1,4 +1,5 @@
 #include <xzero/http/client/HttpClusterRequest.h>
+#include <xzero/http/client/HttpClusterMember.h>
 #include <xzero/MonotonicClock.h>
 #include <xzero/logging.h>
 #include <assert.h>
@@ -7,6 +8,14 @@ namespace xzero {
 namespace http {
 namespace client {
 
+#if !defined(NDEBUG)
+# define DEBUG(msg...) logDebug("http.client.HttpClusterRequest", msg)
+# define TRACE(msg...) logTrace("http.client.HttpClusterRequest", msg)
+#else
+# define DEBUG(msg...) do {} while (0)
+# define TRACE(msg...) do {} while (0)
+#endif
+
 HttpClusterRequest::HttpClusterRequest(const HttpRequestInfo& _requestInfo,
                                        std::unique_ptr<InputStream> _requestBody,
                                        std::unique_ptr<HttpListener> _responseListener,
@@ -14,12 +23,15 @@ HttpClusterRequest::HttpClusterRequest(const HttpRequestInfo& _requestInfo,
     : ctime(MonotonicClock::now()),
       requestInfo(_requestInfo),
       requestBody(std::move(_requestBody)),
-      responseListener(std::move(_responseListener)),
       executor(_executor),
       bucket(nullptr),
       backend(nullptr),
       tryCount(0),
-      tokens(0) {
+      tokens(0),
+      responseListener(std::move(_responseListener)) {
+}
+
+HttpClusterRequest::~HttpClusterRequest() {
 }
 
 void HttpClusterRequest::onMessageBegin(HttpVersion version, HttpStatus code,
@@ -41,10 +53,15 @@ void HttpClusterRequest::onMessageContent(const BufferRef& chunk) {
 }
 
 void HttpClusterRequest::onMessageEnd() {
-  if (bucket != nullptr && tokens != 0) {
-    bucket->put(tokens);
-  }
+  TRACE("onMessageEnd!");
 
+  assert(tokens > 0);
+  assert(bucket != nullptr);
+  assert(backend != nullptr);
+
+  bucket->put(tokens);
+
+  backend->release();
   responseListener->onMessageEnd();
 }
 

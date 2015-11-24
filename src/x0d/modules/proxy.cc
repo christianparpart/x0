@@ -181,7 +181,9 @@ void ProxyModule::onPostConfig() {
 
 class HttpResponseBuilder : public HttpListener { // {{{
  public:
-  explicit HttpResponseBuilder(HttpResponse* response);
+  explicit HttpResponseBuilder(ProxyModule* proxy,
+                               const HttpRequestInfo* request,
+                               HttpResponse* response);
 
   void onMessageBegin(HttpVersion version, HttpStatus code, const BufferRef& text) override;
   void onMessageHeader(const BufferRef& name, const BufferRef& value) override;
@@ -191,11 +193,17 @@ class HttpResponseBuilder : public HttpListener { // {{{
   void onProtocolError(HttpStatus code, const std::string& message) override;
 
  private:
+  ProxyModule* proxy_;
+  const HttpRequestInfo* request_;
   HttpResponse* response_;
 };
 
-HttpResponseBuilder::HttpResponseBuilder(HttpResponse* response)
-    : response_(response) {
+HttpResponseBuilder::HttpResponseBuilder(ProxyModule* proxy,
+                                         const HttpRequestInfo* request,
+                                         HttpResponse* response)
+    : proxy_(proxy),
+      request_(request),
+      response_(response) {
 }
 
 void HttpResponseBuilder::onMessageBegin(HttpVersion version, HttpStatus code, const BufferRef& text) {
@@ -213,6 +221,7 @@ void HttpResponseBuilder::onMessageHeader(const BufferRef& name, const BufferRef
 }
 
 void HttpResponseBuilder::onMessageHeaderEnd() {
+  proxy_->addVia(request_, response_);
 }
 
 void HttpResponseBuilder::onMessageContent(const BufferRef& chunk) {
@@ -224,6 +233,10 @@ void HttpResponseBuilder::onMessageEnd() {
 }
 
 void HttpResponseBuilder::onProtocolError(HttpStatus code, const std::string& message) {
+  // TODO used? sufficient? resistent? chocolate?
+  response_->setStatus(code);
+  response_->setReason(message);
+  response_->completed();
 }
 // }}}
 class HttpInputStream : public InputStream { // {{{
@@ -275,7 +288,8 @@ bool ProxyModule::proxy_cluster(XzeroContext* cx, Params& args) {
   HttpClusterRequest* cr = cx->setCustomData<HttpClusterRequest>(this,
       *cx->request(),
       std::unique_ptr<InputStream>(new HttpInputStream(cx->request()->input())),
-      std::unique_ptr<HttpListener>(new HttpResponseBuilder(cx->response())),
+      std::unique_ptr<HttpListener>(new HttpResponseBuilder(
+          this, cx->request(), cx->response())),
       cx->response()->executor());
 
   cluster->schedule(cr, bucket);
@@ -360,7 +374,7 @@ bool ProxyModule::proxy_http(XzeroContext* cx, xzero::flow::vm::Params& args) {
       requestBodySize,
       filter(cx->request()->headers(), skipConnectFields));
 
-  Future<UniquePtr<HttpClient>> f = HttpClient::sendAsync(
+  Future<HttpClient> f = HttpClient::sendAsync(
       ipaddr, port, requestInfo, requestBody,
       connectTimeout, readTimeout, writeTimeout, executor);
 
@@ -369,17 +383,17 @@ bool ProxyModule::proxy_http(XzeroContext* cx, xzero::flow::vm::Params& args) {
     cx->response()->setStatus(HttpStatus::ServiceUnavailable);
     cx->response()->completed();
   });
-  f.onSuccess([this, cx] (const UniquePtr<HttpClient>& client) {
-    for (const HeaderField& field: client->responseInfo().headers()) {
+  f.onSuccess([this, cx] (const HttpClient& client) {
+    for (const HeaderField& field: client.responseInfo().headers()) {
       if (!isConnectionHeader(field.name())) {
         cx->response()->headers().push_back(field.name(), field.value());
       }
     }
     addVia(cx);
-    cx->response()->setStatus(client->responseInfo().status());
-    cx->response()->setReason(client->responseInfo().reason());
-    cx->response()->setContentLength(client->responseBody().size());
-    cx->response()->output()->write(client->responseBody());
+    cx->response()->setStatus(client.responseInfo().status());
+    cx->response()->setReason(client.responseInfo().reason());
+    cx->response()->setContentLength(client.responseBody().size());
+    cx->response()->output()->write(client.responseBody());
     cx->response()->completed();
   });
 
@@ -387,14 +401,18 @@ bool ProxyModule::proxy_http(XzeroContext* cx, xzero::flow::vm::Params& args) {
 }
 
 void ProxyModule::addVia(XzeroContext* cx) {
+  addVia(cx->request(), cx->response());
+}
+
+void ProxyModule::addVia(const HttpRequestInfo* in, HttpResponse* out) {
   char buf[128];
   snprintf(buf, sizeof(buf), "%s %s",
-           StringUtil::toString(cx->request()->version()).c_str(),
+           StringUtil::toString(in->version()).c_str(),
            pseudonym_.c_str());
 
   // RFC 7230, section 5.7.1: makes it clear, that we put ourselfs into the
   // front of the Via-list.
-  cx->response()->headers().prepend("Via", buf);
+  out->headers().prepend("Via", buf);
 }
 
 bool ProxyModule::proxy_haproxy_monitor(XzeroContext* cx, xzero::flow::vm::Params& args) {

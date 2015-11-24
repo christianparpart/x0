@@ -27,15 +27,28 @@ class HttpClusterMember;
 
 struct HttpClusterRequest : public CustomData,
                             public HttpListener {
+ public:
   HttpClusterRequest(const HttpRequestInfo& _requestInfo,
                      std::unique_ptr<InputStream> _requestBody,
                      std::unique_ptr<HttpListener> _responseListener,
                      Executor* _executor);
+  ~HttpClusterRequest();
 
+  void post(Executor::Task task) { executor->execute(task); }
+
+  // HttpListener overrides
+  void onMessageBegin(HttpVersion version, HttpStatus code,
+                      const BufferRef& text) override;
+  void onMessageHeader(const BufferRef& name, const BufferRef& value) override;
+  void onMessageHeaderEnd() override;
+  void onMessageContent(const BufferRef& chunk) override;
+  void onMessageEnd() override;
+  void onProtocolError(HttpStatus code, const std::string& message) override;
+
+ public:
   MonotonicTime ctime;
   const HttpRequestInfo& requestInfo;
   std::unique_ptr<InputStream> requestBody;
-  std::unique_ptr<HttpListener> responseListener;
   Executor* executor;
 
   // the bucket (node) this request is to be scheduled via
@@ -50,16 +63,8 @@ struct HttpClusterRequest : public CustomData,
   // contains the number of currently acquired tokens by this request
   size_t tokens;
 
-  void post(Executor::Task task) { executor->execute(task); }
-
-  // HttpListener overrides
-  void onMessageBegin(HttpVersion version, HttpStatus code,
-                      const BufferRef& text) override;
-  void onMessageHeader(const BufferRef& name, const BufferRef& value) override;
-  void onMessageHeaderEnd() override;
-  void onMessageContent(const BufferRef& chunk) override;
-  void onMessageEnd() override;
-  void onProtocolError(HttpStatus code, const std::string& message) override;
+ private:
+  std::unique_ptr<HttpListener> responseListener;
 };
 
 } // namespace http

@@ -50,6 +50,7 @@ class HttpTransport;
 class HttpClient : public HttpListener {
  public:
   HttpClient(Executor* executor, RefPtr<EndPoint> endpoint);
+  HttpClient(HttpClient&& other);
   ~HttpClient();
 
   // request builder
@@ -61,18 +62,18 @@ class HttpClient : public HttpListener {
   const Buffer& responseBody() const noexcept;
 
   // WIP brainstorming ideas
-  static Future<UniquePtr<HttpClient>> sendAsync(
+  static Future<HttpClient> sendAsync(
       const std::string& method,
       const Uri& url,
       const std::vector<std::pair<std::string, std::string>>& headers,
       const BufferRef& requestBody,
       Executor* executor);
 
-  static Future<UniquePtr<HttpClient>> sendAsync(
+  static Future<HttpClient> sendAsync(
       const HttpRequestInfo& requestInfo, const BufferRef& requestBody,
       Executor* executor);
 
-  static Future<UniquePtr<HttpClient>> sendAsync(
+  static Future<HttpClient> sendAsync(
       const IPAddress& ipaddr, int port,
       const HttpRequestInfo& requestInfo, const BufferRef& requestBody,
       Duration connectTimeout,

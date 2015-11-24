@@ -213,6 +213,8 @@ class HttpCluster {
   void onBackendEnabledChanged(HttpClusterMember* backend);
   void onBackendHealthStateChanged(HttpClusterMember* backend,
                                    HttpHealthMonitor::State oldState);
+  void onMemberReleased(HttpClusterMember* member);
+
 
  private:
   // cluster's human readable representative name.

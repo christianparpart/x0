@@ -19,6 +19,8 @@
 
 namespace xzero {
   namespace http {
+    class HttpRequestInfo;
+    class HttpResponseInfo;
     namespace client {
       class HttpCluster;
       class HttpClient;
@@ -32,6 +34,13 @@ class ProxyModule : public XzeroModule {
  public:
   explicit ProxyModule(XzeroDaemon* d);
   ~ProxyModule();
+
+  const std::string& pseudonym() const noexcept { return pseudonym_; }
+
+  // helpers
+  void addVia(XzeroContext* cx);
+  void addVia(const xzero::http::HttpRequestInfo* in,
+              xzero::http::HttpResponse* out);
 
  private:
   // setup functions
@@ -53,8 +62,6 @@ class ProxyModule : public XzeroModule {
 
  private:
   bool internalServerError(XzeroContext* cx);
-
-  void addVia(XzeroContext* cx);
 
   void balance(XzeroContext* cx,
                const std::string& directorName,

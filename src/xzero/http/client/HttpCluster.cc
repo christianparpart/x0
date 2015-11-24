@@ -134,6 +134,8 @@ void HttpCluster::addMember(const std::string& name,
                 std::placeholders::_1),
       std::bind(&HttpCluster::reschedule, this,
                 std::placeholders::_1),
+      std::bind(&HttpCluster::onMemberReleased, this,
+                std::placeholders::_1),
       protocol,
       connectTimeout(),
       readTimeout(),
@@ -201,6 +203,10 @@ void HttpCluster::onBackendHealthStateChanged(HttpClusterMember* backend,
     TRACE("onBackendHealthStateChanged: removing capacity from shaper ($0 - $1)",
           shaper()->size(), backend->capacity());
   }
+}
+
+void HttpCluster::onMemberReleased(HttpClusterMember* backend) {
+  dequeueTo(backend);
 }
 
 HttpClusterMember* HttpCluster::findMember(const std::string& name) {
@@ -290,7 +296,6 @@ void HttpCluster::schedule(HttpClusterRequest* cr, Bucket* bucket) {
     if (status == HttpClusterSchedulerStatus::Success)
       return;
 
-    logWarning("HttpCluster", "put back token, $0", status);
     cr->bucket->put(1);
     cr->tokens = 0;
 
@@ -301,11 +306,9 @@ void HttpCluster::schedule(HttpClusterRequest* cr, Bucket* bucket) {
       enqueue(cr);
     }
   } else if (cr->bucket->ceil() > 0 || enqueueOnUnavailable_) {
-    logWarning("HttpCluster", "enqueue cr");
     // there are tokens available (for rent) and we prefer to wait if unavailable
     enqueue(cr);
   } else {
-    logWarning("HttpCluster", "serviceUnavailable cr");
     serviceUnavailable(cr);
   }
 }
@@ -378,12 +381,12 @@ void HttpCluster::enqueue(HttpClusterRequest* cr) {
     cr->bucket->enqueue(cr);
     ++queued_;
 
-    TRACE("HTTP cluster $0 [$1] overloaded. Enqueueing request ($2).",
+    DEBUG("HTTP cluster $0 [$1] overloaded. Enqueueing request ($2).",
           name(),
           cr->bucket->name(),
           cr->bucket->queued().current());
   } else {
-    TRACE("director: '$0' queue limit $1 reached.", name(), queueLimit());
+    DEBUG("director: '$0' queue limit $1 reached.", name(), queueLimit());
     serviceUnavailable(cr);
   }
 }
@@ -398,14 +401,14 @@ void HttpCluster::dequeueTo(HttpClusterMember* backend) {
   if (auto cr = dequeue()) {
     cr->post([this, backend, cr]() {
       cr->tokens = 1;
-      TRACE("Dequeueing request to backend $0 @ $1", backend->name(), name());
+      DEBUG("Dequeueing request to backend $0 @ $1 ($2)",
+          backend->name(), name(), queued_.current());
       HttpClusterSchedulerStatus rc = backend->tryProcess(cr);
       if (rc != HttpClusterSchedulerStatus::Success) {
         cr->tokens = 0;
-        static const char* ss[] = {"Unavailable.", "Success.", "Overloaded."};
         logError("HttpCluster",
                  "Dequeueing request to backend $0 @ $1 failed. $2",
-                 backend->name(), name(), ss[(size_t)rc]);
+                 backend->name(), name(), rc);
         reschedule(cr);
       } else {
         // FIXME: really here????

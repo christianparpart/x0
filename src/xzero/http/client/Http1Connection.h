@@ -40,6 +40,7 @@ public:
   ~Http1Connection();
 
   // HttpTransport overrides
+  void setListener(HttpListener* channel) override;
   void send(const HttpRequestInfo& requestInfo,
             CompletionHandler onComplete) override;
   void send(const HttpRequestInfo& requestInfo,

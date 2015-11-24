@@ -16,7 +16,7 @@ HttpClusterScheduler::~HttpClusterScheduler() {
 }
 
 HttpClusterSchedulerStatus
-    HttpClusterScheduler::RoundRobin::schedule(HttpClusterRequest* cn) {
+    HttpClusterScheduler::RoundRobin::schedule(HttpClusterRequest* cr) {
   unsigned unavailable = 0;
   size_t limit = members().size();
 
@@ -25,7 +25,7 @@ HttpClusterSchedulerStatus
       next_ = 0;
     }
 
-    switch (members()[next_]->tryProcess(cn)) {
+    switch (members()[next_]->tryProcess(cr)) {
       case HttpClusterSchedulerStatus::Success:
         return HttpClusterSchedulerStatus::Success;
       case HttpClusterSchedulerStatus::Unavailable:
@@ -42,11 +42,11 @@ HttpClusterSchedulerStatus
 }
 
 HttpClusterSchedulerStatus
-    HttpClusterScheduler::Chance::schedule(HttpClusterRequest* cn) {
+    HttpClusterScheduler::Chance::schedule(HttpClusterRequest* cr) {
   size_t unavailable = 0;
 
   for (auto& member: members()) {
-    switch (member->tryProcess(cn)) {
+    switch (member->tryProcess(cr)) {
       case HttpClusterSchedulerStatus::Success:
         return HttpClusterSchedulerStatus::Success;
       case HttpClusterSchedulerStatus::Unavailable:

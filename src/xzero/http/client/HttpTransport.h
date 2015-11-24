@@ -18,6 +18,7 @@ class FileRef;
 namespace http {
 
 class HttpRequestInfo;
+class HttpListener;
 
 namespace client {
 
@@ -28,6 +29,7 @@ class HttpTransport {
  public:
   virtual ~HttpTransport();
 
+  virtual void setListener(HttpListener* channel) = 0;
   virtual void send(const HttpRequestInfo& requestInfo,
                     CompletionHandler onComplete) = 0;
   virtual void send(const HttpRequestInfo& requestInfo,

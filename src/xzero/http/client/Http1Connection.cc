@@ -42,6 +42,10 @@ Http1Connection::Http1Connection(HttpListener* channel,
 Http1Connection::~Http1Connection() {
 }
 
+void Http1Connection::setListener(HttpListener* channel) {
+  channel_ = channel;
+}
+
 void Http1Connection::send(const HttpRequestInfo& requestInfo,
                            CompletionHandler onComplete) {
   setCompleter(onComplete);

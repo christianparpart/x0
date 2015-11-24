@@ -29,12 +29,24 @@ HttpClient::HttpClient(Executor* executor,
       endpoint_(endpoint),
       transport_(nullptr),
       responseInfo_(),
-      responseBody_() {
+      responseBody_(),
+      promise_() {
 
   if (endpoint_) {
     // is not being freed here explicitely, as the endpoint will own that
     transport_ = new Http1Connection(this, endpoint_.get(), executor_);
   }
+}
+
+HttpClient::HttpClient(HttpClient&& other)
+    : executor_(other.executor_),
+      endpoint_(std::move(other.endpoint_)),
+      transport_(other.transport_),
+      responseInfo_(std::move(other.responseInfo_)),
+      responseBody_(std::move(other.responseBody_)),
+      promise_(std::move(other.promise_)) {
+  transport_->setListener(this);
+  other.transport_ = nullptr;
 }
 
 HttpClient::~HttpClient() {
@@ -94,7 +106,7 @@ void HttpClient::onProtocolError(HttpStatus code, const std::string& message) {
   promise_.failure(Status::ForeignError);
 }
 
-Future<UniquePtr<HttpClient>> HttpClient::sendAsync(
+Future<HttpClient> HttpClient::sendAsync(
     const HttpRequestInfo& requestInfo, const BufferRef& requestBody,
     Executor* executor) {
 
@@ -118,7 +130,7 @@ Future<UniquePtr<HttpClient>> HttpClient::sendAsync(
       connectTimeout, readTimeout, writeTimeout, executor);
 }
 
-Future<UniquePtr<HttpClient>> HttpClient::sendAsync(
+Future<HttpClient> HttpClient::sendAsync(
     const std::string& method,
     const Uri& url,
     const std::vector<std::pair<std::string, std::string>>& headers,
@@ -141,7 +153,7 @@ Future<UniquePtr<HttpClient>> HttpClient::sendAsync(
       connectTimeout, readTimeout, writeTimeout, executor);
 }
 
-Future<UniquePtr<HttpClient>> HttpClient::sendAsync(
+Future<HttpClient> HttpClient::sendAsync(
     const IPAddress& ipaddr,
     int port,
     const HttpRequestInfo& requestInfo,
@@ -151,7 +163,7 @@ Future<UniquePtr<HttpClient>> HttpClient::sendAsync(
     Duration writeTimeout,
     Executor* executor) {
 
-  Promise<UniquePtr<HttpClient>> promise;
+  Promise<HttpClient> promise;
 
   Future<RefPtr<EndPoint>> fep = InetEndPoint::connectAsync(ipaddr, port,
       connectTimeout, readTimeout, writeTimeout, executor);
@@ -171,7 +183,8 @@ Future<UniquePtr<HttpClient>> HttpClient::sendAsync(
         promise.failure(s);
       });
       f.onSuccess([promise, client](HttpClient*) mutable {
-        promise.success(std::unique_ptr<HttpClient>(client));
+        promise.success(std::move(*client));
+        delete client;
       });
   });
 

@@ -6,7 +6,7 @@
 #include <xzero/JsonWriter.h>
 #include <algorithm>
 
-#ifndef NDEBUG
+#if 0 // !defined(NDEBUG)
 # define DEBUG(msg...) logDebug("http.client.HttpHealthMonitor", msg)
 # define TRACE(msg...) logTrace("http.client.HttpHealthMonitor", msg)
 #else
@@ -93,7 +93,8 @@ void HttpHealthMonitor::logSuccess() {
   TRACE("logSuccess!");
   ++consecutiveSuccessCount_;
 
-  if (consecutiveSuccessCount_ >= successThreshold_) {
+  if (consecutiveSuccessCount_ >= successThreshold_ &&
+      state() != State::Online) {
     TRACE("The successThreshold reached. Going online.");
     setState(State::Online);
   }

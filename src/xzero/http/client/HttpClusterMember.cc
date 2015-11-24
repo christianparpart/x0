@@ -26,6 +26,7 @@ HttpClusterMember::HttpClusterMember(
     bool terminateProtection,
     std::function<void(HttpClusterMember*)> onEnabledChanged,
     std::function<void(HttpClusterRequest*)> onProcessingFailed,
+    std::function<void(HttpClusterMember*)> onRelease,
     const std::string& protocol,
     Duration connectTimeout,
     Duration readTimeout,
@@ -44,6 +45,7 @@ HttpClusterMember::HttpClusterMember(
       terminateProtection_(terminateProtection),
       onEnabledChanged_(onEnabledChanged),
       onProcessingFailed_(onProcessingFailed),
+      onRelease_(onRelease),
       protocol_(protocol),
       connectTimeout_(connectTimeout),
       readTimeout_(readTimeout),
@@ -95,8 +97,12 @@ HttpClusterSchedulerStatus HttpClusterMember::tryProcess(HttpClusterRequest* cr)
   return HttpClusterSchedulerStatus::Success;
 }
 
+void HttpClusterMember::release() {
+  onRelease_(this);
+}
+
 bool HttpClusterMember::process(HttpClusterRequest* cr) {
-  Future<UniquePtr<HttpClient>> f = HttpClient::sendAsync(
+  Future<HttpClient> f = HttpClient::sendAsync(
       ipaddress_, port_,
       cr->requestInfo,
       BufferRef(), // FIXME: requestBody,
@@ -125,7 +131,7 @@ void HttpClusterMember::onFailure(HttpClusterRequest* cr, Status status) {
 }
 
 void HttpClusterMember::onResponseReceived(HttpClusterRequest* cr,
-                                           const UniquePtr<HttpClient>& client) {
+                                           const HttpClient& client) {
   --load_;
 
   auto isConnectionHeader = [](const std::string& name) -> bool {
@@ -148,18 +154,18 @@ void HttpClusterMember::onResponseReceived(HttpClusterRequest* cr,
     return false;
   };
 
-  cr->onMessageBegin(client->responseInfo().version(),
-                                       client->responseInfo().status(),
-                                       BufferRef(client->responseInfo().reason()));
+  cr->onMessageBegin(client.responseInfo().version(),
+                                       client.responseInfo().status(),
+                                       BufferRef(client.responseInfo().reason()));
 
-  for (const HeaderField& field: client->responseInfo().headers()) {
+  for (const HeaderField& field: client.responseInfo().headers()) {
     if (!isConnectionHeader(field.name())) {
       cr->onMessageHeader(BufferRef(field.name()), BufferRef(field.value()));
     }
   }
 
   cr->onMessageHeaderEnd();
-  cr->onMessageContent(client->responseBody());
+  cr->onMessageContent(client.responseBody());
   cr->onMessageEnd();
 }
 
