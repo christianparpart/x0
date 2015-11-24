@@ -16,7 +16,7 @@ namespace xzero {
 namespace http {
 namespace http1 {
 
-#if !defined(NDEBUG)
+#if 0 // !defined(NDEBUG)
 #define TRACE(fmt...) logTrace("http.http1.Parser", fmt)
 #else
 #define TRACE(msg...) do {} while (0)

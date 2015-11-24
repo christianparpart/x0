@@ -39,8 +39,8 @@
 #define SO_REUSEPORT 15
 #endif
 
-#if !defined(NDEBUG)
-#define TRACE(msg...) logTrace("InetConnector", msg)
+#if 0 // !defined(NDEBUG)
+#define TRACE(msg...) logTrace("net.InetConnector", msg)
 #else
 #define TRACE(msg...) do {} while (0)
 #endif

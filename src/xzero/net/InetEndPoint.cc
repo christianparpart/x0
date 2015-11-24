@@ -30,7 +30,7 @@ namespace xzero {
 
 #define ERROR(msg...) logError("net.InetEndPoint", msg)
 
-#ifndef NDEBUG
+#if 0 // !defined(NDEBUG)
 #define TRACE(msg...) logTrace("net.InetEndPoint", msg)
 #define DEBUG(msg...) logDebug("net.InetEndPoint", msg)
 #else
