@@ -21,6 +21,7 @@ class HttpBufferedInput : public HttpInput {
   HttpBufferedInput();
   ~HttpBufferedInput();
 
+  void rewind() override;
   int read(Buffer* result) override;
   size_t readLine(Buffer* result) override;
   void onContent(const BufferRef& chunk) override;

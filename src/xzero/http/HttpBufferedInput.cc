@@ -38,6 +38,10 @@ void HttpBufferedInput::recycle() {
   offset_ = 0;
 }
 
+void HttpBufferedInput::rewind() {
+  offset_ = 0;
+}
+
 int HttpBufferedInput::read(Buffer* result) {
   const size_t len = content_.size() - offset_;
   result->push_back(content_.ref(offset_));

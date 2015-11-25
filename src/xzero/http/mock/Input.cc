@@ -15,6 +15,9 @@ Input::Input()
     : buffer_() {
 }
 
+void Input::rewind() {
+}
+
 int Input::read(Buffer* result) {
   size_t n = buffer_.size();
   result->push_back(buffer_);

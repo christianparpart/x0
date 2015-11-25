@@ -27,6 +27,8 @@ class XZERO_HTTP_API HttpInputListener {
 
   /**
    * Invoked when all data has been fully consumed.
+   *
+   * No other callbacks will be invoked once this one got called.
    */
   virtual void onAllDataRead() = 0;
 

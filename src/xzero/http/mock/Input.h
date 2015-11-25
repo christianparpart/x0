@@ -16,6 +16,7 @@ namespace mock {
 class Input : public HttpInput {
  public:
   Input();
+  void rewind() override;
   int read(Buffer* result) override;
   size_t readLine(Buffer* result) override;
   bool empty() const noexcept override;

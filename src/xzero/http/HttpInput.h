@@ -28,6 +28,11 @@ class XZERO_HTTP_API HttpInput {
   virtual ~HttpInput();
 
   /**
+   * Rewinds read position back to the first byte of the HTTP request body.
+   */
+  virtual void rewind() = 0;
+
+  /**
    * Reads some data into the end of @p result.
    */
   virtual int read(Buffer* result) = 0;

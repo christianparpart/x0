@@ -47,17 +47,17 @@ Connection::Connection(EndPoint* endpoint,
                        Duration maxKeepAlive,
                        bool corkStream)
     : ::xzero::Connection(endpoint, executor),
-      parser_(Parser::REQUEST),
-      inputBuffer_(),
-      inputOffset_(0),
-      writer_(),
-      onComplete_(),
-      generator_(&writer_),
       channel_(new Channel(
           this, executor, handler,
           std::unique_ptr<HttpInput>(new HttpBufferedInput()),
           maxRequestUriLength, maxRequestBodyLength,
           dateGenerator, outputCompressor)),
+      parser_(Parser::REQUEST, channel_.get()),
+      inputBuffer_(),
+      inputOffset_(0),
+      writer_(),
+      onComplete_(),
+      generator_(&writer_),
       maxKeepAlive_(maxKeepAlive),
       requestCount_(0),
       requestMax_(maxRequestCount),
@@ -66,7 +66,6 @@ Connection::Connection(EndPoint* endpoint,
   channel_->request()->setRemoteAddress(endpoint->remoteAddress());
   channel_->request()->setLocalAddress(endpoint->localAddress());
 
-  parser_.setListener(channel_.get());
   TRACE("$0 ctor", this);
 }
 

@@ -79,6 +79,8 @@ class XZERO_HTTP_API Connection : public ::xzero::Connection,
   void onInterestFailure(const std::exception& error) override;
 
  private:
+  std::unique_ptr<Channel> channel_;
+
   Parser parser_;
 
   Buffer inputBuffer_;
@@ -88,7 +90,6 @@ class XZERO_HTTP_API Connection : public ::xzero::Connection,
   CompletionHandler onComplete_;
   Generator generator_;
 
-  std::unique_ptr<Channel> channel_;
   Duration maxKeepAlive_;
   size_t requestCount_;
   size_t requestMax_;
