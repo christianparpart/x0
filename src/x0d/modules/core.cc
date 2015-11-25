@@ -993,11 +993,11 @@ void CoreModule::conn_remote_port(XzeroContext* cx, Params& args) {
 }
 
 void CoreModule::conn_local_ip(XzeroContext* cx, Params& args) {
-  // TODO
+  args.setResult(&(cx->localIP()));
 }
 
 void CoreModule::conn_local_port(XzeroContext* cx, Params& args) {
-  // TODO
+  args.setResult(static_cast<FlowNumber>(cx->localPort()));
 }
 
 void CoreModule::phys_path(XzeroContext* cx, Params& args) {

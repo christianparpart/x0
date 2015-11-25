@@ -11,16 +11,32 @@
 
 namespace xzero {
 
+inline InetAddress::InetAddress(const std::string& ipaddr, int port, int family)
+    : ipaddress_(ipaddr, family), port_(port) {
+}
+
 inline InetAddress::InetAddress(const IPAddress& ipaddr, int port)
     : ipaddress_(ipaddr), port_(port) {
 }
 
-inline const IPAddress& InetAddress::ipaddress() const noexcept {
+inline const IPAddress& InetAddress::ip() const noexcept {
   return ipaddress_;
+}
+
+inline void InetAddress::setIP(const IPAddress& value) {
+  ipaddress_ = value;
 }
 
 inline int InetAddress::port() const noexcept {
   return port_;
+}
+
+inline void InetAddress::setPort(int value) {
+  port_ = value;
+}
+
+inline int InetAddress::family() const noexcept {
+  return ipaddress_.family();
 }
 
 } // namespace xzero

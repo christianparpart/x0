@@ -106,27 +106,24 @@ void HttpCluster::setConfiguration(const std::string& text) {
   // TODO
 }
 
-void HttpCluster::addMember(const IPAddress& ipaddr, int port, size_t capacity) {
-  addMember(StringUtil::format("$0:$1", ipaddr, port),
-            ipaddr, port, capacity, true);
+void HttpCluster::addMember(const InetAddress& addr, size_t capacity) {
+  addMember(StringUtil::format("$0", addr), addr, capacity, true);
 }
 
 void HttpCluster::addMember(const std::string& name,
-                            const IPAddress& ipaddr,
-                            int port,
+                            const InetAddress& addr,
                             size_t capacity,
                             bool enabled) {
   const std::string protocol = "http";  // TODO: get as function arg
   const bool terminateProtection = false;
   Executor* const executor = executor_; // TODO: get as function arg for passing: daemon().selectClientScheduler()
 
-  TRACE("addMember: $0 $1:$2", name, ipaddr, port);
+  TRACE("addMember: $0 $1", name, addr);
 
   HttpClusterMember* backend = new HttpClusterMember(
       executor,
       name,
-      ipaddr,
-      port,
+      addr,
       capacity,
       enabled,
       terminateProtection,
@@ -171,8 +168,8 @@ void HttpCluster::onBackendHealthStateChanged(HttpClusterMember* backend,
   logInfo("HttpCluster",
           "$0: backend '$1' ($2:$3) is now $4.",
           name(), backend->name(),
-          backend->ipaddress(),
-          backend->port(),
+          backend->inetAddress().ip(),
+          backend->inetAddress().port(),
           backend->healthMonitor()->state());
 
   if (backend->healthMonitor()->isOnline()) {

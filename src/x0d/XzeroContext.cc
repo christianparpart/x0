@@ -50,13 +50,30 @@ xzero::Duration XzeroContext::duration() const {
 
 const IPAddress& XzeroContext::remoteIP() const {
   if (request_->remoteAddress().isSome())
-    return request_->remoteAddress()->ipaddress();
+    return request_->remoteAddress()->ip();
 
   RAISE(RuntimeError, "Non-IP transport channels not supported");
 }
 
 int XzeroContext::remotePort() const {
-  return -1; // TODO
+  if (request_->remoteAddress().isSome())
+    return request_->remoteAddress()->port();
+
+  RAISE(RuntimeError, "Non-IP transport channels not supported");
+}
+
+const IPAddress& XzeroContext::localIP() const {
+  if (request_->localAddress().isSome())
+    return request_->localAddress()->ip();
+
+  RAISE(RuntimeError, "Non-IP transport channels not supported");
+}
+
+int XzeroContext::localPort() const {
+  if (request_->localAddress().isSome())
+    return request_->localAddress()->port();
+
+  RAISE(RuntimeError, "Non-IP transport channels not supported");
 }
 
 size_t XzeroContext::bytesReceived() const {

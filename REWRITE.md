@@ -34,6 +34,8 @@
       thus, enabling the compiler to give a warning on dead code after
       this handler.
 - [ ] (bug) timeout problem in InetEndPoint, found via `xurl -> x0d -> local`
+- [ ] (flow:bug) `"Blah #{call}blah#{call}"` doesn't work
+      unless I specify it as `"Blah #{call()}blah#{call}"`
 
 ### proxy
 
@@ -50,7 +52,8 @@
       (in one line)
 - [x] HttpClusterMember, proxies to HttpClient, with constraints (such as capacity)
 - [x] HttpCluster: basic load balancing to HTTP/1 upstreams
-- [ ] use InetAddress instead of `pair<IPAddress, Port>`
+- [x] use InetAddress instead of `pair<IPAddress, Port>`
+- [ ] CLI: support InetAddress aside IPAddress, etc
 - [ ] HttpInput: must be rewind()able, in order to be used multiple times
       e.g. required for retransmitting a request to multiple upstreams if prior
       failed.

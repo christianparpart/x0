@@ -34,8 +34,11 @@ class XZERO_HTTP_API HttpRequest : public HttpRequestInfo {
               HttpVersion version, bool secure, const HeaderFieldList& headers,
               std::unique_ptr<HttpInput>&& input);
 
-  void setRemoteAddress(const Option<InetAddress>& ip);
+  void setRemoteAddress(const Option<InetAddress>& addr);
   const Option<InetAddress>& remoteAddress() const;
+
+  void setLocalAddress(const Option<InetAddress>& addr);
+  const Option<InetAddress>& localAddress() const;
 
   size_t bytesReceived() const noexcept { return bytesReceived_; }
   void setBytesReceived(size_t n) { bytesReceived_ = n; }
@@ -59,6 +62,7 @@ class XZERO_HTTP_API HttpRequest : public HttpRequestInfo {
 
  private:
   Option<InetAddress> remoteAddress_;
+  Option<InetAddress> localAddress_;
   size_t bytesReceived_;
 
   bool secure_;

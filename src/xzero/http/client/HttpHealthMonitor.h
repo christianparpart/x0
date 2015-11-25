@@ -11,7 +11,7 @@
 #include <xzero/http/client/HttpClient.h>
 #include <xzero/http/HttpRequestInfo.h>
 #include <xzero/http/HttpResponseInfo.h>
-#include <xzero/net/IPAddress.h>
+#include <xzero/net/InetAddress.h>
 #include <xzero/executor/Executor.h>
 #include <xzero/CompletionHandler.h>
 #include <xzero/Duration.h>
@@ -33,8 +33,7 @@ class HttpHealthMonitor {
   typedef std::function<void(HttpHealthMonitor*, State)> StateChangeNotify;
 
   HttpHealthMonitor(Executor* executor,
-                    const IPAddress& ipaddr,
-                    int port,
+                    const InetAddress& inetAddress,
                     const Uri& testUrl,
                     Duration interval,
                     unsigned successThreshold,
@@ -92,8 +91,7 @@ class HttpHealthMonitor {
  private:
   Executor* executor_;
   Executor::HandleRef timerHandle_;
-  IPAddress ipaddr_;
-  int port_;
+  InetAddress inetAddress_;
   Uri testUrl_;
   Duration interval_;
   std::vector<HttpStatus> successCodes_;

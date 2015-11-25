@@ -174,9 +174,10 @@ int XUrl::getPort(const Uri& uri) {
 void XUrl::query(const Uri& uri) {
   IPAddress ipaddr = getIPAddress(uri.host());
   int port = getPort(uri);
+  InetAddress addr(ipaddr, port);
 
   InetEndPoint::connectAsync(
-      ipaddr, port, connectTimeout_, readTimeout_, writeTimeout_, &scheduler_,
+      addr, connectTimeout_, readTimeout_, writeTimeout_, &scheduler_,
       std::bind(&XUrl::connected, this, std::placeholders::_1, uri),
       std::bind(&XUrl::connectFailure, this, std::placeholders::_1));
 

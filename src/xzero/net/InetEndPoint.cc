@@ -346,15 +346,14 @@ void InetEndPoint::setWriteTimeout(Duration timeout) {
 
 class InetConnectState {
  public:
-  IPAddress ipaddr_;
-  int port_;
+  InetAddress inet_;
   RefPtr<InetEndPoint> ep_;
   Promise<RefPtr<EndPoint>> promise_;
 
-  InetConnectState(const IPAddress& ipaddr, int port,
+  InetConnectState(const InetAddress& inet,
                    RefPtr<InetEndPoint> ep,
                    const Promise<RefPtr<EndPoint>>& promise)
-      : ipaddr_(ipaddr), port_(port), ep_(std::move(ep)), promise_(promise) {
+      : inet_(inet), ep_(std::move(ep)), promise_(promise) {
   }
 
   void onConnectComplete() {
@@ -365,11 +364,11 @@ class InetConnectState {
         TRACE("$0 onConnectComplete: connected $1. $2", this, val, strerror(val));
         promise_.success(ep_.as<EndPoint>());
       } else {
-        DEBUG("Connecting to $0:$1 failed. $2", ipaddr_, port_, strerror(val));
+        DEBUG("Connecting to $0 failed. $1", inet_, strerror(val));
         promise_.failure(Status::IOError); // dislike: wanna pass errno val here.
       }
     } else {
-      DEBUG("Connecting to $0:$1 failed. $2", ipaddr_, port_, strerror(val));
+      DEBUG("Connecting to $0 failed. $1", inet_, strerror(val));
       promise_.failure(Status::IOError); // dislike: wanna pass errno val here.
     }
     delete this;
@@ -381,13 +380,12 @@ std::string StringUtil::toString(InetConnectState* obj) {
   return StringUtil::format("InetConnectState[$0]", (void*) obj);
 }
 
-Future<RefPtr<EndPoint>> InetEndPoint::connectAsync(const IPAddress& ipaddr,
-                                                    int port,
+Future<RefPtr<EndPoint>> InetEndPoint::connectAsync(const InetAddress& inet,
                                                     Duration connectTimeout,
                                                     Duration readTimeout,
                                                     Duration writeTimeout,
                                                     Executor* executor) {
-  int fd = socket(ipaddr.family(), SOCK_STREAM, IPPROTO_TCP);
+  int fd = socket(inet.family(), SOCK_STREAM, IPPROTO_TCP);
   if (fd < 0)
     RAISE_ERRNO(errno);
 
@@ -395,18 +393,20 @@ Future<RefPtr<EndPoint>> InetEndPoint::connectAsync(const IPAddress& ipaddr,
   RefPtr<InetEndPoint> ep;
 
   try {
-    TRACE("connectAsync: to $0 port $1", ipaddr, port);
-    ep = new InetEndPoint(fd, ipaddr.family(), readTimeout, writeTimeout,
+    TRACE("connectAsync: to $0", inet);
+    ep = new InetEndPoint(fd, inet.family(), readTimeout, writeTimeout,
                           executor);
     ep->setBlocking(false);
 
-    switch (ipaddr.family()) {
+    switch (inet.family()) {
       case AF_INET: {
         struct sockaddr_in saddr;
         memset(&saddr, 0, sizeof(saddr));
-        saddr.sin_family = ipaddr.family();
-        saddr.sin_port = htons(port);
-        memcpy(&saddr.sin_addr, ipaddr.data(), ipaddr.size());
+        saddr.sin_family = inet.family();
+        saddr.sin_port = htons(inet.port());
+        memcpy(&saddr.sin_addr,
+               inet.ip().data(),
+               inet.ip().size());
 
         // this connect()-call can block if fd is non-blocking
         TRACE("connectAsync: connect(ipv4)");
@@ -419,8 +419,7 @@ Future<RefPtr<EndPoint>> InetEndPoint::connectAsync(const IPAddress& ipaddr,
             TRACE("connectAsync: backgrounding");
             executor->executeOnWritable(fd,
                 std::bind(&InetConnectState::onConnectComplete,
-                          new InetConnectState(ipaddr, port, ep,
-                                               promise)));
+                          new InetConnectState(inet, ep, promise)));
             return promise.future();
           }
         }
@@ -430,9 +429,11 @@ Future<RefPtr<EndPoint>> InetEndPoint::connectAsync(const IPAddress& ipaddr,
       case AF_INET6: {
         struct sockaddr_in6 saddr;
         memset(&saddr, 0, sizeof(saddr));
-        saddr.sin6_family = ipaddr.family();
-        saddr.sin6_port = htons(port);
-        memcpy(&saddr.sin6_addr, ipaddr.data(), ipaddr.size());
+        saddr.sin6_family = inet.family();
+        saddr.sin6_port = htons(inet.port());
+        memcpy(&saddr.sin6_addr,
+               inet.ip().data(),
+               inet.ip().size());
 
         // this connect()-call can block if fd is non-blocking
         if (::connect(fd, (const struct sockaddr*) &saddr, sizeof(saddr)) < 0) {
@@ -443,7 +444,7 @@ Future<RefPtr<EndPoint>> InetEndPoint::connectAsync(const IPAddress& ipaddr,
             TRACE("connectAsync: backgrounding");
             executor->executeOnWritable(fd,
                 std::bind(&InetConnectState::onConnectComplete,
-                          new InetConnectState(ipaddr, port, std::move(ep),
+                          new InetConnectState(inet, std::move(ep),
                                                promise)));
             return promise.future();
           }
@@ -465,7 +466,7 @@ Future<RefPtr<EndPoint>> InetEndPoint::connectAsync(const IPAddress& ipaddr,
 }
 
 void InetEndPoint::connectAsync(
-    const IPAddress& ipaddr, int port,
+    const InetAddress& inet,
     Duration connectTimeout,
     Duration readTimeout,
     Duration writeTimeout,
@@ -473,7 +474,7 @@ void InetEndPoint::connectAsync(
     std::function<void(RefPtr<EndPoint>)> onSuccess,
     std::function<void(Status)> onError) {
   Future<RefPtr<EndPoint>> f = connectAsync(
-      ipaddr, port, connectTimeout, readTimeout, writeTimeout, executor);
+      inet, connectTimeout, readTimeout, writeTimeout, executor);
 
   f.onSuccess([onSuccess] (const RefPtr<EndPoint>& x) {
       onSuccess(const_cast<RefPtr<EndPoint>&>(x));
@@ -482,13 +483,13 @@ void InetEndPoint::connectAsync(
 }
 
 RefPtr<EndPoint> InetEndPoint::connect(
-    const IPAddress& ipaddr, int port,
+    const InetAddress& inet,
     Duration connectTimeout,
     Duration readTimeout,
     Duration writeTimeout,
     Executor* executor) {
   Future<RefPtr<EndPoint>> f = connectAsync(
-      ipaddr, port, connectTimeout, readTimeout, writeTimeout, executor);
+      inet, connectTimeout, readTimeout, writeTimeout, executor);
   f.wait();
 
   RefPtr<EndPoint> ep = f.get();

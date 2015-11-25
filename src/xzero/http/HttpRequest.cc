@@ -34,6 +34,9 @@ HttpRequest::HttpRequest(const std::string& method, const std::string& path,
                          const HeaderFieldList& headers,
                          std::unique_ptr<HttpInput>&& input)
     : HttpRequestInfo(version, method, path, 0, headers),
+      remoteAddress_(),
+      localAddress_(),
+      bytesReceived_(0),
       secure_(secure),
       expect100Continue_(false),
       input_(std::move(input)),
@@ -47,6 +50,14 @@ void HttpRequest::setRemoteAddress(const Option<InetAddress>& inet) {
 
 const Option<InetAddress>& HttpRequest::remoteAddress() const {
   return remoteAddress_;
+}
+
+void HttpRequest::setLocalAddress(const Option<InetAddress>& inet) {
+  localAddress_ = inet;
+}
+
+const Option<InetAddress>& HttpRequest::localAddress() const {
+  return localAddress_;
 }
 
 void HttpRequest::recycle() {

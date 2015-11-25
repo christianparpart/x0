@@ -68,6 +68,9 @@ class XzeroContext : public xzero::http::HttpInputListener {
   const xzero::IPAddress& remoteIP() const;
   int remotePort() const;
 
+  const xzero::IPAddress& localIP() const;
+  int localPort() const;
+
   size_t bytesReceived() const;
   size_t bytesTransmitted() const;
 

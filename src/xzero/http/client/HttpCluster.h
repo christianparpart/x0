@@ -15,7 +15,7 @@
 #include <xzero/http/client/HttpHealthMonitor.h>
 #include <xzero/http/HttpRequestInfo.h>
 #include <xzero/http/HttpResponseInfo.h>
-#include <xzero/net/IPAddress.h>
+#include <xzero/net/InetAddress.h>
 #include <xzero/CompletionHandler.h>
 #include <xzero/TokenShaper.h>
 #include <xzero/Duration.h>
@@ -124,26 +124,23 @@ class HttpCluster {
   /**
    * Adds a new member to the HTTP cluster.
    *
-   * @param ipaddr upstream IP address
-   * @param port TCP port number
+   * @param addr     upstream TCP/IP address and port
    * @param capacity number of concurrent requests this member can handle at
    *                 most.
    */
-  void addMember(const IPAddress& ipaddr, int port, size_t capacity);
+  void addMember(const InetAddress& addr, size_t capacity);
 
   /**
    * Adds a new member to the HTTP cluster.
    *
    * @param name human readable name for the given member.
-   * @param ipaddr upstream IP address
-   * @param port TCP port number
+   * @param addr upstream TCP/IP address and port
    * @param capacity number of concurrent requests this member can handle at
    *                 most.
    * @param enabled Initial enabled-state.
    */
   void addMember(const std::string& name,
-                 const IPAddress& ipaddr,
-                 int port,
+                 const InetAddress& addr,
                  size_t capacity,
                  bool enabled);
 

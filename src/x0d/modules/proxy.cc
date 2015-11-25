@@ -170,7 +170,7 @@ void ProxyModule::onPostConfig() {
       cluster->setHealthCheckInterval(10_seconds);
       cluster->setHealthCheckSuccessThreshold(1);
       cluster->setHealthCheckSuccessCodes({HttpStatus::Ok});
-      cluster->addMember("demo1", IPAddress("127.0.0.1"), 3001, 1, true);
+      cluster->addMember("demo1", InetAddress("127.0.0.1", 3001), 1, true);
       cluster->setEnabled(true);
     }
 
@@ -357,8 +357,7 @@ auto skipConnectFields = [](const HeaderField& f) -> bool {
 };
 
 bool ProxyModule::proxy_http(XzeroContext* cx, xzero::flow::vm::Params& args) {
-  IPAddress ipaddr = args.getIPAddress(1);
-  FlowNumber port = args.getInt(2);
+  InetAddress addr(args.getIPAddress(1), args.getInt(2));
   FlowString onClientAbortStr = args.getString(3);
   Duration connectTimeout = 16_seconds;
   Duration readTimeout = 60_seconds;
@@ -375,11 +374,11 @@ bool ProxyModule::proxy_http(XzeroContext* cx, xzero::flow::vm::Params& args) {
       filter(cx->request()->headers(), skipConnectFields));
 
   Future<HttpClient> f = HttpClient::sendAsync(
-      ipaddr, port, requestInfo, requestBody,
+      addr, requestInfo, requestBody,
       connectTimeout, readTimeout, writeTimeout, executor);
 
-  f.onFailure([cx, ipaddr, port] (Status s) {
-    logError("proxy", "Failed to proxy to $0:$1. $2", ipaddr, port, s);
+  f.onFailure([cx, addr] (Status s) {
+    logError("proxy", "Failed to proxy to $0. $1", addr, s);
     cx->response()->setStatus(HttpStatus::ServiceUnavailable);
     cx->response()->completed();
   });

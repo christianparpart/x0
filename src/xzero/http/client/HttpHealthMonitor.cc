@@ -32,8 +32,7 @@ namespace http {
 namespace client {
 
 HttpHealthMonitor::HttpHealthMonitor(Executor* executor,
-                                     const IPAddress& ipaddr,
-                                     int port,
+                                     const InetAddress& inetAddress,
                                      const Uri& testUrl,
                                      Duration interval,
                                      unsigned successThreshold,
@@ -44,8 +43,7 @@ HttpHealthMonitor::HttpHealthMonitor(Executor* executor,
                                      StateChangeNotify onStateChange)
     : executor_(executor),
       timerHandle_(),
-      ipaddr_(ipaddr),
-      port_(port),
+      inetAddress_(inetAddress),
       testUrl_(testUrl),
       interval_(interval),
       successCodes_(successCodes),
@@ -59,7 +57,7 @@ HttpHealthMonitor::HttpHealthMonitor(Executor* executor,
       consecutiveSuccessCount_(0),
       totalOfflineTime_(Duration::Zero),
       client_() {
-  TRACE("ctor: $0:$1, hci $2", ipaddr_, port_, interval);
+  TRACE("ctor: $0", inetAddress);
   start();
 }
 
@@ -140,7 +138,7 @@ void HttpHealthMonitor::onCheckNow() {
   timerHandle_.reset();
 
   Future<RefPtr<EndPoint>> ep =
-      InetEndPoint::connectAsync(ipaddr_, port_,
+      InetEndPoint::connectAsync(inetAddress_,
                                  connectTimeout_,
                                  readTimeout_,
                                  writeTimeout_,

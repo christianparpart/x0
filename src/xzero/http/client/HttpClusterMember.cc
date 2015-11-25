@@ -19,8 +19,7 @@ namespace client {
 HttpClusterMember::HttpClusterMember(
     Executor* executor,
     const std::string& name,
-    const IPAddress& ipaddr,
-    int port,
+    const InetAddress& inetAddress,
     size_t capacity,
     bool enabled,
     bool terminateProtection,
@@ -38,8 +37,7 @@ HttpClusterMember::HttpClusterMember(
     StateChangeNotify onHealthStateChange)
     : executor_(executor),
       name_(name),
-      ipaddress_(ipaddr),
-      port_(port),
+      inetAddress_(inetAddress),
       capacity_(capacity),
       enabled_(enabled),
       terminateProtection_(terminateProtection),
@@ -52,8 +50,7 @@ HttpClusterMember::HttpClusterMember(
       writeTimeout_(writeTimeout),
       healthMonitor_(new HttpHealthMonitor(
           executor,
-          ipaddr,
-          port,
+          inetAddress,
           healthCheckUri,
           healthCheckInterval,
           healthCheckSuccessThreshold,
@@ -80,7 +77,7 @@ HttpClusterSchedulerStatus HttpClusterMember::tryProcess(HttpClusterRequest* cr)
   if (capacity_ && load_.current() >= capacity_)
     return HttpClusterSchedulerStatus::Overloaded;
 
-  TRACE("Processing request by backend $0 $1:$2", name(), ipaddress_, port_);
+  TRACE("Processing request by backend $0 $1", name(), inetAddress_);
 
   //cr->request->responseHeaders.overwrite("X-Director-Backend", name());
 
@@ -104,7 +101,7 @@ void HttpClusterMember::release() {
 bool HttpClusterMember::process(HttpClusterRequest* cr) {
 #if 0
   Future<HttpClient> f = HttpClient::sendAsync(
-      ipaddress_, port_,
+      inetAddress_,
       cr->requestInfo,
       BufferRef(), // FIXME: requestBody,
       connectTimeout_,
@@ -118,8 +115,7 @@ bool HttpClusterMember::process(HttpClusterRequest* cr) {
                         cr, std::placeholders::_1));
 #else
   Future<RefPtr<EndPoint>> f = InetEndPoint::connectAsync(
-      ipaddress_, port_,
-      connectTimeout_, readTimeout_, writeTimeout_, cr->executor);
+      inetAddress_, connectTimeout_, readTimeout_, writeTimeout_, cr->executor);
   f.onFailure(std::bind(&HttpClusterMember::onFailure, this,
                         cr, std::placeholders::_1));
   f.onSuccess(std::bind(&HttpClusterMember::onConnected, this,

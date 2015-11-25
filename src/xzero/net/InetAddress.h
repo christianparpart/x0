@@ -13,13 +13,22 @@ namespace xzero {
 
 class InetAddress {
  public:
+  static const int V4 = IPAddress::V4;
+  static const int V6 = IPAddress::V6;
+
   InetAddress();
+  InetAddress(const std::string& ipaddr, int port, int family = 0);
   InetAddress(const IPAddress& ipaddr, int port);
   InetAddress(const InetAddress&) = default;
   InetAddress& operator=(const InetAddress&) = default;
 
-  const IPAddress& ipaddress() const noexcept;
+  const IPAddress& ip() const noexcept;
+  void setIP(const IPAddress& value);
+
   int port() const noexcept;
+  void setPort(int value);
+
+  int family() const noexcept;
 
  private:
   IPAddress ipaddress_;

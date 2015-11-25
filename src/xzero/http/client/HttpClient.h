@@ -27,7 +27,7 @@
 namespace xzero {
 
 class EndPoint;
-class IPAddress;
+class InetAddress;
 class Executor;
 class FileRef;
 
@@ -75,7 +75,7 @@ class HttpClient : public HttpListener {
       Executor* executor);
 
   static Future<HttpClient> sendAsync(
-      const IPAddress& ipaddr, int port,
+      const InetAddress& inet,
       const HttpRequestInfo& requestInfo, const BufferRef& requestBody,
       Duration connectTimeout,
       Duration readTimeout,

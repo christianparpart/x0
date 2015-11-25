@@ -14,7 +14,7 @@
 #include <xzero/http/client/HttpClient.h>
 #include <xzero/http/client/HttpClusterSchedulerStatus.h>
 #include <xzero/http/client/HttpHealthMonitor.h>
-#include <xzero/net/IPAddress.h>
+#include <xzero/net/InetAddress.h>
 #include <xzero/CompletionHandler.h>
 #include <xzero/Duration.h>
 #include <xzero/Counter.h>
@@ -41,8 +41,7 @@ public:
   HttpClusterMember(
       Executor* executor,
       const std::string& name,
-      const IPAddress& ipaddr,
-      int port,
+      const InetAddress& inet,
       size_t capacity,
       bool enabled,
       bool terminateProtection,
@@ -66,11 +65,8 @@ public:
   const std::string& name() const { return name_; }
   void setName(const std::string& name);
 
-  const IPAddress& ipaddress() const { return ipaddress_; }
-  void setIPAddress(const IPAddress& ipaddr);
-
-  int port() const { return port_; }
-  void setPort(int value);
+  const InetAddress& inetAddress() const { return inetAddress_; }
+  void setInetAddress(const InetAddress& value);
 
   size_t capacity() const { return capacity_; }
   void setCapacity(size_t value);
@@ -98,8 +94,7 @@ private:
 private:
   Executor* executor_;
   std::string name_;
-  IPAddress ipaddress_;
-  int port_;
+  InetAddress inetAddress_;
   size_t capacity_;
   bool enabled_;
   bool terminateProtection_;

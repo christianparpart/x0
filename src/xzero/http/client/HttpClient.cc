@@ -12,6 +12,7 @@
 #include <xzero/executor/Scheduler.h>
 #include <xzero/net/InetEndPoint.h>
 #include <xzero/net/DnsClient.h>
+#include <xzero/net/InetAddress.h>
 #include <xzero/net/IPAddress.h>
 #include <xzero/io/FileRef.h>
 #include <xzero/RuntimeError.h>
@@ -127,8 +128,9 @@ Future<HttpClient> HttpClient::sendAsync(
   Duration readTimeout = 30_seconds;
   Duration writeTimeout = 8_seconds;
 
-  return sendAsync(ipaddresses.front(), port, requestInfo, requestBody,
-      connectTimeout, readTimeout, writeTimeout, executor);
+  return sendAsync(InetAddress(ipaddresses.front(), port),
+                   requestInfo, requestBody,
+                   connectTimeout, readTimeout, writeTimeout, executor);
 }
 
 Future<HttpClient> HttpClient::sendAsync(
@@ -150,13 +152,13 @@ Future<HttpClient> HttpClient::sendAsync(
   Duration readTimeout = 30_seconds;
   Duration writeTimeout = 8_seconds;
 
-  return sendAsync(ipaddresses.front(), url.port(), requestInfo, requestBody,
-      connectTimeout, readTimeout, writeTimeout, executor);
+  return sendAsync(InetAddress(ipaddresses.front(), url.port()),
+                   requestInfo, requestBody,
+                   connectTimeout, readTimeout, writeTimeout, executor);
 }
 
 Future<HttpClient> HttpClient::sendAsync(
-    const IPAddress& ipaddr,
-    int port,
+    const InetAddress& inet,
     const HttpRequestInfo& requestInfo,
     const BufferRef& requestBody,
     Duration connectTimeout,
@@ -166,7 +168,7 @@ Future<HttpClient> HttpClient::sendAsync(
 
   Promise<HttpClient> promise;
 
-  Future<RefPtr<EndPoint>> fep = InetEndPoint::connectAsync(ipaddr, port,
+  Future<RefPtr<EndPoint>> fep = InetEndPoint::connectAsync(inet,
       connectTimeout, readTimeout, writeTimeout, executor);
 
   fep.onFailure([promise](Status s) mutable {

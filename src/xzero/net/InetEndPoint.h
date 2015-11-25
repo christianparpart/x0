@@ -13,7 +13,7 @@
 #include <xzero/sysconfig.h>
 #include <xzero/thread/Future.h>
 #include <xzero/net/EndPoint.h>
-#include <xzero/net/IPAddress.h>
+#include <xzero/net/InetAddress.h>
 #include <xzero/executor/Executor.h>
 #include <atomic>
 
@@ -55,27 +55,26 @@ class XZERO_BASE_API InetEndPoint : public EndPoint {
   /**
    * Connects asynchronousely to a remote TCP/IP server.
    *
-   * @param ipaddr TCP/IP server address.
-   * @param port TCP/IP server port.
+   * @param inet TCP/IP server address and port.
    * @param timeout connect-timeout and default initialization for i/o timeout
    *                in the resulting InetEndPoint.
    * @param scheduler Task scheduler used for connecting and later passed
    *                  to the created InetEndPoint.
    */
   static Future<RefPtr<EndPoint>> connectAsync(
-      const IPAddress& ipaddr, int port,
+      const InetAddress& inet,
       Duration connectTimeout, Duration readTimeout, Duration writeTimeout,
       Executor* executor);
 
   static void connectAsync(
-      const IPAddress& ipaddr, int port,
+      const InetAddress& inet,
       Duration connectTimeout, Duration readTimeout, Duration writeTimeout,
       Executor* executor,
       std::function<void(RefPtr<EndPoint>)> onSuccess,
       std::function<void(Status)> onError);
 
   static RefPtr<EndPoint> connect(
-      const IPAddress& ipaddr, int port,
+      const InetAddress& inet,
       Duration connectTimeout, Duration readTimeout, Duration writeTimeout,
       Executor* executor);
 

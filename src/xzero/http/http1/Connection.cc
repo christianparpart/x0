@@ -64,6 +64,7 @@ Connection::Connection(EndPoint* endpoint,
       corkStream_(corkStream) {
 
   channel_->request()->setRemoteAddress(endpoint->remoteAddress());
+  channel_->request()->setLocalAddress(endpoint->localAddress());
 
   parser_.setListener(channel_.get());
   TRACE("$0 ctor", this);
