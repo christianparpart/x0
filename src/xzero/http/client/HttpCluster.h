@@ -31,6 +31,7 @@ namespace xzero {
 
 class InputStream;
 class Executor;
+class IniFile;
 
 namespace http {
 
@@ -124,8 +125,8 @@ class HttpCluster {
   const RequestShaper* shaper() const { return &shaper_; }
   RequestShaper* shaper() { return &shaper_; }
 
-  void changeScheduler(UniquePtr<HttpClusterScheduler> scheduler);
-  HttpClusterScheduler* clusterScheduler() const { return scheduler_.get(); }
+  void setScheduler(UniquePtr<HttpClusterScheduler> scheduler);
+  HttpClusterScheduler* scheduler() const { return scheduler_.get(); }
 
   /**
    * Adds a new member to the HTTP cluster.
@@ -144,11 +145,17 @@ class HttpCluster {
    * @param capacity number of concurrent requests this member can handle at
    *                 most.
    * @param enabled Initial enabled-state.
+   * @param terminateProtection
+   * @param protocol
+   * @param healthCheckInterval
    */
   void addMember(const std::string& name,
                  const InetAddress& addr,
                  size_t capacity,
-                 bool enabled);
+                 bool enabled,
+                 bool terminateProtection,
+                 const std::string& protocol,
+                 Duration healthCheckInterval);
 
   HttpClusterMember* findMember(const std::string& name);
 
@@ -184,7 +191,8 @@ class HttpCluster {
    *
    * @see std::string configuration() const
    */
-  void setConfiguration(const std::string& configuration);
+  void setConfiguration(const std::string& configuration,
+                        const std::string& path);
 
   void saveConfiguration();
   // }}}
@@ -219,6 +227,8 @@ class HttpCluster {
   void onBackendHealthStateChanged(HttpClusterMember* backend,
                                    HttpHealthMonitor::State oldState);
   void onMemberReleased(HttpClusterMember* member);
+  void loadBackend(const IniFile& settings, const std::string& key);
+  void loadBucket(const IniFile& settings, const std::string& key);
 
 
  private:

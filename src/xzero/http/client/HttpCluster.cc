@@ -130,7 +130,7 @@ std::string HttpCluster::configuration() const {
       //<< "health-check-host-header=" << healthCheckHostHeader_ << "\n"
       //<< "health-check-request-path=" << healthCheckRequestPath_ << "\n"
       //<< "health-check-fcgi-script-filename=" << healthCheckFcgiScriptFilename_ << "\n"
-      << "scheduler=" << clusterScheduler()->name() << "\n"
+      << "scheduler=" << scheduler()->name() << "\n"
       << "\n";
 
 #if defined(ENABLE_DIRECTOR_CACHE)
@@ -166,7 +166,8 @@ std::string HttpCluster::configuration() const {
   return out.str();
 }
 
-void HttpCluster::setConfiguration(const std::string& text) {
+void HttpCluster::setConfiguration(const std::string& text,
+                                   const std::string& path) {
   size_t changed = 0;
   std::string value;
   IniFile settings;
@@ -174,11 +175,9 @@ void HttpCluster::setConfiguration(const std::string& text) {
 
   if (settings.contains("director", "enabled")) {
     if (!settings.load("director", "enabled", value)) {
-      worker()->log(Severity::error,
-                    "director: Could not load settings value director.enabled "
-                    "in file '%s'",
-                    path.c_str());
-      return false;
+      RAISE(RuntimeError, StringUtil::format(
+            "Could not load settings value director.enabled in file '$0'",
+            path));
     }
     enabled_ = value == "true";
   } else {
@@ -186,65 +185,60 @@ void HttpCluster::setConfiguration(const std::string& text) {
   }
 
   if (!settings.load("director", "queue-limit", value)) {
-    worker()->log(Severity::error,
-                  "director: Could not load settings value "
-                  "director.queue-limit in file '%s'",
-                  path.c_str());
-    return false;
+    RAISE(RuntimeError, StringUtil::format(
+          "director: Could not load settings value "
+          "director.queue-limit in file '$0'",
+          path));
   }
   queueLimit_ = std::atoll(value.c_str());
 
   if (!settings.load("director", "queue-timeout", value)) {
-    worker()->log(Severity::error,
-                  "director: Could not load settings value "
-                  "director.queue-timeout in file '%s'",
-                  path.c_str());
-    return false;
+    RAISE(RuntimeError, StringUtil::format(
+          "director: Could not load settings value "
+          "director.queue-timeout in file '$0'",
+          path));
   }
   queueTimeout_ = Duration::fromSeconds(std::atoll(value.c_str()));
 
   if (!settings.load("director", "retry-after", value)) {
-    worker()->log(Severity::error,
-                  "director: Could not load settings value "
-                  "director.retry-after in file '%s'",
-                  path.c_str());
-    return false;
+    RAISE(RuntimeError, StringUtil::format(
+          "director: Could not load settings value "
+          "director.retry-after in file '$0'",
+          path));
   }
   retryAfter_ = Duration::fromSeconds(std::atoll(value.c_str()));
 
   if (!settings.load("director", "connect-timeout", value)) {
-    worker()->log(Severity::error,
-                  "director: Could not load settings value "
-                  "director.connect-timeout in file '%s'",
-                  path.c_str());
-    return false;
+    RAISE(RuntimeError, StringUtil::format(
+          "director: Could not load settings value "
+          "director.connect-timeout in file '%s'",
+          path));
   }
   connectTimeout_ = Duration::fromSeconds(std::atoll(value.c_str()));
 
   if (!settings.load("director", "read-timeout", value)) {
-    worker()->log(Severity::error,
-                  "director: Could not load settings value "
-                  "director.read-timeout in file '%s'",
-                  path.c_str());
-    return false;
+    RAISE(RuntimeError, StringUtil::format(
+          "director: Could not load settings value "
+          "director.read-timeout in file '%s'",
+          path));
   }
   readTimeout_ = Duration::fromSeconds(std::atoll(value.c_str()));
 
   if (!settings.load("director", "write-timeout", value)) {
-    worker()->log(Severity::error,
-                  "director: Could not load settings value "
-                  "director.write-timeout in file '%s'",
-                  path.c_str());
-    return false;
+    RAISE(RuntimeError, StringUtil::format(
+          "director: Could not load settings value "
+          "director.write-timeout in file '%s'",
+          path));
   }
   writeTimeout_ = Duration::fromSeconds(std::atoll(value.c_str()));
 
+#if 0
   if (!settings.load("director", "on-client-abort", value)) {
     clientAbortAction_ = ClientAbortAction::Close;
-    worker()->log(Severity::warn,
-                  "director: Could not load settings value "
-                  "director.on-client-abort  in file '%s'. Defaulting to '%s'.",
-                  path.c_str(), tos(clientAbortAction_).c_str());
+    logError("HttpCluster",
+             "director: Could not load settings value "
+             "director.on-client-abort  in file '$0'. Defaulting to '$1'.",
+             path, tos(clientAbortAction_));
     ++changed;
   } else {
     Try<ClientAbortAction> t = parseClientAbortAction(value);
@@ -260,30 +254,29 @@ void HttpCluster::setConfiguration(const std::string& text) {
       ++changed;
     }
   }
+#endif
 
   if (!settings.load("director", "max-retry-count", value)) {
-    worker()->log(Severity::error,
-                  "director: Could not load settings value "
-                  "director.max-retry-count in file '%s'",
-                  path.c_str());
-    return false;
+    RAISE(RuntimeError, StringUtil::format(
+          "director: Could not load settings value "
+          "director.max-retry-count in file '$0'",
+          path));
   }
   maxRetryCount_ = std::atoll(value.c_str());
 
   if (!settings.load("director", "sticky-offline-mode", value)) {
-    worker()->log(Severity::error,
-                  "director: Could not load settings value "
-                  "director.sticky-offline-mode in file '%s'",
-                  path.c_str());
-    return false;
+    RAISE(RuntimeError, StringUtil::format(
+          "director: Could not load settings value "
+          "director.sticky-offline-mode in file '$0'",
+          path));
   }
   stickyOfflineMode_ = value == "true";
 
   if (!settings.load("director", "allow-x-sendfile", value)) {
-    worker()->log(Severity::warn,
-                  "director: Could not load settings value director.x-sendfile "
-                  "in file '%s'",
-                  path.c_str());
+    logError("HttpCluster",
+             "director: Could not load settings value director.x-sendfile "
+             "in file '$0'",
+             path);
     allowXSendfile_ = false;
     ++changed;
   } else {
@@ -291,61 +284,59 @@ void HttpCluster::setConfiguration(const std::string& text) {
   }
 
   if (!settings.load("director", "enqueue-on-unavailable", value)) {
-    worker()->log(Severity::warn,
-                  "director: Could not load settings value "
-                  "director.enqueue-on-unavailable in file '%s'",
-                  path.c_str());
+    logError("HttpCluster",
+             "director: Could not load settings value "
+             "director.enqueue-on-unavailable in file '$0'",
+             path);
     enqueueOnUnavailable_ = false;
     ++changed;
   } else {
     allowXSendfile_ = value == "true";
   }
 
+  std::string healthCheckHostHeader_; // TODO
   if (!settings.load("director", "health-check-host-header",
                      healthCheckHostHeader_)) {
-    worker()->log(Severity::error,
-                  "director: Could not load settings value "
-                  "director.health-check-host-header in file '%s'",
-                  path.c_str());
-    return false;
+    RAISE(RuntimeError, StringUtil::format(
+          "director: Could not load settings value "
+          "director.health-check-host-header in file '$0'",
+          path));
   }
 
+  std::string healthCheckRequestPath_; // TODO
   if (!settings.load("director", "health-check-request-path",
                      healthCheckRequestPath_)) {
-    worker()->log(Severity::error,
-                  "director: Could not load settings value "
-                  "director.health-check-request-path in file '%s'",
-                  path.c_str());
-    return false;
+    RAISE(RuntimeError, StringUtil::format(
+          "director: Could not load settings value "
+          "director.health-check-request-path in file '$0'",
+          path));
   }
 
+  std::string healthCheckFcgiScriptFilename_; // TODO
   if (!settings.load("director", "health-check-fcgi-script-filename",
                      healthCheckFcgiScriptFilename_)) {
     healthCheckFcgiScriptFilename_ = "";
   }
 
   if (!settings.load("director", "scheduler", value)) {
-    worker()->log(Severity::warn,
-                  "director: Could not load configuration value for "
-                  "director.scheduler. Using default scheduler %s.",
-                  scheduler().c_str());
+    logWarning("HttpCluster",
+               "director: Could not load configuration value for "
+               "director.scheduler. Using default scheduler $0.",
+               scheduler()->name());
     changed++;
-  } else if (!setScheduler(value)) {
-    worker()->log(Severity::warn,
-                  "director: Invalid cluster configuration value %s detected "
-                  "for director.scheduler. Using default scheduler %s.",
-                  value.c_str(), scheduler().c_str());
-    changed++;
+  } else if (value == "rr") {
+    setScheduler(std::unique_ptr<HttpClusterScheduler>(new HttpClusterScheduler::RoundRobin(&members_)));
+  } else if (value == "chance") {
+    setScheduler(std::unique_ptr<HttpClusterScheduler>(new HttpClusterScheduler::Chance(&members_)));
+  } else {
   }
 
 #if defined(ENABLE_DIRECTOR_CACHE)
   if (settings.contains("cache", "enabled")) {
     if (!settings.load("cache", "enabled", value)) {
-      worker()->log(
-          Severity::error,
-          "director: Could not load settings value cache.enabled in file '%s'",
-          path.c_str());
-      return false;
+      RAISE(RuntimeError, StringUtil::format(
+            "director: Could not load settings value cache.enabled in file '$0'",
+            path));
     }
     objectCache().setEnabled(value == "true");
   } else {
@@ -354,11 +345,10 @@ void HttpCluster::setConfiguration(const std::string& text) {
 
   if (settings.contains("cache", "deliver-active")) {
     if (!settings.load("cache", "deliver-active", value)) {
-      worker()->log(Severity::error,
-                    "director: Could not load settings value "
-                    "cache.deliver-active in file '%s'",
-                    path.c_str());
-      return false;
+      RAISE(RuntimeError, StringUtil::format(
+            "director: Could not load settings value "
+            "cache.deliver-active in file '$0'",
+            path));
     }
     objectCache().setDeliverActive(value == "true");
   } else {
@@ -367,11 +357,10 @@ void HttpCluster::setConfiguration(const std::string& text) {
 
   if (settings.contains("cache", "deliver-shadow")) {
     if (!settings.load("cache", "deliver-shadow", value)) {
-      worker()->log(Severity::error,
-                    "director: Could not load settings value "
-                    "cache.deliver-shadow in file '%s'",
-                    path.c_str());
-      return false;
+      RAISE(RuntimeError, StringUtil::format(
+            "director: Could not load settings value "
+            "cache.deliver-shadow in file '$0'",
+            path));
     }
     objectCache().setDeliverShadow(value == "true");
   } else {
@@ -380,11 +369,11 @@ void HttpCluster::setConfiguration(const std::string& text) {
 
   if (settings.contains("cache", "default-ttl")) {
     if (!settings.load("cache", "default-ttl", value)) {
-      worker()->log(Severity::error,
-                    "director: Could not load settings value cache.default-ttl "
-                    "in file '%s'",
-                    path.c_str());
-      return false;
+      RAISE(RuntimeError, StringUtil::format(
+            "director: Could not load settings value cache.default-ttl "
+            "in file '$0'",
+            path));
+      RAISE(RuntimeError, StringUtil::format(
     }
     objectCache().setDefaultTTL(Duration::fromSeconds(stoi(value)));
   } else {
@@ -393,11 +382,10 @@ void HttpCluster::setConfiguration(const std::string& text) {
 
   if (settings.contains("cache", "default-shadow-ttl")) {
     if (!settings.load("cache", "default-shadow-ttl", value)) {
-      worker()->log(Severity::error,
-                    "director: Could not load settings value cache.default-ttl "
-                    "in file '%s'",
-                    path.c_str());
-      return false;
+      RAISE(RuntimeError, StringUtil::format(
+            "director: Could not load settings value cache.default-ttl "
+            "in file '$0'",
+            path));
     }
     objectCache().setDefaultShadowTTL(Duration::fromSeconds(stoi(value)));
   } else {
@@ -414,45 +402,163 @@ void HttpCluster::setConfiguration(const std::string& text) {
 
     if (key == "cache") continue;
 
-    bool result = false;
-    if (key.find(backendSectionPrefix) == 0)
-      result = loadBackend(settings, key);
-    else if (key.find(bucketSectionPrefix) == 0)
-      result = loadBucket(settings, key);
-    else {
-      worker()->log(
-          Severity::error,
-          "director: Invalid configuration section '%s' in file '%s'.",
-          key.c_str(), path.c_str());
-      result = false;
-    }
-
-    if (!result) {
-      return false;
+    if (key.find(backendSectionPrefix) == 0) {
+      loadBackend(settings, key);
+    } else if (key.find(bucketSectionPrefix) == 0) {
+      loadBucket(settings, key);
+    } else {
+      RAISE(RuntimeError, StringUtil::format(
+            "director: Invalid configuration section '$0' in file '$1'.",
+            key, path));
     }
   }
 
   setMutable(true);
 
   if (changed) {
-    worker()->log(Severity::notice,
-                  "director: Rewriting configuration, as %d attribute(s) "
-                  "changed while loading.",
-                  changed);
+    logNotice("HttpCluster",
+              "director: Rewriting configuration, as $0 attribute(s) "
+              "changed while loading.",
+              changed);
     saveConfiguration();
   }
 }
 
+void HttpCluster::loadBackend(const IniFile& settings, const std::string& key) {
+  std::string name = key.substr(strlen("backend="));
+
+  // capacity
+  std::string capacityStr;
+  if (!settings.load(key, "capacity", capacityStr)) {
+    RAISE(RuntimeError, StringUtil::format(
+          "director: Error loading configuration file '$0'. Item "
+          "'capacity' not found in section '$1'.",
+          storagePath_, key));
+  }
+  size_t capacity = std::atoll(capacityStr.c_str());
+
+  // protocol
+  std::string protocol;
+  if (!settings.load(key, "protocol", protocol)) {
+    RAISE(RuntimeError, StringUtil::format(
+          "director: Error loading configuration file '$0'. Item "
+          "'protocol' not found in section '$1'.",
+          storagePath_, key));
+  }
+
+  // enabled
+  std::string enabledStr;
+  if (!settings.load(key, "enabled", enabledStr)) {
+    RAISE(RuntimeError, StringUtil::format(
+          "director: Error loading configuration file '$0'. Item "
+          "'enabled' not found in section '$1'.",
+          storagePath_, key));
+  }
+  bool enabled = enabledStr == "true";
+
+  // health-check-interval
+  std::string hcIntervalStr;
+  if (!settings.load(key, "health-check-interval", hcIntervalStr)) {
+    RAISE(RuntimeError, StringUtil::format(
+          "director: Error loading configuration file '$0'. Item "
+          "'health-check-interval' not found in section '$1'.",
+          storagePath_, key));
+  }
+  Duration hcInterval = Duration::fromSeconds(std::atoll(hcIntervalStr.c_str()));
+
+  // host
+  std::string host;
+  if (!settings.load(key, "host", host)) {
+    RAISE(RuntimeError, StringUtil::format(
+          "director: Error loading configuration file '$0'. Item "
+          "'host' not found in section '$1'.",
+          storagePath_, key));
+  }
+
+  // port
+  std::string portStr;
+  if (!settings.load(key, "port", portStr)) {
+    RAISE(RuntimeError, StringUtil::format(
+          "director: Error loading configuration file '$0'. Item "
+          "'port' not found in section '$1'.",
+          storagePath_, key));
+  }
+
+  int port = std::atoi(portStr.c_str());
+  if (port <= 0) {
+    RAISE(RuntimeError, StringUtil::format(
+          "director: Error loading configuration file '$0'. Invalid "
+          "port number '$1' for backend '$2'",
+          storagePath_, portStr, name));
+  }
+  InetAddress addr(host, port);
+
+  bool terminateProtection = false; // TODO
+
+  // spawn backend (by protocol)
+  addMember(name, addr, capacity, enabled, terminateProtection,
+            protocol, hcInterval);
+}
+
+void HttpCluster::loadBucket(const IniFile& settings, const std::string& key) {
+  std::string name = key.substr(strlen("bucket="));
+
+  std::string rateStr;
+  if (!settings.load(key, "rate", rateStr)) {
+    RAISE(RuntimeError, StringUtil::format(
+          "director: Error loading configuration file '$0'. Item "
+          "'rate' not found in section '$1'.",
+          storagePath_, key));
+  }
+
+  std::string ceilStr;
+  if (!settings.load(key, "ceil", ceilStr)) {
+    RAISE(RuntimeError, StringUtil::format(
+          "director: Error loading configuration file '$0'. Item "
+          "'ceil' not found in section '$1'.",
+          storagePath_, key));
+  }
+
+  char* nptr = nullptr;
+  float rate = strtof(rateStr.c_str(), &nptr);
+  float ceil = strtof(ceilStr.c_str(), &nptr);
+
+  TokenShaperError ec = createBucket(name, rate, ceil);
+  if (ec != TokenShaperError::Success) {
+    static const char* str[] = {
+        "Success.",
+        "Rate limit overflow.",
+        "Ceil limit overflow.",
+        "Name conflict.",
+        "Invalid child node."
+    };
+    RAISE(RuntimeError, StringUtil::format(
+          "Could not create director's bucket. $0",
+          str[(size_t)ec]));
+  }
+}
+
+void HttpCluster::setScheduler(UniquePtr<HttpClusterScheduler> scheduler) {
+  scheduler_ = std::move(scheduler);
+}
+
 void HttpCluster::addMember(const InetAddress& addr, size_t capacity) {
-  addMember(StringUtil::format("$0", addr), addr, capacity, true);
+  addMember(StringUtil::format("$0", addr),
+            addr,
+            capacity,
+            true,     // enabled
+            false,    // terminateProtection
+            "http",   // protocol
+            healthCheckInterval_);
 }
 
 void HttpCluster::addMember(const std::string& name,
                             const InetAddress& addr,
                             size_t capacity,
-                            bool enabled) {
-  const std::string protocol = "http";  // TODO: get as function arg
-  const bool terminateProtection = false;
+                            bool enabled,
+                            bool terminateProtection,
+                            const std::string& protocol,
+                            Duration healthCheckInterval) {
   Executor* const executor = executor_; // TODO: get as function arg for passing: daemon().selectClientScheduler()
 
   TRACE("addMember: $0 $1", name, addr);
@@ -475,7 +581,7 @@ void HttpCluster::addMember(const std::string& name,
       readTimeout(),
       writeTimeout(),
       healthCheckUri(),
-      healthCheckInterval(),
+      healthCheckInterval,
       healthCheckSuccessThreshold(),
       healthCheckSuccessCodes(),
       std::bind(&HttpCluster::onBackendHealthStateChanged, this,
@@ -626,7 +732,7 @@ void HttpCluster::schedule(HttpClusterRequest* cr, Bucket* bucket) {
 
   if (cr->bucket->get(1)) {
     cr->tokens = 1;
-    HttpClusterSchedulerStatus status = clusterScheduler()->schedule(cr);
+    HttpClusterSchedulerStatus status = scheduler()->schedule(cr);
     if (status == HttpClusterSchedulerStatus::Success)
       return;
 
@@ -651,7 +757,7 @@ void HttpCluster::reschedule(HttpClusterRequest* cr) {
   TRACE("reschedule");
 
   if (verifyTryCount(cr)) {
-    HttpClusterSchedulerStatus status = clusterScheduler()->schedule(cr);
+    HttpClusterSchedulerStatus status = scheduler()->schedule(cr);
 
     if (status != HttpClusterSchedulerStatus::Success) {
       enqueue(cr);

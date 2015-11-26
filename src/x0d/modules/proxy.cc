@@ -163,14 +163,14 @@ void ProxyModule::onPostConfig() {
 
     if (FileUtil::exists(path)) {
       logDebug("proxy", "Loading cluster $0 ($1)", name, path);
-      cluster->setConfiguration(FileUtil::read(path).str());
+      cluster->setConfiguration(FileUtil::read(path).str(), path);
     } else {
       logDebug("proxy", "Initializing cluster $0 ($1)", name, path);
       cluster->setHealthCheckUri(Uri("http://xzero.io/hello.txt"));
-      cluster->setHealthCheckInterval(10_seconds);
-      cluster->setHealthCheckSuccessThreshold(1);
       cluster->setHealthCheckSuccessCodes({HttpStatus::Ok});
-      cluster->addMember("demo1", InetAddress("127.0.0.1", 3001), 1, true);
+      cluster->setHealthCheckSuccessThreshold(1);
+      cluster->setHealthCheckInterval(10_seconds);
+      cluster->addMember(InetAddress("127.0.0.1", 3001), 1);
       cluster->createBucket("search", 0.3, 0.5);
       cluster->createBucket("main", 0.5, 0.7);
       cluster->setEnabled(true);
