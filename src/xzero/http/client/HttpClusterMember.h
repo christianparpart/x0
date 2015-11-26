@@ -77,6 +77,8 @@ public:
   bool terminateProtection() const { return terminateProtection_; }
   void setTerminateProtection(bool value) { terminateProtection_ = value; }
 
+  const std::string& protocol() const noexcept { return protocol_; }
+
   HttpHealthMonitor* healthMonitor() const { return healthMonitor_.get(); }
 
   HttpClusterSchedulerStatus tryProcess(HttpClusterRequest* cr);
