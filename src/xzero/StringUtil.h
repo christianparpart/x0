@@ -42,6 +42,8 @@ public:
 
   static void toStringVImpl(std::vector<std::string>* target);
 
+  static std::string trim(const std::string& value);
+
   /**
    * Remove trailing slashes from the pointed to string
    *

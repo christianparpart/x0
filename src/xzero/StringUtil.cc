@@ -112,6 +112,16 @@ std::string StringUtil::toString(bool value) {
   return value ? "true" : "false";
 }
 
+std::string StringUtil::trim(const std::string& value) {
+  std::size_t left = 0;
+  while (std::isspace(value[left])) ++left;
+
+  std::size_t right = value.size() - 1;
+  while (std::isspace(value[right])) --right;
+
+  return value.substr(left, 1 + right - left);
+}
+
 void StringUtil::stripTrailingSlashes(std::string* str) {
   while (str->back() == '/') {
     str->pop_back();
