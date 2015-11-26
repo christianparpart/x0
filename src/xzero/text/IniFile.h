@@ -25,7 +25,7 @@ class IniFile {
   ~IniFile();
 
   /// loads config settings from given filename.
-  bool loadFile(const std::string& filename);
+  void load(const std::string& contents);
 
   /// serializes config object into INI style config file format
   std::string serialize() const;

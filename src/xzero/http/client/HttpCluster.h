@@ -44,9 +44,12 @@ class HttpCache;
 
 class HttpCluster {
  public:
-  HttpCluster(const std::string& name, Executor* executor);
+  HttpCluster(const std::string& name,
+              const std::string& storagePath,
+              Executor* executor);
 
   HttpCluster(const std::string& name,
+              const std::string& storagePath,
               Executor* executor,
               bool enabled,
               bool stickyOfflineMode,
@@ -74,6 +77,9 @@ class HttpCluster {
   void setEnabled(bool value) { enabled_ = value; }
   void enable() { enabled_ = true; }
   void disable() { enabled_ = false; }
+
+  bool isMutable() const { return mutable_; }
+  void setMutable(bool value) { mutable_ = value; }
 
   bool stickyOfflineMode() const { return stickyOfflineMode_; }
   void setStickyOfflineMode(bool value) { stickyOfflineMode_ = value; }
@@ -179,6 +185,8 @@ class HttpCluster {
    * @see std::string configuration() const
    */
   void setConfiguration(const std::string& configuration);
+
+  void saveConfiguration();
   // }}}
 
   /**
@@ -220,6 +228,8 @@ class HttpCluster {
   // whether this director actually load balances or raises a 503
   // when being disabled temporarily.
   bool enabled_;
+
+  bool mutable_;
 
   // whether a backend should be marked disabled if it becomes online again
   bool stickyOfflineMode_;

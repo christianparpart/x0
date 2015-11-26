@@ -159,19 +159,22 @@ void ProxyModule::onPostConfig() {
     std::string path = init.second;
     Executor* executor = daemon().selectClientScheduler();
 
-    TRACE("Initializing cluster $0. $1", name, path);
-
-    std::shared_ptr<HttpCluster> cluster(new HttpCluster(name, executor));
+    std::shared_ptr<HttpCluster> cluster(new HttpCluster(name, path, executor));
 
     if (FileUtil::exists(path)) {
+      logDebug("proxy", "Loading cluster $0 ($1)", name, path);
       cluster->setConfiguration(FileUtil::read(path).str());
     } else {
+      logDebug("proxy", "Initializing cluster $0 ($1)", name, path);
       cluster->setHealthCheckUri(Uri("http://xzero.io/hello.txt"));
       cluster->setHealthCheckInterval(10_seconds);
       cluster->setHealthCheckSuccessThreshold(1);
       cluster->setHealthCheckSuccessCodes({HttpStatus::Ok});
       cluster->addMember("demo1", InetAddress("127.0.0.1", 3001), 1, true);
+      cluster->createBucket("search", 0.3, 0.5);
+      cluster->createBucket("main", 0.5, 0.7);
       cluster->setEnabled(true);
+      cluster->saveConfiguration();
     }
 
     clusterMap_[name] = cluster;

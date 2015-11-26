@@ -187,7 +187,7 @@ Buffer FileUtil::read(const std::string& path) {
 }
 
 void FileUtil::write(const std::string& path, const Buffer& buffer) {
-  int fd = open(path.c_str(), O_WRONLY | O_CREAT);
+  int fd = open(path.c_str(), O_WRONLY | O_CREAT, 0660);
   if (fd < 0)
     RAISE_ERRNO(errno);
 

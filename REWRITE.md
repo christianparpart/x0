@@ -53,7 +53,8 @@
 - [x] HttpClusterMember, proxies to HttpClient, with constraints (such as capacity)
 - [x] HttpCluster: basic load balancing to HTTP/1 upstreams
 - [x] use InetAddress instead of `pair<IPAddress, Port>`
-- [ ] CLI: support InetAddress aside IPAddress, etc
+- [ ] configuration load
+- [ ] configuration save
 - [ ] HttpInput: must be rewind()able, in order to be used multiple times
       e.g. required for retransmitting a request to multiple upstreams if prior
       failed.

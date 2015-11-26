@@ -4,8 +4,11 @@
 #include <xzero/http/client/HttpHealthMonitor.h>
 #include <xzero/io/StringInputStream.h>
 #include <xzero/io/InputStream.h>
+#include <xzero/io/FileUtil.h>
+#include <xzero/text/IniFile.h>
 #include <xzero/logging.h>
 #include <algorithm>
+#include <sstream>
 
 namespace xzero {
   using http::client::HttpClusterSchedulerStatus;
@@ -31,8 +34,11 @@ namespace client {
 # define TRACE(msg...) do {} while (0)
 #endif
 
-HttpCluster::HttpCluster(const std::string& name, Executor* executor)
+HttpCluster::HttpCluster(const std::string& name,
+                         const std::string& storagePath,
+                         Executor* executor)
     : HttpCluster(name,
+                  storagePath,
                   executor,
                   true,                       // enabled
                   false,                      // stickyOfflineMode
@@ -52,6 +58,7 @@ HttpCluster::HttpCluster(const std::string& name, Executor* executor)
 }
 
 HttpCluster::HttpCluster(const std::string& name,
+                         const std::string& storagePath,
                          Executor* executor,
                          bool enabled,
                          bool stickyOfflineMode,
@@ -81,7 +88,7 @@ HttpCluster::HttpCluster(const std::string& name,
       readTimeout_(readTimeout),
       writeTimeout_(writeTimeout),
       executor_(executor),
-      storagePath_("TODO"), // TODO
+      storagePath_(storagePath),
       shaper_(executor, 0,
               std::bind(&HttpCluster::onTimeout, this, std::placeholders::_1)),
       members_(),
@@ -98,12 +105,342 @@ HttpCluster::HttpCluster(const std::string& name,
 HttpCluster::~HttpCluster() {
 }
 
+void HttpCluster::saveConfiguration() {
+  FileUtil::write(storagePath_, configuration());
+}
+
 std::string HttpCluster::configuration() const {
-  return ""; // TODO
+  std::ostringstream out;
+
+  out << "# vim:syntax=dosini\n"
+      << "# !!! DO NOT EDIT !!! THIS FILE IS GENERATED AUTOMATICALLY !!!\n\n"
+      << "[director]\n"
+      << "enabled=" << (enabled_ ? "true" : "false") << "\n"
+      << "queue-limit=" << queueLimit_ << "\n"
+      << "queue-timeout=" << queueTimeout_.seconds() << "\n"
+      //<< "on-client-abort=" << tos(clientAbortAction_) << "\n"
+      << "retry-after=" << retryAfter_.seconds() << "\n"
+      << "max-retry-count=" << maxRetryCount_ << "\n"
+      << "sticky-offline-mode=" << (stickyOfflineMode_ ? "true" : "false") << "\n"
+      << "allow-x-sendfile=" << (allowXSendfile_ ? "true" : "false") << "\n"
+      << "enqueue-on-unavailable=" << (enqueueOnUnavailable_ ? "true" : "false") << "\n"
+      << "connect-timeout=" << connectTimeout_.seconds() << "\n"
+      << "read-timeout=" << readTimeout_.seconds() << "\n"
+      << "write-timeout=" << writeTimeout_.seconds() << "\n"
+      //<< "health-check-host-header=" << healthCheckHostHeader_ << "\n"
+      //<< "health-check-request-path=" << healthCheckRequestPath_ << "\n"
+      //<< "health-check-fcgi-script-filename=" << healthCheckFcgiScriptFilename_ << "\n"
+      << "scheduler=" << clusterScheduler()->name() << "\n"
+      << "\n";
+
+#if defined(ENABLE_DIRECTOR_CACHE)
+  out << "[cache]\n"
+      << "enabled=" << (objectCache().enabled() ? "true" : "false") << "\n"
+      << "deliver-active=" << (objectCache().deliverActive() ? "true" : "false")
+      << "\n"
+      << "deliver-shadow=" << (objectCache().deliverShadow() ? "true" : "false")
+      << "\n"
+      << "default-ttl=" << objectCache().defaultTTL().seconds() << "\n"
+      << "default-shadow-ttl="
+      << objectCache().defaultShadowTTL().seconds() << "\n"
+      << "\n";
+#endif
+
+  for (auto& bucket : *shaper()->rootNode()) {
+    out << "[bucket=" << bucket->name() << "]\n"
+        << "rate=" << bucket->rateP() << "\n"
+        << "ceil=" << bucket->ceilP() << "\n"
+        << "\n";
+  }
+
+  for (auto& b: members_) {
+    out << "[backend=" << b->name() << "]\n"
+        << "capacity=" << b->capacity() << "\n"
+        << "enabled=" << (b->isEnabled() ? "true" : "false") << "\n"
+        << "protocol=" << b->protocol() << "\n"
+        << "health-check-interval=" << b->healthMonitor()->interval().seconds() << "\n"
+        << "host=" << b->inetAddress().ip().str() << "\n"
+        << "port=" << b->inetAddress().port() << "\n"
+        << "\n";
+  }
+  return out.str();
 }
 
 void HttpCluster::setConfiguration(const std::string& text) {
-  // TODO
+  size_t changed = 0;
+  std::string value;
+  IniFile settings;
+  settings.load(text);
+
+  if (settings.contains("director", "enabled")) {
+    if (!settings.load("director", "enabled", value)) {
+      worker()->log(Severity::error,
+                    "director: Could not load settings value director.enabled "
+                    "in file '%s'",
+                    path.c_str());
+      return false;
+    }
+    enabled_ = value == "true";
+  } else {
+    ++changed;
+  }
+
+  if (!settings.load("director", "queue-limit", value)) {
+    worker()->log(Severity::error,
+                  "director: Could not load settings value "
+                  "director.queue-limit in file '%s'",
+                  path.c_str());
+    return false;
+  }
+  queueLimit_ = std::atoll(value.c_str());
+
+  if (!settings.load("director", "queue-timeout", value)) {
+    worker()->log(Severity::error,
+                  "director: Could not load settings value "
+                  "director.queue-timeout in file '%s'",
+                  path.c_str());
+    return false;
+  }
+  queueTimeout_ = Duration::fromSeconds(std::atoll(value.c_str()));
+
+  if (!settings.load("director", "retry-after", value)) {
+    worker()->log(Severity::error,
+                  "director: Could not load settings value "
+                  "director.retry-after in file '%s'",
+                  path.c_str());
+    return false;
+  }
+  retryAfter_ = Duration::fromSeconds(std::atoll(value.c_str()));
+
+  if (!settings.load("director", "connect-timeout", value)) {
+    worker()->log(Severity::error,
+                  "director: Could not load settings value "
+                  "director.connect-timeout in file '%s'",
+                  path.c_str());
+    return false;
+  }
+  connectTimeout_ = Duration::fromSeconds(std::atoll(value.c_str()));
+
+  if (!settings.load("director", "read-timeout", value)) {
+    worker()->log(Severity::error,
+                  "director: Could not load settings value "
+                  "director.read-timeout in file '%s'",
+                  path.c_str());
+    return false;
+  }
+  readTimeout_ = Duration::fromSeconds(std::atoll(value.c_str()));
+
+  if (!settings.load("director", "write-timeout", value)) {
+    worker()->log(Severity::error,
+                  "director: Could not load settings value "
+                  "director.write-timeout in file '%s'",
+                  path.c_str());
+    return false;
+  }
+  writeTimeout_ = Duration::fromSeconds(std::atoll(value.c_str()));
+
+  if (!settings.load("director", "on-client-abort", value)) {
+    clientAbortAction_ = ClientAbortAction::Close;
+    worker()->log(Severity::warn,
+                  "director: Could not load settings value "
+                  "director.on-client-abort  in file '%s'. Defaulting to '%s'.",
+                  path.c_str(), tos(clientAbortAction_).c_str());
+    ++changed;
+  } else {
+    Try<ClientAbortAction> t = parseClientAbortAction(value);
+    if (t) {
+      clientAbortAction_ = t.get();
+    } else {
+      clientAbortAction_ = ClientAbortAction::Close;
+      worker()->log(
+          Severity::warn,
+          "director: Could not load settings value director.on-client-abort  "
+          "in file '%s'. %s Defaulting to '%s'.",
+          path.c_str(), t.errorMessage(), tos(clientAbortAction_).c_str());
+      ++changed;
+    }
+  }
+
+  if (!settings.load("director", "max-retry-count", value)) {
+    worker()->log(Severity::error,
+                  "director: Could not load settings value "
+                  "director.max-retry-count in file '%s'",
+                  path.c_str());
+    return false;
+  }
+  maxRetryCount_ = std::atoll(value.c_str());
+
+  if (!settings.load("director", "sticky-offline-mode", value)) {
+    worker()->log(Severity::error,
+                  "director: Could not load settings value "
+                  "director.sticky-offline-mode in file '%s'",
+                  path.c_str());
+    return false;
+  }
+  stickyOfflineMode_ = value == "true";
+
+  if (!settings.load("director", "allow-x-sendfile", value)) {
+    worker()->log(Severity::warn,
+                  "director: Could not load settings value director.x-sendfile "
+                  "in file '%s'",
+                  path.c_str());
+    allowXSendfile_ = false;
+    ++changed;
+  } else {
+    allowXSendfile_ = value == "true";
+  }
+
+  if (!settings.load("director", "enqueue-on-unavailable", value)) {
+    worker()->log(Severity::warn,
+                  "director: Could not load settings value "
+                  "director.enqueue-on-unavailable in file '%s'",
+                  path.c_str());
+    enqueueOnUnavailable_ = false;
+    ++changed;
+  } else {
+    allowXSendfile_ = value == "true";
+  }
+
+  if (!settings.load("director", "health-check-host-header",
+                     healthCheckHostHeader_)) {
+    worker()->log(Severity::error,
+                  "director: Could not load settings value "
+                  "director.health-check-host-header in file '%s'",
+                  path.c_str());
+    return false;
+  }
+
+  if (!settings.load("director", "health-check-request-path",
+                     healthCheckRequestPath_)) {
+    worker()->log(Severity::error,
+                  "director: Could not load settings value "
+                  "director.health-check-request-path in file '%s'",
+                  path.c_str());
+    return false;
+  }
+
+  if (!settings.load("director", "health-check-fcgi-script-filename",
+                     healthCheckFcgiScriptFilename_)) {
+    healthCheckFcgiScriptFilename_ = "";
+  }
+
+  if (!settings.load("director", "scheduler", value)) {
+    worker()->log(Severity::warn,
+                  "director: Could not load configuration value for "
+                  "director.scheduler. Using default scheduler %s.",
+                  scheduler().c_str());
+    changed++;
+  } else if (!setScheduler(value)) {
+    worker()->log(Severity::warn,
+                  "director: Invalid cluster configuration value %s detected "
+                  "for director.scheduler. Using default scheduler %s.",
+                  value.c_str(), scheduler().c_str());
+    changed++;
+  }
+
+#if defined(ENABLE_DIRECTOR_CACHE)
+  if (settings.contains("cache", "enabled")) {
+    if (!settings.load("cache", "enabled", value)) {
+      worker()->log(
+          Severity::error,
+          "director: Could not load settings value cache.enabled in file '%s'",
+          path.c_str());
+      return false;
+    }
+    objectCache().setEnabled(value == "true");
+  } else {
+    ++changed;
+  }
+
+  if (settings.contains("cache", "deliver-active")) {
+    if (!settings.load("cache", "deliver-active", value)) {
+      worker()->log(Severity::error,
+                    "director: Could not load settings value "
+                    "cache.deliver-active in file '%s'",
+                    path.c_str());
+      return false;
+    }
+    objectCache().setDeliverActive(value == "true");
+  } else {
+    ++changed;
+  }
+
+  if (settings.contains("cache", "deliver-shadow")) {
+    if (!settings.load("cache", "deliver-shadow", value)) {
+      worker()->log(Severity::error,
+                    "director: Could not load settings value "
+                    "cache.deliver-shadow in file '%s'",
+                    path.c_str());
+      return false;
+    }
+    objectCache().setDeliverShadow(value == "true");
+  } else {
+    ++changed;
+  }
+
+  if (settings.contains("cache", "default-ttl")) {
+    if (!settings.load("cache", "default-ttl", value)) {
+      worker()->log(Severity::error,
+                    "director: Could not load settings value cache.default-ttl "
+                    "in file '%s'",
+                    path.c_str());
+      return false;
+    }
+    objectCache().setDefaultTTL(Duration::fromSeconds(stoi(value)));
+  } else {
+    ++changed;
+  }
+
+  if (settings.contains("cache", "default-shadow-ttl")) {
+    if (!settings.load("cache", "default-shadow-ttl", value)) {
+      worker()->log(Severity::error,
+                    "director: Could not load settings value cache.default-ttl "
+                    "in file '%s'",
+                    path.c_str());
+      return false;
+    }
+    objectCache().setDefaultShadowTTL(Duration::fromSeconds(stoi(value)));
+  } else {
+    ++changed;
+  }
+#endif
+
+  for (auto& section : settings) {
+    static const std::string backendSectionPrefix("backend=");
+    static const std::string bucketSectionPrefix("bucket=");
+
+    std::string key = section.first;
+    if (key == "director") continue;
+
+    if (key == "cache") continue;
+
+    bool result = false;
+    if (key.find(backendSectionPrefix) == 0)
+      result = loadBackend(settings, key);
+    else if (key.find(bucketSectionPrefix) == 0)
+      result = loadBucket(settings, key);
+    else {
+      worker()->log(
+          Severity::error,
+          "director: Invalid configuration section '%s' in file '%s'.",
+          key.c_str(), path.c_str());
+      result = false;
+    }
+
+    if (!result) {
+      return false;
+    }
+  }
+
+  setMutable(true);
+
+  if (changed) {
+    worker()->log(Severity::notice,
+                  "director: Rewriting configuration, as %d attribute(s) "
+                  "changed while loading.",
+                  changed);
+    saveConfiguration();
+  }
 }
 
 void HttpCluster::addMember(const InetAddress& addr, size_t capacity) {

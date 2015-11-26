@@ -81,8 +81,18 @@ bool HttpBufferedInput::empty() const noexcept {
 }
 
 void HttpBufferedInput::onContent(const BufferRef& chunk) {
+  const size_t maxBufferSize = 1024;
   TRACE("$0 onContent: $1 bytes", this, chunk.size());
+
   content_ += chunk;
+  // if (content_.size() + chunk.size() > maxBufferSize) {
+  //   sink_ = tempFile().createOutputChannel();
+  //   source_ = tempFile().createInputChannel();
+  //   sink_->write(content_);
+  //   sink_->write(chunk);
+  // } else {
+  //   content_ += chunk;
+  // }
 
   if (listener())
     listener()->onContentAvailable();

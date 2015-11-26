@@ -7,6 +7,7 @@
 
 #include <xzero/text/IniFile.h>
 #include <xzero/StringUtil.h>
+#include <xzero/RuntimeError.h>
 
 #include <exception>
 #include <iostream>
@@ -26,15 +27,13 @@ IniFile::IniFile() : sections_() {}
 
 IniFile::~IniFile() {}
 
-bool IniFile::loadFile(const std::string& filename) {
+void IniFile::load(const std::string& data) {
   std::string current_title;
-  std::ifstream ifs(filename);
 
-  while (ifs.good()) {
-    char buf[4096];
-    ifs.getline(buf, sizeof(buf));
+  std::vector<std::string> lines = StringUtil::split(data, "\n");
 
-    std::string value(StringUtil::trim(buf));
+  for (std::string& value: lines) {
+    value = StringUtil::trim(value);
 
     if (value.empty() || value[0] == ';' || value[0] == '#') {
       continue;
@@ -52,13 +51,9 @@ bool IniFile::loadFile(const std::string& filename) {
         sections_[current_title][value] = std::string();
       }
     } else {
-      // TODO throw instead
-      fprintf(stderr, "unplaced data. '%s'\n", value.c_str());
-      errno = EINVAL;
-      return false;
+      RAISE(RuntimeError, StringUtil::format("unplaced data. '$0'", value));
     }
   }
-  return true;
 }
 
 std::string IniFile::serialize() const {
