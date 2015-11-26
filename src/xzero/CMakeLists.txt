@@ -184,6 +184,8 @@ set(xzero_base_SRC
   thread/SignalHandler.cc
   thread/Wakeup.cc
 
+  text/IniFile.cc
+
   util/BinaryMessageReader.cc
   util/BinaryMessageWriter.cc
   util/SimpleRateLimit.cc
