@@ -258,6 +258,7 @@ void XzeroDaemon::postConfig() {
       if (config_->sslContexts.empty()) {
         RAISE(ConfigurationError, "SSL listeners found but no SSL contexts configured.");
       }
+      logNotice("x0d", "Starting HTTPS listener on $0:$1", l.bindAddress, l.port);
       setupConnector<SslConnector>(
           l.bindAddress, l.port, l.backlog,
           l.multiAcceptCount, l.reuseAddr, l.reusePort,
@@ -269,6 +270,7 @@ void XzeroDaemon::postConfig() {
           }
       );
     } else {
+      logNotice("x0d", "Starting HTTP listener on $0:$1", l.bindAddress, l.port);
       setupConnector<InetConnector>(
           l.bindAddress, l.port, l.backlog,
           l.multiAcceptCount, l.reuseAddr, l.reusePort,
