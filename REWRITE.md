@@ -36,6 +36,7 @@
 - [ ] (bug) timeout problem in InetEndPoint, found via `xurl -> x0d -> local`
 - [ ] (flow:bug) `"Blah #{call}blah#{call}"` doesn't work
       unless I specify it as `"Blah #{call()}blah#{call}"`
+- [ ] (flow:bug) `listen(port: "80")` MUST raise a signature mismatch error
 
 ### proxy
 
