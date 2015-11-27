@@ -24,9 +24,14 @@ RUN apt-get -qq update && apt-get -qqy dist-upgrade
 ADD . /usr/src/x0
 RUN /usr/src/x0/bin/build.sh
 
+ENV DOCROOT "/var/www"
+ENV PORT 80
+
 VOLUME ["/etc/x0d"]
 VOLUME ["/var/lib/x0d"]
 VOLUME ["/var/log/x0d"]
+
+ADD docker-x0d.conf /etc/x0d/x0d.conf
 
 ENTRYPOINT ["/usr/bin/x0d"]
 CMD ["--log-target=console", "--log-level=info"]

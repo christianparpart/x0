@@ -3,7 +3,6 @@
 /3rdparty/gtest-1.7.0
 /sandbox/
 
-/*.conf
 /*.patch
 
 /core

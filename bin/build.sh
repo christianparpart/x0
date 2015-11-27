@@ -34,7 +34,6 @@ ninja
 # install
 mkdir -p /etc/x0d /var/log/x0d /var/lib/x0d /var/www
 cp src/x0d/x0d /usr/bin/x0d
-cp src/x0d/x0d.conf-dist /etc/x0d/x0d.conf
 
 # cleanup
 apt-get purge -y $CDEPENDS
