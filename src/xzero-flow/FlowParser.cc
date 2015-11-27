@@ -287,7 +287,13 @@ vm::Opcode makeOperator(FlowToken token, Expr* left, Expr* right) {
   return b->second;
 }
 
-Opcode makeOperator(FlowToken token, Expr* e) {
+/**
+ * Casts given epxression into an expression of fixed type.
+ *
+ * @param source source expression to cast
+ * @param target target (token) type to cast to.
+ */
+Opcode makeOperator(FlowToken target, Expr* source) {
   static const std::unordered_map<FlowType,
                                   std::unordered_map<FlowToken, Opcode>> ops =
       {{FlowType::Number,
@@ -300,8 +306,7 @@ Opcode makeOperator(FlowToken token, Expr* e) {
        {FlowType::Boolean,
         {{FlowToken::Not, Opcode::BNOT},
          {FlowToken::BoolType, Opcode::NOP},
-         {FlowToken::StringType,
-          Opcode::I2S},  // XXX or better print "true" | "false" ?
+         {FlowToken::StringType, Opcode::I2S},  // XXX or better print "true" | "false" ?
         }},
        {FlowType::String,
         {{FlowToken::Not, Opcode::SISEMPTY},
@@ -311,12 +316,12 @@ Opcode makeOperator(FlowToken token, Expr* e) {
        {FlowType::Cidr, {{FlowToken::StringType, Opcode::C2S}, }},
        {FlowType::RegExp, {{FlowToken::StringType, Opcode::R2S}, }}, };
 
-  FlowType type = e->getType();
+  FlowType sourceType = source->getType();
 
-  auto a = ops.find(type);
+  auto a = ops.find(sourceType);
   if (a == ops.end()) return Opcode::EXIT;
 
-  auto b = a->second.find(token);
+  auto b = a->second.find(target);
   if (b == a->second.end()) return Opcode::EXIT;
 
   return b->second;
