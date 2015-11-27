@@ -24,7 +24,7 @@ RUN apt-get -qq update && apt-get -qqy dist-upgrade
 ADD . /usr/src/x0
 RUN /usr/src/x0/bin/build.sh
 
-VOLUME ["/etc/xzero"]
+VOLUME ["/etc/x0d"]
 VOLUME ["/var/lib/x0d"]
 VOLUME ["/var/log/x0d"]
 
