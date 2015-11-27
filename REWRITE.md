@@ -53,12 +53,17 @@
 - [x] HttpClusterMember, proxies to HttpClient, with constraints (such as capacity)
 - [x] HttpCluster: basic load balancing to HTTP/1 upstreams
 - [x] use InetAddress instead of `pair<IPAddress, Port>`
-- [ ] configuration load
-- [ ] configuration save
+- [x] configuration load
+- [x] configuration save
+- [ ] JSON API: GET
+- [ ] JSON API: PUT (create)
+- [ ] JSON API: POST (update)
+- [ ] JSON API: DELETE
+- [ ] request body tmp stored on disk if larger than N bytes
+- [ ] response body tmp stored on disk if larger than N bytes
 - [ ] HttpInput: must be rewind()able, in order to be used multiple times
       e.g. required for retransmitting a request to multiple upstreams if prior
       failed.
-- [ ] fix (fd) resource leak bug while LB'ing, maybe related to HttpClient::sendAsync()
 - ...
 
 #### proxy: stage 2

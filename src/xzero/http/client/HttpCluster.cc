@@ -51,7 +51,9 @@ HttpCluster::HttpCluster(const std::string& name,
                   4_seconds,                  // backend connect timeout
                   30_seconds,                 // backend response read timeout
                   8_seconds,                  // backend request write timeout
-                  Uri("http://healthcheck/"), // health check test URI
+                  "healthcheck",              // health check Host header value
+                  "/",                        // health check request path
+                  "",                         // health check fcgi script filename
                   4_seconds,                  // health check interval
                   3,                          // health check success threshold
                   {HttpStatus::Ok}) {         // health check success codes
@@ -71,7 +73,9 @@ HttpCluster::HttpCluster(const std::string& name,
                          Duration connectTimeout,
                          Duration readTimeout,
                          Duration writeTimeout,
-                         const Uri& healthCheckUri,
+                         const std::string& healthCheckHostHeader,
+                         const std::string& healthCheckRequestPath,
+                         const std::string& healthCheckFcgiScriptFilename,
                          Duration healthCheckInterval,
                          unsigned healthCheckSuccessThreshold,
                          const std::vector<HttpStatus>& healthCheckSuccessCodes)
@@ -92,7 +96,9 @@ HttpCluster::HttpCluster(const std::string& name,
       shaper_(executor, 0,
               std::bind(&HttpCluster::onTimeout, this, std::placeholders::_1)),
       members_(),
-      healthCheckUri_(healthCheckUri),
+      healthCheckHostHeader_(healthCheckHostHeader),
+      healthCheckRequestPath_(healthCheckRequestPath),
+      healthCheckFcgiScriptFilename_(healthCheckFcgiScriptFilename),
       healthCheckInterval_(healthCheckInterval),
       healthCheckSuccessThreshold_(healthCheckSuccessThreshold),
       healthCheckSuccessCodes_(healthCheckSuccessCodes),
@@ -118,18 +124,18 @@ std::string HttpCluster::configuration() const {
       << "enabled=" << (enabled_ ? "true" : "false") << "\n"
       << "queue-limit=" << queueLimit_ << "\n"
       << "queue-timeout=" << queueTimeout_.seconds() << "\n"
-      //<< "on-client-abort=" << tos(clientAbortAction_) << "\n"
+      //TODO: << "on-client-abort=" << tos(clientAbortAction_) << "\n"
       << "retry-after=" << retryAfter_.seconds() << "\n"
       << "max-retry-count=" << maxRetryCount_ << "\n"
       << "sticky-offline-mode=" << (stickyOfflineMode_ ? "true" : "false") << "\n"
       << "allow-x-sendfile=" << (allowXSendfile_ ? "true" : "false") << "\n"
       << "enqueue-on-unavailable=" << (enqueueOnUnavailable_ ? "true" : "false") << "\n"
-      << "connect-timeout=" << connectTimeout_.seconds() << "\n"
-      << "read-timeout=" << readTimeout_.seconds() << "\n"
-      << "write-timeout=" << writeTimeout_.seconds() << "\n"
-      //<< "health-check-host-header=" << healthCheckHostHeader_ << "\n"
-      //<< "health-check-request-path=" << healthCheckRequestPath_ << "\n"
-      //<< "health-check-fcgi-script-filename=" << healthCheckFcgiScriptFilename_ << "\n"
+      << "connect-timeout=" << connectTimeout_.milliseconds() << "\n"
+      << "read-timeout=" << readTimeout_.milliseconds() << "\n"
+      << "write-timeout=" << writeTimeout_.milliseconds() << "\n"
+      << "health-check-host-header=" << healthCheckHostHeader_ << "\n"
+      << "health-check-request-path=" << healthCheckRequestPath_ << "\n"
+      << "health-check-fcgi-script-filename=" << healthCheckFcgiScriptFilename_ << "\n"
       << "scheduler=" << scheduler()->name() << "\n"
       << "\n";
 
@@ -140,9 +146,9 @@ std::string HttpCluster::configuration() const {
       << "\n"
       << "deliver-shadow=" << (objectCache().deliverShadow() ? "true" : "false")
       << "\n"
-      << "default-ttl=" << objectCache().defaultTTL().seconds() << "\n"
+      << "default-ttl=" << objectCache().defaultTTL().milliseconds() << "\n"
       << "default-shadow-ttl="
-      << objectCache().defaultShadowTTL().seconds() << "\n"
+      << objectCache().defaultShadowTTL().milliseconds() << "\n"
       << "\n";
 #endif
 
@@ -158,7 +164,7 @@ std::string HttpCluster::configuration() const {
         << "capacity=" << b->capacity() << "\n"
         << "enabled=" << (b->isEnabled() ? "true" : "false") << "\n"
         << "protocol=" << b->protocol() << "\n"
-        << "health-check-interval=" << b->healthMonitor()->interval().seconds() << "\n"
+        << "health-check-interval=" << b->healthMonitor()->interval().milliseconds() << "\n"
         << "host=" << b->inetAddress().ip().str() << "\n"
         << "port=" << b->inetAddress().port() << "\n"
         << "\n";
@@ -190,7 +196,7 @@ void HttpCluster::setConfiguration(const std::string& text,
           "director.queue-limit in file '$0'",
           path));
   }
-  queueLimit_ = std::atoll(value.c_str());
+  queueLimit_ = std::stoll(value);
 
   if (!settings.load("director", "queue-timeout", value)) {
     RAISE(RuntimeError, StringUtil::format(
@@ -198,7 +204,7 @@ void HttpCluster::setConfiguration(const std::string& text,
           "director.queue-timeout in file '$0'",
           path));
   }
-  queueTimeout_ = Duration::fromSeconds(std::atoll(value.c_str()));
+  queueTimeout_ = Duration::fromSeconds(std::stoll(value));
 
   if (!settings.load("director", "retry-after", value)) {
     RAISE(RuntimeError, StringUtil::format(
@@ -206,7 +212,7 @@ void HttpCluster::setConfiguration(const std::string& text,
           "director.retry-after in file '$0'",
           path));
   }
-  retryAfter_ = Duration::fromSeconds(std::atoll(value.c_str()));
+  retryAfter_ = Duration::fromSeconds(std::stoll(value));
 
   if (!settings.load("director", "connect-timeout", value)) {
     RAISE(RuntimeError, StringUtil::format(
@@ -214,7 +220,7 @@ void HttpCluster::setConfiguration(const std::string& text,
           "director.connect-timeout in file '%s'",
           path));
   }
-  connectTimeout_ = Duration::fromSeconds(std::atoll(value.c_str()));
+  connectTimeout_ = Duration::fromMilliseconds(std::stoll(value));
 
   if (!settings.load("director", "read-timeout", value)) {
     RAISE(RuntimeError, StringUtil::format(
@@ -222,7 +228,7 @@ void HttpCluster::setConfiguration(const std::string& text,
           "director.read-timeout in file '%s'",
           path));
   }
-  readTimeout_ = Duration::fromSeconds(std::atoll(value.c_str()));
+  readTimeout_ = Duration::fromMilliseconds(std::stoll(value));
 
   if (!settings.load("director", "write-timeout", value)) {
     RAISE(RuntimeError, StringUtil::format(
@@ -230,7 +236,7 @@ void HttpCluster::setConfiguration(const std::string& text,
           "director.write-timeout in file '%s'",
           path));
   }
-  writeTimeout_ = Duration::fromSeconds(std::atoll(value.c_str()));
+  writeTimeout_ = Duration::fromMilliseconds(std::stoll(value));
 
 #if 0
   if (!settings.load("director", "on-client-abort", value)) {
@@ -246,11 +252,10 @@ void HttpCluster::setConfiguration(const std::string& text,
       clientAbortAction_ = t.get();
     } else {
       clientAbortAction_ = ClientAbortAction::Close;
-      worker()->log(
-          Severity::warn,
+      logWarning("HttpCluster",
           "director: Could not load settings value director.on-client-abort  "
-          "in file '%s'. %s Defaulting to '%s'.",
-          path.c_str(), t.errorMessage(), tos(clientAbortAction_).c_str());
+          "in file '$0'. %s Defaulting to '$1'.",
+          path, t.errorMessage(), tos(clientAbortAction_));
       ++changed;
     }
   }
@@ -262,7 +267,7 @@ void HttpCluster::setConfiguration(const std::string& text,
           "director.max-retry-count in file '$0'",
           path));
   }
-  maxRetryCount_ = std::atoll(value.c_str());
+  maxRetryCount_ = std::stoll(value);
 
   if (!settings.load("director", "sticky-offline-mode", value)) {
     RAISE(RuntimeError, StringUtil::format(
@@ -294,7 +299,6 @@ void HttpCluster::setConfiguration(const std::string& text,
     allowXSendfile_ = value == "true";
   }
 
-  std::string healthCheckHostHeader_; // TODO
   if (!settings.load("director", "health-check-host-header",
                      healthCheckHostHeader_)) {
     RAISE(RuntimeError, StringUtil::format(
@@ -303,7 +307,6 @@ void HttpCluster::setConfiguration(const std::string& text,
           path));
   }
 
-  std::string healthCheckRequestPath_; // TODO
   if (!settings.load("director", "health-check-request-path",
                      healthCheckRequestPath_)) {
     RAISE(RuntimeError, StringUtil::format(
@@ -312,7 +315,6 @@ void HttpCluster::setConfiguration(const std::string& text,
           path));
   }
 
-  std::string healthCheckFcgiScriptFilename_; // TODO
   if (!settings.load("director", "health-check-fcgi-script-filename",
                      healthCheckFcgiScriptFilename_)) {
     healthCheckFcgiScriptFilename_ = "";
@@ -375,7 +377,7 @@ void HttpCluster::setConfiguration(const std::string& text,
             path));
       RAISE(RuntimeError, StringUtil::format(
     }
-    objectCache().setDefaultTTL(Duration::fromSeconds(stoi(value)));
+    objectCache().setDefaultTTL(Duration::fromMilliseconds(stoi(value)));
   } else {
     ++changed;
   }
@@ -387,7 +389,7 @@ void HttpCluster::setConfiguration(const std::string& text,
             "in file '$0'",
             path));
     }
-    objectCache().setDefaultShadowTTL(Duration::fromSeconds(stoi(value)));
+    objectCache().setDefaultShadowTTL(Duration::fromMilliseconds(stoi(value)));
   } else {
     ++changed;
   }
@@ -435,7 +437,7 @@ void HttpCluster::loadBackend(const IniFile& settings, const std::string& key) {
           "'capacity' not found in section '$1'.",
           storagePath_, key));
   }
-  size_t capacity = std::atoll(capacityStr.c_str());
+  size_t capacity = std::stoll(capacityStr);
 
   // protocol
   std::string protocol;
@@ -464,7 +466,7 @@ void HttpCluster::loadBackend(const IniFile& settings, const std::string& key) {
           "'health-check-interval' not found in section '$1'.",
           storagePath_, key));
   }
-  Duration hcInterval = Duration::fromSeconds(std::atoll(hcIntervalStr.c_str()));
+  Duration hcInterval = Duration::fromMilliseconds(std::stoll(hcIntervalStr));
 
   // host
   std::string host;
@@ -493,7 +495,7 @@ void HttpCluster::loadBackend(const IniFile& settings, const std::string& key) {
   }
   InetAddress addr(host, port);
 
-  bool terminateProtection = false; // TODO
+  bool terminateProtection = false; // TODO: make configurable
 
   // spawn backend (by protocol)
   addMember(name, addr, capacity, enabled, terminateProtection,
@@ -577,13 +579,15 @@ void HttpCluster::addMember(const std::string& name,
       std::bind(&HttpCluster::onMemberReleased, this,
                 std::placeholders::_1),
       protocol,
-      connectTimeout(),
-      readTimeout(),
-      writeTimeout(),
-      healthCheckUri(),
+      connectTimeout_,
+      readTimeout_,
+      writeTimeout_,
+      healthCheckHostHeader_,
+      healthCheckRequestPath_,
+      healthCheckFcgiScriptFilename_,
       healthCheckInterval,
-      healthCheckSuccessThreshold(),
-      healthCheckSuccessCodes(),
+      healthCheckSuccessThreshold_,
+      healthCheckSuccessCodes_,
       std::bind(&HttpCluster::onBackendHealthStateChanged, this,
                 std::placeholders::_1,
                 std::placeholders::_2));
@@ -668,11 +672,20 @@ void HttpCluster::removeMember(const std::string& name) {
   }
 }
 
-void HttpCluster::setHealthCheckUri(const Uri& value) {
-  healthCheckUri_ = value;
+void HttpCluster::setHealthCheckHostHeader(const std::string& value) {
+  healthCheckHostHeader_ = value;
 
-  for (HttpClusterMember* member: members_)
-    member->healthMonitor()->setTestUrl(value);
+  for (HttpClusterMember* member: members_) {
+    member->healthMonitor()->setHostHeader(value);
+  }
+}
+
+void HttpCluster::setHealthCheckRequestPath(const std::string& value) {
+  healthCheckRequestPath_ = value;
+
+  for (HttpClusterMember* member: members_) {
+    member->healthMonitor()->setRequestPath(value);
+  }
 }
 
 void HttpCluster::setHealthCheckInterval(Duration value) {

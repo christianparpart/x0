@@ -15,7 +15,6 @@
 #include <xzero/executor/Executor.h>
 #include <xzero/CompletionHandler.h>
 #include <xzero/Duration.h>
-#include <xzero/Uri.h>
 #include <xzero/stdtypes.h>
 #include <utility>
 #include <vector>
@@ -34,7 +33,9 @@ class HttpHealthMonitor {
 
   HttpHealthMonitor(Executor* executor,
                     const InetAddress& inetAddress,
-                    const Uri& testUrl,
+                    const std::string& hostHeader,
+                    const std::string& requestPath,
+                    const std::string& fcgiScriptFilename,
                     Duration interval,
                     unsigned successThreshold,
                     const std::vector<HttpStatus>& successCodes,
@@ -45,11 +46,14 @@ class HttpHealthMonitor {
 
   ~HttpHealthMonitor();
 
+  const std::string& hostHeader() const noexcept { return hostHeader_; }
+  void setHostHeader(const std::string& value) { hostHeader_ = value; }
+
+  const std::string& requestPath() const noexcept { return requestPath_; }
+  void setRequestPath(const std::string& value) { requestPath_ = value; }
+
   unsigned successThreshold() const noexcept { return successThreshold_; }
   void setSuccessThreshold(unsigned value) { successThreshold_ = value; }
-
-  const Uri& testUrl() const { return testUrl_; }
-  void setTestUrl(const Uri& value) { testUrl_ = value; }
 
   Duration interval() const { return interval_; }
   void setInterval(const Duration& value) { interval_ = value; }
@@ -92,7 +96,9 @@ class HttpHealthMonitor {
   Executor* executor_;
   Executor::HandleRef timerHandle_;
   InetAddress inetAddress_;
-  Uri testUrl_;
+  std::string hostHeader_;
+  std::string requestPath_;
+  std::string fcgiScriptFilename_;
   Duration interval_;
   std::vector<HttpStatus> successCodes_;
   Duration connectTimeout_;

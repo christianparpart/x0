@@ -44,6 +44,8 @@
 #include <pwd.h>
 #include <grp.h>
 
+#include "sysconfig.h"
+
 namespace x0d {
 
 using namespace xzero;
@@ -53,7 +55,6 @@ using namespace xzero::flow;
 using xzero::http::client::HttpClusterRequest;
 using xzero::http::client::HttpCluster;
 using xzero::http::client::HttpClient;
-
 
 #define TRACE(msg...) logTrace("proxy", msg)
 
@@ -139,7 +140,7 @@ bool ProxyModule::verify_proxy_cluster(xzero::flow::Instr* call) {
   }
 
   std::string path = pathArg->get().empty()
-      ? "/var/tmp/" + nameArg->get() + ".cluster.conf"
+      ? X0D_CLUSTERDIR + nameArg->get() + ".cluster.conf"
       : pathArg->get();
 
   call->setOperand(2, program->get(path));
@@ -162,15 +163,23 @@ void ProxyModule::onPostConfig() {
     std::shared_ptr<HttpCluster> cluster(new HttpCluster(name, path, executor));
 
     if (FileUtil::exists(path)) {
-      logDebug("proxy", "Loading cluster $0 ($1)", name, path);
+      logInfo("proxy", "Loading cluster $0 ($1)", name, path);
       cluster->setConfiguration(FileUtil::read(path).str(), path);
     } else {
-      logDebug("proxy", "Initializing cluster $0 ($1)", name, path);
-      cluster->setHealthCheckUri(Uri("http://xzero.io/hello.txt"));
+      logInfo("proxy", "Initializing cluster $0 ($1)", name, path);
+      cluster->setHealthCheckHostHeader("localhost");
+      cluster->setHealthCheckRequestPath("/");
       cluster->setHealthCheckSuccessCodes({HttpStatus::Ok});
       cluster->setHealthCheckSuccessThreshold(1);
       cluster->setHealthCheckInterval(10_seconds);
-      cluster->addMember(InetAddress("127.0.0.1", 3001), 1);
+      cluster->addMember(
+          "demo1",
+          InetAddress("127.0.0.1", 3001),
+          1, // capacity
+          true, // enabled
+          false, // terminateProtection
+          "http",
+          2_seconds);
       cluster->createBucket("search", 0.3, 0.5);
       cluster->createBucket("main", 0.5, 0.7);
       cluster->setEnabled(true);

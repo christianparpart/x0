@@ -43,6 +43,30 @@ class HttpClusterMember;
 class HttpClusterScheduler;
 class HttpCache;
 
+struct HttpHealthMonitorSettings {
+  std::string hostHeader = "healthMonitor";
+  std::string requestPath = "/";
+  std::string fcgiScriptFilename = "";
+  Duration interval = 4_seconds;
+  unsigned successThreshold = 3;
+  std::vector<HttpStatus> successCodes = {HttpStatus::Ok};
+};
+
+struct HttpClusterSettings {
+  bool enabled = true;
+  bool stickyOfflineMode = false;
+  bool allowXSendfile = true;
+  bool enqueueOnUnavailable = true;
+  size_t queueLimit = 1000;
+  Duration queueTimeout = 30_seconds;
+  Duration retryAfter = 30_seconds;
+  size_t maxRetryCount = 3;
+  Duration connectTimeout = 4_seconds;
+  Duration readTimeout = 30_seconds;
+  Duration writeTimeout = 8_seconds;
+  HttpHealthMonitorSettings healthMonitor;
+};
+
 class HttpCluster {
  public:
   HttpCluster(const std::string& name,
@@ -63,7 +87,9 @@ class HttpCluster {
               Duration connectTimeout,
               Duration readTimeout,
               Duration writeTimeout,
-              const Uri& healthCheckUri,
+              const std::string& healthCheckHostHeader,
+              const std::string& healthCheckRequestPath,
+              const std::string& healthCheckFcgiScriptFilename,
               Duration healthCheckInterval,
               unsigned healthCheckSuccessThreshold,
               const std::vector<HttpStatus>& healthCheckSuccessCodes);
@@ -167,8 +193,11 @@ class HttpCluster {
   void removeMember(const std::string& name);
 
   // // .... FIXME: proper API namespacing. maybe cluster->healthMonitor()->{testUri, interval, consecutiveSuccessCount, ...}
-  const Uri& healthCheckUri() const noexcept { return healthCheckUri_; }
-  void setHealthCheckUri(const Uri& uri);
+  const std::string& healthCheckHostHeader() const noexcept { return healthCheckHostHeader_; }
+  void setHealthCheckHostHeader(const std::string& value);
+
+  const std::string& healthCheckRequestPath() const noexcept { return healthCheckRequestPath_; }
+  void setHealthCheckRequestPath(const std::string& value);
 
   Duration healthCheckInterval() const noexcept { return healthCheckInterval_; }
   void setHealthCheckInterval(Duration value);
@@ -284,7 +313,9 @@ class HttpCluster {
   std::vector<HttpClusterMember*> members_;
 
   // health check: test URL
-  Uri healthCheckUri_;
+  std::string healthCheckHostHeader_;
+  std::string healthCheckRequestPath_;
+  std::string healthCheckFcgiScriptFilename_;
 
   // health-check: test interval
   Duration healthCheckInterval_;

@@ -33,7 +33,9 @@ namespace client {
 
 HttpHealthMonitor::HttpHealthMonitor(Executor* executor,
                                      const InetAddress& inetAddress,
-                                     const Uri& testUrl,
+                                     const std::string& hostHeader,
+                                     const std::string& requestPath,
+                                     const std::string& fcgiScriptFilename,
                                      Duration interval,
                                      unsigned successThreshold,
                                      const std::vector<HttpStatus>& successCodes,
@@ -44,7 +46,9 @@ HttpHealthMonitor::HttpHealthMonitor(Executor* executor,
     : executor_(executor),
       timerHandle_(),
       inetAddress_(inetAddress),
-      testUrl_(testUrl),
+      hostHeader_(hostHeader),
+      requestPath_(requestPath),
+      fcgiScriptFilename_(fcgiScriptFilename),
       interval_(interval),
       successCodes_(successCodes),
       connectTimeout_(connectTimeout),
@@ -161,9 +165,9 @@ void HttpHealthMonitor::onConnected(const RefPtr<EndPoint>& ep) {
 
   HttpRequestInfo requestInfo(HttpVersion::VERSION_1_1,
                               HttpMethod::GET,
-                              testUrl_.pathAndQuery(),
+                              requestPath_,
                               requestBody.size(),
-                              { {"Host", testUrl_.hostAndPort()},
+                              { {"Host", hostHeader_},
                                 {"User-Agent", "HttpHealthMonitor"} } );
 
   client_->send(std::move(requestInfo), requestBody);
