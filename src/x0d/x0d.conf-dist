@@ -14,7 +14,7 @@ setup {
 main {
   if req.path == '/favicon.ico' {
     expire 30 mins;
-    respond 404;
+    return 404;
   }
 
   # the directory to serve content from
