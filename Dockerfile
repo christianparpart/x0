@@ -45,17 +45,14 @@ RUN apt-get install -y \
         make cmake clang++-3.5 libssl-dev zlib1g-dev libbz2-dev pkg-config \
         libpcre3-dev libfcgi-dev libgoogle-perftools-dev libtbb-dev \
         libpam-dev libgtest-dev ninja-build && \
-    apt-get autoremove -y \
+    apt-get autoremove -y && \
     rm -rf /usr/src
 
 ENV DOCROOT "/var/www"
 ENV PORT 80
 
-VOLUME ["/etc/x0d"]
-VOLUME ["/var/lib/x0d"]
-VOLUME ["/var/log/x0d"]
-
 ADD docker-x0d.conf /etc/x0d/x0d.conf
+VOLUME /etc/x0d /var/www /var/lib/x0d /var/log/x0d
 
 ENTRYPOINT ["/usr/bin/x0d"]
 CMD ["--log-target=console", "--log-level=info"]
