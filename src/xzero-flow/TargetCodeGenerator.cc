@@ -542,14 +542,19 @@ void TargetCodeGenerator::visit(MatchInstr& instr) {
 
 void TargetCodeGenerator::visit(CastInstr& instr) {
   // map of (target, source, opcode)
-  static const std::unordered_map<FlowType,
-                                  std::unordered_map<FlowType, Opcode>> map =
-      {{FlowType::String,
-        {{FlowType::Number, Opcode::I2S},
-         {FlowType::IPAddress, Opcode::P2S},
-         {FlowType::Cidr, Opcode::C2S},
-         {FlowType::RegExp, Opcode::R2S}, }},
-       {FlowType::Number, {{FlowType::String, Opcode::I2S}, }}, };
+  static const std::unordered_map<
+      FlowType,
+      std::unordered_map<FlowType, Opcode>> map = {
+        {FlowType::String, {
+          {FlowType::Number, Opcode::I2S},
+          {FlowType::IPAddress, Opcode::P2S},
+          {FlowType::Cidr, Opcode::C2S},
+          {FlowType::RegExp, Opcode::R2S},
+        }},
+        {FlowType::Number, {
+          {FlowType::String, Opcode::S2I},
+        }},
+      };
 
   // just alias same-type casts
   if (instr.type() == instr.source()->type()) {
