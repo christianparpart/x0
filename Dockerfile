@@ -22,7 +22,31 @@ RUN apt-get -qq update && apt-get -qqy dist-upgrade
 # }}}
 
 ADD . /usr/src/x0
-RUN /usr/src/x0/bin/build.sh
+
+RUN apt-get install -y \
+        make cmake clang++-3.5 libssl-dev zlib1g-dev libbz2-dev pkg-config \
+        libpcre3-dev libfcgi-dev libgoogle-perftools-dev libtbb-dev \
+        libpam-dev libgtest-dev ninja-build && \
+    apt-get install -y libssl1.0.0 zlib1g libbz2-1.0 libpcre3 libtbb2 \
+        libpam0g && \
+    cd /usr/src/gtest && cmake . && make && \
+        cp -vpi libgtest*.a /usr/local/lib/ && \
+    cd /usr/src/x0 && cmake -GNinja \
+        -DCMAKE_BUILD_TYPE=release \
+        -DCMAKE_C_COMPILER=/usr/bin/clang-3.5 \
+        -DCMAKE_CXX_COMPILER=/usr/bin/clang++-3.5 \
+        -DX0D_CLUSTERDIR=/var/lib/x0d \
+        -DX0D_LOGDIR=/var/log/x0d \
+        -DX0D_TMPDIR=/tmp && \
+    ninja && \
+    mkdir -p /etc/x0d /var/log/x0d /var/lib/x0d /var/www && \
+    cp src/x0d/x0d /usr/bin/x0d && \
+    apt-get purge -y \
+        make cmake clang++-3.5 libssl-dev zlib1g-dev libbz2-dev pkg-config \
+        libpcre3-dev libfcgi-dev libgoogle-perftools-dev libtbb-dev \
+        libpam-dev libgtest-dev ninja-build && \
+    apt-get autoremove -y \
+    rm -rf /usr/src
 
 ENV DOCROOT "/var/www"
 ENV PORT 80
