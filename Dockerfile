@@ -29,4 +29,4 @@ VOLUME ["/var/lib/x0d"]
 VOLUME ["/var/log/x0d"]
 
 ENTRYPOINT ["/usr/bin/x0d"]
-CMD ["--config=/etc/xzero/x0d.conf", "--log-target=console", "--log-level=info"]
+CMD ["--log-target=console", "--log-level=info"]
