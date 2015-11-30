@@ -7,11 +7,12 @@
 
 #include <xzero/JsonWriter.h>
 #include <xzero/Buffer.h>
+#include <atomic>
 
 namespace xzero {
 
-JsonWriter::JsonWriter(Buffer& output)
-    : output_(output),
+JsonWriter::JsonWriter(Buffer* output)
+    : output_(*output),
       stack_() {
 }
 
@@ -107,99 +108,119 @@ JsonWriter& JsonWriter::endArray() {
   return *this;
 }
 
-JsonWriter& operator<<(JsonWriter& json, bool value) {
-  json.preValue();
-  json.buffer() << (value ? "true" : "false");
-  json.postValue();
-  return json;
+template<>
+JsonWriter& JsonWriter::value(const bool& value) {
+  preValue();
+  buffer() << (value ? "true" : "false");
+  postValue();
+  return *this;
 }
 
-JsonWriter& operator<<(JsonWriter& json, char value) {
-  json.preValue();
-  json.buffer() << '"' << value << '"';
-  json.postValue();
-  return json;
+template<>
+JsonWriter& JsonWriter::value(const char& value) {
+  preValue();
+  buffer() << '"' << value << '"';
+  postValue();
+  return *this;
 }
 
-JsonWriter& operator<<(JsonWriter& json, int value) {
-  json.preValue();
-  json.buffer() << value;
-  json.postValue();
-  return json;
+template<>
+JsonWriter& JsonWriter::value(const int& value) {
+  preValue();
+  buffer() << value;
+  postValue();
+  return *this;
 }
 
-JsonWriter& operator<<(JsonWriter& json, long value) {
-  json.preValue();
-  json.buffer() << value;
-  json.postValue();
-  return json;
+template<>
+JsonWriter& JsonWriter::value(const long& value) {
+  preValue();
+  buffer() << value;
+  postValue();
+  return *this;
 }
 
-JsonWriter& operator<<(JsonWriter& json, long long value) {
-  json.preValue();
-  json.buffer() << value;
-  json.postValue();
-  return json;
+template<>
+JsonWriter& JsonWriter::value(const long long& value) {
+  preValue();
+  buffer() << value;
+  postValue();
+  return *this;
 }
 
-JsonWriter& operator<<(JsonWriter& json, unsigned int value) {
-  json.preValue();
-  json.buffer() << value;
-  json.postValue();
-  return json;
+template<>
+JsonWriter& JsonWriter::value(const unsigned int& value) {
+  preValue();
+  buffer() << value;
+  postValue();
+  return *this;
 }
 
-JsonWriter& operator<<(JsonWriter& json, unsigned long value) {
-  json.preValue();
-  json.buffer() << value;
-  json.postValue();
-  return json;
+template<>
+JsonWriter& JsonWriter::value(const unsigned long& value) {
+  preValue();
+  buffer() << value;
+  postValue();
+  return *this;
 }
 
-JsonWriter& operator<<(JsonWriter& json, unsigned long long value) {
-  json.preValue();
-  json.buffer() << value;
-  json.postValue();
-  return json;
+template<>
+JsonWriter& JsonWriter::value(const unsigned long long& value) {
+  preValue();
+  buffer() << value;
+  postValue();
+  return *this;
 }
 
-JsonWriter& operator<<(JsonWriter& json, float value) {
-  json.preValue();
+template<>
+JsonWriter& JsonWriter::value(const float& value) {
+  preValue();
 
   char buf[128];
   ssize_t n = snprintf(buf, sizeof(buf), "%f", value);
-  json.buffer().push_back(buf, n);
+  buffer().push_back(buf, n);
 
-  json.postValue();
-  return json;
+  postValue();
+  return *this;
 }
 
-JsonWriter& operator<<(JsonWriter& json, const std::string& value) {
-  json.preValue();
-  json.buffer() << '"' << value << '"';
-  json.postValue();
-  return json;
+template<>
+JsonWriter& JsonWriter::value(const std::string& value) {
+  preValue();
+  buffer() << '"' << value << '"';
+  postValue();
+  return *this;
 }
 
-JsonWriter& operator<<(JsonWriter& json, const Buffer& value) {
-  json.preValue();
-  json.buffer() << '"' << value << '"';
-  json.postValue();
-  return json;
+template<>
+JsonWriter& JsonWriter::value(const Buffer& value) {
+  preValue();
+  buffer() << '"' << value << '"';
+  postValue();
+  return *this;
 }
 
-JsonWriter& operator<<(JsonWriter& json, const BufferRef& value) {
-  json.preValue();
-  json.buffer() << '"' << value << '"';
-  json.postValue();
-  return json;
+template<>
+JsonWriter& JsonWriter::value(const BufferRef& value) {
+  preValue();
+  buffer() << '"' << value << '"';
+  postValue();
+  return *this;
 }
 
-JsonWriter& operator<<(JsonWriter& json, const char* value) {
-  json.preValue();
-  json.buffer() << '"' << value << '"';
-  json.postValue();
-  return json;
+// template<>
+// JsonWriter& JsonWriter::value(const char* value) {
+//   buffer() << '"' << value << '"';
+//   postValue();
+//   return *this;
+// }
+
+template<>
+JsonWriter& JsonWriter::value(const std::atomic<unsigned long long>& value) {
+  preValue();
+  buffer() << value.load();
+  postValue();
+  return *this;
 }
 
 }  // namespace xzero

@@ -73,7 +73,7 @@ class JsonWriter {
   void dumpStack();
 
  public:
-  explicit JsonWriter(Buffer& output);
+  explicit JsonWriter(Buffer* output);
 
   Buffer& buffer() const { return output_; }
 
@@ -86,33 +86,15 @@ class JsonWriter {
   JsonWriter& endArray();
 
   template <typename T>
-  JsonWriter& operator()(const T& value) {
-    *this << value;
-    return *this;
+  JsonWriter& operator()(const T& v) {
+    return value(v);
   }
 
   template <typename T>
-  JsonWriter& value(const T& _value) {
-    *this << _value;
-    return *this;
-  }
+  JsonWriter& value(const T& _value);
 
   void preValue();
   void postValue();
 };
-
-JsonWriter& operator<<(xzero::JsonWriter& json, bool value);
-JsonWriter& operator<<(xzero::JsonWriter& json, char value);
-JsonWriter& operator<<(xzero::JsonWriter& json, int value);
-JsonWriter& operator<<(xzero::JsonWriter& json, long value);
-JsonWriter& operator<<(xzero::JsonWriter& json, long long value);
-JsonWriter& operator<<(xzero::JsonWriter& json, unsigned int value);
-JsonWriter& operator<<(xzero::JsonWriter& json, unsigned long value);
-JsonWriter& operator<<(xzero::JsonWriter& json, unsigned long long value);
-JsonWriter& operator<<(xzero::JsonWriter& json, float value);
-JsonWriter& operator<<(xzero::JsonWriter& json, const std::string& value);
-JsonWriter& operator<<(xzero::JsonWriter& json, const Buffer& value);
-JsonWriter& operator<<(xzero::JsonWriter& json, const BufferRef& value);
-JsonWriter& operator<<(xzero::JsonWriter& json, const char* value);
 
 }  // namespace xzero
