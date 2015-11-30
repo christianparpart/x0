@@ -159,35 +159,8 @@ void ProxyModule::onPostConfig() {
     TRACE("clusterInit: $0", init.first);
     std::string name = init.first;
     std::string path = init.second;
-    Executor* executor = daemon().selectClientScheduler();
 
-    std::unique_ptr<HttpCluster> cluster(new HttpCluster(name, path, executor));
-
-    if (FileUtil::exists(path)) {
-      logInfo("proxy", "Loading cluster $0 ($1)", name, path);
-      cluster->setConfiguration(FileUtil::read(path).str(), path);
-    } else {
-      logInfo("proxy", "Initializing cluster $0 ($1)", name, path);
-      cluster->setHealthCheckHostHeader("localhost");
-      cluster->setHealthCheckRequestPath("/");
-      cluster->setHealthCheckSuccessCodes({HttpStatus::Ok});
-      cluster->setHealthCheckSuccessThreshold(1);
-      cluster->setHealthCheckInterval(10_seconds);
-      cluster->addMember(
-          "demo1",
-          InetAddress("127.0.0.1", 3001),
-          1, // capacity
-          true, // enabled
-          false, // terminateProtection
-          "http",
-          2_seconds);
-      cluster->createBucket("search", 0.3, 0.5);
-      cluster->createBucket("main", 0.5, 0.7);
-      cluster->setEnabled(true);
-      cluster->saveConfiguration();
-    }
-
-    createCluster(std::move(cluster));
+    createCluster(name, path);
   }
   clusterInit_.clear();
 }
@@ -447,10 +420,38 @@ HttpCluster* ProxyModule::findCluster(const std::string& name) {
   return i != clusterMap_.end() ? i->second.get() : nullptr;
 }
 
-void ProxyModule::createCluster(std::unique_ptr<HttpCluster> instance) {
+HttpCluster* ProxyModule::createCluster(const std::string& name,
+                                        const std::string& path) {
   // TODO: unordered_map is not thread-safe
-  clusterMap_[instance->name()] =
-      std::shared_ptr<HttpCluster>(instance.release());
+
+  Executor* executor = daemon().selectClientScheduler();
+  std::shared_ptr<HttpCluster> cluster(new HttpCluster(name, path, executor));
+  clusterMap_[name] = cluster;
+
+  if (FileUtil::exists(path)) {
+    logInfo("proxy", "Loading cluster $0 ($1)", name, path);
+    cluster->setConfiguration(FileUtil::read(path).str(), path);
+  } else {
+    // TODO: remove after code bootstrap
+    logInfo("proxy", "Initializing cluster $0 ($1)", name, path);
+    cluster->setHealthCheckHostHeader("localhost");
+    cluster->setHealthCheckRequestPath("/");
+    cluster->setHealthCheckSuccessCodes({HttpStatus::Ok});
+    cluster->setHealthCheckSuccessThreshold(1);
+    cluster->setHealthCheckInterval(10_seconds);
+    cluster->addMember(
+        "demo1",
+        InetAddress("127.0.0.1", 3001),
+        1, // capacity
+        true, // enabled
+        false, // terminateProtection
+        "http",
+        2_seconds);
+    cluster->createBucket("search", 0.3, 0.5);
+    cluster->createBucket("main", 0.5, 0.7);
+    cluster->saveConfiguration();
+  }
+  return cluster.get();
 }
 
 void ProxyModule::destroyCluster(const std::string& name) {

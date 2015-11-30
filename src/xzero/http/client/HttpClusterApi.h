@@ -32,7 +32,8 @@ class HttpClusterApi {
   virtual HttpCluster* findCluster(const std::string& name) = 0;
 
   // creates a new cluster
-  virtual void createCluster(std::unique_ptr<HttpCluster> instance) = 0;
+  virtual HttpCluster* createCluster(const std::string& name,
+                                     const std::string& path) = 0;
 
   // destroys a cluster
   virtual void destroyCluster(const std::string& name) = 0;

@@ -47,7 +47,7 @@ class ProxyModule : public XzeroModule,
   // HttpClusterApi overrides
   std::list<xzero::http::client::HttpCluster*> listCluster() override;
   xzero::http::client::HttpCluster* findCluster(const std::string& name) override;
-  void createCluster(std::unique_ptr<xzero::http::client::HttpCluster> instance) override;
+  xzero::http::client::HttpCluster* createCluster(const std::string& name, const std::string& path) override;
   void destroyCluster(const std::string& name) override;
 
  private:

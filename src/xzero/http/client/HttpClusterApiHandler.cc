@@ -217,7 +217,7 @@ void HttpClusterApiHandler::processCluster() {
 }
 
 void HttpClusterApiHandler::createCluster(const std::string& name) {
-  // TODO
+  api_->createCluster(name, "");
 }
 
 // GET /:director
