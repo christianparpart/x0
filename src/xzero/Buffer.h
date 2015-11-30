@@ -818,6 +818,15 @@ inline bool BufferBase<T>::ibegins(const value_type* value) const {
 }
 
 template <typename T>
+inline bool BufferBase<T>::ibegins(const BufferRef& value) const {
+  if (value.empty())
+    return true;
+
+  size_t len = value.size();
+  return len <= size() && strncasecmp(data(), value.data(), len) == 0;
+}
+
+template <typename T>
 inline bool BufferBase<T>::ends(const BufferRef& value) const {
   if (value.empty()) return true;
 
