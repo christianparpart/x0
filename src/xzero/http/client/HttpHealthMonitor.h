@@ -22,6 +22,7 @@
 namespace xzero {
 
 class InetEndPoint;
+class JsonWriter;
 
 namespace http {
 namespace client {
@@ -79,6 +80,8 @@ class HttpHealthMonitor {
   bool isOnline() const { return state_ == State::Online; }
 
   void setState(State value);
+
+  void serialize(JsonWriter& json) const;
 
  private:
   void start();

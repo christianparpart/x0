@@ -1,6 +1,8 @@
 #include <xzero/http/client/HttpClusterRequest.h>
 #include <xzero/http/client/HttpClusterMember.h>
 #include <xzero/MonotonicClock.h>
+#include <xzero/TokenShaper.h>
+#include <xzero/JsonWriter.h>
 #include <xzero/logging.h>
 #include <assert.h>
 
@@ -70,6 +72,21 @@ void HttpClusterRequest::onProtocolError(HttpStatus code,
   responseListener->onProtocolError(code, message);
 }
 
-} // namespace http
 } // namespace client
+} // namespace http
+
+template <>
+JsonWriter& JsonWriter::value(
+    TokenShaper<http::client::HttpClusterRequest> const& value) {
+  value.writeJSON(*this);
+  return *this;
+}
+
+template <>
+JsonWriter& JsonWriter::value(
+    typename TokenShaper<http::client::HttpClusterRequest>::Node const& value) {
+  value.writeJSON(*this);
+  return *this;
+}
+
 } // namespace xzero

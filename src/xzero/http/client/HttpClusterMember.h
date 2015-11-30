@@ -26,7 +26,7 @@
 namespace xzero {
 
 class Executor;
-class InputStream;
+class JsonWriter;
 
 namespace http {
 namespace client {
@@ -85,6 +85,8 @@ public:
 
   HttpClusterSchedulerStatus tryProcess(HttpClusterRequest* cr);
   void release();
+
+  void serialize(JsonWriter& json) const;
 
 private:
   bool process(HttpClusterRequest* cr);

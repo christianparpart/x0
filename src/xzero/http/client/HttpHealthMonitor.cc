@@ -197,15 +197,20 @@ void HttpHealthMonitor::onResponseReceived(HttpClient* client) {
   logSuccess();
 }
 
-JsonWriter& operator<<(JsonWriter& json, const HttpHealthMonitor& monitor) {
+void HttpHealthMonitor::serialize(JsonWriter& json) const {
   json.beginObject()
-      .name("state")(StringUtil::toString(monitor.state()))
-      .name("interval")(monitor.interval().milliseconds())
+      .name("state")(StringUtil::toString(state()))
+      .name("interval")(interval().milliseconds())
       .endObject();
-
-  return json;
 }
 
 } // namespace client
 } // namespace http
+
+template<>
+JsonWriter& JsonWriter::value(const http::client::HttpHealthMonitor& monitor) {
+  monitor.serialize(*this);
+  return *this;
+}
+
 } // namespace xzero

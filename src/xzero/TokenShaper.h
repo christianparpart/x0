@@ -745,20 +745,4 @@ void TokenShaper<T>::Node::onTimeout() {
 }
 // }}}
 
-// {{{ JsonWriter
-template <typename T>
-inline JsonWriter& operator<<(JsonWriter& json,
-                              const TokenShaper<T>& value) {
-  value.writeJSON(json);
-  return json;
-}
-
-template <typename T>
-inline JsonWriter& operator<<(JsonWriter& json,
-                              const typename TokenShaper<T>::Node& value) {
-  value.writeJSON(json);
-  return json;
-}
-// }}}
-
 }  // namespace xzero

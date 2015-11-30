@@ -597,6 +597,8 @@ void HttpCluster::addMember(const std::string& name,
 }
 
 void HttpCluster::onBackendEnabledChanged(HttpClusterMember* backend) {
+  logDebug("HttpCluster", "onBackendEnabledChanged: $0 $1",
+        backend->name(), backend->isEnabled() ? "enabled" : "disabled");
   TRACE("onBackendEnabledChanged: $0 $1",
         backend->name(), backend->isEnabled() ? "enabled" : "disabled");
 
@@ -608,6 +610,12 @@ void HttpCluster::onBackendEnabledChanged(HttpClusterMember* backend) {
 
 void HttpCluster::onBackendHealthStateChanged(HttpClusterMember* backend,
                                         HttpHealthMonitor::State oldState) {
+  logDebug("HttpCluster",
+        "onBackendHealthStateChanged: health=$0 -> $1, enabled=$2",
+        oldState,
+        backend->healthMonitor()->state(),
+        backend->isEnabled());
+
   TRACE("onBackendHealthStateChanged: health=$0 -> $1, enabled=$2",
         oldState,
         backend->healthMonitor()->state(),
@@ -811,7 +819,7 @@ void HttpCluster::serviceUnavailable(HttpClusterRequest* cr, HttpStatus status) 
 
   if (retryAfter() != Duration::Zero) {
     char value[64];
-    int vs = snprintf(value, sizeof(value), "%llu", retryAfter().seconds());
+    int vs = snprintf(value, sizeof(value), "%lu", retryAfter().seconds());
     cr->onMessageHeader(
         BufferRef("Retry-After"), BufferRef(value, vs));
   }
@@ -927,12 +935,12 @@ void HttpCluster::serialize(JsonWriter& json) const {
 #if defined(ENABLE_DIRECTOR_CACHE)
       .name("cache")(*objectCache_)
 #endif
-      // TODO: .name("shaper")(shaper_)
+      .name("shaper")(shaper_)
       .beginArray("members");
 
-  // TODO for (auto& member: members_) {
-  //   json.value(*member);
-  // }
+  for (auto& member: members_) {
+    json.value(*member);
+  }
 
   json.endArray();
   json.endObject();

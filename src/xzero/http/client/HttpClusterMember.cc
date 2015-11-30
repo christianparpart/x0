@@ -2,6 +2,7 @@
 #include <xzero/http/client/HttpClusterRequest.h>
 #include <xzero/http/client/HttpHealthMonitor.h>
 #include <xzero/net/InetEndPoint.h>
+#include <xzero/JsonWriter.h>
 #include <xzero/logging.h>
 
 namespace xzero {
@@ -204,6 +205,29 @@ void HttpClusterMember::onResponseReceived2(HttpClusterRequest* cr,
   onResponseReceived(cr, *client);
 }
 
+void HttpClusterMember::serialize(JsonWriter& json) const {
+  json.beginObject()
+      .name("name")(name_)
+      .name("capacity")(capacity_)
+      .name("terminate-protection")(terminateProtection_)
+      .name("enabled")(enabled_)
+      .name("protocol")(protocol())
+      .name("hostname")(inetAddress_.ip().str())
+      .name("port")(inetAddress_.port())
+      .beginObject("stats")
+        .name("load")(load_)
+      .endObject()
+      .name("health")(*healthMonitor_)
+      .endObject();
+}
+
 } // namespace client
 } // namespace http
+
+template<>
+JsonWriter& JsonWriter::value(const http::client::HttpClusterMember& member) {
+  member.serialize(*this);
+  return *this;
+}
+
 } // namespace xzero
