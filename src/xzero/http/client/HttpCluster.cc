@@ -6,6 +6,7 @@
 #include <xzero/io/InputStream.h>
 #include <xzero/io/FileUtil.h>
 #include <xzero/text/IniFile.h>
+#include <xzero/JsonWriter.h>
 #include <xzero/logging.h>
 #include <algorithm>
 #include <sstream>
@@ -898,6 +899,52 @@ void HttpCluster::onTimeout(HttpClusterRequest* cr) {
     serviceUnavailable(cr, HttpStatus::GatewayTimeout);
   });
 }
+
+void HttpCluster::serialize(JsonWriter& json) const {
+  json.beginObject()
+      .name("mutable")(isMutable())
+      .name("enabled")(isEnabled())
+      .name("queue-limit")(queueLimit_)
+      .name("queue-timeout")(queueTimeout_.milliseconds())
+      // TODO .name("on-client-abort")(tos(clientAbortAction()))
+      .name("retry-after")(retryAfter_.seconds())
+      .name("max-retry-count")(maxRetryCount_)
+      .name("sticky-offline-mode")(stickyOfflineMode_)
+      .name("allow-x-sendfile")(allowXSendfile_)
+      .name("enqueue-on-unavailable")(enqueueOnUnavailable_)
+      .name("connect-timeout")(connectTimeout_.milliseconds())
+      .name("read-timeout")(readTimeout_.milliseconds())
+      .name("write-timeout")(writeTimeout_.milliseconds())
+      .name("health-check-host-header")(healthCheckHostHeader_)
+      .name("health-check-request-path")(healthCheckRequestPath_)
+      .name("health-check-fcgi-script-name")(healthCheckFcgiScriptFilename_)
+      .name("scheduler")(scheduler()->name())
+      .beginObject("stats")
+        .name("load")(load_)
+        .name("queued")(queued_)
+        .name("dropped")(dropped_.load())
+      .endObject()
+#if defined(ENABLE_DIRECTOR_CACHE)
+      .name("cache")(*objectCache_)
+#endif
+      // TODO: .name("shaper")(shaper_)
+      .beginArray("members");
+
+  // TODO for (auto& member: members_) {
+  //   json.value(*member);
+  // }
+
+  json.endArray();
+  json.endObject();
+}
+
 } // namespace client
 } // namespace http
+
+template<>
+JsonWriter& JsonWriter::value(const http::client::HttpCluster& cluster) {
+  cluster.serialize(*this);
+  return *this;
+}
+
 } // namespace xzero

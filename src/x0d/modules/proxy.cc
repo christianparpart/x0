@@ -16,13 +16,13 @@
 #include "XzeroContext.h"
 #include <xzero/http/client/HttpCluster.h>
 #include <xzero/http/client/HttpClusterRequest.h>
+#include <xzero/http/client/HttpClusterApiHandler.h>
 #include <xzero/http/client/HttpClient.h>
 #include <xzero/http/HttpRequest.h>
 #include <xzero/http/HttpResponse.h>
 #include <xzero/io/FileUtil.h>
 #include <xzero/io/BufferInputStream.h>
 #include <xzero/net/InetEndPoint.h>
-#include <xzero/io/FileUtil.h>
 #include <xzero/WallClock.h>
 #include <xzero/StringUtil.h>
 #include <xzero/RuntimeError.h>
@@ -52,6 +52,7 @@ using namespace xzero;
 using namespace xzero::http;
 using namespace xzero::flow;
 
+using xzero::http::client::HttpClusterApiHandler;
 using xzero::http::client::HttpClusterRequest;
 using xzero::http::client::HttpCluster;
 using xzero::http::client::HttpClient;
@@ -140,7 +141,7 @@ bool ProxyModule::verify_proxy_cluster(xzero::flow::Instr* call) {
   }
 
   std::string path = pathArg->get().empty()
-      ? X0D_CLUSTERDIR + nameArg->get() + ".cluster.conf"
+      ? FileUtil::joinPaths(X0D_CLUSTERDIR, nameArg->get() + ".cluster.conf")
       : pathArg->get();
 
   call->setOperand(2, program->get(path));
@@ -160,7 +161,7 @@ void ProxyModule::onPostConfig() {
     std::string path = init.second;
     Executor* executor = daemon().selectClientScheduler();
 
-    std::shared_ptr<HttpCluster> cluster(new HttpCluster(name, path, executor));
+    std::unique_ptr<HttpCluster> cluster(new HttpCluster(name, path, executor));
 
     if (FileUtil::exists(path)) {
       logInfo("proxy", "Loading cluster $0 ($1)", name, path);
@@ -186,7 +187,7 @@ void ProxyModule::onPostConfig() {
       cluster->saveConfiguration();
     }
 
-    clusterMap_[name] = cluster;
+    createCluster(std::move(cluster));
   }
   clusterInit_.clear();
 }
@@ -314,7 +315,12 @@ bool ProxyModule::proxy_pass(XzeroContext* cx, xzero::flow::vm::Params& args) {
 }
 
 bool ProxyModule::proxy_api(XzeroContext* cx, xzero::flow::vm::Params& args) {
-  return false; // TODO
+  FlowString prefix = args.getString(1);
+
+  HttpClusterApiHandler* handler = cx->setCustomData<HttpClusterApiHandler>(
+      this, this, cx->request(), cx->response(), prefix);
+
+  return handler->run();
 }
 
 bool ProxyModule::proxy_fcgi(XzeroContext* cx, xzero::flow::vm::Params& args) {
@@ -424,6 +430,35 @@ void ProxyModule::addVia(const HttpRequestInfo* in, HttpResponse* out) {
   // RFC 7230, section 5.7.1: makes it clear, that we put ourselfs into the
   // front of the Via-list.
   out->headers().prepend("Via", buf);
+}
+
+std::list<HttpCluster*> ProxyModule::listCluster() {
+  // TODO: unordered_map is not thread-safe
+  std::list<HttpCluster*> result;
+  for (auto& cluster: clusterMap_)
+    result.push_back(cluster.second.get());
+
+  return result;
+}
+
+HttpCluster* ProxyModule::findCluster(const std::string& name) {
+  // TODO: unordered_map is not thread-safe
+  auto i = clusterMap_.find(name);
+  return i != clusterMap_.end() ? i->second.get() : nullptr;
+}
+
+void ProxyModule::createCluster(std::unique_ptr<HttpCluster> instance) {
+  // TODO: unordered_map is not thread-safe
+  clusterMap_[instance->name()] =
+      std::shared_ptr<HttpCluster>(instance.release());
+}
+
+void ProxyModule::destroyCluster(const std::string& name) {
+  // TODO: naive implementation must be thread-safe
+  auto i = clusterMap_.find(name);
+  if (i != clusterMap_.end()) {
+    clusterMap_.erase(i);
+  }
 }
 
 bool ProxyModule::proxy_haproxy_monitor(XzeroContext* cx, xzero::flow::vm::Params& args) {

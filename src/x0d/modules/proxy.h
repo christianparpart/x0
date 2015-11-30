@@ -9,6 +9,7 @@
 
 #include "XzeroModule.h"
 #include <xzero/logging.h>
+#include <xzero/http/client/HttpClusterApi.h>
 #include <xzero-flow/AST.h>
 #include <xzero-flow/ir/Instr.h>
 
@@ -30,7 +31,8 @@ namespace xzero {
 
 namespace x0d {
 
-class ProxyModule : public XzeroModule {
+class ProxyModule : public XzeroModule,
+                    public xzero::http::client::HttpClusterApi {
  public:
   explicit ProxyModule(XzeroDaemon* d);
   ~ProxyModule();
@@ -41,6 +43,12 @@ class ProxyModule : public XzeroModule {
   void addVia(XzeroContext* cx);
   void addVia(const xzero::http::HttpRequestInfo* in,
               xzero::http::HttpResponse* out);
+
+  // HttpClusterApi overrides
+  std::list<xzero::http::client::HttpCluster*> listCluster() override;
+  xzero::http::client::HttpCluster* findCluster(const std::string& name) override;
+  void createCluster(std::unique_ptr<xzero::http::client::HttpCluster> instance) override;
+  void destroyCluster(const std::string& name) override;
 
  private:
   // setup functions

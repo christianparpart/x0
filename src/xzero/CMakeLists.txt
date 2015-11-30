@@ -237,6 +237,7 @@ set(xzero_base_SRC
   http/client/HttpTransport.cc
   http/client/Http1Connection.cc
   http/client/HttpCluster.cc
+  http/client/HttpClusterApiHandler.cc
   http/client/HttpClusterMember.cc
   http/client/HttpClusterRequest.cc
   http/client/HttpClusterScheduler.cc

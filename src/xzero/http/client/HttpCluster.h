@@ -32,6 +32,7 @@ namespace xzero {
 class InputStream;
 class Executor;
 class IniFile;
+class JsonWriter;
 
 namespace http {
 
@@ -244,6 +245,8 @@ class HttpCluster {
    */
   void schedule(HttpClusterRequest* cr, Bucket* bucket);
 
+  void serialize(JsonWriter& json) const;
+
  private:
   void reschedule(HttpClusterRequest* cr);
   void serviceUnavailable(HttpClusterRequest* cr, HttpStatus status = HttpStatus::ServiceUnavailable);
@@ -258,7 +261,6 @@ class HttpCluster {
   void onMemberReleased(HttpClusterMember* member);
   void loadBackend(const IniFile& settings, const std::string& key);
   void loadBucket(const IniFile& settings, const std::string& key);
-
 
  private:
   // cluster's human readable representative name.
