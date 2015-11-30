@@ -65,14 +65,15 @@ void Counter::decrement(size_t n) {
   current_ -= n;
 }
 
-JsonWriter& operator<<(JsonWriter& json, const Counter& counter) {
-  json.beginObject()
-      .name("current")(counter.current())
-      .name("max")(counter.max())
-      .name("total")(counter.total())
-      .endObject();
+template<>
+JsonWriter& JsonWriter::value(const Counter& counter) {
+  beginObject();
+  name("current")(counter.current());
+  name("max")(counter.max());
+  name("total")(counter.total());
+  endObject();
 
-  return json;
+  return *this;
 }
 
 } // namespace xzero
