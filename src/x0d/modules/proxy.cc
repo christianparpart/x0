@@ -301,6 +301,9 @@ bool ProxyModule::proxy_cluster(XzeroContext* cx, Params& args) {
   std::string bucketName = args.getString(3).str();
   std::string backendName = args.getString(4).str();
 
+  if (tryHandleTrace(cx))
+    return true;
+
   TRACE("proxy.cluster: $0", cluster->name());
 
   HttpCluster::RequestShaper::Node* bucket = cluster->rootBucket();
@@ -524,6 +527,43 @@ void ProxyModule::proxy_cache_key(XzeroContext* cx, xzero::flow::vm::Params& arg
 }
 
 void ProxyModule::proxy_cache_ttl(XzeroContext* cx, xzero::flow::vm::Params& args) {
+}
+
+bool ProxyModule::tryHandleTrace(XzeroContext* cx) {
+  if (cx->request()->method() != HttpMethod::TRACE)
+    return false;
+
+  if (!cx->request()->headers().contains("Max-Forwards"))
+    return false;
+
+  int maxForwards = std::stoi(cx->request()->headers().get("Max-Forwards"));
+  if (maxForwards != 0)
+    return false;
+
+  Buffer body;
+  cx->request()->input()->read(&body);
+
+  cx->response()->setStatus(HttpStatus::Ok);
+  cx->response()->setContentLength(body.size());
+  cx->response()->output()->write(std::move(body));
+  cx->response()->completed();
+
+  return true;
+}
+
+void ProxyModule::patchTraceResponse(XzeroContext* cx) {
+  if (cx->request()->method() != HttpMethod::TRACE)
+    return;
+
+  if (!cx->request()->headers().contains("Max-Forwards"))
+    return;
+
+  int maxForwards = std::stoi(cx->request()->headers().get("Max-Forwards"));
+  if (maxForwards > 0)
+    maxForwards--;
+
+  cx->response()->headers().overwrite("Max-Forwards",
+                                      StringUtil::toString(maxForwards));
 }
 
 } // namespace x0d
