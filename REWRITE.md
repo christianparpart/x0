@@ -27,16 +27,19 @@
 - [ ] (make thread safe) File::lastModified()
 - [ ] how to convert from UnixTime to CivilTime to get the current
 - [ ] FileRef to be renamed to FileHandle/FileHandle or alike?
+- [ ] (bug) timeout problem in InetEndPoint, found via `xurl -> x0d -> local`
+- [ ] (flow:bug) `"Blah #{call}blah#{call}"` doesn't work
+      unless I specify it as `"Blah #{call()}blah#{call}"`
+- [ ] (flow:bug) `listen(port: "80")` MUST raise a signature mismatch error
 - [ ] (flow) `var x = call1 + '.' + call2;` not working. fix me.
 - [ ] revive HTTP client side abort notification API
 - [ ] console logger to also log timestamps, can be disabled (enabled by default)
 - [ ] (flow) tag flow handlers to never return (aka. always handle),
       thus, enabling the compiler to give a warning on dead code after
       this handler.
-- [ ] (bug) timeout problem in InetEndPoint, found via `xurl -> x0d -> local`
-- [ ] (flow:bug) `"Blah #{call}blah#{call}"` doesn't work
-      unless I specify it as `"Blah #{call()}blah#{call}"`
-- [ ] (flow:bug) `listen(port: "80")` MUST raise a signature mismatch error
+- [ ] (flow) a verifier callback must have the ability to attach custom data
+      to the actual call.
+      something like `CallInstr.attach(OwnedPtr<CustomData> data);
 
 ### proxy
 
@@ -56,10 +59,9 @@
 - [x] use InetAddress instead of `pair<IPAddress, Port>`
 - [x] configuration load
 - [x] configuration save
-- [ ] JSON API: GET
-- [ ] JSON API: PUT (create)
-- [ ] JSON API: POST (update)
-- [ ] JSON API: DELETE
+- [ ] JSON API: CRUD cluster
+- [ ] JSON API: CRUD backend
+- [ ] JSON API: CRUD bucket
 - [ ] request body tmp stored on disk if larger than N bytes
 - [ ] response body tmp stored on disk if larger than N bytes
 - [ ] HttpInput: must be rewind()able, in order to be used multiple times
@@ -77,6 +79,16 @@
 - [ ] flow-api: `proxy.fcgi(ipaddr, port)`
 - [ ] Executor::HandleRef -> `<xzero/Action.h>` or similar to make it more generic
 
+### proxy: proper flow symbol naming
+
+```
+void proxy.psuedonym(name);
+handler proxy.cluster(name, path, bucket?, backend?);
+handler proxy.cluster();
+handler proxy.http(address, port);
+handler proxy.fcgi(address, port);
+```
+
 ### Feature Stories
 
 - [ ] support Server Sent Events (HTTP SSE)
@@ -84,3 +96,4 @@
 - [ ] x0d-signals: graceful shutdown (INT, TERM)
 - [ ] x0d-signals: logfile rotating (HUP)
 - [ ] x0d-signals: all the others (USR1, USR2, ...?)
+
