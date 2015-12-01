@@ -68,7 +68,7 @@ ProxyModule::ProxyModule(XzeroDaemon* d)
   setupFunction("proxy.pseudonym", &ProxyModule::proxy_pseudonym,
                 FlowType::String);
 
-  mainHandler("proxy.cluster", &ProxyModule::proxy_cluster_match);
+  mainHandler("proxy.cluster", &ProxyModule::proxy_cluster_auto);
 
   mainHandler("proxy.cluster", &ProxyModule::proxy_cluster)
       .param<FlowString>("name")
@@ -269,7 +269,7 @@ HttpCluster* ProxyModule::findLocalCluster(const std::string& host) {
   return cluster;
 }
 
-bool ProxyModule::proxy_cluster_match(XzeroContext* cx, Params& args) {
+bool ProxyModule::proxy_cluster_auto(XzeroContext* cx, Params& args) {
   // determines which cluster to use by request host header
   std::string host = cx->request()->headers().get("Host");
   size_t colon = host.find(':');
