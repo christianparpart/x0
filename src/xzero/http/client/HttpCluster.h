@@ -152,6 +152,7 @@ class HttpCluster {
   const RequestShaper* shaper() const { return &shaper_; }
   RequestShaper* shaper() { return &shaper_; }
 
+  bool setScheduler(const std::string& scheduler);
   void setScheduler(UniquePtr<HttpClusterScheduler> scheduler);
   HttpClusterScheduler* scheduler() const { return scheduler_.get(); }
 

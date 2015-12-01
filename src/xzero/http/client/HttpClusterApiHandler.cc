@@ -5,9 +5,11 @@
 #include <xzero/http/HttpRequest.h>
 #include <xzero/http/HttpResponse.h>
 #include <xzero/JsonWriter.h>
+#include <xzero/io/FileUtil.h>
 #include <xzero/Uri.h>
 #include <xzero/Buffer.h>
 #include <xzero/logging.h>
+#include <x0d/sysconfig.h>
 #include <stdio.h>
 #include <list>
 
@@ -15,6 +17,9 @@ namespace xzero {
 namespace http {
 namespace client {
 
+// TODO: ENABLE_DIRECTOR_CLIENTABORT)
+// TODO: ENABLE_DIRECTOR_CACHE
+//
 // list directors:   GET    /
 //
 // get director:     GET    /:director_id
@@ -205,7 +210,7 @@ void HttpClusterApiHandler::processCluster() {
       showCluster(cluster);
       break;
     case HttpMethod::POST:
-      updateCluster(cluster, HttpStatus::Ok);
+      updateCluster(cluster);
       break;
     case HttpMethod::DELETE:
       destroyCluster(cluster);
@@ -227,7 +232,16 @@ void HttpClusterApiHandler::createCluster(const std::string& name) {
     cluster->setConfiguration(FileUtil::read(path).str(), path);
   }
 
-  updateCluster(cluster, HttpStatus::Created);
+  std::string location = request_->localAddress()->port() != 80
+      ? StringUtil::format("http://$0:$1/", name,
+                                            request_->localAddress()->port())
+      : StringUtil::format("http://$0:$1/", name);
+
+  HttpStatus status = doUpdateCluster(cluster, HttpStatus::Created);
+
+  response_->setStatus(status);
+  response_->headers().push_back("Location", location);
+  response_->completed();
 }
 
 // GET /:director
@@ -244,122 +258,111 @@ void HttpClusterApiHandler::showCluster(HttpCluster* cluster) {
   response_->completed();
 }
 
-void HttpClusterApiHandler::updateCluster(HttpCluster* cluster,
-                                          HttpStatus status) {
+void HttpClusterApiHandler::updateCluster(HttpCluster* cluster) {
+  HttpStatus status = doUpdateCluster(cluster, HttpStatus::Ok);
+  response_->setStatus(status);
+  response_->completed();
+}
+
+HttpStatus HttpClusterApiHandler::doUpdateCluster(HttpCluster* cluster,
+                                                  HttpStatus status) {
+  if (!cluster->isMutable()) {
+    logError("api", "cluster: Could not updatecluster '$0'. Director immutable.",
+             cluster->name());
+    return HttpStatus::Forbidden;
+  }
 
   // globals
   bool enabled = cluster->isEnabled();
-  if (hasParam("enabled") && !loadParam("enabled", enabled)) return false;
+  if (!tryLoadParamIfExists("enabled", &enabled))
+    return HttpStatus::BadRequest;
 
   size_t queueLimit = cluster->queueLimit();
-  if (hasParam("queue-limit") && !loadParam("queue-limit", queueLimit))
-    return false;
+  if (!tryLoadParamIfExists("queue-limit", &queueLimit))
+    return HttpStatus::BadRequest;
 
   Duration queueTimeout = cluster->queueTimeout();
-  if (hasParam("queue-timeout") && !loadParam("queue-timeout", queueTimeout))
-    return false;
-
-  ClientAbortAction clientAbortAction = cluster->clientAbortAction();
-  if (hasParam("on-client-abort") &&
-      !loadParam("on-client-abort", clientAbortAction))
-    return false;
+  if (!tryLoadParamIfExists("queue-timeout", &queueTimeout))
+    return HttpStatus::BadRequest;
 
   Duration retryAfter = cluster->retryAfter();
-  if (hasParam("retry-after") && !loadParam("retry-after", retryAfter))
-    return false;
+  if (!tryLoadParamIfExists("retry-after", &retryAfter))
+    return HttpStatus::BadRequest;
 
   Duration connectTimeout = cluster->connectTimeout();
-  if (hasParam("connect-timeout") &&
-      !loadParam("connect-timeout", connectTimeout))
-    return false;
+  if (!tryLoadParamIfExists("connect-timeout", &connectTimeout))
+    return HttpStatus::BadRequest;
 
   Duration readTimeout = cluster->readTimeout();
-  if (hasParam("read-timeout") && !loadParam("read-timeout", readTimeout))
-    return false;
+  if (!tryLoadParamIfExists("read-timeout", &readTimeout))
+    return HttpStatus::BadRequest;
 
   Duration writeTimeout = cluster->writeTimeout();
-  if (hasParam("write-timeout") && !loadParam("write-timeout", writeTimeout))
-    return false;
+  if (!tryLoadParamIfExists("write-timeout", &writeTimeout))
+    return HttpStatus::BadRequest;
 
   size_t maxRetryCount = cluster->maxRetryCount();
-  if (hasParam("max-retry-count") &&
-      !loadParam("max-retry-count", maxRetryCount))
-    return false;
+  if (!tryLoadParamIfExists("max-retry-count", &maxRetryCount))
+    return HttpStatus::BadRequest;
 
   bool stickyOfflineMode = cluster->stickyOfflineMode();
-  if (hasParam("sticky-offline-mode") &&
-      !loadParam("sticky-offline-mode", stickyOfflineMode))
-    return false;
+  if (!tryLoadParamIfExists("sticky-offline-mode", &stickyOfflineMode))
+    return HttpStatus::BadRequest;
 
   bool allowXSendfile = cluster->allowXSendfile();
-  if (hasParam("allow-x-sendfile") &&
-      !loadParam("allow-x-sendfile", allowXSendfile))
-    return false;
+  if (!tryLoadParamIfExists("allow-x-sendfile", &allowXSendfile))
+    return HttpStatus::BadRequest;
 
   bool enqueueOnUnavailable = cluster->enqueueOnUnavailable();
-  if (hasParam("enqueue-on-unavailable") &&
-      !loadParam("enqueue-on-unavailable", enqueueOnUnavailable))
-    return false;
+  if (!tryLoadParamIfExists("enqueue-on-unavailable", &enqueueOnUnavailable))
+    return HttpStatus::BadRequest;
 
   std::string hcHostHeader = cluster->healthCheckHostHeader();
-  if (hasParam("health-check-host-header") &&
-      !loadParam("health-check-host-header", hcHostHeader))
-    return false;
+  if (!tryLoadParamIfExists("health-check-host-header", &hcHostHeader))
+    return HttpStatus::BadRequest;
 
   std::string hcRequestPath = cluster->healthCheckRequestPath();
-  if (hasParam("health-check-request-path") &&
-      !loadParam("health-check-request-path", hcRequestPath))
-    return false;
+  if (!tryLoadParamIfExists("health-check-request-path", &hcRequestPath))
+    return HttpStatus::BadRequest;
 
+#if defined(ENABLE_DIRECTOR_FCGI)
   std::string hcFcgiScriptFileName = cluster->healthCheckFcgiScriptFilename();
-  if (hasParam("health-check-fcgi-script-filename") &&
-      !loadParam("health-check-fcgi-script-filename", hcFcgiScriptFileName))
-    return false;
+  if (!tryLoadParamIfExists("health-check-fcgi-script-filename", &hcFcgiScriptFileName))
+    return HttpStatus::BadRequest;
+#endif
 
-  std::string scheduler = cluster->scheduler();
-  if (hasParam("scheduler") && !loadParam("scheduler", scheduler)) return false;
+  std::string scheduler = cluster->scheduler()->name();
+  if (!tryLoadParamIfExists("scheduler", &scheduler))
+    return HttpStatus::BadRequest;
 
 #if defined(ENABLE_DIRECTOR_CACHE)
   bool cacheEnabled = cluster->objectCache().enabled();
-  if (hasParam("cache-enabled") && !loadParam("cache-enabled", cacheEnabled))
-    return false;
+  if (!tryLoadParamIfExists("cache-enabled", &cacheEnabled))
+    return HttpStatus::BadRequest;
 
   bool cacheDeliverActive = cluster->objectCache().deliverActive();
-  if (hasParam("cache-deliver-active") &&
-      !loadParam("cache-deliver-active", cacheDeliverActive))
-    return false;
+  if (!tryLoadParamIfExists("cache-deliver-active", &cacheDeliverActive))
+    return HttpStatus::BadRequest;
 
   bool cacheDeliverShadow = cluster->objectCache().deliverShadow();
-  if (hasParam("cache-deliver-shadow") &&
-      !loadParam("cache-deliver-shadow", cacheDeliverShadow))
-    return false;
+  if (!tryLoadParamIfExists("cache-deliver-shadow", &cacheDeliverShadow))
+    return HttpStatus::BadRequest;
 
   Duration cacheDefaultTTL = cluster->objectCache().defaultTTL();
-  if (hasParam("cache-default-ttl") &&
-      !loadParam("cache-default-ttl", cacheDefaultTTL))
-    return false;
+  if (!tryLoadParamIfExists("cache-default-ttl", &cacheDefaultTTL))
+    return HttpStatus::BadRequest;
 
   Duration cacheDefaultShadowTTL = cluster->objectCache().defaultShadowTTL();
-  if (hasParam("cache-default-shadow-ttl") &&
-      !loadParam("cache-default-shadow-ttl", cacheDefaultShadowTTL))
-    return false;
+  if (!tryLoadParamIfExists("cache-default-shadow-ttl", &cacheDefaultShadowTTL))
+    return HttpStatus::BadRequest;
 #endif
-
-  if (!cluster->isMutable()) {
-    request_->log(
-        Severity::error,
-        "cluster: Could not updatecluster  '%s'. Director immutable.",
-        cluster->name().c_str());
-
-    request_->status = HttpStatus::Forbidden;
-    request_->finish();
-    return true;
-  }
 
   cluster->setEnabled(enabled);
   cluster->setQueueLimit(queueLimit);
   cluster->setQueueTimeout(queueTimeout);
+#if defined(ENABLE_DIRECTOR_CLIENTABORT)
   cluster->setClientAbortAction(clientAbortAction);
+#endif
   cluster->setRetryAfter(retryAfter);
   cluster->setConnectTimeout(connectTimeout);
   cluster->setReadTimeout(readTimeout);
@@ -370,7 +373,9 @@ void HttpClusterApiHandler::updateCluster(HttpCluster* cluster,
   cluster->setEnqueueOnUnavailable(enqueueOnUnavailable);
   cluster->setHealthCheckHostHeader(hcHostHeader);
   cluster->setHealthCheckRequestPath(hcRequestPath);
+#if defined(ENABLE_DIRECTOR_FCGI)
   cluster->setHealthCheckFcgiScriptFilename(hcFcgiScriptFileName);
+#endif
   cluster->setScheduler(scheduler);
 
 #if defined(ENABLE_DIRECTOR_CACHE)
@@ -381,31 +386,23 @@ void HttpClusterApiHandler::updateCluster(HttpCluster* cluster,
   cluster->objectCache().setDefaultShadowTTL(cacheDefaultShadowTTL);
 #endif
 
-  cluster->save();
+  // cluster->post([](cluster) {
+  //   cluster->eachBackend([](Backend* backend) {
+  //     backend->healthMonitor()->update();
+  //   });
+  // });
 
-  cluster->post([](cluster) {
-    cluster->eachBackend([](Backend* backend) {
-      backend->healthMonitor()->update();
-    });
-  });
+  cluster->saveConfiguration();
 
-  request_->log(Severity::info, "cluster: %s reconfigured.",
-                cluster->name().c_str());
+  logInfo("api", "cluster: $0 reconfigured.", cluster->name());
 
-  // health checks
-  // TODO
-  cluster->setHealthCheckHostHeader("localhost");
-  cluster->setHealthCheckRequestPath("/");
-  cluster->setHealthCheckSuccessCodes({HttpStatus::Ok});
-  cluster->setHealthCheckSuccessThreshold(1);
-  cluster->setHealthCheckInterval(10_seconds);
-
-  response_->setStatus(status);
-  response_->completed();
+  return status;
 }
 
 void HttpClusterApiHandler::destroyCluster(HttpCluster* cluster) {
-  // TODO
+  api_->destroyCluster(cluster->name());
+  response_->setStatus(HttpStatus::NoContent);
+  response_->completed();
 }
 // }}}
 // {{{ backend 
@@ -440,6 +437,101 @@ bool HttpClusterApiHandler::badRequest(const char* msg) {
 bool HttpClusterApiHandler::methodNotAllowed() {
   response_->setStatus(HttpStatus::MethodNotAllowed);
   response_->completed();
+
+  return true;
+}
+
+bool HttpClusterApiHandler::hasParam(const std::string& key) const {
+  return args_.find(key) != args_.end();
+}
+
+bool HttpClusterApiHandler::loadParam(const std::string& key, bool* result) {
+  auto i = args_.find(key);
+  if (i == args_.end()) {
+    logError("api", "Request parameter '$0' not found.", key);
+    errorCount_++;
+    return false;
+  }
+
+  if (i->second == "true" || i->second == "1") {
+    *result = true;
+    return true;
+  }
+
+  if (i->second == "false" || i->second == "0") {
+    *result = false;
+    return true;
+  }
+
+  logError("api",
+           "Request parameter '$0' contains an invalid value.",
+           key);
+  errorCount_++;
+  return false;
+}
+
+bool HttpClusterApiHandler::loadParam(const std::string& key, int* result) {
+  auto i = args_.find(key);
+  if (i == args_.end()) {
+    logError("api", "Request parameter '$0' not found.", key);
+    errorCount_++;
+    return false;
+  }
+
+  *result = std::stoi(i->second);
+
+  return true;
+}
+
+bool HttpClusterApiHandler::loadParam(const std::string& key, size_t* result) {
+  auto i = args_.find(key);
+  if (i == args_.end()) {
+    logError("api", "Request parameter '$0' not found.", key);
+    errorCount_++;
+    return false;
+  }
+
+  *result = std::stoll(i->second);
+
+  return true;
+}
+
+bool HttpClusterApiHandler::loadParam(const std::string& key, float* result) {
+  auto i = args_.find(key);
+  if (i == args_.end()) {
+    logError("api", "Request parameter '$0' not found.", key);
+    errorCount_++;
+    return false;
+  }
+
+  char* nptr = nullptr;
+  *result = strtof(i->second.c_str(), &nptr);
+
+  return nptr == i->second.c_str() + i->second.size();
+}
+
+bool HttpClusterApiHandler::loadParam(const std::string& key, Duration* result) {
+  auto i = args_.find(key);
+  if (i == args_.end()) {
+    logError("api", "Request parameter '$0' not found.", key);
+    errorCount_++;
+    return false;
+  }
+
+  *result = Duration::fromSeconds(std::atoll(i->second.c_str()));
+
+  return true;
+}
+
+bool HttpClusterApiHandler::loadParam(const std::string& key, std::string* result) {
+  auto i = args_.find(key);
+  if (i == args_.end()) {
+    logError("api", "Request parameter '$0' not found.", key);
+    errorCount_++;
+    return false;
+  }
+
+  *result = i->second;
 
   return true;
 }

@@ -327,11 +327,8 @@ void HttpCluster::setConfiguration(const std::string& text,
                "director.scheduler. Using default scheduler $0.",
                scheduler()->name());
     changed++;
-  } else if (value == "rr") {
-    setScheduler(std::unique_ptr<HttpClusterScheduler>(new HttpClusterScheduler::RoundRobin(&members_)));
-  } else if (value == "chance") {
-    setScheduler(std::unique_ptr<HttpClusterScheduler>(new HttpClusterScheduler::Chance(&members_)));
-  } else {
+  } else if (!setScheduler(value)) {
+    ; // XXX ("Setting scheduler failed. Unknown scheduler $0", value)
   }
 
 #if defined(ENABLE_DIRECTOR_CACHE)
@@ -538,6 +535,18 @@ void HttpCluster::loadBucket(const IniFile& settings, const std::string& key) {
     RAISE(RuntimeError, StringUtil::format(
           "Could not create director's bucket. $0",
           str[(size_t)ec]));
+  }
+}
+
+bool HttpCluster::setScheduler(const std::string& value) {
+  if (value == "rr") {
+    setScheduler(std::unique_ptr<HttpClusterScheduler>(new HttpClusterScheduler::RoundRobin(&members_)));
+    return true;
+  } else if (value == "chance") {
+    setScheduler(std::unique_ptr<HttpClusterScheduler>(new HttpClusterScheduler::Chance(&members_)));
+    return true;
+  } else {
+    return false;
   }
 }
 
