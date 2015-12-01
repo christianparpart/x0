@@ -205,7 +205,7 @@ void HttpClusterApiHandler::processCluster() {
       showCluster(cluster);
       break;
     case HttpMethod::POST:
-      updateCluster(cluster);
+      updateCluster(cluster, HttpStatus::Ok);
       break;
     case HttpMethod::DELETE:
       destroyCluster(cluster);
@@ -217,7 +217,17 @@ void HttpClusterApiHandler::processCluster() {
 }
 
 void HttpClusterApiHandler::createCluster(const std::string& name) {
-  api_->createCluster(name, "");
+  std::string path = FileUtil::joinPaths(X0D_CLUSTERDIR,
+                                         name + ".cluster.conf");
+
+  HttpCluster* cluster = api_->createCluster(name, path);
+
+  if (FileUtil::exists(path)) {
+    logInfo("proxy", "Loading cluster $0 ($1)", name, path);
+    cluster->setConfiguration(FileUtil::read(path).str(), path);
+  }
+
+  updateCluster(cluster, HttpStatus::Created);
 }
 
 // GET /:director
@@ -234,8 +244,164 @@ void HttpClusterApiHandler::showCluster(HttpCluster* cluster) {
   response_->completed();
 }
 
-void HttpClusterApiHandler::updateCluster(HttpCluster* cluster) {
+void HttpClusterApiHandler::updateCluster(HttpCluster* cluster,
+                                          HttpStatus status) {
+
+  // globals
+  bool enabled = cluster->isEnabled();
+  if (hasParam("enabled") && !loadParam("enabled", enabled)) return false;
+
+  size_t queueLimit = cluster->queueLimit();
+  if (hasParam("queue-limit") && !loadParam("queue-limit", queueLimit))
+    return false;
+
+  Duration queueTimeout = cluster->queueTimeout();
+  if (hasParam("queue-timeout") && !loadParam("queue-timeout", queueTimeout))
+    return false;
+
+  ClientAbortAction clientAbortAction = cluster->clientAbortAction();
+  if (hasParam("on-client-abort") &&
+      !loadParam("on-client-abort", clientAbortAction))
+    return false;
+
+  Duration retryAfter = cluster->retryAfter();
+  if (hasParam("retry-after") && !loadParam("retry-after", retryAfter))
+    return false;
+
+  Duration connectTimeout = cluster->connectTimeout();
+  if (hasParam("connect-timeout") &&
+      !loadParam("connect-timeout", connectTimeout))
+    return false;
+
+  Duration readTimeout = cluster->readTimeout();
+  if (hasParam("read-timeout") && !loadParam("read-timeout", readTimeout))
+    return false;
+
+  Duration writeTimeout = cluster->writeTimeout();
+  if (hasParam("write-timeout") && !loadParam("write-timeout", writeTimeout))
+    return false;
+
+  size_t maxRetryCount = cluster->maxRetryCount();
+  if (hasParam("max-retry-count") &&
+      !loadParam("max-retry-count", maxRetryCount))
+    return false;
+
+  bool stickyOfflineMode = cluster->stickyOfflineMode();
+  if (hasParam("sticky-offline-mode") &&
+      !loadParam("sticky-offline-mode", stickyOfflineMode))
+    return false;
+
+  bool allowXSendfile = cluster->allowXSendfile();
+  if (hasParam("allow-x-sendfile") &&
+      !loadParam("allow-x-sendfile", allowXSendfile))
+    return false;
+
+  bool enqueueOnUnavailable = cluster->enqueueOnUnavailable();
+  if (hasParam("enqueue-on-unavailable") &&
+      !loadParam("enqueue-on-unavailable", enqueueOnUnavailable))
+    return false;
+
+  std::string hcHostHeader = cluster->healthCheckHostHeader();
+  if (hasParam("health-check-host-header") &&
+      !loadParam("health-check-host-header", hcHostHeader))
+    return false;
+
+  std::string hcRequestPath = cluster->healthCheckRequestPath();
+  if (hasParam("health-check-request-path") &&
+      !loadParam("health-check-request-path", hcRequestPath))
+    return false;
+
+  std::string hcFcgiScriptFileName = cluster->healthCheckFcgiScriptFilename();
+  if (hasParam("health-check-fcgi-script-filename") &&
+      !loadParam("health-check-fcgi-script-filename", hcFcgiScriptFileName))
+    return false;
+
+  std::string scheduler = cluster->scheduler();
+  if (hasParam("scheduler") && !loadParam("scheduler", scheduler)) return false;
+
+#if defined(ENABLE_DIRECTOR_CACHE)
+  bool cacheEnabled = cluster->objectCache().enabled();
+  if (hasParam("cache-enabled") && !loadParam("cache-enabled", cacheEnabled))
+    return false;
+
+  bool cacheDeliverActive = cluster->objectCache().deliverActive();
+  if (hasParam("cache-deliver-active") &&
+      !loadParam("cache-deliver-active", cacheDeliverActive))
+    return false;
+
+  bool cacheDeliverShadow = cluster->objectCache().deliverShadow();
+  if (hasParam("cache-deliver-shadow") &&
+      !loadParam("cache-deliver-shadow", cacheDeliverShadow))
+    return false;
+
+  Duration cacheDefaultTTL = cluster->objectCache().defaultTTL();
+  if (hasParam("cache-default-ttl") &&
+      !loadParam("cache-default-ttl", cacheDefaultTTL))
+    return false;
+
+  Duration cacheDefaultShadowTTL = cluster->objectCache().defaultShadowTTL();
+  if (hasParam("cache-default-shadow-ttl") &&
+      !loadParam("cache-default-shadow-ttl", cacheDefaultShadowTTL))
+    return false;
+#endif
+
+  if (!cluster->isMutable()) {
+    request_->log(
+        Severity::error,
+        "cluster: Could not updatecluster  '%s'. Director immutable.",
+        cluster->name().c_str());
+
+    request_->status = HttpStatus::Forbidden;
+    request_->finish();
+    return true;
+  }
+
+  cluster->setEnabled(enabled);
+  cluster->setQueueLimit(queueLimit);
+  cluster->setQueueTimeout(queueTimeout);
+  cluster->setClientAbortAction(clientAbortAction);
+  cluster->setRetryAfter(retryAfter);
+  cluster->setConnectTimeout(connectTimeout);
+  cluster->setReadTimeout(readTimeout);
+  cluster->setWriteTimeout(writeTimeout);
+  cluster->setMaxRetryCount(maxRetryCount);
+  cluster->setStickyOfflineMode(stickyOfflineMode);
+  cluster->setAllowXSendfile(allowXSendfile);
+  cluster->setEnqueueOnUnavailable(enqueueOnUnavailable);
+  cluster->setHealthCheckHostHeader(hcHostHeader);
+  cluster->setHealthCheckRequestPath(hcRequestPath);
+  cluster->setHealthCheckFcgiScriptFilename(hcFcgiScriptFileName);
+  cluster->setScheduler(scheduler);
+
+#if defined(ENABLE_DIRECTOR_CACHE)
+  cluster->objectCache().setEnabled(cacheEnabled);
+  cluster->objectCache().setDeliverActive(cacheDeliverActive);
+  cluster->objectCache().setDeliverShadow(cacheDeliverShadow);
+  cluster->objectCache().setDefaultTTL(cacheDefaultTTL);
+  cluster->objectCache().setDefaultShadowTTL(cacheDefaultShadowTTL);
+#endif
+
+  cluster->save();
+
+  cluster->post([](cluster) {
+    cluster->eachBackend([](Backend* backend) {
+      backend->healthMonitor()->update();
+    });
+  });
+
+  request_->log(Severity::info, "cluster: %s reconfigured.",
+                cluster->name().c_str());
+
+  // health checks
   // TODO
+  cluster->setHealthCheckHostHeader("localhost");
+  cluster->setHealthCheckRequestPath("/");
+  cluster->setHealthCheckSuccessCodes({HttpStatus::Ok});
+  cluster->setHealthCheckSuccessThreshold(1);
+  cluster->setHealthCheckInterval(10_seconds);
+
+  response_->setStatus(status);
+  response_->completed();
 }
 
 void HttpClusterApiHandler::destroyCluster(HttpCluster* cluster) {
