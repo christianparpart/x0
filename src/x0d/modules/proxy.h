@@ -55,6 +55,8 @@ class ProxyModule : public XzeroModule,
   void proxy_pseudonym(xzero::flow::vm::Params& args);
 
   // main handlers
+  xzero::http::client::HttpCluster* findLocalCluster(const std::string& host);
+  bool proxy_cluster_match(XzeroContext* cx, xzero::flow::vm::Params& args);
   bool verify_proxy_cluster(xzero::flow::Instr* call);
   bool proxy_cluster(XzeroContext* cx, Params& args);
   bool proxy_pass(XzeroContext* cx, xzero::flow::vm::Params& args);

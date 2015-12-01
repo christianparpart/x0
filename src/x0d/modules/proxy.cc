@@ -68,6 +68,8 @@ ProxyModule::ProxyModule(XzeroDaemon* d)
   setupFunction("proxy.pseudonym", &ProxyModule::proxy_pseudonym,
                 FlowType::String);
 
+  mainHandler("proxy.cluster", &ProxyModule::proxy_cluster_match);
+
   mainHandler("proxy.cluster", &ProxyModule::proxy_cluster)
       .param<FlowString>("name")
       .param<FlowString>("path", "")
@@ -251,6 +253,47 @@ size_t HttpInputStream::transferTo(OutputStream* target) {
 }
 
 // }}}
+
+HttpCluster* ProxyModule::findLocalCluster(const std::string& host) {
+  auto i = clusterMap_.find(host);
+  if (i != clusterMap_.end())
+    return i->second.get();
+
+  std::string path = FileUtil::joinPaths(X0D_CLUSTERDIR, 
+                                         host + ".cluster.conf");
+  if (!FileUtil::exists(path))
+    return nullptr;
+
+  HttpCluster* cluster = createCluster(host, path);
+  cluster->setConfiguration(FileUtil::read(path).str(), path);
+  return cluster;
+}
+
+bool ProxyModule::proxy_cluster_match(XzeroContext* cx, Params& args) {
+  // determines which cluster to use by request host header
+  std::string host = cx->request()->headers().get("Host");
+  size_t colon = host.find(':');
+  if (colon != std::string::npos)
+    host = host.substr(0, colon);
+
+  HttpCluster* cluster = findLocalCluster(host);
+  if (!cluster) {
+    cx->response()->setStatus(HttpStatus::NotFound);
+    cx->response()->completed();
+    return true;
+  }
+
+  HttpClusterRequest* cr = cx->setCustomData<HttpClusterRequest>(this,
+      *cx->request(),
+      std::unique_ptr<InputStream>(new HttpInputStream(cx->request()->input())),
+      std::unique_ptr<HttpListener>(new HttpResponseBuilder(
+          this, cx->request(), cx->response())),
+      cx->response()->executor());
+
+  cluster->schedule(cr, nullptr);
+
+  return true;
+}
 
 bool ProxyModule::proxy_cluster(XzeroContext* cx, Params& args) {
   auto& cluster = clusterMap_[args.getString(1).str()];
