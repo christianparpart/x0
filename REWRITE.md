@@ -1,4 +1,4 @@
-### Migration Tasks
+### Incomplete Migration Tasks
 
 - [x] access to Scheduler API from within HttpRequest or XzeroContext;
       consider merging `Scheduler` and `Executor`;
@@ -59,9 +59,11 @@
 - [x] use InetAddress instead of `pair<IPAddress, Port>`
 - [x] configuration load
 - [x] configuration save
-- [ ] JSON API: CRUD cluster
+- [x] JSON API: CRUD cluster
 - [ ] JSON API: CRUD backend
 - [ ] JSON API: CRUD bucket
+- [x] support TRACE method for `proxy.cluster`
+- [ ] support TRACE method for `proxy.http`
 - [ ] request body tmp stored on disk if larger than N bytes
 - [ ] response body tmp stored on disk if larger than N bytes
 - [ ] HttpInput: must be rewind()able, in order to be used multiple times
@@ -73,8 +75,8 @@
 
 - [ ] HttpInput: offload into local tmpfile if payload > N bytes
 - [ ] proxy: properly proxy 'Expect: 100-continue' (Expect-header must be forwarded)
-- [ ] HttpClient: FastCGI
 - [ ] HttpClient: support UNIX domain socket alongside with TCP/IP
+- [ ] HttpClient: FastCGI
 - [ ] HttpHealthMonitor: FastCGI
 - [ ] flow-api: `proxy.fcgi(ipaddr, port)`
 - [ ] Executor::HandleRef -> `<xzero/Action.h>` or similar to make it more generic
