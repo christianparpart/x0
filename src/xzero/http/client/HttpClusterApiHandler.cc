@@ -212,6 +212,12 @@ void HttpClusterApiHandler::processCluster() {
     case HttpMethod::POST:
       updateCluster(cluster);
       break;
+    case HttpMethod::LOCK:
+      disableCluster(cluster);
+      break;
+    case HttpMethod::UNLOCK:
+      enableCluster(cluster);
+      break;
     case HttpMethod::DELETE:
       destroyCluster(cluster);
       break;
@@ -402,6 +408,20 @@ HttpStatus HttpClusterApiHandler::doUpdateCluster(HttpCluster* cluster,
   cluster->saveConfiguration();
 
   return status;
+}
+
+void HttpClusterApiHandler::disableCluster(HttpCluster* cluster) {
+  cluster->setEnabled(false);
+  cluster->saveConfiguration();
+  response_->setStatus(HttpStatus::NoContent);
+  response_->completed();
+}
+
+void HttpClusterApiHandler::enableCluster(HttpCluster* cluster) {
+  cluster->setEnabled(true);
+  cluster->saveConfiguration();
+  response_->setStatus(HttpStatus::NoContent);
+  response_->completed();
 }
 
 void HttpClusterApiHandler::destroyCluster(HttpCluster* cluster) {

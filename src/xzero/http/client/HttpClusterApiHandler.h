@@ -50,6 +50,8 @@ class HttpClusterApiHandler : public CustomData {
   void showCluster(HttpCluster* cluster);
   void updateCluster(HttpCluster* cluster);
   HttpStatus doUpdateCluster(HttpCluster* cluster, HttpStatus status);
+  void enableCluster(HttpCluster* cluster);
+  void disableCluster(HttpCluster* cluster);
   void destroyCluster(HttpCluster* cluster);
 
   bool processBackend();
