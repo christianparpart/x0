@@ -478,23 +478,7 @@ HttpCluster* ProxyModule::createCluster(const std::string& name,
     logInfo("proxy", "Loading cluster $0 ($1)", name, path);
     cluster->setConfiguration(FileUtil::read(path).str(), path);
   } else {
-    // TODO: remove after code bootstrap
-    logInfo("proxy", "Initializing cluster $0 ($1)", name, path);
-    cluster->setHealthCheckHostHeader("localhost");
-    cluster->setHealthCheckRequestPath("/");
-    cluster->setHealthCheckSuccessCodes({HttpStatus::Ok});
-    cluster->setHealthCheckSuccessThreshold(1);
-    cluster->setHealthCheckInterval(10_seconds);
-    cluster->addMember(
-        "demo1",
-        InetAddress("127.0.0.1", 3001),
-        1, // capacity
-        true, // enabled
-        false, // terminateProtection
-        "http",
-        2_seconds);
-    cluster->createBucket("search", 0.3, 0.5);
-    cluster->createBucket("main", 0.5, 0.7);
+    logInfo("proxy", "Initializing new cluster $0 ($1)", name, path);
     cluster->saveConfiguration();
   }
   return cluster.get();

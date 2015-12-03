@@ -227,8 +227,8 @@ void HttpClusterApiHandler::createCluster(const std::string& name) {
 
   HttpCluster* cluster = api_->createCluster(name, path);
 
-  if (FileUtil::exists(path)) {
-    logInfo("proxy", "Loading cluster $0 ($1)", name, path);
+  bool isAlreadyPresent = FileUtil::exists(path);
+  if (isAlreadyPresent) {
     cluster->setConfiguration(FileUtil::read(path).str(), path);
   }
 
@@ -238,6 +238,12 @@ void HttpClusterApiHandler::createCluster(const std::string& name) {
       : StringUtil::format("http://$0:$1/", name);
 
   HttpStatus status = doUpdateCluster(cluster, HttpStatus::Created);
+
+  if (isAlreadyPresent) {
+    logInfo("api", "cluster: $0 updated via create method.", cluster->name());
+  } else {
+    logInfo("api", "cluster: $0 created.", cluster->name());
+  }
 
   response_->setStatus(status);
   response_->headers().push_back("Location", location);
@@ -260,6 +266,7 @@ void HttpClusterApiHandler::showCluster(HttpCluster* cluster) {
 
 void HttpClusterApiHandler::updateCluster(HttpCluster* cluster) {
   HttpStatus status = doUpdateCluster(cluster, HttpStatus::Ok);
+  logInfo("api", "cluster: $0 reconfigured.", cluster->name());
   response_->setStatus(status);
   response_->completed();
 }
@@ -394,8 +401,6 @@ HttpStatus HttpClusterApiHandler::doUpdateCluster(HttpCluster* cluster,
 
   cluster->saveConfiguration();
 
-  logInfo("api", "cluster: $0 reconfigured.", cluster->name());
-
   return status;
 }
 
@@ -518,7 +523,7 @@ bool HttpClusterApiHandler::loadParam(const std::string& key, Duration* result) 
     return false;
   }
 
-  *result = Duration::fromSeconds(std::atoll(i->second.c_str()));
+  *result = Duration::fromMilliseconds(std::stoll(i->second));
 
   return true;
 }
