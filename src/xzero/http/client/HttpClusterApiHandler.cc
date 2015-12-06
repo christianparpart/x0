@@ -6,6 +6,7 @@
 #include <xzero/http/HttpResponse.h>
 #include <xzero/JsonWriter.h>
 #include <xzero/io/FileUtil.h>
+#include <xzero/net/IPAddress.h>
 #include <xzero/Uri.h>
 #include <xzero/Buffer.h>
 #include <xzero/logging.h>
@@ -86,6 +87,8 @@ HttpClusterApiHandler::HttpClusterApiHandler(HttpClusterApi* api,
     : api_(api),
       request_(request),
       response_(response),
+      args_(),
+      errorCount_(0),
       prefix_(prefix),
       tokens_(),
       params_() {
@@ -135,12 +138,23 @@ bool HttpClusterApiHandler::run() {
         return false;
     case 2:
       if (request_->method() == HttpMethod::PUT) {
-        if (tokens_[1] == "buckets")  // PUT /:director_id/buckets
-          return createBucket(api_->findCluster(tokens_[0]));
-        else if (tokens_[1] == "backends")  // PUT /:director_id/backends
-          return createBackend(api_->findCluster(tokens_[0]));
+        if (HttpCluster* cluster = api_->findCluster(tokens_[0])) {
+          if (tokens_[1] == "buckets") { // PUT /:director_id/buckets
+            createBucket(cluster, tokens_[2]);
+            return true;
+          } else if (tokens_[1] == "backends") { // PUT /:director_id/backends
+            createBackend(cluster, tokens_[2]);
+            return true;
+          } else {
+            return badRequest("Invalid request URI");
+          }
+        } else {
+          response_->setStatus(HttpStatus::NotFound);
+          response_->completed();
+          return true;
+        }
       }
-      return badRequest("Invalid request URI");
+      break;
     case 1:  // /:director_id
       processCluster();
       break;
@@ -432,11 +446,168 @@ void HttpClusterApiHandler::destroyCluster(HttpCluster* cluster) {
 // }}}
 // {{{ backend 
 bool HttpClusterApiHandler::processBackend() {
-  return false;
+  // /:director_id/backends/:bucket_id
+  HttpCluster* cluster = api_->findCluster(tokens_[0]);
+  if (!cluster) {
+    response_->setStatus(HttpStatus::NotFound);
+    response_->completed();
+    return true;
+  }
+
+  if (request_->method() == HttpMethod::PUT) {
+    createBackend(cluster, tokens_[2]);
+    return true;
+  }
+
+  HttpClusterMember* backend = cluster->findMember(tokens_[2]);
+  if (!backend) {
+    response_->setStatus(HttpStatus::NotFound);
+    response_->completed();
+    return true;
+  }
+
+  switch (request_->method()) {
+    case HttpMethod::GET:
+      showBackend(cluster, backend);
+      break;
+    case HttpMethod::POST:
+      updateBackend(cluster, backend);
+      break;
+    case HttpMethod::UNLOCK:
+      enableBackend(cluster, backend);
+      break;
+    case HttpMethod::LOCK:
+      disableBackend(cluster, backend);
+      break;
+    case HttpMethod::DELETE:
+      destroyBackend(cluster, backend);
+      break;
+    default:
+      response_->setStatus(HttpStatus::NotFound);
+      response_->completed();
+      break;
+  }
+  return true;
 }
 
-bool HttpClusterApiHandler::createBackend(HttpCluster* cluster) {
-  return false;
+void HttpClusterApiHandler::createBackend(HttpCluster* cluster,
+                                          const std::string& name) {
+  IPAddress ip;
+  int port = 0;
+  size_t capacity = 0;
+  bool enabled = true;
+  std::string protocol = "http";
+  bool terminateProtection = false;
+  Duration healthCheckInterval = 10_seconds;
+
+  loadParam("host", &ip);
+  loadParam("port", &port);
+  tryLoadParamIfExists("capacity", &capacity);
+  tryLoadParamIfExists("enabled", &enabled);
+  tryLoadParamIfExists("protocol", &protocol);
+
+  InetAddress addr(ip, port);
+
+  if (errorCount_) {
+    response_->setStatus(HttpStatus::BadRequest);
+    response_->completed();
+    return;
+  }
+
+  cluster->addMember(name, addr, capacity, enabled,
+                     terminateProtection,
+                     protocol,
+                     healthCheckInterval);
+
+  response_->setStatus(HttpStatus::NoContent);
+  response_->completed();
+}
+
+void HttpClusterApiHandler::showBackend(HttpCluster* cluster, HttpClusterMember* member) {
+  Buffer result;
+  JsonWriter json(&result);
+  json.value(*member);
+  result << "\n";
+
+  response_->setStatus(HttpStatus::Ok);
+  response_->addHeader("Cache-Control", "no-cache");
+  response_->addHeader("Content-Type", "application/json");
+  response_->addHeader("Access-Control-Allow-Origin", "*");
+  response_->setContentLength(result.size());
+  response_->output()->write(std::move(result));
+  response_->completed();
+}
+
+void HttpClusterApiHandler::updateBackend(HttpCluster* cluster,
+                                          HttpClusterMember* member) {
+  if (!cluster->isMutable()) {
+    logError("api",
+             "director: Could not update backend '$0' at director '$1'. "
+             "Director immutable.",
+             member->name(), cluster->name());
+
+    response_->setStatus(HttpStatus::Forbidden);
+    response_->completed();
+  }
+
+  bool enabled = member->isEnabled();
+  tryLoadParamIfExists("enabled", &enabled);
+
+  size_t capacity = member->capacity();
+  tryLoadParamIfExists("capacity", &capacity);
+
+  bool terminateProtection = member->terminateProtection();
+  tryLoadParamIfExists("terminate-protection", &terminateProtection);
+
+  Duration hcInterval = member->healthMonitor()->interval();
+  tryLoadParamIfExists("health-check-interval", &hcInterval);
+
+  if (errorCount_ > 0) {
+    badRequest();
+    return;
+  }
+
+  // update backend
+
+  size_t oldCapacity = member->capacity();
+  if (oldCapacity != capacity) {
+    cluster->shaper()->resize(
+        cluster->shaper()->size() - oldCapacity + capacity);
+    member->setCapacity(capacity);
+  }
+
+  member->setTerminateProtection(terminateProtection);
+  member->healthMonitor()->setInterval(hcInterval);
+  member->setEnabled(enabled);
+
+  cluster->saveConfiguration();
+
+  logInfo("api", "director: $0 reconfigured backend: $1.",
+          cluster->name(), member->name());
+
+  response_->setStatus(HttpStatus::NoContent);
+  response_->completed();
+}
+
+void HttpClusterApiHandler::enableBackend(HttpCluster* cluster, HttpClusterMember* member) {
+  member->setEnabled(true);
+
+  response_->setStatus(HttpStatus::NoContent);
+  response_->addHeader("Cache-Control", "no-cache");
+  response_->addHeader("Access-Control-Allow-Origin", "*");
+  response_->completed();
+}
+
+void HttpClusterApiHandler::disableBackend(HttpCluster* cluster, HttpClusterMember* member) {
+  member->setEnabled(false);
+
+  response_->setStatus(HttpStatus::NoContent);
+  response_->addHeader("Cache-Control", "no-cache");
+  response_->addHeader("Access-Control-Allow-Origin", "*");
+  response_->completed();
+}
+
+void HttpClusterApiHandler::destroyBackend(HttpCluster* cluster, HttpClusterMember* member) {
 }
 // }}}
 // {{{ bucket
@@ -444,8 +615,8 @@ bool HttpClusterApiHandler::processBucket() {
   return false;
 }
 
-bool HttpClusterApiHandler::createBucket(HttpCluster* cluster) {
-  return false;
+void HttpClusterApiHandler::createBucket(HttpCluster* cluster,
+                                         const std::string& name) {
 }
 // }}}
 
@@ -557,6 +728,19 @@ bool HttpClusterApiHandler::loadParam(const std::string& key, std::string* resul
   }
 
   *result = i->second;
+
+  return true;
+}
+
+bool HttpClusterApiHandler::loadParam(const std::string& key, IPAddress* result) {
+  auto i = args_.find(key);
+  if (i == args_.end()) {
+    logError("api", "Request parameter '$0' not found.", key);
+    errorCount_++;
+    return false;
+  }
+
+  *result = IPAddress(i->second);
 
   return true;
 }

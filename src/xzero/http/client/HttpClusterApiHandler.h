@@ -16,6 +16,7 @@
 namespace xzero {
 
 class Duration;
+class IPAddress;
 
 namespace http {
 
@@ -26,6 +27,7 @@ enum class HttpStatus;
 namespace client {
 
 class HttpClusterApi;
+class HttpClusterMember;
 class HttpCluster;
 
 class HttpClusterApiHandler : public CustomData {
@@ -55,20 +57,20 @@ class HttpClusterApiHandler : public CustomData {
   void destroyCluster(HttpCluster* cluster);
 
   bool processBackend();
-  bool createBackend(HttpCluster* cluster);
-  void showBackend();
-  void updateBackend();
-  void lockBackend();
-  void unlockBackend();
-  void destroyBackend();
+  void createBackend(HttpCluster* cluster, const std::string& name);
+  void showBackend(HttpCluster* cluster, HttpClusterMember* member);
+  void updateBackend(HttpCluster* cluster, HttpClusterMember* member);
+  void enableBackend(HttpCluster* cluster, HttpClusterMember* member);
+  void disableBackend(HttpCluster* cluster, HttpClusterMember* member);
+  void destroyBackend(HttpCluster* cluster, HttpClusterMember* member);
 
   bool processBucket();
-  bool createBucket(HttpCluster* cluster);
+  void createBucket(HttpCluster* cluster, const std::string& name);
   void showBucket();
   void updateBucket();
   void destroyBucket();
 
-  bool badRequest(const char* msg);
+  bool badRequest(const char* msg = nullptr);
   bool methodNotAllowed();
 
   bool hasParam(const std::string& key) const;
@@ -78,6 +80,7 @@ class HttpClusterApiHandler : public CustomData {
   bool loadParam(const std::string& key, float* result);
   bool loadParam(const std::string& key, Duration* result);
   bool loadParam(const std::string& key, std::string* result);
+  bool loadParam(const std::string& key, IPAddress* result);
 
   template<typename T>
   bool tryLoadParamIfExists(const std::string& key, T* result) {
