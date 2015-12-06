@@ -70,6 +70,10 @@ HttpClusterMember::HttpClusterMember(
 HttpClusterMember::~HttpClusterMember() {
 }
 
+void HttpClusterMember::setCapacity(size_t n) {
+  capacity_ = n;
+}
+
 HttpClusterSchedulerStatus HttpClusterMember::tryProcess(HttpClusterRequest* cr) {
   if (!isEnabled())
     return HttpClusterSchedulerStatus::Unavailable;
