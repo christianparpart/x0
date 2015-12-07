@@ -60,7 +60,7 @@
 - [x] configuration load
 - [x] configuration save
 - [x] JSON API: CRUD cluster
-- [ ] JSON API: CRUD backend
+- [x] JSON API: CRUD backend
 - [ ] JSON API: CRUD bucket
 - [x] support TRACE method for `proxy.cluster`
 - [ ] support TRACE method for `proxy.http`

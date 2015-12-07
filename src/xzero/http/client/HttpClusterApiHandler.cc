@@ -131,28 +131,26 @@ bool HttpClusterApiHandler::run() {
   switch (tokens_.size()) {
     case 3:
       if (tokens_[1] == "buckets")  // /:director_id/buckets/:bucket_id
-        return processBucket();
+        processBucket();
       else if (tokens_[1] == "backends")  // /:director_id/backends/:bucket_id
-        return processBackend();
-      else
-        return false;
+        processBackend();
+      break;
     case 2:
       if (request_->method() == HttpMethod::PUT) {
         if (HttpCluster* cluster = api_->findCluster(tokens_[0])) {
           if (tokens_[1] == "buckets") { // PUT /:director_id/buckets
             createBucket(cluster, tokens_[2]);
-            return true;
           } else if (tokens_[1] == "backends") { // PUT /:director_id/backends
             createBackend(cluster, tokens_[2]);
-            return true;
           } else {
-            return badRequest("Invalid request URI");
+            badRequest("Invalid request URI");
           }
         } else {
           response_->setStatus(HttpStatus::NotFound);
           response_->completed();
-          return true;
         }
+      } else {
+        badRequest("Invalid path");
       }
       break;
     case 1:  // /:director_id
@@ -445,25 +443,25 @@ void HttpClusterApiHandler::destroyCluster(HttpCluster* cluster) {
 }
 // }}}
 // {{{ backend 
-bool HttpClusterApiHandler::processBackend() {
+void HttpClusterApiHandler::processBackend() {
   // /:director_id/backends/:bucket_id
   HttpCluster* cluster = api_->findCluster(tokens_[0]);
   if (!cluster) {
     response_->setStatus(HttpStatus::NotFound);
     response_->completed();
-    return true;
+    return;
   }
 
   if (request_->method() == HttpMethod::PUT) {
     createBackend(cluster, tokens_[2]);
-    return true;
+    return;
   }
 
   HttpClusterMember* backend = cluster->findMember(tokens_[2]);
   if (!backend) {
     response_->setStatus(HttpStatus::NotFound);
     response_->completed();
-    return true;
+    return;
   }
 
   switch (request_->method()) {
@@ -487,7 +485,6 @@ bool HttpClusterApiHandler::processBackend() {
       response_->completed();
       break;
   }
-  return true;
 }
 
 void HttpClusterApiHandler::createBackend(HttpCluster* cluster,
@@ -611,15 +608,15 @@ void HttpClusterApiHandler::destroyBackend(HttpCluster* cluster, HttpClusterMemb
 }
 // }}}
 // {{{ bucket
-bool HttpClusterApiHandler::processBucket() {
-  return false;
+void HttpClusterApiHandler::processBucket() {
+  // TODO
 }
 
 void HttpClusterApiHandler::createBucket(HttpCluster* cluster,
                                          const std::string& name) {
 }
 // }}}
-
+// {{{ response generator helper
 bool HttpClusterApiHandler::badRequest(const char* msg) {
   if (msg && *msg)
     logError("api", msg);
@@ -636,7 +633,8 @@ bool HttpClusterApiHandler::methodNotAllowed() {
 
   return true;
 }
-
+// }}}
+// {{{ parameter loading
 bool HttpClusterApiHandler::hasParam(const std::string& key) const {
   return args_.find(key) != args_.end();
 }
@@ -744,6 +742,7 @@ bool HttpClusterApiHandler::loadParam(const std::string& key, IPAddress* result)
 
   return true;
 }
+// }}}
 
 } // namespace client
 } // namespace http

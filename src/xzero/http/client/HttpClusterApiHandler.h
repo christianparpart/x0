@@ -56,7 +56,7 @@ class HttpClusterApiHandler : public CustomData {
   void disableCluster(HttpCluster* cluster);
   void destroyCluster(HttpCluster* cluster);
 
-  bool processBackend();
+  void processBackend();
   void createBackend(HttpCluster* cluster, const std::string& name);
   void showBackend(HttpCluster* cluster, HttpClusterMember* member);
   void updateBackend(HttpCluster* cluster, HttpClusterMember* member);
@@ -64,7 +64,7 @@ class HttpClusterApiHandler : public CustomData {
   void disableBackend(HttpCluster* cluster, HttpClusterMember* member);
   void destroyBackend(HttpCluster* cluster, HttpClusterMember* member);
 
-  bool processBucket();
+  void processBucket();
   void createBucket(HttpCluster* cluster, const std::string& name);
   void showBucket();
   void updateBucket();
