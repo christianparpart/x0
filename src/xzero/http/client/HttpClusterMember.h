@@ -35,19 +35,18 @@ class HttpClusterRequest;
 
 class HttpClusterMember {
 public:
+  class EventListener;
   typedef std::function<void(HttpClusterMember*, HttpHealthMonitor::State)>
       StateChangeNotify;
 
   HttpClusterMember(
+      EventListener* eventListener,
       Executor* executor,
       const std::string& name,
       const InetAddress& inet,
       size_t capacity,
       bool enabled,
       bool terminateProtection,
-      std::function<void(HttpClusterMember*)> onEnabledChanged,
-      std::function<void(HttpClusterRequest*)> onProcessingFailed,
-      std::function<void(HttpClusterMember*)> onRelease,
       const std::string& protocol, // http, https, fastcgi, h2, ...
       Duration connectTimeout,
       Duration readTimeout,
@@ -57,8 +56,7 @@ public:
       const std::string& healthCheckFcgiScriptFilename,
       Duration healthCheckInterval,
       unsigned healthCheckSuccessThreshold,
-      const std::vector<HttpStatus>& healthCheckSuccessCodes,
-      StateChangeNotify onHealthStateChange);
+      const std::vector<HttpStatus>& healthCheckSuccessCodes);
 
   ~HttpClusterMember();
 
@@ -98,6 +96,7 @@ private:
   void onResponseReceived2(HttpClusterRequest* cr, HttpClient* client);
 
 private:
+  EventListener* eventListener_;
   Executor* executor_;
   std::string name_;
   InetAddress inetAddress_;
@@ -105,9 +104,6 @@ private:
   bool enabled_;
   bool terminateProtection_;
   Counter load_;
-  std::function<void(HttpClusterMember*)> onEnabledChanged_;
-  std::function<void(HttpClusterRequest*)> onProcessingFailed_;
-  std::function<void(HttpClusterMember*)> onRelease_;
   std::string protocol_; // "http" | "fastcgi"
   Duration connectTimeout_;
   Duration readTimeout_;
@@ -116,6 +112,22 @@ private:
   std::mutex lock_;
 
   std::list<UniquePtr<HttpClient>> clients_;
+};
+
+class HttpClusterMember::EventListener {
+ public:
+  virtual ~EventListener() {}
+
+  virtual void onEnabledChanged(HttpClusterMember* member) = 0;
+  virtual void onCapacityChanged(HttpClusterMember* member, size_t old) = 0;
+  virtual void onHealthChanged(HttpClusterMember* member,
+                               HttpHealthMonitor::State old) = 0;
+
+  /**
+   * Invoked when backend is done processing with one request.
+   */
+  virtual void onProcessingSucceed(HttpClusterMember* member) = 0;
+  virtual void onProcessingFailed(HttpClusterRequest* request) = 0;
 };
 
 } // namespace client

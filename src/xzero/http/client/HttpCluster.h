@@ -68,7 +68,7 @@ struct HttpClusterSettings {
   HttpHealthMonitorSettings healthMonitor;
 };
 
-class HttpCluster {
+class HttpCluster : public HttpClusterMember::EventListener {
  public:
   HttpCluster(const std::string& name,
               const std::string& storagePath,
@@ -248,6 +248,14 @@ class HttpCluster {
 
   void serialize(JsonWriter& json) const;
 
+  // HttpClusterMember::EventListener overrides
+  void onEnabledChanged(HttpClusterMember* member) override;
+  void onCapacityChanged(HttpClusterMember* member, size_t old) override;
+  void onHealthChanged(HttpClusterMember* member,
+                       HttpHealthMonitor::State old) override;
+  void onProcessingSucceed(HttpClusterMember* member) override;
+  void onProcessingFailed(HttpClusterRequest* request) override;
+
  private:
   void reschedule(HttpClusterRequest* cr);
   void serviceUnavailable(HttpClusterRequest* cr, HttpStatus status = HttpStatus::ServiceUnavailable);
@@ -256,10 +264,6 @@ class HttpCluster {
   void dequeueTo(HttpClusterMember* backend);
   HttpClusterRequest* dequeue();
   void onTimeout(HttpClusterRequest* cr);
-  void onBackendEnabledChanged(HttpClusterMember* backend);
-  void onBackendHealthStateChanged(HttpClusterMember* backend,
-                                   HttpHealthMonitor::State oldState);
-  void onMemberReleased(HttpClusterMember* member);
   void loadBackend(const IniFile& settings, const std::string& key);
   void loadBucket(const IniFile& settings, const std::string& key);
 

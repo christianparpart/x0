@@ -576,18 +576,13 @@ void HttpCluster::addMember(const std::string& name,
   TRACE("addMember: $0 $1", name, addr);
 
   HttpClusterMember* backend = new HttpClusterMember(
+      this,
       executor,
       name,
       addr,
       capacity,
       enabled,
       terminateProtection,
-      std::bind(&HttpCluster::onBackendEnabledChanged, this,
-                std::placeholders::_1),
-      std::bind(&HttpCluster::reschedule, this,
-                std::placeholders::_1),
-      std::bind(&HttpCluster::onMemberReleased, this,
-                std::placeholders::_1),
       protocol,
       connectTimeout_,
       readTimeout_,
@@ -597,78 +592,9 @@ void HttpCluster::addMember(const std::string& name,
       healthCheckFcgiScriptFilename_,
       healthCheckInterval,
       healthCheckSuccessThreshold_,
-      healthCheckSuccessCodes_,
-      std::bind(&HttpCluster::onBackendHealthStateChanged, this,
-                std::placeholders::_1,
-                std::placeholders::_2));
+      healthCheckSuccessCodes_);
 
   members_.push_back(backend);
-}
-
-void HttpCluster::onBackendEnabledChanged(HttpClusterMember* backend) {
-  logDebug("HttpCluster", "onBackendEnabledChanged: $0 $1",
-        backend->name(), backend->isEnabled() ? "enabled" : "disabled");
-  TRACE("onBackendEnabledChanged: $0 $1",
-        backend->name(), backend->isEnabled() ? "enabled" : "disabled");
-
-  if (backend->isEnabled())
-    shaper()->resize(shaper()->size() + backend->capacity());
-  else
-    shaper()->resize(shaper()->size() - backend->capacity());
-}
-
-void HttpCluster::onBackendHealthStateChanged(HttpClusterMember* backend,
-                                        HttpHealthMonitor::State oldState) {
-  logDebug("HttpCluster",
-        "onBackendHealthStateChanged: health=$0 -> $1, enabled=$2",
-        oldState,
-        backend->healthMonitor()->state(),
-        backend->isEnabled());
-
-  TRACE("onBackendHealthStateChanged: health=$0 -> $1, enabled=$2",
-        oldState,
-        backend->healthMonitor()->state(),
-        backend->isEnabled());
-
-  logInfo("HttpCluster",
-          "$0: backend '$1' ($2:$3) is now $4.",
-          name(), backend->name(),
-          backend->inetAddress().ip(),
-          backend->inetAddress().port(),
-          backend->healthMonitor()->state());
-
-  if (backend->healthMonitor()->isOnline()) {
-    if (!backend->isEnabled())
-      return;
-
-    // backend is online and enabled
-
-    TRACE("onBackendHealthStateChanged: adding capacity to shaper ($0 + $1)",
-           shaper()->size(), backend->capacity());
-    shaper()->resize(shaper()->size() + backend->capacity());
-
-    if (!stickyOfflineMode()) {
-      // try delivering a queued request
-      dequeueTo(backend);
-    } else {
-      // disable backend due to sticky-offline mode
-      logNotice(
-          "HttpCluster",
-          "$0: backend '$1' disabled due to sticky offline mode.",
-          name(), backend->name());
-      backend->setEnabled(false);
-    }
-  } else if (backend->isEnabled() && oldState == HttpHealthMonitor::State::Online) {
-    // backend is offline and enabled
-    shaper()->resize(shaper()->size() - backend->capacity());
-
-    TRACE("onBackendHealthStateChanged: removing capacity from shaper ($0 - $1)",
-          shaper()->size(), backend->capacity());
-  }
-}
-
-void HttpCluster::onMemberReleased(HttpClusterMember* backend) {
-  dequeueTo(backend);
 }
 
 HttpClusterMember* HttpCluster::findMember(const std::string& name) {
@@ -916,6 +842,85 @@ void HttpCluster::onTimeout(HttpClusterRequest* cr) {
     serviceUnavailable(cr, HttpStatus::GatewayTimeout);
   });
 }
+
+// {{{ EventListener overrides
+void HttpCluster::onEnabledChanged(HttpClusterMember* backend) {
+  logDebug("HttpCluster", "onBackendEnabledChanged: $0 $1",
+        backend->name(), backend->isEnabled() ? "enabled" : "disabled");
+  TRACE("onBackendEnabledChanged: $0 $1",
+        backend->name(), backend->isEnabled() ? "enabled" : "disabled");
+
+  if (backend->isEnabled()) {
+    shaper()->resize(shaper()->size() + backend->capacity());
+  } else {
+    shaper()->resize(shaper()->size() - backend->capacity());
+  }
+}
+
+void HttpCluster::onCapacityChanged(HttpClusterMember* member, size_t old) {
+  if (member->isEnabled()) {
+    shaper()->resize(shaper()->size() - old + member->capacity());
+  }
+}
+
+void HttpCluster::onHealthChanged(HttpClusterMember* backend,
+                                  HttpHealthMonitor::State oldState) {
+  logDebug("HttpCluster",
+        "onBackendHealthStateChanged: health=$0 -> $1, enabled=$2",
+        oldState,
+        backend->healthMonitor()->state(),
+        backend->isEnabled());
+
+  TRACE("onBackendHealthStateChanged: health=$0 -> $1, enabled=$2",
+        oldState,
+        backend->healthMonitor()->state(),
+        backend->isEnabled());
+
+  logInfo("HttpCluster",
+          "$0: backend '$1' ($2:$3) is now $4.",
+          name(), backend->name(),
+          backend->inetAddress().ip(),
+          backend->inetAddress().port(),
+          backend->healthMonitor()->state());
+
+  if (backend->healthMonitor()->isOnline()) {
+    if (!backend->isEnabled())
+      return;
+
+    // backend is online and enabled
+
+    TRACE("onBackendHealthStateChanged: adding capacity to shaper ($0 + $1)",
+           shaper()->size(), backend->capacity());
+    shaper()->resize(shaper()->size() + backend->capacity());
+
+    if (!stickyOfflineMode()) {
+      // try delivering a queued request
+      dequeueTo(backend);
+    } else {
+      // disable backend due to sticky-offline mode
+      logNotice(
+          "HttpCluster",
+          "$0: backend '$1' disabled due to sticky offline mode.",
+          name(), backend->name());
+      backend->setEnabled(false);
+    }
+  } else if (backend->isEnabled() && oldState == HttpHealthMonitor::State::Online) {
+    // backend is offline and enabled
+    shaper()->resize(shaper()->size() - backend->capacity());
+
+    TRACE("onBackendHealthStateChanged: removing capacity from shaper ($0 - $1)",
+          shaper()->size(), backend->capacity());
+  }
+}
+
+void HttpCluster::onProcessingSucceed(HttpClusterMember* member) {
+  dequeueTo(member);
+}
+
+void HttpCluster::onProcessingFailed(HttpClusterRequest* request) {
+  reschedule(request);
+}
+// }}}
 
 void HttpCluster::serialize(JsonWriter& json) const {
   json.beginObject()

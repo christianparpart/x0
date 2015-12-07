@@ -18,15 +18,13 @@ namespace client {
 #endif
 
 HttpClusterMember::HttpClusterMember(
+    EventListener* eventListener,
     Executor* executor,
     const std::string& name,
     const InetAddress& inetAddress,
     size_t capacity,
     bool enabled,
     bool terminateProtection,
-    std::function<void(HttpClusterMember*)> onEnabledChanged,
-    std::function<void(HttpClusterRequest*)> onProcessingFailed,
-    std::function<void(HttpClusterMember*)> onRelease,
     const std::string& protocol,
     Duration connectTimeout,
     Duration readTimeout,
@@ -36,17 +34,14 @@ HttpClusterMember::HttpClusterMember(
     const std::string& healthCheckFcgiScriptFilename,
     Duration healthCheckInterval,
     unsigned healthCheckSuccessThreshold,
-    const std::vector<HttpStatus>& healthCheckSuccessCodes,
-    StateChangeNotify onHealthStateChange)
-    : executor_(executor),
+    const std::vector<HttpStatus>& healthCheckSuccessCodes)
+    : eventListener_(eventListener),
+      executor_(executor),
       name_(name),
       inetAddress_(inetAddress),
       capacity_(capacity),
       enabled_(enabled),
       terminateProtection_(terminateProtection),
-      onEnabledChanged_(onEnabledChanged),
-      onProcessingFailed_(onProcessingFailed),
-      onRelease_(onRelease),
       protocol_(protocol),
       connectTimeout_(connectTimeout),
       readTimeout_(readTimeout),
@@ -63,15 +58,19 @@ HttpClusterMember::HttpClusterMember(
           connectTimeout,
           readTimeout,
           writeTimeout,
-          std::bind(onHealthStateChange, this, std::placeholders::_2))),
+          std::bind(&EventListener::onHealthChanged, eventListener,
+                    this, std::placeholders::_2))),
       clients_() {
+  eventListener_->onCapacityChanged(this, 0);
 }
 
 HttpClusterMember::~HttpClusterMember() {
 }
 
 void HttpClusterMember::setCapacity(size_t n) {
+  size_t old = capacity_;
   capacity_ = n;
+  eventListener_->onCapacityChanged(this, old);
 }
 
 HttpClusterSchedulerStatus HttpClusterMember::tryProcess(HttpClusterRequest* cr) {
@@ -104,7 +103,7 @@ HttpClusterSchedulerStatus HttpClusterMember::tryProcess(HttpClusterRequest* cr)
 }
 
 void HttpClusterMember::release() {
-  onRelease_(this);
+  eventListener_->onProcessingSucceed(this);
 }
 
 bool HttpClusterMember::process(HttpClusterRequest* cr) {
@@ -140,9 +139,7 @@ void HttpClusterMember::onFailure(HttpClusterRequest* cr, Status status) {
 
   cr->backend = nullptr;
 
-  if (onProcessingFailed_) {
-    onProcessingFailed_(cr);
-  }
+  eventListener_->onProcessingFailed(cr);
 }
 
 void HttpClusterMember::onResponseReceived(HttpClusterRequest* cr,
