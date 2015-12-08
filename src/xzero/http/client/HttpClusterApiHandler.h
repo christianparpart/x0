@@ -66,12 +66,13 @@ class HttpClusterApiHandler : public CustomData {
 
   void processBucket();
   void createBucket(HttpCluster* cluster, const std::string& name);
-  void showBucket();
-  void updateBucket();
-  void destroyBucket();
+  void showBucket(HttpCluster* cluster, const std::string& name);
+  void updateBucket(HttpCluster* cluster, const std::string& name);
+  void destroyBucket(HttpCluster* cluster, const std::string& name);
 
-  bool badRequest(const char* msg = nullptr);
-  bool methodNotAllowed();
+  template<typename... Args>
+  bool generateResponse(HttpStatus status, const std::string& msg, Args... args);
+  bool generateResponse(HttpStatus status);
 
   bool hasParam(const std::string& key) const;
   bool loadParam(const std::string& key, bool* result);

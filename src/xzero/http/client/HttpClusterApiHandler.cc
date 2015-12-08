@@ -143,14 +143,13 @@ bool HttpClusterApiHandler::run() {
           } else if (tokens_[1] == "backends") { // PUT /:director_id/backends
             createBackend(cluster, tokens_[2]);
           } else {
-            badRequest("Invalid request URI");
+            generateResponse(HttpStatus::BadRequest, "Invalid request URI");
           }
         } else {
-          response_->setStatus(HttpStatus::NotFound);
-          response_->completed();
+          generateResponse(HttpStatus::NotFound);
         }
       } else {
-        badRequest("Invalid path");
+        generateResponse(HttpStatus::MethodNotAllowed);
       }
       break;
     case 1:  // /:director_id
@@ -160,8 +159,7 @@ bool HttpClusterApiHandler::run() {
       processIndex();
       break;
     default:
-      response_->setStatus(HttpStatus::BadRequest);
-      response_->completed();
+      generateResponse(HttpStatus::BadRequest);
       break;
   }
   return true;
@@ -172,7 +170,7 @@ void HttpClusterApiHandler::processIndex() {
   if (request_->method() == HttpMethod::GET)
     index();
   else
-    methodNotAllowed();
+    generateResponse(HttpStatus::MethodNotAllowed);
 }
 
 void HttpClusterApiHandler::index() {
@@ -212,8 +210,7 @@ void HttpClusterApiHandler::processCluster() {
 
   HttpCluster* cluster = api_->findCluster(tokens_[0]);
   if (!cluster) {
-    response_->setStatus(HttpStatus::NotFound);
-    response_->completed();
+    generateResponse(HttpStatus::NotFound);
     return;
   }
 
@@ -234,7 +231,7 @@ void HttpClusterApiHandler::processCluster() {
       destroyCluster(cluster);
       break;
     default:
-      methodNotAllowed();
+      generateResponse(HttpStatus::MethodNotAllowed);
       break;
   }
 }
@@ -285,8 +282,7 @@ void HttpClusterApiHandler::showCluster(HttpCluster* cluster) {
 void HttpClusterApiHandler::updateCluster(HttpCluster* cluster) {
   HttpStatus status = doUpdateCluster(cluster, HttpStatus::Ok);
   logInfo("api", "cluster: $0 reconfigured.", cluster->name());
-  response_->setStatus(status);
-  response_->completed();
+  generateResponse(status);
 }
 
 HttpStatus HttpClusterApiHandler::doUpdateCluster(HttpCluster* cluster,
@@ -425,21 +421,18 @@ HttpStatus HttpClusterApiHandler::doUpdateCluster(HttpCluster* cluster,
 void HttpClusterApiHandler::disableCluster(HttpCluster* cluster) {
   cluster->setEnabled(false);
   cluster->saveConfiguration();
-  response_->setStatus(HttpStatus::NoContent);
-  response_->completed();
+  generateResponse(HttpStatus::NoContent);
 }
 
 void HttpClusterApiHandler::enableCluster(HttpCluster* cluster) {
   cluster->setEnabled(true);
   cluster->saveConfiguration();
-  response_->setStatus(HttpStatus::NoContent);
-  response_->completed();
+  generateResponse(HttpStatus::NoContent);
 }
 
 void HttpClusterApiHandler::destroyCluster(HttpCluster* cluster) {
   api_->destroyCluster(cluster->name());
-  response_->setStatus(HttpStatus::NoContent);
-  response_->completed();
+  generateResponse(HttpStatus::NoContent);
 }
 // }}}
 // {{{ backend 
@@ -447,8 +440,7 @@ void HttpClusterApiHandler::processBackend() {
   // /:director_id/backends/:bucket_id
   HttpCluster* cluster = api_->findCluster(tokens_[0]);
   if (!cluster) {
-    response_->setStatus(HttpStatus::NotFound);
-    response_->completed();
+    generateResponse(HttpStatus::NotFound);
     return;
   }
 
@@ -459,8 +451,7 @@ void HttpClusterApiHandler::processBackend() {
 
   HttpClusterMember* backend = cluster->findMember(tokens_[2]);
   if (!backend) {
-    response_->setStatus(HttpStatus::NotFound);
-    response_->completed();
+    generateResponse(HttpStatus::NotFound);
     return;
   }
 
@@ -481,8 +472,7 @@ void HttpClusterApiHandler::processBackend() {
       destroyBackend(cluster, backend);
       break;
     default:
-      response_->setStatus(HttpStatus::NotFound);
-      response_->completed();
+      generateResponse(HttpStatus::NotFound);
       break;
   }
 }
@@ -506,8 +496,7 @@ void HttpClusterApiHandler::createBackend(HttpCluster* cluster,
   InetAddress addr(ip, port);
 
   if (errorCount_) {
-    response_->setStatus(HttpStatus::BadRequest);
-    response_->completed();
+    generateResponse(HttpStatus::BadRequest);
     return;
   }
 
@@ -516,8 +505,7 @@ void HttpClusterApiHandler::createBackend(HttpCluster* cluster,
                      protocol,
                      healthCheckInterval);
 
-  response_->setStatus(HttpStatus::NoContent);
-  response_->completed();
+  generateResponse(HttpStatus::NoContent);
 }
 
 void HttpClusterApiHandler::showBackend(HttpCluster* cluster, HttpClusterMember* member) {
@@ -543,8 +531,7 @@ void HttpClusterApiHandler::updateBackend(HttpCluster* cluster,
              "Director immutable.",
              member->name(), cluster->name());
 
-    response_->setStatus(HttpStatus::Forbidden);
-    response_->completed();
+    generateResponse(HttpStatus::Forbidden);
   }
 
   bool enabled = member->isEnabled();
@@ -560,7 +547,7 @@ void HttpClusterApiHandler::updateBackend(HttpCluster* cluster,
   tryLoadParamIfExists("health-check-interval", &hcInterval);
 
   if (errorCount_ > 0) {
-    badRequest();
+    generateResponse(HttpStatus::BadRequest);
     return;
   }
 
@@ -582,8 +569,7 @@ void HttpClusterApiHandler::updateBackend(HttpCluster* cluster,
   logInfo("api", "director: $0 reconfigured backend: $1.",
           cluster->name(), member->name());
 
-  response_->setStatus(HttpStatus::NoContent);
-  response_->completed();
+  generateResponse(HttpStatus::NoContent);
 }
 
 void HttpClusterApiHandler::enableBackend(HttpCluster* cluster, HttpClusterMember* member) {
@@ -609,26 +595,143 @@ void HttpClusterApiHandler::destroyBackend(HttpCluster* cluster, HttpClusterMemb
 // }}}
 // {{{ bucket
 void HttpClusterApiHandler::processBucket() {
-  // TODO
+  // methods: GET, PUT, POST, DELETE
+  // route: /:director_id/buckets/:bucket_id
+
+  HttpCluster* cluster = api_->findCluster(tokens_[0]);
+  if (!cluster) {
+    generateResponse(HttpStatus::NotFound);
+    return;
+  }
+
+  const std::string& bucket = tokens_[2];
+
+  switch (request_->method()) {
+    case HttpMethod::PUT:
+      createBucket(cluster, bucket);
+      break;
+    case HttpMethod::GET:
+      showBucket(cluster, bucket);
+      break;
+    case HttpMethod::POST: // update existing bucket
+      updateBucket(cluster, bucket);
+      break;
+    case HttpMethod::DELETE: // delete bucket
+      destroyBucket(cluster, bucket);
+      break;
+    default:
+      generateResponse(HttpStatus::MethodNotAllowed);
+      break;
+  }
+}
+
+void HttpClusterApiHandler::destroyBucket(HttpCluster* cluster,
+                                          const std::string& name) {
+  HttpCluster::Bucket* bucket = cluster->findBucket(name);
+  if (!bucket) {
+    generateResponse(HttpStatus::NotFound);
+    return;
+  }
+
+  logInfo("api", "director $0: Destroying bucket $1", cluster->name(), name);
+
+  cluster->shaper()->destroyNode(bucket);
+  cluster->saveConfiguration();
+
+  generateResponse(HttpStatus::NoContent);
 }
 
 void HttpClusterApiHandler::createBucket(HttpCluster* cluster,
                                          const std::string& name) {
+  float rate;
+  if (!loadParam("rate", &rate)) {
+    generateResponse(HttpStatus::BadRequest, "Invalid bucket rate");
+    return;
+  }
+
+  float ceil;
+  if (!loadParam("ceil", &ceil)) {
+    generateResponse(HttpStatus::BadRequest, "Invalid bucket ceil");
+    return;
+  }
+
+  HttpCluster::Bucket* bucket = cluster->findBucket(name);
+  TokenShaperError ec = (bucket == nullptr)
+                        ? cluster->createBucket(name, rate, ceil)
+                        : bucket->setRate(rate, ceil);
+
+  if (ec == TokenShaperError::Success) {
+    generateResponse(HttpStatus::NoContent);
+  } else {
+    generateResponse(HttpStatus::BadRequest, StringUtil::toString(ec));
+  }
+}
+
+void HttpClusterApiHandler::updateBucket(HttpCluster* cluster,
+                                         const std::string& name) {
+  float rate;
+  if (!loadParam("rate", &rate)) {
+    generateResponse(HttpStatus::BadRequest, "Invalid bucket rate");
+    return;
+  }
+
+  float ceil;
+  if (!loadParam("ceil", &ceil)) {
+    generateResponse(HttpStatus::BadRequest, "Invalid bucket ceil");
+    return;
+  }
+
+  HttpCluster::Bucket* bucket = cluster->findBucket(name);
+  if (!bucket) {
+    generateResponse(HttpStatus::NotFound);
+    return;
+  }
+
+  TokenShaperError ec = bucket->setRate(rate, ceil);
+
+  if (ec == TokenShaperError::Success) {
+    generateResponse(HttpStatus::NoContent);
+  } else {
+    generateResponse(HttpStatus::BadRequest, StringUtil::toString(ec));
+  }
+}
+
+void HttpClusterApiHandler::showBucket(HttpCluster* cluster,
+                                       const std::string& name) {
+  HttpCluster::Bucket* bucket = cluster->findBucket(name);
+  if (!bucket) {
+    generateResponse(HttpStatus::NotFound);
+    return;
+  }
+
+  Buffer result;
+  JsonWriter(&result).value(*bucket);
+
+  response_->setStatus(HttpStatus::Ok);
+  response_->addHeader("Cache-Control", "no-cache");
+  response_->addHeader("Content-Type", "application/json");
+  response_->addHeader("Access-Control-Allow-Origin", "*");
+  response_->setContentLength(result.size());
+  response_->output()->write(std::move(result));
+  response_->completed();
 }
 // }}}
 // {{{ response generator helper
-bool HttpClusterApiHandler::badRequest(const char* msg) {
-  if (msg && *msg)
+template<typename... Args>
+bool HttpClusterApiHandler::generateResponse(HttpStatus status,
+                                             const std::string& msg,
+                                             Args... args) {
+  if (!msg.empty())
     logError("api", msg);
 
-  response_->setStatus(HttpStatus::BadRequest);
+  response_->setStatus(status);
   response_->completed();
 
   return true;
 }
 
-bool HttpClusterApiHandler::methodNotAllowed() {
-  response_->setStatus(HttpStatus::MethodNotAllowed);
+bool HttpClusterApiHandler::generateResponse(HttpStatus status) {
+  response_->setStatus(status);
   response_->completed();
 
   return true;

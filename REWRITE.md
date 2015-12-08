@@ -61,7 +61,7 @@
 - [x] configuration save
 - [x] JSON API: CRUD cluster
 - [x] JSON API: CRUD backend
-- [ ] JSON API: CRUD bucket
+- [x] JSON API: CRUD bucket
 - [x] support TRACE method for `proxy.cluster`
 - [ ] support TRACE method for `proxy.http`
 - [ ] request body tmp stored on disk if larger than N bytes
