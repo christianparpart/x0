@@ -111,6 +111,7 @@ set(xzero_base_SRC
   Status.cc
   StringUtil.cc
   Tokenizer.cc
+  TokenShaper.cc
   UnixTime.cc
   Uri.cc
   UTF8.cc
