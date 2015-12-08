@@ -30,12 +30,14 @@ namespace client {
 // delete director:  DELETE /:director_id
 // create director:  PUT    /:director_id
 //
+// create backend:   PUT    /:director_id/backends
 // create backend:   PUT    /:director_id/backends/:backend_id
 // update backend:   POST   /:director_id/backends/:backend_id
 // enable backend:   UNLOCK /:director_id/backends/:backend_id
 // disable backend:  LOCK   /:director_id/backends/:backend_id
 // delete backend:   DELETE /:director_id/backends/:backend_id
 //
+// create bucket:    PUT    /:director_id/buckets
 // create bucket:    PUT    /:director_id/buckets/:bucket_id
 // update bucket:    POST   /:director_id/buckets/:bucket_id
 // delete bucket:    DELETE /:director_id/buckets/:bucket_id
@@ -136,21 +138,7 @@ bool HttpClusterApiHandler::run() {
         processBackend();
       break;
     case 2:
-      if (request_->method() == HttpMethod::PUT) {
-        if (HttpCluster* cluster = api_->findCluster(tokens_[0])) {
-          if (tokens_[1] == "buckets") { // PUT /:director_id/buckets
-            createBucket(cluster, tokens_[2]);
-          } else if (tokens_[1] == "backends") { // PUT /:director_id/backends
-            createBackend(cluster, tokens_[2]);
-          } else {
-            generateResponse(HttpStatus::BadRequest, "Invalid request URI");
-          }
-        } else {
-          generateResponse(HttpStatus::NotFound);
-        }
-      } else {
-        generateResponse(HttpStatus::MethodNotAllowed);
-      }
+      createBackendOrBucket();
       break;
     case 1:  // /:director_id
       processCluster();
@@ -163,6 +151,27 @@ bool HttpClusterApiHandler::run() {
       break;
   }
   return true;
+}
+
+void HttpClusterApiHandler::createBackendOrBucket() {
+  if (request_->method() != HttpMethod::PUT) {
+    generateResponse(HttpStatus::MethodNotAllowed);
+    return;
+  }
+
+  HttpCluster* cluster = api_->findCluster(tokens_[0]);
+  if (!cluster) {
+    generateResponse(HttpStatus::NotFound);
+    return;
+  }
+
+  if (tokens_[1] == "buckets") { // PUT /:director_id/buckets
+    createBucket(cluster, tokens_[2]);
+  } else if (tokens_[1] == "backends") { // PUT /:director_id/backends
+    createBackend(cluster, tokens_[2]);
+  } else {
+    generateResponse(HttpStatus::BadRequest);
+  }
 }
 
 // {{{ cluster index

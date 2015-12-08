@@ -47,6 +47,7 @@ class HttpClusterApiHandler : public CustomData {
   void processIndex();
   void index();
 
+  void createBackendOrBucket();
   void processCluster();
   void createCluster(const std::string& name);
   void showCluster(HttpCluster* cluster);
