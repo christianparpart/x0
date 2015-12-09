@@ -524,8 +524,12 @@ bool ProxyModule::tryHandleTrace(XzeroContext* cx) {
   if (cx->request()->method() != HttpMethod::TRACE)
     return false;
 
-  if (!cx->request()->headers().contains("Max-Forwards"))
-    return false;
+  if (!cx->request()->headers().contains("Max-Forwards")) {
+    cx->response()->setStatus(HttpStatus::BadRequest);
+    cx->response()->setReason("Max-Forwards header missing.");
+    cx->response()->completed();
+    return true;
+  }
 
   int maxForwards = std::stoi(cx->request()->headers().get("Max-Forwards"));
   if (maxForwards != 0) {
@@ -537,12 +541,18 @@ bool ProxyModule::tryHandleTrace(XzeroContext* cx) {
   Buffer body;
   cx->request()->input()->read(&body);
 
+  HttpRequestInfo requestInfo(
+      cx->request()->version(),
+      cx->request()->unparsedMethod(),
+      cx->request()->unparsedUri(),
+      body.size(),
+      cx->request()->headers());
+  HeaderFieldList trailers;
+
   EndPointWriter writer;
   http1::Generator generator(&writer);
-  generator.generateRequest(*cx->request());
+  generator.generateRequest(requestInfo);
   generator.generateBody(body);
-
-  HeaderFieldList trailers;
   generator.generateTrailer(trailers);
 
   ByteArrayEndPoint ep;
