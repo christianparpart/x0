@@ -63,7 +63,7 @@
 - [x] JSON API: CRUD backend
 - [x] JSON API: CRUD bucket
 - [x] support TRACE method for `proxy.cluster`
-- [ ] support TRACE method for `proxy.http`
+- [x] support TRACE method for `proxy.http`
 - [ ] request body tmp stored on disk if larger than N bytes
 - [ ] response body tmp stored on disk if larger than N bytes
 - [ ] HttpInput: must be rewind()able, in order to be used multiple times

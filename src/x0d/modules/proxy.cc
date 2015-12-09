@@ -405,6 +405,9 @@ bool ProxyModule::proxy_http(XzeroContext* cx, xzero::flow::vm::Params& args) {
   Duration writeTimeout = 8_seconds;
   Executor* executor = cx->response()->executor();
 
+  if (tryHandleTrace(cx))
+    return true;
+
   BufferRef requestBody; // TODO
   size_t requestBodySize = requestBody.size();
   HttpRequestInfo requestInfo(
