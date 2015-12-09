@@ -20,6 +20,10 @@
 #include <xzero/http/client/HttpClient.h>
 #include <xzero/http/HttpRequest.h>
 #include <xzero/http/HttpResponse.h>
+#include <xzero/http/http1/Generator.h>
+#include <xzero/http/HeaderFieldList.h>
+#include <xzero/net/EndPointWriter.h>
+#include <xzero/net/ByteArrayEndPoint.h>
 #include <xzero/io/FileUtil.h>
 #include <xzero/io/BufferInputStream.h>
 #include <xzero/net/InetEndPoint.h>
@@ -521,33 +525,35 @@ bool ProxyModule::tryHandleTrace(XzeroContext* cx) {
     return false;
 
   int maxForwards = std::stoi(cx->request()->headers().get("Max-Forwards"));
-  if (maxForwards != 0)
+  if (maxForwards != 0) {
+    cx->request()->headers().overwrite("Max-Forwards",
+                                       StringUtil::toString(maxForwards - 1));
     return false;
+  }
 
   Buffer body;
   cx->request()->input()->read(&body);
 
+  EndPointWriter writer;
+  http1::Generator generator(&writer);
+  generator.generateRequest(*cx->request());
+  generator.generateBody(body);
+
+  HeaderFieldList trailers;
+  generator.generateTrailer(trailers);
+
+  ByteArrayEndPoint ep;
+  writer.flush(&ep);
+
+  Buffer message = ep.output();
+
   cx->response()->setStatus(HttpStatus::Ok);
-  cx->response()->setContentLength(body.size());
-  cx->response()->output()->write(std::move(body));
+  cx->response()->headers().push_back("Content-Type", "message/http");
+  cx->response()->setContentLength(message.size());
+  cx->response()->output()->write(std::move(message));
   cx->response()->completed();
 
   return true;
-}
-
-void ProxyModule::patchTraceResponse(XzeroContext* cx) {
-  if (cx->request()->method() != HttpMethod::TRACE)
-    return;
-
-  if (!cx->request()->headers().contains("Max-Forwards"))
-    return;
-
-  int maxForwards = std::stoi(cx->request()->headers().get("Max-Forwards"));
-  if (maxForwards > 0)
-    maxForwards--;
-
-  cx->response()->headers().overwrite("Max-Forwards",
-                                      StringUtil::toString(maxForwards));
 }
 
 } // namespace x0d

@@ -70,7 +70,6 @@ class ProxyModule : public XzeroModule,
   void proxy_cache_key(XzeroContext* cx, xzero::flow::vm::Params& args);
   void proxy_cache_ttl(XzeroContext* cx, xzero::flow::vm::Params& args);
   bool tryHandleTrace(XzeroContext* cx);
-  void patchTraceResponse(XzeroContext* cx);
 
  private:
   bool internalServerError(XzeroContext* cx);
