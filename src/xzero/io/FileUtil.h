@@ -65,6 +65,8 @@ class XZERO_BASE_API FileUtil {
   static void collapse(int fd, off_t offset, size_t length);
 
   static void truncate(int fd, size_t length);
+
+  static void close(int fd);
 };
 
 }  // namespace xzero

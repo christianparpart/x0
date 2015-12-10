@@ -163,7 +163,7 @@ Buffer FileUtil::read(int fd) {
   output.reserve(st.st_size + 1);
   ssize_t nread = ::pread(fd, output.data(), st.st_size, 0);
   if (nread < 0) {
-    ::close(fd);
+    close(fd);
     RAISE_ERRNO(errno);
   }
 
@@ -195,13 +195,13 @@ void FileUtil::write(const std::string& path, const Buffer& buffer) {
   do {
     ssize_t rv = ::write(fd, buffer.data(), buffer.size());
     if (rv < 0) {
-      ::close(fd);
+      close(fd);
       RAISE_ERRNO(errno);
     }
     nwritten += rv;
   } while (static_cast<size_t>(nwritten) < buffer.size());
 
-  ::close(fd);
+  close(fd);
 }
 
 void FileUtil::copy(const std::string& from, const std::string& to) {
@@ -362,6 +362,20 @@ void FileUtil::collapse(int fd, off_t offset, size_t length) {
 void FileUtil::truncate(int fd, size_t length) {
   if (ftruncate(fd, length) < 0)
     RAISE_ERRNO(errno);
+}
+
+void FileUtil::close(int fd) {
+  for (;;) {
+    int rv = ::close(fd);
+    switch (rv) {
+      case 0:
+        return;
+      case EINTR:
+        break;
+      default:
+        RAISE_ERRNO(errno);
+    }
+  }
 }
 
 }  // namespace xzero
