@@ -7,6 +7,7 @@
 
 #include <xzero/http/HttpRequest.h>
 #include <xzero/io/BufferInputStream.h>
+#include <xzero/io/FileInputStream.h>
 #include <xzero/io/InputStream.h>
 #include <xzero/io/FileUtil.h>
 #include <xzero/logging.h>
@@ -91,7 +92,7 @@ void HttpRequest::discardContent(std::function<void()> onReady) {
 
 void HttpRequest::consumeContent(std::function<void()> onReady) {
   onContentAvailable_ = [this](const BufferRef& chunk) {
-    const size_t maxBufferSize = 1024;
+    const size_t maxBufferSize = 1024; // TODO: pass me
 
     if (contentFd_ < 0 && contentBuffer_.size() + chunk.size() > maxBufferSize) {
       contentFd_ = FileUtil::createTempFile();
@@ -101,6 +102,18 @@ void HttpRequest::consumeContent(std::function<void()> onReady) {
       contentBuffer_.push_back(chunk);
       TRACE("$0: consuming $1 bytes of content", this, chunk.size());
     } else {
+      size_t offset = 0;
+
+      while (offset < chunk.size()) {
+        ssize_t n = ::write(contentFd_,
+                            chunk.data() + offset,
+                            chunk.size() - offset);
+
+        if (n > 0)
+          offset += n;
+        else if (n < 0 && errno != EINTR)
+          RAISE_ERRNO(errno);
+      }
     }
   };
 
@@ -118,15 +131,10 @@ void HttpRequest::ready() {
 }
 
 std::unique_ptr<InputStream> HttpRequest::getContentStream() {
-  std::unique_ptr<InputStream> stream;
-
-  if (!contentBuffer_.empty()) {
-    stream.reset(new BufferInputStream(&contentBuffer_));
-  } else {
-    // TODO: read content from file
-  }
-
-  return stream;
+  return std::unique_ptr<InputStream>(
+      !contentBuffer_.empty()
+          ? static_cast<InputStream*>(new BufferInputStream(&contentBuffer_))
+          : static_cast<InputStream*>(new FileInputStream(contentFd_, false)));
 }
 
 BufferRef HttpRequest::getContentBuffer() {
