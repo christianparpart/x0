@@ -28,7 +28,6 @@ class HttpResponseInfo;
 class HttpTransport;
 class HttpRequest;
 class HttpResponse;
-class HttpOutput;
 class HttpOutputCompressor;
 class HttpDateGenerator;
 
@@ -167,7 +166,6 @@ class XZERO_HTTP_API HttpChannel : public HttpListener {
   void responseEnd(); // no, via cb functor instead
 
  protected:
-  virtual std::unique_ptr<HttpOutput> createOutput();
   void handleRequest();
   void onBeforeSend();
   HttpResponseInfo commitInline();

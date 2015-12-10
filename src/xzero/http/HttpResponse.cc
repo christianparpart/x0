@@ -9,23 +9,32 @@
 #include <xzero/http/HttpRequest.h>
 #include <xzero/http/HttpChannel.h>
 #include <xzero/RuntimeError.h>
+#include <xzero/io/FileRef.h>
+#include <xzero/io/Filter.h>
+#include <xzero/sysconfig.h>
+#include <cstring>
+#include <system_error>
+#include <stdexcept>
 #include <vector>
 #include <string>
+
+#ifdef HAVE_UNISTD_H
+#include <unistd.h>
+#endif
 
 namespace xzero {
 namespace http {
 
-HttpResponse::HttpResponse(HttpChannel* channel,
-                           std::unique_ptr<HttpOutput>&& output)
+HttpResponse::HttpResponse(HttpChannel* channel)
     : channel_(channel),
-      output_(std::move(output)),
       version_(HttpVersion::UNKNOWN),
       status_(HttpStatus::Undefined),
       contentLength_(static_cast<size_t>(-1)),
       headers_(),
       trailers_(),
       committed_(false),
-      bytesTransmitted_(0) {
+      bytesTransmitted_(0),
+      actualContentLength_(0) {
   //.
 }
 
@@ -41,8 +50,8 @@ void HttpResponse::recycle() {
   contentLength_ = static_cast<size_t>(-1);
   headers_.reset();
   trailers_.reset();
-  output_->recycle();
   bytesTransmitted_ = 0;
+  actualContentLength_ = 0;
 }
 
 void HttpResponse::requireMutableInfo() {
@@ -171,7 +180,7 @@ void HttpResponse::sendError(HttpStatus code, const std::string& message) {
   setStatus(code);
   setReason(message);
   removeAllHeaders();
-  output()->removeAllFilters();
+  removeAllOutputFilters();
 
   if (!isContentForbidden(code)) {
     Buffer body(2048);
@@ -195,7 +204,7 @@ void HttpResponse::sendError(HttpStatus code, const std::string& message) {
     setHeader("Cache-Control", "must-revalidate,no-cache,no-store");
     setHeader("Content-Type", "text/html");
     setContentLength(body.size());
-    output()->write(std::move(body), std::bind(&HttpResponse::completed, this));
+    write(std::move(body), std::bind(&HttpResponse::completed, this));
   } else {
     completed();
   }
@@ -245,8 +254,42 @@ void HttpResponse::onResponseEnd(std::function<void()> callback) {
 }
 
 void HttpResponse::completed() {
-  output_->completed();
+  channel_->completed();
 }
+
+// {{{ HTTP response content builders
+void HttpResponse::addOutputFilter(std::shared_ptr<Filter> filter) {
+  channel_->addOutputFilter(filter);
+}
+
+void HttpResponse::removeAllOutputFilters() {
+  channel_->removeAllOutputFilters();
+}
+
+void HttpResponse::write(const char* cstr, CompletionHandler&& completed) {
+  const size_t slen = strlen(cstr);
+  write(BufferRef(cstr, slen), std::move(completed));
+}
+
+void HttpResponse::write(const std::string& str, CompletionHandler&& completed) {
+  write(Buffer(str), std::move(completed));
+}
+
+void HttpResponse::write(Buffer&& data, CompletionHandler&& completed) {
+  actualContentLength_ += data.size();
+  channel_->send(std::move(data), std::move(completed));
+}
+
+void HttpResponse::write(const BufferRef& data, CompletionHandler&& completed) {
+  actualContentLength_ += data.size();
+  channel_->send(data, std::move(completed));
+}
+
+void HttpResponse::write(FileRef&& input, CompletionHandler&& completed) {
+  actualContentLength_ += input.size();
+  channel_->send(std::move(input), std::move(completed));
+}
+// }}}
 
 }  // namespace http
 }  // namespace xzero

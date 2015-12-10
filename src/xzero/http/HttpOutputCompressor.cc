@@ -6,7 +6,6 @@
 // the License at: http://opensource.org/licenses/MIT
 
 #include <xzero/http/HttpOutputCompressor.h>
-#include <xzero/http/HttpOutput.h>
 #include <xzero/http/HttpRequest.h>
 #include <xzero/http/HttpResponse.h>
 #include <xzero/io/Filter.h>
@@ -71,7 +70,7 @@ bool tryEncode(const std::string& encoding,
   response->resetContentLength();
 
   response->addHeader("Content-Encoding", encoding);
-  response->output()->addFilter(std::make_shared<Encoder>(level));
+  response->addOutputFilter(std::make_shared<Encoder>(level));
 
   return true;
 }

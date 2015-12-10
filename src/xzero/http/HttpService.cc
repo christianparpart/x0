@@ -196,7 +196,7 @@ bool HttpService::BuiltinAssetHandler::handleRequest(HttpRequest* request,
   response->setContentLength(i->second.data.size());
   response->addHeader("Content-Type", i->second.mimetype);
   response->addHeader("Last-Modified", i->second.mtime.format(timeFormat));
-  response->output()->write(i->second.data.ref());
+  response->write(i->second.data.ref());
   response->completed();
 
   return true;

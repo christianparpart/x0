@@ -10,7 +10,6 @@
 #include "XzeroContext.h"
 #include <xzero/http/HttpRequest.h>
 #include <xzero/http/HttpResponse.h>
-#include <xzero/http/HttpOutput.h>
 #include <xzero/Buffer.h>
 
 using namespace xzero;
@@ -80,7 +79,7 @@ bool EmptyGifModule::empty_gif(XzeroContext* cx, Params& args) {
   cx->response()->setStatus(HttpStatus::Ok);
   cx->response()->setContentLength(len);
   cx->response()->headers().push_back("Content-Type", "image/gif");
-  cx->response()->output()->write(BufferRef((const char*)empty_gif_data, len));
+  cx->response()->write(BufferRef((const char*)empty_gif_data, len));
   cx->response()->completed();
 
   return true;

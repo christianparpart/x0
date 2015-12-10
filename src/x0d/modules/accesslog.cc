@@ -171,7 +171,7 @@ Buffer formatLog(XzeroContext* cx, const BufferRef& format) { // {{{
         ++i;
         break;
       case 'o':  // sent bytes (response body)
-        result.push_back(std::to_string(response->output()->size()));
+        result.push_back(std::to_string(response->contentLength()));
         ++i;
         break;
       case 'p':  // request path

@@ -206,7 +206,7 @@ void HttpClusterApiHandler::index() {
   response_->addHeader("Content-Type", "application/json");
   response_->addHeader("Access-Control-Allow-Origin", "*");
   response_->setContentLength(result.size());
-  response_->output()->write(std::move(result));
+  response_->write(std::move(result));
   response_->completed();
 }
 // }}}
@@ -284,7 +284,7 @@ void HttpClusterApiHandler::showCluster(HttpCluster* cluster) {
   response_->addHeader("Content-Type", "application/json");
   response_->addHeader("Access-Control-Allow-Origin", "*");
   response_->setContentLength(result.size());
-  response_->output()->write(std::move(result));
+  response_->write(std::move(result));
   response_->completed();
 }
 
@@ -528,7 +528,7 @@ void HttpClusterApiHandler::showBackend(HttpCluster* cluster, HttpClusterMember*
   response_->addHeader("Content-Type", "application/json");
   response_->addHeader("Access-Control-Allow-Origin", "*");
   response_->setContentLength(result.size());
-  response_->output()->write(std::move(result));
+  response_->write(std::move(result));
   response_->completed();
 }
 
@@ -721,7 +721,7 @@ void HttpClusterApiHandler::showBucket(HttpCluster* cluster,
   response_->addHeader("Content-Type", "application/json");
   response_->addHeader("Access-Control-Allow-Origin", "*");
   response_->setContentLength(result.size());
-  response_->output()->write(std::move(result));
+  response_->write(std::move(result));
   response_->completed();
 }
 // }}}

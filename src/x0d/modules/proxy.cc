@@ -217,7 +217,7 @@ void HttpResponseBuilder::onMessageHeaderEnd() {
 }
 
 void HttpResponseBuilder::onMessageContent(const BufferRef& chunk) {
-  response_->output()->write(Buffer(chunk));
+  response_->write(Buffer(chunk));
 }
 
 void HttpResponseBuilder::onMessageEnd() {
@@ -410,7 +410,7 @@ bool ProxyModule::proxy_http(XzeroContext* cx, xzero::flow::vm::Params& args) {
     cx->response()->setStatus(client.responseInfo().status());
     cx->response()->setReason(client.responseInfo().reason());
     cx->response()->setContentLength(client.responseBody().size());
-    cx->response()->output()->write(client.responseBody());
+    cx->response()->write(client.responseBody());
     cx->response()->completed();
   });
 
@@ -512,10 +512,7 @@ bool ProxyModule::tryHandleTrace(XzeroContext* cx) {
     return false;
   }
 
-  std::unique_ptr<InputStream> content = cx->request()->getContentStream();
-  Buffer body;
-  while (content->read(&body, 4096) > 0)
-    ;
+  BufferRef body = cx->request()->getContentBuffer();
 
   HttpRequestInfo requestInfo(
       cx->request()->version(),
@@ -539,7 +536,7 @@ bool ProxyModule::tryHandleTrace(XzeroContext* cx) {
   cx->response()->setStatus(HttpStatus::Ok);
   cx->response()->headers().push_back("Content-Type", "message/http");
   cx->response()->setContentLength(message.size());
-  cx->response()->output()->write(std::move(message));
+  cx->response()->write(std::move(message));
   cx->response()->completed();
 
   return true;

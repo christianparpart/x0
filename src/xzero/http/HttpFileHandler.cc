@@ -8,7 +8,6 @@
 #include <xzero/http/HttpFileHandler.h>
 #include <xzero/http/HttpRequest.h>
 #include <xzero/http/HttpResponse.h>
-#include <xzero/http/HttpOutput.h>
 #include <xzero/http/HttpRangeDef.h>
 #include <xzero/http/HeaderFieldList.h>
 #include <xzero/io/File.h>
@@ -140,7 +139,7 @@ bool HttpFileHandler::handle(
 #if defined(HAVE_POSIX_FADVISE)
     posix_fadvise(fd, 0, transferFile->size(), POSIX_FADV_SEQUENTIAL);
 #endif
-    response->output()->write(FileRef(fd, 0, transferFile->size(), true),
+    response->write(FileRef(fd, 0, transferFile->size(), true),
         std::bind(&HttpResponse::completed, response));
   } else {
     response->completed();
@@ -316,8 +315,8 @@ bool HttpFileHandler::handleRangeRequest(const File& transferFile, int fd,
 
       if (!isHeadReq) {
         bool last = i + 1 == numRanges;
-        response->output()->write(std::move(buf));
-        response->output()->write(FileRef(fd, offsets.first, partLength, last));
+        response->write(std::move(buf));
+        response->write(FileRef(fd, offsets.first, partLength, last));
       }
     }
 
@@ -325,7 +324,7 @@ bool HttpFileHandler::handleRangeRequest(const File& transferFile, int fd,
     buf.push_back("\r\n--");
     buf.push_back(boundary);
     buf.push_back("--\r\n");
-    response->output()->write(std::move(buf));
+    response->write(std::move(buf));
   } else {  // generate a simple (single) partial response
     std::pair<size_t, size_t> offsets(
         makeOffsets(range[0], transferFile.size()));
@@ -350,7 +349,7 @@ bool HttpFileHandler::handleRangeRequest(const File& transferFile, int fd,
 #if defined(HAVE_POSIX_FADVISE)
       posix_fadvise(fd, offsets.first, length, POSIX_FADV_SEQUENTIAL);
 #endif
-      response->output()->write(FileRef(fd, offsets.first, length, true));
+      response->write(FileRef(fd, offsets.first, length, true));
     }
   }
 

@@ -705,8 +705,8 @@ bool CoreModule::echo(XzeroContext* cx, Params& args) {
   if (!cx->response()->status())
     cx->response()->setStatus(HttpStatus::Ok);
 
-  cx->response()->output()->write(content);
-  cx->response()->output()->write("\n");
+  cx->response()->write(content);
+  cx->response()->write("\n");
   cx->response()->completed();
 
   return true;

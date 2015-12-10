@@ -202,7 +202,6 @@ set(xzero_base_SRC
   http/HttpFileHandler.cc
   http/HttpListener.cc
   http/HttpMethod.cc
-  http/HttpOutput.cc
   http/HttpOutputCompressor.cc
   http/HttpRequest.cc
   http/HttpRequestInfo.cc

@@ -10,19 +10,22 @@
 #include <xzero/http/Api.h>
 #include <xzero/http/HttpVersion.h>
 #include <xzero/http/HttpStatus.h>
-#include <xzero/http/HttpOutput.h>
 #include <xzero/http/HeaderFieldList.h>
+#include <xzero/CompletionHandler.h>
 #include <xzero/sysconfig.h>
 #include <memory>
 
 namespace xzero {
 
 class Executor;
+class FileRef;
+class Filter;
+class Buffer;
+class BufferRef;
 
 namespace http {
 
 class HttpChannel;
-class HttpOutput;
 
 /**
  * Represents an HTTP response message.
@@ -39,7 +42,7 @@ class XZERO_HTTP_API HttpResponse {
   HttpResponse& operator=(HttpResponse&) = delete;
 
  public:
-  HttpResponse(HttpChannel* channel, std::unique_ptr<HttpOutput>&& output);
+  explicit HttpResponse(HttpChannel* channel);
 
   Executor* executor() const noexcept;
 
@@ -61,6 +64,13 @@ class XZERO_HTTP_API HttpResponse {
 
   size_t contentLength() const XZERO_NOEXCEPT {
     return contentLength_;
+  }
+
+  /**
+   * Number of bytes of response body content already written.
+   */
+  size_t actualContentLength() const noexcept {
+    return actualContentLength_;
   }
 
   bool hasContentLength() const XZERO_NOEXCEPT {
@@ -124,12 +134,71 @@ class XZERO_HTTP_API HttpResponse {
    */
   void sendError(HttpStatus code, const std::string& message = "");
 
-  HttpOutput* output() { return output_.get(); }
-
   bool isCommitted() const XZERO_NOEXCEPT { return committed_; }
 
   void setBytesTransmitted(size_t n) { bytesTransmitted_ = n; }
   size_t bytesTransmitted() const noexcept { return bytesTransmitted_; }
+
+  /**
+   * Adds a custom output-filter.
+   *
+   * @param filter the output filter to apply to the output body.
+   *
+   * The filter will not take over ownership. Make sure the filter is
+   * available for the whole time the response is generated.
+   */
+  void addOutputFilter(std::shared_ptr<Filter> filter);
+
+  /**
+   * Removes all output-filters.
+   */
+  void removeAllOutputFilters();
+
+  /**
+   * Writes given C-string @p cstr to the client.
+   *
+   * @param cstr the null-terminated string that is being copied
+   *             into the response body.
+   * @param completed Callback to invoke after completion.
+   *
+   * The C string will be copied into the response body.
+   */
+  virtual void write(const char* cstr, CompletionHandler&& completed = nullptr);
+
+  /**
+   * Writes given string @p str to the client.
+   *
+   * @param str the string chunk to write to the client. The string will be
+   *            copied.
+   * @param completed Callback to invoke after completion.
+   */
+  virtual void write(const std::string& str, CompletionHandler&& completed = nullptr);
+
+  /**
+   * Writes given buffer.
+   *
+   * @param data The data chunk to write to the client.
+   * @param completed Callback to invoke after completion.
+   */
+  virtual void write(Buffer&& data, CompletionHandler&& completed = nullptr);
+
+  /**
+   * Writes given buffer.
+   *
+   * @param data The data chunk to write to the client.
+   * @param completed Callback to invoke after completion.
+   *
+   * @note You must ensure the data chunk is available until sending completed!
+   */
+  virtual void write(const BufferRef& data, CompletionHandler&& completed = nullptr);
+
+  /**
+   * Writes the data received from the given file descriptor @p file.
+   *
+   * @param file file ref handle
+   * @param completed Callback to invoke after completion.
+   */
+  virtual void write(FileRef&& file, CompletionHandler&& completed = nullptr);
 
  private:
   friend class HttpChannel;
@@ -141,8 +210,6 @@ class XZERO_HTTP_API HttpResponse {
 
  private:
   HttpChannel* channel_;
-  std::unique_ptr<HttpOutput> output_;
-
   HttpVersion version_;
   HttpStatus status_;
   std::string reason_;
@@ -151,6 +218,7 @@ class XZERO_HTTP_API HttpResponse {
   HeaderFieldList trailers_;
   bool committed_;
   size_t bytesTransmitted_;
+  size_t actualContentLength_;
 };
 
 }  // namespace http

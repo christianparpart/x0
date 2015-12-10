@@ -11,7 +11,6 @@
 #include <xzero/http/HttpResponse.h>
 #include <xzero/http/HttpResponseInfo.h>
 #include <xzero/http/HttpDateGenerator.h>
-#include <xzero/http/HttpOutput.h>
 #include <xzero/http/HttpOutputCompressor.h>
 #include <xzero/http/HttpVersion.h>
 #include <xzero/http/BadMessage.h>
@@ -59,7 +58,7 @@ HttpChannel::HttpChannel(HttpTransport* transport,
       transport_(transport),
       executor_(executor),
       request_(new HttpRequest()),
-      response_(new HttpResponse(this, createOutput())),
+      response_(new HttpResponse(this)),
       dateGenerator_(dateGenerator),
       outputFilters_(),
       outputCompressor_(outputCompressor),
@@ -86,10 +85,6 @@ void HttpChannel::setState(HttpChannelState newState) {
         to_string(newState));
 
   state_ = newState;
-}
-
-std::unique_ptr<HttpOutput> HttpChannel::createOutput() {
-  return std::unique_ptr<HttpOutput>(new HttpOutput(this));
 }
 
 void HttpChannel::addOutputFilter(std::shared_ptr<Filter> filter) {
@@ -341,10 +336,10 @@ void HttpChannel::completed() {
 
   if (request_->method() != HttpMethod::HEAD &&
       response_->hasContentLength() &&
-      response_->output()->size() < response_->contentLength()) {
+      response_->actualContentLength() < response_->contentLength()) {
     RAISE(RuntimeError,
           "Attempt to complete() a response before having written the full response body (%zu of %zu).",
-          response_->output()->size(),
+          response_->actualContentLength(),
           response_->contentLength());
   }
 

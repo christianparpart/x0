@@ -12,7 +12,6 @@
 #include <xzero/http/HttpResponseInfo.h>
 #include <xzero/http/HttpRequest.h>
 #include <xzero/http/HttpResponse.h>
-#include <xzero/http/HttpOutput.h>
 #include <xzero/http/BadMessage.h>
 
 #include <xzero/executor/LocalExecutor.h>
@@ -122,7 +121,7 @@ TEST(http_HttpChannel, completed_invoked_before_contentLength_satisfied) {
     response->setStatus(HttpStatus::Ok);
     response->addHeader("Content-Type", "text/plain");
     response->setContentLength(10);
-    response->output()->write("12345");
+    response->write("12345");
     response->completed();
   });
 
@@ -142,7 +141,7 @@ TEST(http_HttpChannel, trailer1) {
     response->addHeader("Content-Type", "text/plain");
     response->registerTrailer("Word-Count");
     response->registerTrailer("Mood");
-    response->output()->write("Hello, World!\n");
+    response->write("Hello, World!\n");
     response->setTrailer("Word-Count", "one");
     response->setTrailer("Mood", "Happy");
     response->completed();

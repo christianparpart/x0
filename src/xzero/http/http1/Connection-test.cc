@@ -10,7 +10,6 @@
 #include <xzero/http/http1/ConnectionFactory.h>
 #include <xzero/http/HttpRequest.h>
 #include <xzero/http/HttpResponse.h>
-#include <xzero/http/HttpOutput.h>
 #include <xzero/executor/LocalExecutor.h>
 #include <xzero/logging/LogTarget.h>
 #include <xzero/logging/LogAggregator.h>
@@ -59,11 +58,11 @@ static const Duration maxKeepAlive = 30_seconds;
                                  xzero::http::http1::ConnectionFactory>(       \
       maxRequestUriLength, maxRequestBodyLength, maxRequestCount,              \
       maxKeepAlive, false, false);                                             \
-  http->setHandler([&](HttpRequest* request, HttpResponse* response) {          \
-      response->setStatus(HttpStatus::Ok);                                      \
-      response->setContentLength(request->path().size() + 1);                   \
-      response->setHeader("Content-Type", "text/plain");                        \
-      response->output()->write(Buffer(request->path() + "\n"),                 \
+  http->setHandler([&](HttpRequest* request, HttpResponse* response) {         \
+      response->setStatus(HttpStatus::Ok);                                     \
+      response->setContentLength(request->path().size() + 1);                  \
+      response->setHeader("Content-Type", "text/plain");                       \
+      response->write(Buffer(request->path() + "\n"),                          \
           std::bind(&HttpResponse::completed, response));                       \
   });                                                                           \
   server.start();

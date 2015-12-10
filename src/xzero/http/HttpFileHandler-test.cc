@@ -12,7 +12,6 @@
 #include <xzero/http/HttpResponseInfo.h>
 #include <xzero/http/HttpRequest.h>
 #include <xzero/http/HttpResponse.h>
-#include <xzero/http/HttpOutput.h>
 #include <xzero/http/BadMessage.h>
 #include <xzero/http/HttpFileHandler.h>
 #include <xzero/io/LocalFileRepository.h>
