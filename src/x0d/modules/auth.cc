@@ -302,7 +302,7 @@ bool AuthModule::sendAuthenticateRequest(XzeroContext* cx, const std::string& re
   char buf[1024];
   snprintf(buf, sizeof(buf), "Basic realm=\"%s\"", realm.c_str());
 
-  cx->response()->headers().overwrite("WWW-Authenticate", buf);
+  cx->response()->setHeader("WWW-Authenticate", buf);
   cx->response()->setStatus(HttpStatus::Unauthorized);
   cx->response()->completed();
 

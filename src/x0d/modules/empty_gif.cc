@@ -78,7 +78,7 @@ bool EmptyGifModule::empty_gif(XzeroContext* cx, Params& args) {
 
   cx->response()->setStatus(HttpStatus::Ok);
   cx->response()->setContentLength(len);
-  cx->response()->headers().push_back("Content-Type", "image/gif");
+  cx->response()->addHeader("Content-Type", "image/gif");
   cx->response()->write(BufferRef((const char*)empty_gif_data, len));
   cx->response()->completed();
 

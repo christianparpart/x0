@@ -146,6 +146,15 @@ void HttpResponse::appendHeader(const std::string& name,
   headers_.append(name, value, delim);
 }
 
+void HttpResponse::prependHeader(const std::string& name,
+                                 const std::string& value,
+                                 const std::string& delim) {
+  requireMutableInfo();
+  requireValidHeader(name);
+
+  headers_.prepend(name, value, delim);
+}
+
 void HttpResponse::setHeader(const std::string& name,
                              const std::string& value) {
   requireMutableInfo();
@@ -168,6 +177,10 @@ void HttpResponse::removeAllHeaders() {
 
 const std::string& HttpResponse::getHeader(const std::string& name) const {
   return headers_.get(name);
+}
+
+bool HttpResponse::hasHeader(const std::string& name) const {
+  return headers_.contains(name);
 }
 
 void HttpResponse::send100Continue(CompletionHandler onComplete) {

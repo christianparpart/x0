@@ -83,7 +83,7 @@ void HttpOutputCompressor::inject(HttpRequest* request,
 
 void HttpOutputCompressor::postProcess(HttpRequest* request,
                                        HttpResponse* response) {
-  if (response->headers().contains("Content-Encoding"))
+  if (response->hasHeader("Content-Encoding"))
     return;  // do not double-encode content
 
   bool chunked = !response->hasContentLength();
@@ -92,10 +92,10 @@ void HttpOutputCompressor::postProcess(HttpRequest* request,
   if (!chunked && (size < minSize_ || size > maxSize_))
     return;
 
-  if (!containsMimeType(response->headers().get("Content-Type")))
+  if (!containsMimeType(response->getHeader("Content-Type")))
     return;
 
-  const std::string& acceptEncoding = request->headers().get("Accept-Encoding");
+  const std::string& acceptEncoding = request->getHeader("Accept-Encoding");
   BufferRef r(acceptEncoding);
   if (!r.empty()) {
     const auto items = Tokenizer<BufferRef, BufferRef>::tokenize(r, ", ");

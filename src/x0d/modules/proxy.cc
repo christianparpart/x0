@@ -63,6 +63,26 @@ using xzero::http::client::HttpClient;
 
 #define TRACE(msg...) logTrace("proxy", msg)
 
+template<typename T>
+static bool isConnectionHeader(const T& name) {
+  static const std::vector<T> connectionHeaderFields = {
+    "Connection",
+    "Content-Length",
+    "Close",
+    "Keep-Alive",
+    "TE",
+    "Trailer",
+    "Transfer-Encoding",
+    "Upgrade",
+  };
+
+  for (const auto& test: connectionHeaderFields)
+    if (iequals(name, test))
+      return true;
+
+  return false;
+}
+
 ProxyModule::ProxyModule(XzeroDaemon* d)
     : XzeroModule(d, "proxy"),
       pseudonym_("x0d"),
@@ -206,9 +226,8 @@ void HttpResponseBuilder::onMessageBegin(HttpVersion version, HttpStatus code, c
 void HttpResponseBuilder::onMessageHeader(const BufferRef& name, const BufferRef& value) {
   if (iequals(name, "Content-Length")) {
     response_->setContentLength(value.toInt());
-  } else {
-    // TODO: skip connection-level headers
-    response_->headers().push_back(name.str(), value.str());
+  } else if (!isConnectionHeader(name)) {
+    response_->addHeader(name.str(), value.str());
   }
 }
 
@@ -249,7 +268,7 @@ HttpCluster* ProxyModule::findLocalCluster(const std::string& host) {
 
 bool ProxyModule::proxy_cluster_auto(XzeroContext* cx, Params& args) {
   // determines which cluster to use by request host header
-  std::string host = cx->request()->headers().get("Host");
+  std::string host = cx->request()->getHeader("Host");
   size_t colon = host.find(':');
   if (colon != std::string::npos)
     host = host.substr(0, colon);
@@ -335,25 +354,6 @@ static HeaderFieldList filter(const HeaderFieldList& list,
   return result;
 }
 
-static bool isConnectionHeader(const std::string& name) {
-  static const std::vector<std::string> connectionHeaderFields = {
-    "Connection",
-    "Content-Length",
-    "Close",
-    "Keep-Alive",
-    "TE",
-    "Trailer",
-    "Transfer-Encoding",
-    "Upgrade",
-  };
-
-  for (const auto& test: connectionHeaderFields)
-    if (iequals(name, test))
-      return true;
-
-  return false;
-}
-
 auto skipConnectFields = [](const HeaderField& f) -> bool {
   static const std::vector<std::string> connectionHeaderFields = {
     "Connection",
@@ -403,7 +403,7 @@ bool ProxyModule::proxy_http(XzeroContext* cx, xzero::flow::vm::Params& args) {
   f.onSuccess([this, cx] (const HttpClient& client) {
     for (const HeaderField& field: client.responseInfo().headers()) {
       if (!isConnectionHeader(field.name())) {
-        cx->response()->headers().push_back(field.name(), field.value());
+        cx->response()->addHeader(field.name(), field.value());
       }
     }
     addVia(cx);
@@ -429,7 +429,7 @@ void ProxyModule::addVia(const HttpRequestInfo* in, HttpResponse* out) {
 
   // RFC 7230, section 5.7.1: makes it clear, that we put ourselfs into the
   // front of the Via-list.
-  out->headers().prepend("Via", buf);
+  out->prependHeader("Via", buf);
 }
 
 std::list<HttpCluster*> ProxyModule::listCluster() {
@@ -498,14 +498,14 @@ bool ProxyModule::tryHandleTrace(XzeroContext* cx) {
   if (cx->request()->method() != HttpMethod::TRACE)
     return false;
 
-  if (!cx->request()->headers().contains("Max-Forwards")) {
+  if (!cx->request()->hasHeader("Max-Forwards")) {
     cx->response()->setStatus(HttpStatus::BadRequest);
     cx->response()->setReason("Max-Forwards header missing.");
     cx->response()->completed();
     return true;
   }
 
-  int maxForwards = std::stoi(cx->request()->headers().get("Max-Forwards"));
+  int maxForwards = std::stoi(cx->request()->getHeader("Max-Forwards"));
   if (maxForwards != 0) {
     cx->request()->headers().overwrite("Max-Forwards",
                                        StringUtil::toString(maxForwards - 1));
@@ -534,7 +534,7 @@ bool ProxyModule::tryHandleTrace(XzeroContext* cx) {
   Buffer message = ep.output();
 
   cx->response()->setStatus(HttpStatus::Ok);
-  cx->response()->headers().push_back("Content-Type", "message/http");
+  cx->response()->addHeader("Content-Type", "message/http");
   cx->response()->setContentLength(message.size());
   cx->response()->write(std::move(message));
   cx->response()->completed();

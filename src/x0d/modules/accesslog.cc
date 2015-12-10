@@ -115,7 +115,7 @@ Buffer formatLog(XzeroContext* cx, const BufferRef& format) { // {{{
       case '>': {  // request header %>{name}
         ++i;
         BufferRef fn = getFormatName(i, e);
-        std::string value = request->headers().get(fn.str());
+        std::string value = request->getHeader(fn.str());
         if (!value.empty()) {
           result.push_back(value);
         } else {
@@ -126,7 +126,7 @@ Buffer formatLog(XzeroContext* cx, const BufferRef& format) { // {{{
       case '<': { // response header %<{name}
         ++i;
         BufferRef fn = getFormatName(i, e);
-        std::string value = response->headers().get(fn.str());
+        std::string value = response->getHeader(fn.str());
         if (!value.empty()) {
           result.push_back(value);
         } else {
@@ -137,7 +137,7 @@ Buffer formatLog(XzeroContext* cx, const BufferRef& format) { // {{{
       case 'C': { // request cookie %C{name}
         ++i;
         BufferRef fn = getFormatName(i, e);
-        auto cookies = Cookies::parseCookieHeader(request->headers().get("Cookie"));
+        auto cookies = Cookies::parseCookieHeader(request->getHeader("Cookie"));
         std::string value;
         if (Cookies::getCookie(cookies, fn.str(), &value) && !value.empty()) {
           result.push_back(value);
@@ -228,7 +228,7 @@ Buffer formatLog(XzeroContext* cx, const BufferRef& format) { // {{{
         ++i;
         break;
       case 'v':  // request vhost
-        result.push_back(request->headers().get("Host"));
+        result.push_back(request->getHeader("Host"));
         ++i;
         break;
       default:

@@ -304,9 +304,9 @@ bool CoreModule::redirectOnIncompletePath(XzeroContext* cx) {
   if (StringUtil::endsWith(request->path(), "/"))
     return false;
 
-  std::string hostname = request->headers().get("X-Forwarded-Host");
+  std::string hostname = request->getHeader("X-Forwarded-Host");
   if (hostname.empty())
-    hostname = request->headers().get("Host");
+    hostname = request->getHeader("Host");
 
   std::stringstream url;
   url << (request->isSecure() ? "https://" : "http://");
@@ -740,7 +740,7 @@ bool CoreModule::precompressed(XzeroContext* cx, Params& args) {
   if (!cx->file()->isRegular())
     return false;
 
-  const std::string& r = cx->request()->headers().get("Accept-Encoding");
+  const std::string& r = cx->request()->getHeader("Accept-Encoding");
   if (!r.empty()) {
     auto items = Tokenizer<BufferRef>::tokenize(BufferRef(r), ", ");
 
@@ -868,7 +868,7 @@ void CoreModule::header_add(XzeroContext* cx, Params& args) {
   std::string value = args.getString(2).str();
 
   cx->response()->onPostProcess([cx, name, value]() {
-    cx->response()->headers().push_back(name, value);
+    cx->response()->addHeader(name, value);
   });
 }
 
@@ -878,7 +878,7 @@ void CoreModule::header_append(XzeroContext* cx, Params& args) {
   std::string delim = args.getString(3).str();
 
   cx->response()->onPostProcess([cx, name, value, delim]() {
-    cx->response()->headers().append(name, value, delim);
+    cx->response()->appendHeader(name, value, delim);
   });
 }
 
@@ -887,7 +887,7 @@ void CoreModule::header_overwrite(XzeroContext* cx, Params& args) {
   std::string value = args.getString(2).str();
 
   cx->response()->onPostProcess([cx, name, value]() {
-    cx->response()->headers().overwrite(name, value);
+    cx->response()->setHeader(name, value);
   });
 }
 
@@ -895,7 +895,7 @@ void CoreModule::header_remove(XzeroContext* cx, Params& args) {
   std::string name = args.getString(1).str();
 
   cx->response()->onPostProcess([cx, name]() {
-    cx->response()->headers().remove(name);
+    cx->response()->removeHeader(name);
   });
 }
 
@@ -913,10 +913,9 @@ void CoreModule::expire(XzeroContext* cx, Params& args) {
     value = now;
 
   static const char* timeFormat = "%a, %d %b %Y %H:%M:%S GMT";
-  cx->response()->headers().overwrite(
-      "Expires", UnixTime(value).format(timeFormat));
+  cx->response()->setHeader("Expires", UnixTime(value).format(timeFormat));
 
-  cx->response()->headers().overwrite("Cache-Control",
+  cx->response()->setHeader("Cache-Control",
       StringUtil::format("max-age=$0", value - now));
 }
 
@@ -937,11 +936,11 @@ void CoreModule::req_query(XzeroContext* cx, Params& args) {
 }
 
 void CoreModule::req_header(XzeroContext* cx, Params& args) {
-  args.setResult(cx->request()->headers().get(args.getString(1).str()));
+  args.setResult(cx->request()->getHeader(args.getString(1).str()));
 }
 
 void CoreModule::req_cookie(XzeroContext* cx, Params& args) {
-  std::string cookie = cx->request()->headers().get("Cookie");
+  std::string cookie = cx->request()->getHeader("Cookie");
   if (!cookie.empty()) {
     auto wanted = args.getString(1);
     static const std::string sld("; \t");
@@ -1059,7 +1058,7 @@ void CoreModule::regex_group(XzeroContext* cx, Params& args) {
 
 void CoreModule::req_accept_language(XzeroContext* cx, Params& args) {
   const FlowStringArray& supportedLanguages = args.getStringArray(1);
-  std::string acceptLanguage = cx->request()->headers().get("Accept-Language");
+  std::string acceptLanguage = cx->request()->getHeader("Accept-Language");
 
   if (acceptLanguage.empty()) {
     args.setResult(supportedLanguages[0]);

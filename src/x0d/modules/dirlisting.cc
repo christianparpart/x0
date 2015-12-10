@@ -57,7 +57,7 @@ bool DirlistingModule::dirlisting(XzeroContext* cx, Params& args) {
 
   cx->response()->setStatus(HttpStatus::Ok);
   cx->response()->setContentLength(sstr.size());
-  cx->response()->headers().overwrite("Content-Type", "text/html");
+  cx->response()->setHeader("Content-Type", "text/html");
   cx->response()->write(std::move(sstr));
   cx->response()->completed();
 

@@ -38,6 +38,9 @@ class XZERO_HTTP_API HttpInfo {
   /** Retrieves the HTTP response headers. */
   HeaderFieldList& headers() XZERO_NOEXCEPT { return headers_; }
 
+  bool hasHeader(const std::string& name) const { return headers_.contains(name); }
+  const std::string& getHeader(const std::string& name) const { return headers_.get(name); }
+
   void setContentLength(size_t size);
   size_t contentLength() const XZERO_NOEXCEPT { return contentLength_; }
 
