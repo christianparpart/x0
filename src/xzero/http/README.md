@@ -19,41 +19,38 @@ written in modern C++.
 ### Renaming
 
 ```
-xzero::http::http1::
-  Http1Channel              | Channel
-  Http1ConnectionFactory    | ConnectionFactory
-  HttpConnection            | Connection
-  HttpGenerator             | Generator
-  HttpParser                | Parser
-
-xzero::http::
-  BadMessage                | ?
-  HeaderField               | HeaderField
-  HeaderFieldList           | HeaderFieldList
-  HttpBufferedInput         | ?
-  HttpChannel               | Channel
-  HttpConnectionFactory     | ConnectionFactory
-  HttpDateGenerator         | DateGenerator
-  HttpFile                  | File
-  HttpFileHandler           | FileHandler
-  HttpHandler               | Handler
-  HttpInfo                  | MessageInfo
-  HttpInput                 | MessageBodyReader
-  HttpInputListener         | MessageBodyListener
-  HttpListener              | MessageListener
-  HttpMethod                | RequestMethod
-  HttpOutput                | MessageBodyWriter
-  HttpOutputCompressor      | OutputCompressor
-  HttpRangeDef              | RangeDef
-  HttpRequest               | Request
-  HttpRequestInfo           | RequestInfo
-  HttpResponse              | Response
-  HttpResponseInfo          | ResponseInfo
-  HttpService               | Service
-  HttpStatus                | StatusCode
-  HttpTransport             | Transport
-  HttpVersion               | Version
-
+xzero {
+  http {
+    http1 {
+      Channel = Http1Channel
+      ConnectionFactory = Http1ConnectionFactory
+      Connection = HttpConnection
+      Generator = HttpGenerator
+      Parser = HttpParser
+    }
+    HeaderField
+    HeaderFieldList
+    Channel
+    ConnectionFactory
+    DateGenerator
+    File
+    FileHandler
+    Handler
+    MessageInfo
+    MessageListener
+    RequestMethod
+    OutputCompressor
+    RangeDef
+    Request
+    RequestInfo
+    Response
+    ResponseInfo
+    Service
+    StatusCode
+    Transport
+    Version
+  }
+}
 ```
 
 ### Little Multiplex-Refactor
