@@ -8,6 +8,7 @@
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 #include <xzero/io/FileDescriptor.h>
+#include <xzero/io/FileUtil.h>
 #include <unistd.h>
 
 namespace xzero {
@@ -27,7 +28,7 @@ int FileDescriptor::release() {
 
 void FileDescriptor::close() {
   if (fd_ >= 0) {
-    ::close(fd_);
+    FileUtil::close(fd_);
     fd_ = -1;
   }
 }

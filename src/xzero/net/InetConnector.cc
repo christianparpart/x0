@@ -13,6 +13,7 @@
 #include <xzero/net/ConnectionFactory.h>
 #include <xzero/net/Connection.h>
 #include <xzero/net/IPAddress.h>
+#include <xzero/io/FileUtil.h>
 #include <xzero/RuntimeError.h>
 #include <xzero/logging.h>
 #include <xzero/sysconfig.h>
@@ -118,7 +119,7 @@ void InetConnector::close() {
   }
 
   if (isOpen()) {
-    ::close(socket_);
+    FileUtil::close(socket_);
     socket_ = -1;
   }
 }
@@ -195,7 +196,7 @@ InetConnector::~InetConnector() {
   }
 
   if (socket_ >= 0) {
-    ::close(socket_);
+    FileUtil::close(socket_);
   }
 }
 
@@ -355,7 +356,7 @@ bool InetConnector::isReusePortSupported() {
   int rc = 1;
   bool res = ::setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &rc, sizeof(rc)) == 0;
 
-  ::close(fd);
+  FileUtil::close(fd);
   return res;
 }
 
@@ -483,7 +484,7 @@ int InetConnector::acceptOne() {
 
   if (!flagged && flags_ &&
         fcntl(cfd, F_SETFL, fcntl(cfd, F_GETFL) | flags_) < 0) {
-    ::close(cfd);
+    FileUtil::close(cfd);
     RAISE_ERRNO(errno);
   }
 
@@ -492,7 +493,7 @@ int InetConnector::acceptOne() {
     int waitTime = tcpFinTimeout_.seconds();
     int rv = setsockopt(cfd, SOL_TCP, TCP_LINGER2, &waitTime, sizeof(waitTime));
     if (rv < 0) {
-      ::close(cfd);
+      FileUtil::close(cfd);
       RAISE_ERRNO(errno);
     }
   }

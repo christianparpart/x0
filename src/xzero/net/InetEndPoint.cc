@@ -10,6 +10,7 @@
 #include <xzero/net/InetEndPoint.h>
 #include <xzero/net/InetConnector.h>
 #include <xzero/net/Connection.h>
+#include <xzero/io/FileUtil.h>
 #include <xzero/executor/Executor.h>
 #include <xzero/logging.h>
 #include <xzero/RuntimeError.h>
@@ -149,7 +150,7 @@ bool InetEndPoint::isOpen() const XZERO_NOEXCEPT {
 void InetEndPoint::close() {
   if (isOpen()) {
     TRACE("close() fd=$0", handle_);
-    ::close(handle_);
+    FileUtil::close(handle_);
     handle_ = -1;
 
     if (connector_) {
@@ -460,7 +461,7 @@ Future<RefPtr<EndPoint>> InetEndPoint::connectAsync(const InetAddress& inet,
     promise.success(ep.as<EndPoint>());
     return promise.future();
   } catch (...) {
-    ::close(fd);
+    FileUtil::close(fd);
     throw;
   }
 }

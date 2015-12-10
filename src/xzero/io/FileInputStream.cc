@@ -7,6 +7,7 @@
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 #include <xzero/io/FileInputStream.h>
+#include <xzero/io/FileUtil.h>
 #include <xzero/RuntimeError.h>
 #include <xzero/Buffer.h>
 #include <sys/types.h>
@@ -30,7 +31,7 @@ FileInputStream::FileInputStream(int fd, bool closeOnDestroy)
 
 FileInputStream::~FileInputStream() {
   if (closeOnDestroy_) {
-    ::close(fd_);
+    FileUtil::close(fd_);
   }
 }
 

@@ -12,6 +12,7 @@
 #include <xzero/net/SslConnector.h>
 #include <xzero/net/Connection.h>
 #include <xzero/net/ConnectionFactory.h>
+#include <xzero/io/FileUtil.h>
 #include <xzero/executor/Scheduler.h>
 #include <xzero/RuntimeError.h>
 #include <xzero/logging.h>
@@ -62,7 +63,7 @@ SslEndPoint::~SslEndPoint() {
   TRACE("$0 ~SslEndPoint() dtor", this);
 
   SSL_free(ssl_);
-  ::close(handle());
+  FileUtil::close(handle());
 }
 
 bool SslEndPoint::isOpen() const {

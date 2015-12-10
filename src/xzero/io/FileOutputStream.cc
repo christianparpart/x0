@@ -8,6 +8,7 @@
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 #include <xzero/io/FileOutputStream.h>
+#include <xzero/io/FileUtil.h>
 #include <xzero/RuntimeError.h>
 #include <xzero/Buffer.h>
 #include <sys/types.h>
@@ -27,7 +28,7 @@ FileOutputStream::FileOutputStream(const std::string& path, int mode)
 
 FileOutputStream::~FileOutputStream() {
   if (closeOnDestroy_) {
-    ::close(handle_);
+    FileUtil::close(handle_);
   }
 }
 

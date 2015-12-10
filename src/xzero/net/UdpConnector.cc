@@ -10,6 +10,7 @@
 #include <xzero/net/UdpConnector.h>
 #include <xzero/net/UdpEndPoint.h>
 #include <xzero/net/IPAddress.h>
+#include <xzero/io/FileUtil.h>
 #include <xzero/executor/Scheduler.h>
 #include <xzero/RuntimeError.h>
 #include <xzero/logging.h>
@@ -48,7 +49,7 @@ UdpConnector::~UdpConnector() {
   }
 
   if (socket_ >= 0) {
-    ::close(socket_);
+    FileUtil::close(socket_);
     socket_ = -1;
   }
 }

@@ -10,6 +10,7 @@
 #pragma once
 
 #include <xzero/Api.h>
+#include <xzero/io/FileUtil.h>
 #include <xzero/sysconfig.h>
 #include <xzero/Buffer.h>
 #include <cstdint>
@@ -72,7 +73,7 @@ class XZERO_BASE_API FileRef {
    */
   ~FileRef() {
     if (close_) {
-      ::close(fd_);
+      FileUtil::close(fd_);
     }
   }
 

@@ -9,6 +9,7 @@
 
 #include <xzero/net/UdpClient.h>
 #include <xzero/net/IPAddress.h>
+#include <xzero/io/FileUtil.h>
 #include <xzero/RuntimeError.h>
 #include <xzero/logging.h>
 
@@ -67,7 +68,7 @@ UdpClient::UdpClient(const IPAddress& ipaddr, int port)
 
 UdpClient::~UdpClient() {
   if (socket_ >= 0) {
-    ::close(socket_);
+    FileUtil::close(socket_);
   }
   free(sockAddr_);
 }

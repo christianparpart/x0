@@ -9,6 +9,7 @@
 
 #include <xzero/io/MemoryFile.h>
 #include <xzero/io/MemoryMap.h>
+#include <xzero/io/FileUtil.h>
 #include <xzero/io/FileDescriptor.h>
 #include <xzero/io/FileInputStream.h>
 #include <xzero/io/FileOutputStream.h>
@@ -100,7 +101,7 @@ MemoryFile::MemoryFile(
 MemoryFile::~MemoryFile() {
 #if defined(XZERO_MEMORYFILE_USE_TMPFILE)
   if (fd_ >= 0) {
-    ::close(fd_);
+    FileUtil::close(fd_);
   }
 #else
   shm_unlink(fspath_.c_str());
