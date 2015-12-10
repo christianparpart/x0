@@ -15,12 +15,14 @@
 #include <xzero/http/HeaderFieldList.h>
 #include <xzero/http/HttpVersion.h>
 #include <xzero/http/HttpMethod.h>
-#include <xzero/http/HttpInput.h>
 #include <xzero/net/InetAddress.h>
 #include <xzero/Option.h>
 #include <memory>
 
 namespace xzero {
+
+class InputStream;
+
 namespace http {
 
 /**
@@ -29,10 +31,9 @@ namespace http {
 class XZERO_HTTP_API HttpRequest : public HttpRequestInfo {
  public:
   HttpRequest();
-  explicit HttpRequest(std::unique_ptr<HttpInput>&& input);
   HttpRequest(const std::string& method, const std::string& path,
               HttpVersion version, bool secure, const HeaderFieldList& headers,
-              std::unique_ptr<HttpInput>&& input);
+              Buffer&& content);
 
   void setRemoteAddress(const Option<InetAddress>& addr);
   const Option<InetAddress>& remoteAddress() const;
@@ -49,9 +50,6 @@ class XZERO_HTTP_API HttpRequest : public HttpRequestInfo {
   bool isSecure() const XZERO_NOEXCEPT { return secure_; }
   void setSecure(bool secured) { secure_ = secured; }
 
-  HttpInput* input() const { return input_.get(); }
-  void setInput(std::unique_ptr<HttpInput>&& input) { input_ = std::move(input); }
-
   bool expect100Continue() const XZERO_NOEXCEPT { return expect100Continue_; }
   void setExpect100Continue(bool value) XZERO_NOEXCEPT { expect100Continue_ = value; }
 
@@ -60,16 +58,26 @@ class XZERO_HTTP_API HttpRequest : public HttpRequestInfo {
 
   void recycle();
 
+  // request body handling
+  void discardContent(std::function<void()> onReady);
+  void consumeContent(std::function<void()> onReady);
+  void fillContent(const BufferRef& chunk);
+  void ready();
+  std::unique_ptr<InputStream> getContentStream();
+  BufferRef getContentBuffer();
+
  private:
   Option<InetAddress> remoteAddress_;
   Option<InetAddress> localAddress_;
   size_t bytesReceived_;
 
-  bool secure_;
-  bool expect100Continue_;
   std::string host_;
+  bool secure_;
 
-  std::unique_ptr<HttpInput> input_;
+  bool expect100Continue_;
+  Buffer contentBuffer_;
+  std::function<void()> onContentReady_;
+  std::function<void(const BufferRef&)> onContentAvailable_;
 
   std::string username_; // the client's username, if authenticated
 };

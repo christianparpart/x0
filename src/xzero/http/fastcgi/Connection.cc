@@ -9,7 +9,6 @@
 
 #include <xzero/http/fastcgi/Connection.h>
 #include <xzero/http/HttpChannel.h>
-#include <xzero/http/HttpBufferedInput.h>
 #include <xzero/http/HttpDateGenerator.h>
 #include <xzero/http/HttpResponseInfo.h>
 #include <xzero/http/HttpResponse.h>
@@ -179,7 +178,6 @@ class HttpFastCgiChannel : public HttpChannel { // {{{
   HttpFastCgiChannel(HttpTransport* transport,
                      Executor* executor,
                      const HttpHandler& handler,
-                     std::unique_ptr<HttpInput>&& input,
                      size_t maxRequestUriLength,
                      size_t maxRequestBodyLength,
                      HttpDateGenerator* dateGenerator,
@@ -191,7 +189,6 @@ HttpFastCgiChannel::HttpFastCgiChannel(
     HttpTransport* transport,
     Executor* executor,
     const HttpHandler& handler,
-    std::unique_ptr<HttpInput>&& input,
     size_t maxRequestUriLength,
     size_t maxRequestBodyLength,
     HttpDateGenerator* dateGenerator,
@@ -199,7 +196,6 @@ HttpFastCgiChannel::HttpFastCgiChannel(
     : HttpChannel(transport,
                   executor,
                   handler,
-                  std::move(input),
                   maxRequestUriLength,
                   maxRequestBodyLength,
                   dateGenerator,
@@ -370,7 +366,6 @@ HttpChannel* Connection::createChannel(int request) {
        transport,
        executor(),
        handler_,
-       std::unique_ptr<HttpInput>(new HttpBufferedInput()),
        maxRequestUriLength_,
        maxRequestBodyLength_,
        dateGenerator_,

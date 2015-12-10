@@ -6,6 +6,8 @@
 // the License at: http://opensource.org/licenses/MIT
 
 #include <xzero/http/HttpRequest.h>
+#include <xzero/io/BufferInputStream.h>
+#include <xzero/io/InputStream.h>
 #include <xzero/logging.h>
 
 namespace xzero {
@@ -20,26 +22,24 @@ namespace http {
 #endif
 
 HttpRequest::HttpRequest()
-    : HttpRequest("", "", HttpVersion::UNKNOWN, false, {}, nullptr) {
-  // .
-}
-
-HttpRequest::HttpRequest(std::unique_ptr<HttpInput>&& input)
-    : HttpRequest("", "", HttpVersion::UNKNOWN, false, {}, std::move(input)) {
+    : HttpRequest("", "", HttpVersion::UNKNOWN, false, {}, Buffer()) {
   // .
 }
 
 HttpRequest::HttpRequest(const std::string& method, const std::string& path,
                          HttpVersion version, bool secure,
                          const HeaderFieldList& headers,
-                         std::unique_ptr<HttpInput>&& input)
+                         Buffer&& content)
     : HttpRequestInfo(version, method, path, 0, headers),
       remoteAddress_(),
       localAddress_(),
       bytesReceived_(0),
+      host_(headers.get("Host")),
       secure_(secure),
       expect100Continue_(false),
-      input_(std::move(input)),
+      contentBuffer_(std::move(content)),
+      onContentReady_(),
+      onContentAvailable_(),
       username_() {
   // .
 }
@@ -65,14 +65,66 @@ void HttpRequest::recycle() {
 
   HttpRequestInfo::reset();
 
+  remoteAddress_.reset();
+  localAddress_.reset();
+  bytesReceived_ = 0;
   secure_ = false;
+  expect100Continue_ = false;
   host_.clear();
-  input_->recycle();
+  contentBuffer_.clear();
   username_.clear();
 }
 
 void HttpRequest::setHost(const std::string& value) {
   host_ = value;
+}
+
+void HttpRequest::discardContent(std::function<void()> onReady) {
+  onContentAvailable_ = nullptr;
+  onContentReady_ = onReady;
+}
+
+void HttpRequest::consumeContent(std::function<void()> onReady) {
+  onContentAvailable_ = [this](const BufferRef& chunk) {
+    //TODO: honor: const size_t maxBufferSize = 1024;
+    contentBuffer_.push_back(chunk);
+    TRACE("$0: consuming $1 bytes of content", this, chunk.size());
+  };
+
+  onContentReady_ = onReady;
+}
+
+void HttpRequest::fillContent(const BufferRef& chunk) {
+  if (onContentAvailable_)
+    onContentAvailable_(chunk);
+}
+
+void HttpRequest::ready() {
+  if (onContentReady_)
+    onContentReady_();
+}
+
+std::unique_ptr<InputStream> HttpRequest::getContentStream() {
+  std::unique_ptr<InputStream> stream;
+
+  if (!contentBuffer_.empty()) {
+    stream.reset(new BufferInputStream(&contentBuffer_));
+  } else {
+    // TODO: read content from file
+  }
+
+  return stream;
+}
+
+BufferRef HttpRequest::getContentBuffer() {
+  if (!contentBuffer_.empty())
+    return contentBuffer_;
+
+  std::unique_ptr<InputStream> content = getContentStream();
+  while (content->read(&contentBuffer_, 4096) > 0)
+    ;
+
+  return contentBuffer_;
 }
 
 }  // namespace http

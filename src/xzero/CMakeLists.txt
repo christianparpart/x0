@@ -196,12 +196,10 @@ set(xzero_base_SRC
   http/Cookies.cc
   http/HeaderField.cc
   http/HeaderFieldList.cc
-  http/HttpBufferedInput.cc
   http/HttpChannel.cc
   http/HttpConnectionFactory.cc
   http/HttpDateGenerator.cc
   http/HttpFileHandler.cc
-  http/HttpInput.cc
   http/HttpListener.cc
   http/HttpMethod.cc
   http/HttpOutput.cc
@@ -216,7 +214,6 @@ set(xzero_base_SRC
 
   # HTTP transport: mock
   http/mock/Transport.cc
-  http/mock/Input.cc
 
   # HTTP transport: fastcgi
   http/fastcgi/bits.cc

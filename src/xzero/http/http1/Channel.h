@@ -23,7 +23,6 @@ class Channel : public HttpChannel {
   Channel(Connection* transport,
           Executor* executor,
           const HttpHandler& handler,
-          std::unique_ptr<HttpInput>&& input,
           size_t maxRequestUriLength,
           size_t maxRequestBodyLength,
           HttpDateGenerator* dateGenerator,

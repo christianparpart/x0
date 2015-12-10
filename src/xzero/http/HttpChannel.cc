@@ -14,7 +14,6 @@
 #include <xzero/http/HttpOutput.h>
 #include <xzero/http/HttpOutputCompressor.h>
 #include <xzero/http/HttpVersion.h>
-#include <xzero/http/HttpInputListener.h>
 #include <xzero/http/BadMessage.h>
 #include <xzero/logging.h>
 #include <xzero/io/FileRef.h>
@@ -50,7 +49,6 @@ std::string to_string(HttpChannelState state) {
 HttpChannel::HttpChannel(HttpTransport* transport,
                          Executor* executor,
                          const HttpHandler& handler,
-                         std::unique_ptr<HttpInput>&& input,
                          size_t maxRequestUriLength,
                          size_t maxRequestBodyLength,
                          HttpDateGenerator* dateGenerator,
@@ -60,7 +58,7 @@ HttpChannel::HttpChannel(HttpTransport* transport,
       state_(HttpChannelState::READING),
       transport_(transport),
       executor_(executor),
-      request_(new HttpRequest(std::move(input))),
+      request_(new HttpRequest()),
       response_(new HttpResponse(this, createOutput())),
       dateGenerator_(dateGenerator),
       outputFilters_(),
@@ -326,14 +324,11 @@ void HttpChannel::handleRequest() {
 }
 
 void HttpChannel::onMessageContent(const BufferRef& chunk) {
-  request_->input()->onContent(chunk);
+  request_->fillContent(chunk);
 }
 
 void HttpChannel::onMessageEnd() {
-  BUG_ON(request_->input() == nullptr);
-
-  if (request_->input()->listener())
-    request_->input()->listener()->onAllDataRead();
+  request_->ready();
 }
 
 void HttpChannel::onProtocolError(HttpStatus code, const std::string& message) {

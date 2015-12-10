@@ -97,10 +97,7 @@ bool XzeroContext::verifyDirectoryDepth() {
   return true;
 }
 
-void XzeroContext::onContentAvailable() {
-}
-
-void XzeroContext::onAllDataRead() {
+void XzeroContext::ready() {
   bool handled = runner_->run();
   if (!handled) {
     response_->setStatus(HttpStatus::NotFound);
@@ -110,15 +107,12 @@ void XzeroContext::onAllDataRead() {
 
 void XzeroContext::run() {
   if (request_->expect100Continue()) {
-    response_->send100Continue(
-        std::bind(&HttpInput::setListener, request_->input(), this));
+    response_->send100Continue([this](bool succeed) {
+      request_->consumeContent(std::bind(&XzeroContext::ready, this));
+    });
   } else {
-    onAllDataRead();
+    ready();
   }
-}
-
-void XzeroContext::onError(const std::string& errorMessage) {
-  logError("XzeroContext", "HttpInputListener error. $0", errorMessage);
 }
 
 } // namespace x0d

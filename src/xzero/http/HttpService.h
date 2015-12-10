@@ -36,9 +36,6 @@ class HttpResponse;
  * @note HTTP/1 is always enabled by default.
  */
 class XZERO_HTTP_API HttpService {
- private:
-  class InputListener;
-
  public:
   class Handler;
   class BuiltinAssetHandler;
@@ -97,8 +94,6 @@ class XZERO_HTTP_API HttpService {
   void attachFCGI(Connector* connector);
   void handleRequest(HttpRequest* request, HttpResponse* response);
   void onAllDataRead(HttpRequest* request, HttpResponse* response);
-
-  friend class ServiceInputListener;
 
  private:
   Protocol protocol_;

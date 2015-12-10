@@ -6,11 +6,9 @@
 // the License at: http://opensource.org/licenses/MIT
 
 #include <xzero/http/mock/Transport.h>
-#include <xzero/http/mock/Input.h>
 #include <xzero/http/HttpHandler.h>
 #include <xzero/http/HttpResponseInfo.h>
 #include <xzero/http/HttpResponse.h>
-#include <xzero/http/HttpInput.h>
 #include <xzero/http/HttpChannel.h>
 #include <xzero/http/BadMessage.h>
 #include <xzero/executor/Executor.h>
@@ -56,8 +54,7 @@ void Transport::run(HttpVersion version, const std::string& method,
   isCompleted_ = false;
   isAborted_ = false;
 
-  std::unique_ptr<Input> input(new Input());
-  channel_.reset(new HttpChannel(this, executor_, handler_, std::move(input),
+  channel_.reset(new HttpChannel(this, executor_, handler_,
                                  maxRequestUriLength_, maxRequestBodyLength_,
                                  dateGenerator_,
                                  outputCompressor_));

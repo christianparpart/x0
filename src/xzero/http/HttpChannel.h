@@ -28,7 +28,6 @@ class HttpResponseInfo;
 class HttpTransport;
 class HttpRequest;
 class HttpResponse;
-class HttpInput;
 class HttpOutput;
 class HttpOutputCompressor;
 class HttpDateGenerator;
@@ -54,7 +53,6 @@ class XZERO_HTTP_API HttpChannel : public HttpListener {
   HttpChannel(HttpTransport* transport,
               Executor* executor,
               const HttpHandler& handler,
-              std::unique_ptr<HttpInput>&& input,
               size_t maxRequestUriLength,
               size_t maxRequestBodyLength,
               HttpDateGenerator* dateGenerator,

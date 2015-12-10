@@ -231,32 +231,6 @@ void HttpResponseBuilder::onProtocolError(HttpStatus code, const std::string& me
   response_->completed();
 }
 // }}}
-class HttpInputStream : public InputStream { // {{{
- public:
-  explicit HttpInputStream(HttpInput* input);
-  size_t read(Buffer* target, size_t n) override;
-  size_t transferTo(OutputStream* target) override;
-
- private:
-  HttpInput* input_;
-};
-
-HttpInputStream::HttpInputStream(HttpInput* input)
-    : input_(input) {
-}
-
-size_t HttpInputStream::read(Buffer* target, size_t n) {
-  size_t oldsize = target->size();
-  target->reserve(target->size() + n);
-  input_->read(target);
-  return target->size() - oldsize;
-}
-
-size_t HttpInputStream::transferTo(OutputStream* target) {
-  return 0; // TODO (unused, actually)
-}
-
-// }}}
 
 HttpCluster* ProxyModule::findLocalCluster(const std::string& host) {
   auto i = clusterMap_.find(host);
@@ -289,7 +263,7 @@ bool ProxyModule::proxy_cluster_auto(XzeroContext* cx, Params& args) {
 
   HttpClusterRequest* cr = cx->setCustomData<HttpClusterRequest>(this,
       *cx->request(),
-      std::unique_ptr<InputStream>(new HttpInputStream(cx->request()->input())),
+      cx->request()->getContentStream(),
       std::unique_ptr<HttpListener>(new HttpResponseBuilder(
           this, cx->request(), cx->response())),
       cx->response()->executor());
@@ -323,7 +297,7 @@ bool ProxyModule::proxy_cluster(XzeroContext* cx, Params& args) {
 
   HttpClusterRequest* cr = cx->setCustomData<HttpClusterRequest>(this,
       *cx->request(),
-      std::unique_ptr<InputStream>(new HttpInputStream(cx->request()->input())),
+      cx->request()->getContentStream(),
       std::unique_ptr<HttpListener>(new HttpResponseBuilder(
           this, cx->request(), cx->response())),
       cx->response()->executor());
@@ -538,8 +512,10 @@ bool ProxyModule::tryHandleTrace(XzeroContext* cx) {
     return false;
   }
 
+  std::unique_ptr<InputStream> content = cx->request()->getContentStream();
   Buffer body;
-  cx->request()->input()->read(&body);
+  while (content->read(&body, 4096) > 0)
+    ;
 
   HttpRequestInfo requestInfo(
       cx->request()->version(),

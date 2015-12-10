@@ -1,7 +1,6 @@
 #include "webdav.h"
 #include <xzero/http/HttpRequest.h>
 #include <xzero/http/HttpResponse.h>
-#include <xzero/http/HttpInputListener.h>
 #include <xzero/io/OutputStream.h>
 #include <xzero/io/FileUtil.h>
 #include <xzero/io/File.h>
@@ -112,8 +111,7 @@ bool WebdavModule::webdav_put(XzeroContext* cx, Params& args) {
   if (!cx->verifyDirectoryDepth())
     return true;
 
-  Buffer content;
-  cx->request()->input()->read(&content);
+  BufferRef content = cx->request()->getContentBuffer();
 
   logDebug("webdav", "put filename: $0", cx->file()->path());
 

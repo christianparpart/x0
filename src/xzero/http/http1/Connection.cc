@@ -7,7 +7,6 @@
 
 #include <xzero/http/http1/Connection.h>
 #include <xzero/http/http1/Channel.h>
-#include <xzero/http/HttpBufferedInput.h>
 #include <xzero/http/HttpDateGenerator.h>
 #include <xzero/http/HttpResponseInfo.h>
 #include <xzero/http/HttpResponse.h>
@@ -49,7 +48,6 @@ Connection::Connection(EndPoint* endpoint,
     : ::xzero::Connection(endpoint, executor),
       channel_(new Channel(
           this, executor, handler,
-          std::unique_ptr<HttpInput>(new HttpBufferedInput()),
           maxRequestUriLength, maxRequestBodyLength,
           dateGenerator, outputCompressor)),
       parser_(Parser::REQUEST, channel_.get()),

@@ -8,7 +8,6 @@
 #include <xzero/http/HttpService.h>
 #include <xzero/http/HttpRequest.h>
 #include <xzero/http/HttpResponse.h>
-#include <xzero/http/HttpInputListener.h>
 #include <xzero/http/http1/ConnectionFactory.h>
 #include <xzero/http/fastcgi/ConnectionFactory.h>
 #include <xzero/net/LocalConnector.h>
@@ -20,42 +19,6 @@
 
 namespace xzero {
 namespace http {
-
-class HttpService::InputListener : public HttpInputListener { // {{{
- public:
-   InputListener(HttpRequest* request, HttpResponse* response,
-                       HttpService* service);
-  void onContentAvailable() override;
-  void onAllDataRead() override;
-  void onError(const std::string& errorMessage) override;
-
- private:
-  HttpRequest* request_;
-  HttpResponse* response_;
-  HttpService* service_;
-};
-
-HttpService::InputListener::InputListener(HttpRequest* request,
-                                          HttpResponse* response,
-                                          HttpService* service)
-    : request_(request),
-      response_(response),
-      service_(service) {
-}
-
-void HttpService::InputListener::onContentAvailable() {
-  /* request_->input()->fill(); */
-}
-
-void HttpService::InputListener::onAllDataRead() {
-  service_->onAllDataRead(request_, response_);
-  delete this;
-}
-
-void HttpService::InputListener::onError(const std::string& errorMessage) {
-  delete this;
-}
-// }}}
 
 HttpService::HttpService()
     : HttpService(getDefaultProtocol()) {
@@ -193,7 +156,8 @@ void HttpService::handleRequest(HttpRequest* request, HttpResponse* response) {
   if (request->expect100Continue())
     response->send100Continue(nullptr);
 
-  request->input()->setListener(new InputListener(request, response, this));
+  request->consumeContent(
+      std::bind(&HttpService::onAllDataRead, this, request, response));
 }
 
 void HttpService::onAllDataRead(HttpRequest* request, HttpResponse* response) {
