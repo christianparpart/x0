@@ -99,3 +99,9 @@ handler proxy.fcgi(address, port);
 - [ ] x0d-signals: logfile rotating (HUP)
 - [ ] x0d-signals: all the others (USR1, USR2, ...?)
 
+### After-Revival-Release Stories
+
+- [ ] proxy: idempotent HTTP requests should be retried when backend
+      returned a 5xx, too.
+      configure option: `proxy.retry_idempotent_on_5xx(B)V`
+
