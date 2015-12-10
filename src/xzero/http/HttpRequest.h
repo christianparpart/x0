@@ -11,6 +11,7 @@
 #include <xzero/sysconfig.h>
 #include <xzero/Buffer.h>
 #include <xzero/io/File.h>
+#include <xzero/io/FileDescriptor.h>
 #include <xzero/http/HttpRequestInfo.h>
 #include <xzero/http/HeaderFieldList.h>
 #include <xzero/http/HttpVersion.h>
@@ -76,6 +77,7 @@ class XZERO_HTTP_API HttpRequest : public HttpRequestInfo {
 
   bool expect100Continue_;
   Buffer contentBuffer_;
+  FileDescriptor contentFd_;
   std::function<void()> onContentReady_;
   std::function<void(const BufferRef&)> onContentAvailable_;
 

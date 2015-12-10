@@ -8,7 +8,10 @@
 #include <xzero/http/HttpRequest.h>
 #include <xzero/io/BufferInputStream.h>
 #include <xzero/io/InputStream.h>
+#include <xzero/io/FileUtil.h>
 #include <xzero/logging.h>
+
+#include <unistd.h>
 
 namespace xzero {
 namespace http {
@@ -38,6 +41,7 @@ HttpRequest::HttpRequest(const std::string& method, const std::string& path,
       secure_(secure),
       expect100Continue_(false),
       contentBuffer_(std::move(content)),
+      contentFd_(-1),
       onContentReady_(),
       onContentAvailable_(),
       username_() {
@@ -72,6 +76,7 @@ void HttpRequest::recycle() {
   expect100Continue_ = false;
   host_.clear();
   contentBuffer_.clear();
+  contentFd_.close();
   username_.clear();
 }
 
@@ -86,9 +91,17 @@ void HttpRequest::discardContent(std::function<void()> onReady) {
 
 void HttpRequest::consumeContent(std::function<void()> onReady) {
   onContentAvailable_ = [this](const BufferRef& chunk) {
-    //TODO: honor: const size_t maxBufferSize = 1024;
-    contentBuffer_.push_back(chunk);
-    TRACE("$0: consuming $1 bytes of content", this, chunk.size());
+    const size_t maxBufferSize = 1024;
+
+    if (contentFd_ < 0 && contentBuffer_.size() + chunk.size() > maxBufferSize) {
+      contentFd_ = FileUtil::createTempFile();
+    }
+
+    if (contentFd_ < 0) {
+      contentBuffer_.push_back(chunk);
+      TRACE("$0: consuming $1 bytes of content", this, chunk.size());
+    } else {
+    }
   };
 
   onContentReady_ = onReady;
