@@ -97,6 +97,12 @@ int File::to_posix(OpenFlags oflags) {
   if (oflags & NonBlocking)
     flags |= O_NONBLOCK;
 #endif
+
+#if defined(O_TMPFILE)
+  if (!(oflags & TempFile))
+    flags |= O_TMPFILE;
+#endif
+
   return flags;
 }
 
