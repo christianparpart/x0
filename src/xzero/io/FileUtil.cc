@@ -273,7 +273,8 @@ int FileUtil::createTempFile() {
 int FileUtil::createTempFileAt(const std::string& basedir, std::string* result) {
   std::string pattern = joinPaths(basedir, "XXXXXXXX.tmp");
 
-  int fd = mkstemps(const_cast<char*>(pattern.c_str()), 4);
+  int flags = O_CLOEXEC; // TODO | O_TMPFILE;
+  int fd = mkostemps(const_cast<char*>(pattern.c_str()), 4, flags);
   if (fd < 0)
     RAISE_ERRNO(errno);
 
