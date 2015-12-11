@@ -92,7 +92,7 @@ void HttpRequest::discardContent(std::function<void()> onReady) {
 
 void HttpRequest::consumeContent(std::function<void()> onReady) {
   onContentAvailable_ = [this](const BufferRef& chunk) {
-    const size_t maxBufferSize = 1024; // TODO: pass me
+    const size_t maxBufferSize = 4 * 1024; // TODO: pass me
 
     if (contentFd_ < 0 && contentBuffer_.size() + chunk.size() > maxBufferSize) {
       contentFd_ = FileUtil::createTempFile();
