@@ -18,7 +18,8 @@ RUN apt-mark hold initscripts
 
 RUN echo "force-unsafe-io" > /etc/dpkg/dpkg.cfg.d/02apt-speedup
 RUN echo "Acquire::http {No-Cache=True;};" > /etc/apt/apt.conf.d/no-cache
-RUN apt-get -qq update && apt-get -qqy dist-upgrade
+RUN apt-get -qq update
+#RUN apt-get -qqy dist-upgrade
 # }}}
 
 ADD . /usr/src/x0
@@ -45,7 +46,11 @@ RUN apt-get install -y \
         make cmake clang++-3.5 libssl-dev zlib1g-dev libbz2-dev pkg-config \
         libpcre3-dev libfcgi-dev libgoogle-perftools-dev libtbb-dev \
         libpam-dev libgtest-dev ninja-build && \
+    apt-get purge -y perl && \
+    echo 'Yes, do as I say!' | apt-get remove -y --force-yes \
+        initscripts util-linux e2fsprogs systemd-sysv && \
     apt-get autoremove -y && \
+    rm -rvf /var/lib/apt/lists/* && \
     rm -rf /usr/src
 
 ENV DOCROOT "/var/www"
