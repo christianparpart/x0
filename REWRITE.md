@@ -40,6 +40,8 @@
 - [ ] (flow) a verifier callback must have the ability to attach custom data
       to the actual call.
       something like `CallInstr.attach(OwnedPtr<CustomData> data);
+- [ ] use requestHeaderBufferSize
+- [ ] use requestBodyBufferSize
 
 ### proxy
 
