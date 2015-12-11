@@ -12,6 +12,7 @@
 #include <xzero/io/File.h>
 #include <xzero/RuntimeError.h>
 #include <xzero/Buffer.h>
+#include <xzero/logging.h>
 #include <xzero/sysconfig.h>
 
 #include <system_error>
@@ -271,15 +272,40 @@ int FileUtil::createTempFile() {
 }
 
 int FileUtil::createTempFileAt(const std::string& basedir, std::string* result) {
-  std::string pattern = joinPaths(basedir, "XXXXXXXX.tmp");
+#if defined(O_TMPFILE)
+  int flags = O_TMPFILE | O_CLOEXEC | O_RDWR;
+  int mode = S_IRUSR | S_IWUSR;
+  int fd = ::open(basedir.c_str(), flags, mode);
 
-  int flags = O_CLOEXEC; // TODO | O_TMPFILE;
+  if (fd < 0)
+    RAISE_ERRNO(errno);
+
+  if (result)
+    result->clear();
+#elif defined(HAVE_MKOSTEMPS)
+  std::string pattern = joinPaths(basedir, "XXXXXXXX.tmp");
+  int flags = O_CLOEXEC;
   int fd = mkostemps(const_cast<char*>(pattern.c_str()), 4, flags);
+
   if (fd < 0)
     RAISE_ERRNO(errno);
 
   if (result)
     *result = std::move(pattern);
+  else
+    FileUtil::rm(pattern);
+#else
+  std::string pattern = joinPaths(basedir, "XXXXXXXX.tmp");
+  int fd = mkstemps(const_cast<char*>(pattern.c_str()), 4);
+
+  if (fd < 0)
+    RAISE_ERRNO(errno);
+
+  if (result)
+    *result = std::move(pattern);
+  else
+    FileUtil::rm(pattern);
+#endif
 
   return fd;
 }
