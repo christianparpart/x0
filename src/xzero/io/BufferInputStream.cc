@@ -20,9 +20,10 @@ void BufferInputStream::rewind() {
 }
 
 size_t BufferInputStream::read(Buffer* target, size_t n) {
-  n = std::max(n, source_->size() - offset_);
+  n = std::min(n, source_->size() - offset_);
   target->push_back(source_->ref(offset_, n));
   offset_ += n;
+  return n;
 }
 
 size_t BufferInputStream::transferTo(OutputStream* target) {
