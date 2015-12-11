@@ -131,6 +131,10 @@ void HttpRequest::ready() {
 }
 
 std::unique_ptr<InputStream> HttpRequest::getContentStream() {
+  if (contentFd_ != -1) {
+    ::lseek(contentFd_, 0, SEEK_SET);
+  }
+
   return std::unique_ptr<InputStream>(
       !contentBuffer_.empty()
           ? static_cast<InputStream*>(new BufferInputStream(&contentBuffer_))
