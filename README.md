@@ -1,8 +1,7 @@
 # Xzero HTTP Application Web Server
 
-[ ![Build status - Travis-ci](https://secure.travis-ci.org/xzero/x0.png) ](http://travis-ci.org/xzero/x0)
-[ ![Stories in Ready](https://badge.waffle.io/xzero/x0.png?label=ready&title=Ready) ](https://waffle.io/xzero/x0)
 [![](https://badge.imagelayers.io/trapni/xzero-git:latest.svg)](https://imagelayers.io/?images=trapni/xzero-git:latest 'Get your own badge on imagelayers.io')
+[![](https://secure.travis-ci.org/xzero/x0.png) ](http://travis-ci.org/xzero/x0)
 
 
 - official website: http://xzero.io
