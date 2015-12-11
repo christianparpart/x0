@@ -64,32 +64,18 @@
 - [x] JSON API: CRUD bucket
 - [x] support TRACE method for `proxy.cluster`
 - [x] support TRACE method for `proxy.http`
-- [ ] request body tmp stored on disk if larger than N bytes
+- [x] request body tmp stored on disk if larger than N bytes
 - [ ] response body tmp stored on disk if larger than N bytes
-- [ ] HttpInput: must be rewind()able, in order to be used multiple times
-      e.g. required for retransmitting a request to multiple upstreams if prior
-      failed.
 - ...
 
 #### proxy: stage 2
 
-- [ ] HttpInput: offload into local tmpfile if payload > N bytes
 - [ ] proxy: properly proxy 'Expect: 100-continue' (Expect-header must be forwarded)
 - [ ] HttpClient: support UNIX domain socket alongside with TCP/IP
 - [ ] HttpClient: FastCGI
 - [ ] HttpHealthMonitor: FastCGI
 - [ ] flow-api: `proxy.fcgi(ipaddr, port)`
 - [ ] Executor::HandleRef -> `<xzero/Action.h>` or similar to make it more generic
-
-### proxy: proper flow symbol naming
-
-```
-void proxy.psuedonym(name);
-handler proxy.cluster(name, path, bucket?, backend?);
-handler proxy.cluster();
-handler proxy.http(address, port);
-handler proxy.fcgi(address, port);
-```
 
 ### Feature Stories
 
