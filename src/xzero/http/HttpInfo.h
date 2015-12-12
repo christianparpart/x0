@@ -82,5 +82,9 @@ inline void HttpInfo::reset() {
   trailers_.reset();
 }
 
+inline void HttpInfo::setContentLength(size_t size) {
+  contentLength_ = size;
+}
+
 }  // namespace http
 }  // namespace xzero
