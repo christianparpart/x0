@@ -17,7 +17,9 @@
 namespace xzero {
 
 class Buffer;
+class BufferRef;
 class File;
+class FileView;
 
 class XZERO_BASE_API FileUtil {
  public:
@@ -38,8 +40,11 @@ class XZERO_BASE_API FileUtil {
 
   static Buffer read(int fd);
   static Buffer read(File& file);
+  static Buffer read(const FileView& file);
   static Buffer read(const std::string& path);
   static void write(const std::string& path, const Buffer& buffer);
+  static void write(int fd, const BufferRef& chunk);
+  static void write(int fd, const FileView& chunk);
   static void copy(const std::string& from, const std::string& to);
   static void truncate(const std::string& path, size_t size);
   static void mkdir(const std::string& path, int mode = 0775);

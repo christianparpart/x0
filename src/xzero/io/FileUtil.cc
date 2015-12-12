@@ -8,6 +8,7 @@
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 #include <xzero/io/FileUtil.h>
+#include <xzero/io/FileView.h>
 #include <xzero/io/FileDescriptor.h>
 #include <xzero/io/File.h>
 #include <xzero/RuntimeError.h>
@@ -179,6 +180,36 @@ Buffer FileUtil::read(File& file) {
   return read(fd);
 }
 
+Buffer FileUtil::read(const FileView& file) {
+  Buffer output;
+  output.reserve(file.size() + 1);
+  size_t nread = 0;
+
+  do {
+    ssize_t rv = ::pread(file.handle(), output.data(),
+                         file.size() - nread, file.offset() + nread);
+    if (rv < 0) {
+      switch (errno) {
+        case EINTR:
+        case EAGAIN:
+          break;
+        default:
+          RAISE_ERRNO(errno);
+      }
+    } else if (rv == 0) {
+      // end of file reached
+      break;
+    } else {
+      nread += rv;
+    }
+  } while (nread < file.size());
+
+  output[nread] = '\0';
+  output.resize(nread);
+
+  return output;
+}
+
 Buffer FileUtil::read(const std::string& path) {
   FileDescriptor fd = open(path.c_str(), O_RDONLY);
   if (fd < 0)
@@ -203,6 +234,28 @@ void FileUtil::write(const std::string& path, const Buffer& buffer) {
   } while (static_cast<size_t>(nwritten) < buffer.size());
 
   close(fd);
+}
+
+void FileUtil::write(int fd, const BufferRef& buffer) {
+  ssize_t nwritten = 0;
+  do {
+    ssize_t rv = ::write(fd, buffer.data() + nwritten, buffer.size() - nwritten);
+    if (rv < 0) {
+      switch (errno) {
+        case EINTR:
+        case EAGAIN:
+          break;
+        default:
+          RAISE_ERRNO(errno);
+      }
+    } else {
+      nwritten += rv;
+    }
+  } while (nwritten < buffer.size());
+}
+
+void FileUtil::write(int fd, const FileView& fileView) {
+  write(fd, read(fileView));
 }
 
 void FileUtil::copy(const std::string& from, const std::string& to) {
