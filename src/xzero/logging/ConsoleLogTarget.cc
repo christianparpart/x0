@@ -2,9 +2,15 @@
 #include <xzero/logging/LogLevel.h>
 #include <xzero/logging.h>
 #include <xzero/AnsiColor.h>
+#include <xzero/WallClock.h>
+#include <xzero/UnixTime.h>
 #include <unistd.h>
 
 namespace xzero {
+
+ConsoleLogTarget::ConsoleLogTarget()
+    : timestampEnabled_(true) {
+}
 
 ConsoleLogTarget* ConsoleLogTarget::get() {
   static ConsoleLogTarget singleton;
@@ -33,18 +39,27 @@ void ConsoleLogTarget::log(LogLevel level,
     };
 
     fprintf(stderr,
-            "[%s] [%s] %s\n",
+            "%s[%s] [%s] %s\n",
+            createTimestamp().c_str(),
             AnsiColor::colorize(logColor(level), StringUtil::toString(level)).c_str(),
             AnsiColor::colorize(componentColor, component).c_str(),
             message.c_str());
   } else {
     fprintf(stderr,
-            "[%s] [%s] %s\n",
+            "%s[%s] [%s] %s\n",
+            createTimestamp().c_str(),
             logLevelToStr(level),
             component.c_str(),
             message.c_str());
     fflush(stderr);
   }
+}
+
+std::string ConsoleLogTarget::createTimestamp() const {
+  if (timestampEnabled_ == false)
+    return "";
+
+  return WallClock::now().toString("%Y-%m-%d %H:%M:%S ");
 }
 
 } // namespace xzero

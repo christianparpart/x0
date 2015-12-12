@@ -22,6 +22,7 @@
       Example: "Welcome on ${sys.hostname}" is not working,
       but the: "Welcome on ${sys.hostname()}" is working.
 - [x] revive `max_request_body`
+- [x] console logger to also log timestamps, can be disabled (enabled by default)
 - [x] HttpRequest: reuse of HttpRequestInfo
 - [ ] HttpResponse: reuse of HttpResponseInfo (NEEDED?)
 - [ ] revive `lingering`
@@ -35,7 +36,6 @@
 - [ ] (flow:bug) `listen(port: "80")` MUST raise a signature mismatch error
 - [ ] (flow) `var x = call1 + '.' + call2;` not working. fix me.
 - [ ] revive HTTP client side abort notification API
-- [ ] console logger to also log timestamps, can be disabled (enabled by default)
 - [ ] (flow) tag flow handlers to never return (aka. always handle),
       thus, enabling the compiler to give a warning on dead code after
       this handler.
