@@ -24,7 +24,7 @@ std::string StringUtil::toString(const InetAddress& addr) {
 template<>
 std::string StringUtil::toString(Option<InetAddress> addr) {
   if (addr.isSome()) {
-    return StringUtil::format("$0:$1", addr.get());
+    return StringUtil::format("$0", addr.get());
   } else {
     return "NULL";
   }
