@@ -204,7 +204,8 @@ class XZERO_HTTP_API HttpResponse {
   virtual void write(FileView&& file, CompletionHandler&& completed = nullptr);
 
  private:
-  friend class HttpChannel;
+  friend class HttpChannel; // FIXME: can we get rid of friends?
+
   void setCommitted(bool value);
   /** ensures response wasn't committed yet and thus has mutabale meta info. */
   void requireMutableInfo();
