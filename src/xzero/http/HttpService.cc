@@ -103,6 +103,8 @@ void HttpService::attachProtocol(Connector* connector) {
 
 void HttpService::attachHttp1(Connector* connector) {
   // TODO: make them configurable via ctor
+  size_t requestHeaderBufferSize = 8 * 1024;
+  size_t requestBodyBufferSize = 8 * 1024;
   size_t maxRequestUriLength = 1024;
   size_t maxRequestBodyLength = 64 * 1024 * 1024;
   size_t maxRequestCount = 100;
@@ -111,6 +113,8 @@ void HttpService::attachHttp1(Connector* connector) {
   bool tcpNoDelay = false;
 
   auto http = connector->addConnectionFactory<xzero::http::http1::ConnectionFactory>(
+      requestHeaderBufferSize,
+      requestBodyBufferSize,
       maxRequestUriLength,
       maxRequestBodyLength,
       maxRequestCount,

@@ -221,6 +221,8 @@ void XzeroDaemon::postConfig() {
 
   // HTTP/1 connection factory
   http1_.reset(new http1::ConnectionFactory(
+      config_->requestHeaderBufferSize,
+      config_->requestBodyBufferSize,
       config_->maxRequestUriLength,
       config_->maxRequestBodySize,
       config_->maxKeepAliveRequests,

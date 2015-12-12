@@ -44,6 +44,8 @@ class ScopedLogger { // {{{
 };
 // }}}
 
+static const size_t requestHeaderBufferSize = 8 * 1024;
+static const size_t requestBodyBufferSize = 8 * 1024;
 static const size_t maxRequestUriLength = 64;
 static const size_t maxRequestBodyLength = 128;
 static const size_t maxRequestCount = 5;
@@ -56,6 +58,7 @@ static const Duration maxKeepAlive = 30_seconds;
   auto localConnector = server.addConnector<xzero::LocalConnector>(&executor); \
   auto http = localConnector->addConnectionFactory<                            \
                                  xzero::http::http1::ConnectionFactory>(       \
+      requestHeaderBufferSize, requestBodyBufferSize,                          \
       maxRequestUriLength, maxRequestBodyLength, maxRequestCount,              \
       maxKeepAlive, false, false);                                             \
   http->setHandler([&](HttpRequest* request, HttpResponse* response) {         \

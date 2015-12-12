@@ -15,7 +15,9 @@ namespace http {
 namespace http1 {
 
 ConnectionFactory::ConnectionFactory()
-    : ConnectionFactory(4096,
+    : ConnectionFactory(8 * 1024,
+                        8 * 1024,
+                        4096,
                         4 * 1024 * 1024,
                         100,
                         8_seconds,
@@ -24,6 +26,8 @@ ConnectionFactory::ConnectionFactory()
 }
 
 ConnectionFactory::ConnectionFactory(
+    size_t requestHeaderBufferSize,
+    size_t requestBodyBufferSize,
     size_t maxRequestUriLength,
     size_t maxRequestBodyLength,
     size_t maxRequestCount,
@@ -32,11 +36,13 @@ ConnectionFactory::ConnectionFactory(
     bool tcpNoDelay)
     : HttpConnectionFactory("http/1.1", maxRequestUriLength,
                             maxRequestBodyLength),
+      requestHeaderBufferSize_(requestHeaderBufferSize),
+      requestBodyBufferSize_(requestBodyBufferSize),
       maxRequestCount_(maxRequestCount),
       maxKeepAlive_(maxKeepAlive),
       corkStream_(corkStream),
       tcpNoDelay_(tcpNoDelay) {
-  setInputBufferSize(16 * 1024);
+  setInputBufferSize(requestHeaderBufferSize + requestBodyBufferSize);
 }
 
 ConnectionFactory::~ConnectionFactory() {

@@ -24,6 +24,8 @@ class XZERO_HTTP_API ConnectionFactory : public HttpConnectionFactory {
   ConnectionFactory();
 
   ConnectionFactory(
+      size_t requestHeaderBufferSize,
+      size_t requestBodyBufferSize,
       size_t maxRequestUriLength,
       size_t maxRequestBodyLength,
       size_t maxRequestCount,
@@ -32,6 +34,12 @@ class XZERO_HTTP_API ConnectionFactory : public HttpConnectionFactory {
       bool tcpNoDelay);
 
   ~ConnectionFactory();
+
+  size_t requestHeaderBufferSize() const noexcept { return requestHeaderBufferSize_; }
+  void setRequestHeaderBufferSize(size_t value) { requestHeaderBufferSize_ = value; }
+
+  size_t requestBodyBufferSize() const noexcept { return requestBodyBufferSize_; }
+  void setRequestBodyBufferSize(size_t value) { requestBodyBufferSize_ = value; }
 
   size_t maxRequestCount() const XZERO_NOEXCEPT { return maxRequestCount_; }
   void setMaxRequestCount(size_t value) { maxRequestCount_ = value; }
@@ -46,6 +54,8 @@ class XZERO_HTTP_API ConnectionFactory : public HttpConnectionFactory {
   Connection* configure(Connection* connection, Connector* connector) override;
 
  private:
+  size_t requestHeaderBufferSize_;
+  size_t requestBodyBufferSize_;
   size_t maxRequestCount_;
   Duration maxKeepAlive_;
   bool corkStream_;

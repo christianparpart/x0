@@ -15,6 +15,8 @@
 - [x] revive `tcp_fin_timeout`
 - [x] revive `tcp_cork`
 - [x] revive `tcp_nodelay`
+- [x] revive `request_header_buffer_size`
+- [x] revive `request_body_buffer_size`
 - [x] pull InputStream/OutputStream API from stx (away from istream/ostream)?
 - [x] (flow) String interpolation doesn't allow function calls without ()'s.
       Example: "Welcome on ${sys.hostname}" is not working,
@@ -40,8 +42,6 @@
 - [ ] (flow) a verifier callback must have the ability to attach custom data
       to the actual call.
       something like `CallInstr.attach(OwnedPtr<CustomData> data);
-- [ ] use requestHeaderBufferSize
-- [ ] use requestBodyBufferSize
 
 ### proxy
 
