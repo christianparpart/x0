@@ -16,7 +16,7 @@
 
 namespace xzero {
 
-class FileRef;
+class FileView;
 
 namespace http {
 
@@ -73,7 +73,7 @@ class XZERO_HTTP_API HttpTransport {
    * @param chunk response body chunk represented as a file.
    * @param onComplete callback invoked when sending chunk is succeed/failed.
    */
-  virtual void send(HttpResponseInfo&& responseInfo, FileRef&& chunk,
+  virtual void send(HttpResponseInfo&& responseInfo, FileView&& chunk,
                     CompletionHandler onComplete) = 0;
 
   /**
@@ -90,7 +90,7 @@ class XZERO_HTTP_API HttpTransport {
    * @param chunk response body chunk represented as a file.
    * @param onComplete callback invoked when sending chunk is succeed/failed.
    */
-  virtual void send(FileRef&& chunk, CompletionHandler onComplete) = 0;
+  virtual void send(FileView&& chunk, CompletionHandler onComplete) = 0;
 
   /**
    * Transfers this data chunk to the output stream.

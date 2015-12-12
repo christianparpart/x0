@@ -58,7 +58,7 @@ class XZERO_HTTP_API Client {
          const std::string& method,
          const std::string& entity,
          const HeaderFieldList& headers,
-         FileRef&& body);
+         FileView&& body);
 
   Client(HttpVersion version,
          const std::string& method,

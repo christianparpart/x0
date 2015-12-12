@@ -185,11 +185,11 @@ void Connection::send(HttpResponseInfo&& responseInfo,
 }
 
 void Connection::send(HttpResponseInfo&& responseInfo,
-                      FileRef&& chunk,
+                      FileView&& chunk,
                       CompletionHandler onComplete) {
   setCompleter(onComplete, responseInfo.status());
 
-  TRACE("$0 send(FileRef, status=$1, persistent=$2, fileRef.fd=$3, chunkSize=$4)",
+  TRACE("$0 send(FileView, status=$1, persistent=$2, fd=$3, chunkSize=$4)",
         this, responseInfo.status(), channel_->isPersistent() ? "yes" : "no",
         chunk.handle(), chunk.size());
 
@@ -270,9 +270,9 @@ void Connection::send(const BufferRef& chunk,
   wantFlush();
 }
 
-void Connection::send(FileRef&& chunk, CompletionHandler onComplete) {
+void Connection::send(FileView&& chunk, CompletionHandler onComplete) {
   setCompleter(onComplete);
-  TRACE("$0 send(FileRef, chunkSize=$1)", this, chunk.size());
+  TRACE("$0 send(FileView, chunkSize=$1)", this, chunk.size());
   generator_.generateBody(std::move(chunk));
   wantFlush();
 }

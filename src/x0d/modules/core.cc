@@ -767,7 +767,7 @@ bool CoreModule::precompressed(XzeroContext* cx, Params& args) {
         // otherwise the pc's reference count can go down to zero at the end
         // of this scope
         // without having the file fully sent out yet.
-        // FIXME: sendfile() should accept HttpFileRef instead.
+        // FIXME: sendfile() should accept HttpFileView instead.
         cx->setFile(pc);
 
         cx->response()->setHeader("Content-Encoding", encoding.id);

@@ -11,7 +11,7 @@
 #include <xzero/http/HttpRangeDef.h>
 #include <xzero/http/HeaderFieldList.h>
 #include <xzero/io/File.h>
-#include <xzero/io/FileRef.h>
+#include <xzero/io/FileView.h>
 #include <xzero/UnixTime.h>
 #include <xzero/Tokenizer.h>
 #include <xzero/Buffer.h>
@@ -139,7 +139,7 @@ bool HttpFileHandler::handle(
 #if defined(HAVE_POSIX_FADVISE)
     posix_fadvise(fd, 0, transferFile->size(), POSIX_FADV_SEQUENTIAL);
 #endif
-    response->write(FileRef(fd, 0, transferFile->size(), true),
+    response->write(FileView(fd, 0, transferFile->size(), true),
         std::bind(&HttpResponse::completed, response));
   } else {
     response->completed();
@@ -316,7 +316,7 @@ bool HttpFileHandler::handleRangeRequest(const File& transferFile, int fd,
       if (!isHeadReq) {
         bool last = i + 1 == numRanges;
         response->write(std::move(buf));
-        response->write(FileRef(fd, offsets.first, partLength, last));
+        response->write(FileView(fd, offsets.first, partLength, last));
       }
     }
 
@@ -349,7 +349,7 @@ bool HttpFileHandler::handleRangeRequest(const File& transferFile, int fd,
 #if defined(HAVE_POSIX_FADVISE)
       posix_fadvise(fd, offsets.first, length, POSIX_FADV_SEQUENTIAL);
 #endif
-      response->write(FileRef(fd, offsets.first, length, true));
+      response->write(FileView(fd, offsets.first, length, true));
     }
   }
 

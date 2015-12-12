@@ -38,10 +38,10 @@ void EndPointWriter::write(Buffer&& chunk) {
         new BufferChunk(std::forward<Buffer>(chunk))));
 }
 
-void EndPointWriter::write(FileRef&& chunk) {
+void EndPointWriter::write(FileView&& chunk) {
   TRACE("write: enqueue $0 bytes", chunk.size());
   chunks_.emplace_back(std::unique_ptr<Chunk>(
-        new FileChunk(std::forward<FileRef>(chunk))));
+        new FileChunk(std::forward<FileView>(chunk))));
 }
 
 bool EndPointWriter::flush(EndPoint* sink) {

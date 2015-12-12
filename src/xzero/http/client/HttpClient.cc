@@ -14,7 +14,7 @@
 #include <xzero/net/DnsClient.h>
 #include <xzero/net/InetAddress.h>
 #include <xzero/net/IPAddress.h>
-#include <xzero/io/FileRef.h>
+#include <xzero/io/FileView.h>
 #include <xzero/RuntimeError.h>
 #include <xzero/logging.h>
 

@@ -7,7 +7,7 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-#include <xzero/io/FileRef.h>
+#include <xzero/io/FileView.h>
 #include <xzero/sysconfig.h>
 #include <system_error>
 #include <stdexcept>
@@ -16,7 +16,7 @@
 
 namespace xzero {
 
-void FileRef::fill(Buffer* output) const {
+void FileView::fill(Buffer* output) const {
   output->reserve(output->size() + size());
 
 #if defined(HAVE_PREAD)
@@ -25,7 +25,7 @@ void FileRef::fill(Buffer* output) const {
     throw std::system_error(errno, std::system_category());
 
   if (n != size())
-    throw std::runtime_error("Did not read all required bytes from FileRef.");
+    throw std::runtime_error("Did not read all required bytes from FileView.");
 
   output->resize(n);
 #else

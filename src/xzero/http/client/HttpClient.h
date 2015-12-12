@@ -29,7 +29,7 @@ namespace xzero {
 class EndPoint;
 class InetAddress;
 class Executor;
-class FileRef;
+class FileView;
 
 namespace http {
 

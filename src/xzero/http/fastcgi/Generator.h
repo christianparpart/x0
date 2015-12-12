@@ -15,7 +15,7 @@
 #include <xzero/http/HttpRequestInfo.h>
 #include <xzero/http/HttpResponseInfo.h>
 #include <xzero/http/fastcgi/bits.h>
-#include <xzero/io/FileRef.h>
+#include <xzero/io/FileView.h>
 #include <xzero/Buffer.h>
 #include <xzero/sysconfig.h>
 
@@ -50,10 +50,10 @@ class XZERO_HTTP_API Generator {
   void generateResponse(const HttpResponseInfo& info);
   void generateResponse(const HttpResponseInfo& info, const BufferRef& chunk);
   void generateResponse(const HttpResponseInfo& info, Buffer&& chunk);
-  void generateResponse(const HttpResponseInfo& info, FileRef&& chunk);
+  void generateResponse(const HttpResponseInfo& info, FileView&& chunk);
   void generateBody(Buffer&& chunk);
   void generateBody(const BufferRef& chunk);
-  void generateBody(FileRef&& chunk);
+  void generateBody(FileView&& chunk);
   void generateEnd();
 
   void flushBuffer();

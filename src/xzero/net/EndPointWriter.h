@@ -11,7 +11,7 @@
 
 #include <xzero/Api.h>
 #include <xzero/Buffer.h>
-#include <xzero/io/FileRef.h>
+#include <xzero/io/FileView.h>
 #include <memory>
 #include <deque>
 
@@ -19,7 +19,7 @@ namespace xzero {
 
 class Buffer;
 class BufferRef;
-class FileRef;
+class FileView;
 class EndPoint;
 
 /**
@@ -48,7 +48,7 @@ class XZERO_BASE_API EndPointWriter {
    *
    * @param file file ref to read from.
    */
-  void write(FileRef&& file);
+  void write(FileView&& file);
 
   /**
    * Transfers as much data as possible into the given EndPoint @p sink.
@@ -107,15 +107,15 @@ class XZERO_BASE_API EndPointWriter::BufferRefChunk : public Chunk {
 
 class XZERO_BASE_API EndPointWriter::FileChunk : public Chunk {
  public:
-  explicit FileChunk(FileRef&& ref)
-      : file_(std::forward<FileRef>(ref)) {}
+  explicit FileChunk(FileView&& ref)
+      : file_(std::forward<FileView>(ref)) {}
 
   ~FileChunk();
 
   bool transferTo(EndPoint* sink) override;
 
  private:
-  FileRef file_;
+  FileView file_;
 };
 // }}}
 

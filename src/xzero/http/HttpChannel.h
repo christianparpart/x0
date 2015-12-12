@@ -19,7 +19,7 @@
 
 namespace xzero {
 
-class FileRef;
+class FileView;
 class Executor;
 
 namespace http {
@@ -101,7 +101,7 @@ class XZERO_HTTP_API HttpChannel : public HttpListener {
    * The response will auto-commit the response status line and
    * response headers if not done yet.
    */
-  void send(FileRef&& file, CompletionHandler onComplete);
+  void send(FileView&& file, CompletionHandler onComplete);
 
   /**
    * Sends an 100-continue intermediate response message.

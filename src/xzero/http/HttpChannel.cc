@@ -15,7 +15,7 @@
 #include <xzero/http/HttpVersion.h>
 #include <xzero/http/BadMessage.h>
 #include <xzero/logging.h>
-#include <xzero/io/FileRef.h>
+#include <xzero/io/FileView.h>
 #include <xzero/io/Filter.h>
 #include <xzero/RuntimeError.h>
 #include <xzero/sysconfig.h>
@@ -141,7 +141,7 @@ void HttpChannel::send(Buffer&& data, CompletionHandler onComplete) {
   }
 }
 
-void HttpChannel::send(FileRef&& file, CompletionHandler onComplete) {
+void HttpChannel::send(FileView&& file, CompletionHandler onComplete) {
   onBeforeSend();
 
   if (outputFilters_.empty()) {

@@ -29,7 +29,6 @@
 - [ ] revive `max_connections`
 - [ ] (make thread safe) File::lastModified()
 - [ ] how to convert from UnixTime to CivilTime to get the current
-- [ ] FileRef to be renamed to FileHandle/FileHandle or alike?
 - [ ] (bug) timeout problem in InetEndPoint, found via `xurl -> x0d -> local`
 - [ ] (flow:bug) `"Blah #{call}blah#{call}"` doesn't work
       unless I specify it as `"Blah #{call()}blah#{call}"`

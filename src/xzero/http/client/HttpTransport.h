@@ -13,7 +13,7 @@
 
 namespace xzero {
 
-class FileRef;
+class FileView;
 
 namespace http {
 
@@ -39,11 +39,11 @@ class HttpTransport {
                     Buffer&& chunk,
                     CompletionHandler onComplete) = 0;
   virtual void send(const HttpRequestInfo& requestInfo,
-                    FileRef&& chunk,
+                    FileView&& chunk,
                     CompletionHandler onComplete) = 0;
   virtual void send(const BufferRef& chunk, CompletionHandler onComplete) = 0;
   virtual void send(Buffer&& chunk, CompletionHandler onComplete) = 0;
-  virtual void send(FileRef&& chunk, CompletionHandler onComplete) = 0;
+  virtual void send(FileView&& chunk, CompletionHandler onComplete) = 0;
   virtual void completed() = 0;
   virtual void abort() = 0;
 };

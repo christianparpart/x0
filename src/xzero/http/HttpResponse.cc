@@ -9,7 +9,7 @@
 #include <xzero/http/HttpRequest.h>
 #include <xzero/http/HttpChannel.h>
 #include <xzero/RuntimeError.h>
-#include <xzero/io/FileRef.h>
+#include <xzero/io/FileView.h>
 #include <xzero/io/Filter.h>
 #include <xzero/sysconfig.h>
 #include <cstring>
@@ -298,7 +298,7 @@ void HttpResponse::write(const BufferRef& data, CompletionHandler&& completed) {
   channel_->send(data, std::move(completed));
 }
 
-void HttpResponse::write(FileRef&& input, CompletionHandler&& completed) {
+void HttpResponse::write(FileView&& input, CompletionHandler&& completed) {
   actualContentLength_ += input.size();
   channel_->send(std::move(input), std::move(completed));
 }

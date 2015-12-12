@@ -154,5 +154,5 @@ TEST(http_http1_Generator, generateResponse_chunked_trailer2) {
 // }
 // TEST(http_http1_Generator, generateBody_BufferRef) {
 // }
-// TEST(http_http1_Generator, generateBody_FileRef) {
+// TEST(http_http1_Generator, generateBody_FileView) {
 // }

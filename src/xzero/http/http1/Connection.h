@@ -55,11 +55,11 @@ class XZERO_HTTP_API Connection : public ::xzero::Connection,
             CompletionHandler onComplete) override;
   void send(HttpResponseInfo&& responseInfo, const BufferRef& chunk,
             CompletionHandler onComplete) override;
-  void send(HttpResponseInfo&& responseInfo, FileRef&& chunk,
+  void send(HttpResponseInfo&& responseInfo, FileView&& chunk,
             CompletionHandler onComplete) override;
   void send(Buffer&& chunk, CompletionHandler onComplete) override;
   void send(const BufferRef& chunk, CompletionHandler onComplete) override;
-  void send(FileRef&& chunk, CompletionHandler onComplete) override;
+  void send(FileView&& chunk, CompletionHandler onComplete) override;
 
  private:
   void setCompleter(CompletionHandler cb);

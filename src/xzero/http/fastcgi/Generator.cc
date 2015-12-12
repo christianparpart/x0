@@ -119,7 +119,7 @@ void Generator::generateResponse(const HttpResponseInfo& info, Buffer&& chunk) {
   generateBody(std::move(chunk));
 }
 
-void Generator::generateResponse(const HttpResponseInfo& info, FileRef&& chunk) {
+void Generator::generateResponse(const HttpResponseInfo& info, FileView&& chunk) {
   generateResponse(info);
   generateBody(std::move(chunk));
 }
@@ -138,7 +138,7 @@ void Generator::generateBody(const BufferRef& chunk) {
   }
 }
 
-void Generator::generateBody(FileRef&& chunk) {
+void Generator::generateBody(FileView&& chunk) {
   if (chunk.empty())
     return;
 
@@ -157,7 +157,7 @@ void Generator::generateBody(FileRef&& chunk) {
 
     // body
     if (offset + clen < len) {
-      FileRef weak(chunk.handle(), chunk.offset() + offset, clen, false);
+      FileView weak(chunk.handle(), chunk.offset() + offset, clen, false);
       bytesTransmitted_ += clen;
       offset += clen;
       writer_->write(std::move(weak));

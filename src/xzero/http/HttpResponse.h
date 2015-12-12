@@ -18,7 +18,7 @@
 namespace xzero {
 
 class Executor;
-class FileRef;
+class FileView;
 class Filter;
 class Buffer;
 class BufferRef;
@@ -201,7 +201,7 @@ class XZERO_HTTP_API HttpResponse {
    * @param file file ref handle
    * @param completed Callback to invoke after completion.
    */
-  virtual void write(FileRef&& file, CompletionHandler&& completed = nullptr);
+  virtual void write(FileView&& file, CompletionHandler&& completed = nullptr);
 
  private:
   friend class HttpChannel;

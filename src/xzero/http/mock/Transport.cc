@@ -13,7 +13,7 @@
 #include <xzero/http/BadMessage.h>
 #include <xzero/executor/Executor.h>
 #include <xzero/Buffer.h>
-#include <xzero/io/FileRef.h>
+#include <xzero/io/FileView.h>
 #include <stdexcept>
 #include <system_error>
 
@@ -115,7 +115,7 @@ void Transport::send(HttpResponseInfo&& responseInfo,
 }
 
 void Transport::send(HttpResponseInfo&& responseInfo,
-                         FileRef&& chunk,
+                         FileView&& chunk,
                          CompletionHandler onComplete) {
   responseInfo_ = std::move(responseInfo);
 
@@ -148,7 +148,7 @@ void Transport::send(Buffer&& chunk, CompletionHandler onComplete) {
   }
 }
 
-void Transport::send(FileRef&& chunk, CompletionHandler onComplete) {
+void Transport::send(FileView&& chunk, CompletionHandler onComplete) {
   chunk.fill(&responseBody_);
 
   if (onComplete) {

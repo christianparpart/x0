@@ -17,7 +17,7 @@ namespace xzero {
 
 class Buffer;
 class BufferRef;
-class FileRef;
+class FileView;
 
 /**
  * I/O Filter API.
@@ -40,7 +40,7 @@ class XZERO_BASE_API Filter {
 
   static void applyFilters(
     const std::list<std::shared_ptr<Filter>>& filters,
-    const FileRef& input, Buffer* output, bool last);
+    const FileView& input, Buffer* output, bool last);
 };
 
 } // namespace xzero

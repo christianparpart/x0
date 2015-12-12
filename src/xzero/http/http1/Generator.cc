@@ -11,7 +11,7 @@
 #include <xzero/http/HttpResponseInfo.h>
 #include <xzero/http/HttpStatus.h>
 #include <xzero/net/EndPointWriter.h>
-#include <xzero/io/FileRef.h>
+#include <xzero/io/FileView.h>
 #include <xzero/RuntimeError.h>
 #include <xzero/sysconfig.h>
 
@@ -49,7 +49,7 @@ void Generator::generateRequest(const HttpRequestInfo& info,
 }
 
 void Generator::generateRequest(const HttpRequestInfo& info,
-                                FileRef&& chunk) {
+                                FileView&& chunk) {
   generateRequestLine(info);
   generateHeaders(info);
   flushBuffer();
@@ -77,7 +77,7 @@ void Generator::generateResponse(const HttpResponseInfo& info,
 }
 
 void Generator::generateResponse(const HttpResponseInfo& info,
-                                     FileRef&& chunk) {
+                                     FileView&& chunk) {
   generateResponseInfo(info);
   generateBody(std::move(chunk));
 }
@@ -146,7 +146,7 @@ void Generator::generateBody(Buffer&& chunk) {
   }
 }
 
-void Generator::generateBody(FileRef&& chunk) {
+void Generator::generateBody(FileView&& chunk) {
   if (chunked_) {
     int n;
     char buf[12];

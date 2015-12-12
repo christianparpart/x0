@@ -135,7 +135,7 @@ set(xzero_base_SRC
   io/GzipFilter.cc
   io/File.cc
   io/FileDescriptor.cc
-  io/FileRef.cc
+  io/FileView.cc
   io/FileRepository.cc
   io/Filter.cc
   io/FileUtil.cc

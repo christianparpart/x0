@@ -8,7 +8,7 @@
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 #include <xzero/io/Filter.h>
-#include <xzero/io/FileRef.h>
+#include <xzero/io/FileView.h>
 #include <xzero/Buffer.h>
 #include <xzero/sysconfig.h>
 #include <stdexcept>
@@ -39,7 +39,7 @@ void Filter::applyFilters(
 
 void Filter::applyFilters(
     const std::list<std::shared_ptr<Filter>>& filters,
-    const FileRef& file, Buffer* output, bool last) {
+    const FileView& file, Buffer* output, bool last) {
 
   Buffer input;
   file.fill(&input);

@@ -73,7 +73,7 @@ void Http1Connection::send(const HttpRequestInfo& requestInfo,
 }
 
 void Http1Connection::send(const HttpRequestInfo& requestInfo,
-                           FileRef&& chunk,
+                           FileView&& chunk,
                            CompletionHandler onComplete) {
   setCompleter(onComplete);
   expectsBody_ = requestInfo.method() != HttpMethod::HEAD;
@@ -93,7 +93,7 @@ void Http1Connection::send(Buffer&& chunk, CompletionHandler onComplete) {
   wantFlush();
 }
 
-void Http1Connection::send(FileRef&& chunk, CompletionHandler onComplete) {
+void Http1Connection::send(FileView&& chunk, CompletionHandler onComplete) {
   setCompleter(onComplete_);
   generator_.generateBody(std::move(chunk));
   wantFlush();

@@ -21,20 +21,20 @@ namespace xzero {
 /**
  * Basic abstraction of an open file handle, its range, and auto-close feature.
  *
- * This FileRef represents an open file that is to be read starting
+ * This FileView represents an open file that is to be read starting
  * from the given @c offset up to @c size bytes.
  *
- * If the FileRef was initialized with auto-close set to on, its
+ * If the FileView was initialized with auto-close set to on, its
  * underlying resource file descriptor will be automatically closed.
  */
-class XZERO_BASE_API FileRef {
+class XZERO_BASE_API FileView {
  private:
-  FileRef(const FileRef&) = delete;
-  FileRef& operator=(const FileRef&) = delete;
+  FileView(const FileView&) = delete;
+  FileView& operator=(const FileView&) = delete;
 
  public:
-  /** General move semantics for FileRef(FileRef&&). */
-  FileRef(FileRef&& ref)
+  /** General move semantics for FileView(FileView&&). */
+  FileView(FileView&& ref)
       : fd_(ref.fd_),
         offset_(ref.offset_),
         size_(ref.size_),
@@ -44,7 +44,7 @@ class XZERO_BASE_API FileRef {
   }
 
   /** General move semantics for operator=. */
-  FileRef& operator=(FileRef&& ref) {
+  FileView& operator=(FileView&& ref) {
     fd_ = ref.fd_;
     offset_ = ref.offset_;
     size_ = ref.size_;
@@ -57,7 +57,7 @@ class XZERO_BASE_API FileRef {
   }
 
   /**
-   * Initializes given FileRef.
+   * Initializes given FileView.
    *
    * @param fd Underlying resource file descriptor.
    * @param offset The offset to start reading from.
@@ -65,13 +65,13 @@ class XZERO_BASE_API FileRef {
    * @param close Whether or not to close the underlying file desriptor upon
    *              object destruction.
    */
-  FileRef(int fd, off_t offset, size_t size, bool close)
+  FileView(int fd, off_t offset, size_t size, bool close)
       : fd_(fd), offset_(offset), size_(size), close_(close) {}
 
   /**
    * Conditionally closes the underlying resource file descriptor.
    */
-  ~FileRef() {
+  ~FileView() {
     if (close_) {
       FileUtil::close(fd_);
     }
