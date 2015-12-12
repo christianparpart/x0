@@ -11,6 +11,7 @@
 
 #include <xzero/Api.h>
 #include <xzero/io/FileUtil.h>
+#include <xzero/io/FileDescriptor.h>
 #include <xzero/sysconfig.h>
 #include <xzero/Buffer.h>
 #include <cstdint>
@@ -67,6 +68,16 @@ class XZERO_BASE_API FileView {
    */
   FileView(int fd, off_t offset, size_t size, bool close)
       : fd_(fd), offset_(offset), size_(size), close_(close) {}
+
+  /**
+   * Initializes given FileView.
+   *
+   * @param fd Underlying resource file descriptor.
+   * @param offset The offset to start reading from.
+   * @param size Number of bytes to read.
+   */
+  FileView(FileDescriptor&& fd, off_t offset, size_t size)
+      : fd_(fd.release()), offset_(offset), size_(size), close_(true) {}
 
   /**
    * Conditionally closes the underlying resource file descriptor.
