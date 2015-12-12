@@ -362,7 +362,7 @@ void Connection::onInterestFailure(const std::exception& error) {
 
 template <>
 std::string StringUtil::toString(http::http1::Connection* c) {
-  return StringUtil::format("$0:$1", c->endpoint()->remoteAddress());
+  return StringUtil::format("$0", c->endpoint()->remoteAddress());
 }
 
 }  // namespace xzero
