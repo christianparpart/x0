@@ -24,17 +24,14 @@
 - [x] revive `max_request_body`
 - [x] console logger to also log timestamps, can be disabled (enabled by default)
 - [x] HttpRequest: reuse of HttpRequestInfo
-- [ ] HttpResponse: reuse of HttpResponseInfo (NEEDED?)
 - [ ] revive `lingering`
 - [ ] revive `max_connections`
+- [ ] revive HTTP client side abort notification API
 - [ ] (make thread safe) File::lastModified()
-- [ ] how to convert from UnixTime to CivilTime to get the current
-- [ ] (bug) timeout problem in InetEndPoint, found via `xurl -> x0d -> local`
 - [ ] (flow:bug) `"Blah #{call}blah#{call}"` doesn't work
       unless I specify it as `"Blah #{call()}blah#{call}"`
 - [ ] (flow:bug) `listen(port: "80")` MUST raise a signature mismatch error
 - [ ] (flow) `var x = call1 + '.' + call2;` not working. fix me.
-- [ ] revive HTTP client side abort notification API
 - [ ] (flow) tag flow handlers to never return (aka. always handle),
       thus, enabling the compiler to give a warning on dead code after
       this handler.
