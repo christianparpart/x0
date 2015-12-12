@@ -18,6 +18,7 @@ namespace xzero {
  */
 class XZERO_BASE_API FileDescriptor {
  public:
+  FileDescriptor() : fd_(-1) {}
   FileDescriptor(int fd) : fd_(fd) {}
   FileDescriptor(FileDescriptor&& fd) : fd_(fd.release()) {}
   ~FileDescriptor() { close(); }
@@ -29,6 +30,9 @@ class XZERO_BASE_API FileDescriptor {
 
   int get() const noexcept { return fd_; }
   operator int() const noexcept { return fd_; }
+
+  bool isClosed() const noexcept { return fd_ < 0; }
+  bool isOpen() const noexcept { return !isClosed(); }
 
   int release();
   void close();
