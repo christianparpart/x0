@@ -326,12 +326,11 @@ bool ProxyModule::proxy_cluster(XzeroContext* cx, Params& args) {
   return true;
 }
 
-bool ProxyModule::proxy_pass(XzeroContext* cx, xzero::flow::vm::Params& args) {
-  return false; // TODO
-}
-
 bool ProxyModule::proxy_api(XzeroContext* cx, xzero::flow::vm::Params& args) {
   FlowString prefix = args.getString(1);
+
+  if (!BufferRef(cx->request()->path()).ibegins(prefix))
+    return false;
 
   HttpClusterApiHandler* handler = cx->setCustomData<HttpClusterApiHandler>(
       this, this, cx->request(), cx->response(), prefix);
