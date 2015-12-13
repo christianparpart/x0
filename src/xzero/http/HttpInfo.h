@@ -27,6 +27,8 @@ class XZERO_HTTP_API HttpInfo {
   HttpInfo(HttpVersion version, size_t contentLength,
            const HeaderFieldList& headers,
            const HeaderFieldList& trailers);
+  HttpInfo(const HttpInfo& other) = default;
+  HttpInfo& operator=(const HttpInfo& other) = default;
 
   /** Retrieves the HTTP message version. */
   HttpVersion version() const XZERO_NOEXCEPT { return version_; }

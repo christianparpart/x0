@@ -23,7 +23,9 @@ class XZERO_HTTP_API HttpResponseInfo : public HttpInfo {
  public:
   HttpResponseInfo();
   HttpResponseInfo(HttpResponseInfo&& other);
+  HttpResponseInfo(const HttpResponseInfo& other) = default;
   HttpResponseInfo& operator=(HttpResponseInfo&& other);
+  HttpResponseInfo& operator=(const HttpResponseInfo& other) = default;
 
   HttpResponseInfo(HttpVersion version, HttpStatus status,
                    const std::string& reason, bool isHeadResponse,

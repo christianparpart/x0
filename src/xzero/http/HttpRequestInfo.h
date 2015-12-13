@@ -22,6 +22,8 @@ namespace http {
 class XZERO_HTTP_API HttpRequestInfo : public HttpInfo {
  public:
   HttpRequestInfo();
+  HttpRequestInfo(const HttpRequestInfo&) = default;
+  HttpRequestInfo& operator=(const HttpRequestInfo&) = default;
 
   HttpRequestInfo(HttpVersion version, const HttpMethod method,
                   const std::string& uri, size_t contentLength,
