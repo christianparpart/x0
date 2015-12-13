@@ -145,6 +145,9 @@ BufferRef HttpRequest::getContentBuffer() {
   if (!contentBuffer_.empty())
     return contentBuffer_;
 
+  if (contentFd_ < 0)
+    return BufferRef();
+
   std::unique_ptr<InputStream> content = getContentStream();
   while (content->read(&contentBuffer_, 4096) > 0)
     ;
