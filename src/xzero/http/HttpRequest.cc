@@ -136,7 +136,7 @@ std::unique_ptr<InputStream> HttpRequest::getContentStream() {
   }
 
   return std::unique_ptr<InputStream>(
-      !contentBuffer_.empty()
+      contentFd_.isClosed()
           ? static_cast<InputStream*>(new BufferInputStream(&contentBuffer_))
           : static_cast<InputStream*>(new FileInputStream(contentFd_, false)));
 }
