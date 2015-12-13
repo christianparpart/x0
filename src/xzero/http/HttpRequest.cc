@@ -143,7 +143,7 @@ std::unique_ptr<InputStream> HttpRequest::getContentStream() {
 
 BufferRef HttpRequest::getContentBuffer() {
   if (contentBuffer_.empty() && contentFd_.isOpen())
-    contentBuffer_ = FileUtil::reead(contentFd_);
+    contentBuffer_ = FileUtil::read(contentFd_);
 
   return contentBuffer_;
 }
