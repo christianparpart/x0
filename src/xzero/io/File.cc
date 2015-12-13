@@ -99,7 +99,7 @@ int File::to_posix(OpenFlags oflags) {
 #endif
 
 #if defined(O_TMPFILE)
-  if (!(oflags & TempFile))
+  if (oflags & TempFile)
     flags |= O_TMPFILE;
 #endif
 
