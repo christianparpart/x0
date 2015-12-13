@@ -24,6 +24,9 @@
 - [x] revive `max_request_body`
 - [x] console logger to also log timestamps, can be disabled (enabled by default)
 - [x] HttpRequest: reuse of HttpRequestInfo
+- [ ] x0d-signals: logfile rotating (HUP)
+- [ ] x0d-signals: graceful shutdown (INT, TERM)
+- [ ] x0d-signals: all the others (USR1, USR2, ...?)
 - [ ] revive `lingering`
 - [ ] revive `max_connections`
 - [ ] revive HTTP client side abort notification API
@@ -63,25 +66,23 @@
 - [x] support TRACE method for `proxy.cluster`
 - [x] support TRACE method for `proxy.http`
 - [x] request body tmp stored on disk if larger than N bytes
-- [ ] response body tmp stored on disk if larger than N bytes
+- [x] response body tmp stored on disk if larger than N bytes
+- [ ] fix proxy bug NOW
+- [ ] fix request enqueuing/dequeueing
 - ...
 
 #### proxy: stage 2
 
 - [ ] proxy: properly proxy 'Expect: 100-continue' (Expect-header must be forwarded)
-- [ ] HttpClient: support UNIX domain socket alongside with TCP/IP
 - [ ] HttpClient: FastCGI
 - [ ] HttpHealthMonitor: FastCGI
 - [ ] flow-api: `proxy.fcgi(ipaddr, port)`
+- [ ] HttpClient: support UNIX domain socket alongside with TCP/IP
 - [ ] Executor::HandleRef -> `<xzero/Action.h>` or similar to make it more generic
 
 ### Feature Stories
 
 - [ ] support Server Sent Events (HTTP SSE)
-- [ ] port director plugin, yeah
-- [ ] x0d-signals: graceful shutdown (INT, TERM)
-- [ ] x0d-signals: logfile rotating (HUP)
-- [ ] x0d-signals: all the others (USR1, USR2, ...?)
 
 ### After-Revival-Release Stories
 
