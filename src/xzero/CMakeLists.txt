@@ -199,6 +199,7 @@ set(xzero_base_SRC
   http/HeaderFieldList.cc
   http/HttpChannel.cc
   http/HttpConnectionFactory.cc
+  http/HttpContent.cc
   http/HttpDateGenerator.cc
   http/HttpFileHandler.cc
   http/HttpListener.cc
