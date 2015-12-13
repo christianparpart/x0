@@ -176,8 +176,7 @@ void Connection::send(HttpResponseInfo&& responseInfo,
 
   patchResponseInfo(responseInfo);
 
-  const bool corking_ = true;  // TODO(TCP_CORK): part of HttpResponseInfo?
-  if (corking_)
+  if (corkStream_)
     endpoint()->setCorking(true);
 
   generator_.generateResponse(responseInfo, std::move(chunk));
@@ -359,10 +358,9 @@ void Connection::onInterestFailure(const std::exception& error) {
 }  // namespace http1
 }  // namespace http
 
-
-template <>
+template<>
 std::string StringUtil::toString(http::http1::Connection* c) {
-  return StringUtil::format("$0", c->endpoint()->remoteAddress());
+  return StringUtil::toString(c->endpoint()->remoteAddress());
 }
 
 }  // namespace xzero
