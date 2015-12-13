@@ -6,6 +6,7 @@
 // the License at: http://opensource.org/licenses/MIT
 
 #include <xzero/http/HeaderFieldList.h>
+#include <xzero/RuntimeError.h>
 #include <xzero/Buffer.h>
 #include <algorithm>
 
@@ -128,6 +129,21 @@ const std::string& HeaderFieldList::get(const std::string& name) const {
 
 const std::string& HeaderFieldList::operator[](const std::string& name) const {
   return get(name);
+}
+
+const HeaderField& HeaderFieldList::operator[](size_t index) const {
+  if (index >= entries_.size())
+    RAISE(IndexError, "Index out of bounds");
+
+  auto i = entries_.begin();
+  auto e = entries_.end();
+
+  while (i != e && index > 0) {
+    i++;
+    index--;
+  }
+
+  return *i;
 }
 
 void HeaderFieldList::reset() {
