@@ -27,11 +27,7 @@ namespace http {
 
 HttpResponse::HttpResponse(HttpChannel* channel)
     : channel_(channel),
-      version_(HttpVersion::UNKNOWN),
-      status_(HttpStatus::Undefined),
-      contentLength_(static_cast<size_t>(-1)),
-      headers_(),
-      trailers_(),
+      info_(),
       committed_(false),
       bytesTransmitted_(0),
       actualContentLength_(0) {
@@ -44,12 +40,7 @@ Executor* HttpResponse::executor() const noexcept {
 
 void HttpResponse::recycle() {
   committed_ = false;
-  version_ = HttpVersion::UNKNOWN;
-  status_ = HttpStatus::Undefined;
-  reason_.clear();
-  contentLength_ = static_cast<size_t>(-1);
-  headers_.reset();
-  trailers_.reset();
+  info_.reset();
   bytesTransmitted_ = 0;
   actualContentLength_ = 0;
 }
@@ -77,38 +68,33 @@ void HttpResponse::setCommitted(bool value) {
   committed_ = value;
 }
 
-HttpVersion HttpResponse::version() const XZERO_NOEXCEPT {
-  return version_;
+HttpVersion HttpResponse::version() const noexcept {
+  return info_.version();
 }
 
 void HttpResponse::setVersion(HttpVersion version) {
   requireMutableInfo();
-
-  version_ = version;
+  info_.setVersion(version);
 }
 
 void HttpResponse::setStatus(HttpStatus status) {
   requireMutableInfo();
-
-  status_ = status;
+  info_.setStatus(status);
 }
 
 void HttpResponse::setReason(const std::string& val) {
   requireMutableInfo();
-
-  reason_ = val;
+  info_.setReason(val);
 }
 
 void HttpResponse::setContentLength(size_t size) {
   requireMutableInfo();
-
-  contentLength_ = size;
+  info_.setContentLength(size);
 }
 
 void HttpResponse::resetContentLength() {
   requireMutableInfo();
-
-  contentLength_ = static_cast<size_t>(-1);
+  info_.resetContentLength();
 }
 
 static const std::vector<std::string> connectionHeaderFields = {
@@ -134,7 +120,7 @@ void HttpResponse::addHeader(const std::string& name,
   requireMutableInfo();
   requireValidHeader(name);
 
-  headers_.push_back(name, value);
+  headers().push_back(name, value);
 }
 
 void HttpResponse::appendHeader(const std::string& name,
@@ -143,7 +129,7 @@ void HttpResponse::appendHeader(const std::string& name,
   requireMutableInfo();
   requireValidHeader(name);
 
-  headers_.append(name, value, delim);
+  headers().append(name, value, delim);
 }
 
 void HttpResponse::prependHeader(const std::string& name,
@@ -152,7 +138,7 @@ void HttpResponse::prependHeader(const std::string& name,
   requireMutableInfo();
   requireValidHeader(name);
 
-  headers_.prepend(name, value, delim);
+  headers().prepend(name, value, delim);
 }
 
 void HttpResponse::setHeader(const std::string& name,
@@ -160,27 +146,27 @@ void HttpResponse::setHeader(const std::string& name,
   requireMutableInfo();
   requireValidHeader(name);
 
-  headers_.overwrite(name, value);
+  headers().overwrite(name, value);
 }
 
 void HttpResponse::removeHeader(const std::string& name) {
   requireMutableInfo();
 
-  headers_.remove(name);
+  headers().remove(name);
 }
 
 void HttpResponse::removeAllHeaders() {
   requireMutableInfo();
 
-  headers_.reset();
+  headers().reset();
 }
 
 const std::string& HttpResponse::getHeader(const std::string& name) const {
-  return headers_.get(name);
+  return headers().get(name);
 }
 
 bool HttpResponse::hasHeader(const std::string& name) const {
-  return headers_.contains(name);
+  return headers().contains(name);
 }
 
 void HttpResponse::send100Continue(CompletionHandler onComplete) {
@@ -228,11 +214,11 @@ void HttpResponse::registerTrailer(const std::string& name) {
   requireMutableInfo();
   requireValidHeader(name);
 
-  if (trailers_.contains(name))
+  if (info_.trailers().contains(name))
     // "Trailer already registered."
     RAISE(InvalidArgumentError);
 
-  trailers_.push_back(name, "");
+  info_.trailers().push_back(name, "");
 }
 
 void HttpResponse::appendTrailer(const std::string& name,
@@ -241,20 +227,20 @@ void HttpResponse::appendTrailer(const std::string& name,
   requireNotSendingAlready();
   requireValidHeader(name);
 
-  if (!trailers_.contains(name))
+  if (!info_.trailers().contains(name))
     RAISE(IllegalStateError, "Trailer not registered yet.");
 
-  trailers_.append(name, value, delim);
+  info_.trailers().append(name, value, delim);
 }
 
 void HttpResponse::setTrailer(const std::string& name, const std::string& value) {
   requireNotSendingAlready();
   requireValidHeader(name);
 
-  if (!trailers_.contains(name))
+  if (!info_.trailers().contains(name))
     RAISE(IllegalStateError, "Trailer not registered yet.");
 
-  trailers_.overwrite(name, value);
+  info_.trailers().overwrite(name, value);
 }
 // }}}
 

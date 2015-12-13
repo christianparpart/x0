@@ -10,6 +10,7 @@
 #include <xzero/http/Api.h>
 #include <xzero/http/HttpVersion.h>
 #include <xzero/http/HttpStatus.h>
+#include <xzero/http/HttpResponseInfo.h>
 #include <xzero/http/HeaderFieldList.h>
 #include <xzero/CompletionHandler.h>
 #include <xzero/sysconfig.h>
@@ -48,23 +49,21 @@ class XZERO_HTTP_API HttpResponse {
 
   void recycle();
 
-  HttpVersion version() const XZERO_NOEXCEPT;
+  HttpVersion version() const noexcept;
   void setVersion(HttpVersion version);
 
   void setStatus(HttpStatus status);
-  HttpStatus status() const XZERO_NOEXCEPT { return status_; }
-  bool hasStatus() const XZERO_NOEXCEPT { return status_ != HttpStatus::Undefined; }
+  HttpStatus status() const noexcept { return info_.status(); }
+  bool hasStatus() const noexcept { return info_.status() != HttpStatus::Undefined; }
 
-  const std::string& reason() const XZERO_NOEXCEPT { return reason_; }
+  const std::string& reason() const noexcept { return info_.reason(); }
   void setReason(const std::string& val);
 
   // high level header support
   void resetContentLength();
   void setContentLength(size_t size);
 
-  size_t contentLength() const XZERO_NOEXCEPT {
-    return contentLength_;
-  }
+  size_t contentLength() const noexcept { return info_.contentLength(); }
 
   /**
    * Number of bytes of response body content already written.
@@ -73,8 +72,8 @@ class XZERO_HTTP_API HttpResponse {
     return actualContentLength_;
   }
 
-  bool hasContentLength() const XZERO_NOEXCEPT {
-    return contentLength_ != static_cast<size_t>(-1);
+  bool hasContentLength() const noexcept {
+    return info_.hasContentLength();
   }
 
   // headers
@@ -88,8 +87,8 @@ class XZERO_HTTP_API HttpResponse {
   void removeHeader(const std::string& name);
   void removeAllHeaders();
   const std::string& getHeader(const std::string& name) const;
-  const HeaderFieldList& headers() const XZERO_NOEXCEPT { return headers_; }
-  HeaderFieldList& headers() XZERO_NOEXCEPT { return headers_; }
+  const HeaderFieldList& headers() const noexcept { return info_.headers(); }
+  HeaderFieldList& headers() noexcept { return info_.headers(); }
 
   // trailers
   //bool isTrailerSupported() const;
@@ -97,7 +96,7 @@ class XZERO_HTTP_API HttpResponse {
   void appendTrailer(const std::string& name, const std::string& value,
                     const std::string& delim = "");
   void setTrailer(const std::string& name, const std::string& value);
-  const HeaderFieldList& trailers() const XZERO_NOEXCEPT { return trailers_; }
+  const HeaderFieldList& trailers() const noexcept { return info_.trailers(); }
 
   /**
    * Installs a callback to be invoked right before serialization of response
@@ -214,12 +213,7 @@ class XZERO_HTTP_API HttpResponse {
 
  private:
   HttpChannel* channel_;
-  HttpVersion version_;
-  HttpStatus status_;
-  std::string reason_;
-  size_t contentLength_;
-  HeaderFieldList headers_;
-  HeaderFieldList trailers_;
+  HttpResponseInfo info_;
   bool committed_;
   size_t bytesTransmitted_;
   size_t actualContentLength_;

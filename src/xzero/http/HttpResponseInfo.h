@@ -45,6 +45,8 @@ class XZERO_HTTP_API HttpResponseInfo : public HttpInfo {
   /** Retrieves whether this is an HTTP response to a HEAD request. */
   bool isHeadResponse() const XZERO_NOEXCEPT { return isHeadResponse_; }
 
+  void reset();
+
  private:
   HttpStatus status_;
   std::string reason_;
@@ -53,7 +55,7 @@ class XZERO_HTTP_API HttpResponseInfo : public HttpInfo {
 
 inline HttpResponseInfo::HttpResponseInfo()
     : HttpResponseInfo(HttpVersion::UNKNOWN, HttpStatus::Undefined, "", false,
-                       0, {}, {}) {
+                       UnknownContentLength, {}, {}) {
 }
 
 inline HttpResponseInfo::HttpResponseInfo(HttpResponseInfo&& other)
@@ -63,7 +65,7 @@ inline HttpResponseInfo::HttpResponseInfo(HttpResponseInfo&& other)
   reason_.swap(other.reason_);
   headers_.swap(other.headers_);
   trailers_.swap(other.trailers_);
-  other.contentLength_ = 0;
+  other.contentLength_ = UnknownContentLength;
 }
 
 inline HttpResponseInfo& HttpResponseInfo::operator=(HttpResponseInfo&& other) {
@@ -91,6 +93,13 @@ inline HttpResponseInfo::HttpResponseInfo(HttpVersion version,
       reason_(reason),
       isHeadResponse_(isHeadResponse) {
   //.
+}
+
+inline void HttpResponseInfo::reset() {
+  HttpInfo::reset();
+  status_ = HttpStatus::Undefined;
+  reason_.clear();
+  isHeadResponse_ = false;
 }
 
 }  // namespace http

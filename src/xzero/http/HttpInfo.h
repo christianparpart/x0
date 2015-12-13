@@ -24,6 +24,8 @@ namespace http {
  */
 class XZERO_HTTP_API HttpInfo {
  public:
+  static constexpr size_t UnknownContentLength = static_cast<size_t>(-1);
+
   HttpInfo(HttpVersion version, size_t contentLength,
            const HeaderFieldList& headers,
            const HeaderFieldList& trailers);
@@ -31,30 +33,31 @@ class XZERO_HTTP_API HttpInfo {
   HttpInfo& operator=(const HttpInfo& other) = default;
 
   /** Retrieves the HTTP message version. */
-  HttpVersion version() const XZERO_NOEXCEPT { return version_; }
+  HttpVersion version() const noexcept { return version_; }
   void setVersion(HttpVersion version) { version_ = version; }
 
   /** Retrieves the HTTP response headers. */
-  const HeaderFieldList& headers() const XZERO_NOEXCEPT { return headers_; }
+  const HeaderFieldList& headers() const noexcept { return headers_; }
 
   /** Retrieves the HTTP response headers. */
-  HeaderFieldList& headers() XZERO_NOEXCEPT { return headers_; }
+  HeaderFieldList& headers() noexcept { return headers_; }
 
   bool hasHeader(const std::string& name) const { return headers_.contains(name); }
   const std::string& getHeader(const std::string& name) const { return headers_.get(name); }
 
-  void setContentLength(size_t size);
-  size_t contentLength() const XZERO_NOEXCEPT { return contentLength_; }
-
-  bool hasContentLength() const XZERO_NOEXCEPT {
-    return contentLength_ != static_cast<size_t>(-1);
+  void resetContentLength() noexcept;
+  void setContentLength(size_t size) noexcept;
+  size_t contentLength() const noexcept { return contentLength_; }
+  bool hasContentLength() const noexcept {
+    return contentLength_ != UnknownContentLength;
   }
 
   /** Tests whether HTTP message will send trailers. */
-  bool hasTrailers() const XZERO_NOEXCEPT { return !trailers_.empty(); }
+  bool hasTrailers() const noexcept { return !trailers_.empty(); }
 
   /** Retrieves the HTTP response trailers. */
-  const HeaderFieldList& trailers() const XZERO_NOEXCEPT { return trailers_; }
+  const HeaderFieldList& trailers() const noexcept { return trailers_; }
+  HeaderFieldList& trailers() noexcept { return trailers_; }
 
   void setTrailers(const HeaderFieldList& list) { trailers_ = list; }
 
@@ -79,13 +82,17 @@ inline HttpInfo::HttpInfo(HttpVersion version, size_t contentLength,
 
 inline void HttpInfo::reset() {
   version_ = HttpVersion::UNKNOWN;
-  contentLength_ = 0;
+  contentLength_ = UnknownContentLength;
   headers_.reset();
   trailers_.reset();
 }
 
-inline void HttpInfo::setContentLength(size_t size) {
+inline void HttpInfo::setContentLength(size_t size) noexcept {
   contentLength_ = size;
+}
+
+inline void HttpInfo::resetContentLength() noexcept {
+  contentLength_ = UnknownContentLength;
 }
 
 }  // namespace http
