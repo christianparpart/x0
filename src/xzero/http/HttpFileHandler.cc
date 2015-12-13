@@ -110,7 +110,7 @@ bool HttpFileHandler::handle(
     fd = transferFile->createPosixChannel(File::Read | File::NonBlocking);
     if (fd < 0) {
       if (errno != EPERM && errno != EACCES)
-        RAISE_ERRNO(transferFile->errorCode());
+        RAISE_ERRNO(errno);
 
       response->setStatus(HttpStatus::Forbidden);
       response->completed();
