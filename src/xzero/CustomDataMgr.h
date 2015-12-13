@@ -59,7 +59,10 @@ struct XZERO_BASE_API CustomData {
   template <typename T, typename... Args>                                  \
   T* setCustomData(const void* key, Args&&... args) {                      \
     auto i = customData_.find(key);                                        \
-    if (i != customData_.end()) return static_cast<T*>(i->second.get());   \
+    if (i != customData_.end()) {                                          \
+      assert(dynamic_cast<T*>(i->second.get()) != nullptr);                \
+      return static_cast<T*>(i->second.get());                             \
+    }                                                                      \
                                                                            \
     T* value = new T(std::forward<Args>(args)...);                         \
     customData_[key].reset(value);                                         \
