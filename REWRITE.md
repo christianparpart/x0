@@ -68,6 +68,7 @@
 - [x] request body tmp stored on disk if larger than N bytes
 - [x] response body tmp stored on disk if larger than N bytes
 - [x] load/save `health-check-success-threshold`
+- [ ] HttpRequest/HttpResponse: make use of HttpContent to fix request bodies and benifit from it in response bodies, too
 - [ ] support request bodies
 - [ ] fix and use `HttpClient::sendAsync()`
 - [ ] fix request enqueuing/dequeueing
