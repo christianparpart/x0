@@ -155,38 +155,40 @@ std::string FileUtil::joinPaths(const std::string& base,
   }
 }
 
-Buffer FileUtil::read(int fd) {
-  Buffer output;
-
+void FileUtil::read(int fd, Buffer* output) {
   struct stat st;
   if (fstat(fd, &st) < 0)
     RAISE_ERRNO(errno);
 
-  output.reserve(st.st_size + 1);
-  ssize_t nread = ::pread(fd, output.data(), st.st_size, 0);
-  if (nread < 0) {
-    close(fd);
+  size_t beg = output->size();
+  output->reserve(beg + st.st_size + 1);
+  ssize_t nread = ::pread(fd, output->data() + beg, st.st_size, 0);
+  if (nread < 0)
     RAISE_ERRNO(errno);
-  }
 
-  output.data()[nread] = '\0';
-  output.resize(nread);
-
-  return output;
+  output->data()[beg + nread] = '\0';
+  output->resize(beg + nread);
 }
 
-Buffer FileUtil::read(File& file) {
+void FileUtil::read(File& file, Buffer* output) {
   FileDescriptor fd = file.createPosixChannel(File::Read);
-  return read(fd);
+  read(fd, output);
 }
 
-Buffer FileUtil::read(const FileView& file) {
-  Buffer output;
-  output.reserve(file.size() + 1);
+void FileUtil::read(const std::string& path, Buffer* output) {
+  FileDescriptor fd = open(path.c_str(), O_RDONLY);
+  if (fd < 0)
+    RAISE_ERRNO(errno);
+
+  read(fd, output);
+}
+
+void FileUtil::read(const FileView& file, Buffer* output) {
+  output->reserve(file.size() + 1);
   size_t nread = 0;
 
   do {
-    ssize_t rv = ::pread(file.handle(), output.data(),
+    ssize_t rv = ::pread(file.handle(), output->data(),
                          file.size() - nread, file.offset() + nread);
     if (rv < 0) {
       switch (errno) {
@@ -204,18 +206,32 @@ Buffer FileUtil::read(const FileView& file) {
     }
   } while (nread < file.size());
 
-  output[nread] = '\0';
-  output.resize(nread);
+  (*output)[nread] = '\0';
+  output->resize(nread);
+}
 
+Buffer FileUtil::read(int fd) {
+  Buffer output;
+  read(fd, &output);
+  return output;
+}
+
+Buffer FileUtil::read(File& file) {
+  Buffer output;
+  read(file, &output);
+  return output;
+}
+
+Buffer FileUtil::read(const FileView& file) {
+  Buffer output;
+  read(file, &output);
   return output;
 }
 
 Buffer FileUtil::read(const std::string& path) {
-  FileDescriptor fd = open(path.c_str(), O_RDONLY);
-  if (fd < 0)
-    RAISE_ERRNO(errno);
-
-  return read(fd);
+  Buffer output;
+  read(path, &output);
+  return output;
 }
 
 void FileUtil::write(const std::string& path, const Buffer& buffer) {
