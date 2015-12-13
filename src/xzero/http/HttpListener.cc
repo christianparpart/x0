@@ -22,22 +22,5 @@ void HttpListener::onMessageBegin(HttpVersion version, HttpStatus code,
 void HttpListener::onMessageBegin() {
 }
 
-void HttpListener::onMessageHeader(const BufferRef& name,
-                                   const BufferRef& value) {
-}
-
-void HttpListener::onMessageHeaderEnd() {
-}
-
-void HttpListener::onMessageContent(const BufferRef& chunk) {
-}
-
-void HttpListener::onMessageEnd() {
-}
-
-void HttpListener::onProtocolError(HttpStatus code,
-                                   const std::string& message) {
-}
-
 }  // namespace http
 }  // namespace xzero

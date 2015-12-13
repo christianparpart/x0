@@ -15,6 +15,7 @@
 #include <xzero/http/HttpRequest.h>
 #include <xzero/http/HttpResponse.h>
 #include <xzero/http/HttpChannel.h>
+#include <xzero/io/FileUtil.h>
 
 using namespace xzero;
 using namespace xzero::http;
@@ -29,6 +30,7 @@ class ResponseListener : public HttpListener { // {{{
   void onMessageHeader(const BufferRef& name, const BufferRef& value) override;
   void onMessageHeaderEnd() override;
   void onMessageContent(const BufferRef& chunk) override;
+  void onMessageContent(FileView&& chunk) override;
   void onMessageEnd() override;
   void onProtocolError(HttpStatus code, const std::string& message) override;
 
@@ -78,6 +80,10 @@ void ResponseListener::onMessageHeaderEnd() {
 
 void ResponseListener::onMessageContent(const BufferRef& chunk) {
   this->body.push_back(chunk);
+}
+
+void ResponseListener::onMessageContent(FileView&& chunk) {
+  this->body.push_back(FileUtil::read(chunk));
 }
 
 void ResponseListener::onMessageEnd() {

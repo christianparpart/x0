@@ -121,6 +121,8 @@ void HttpRequest::consumeContent(std::function<void()> onReady) {
 }
 
 void HttpRequest::fillContent(const BufferRef& chunk) {
+  TRACE("fillContent $0 bytes: '$1'", chunk.size(), chunk);
+  setContentLength(contentLength() + chunk.size());
   if (onContentAvailable_)
     onContentAvailable_(chunk);
 }

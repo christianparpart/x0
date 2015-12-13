@@ -182,7 +182,7 @@ void ProxyModule::onPostConfig() {
 
   TRACE("clusterInit count: $0", clusterInit_.size());
   for (const auto& init: clusterInit_) {
-    TRACE("clusterInit: $0", init.first);
+    TRACE("clusterInit: spawning $0", init.first);
     std::string name = init.first;
     std::string path = init.second;
 
@@ -201,6 +201,7 @@ class HttpResponseBuilder : public HttpListener { // {{{
   void onMessageHeader(const BufferRef& name, const BufferRef& value) override;
   void onMessageHeaderEnd() override;
   void onMessageContent(const BufferRef& chunk) override;
+  void onMessageContent(FileView&& chunk) override;
   void onMessageEnd() override;
   void onProtocolError(HttpStatus code, const std::string& message) override;
 
@@ -239,6 +240,10 @@ void HttpResponseBuilder::onMessageContent(const BufferRef& chunk) {
   response_->write(Buffer(chunk));
 }
 
+void HttpResponseBuilder::onMessageContent(FileView&& chunk) {
+  response_->write(std::move(chunk));
+}
+
 void HttpResponseBuilder::onMessageEnd() {
   response_->completed();
 }
@@ -256,7 +261,7 @@ HttpCluster* ProxyModule::findLocalCluster(const std::string& host) {
   if (i != clusterMap_.end())
     return i->second.get();
 
-  std::string path = FileUtil::joinPaths(X0D_CLUSTERDIR, 
+  std::string path = FileUtil::joinPaths(X0D_CLUSTERDIR,
                                          host + ".cluster.conf");
   if (!FileUtil::exists(path))
     return nullptr;
@@ -353,7 +358,7 @@ static HeaderFieldList filter(const HeaderFieldList& list,
   return result;
 }
 
-auto skipConnectFields = [](const HeaderField& f) -> bool {
+auto skipConnectionFields = [](const HeaderField& f) -> bool {
   static const std::vector<std::string> connectionHeaderFields = {
     "Connection",
     "Content-Length",
@@ -381,14 +386,14 @@ bool ProxyModule::proxy_http(XzeroContext* cx, xzero::flow::vm::Params& args) {
   if (tryHandleTrace(cx))
     return true;
 
-  BufferRef requestBody; // TODO
+  BufferRef requestBody = cx->request()->getContentBuffer();
   size_t requestBodySize = requestBody.size();
   HttpRequestInfo requestInfo(
       HttpVersion::VERSION_1_1,
       cx->request()->unparsedMethod(),
       cx->request()->unparsedUri(),
       requestBodySize,
-      filter(cx->request()->headers(), skipConnectFields));
+      filter(cx->request()->headers(), skipConnectionFields));
 
   Future<HttpClient> f = HttpClient::sendAsync(
       addr, requestInfo, requestBody,
@@ -406,10 +411,17 @@ bool ProxyModule::proxy_http(XzeroContext* cx, xzero::flow::vm::Params& args) {
       }
     }
     addVia(cx);
+
     cx->response()->setStatus(client.responseInfo().status());
     cx->response()->setReason(client.responseInfo().reason());
-    cx->response()->setContentLength(client.responseBody().size());
-    cx->response()->write(client.responseBody());
+    cx->response()->setContentLength(client.responseInfo().contentLength());
+
+    HttpClient& nclient = const_cast<HttpClient&>(client);
+    if (nclient.isResponseBodyBuffered())
+      cx->response()->write(nclient.responseBody());
+    else
+      cx->response()->write(nclient.takeResponseBody());
+
     cx->response()->completed();
   });
 

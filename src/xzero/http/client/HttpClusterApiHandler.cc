@@ -89,7 +89,6 @@ HttpClusterApiHandler::HttpClusterApiHandler(HttpClusterApi* api,
     : api_(api),
       request_(request),
       response_(response),
-      args_(),
       errorCount_(0),
       prefix_(prefix),
       tokens_(),
@@ -104,6 +103,7 @@ bool HttpClusterApiHandler::run() {
     return false;
 
   Uri::ParamList params;
+  Uri::parseQueryString(request_->getContentBuffer().str(), &params);
   Uri::parseQueryString(request_->query(), &params);
   for (const auto& param: params)
     params_[param.first] = param.second;
@@ -165,10 +165,18 @@ void HttpClusterApiHandler::createBackendOrBucket() {
     return;
   }
 
+  std::string name;
+  loadParam("name", &name);
+
+  if (name.empty()) {
+    generateResponse(HttpStatus::BadRequest);
+    return;
+  }
+
   if (tokens_[1] == "buckets") { // PUT /:director_id/buckets
-    createBucket(cluster, tokens_[2]);
+    createBucket(cluster, name);
   } else if (tokens_[1] == "backends") { // PUT /:director_id/backends
-    createBackend(cluster, tokens_[2]);
+    createBackend(cluster, name);
   } else {
     generateResponse(HttpStatus::BadRequest);
   }
@@ -488,6 +496,7 @@ void HttpClusterApiHandler::processBackend() {
 
 void HttpClusterApiHandler::createBackend(HttpCluster* cluster,
                                           const std::string& name) {
+  logDebug("api", "create backend '$0'", name);
   IPAddress ip;
   int port = 0;
   size_t capacity = 0;
@@ -509,10 +518,17 @@ void HttpClusterApiHandler::createBackend(HttpCluster* cluster,
     return;
   }
 
-  cluster->addMember(name, addr, capacity, enabled,
-                     terminateProtection,
-                     protocol,
-                     healthCheckInterval);
+  HttpClusterMember* member = cluster->findMember(name);
+
+  if (!member) {
+    cluster->addMember(name, addr, capacity, enabled,
+                       terminateProtection,
+                       protocol,
+                       healthCheckInterval);
+    cluster->saveConfiguration();
+  } else {
+    // Use POST if you intend to update
+  }
 
   generateResponse(HttpStatus::NoContent);
 }
@@ -748,12 +764,12 @@ bool HttpClusterApiHandler::generateResponse(HttpStatus status) {
 // }}}
 // {{{ parameter loading
 bool HttpClusterApiHandler::hasParam(const std::string& key) const {
-  return args_.find(key) != args_.end();
+  return params_.find(key) != params_.end();
 }
 
 bool HttpClusterApiHandler::loadParam(const std::string& key, bool* result) {
-  auto i = args_.find(key);
-  if (i == args_.end()) {
+  auto i = params_.find(key);
+  if (i == params_.end()) {
     logError("api", "Request parameter '$0' not found.", key);
     errorCount_++;
     return false;
@@ -777,8 +793,8 @@ bool HttpClusterApiHandler::loadParam(const std::string& key, bool* result) {
 }
 
 bool HttpClusterApiHandler::loadParam(const std::string& key, int* result) {
-  auto i = args_.find(key);
-  if (i == args_.end()) {
+  auto i = params_.find(key);
+  if (i == params_.end()) {
     logError("api", "Request parameter '$0' not found.", key);
     errorCount_++;
     return false;
@@ -790,8 +806,8 @@ bool HttpClusterApiHandler::loadParam(const std::string& key, int* result) {
 }
 
 bool HttpClusterApiHandler::loadParam(const std::string& key, size_t* result) {
-  auto i = args_.find(key);
-  if (i == args_.end()) {
+  auto i = params_.find(key);
+  if (i == params_.end()) {
     logError("api", "Request parameter '$0' not found.", key);
     errorCount_++;
     return false;
@@ -803,8 +819,8 @@ bool HttpClusterApiHandler::loadParam(const std::string& key, size_t* result) {
 }
 
 bool HttpClusterApiHandler::loadParam(const std::string& key, float* result) {
-  auto i = args_.find(key);
-  if (i == args_.end()) {
+  auto i = params_.find(key);
+  if (i == params_.end()) {
     logError("api", "Request parameter '$0' not found.", key);
     errorCount_++;
     return false;
@@ -817,8 +833,8 @@ bool HttpClusterApiHandler::loadParam(const std::string& key, float* result) {
 }
 
 bool HttpClusterApiHandler::loadParam(const std::string& key, Duration* result) {
-  auto i = args_.find(key);
-  if (i == args_.end()) {
+  auto i = params_.find(key);
+  if (i == params_.end()) {
     logError("api", "Request parameter '$0' not found.", key);
     errorCount_++;
     return false;
@@ -830,8 +846,8 @@ bool HttpClusterApiHandler::loadParam(const std::string& key, Duration* result) 
 }
 
 bool HttpClusterApiHandler::loadParam(const std::string& key, std::string* result) {
-  auto i = args_.find(key);
-  if (i == args_.end()) {
+  auto i = params_.find(key);
+  if (i == params_.end()) {
     logError("api", "Request parameter '$0' not found.", key);
     errorCount_++;
     return false;
@@ -843,8 +859,8 @@ bool HttpClusterApiHandler::loadParam(const std::string& key, std::string* resul
 }
 
 bool HttpClusterApiHandler::loadParam(const std::string& key, IPAddress* result) {
-  auto i = args_.find(key);
-  if (i == args_.end()) {
+  auto i = params_.find(key);
+  if (i == params_.end()) {
     logError("api", "Request parameter '$0' not found.", key);
     errorCount_++;
     return false;

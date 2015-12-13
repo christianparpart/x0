@@ -18,11 +18,17 @@
 #include <xzero/RuntimeError.h>
 #include <xzero/logging.h>
 
+#if !defined(NDEBUG)
 #define TRACE(msg...) logTrace("HttpClient", msg)
+#else
+#define TRACE(msg...) do {} while (0)
+#endif
 
 namespace xzero {
 namespace http {
 namespace client {
+
+constexpr size_t responseBodyBufferSize = 4 * 1024;
 
 HttpClient::HttpClient(Executor* executor,
                        RefPtr<EndPoint> endpoint)
@@ -30,7 +36,9 @@ HttpClient::HttpClient(Executor* executor,
       endpoint_(endpoint),
       transport_(nullptr),
       responseInfo_(),
-      responseBody_(),
+      responseBodyBuffer_(),
+      responseBodyFd_(-1),
+      responseBodySize_(0),
       promise_() {
 
   if (endpoint_) {
@@ -44,10 +52,13 @@ HttpClient::HttpClient(HttpClient&& other)
       endpoint_(std::move(other.endpoint_)),
       transport_(other.transport_),
       responseInfo_(std::move(other.responseInfo_)),
-      responseBody_(std::move(other.responseBody_)),
+      responseBodyBuffer_(std::move(other.responseBodyBuffer_)),
+      responseBodyFd_(std::move(other.responseBodyFd_)),
+      responseBodySize_(other.responseBodySize_),
       promise_(std::move(other.promise_)) {
   transport_->setListener(this);
   other.transport_ = nullptr;
+  other.responseBodySize_ = 0;
 }
 
 HttpClient::~HttpClient() {
@@ -55,11 +66,13 @@ HttpClient::~HttpClient() {
 
 void HttpClient::send(const HttpRequestInfo& requestInfo,
                       const BufferRef& requestBody) {
+  TRACE("send: $0 $1", requestInfo.method(), requestInfo.path());
   transport_->send(requestInfo, nullptr);
   transport_->send(requestBody, nullptr);
 }
 
 Future<HttpClient*> HttpClient::completed() {
+  TRACE("completed()");
   transport_->completed();
   promise_ = Some(Promise<HttpClient*>());
   return promise_->future();
@@ -69,8 +82,19 @@ const HttpResponseInfo& HttpClient::responseInfo() const noexcept {
   return responseInfo_;
 }
 
-const Buffer& HttpClient::responseBody() const noexcept {
-  return responseBody_;
+bool HttpClient::isResponseBodyBuffered() const noexcept {
+  return responseBodyFd_ < 0;
+}
+
+const Buffer& HttpClient::responseBody() {
+  if (responseBodyBuffer_.empty() && responseBodyFd_.isOpen())
+    responseBodyBuffer_ = FileUtil::read(takeResponseBody());
+
+  return responseBodyBuffer_;
+}
+
+FileView HttpClient::takeResponseBody() {
+  return FileView(std::move(responseBodyFd_), 0, responseBodySize_);
 }
 
 void HttpClient::onMessageBegin(HttpVersion version, HttpStatus code,
@@ -93,13 +117,48 @@ void HttpClient::onMessageHeaderEnd() {
 }
 
 void HttpClient::onMessageContent(const BufferRef& chunk) {
-  TRACE("onMessageContent() $0 bytes", chunk.size());
+  TRACE("onMessageContent(BufferRef) $0 bytes", chunk.size());
 
-  responseBody_ += chunk.str();
+  if (responseBodyBuffer_.size() + chunk.size() > responseBodyBufferSize
+      && responseBodyFd_.isClosed()) {
+    responseBodyFd_ = FileUtil::createTempFile();
+    if (responseBodyFd_.isOpen()) {
+      FileUtil::write(responseBodyFd_, responseBodyBuffer_);
+      responseBodyBuffer_.clear();
+    }
+  }
+
+  if (responseBodyFd_.isOpen())
+    FileUtil::write(responseBodyFd_, chunk);
+  else
+    responseBodyBuffer_ += chunk.str();
+
+  responseBodySize_ += chunk.size();
+}
+
+void HttpClient::onMessageContent(FileView&& chunk) {
+  TRACE("onMessageContent(FileView) $0 bytes", chunk.size());
+
+  if (responseBodyBuffer_.size() + chunk.size() > responseBodyBufferSize
+      && responseBodyFd_.isClosed()) {
+    responseBodyFd_ = FileUtil::createTempFile();
+    if (responseBodyFd_.isOpen()) {
+      FileUtil::write(responseBodyFd_, responseBodyBuffer_);
+      responseBodyBuffer_.clear();
+    }
+  }
+
+  if (responseBodyFd_.isOpen())
+    FileUtil::write(responseBodyFd_, chunk);
+  else
+    chunk.fill(&responseBodyBuffer_);
+
+  responseBodySize_ += chunk.size();
 }
 
 void HttpClient::onMessageEnd() {
   TRACE("onMessageEnd()");
+  responseInfo_.setContentLength(responseBodySize_);
   promise_->success(this);
 }
 

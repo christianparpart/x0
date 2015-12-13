@@ -70,6 +70,7 @@ public:
   void onMessageHeader(const BufferRef& name, const BufferRef& value) override;
   void onMessageHeaderEnd() override;
   void onMessageContent(const BufferRef& chunk) override;
+  void onMessageContent(FileView&& chunk) override;
   void onMessageEnd() override;
   void onProtocolError(HttpStatus code, const std::string& message) override;
 

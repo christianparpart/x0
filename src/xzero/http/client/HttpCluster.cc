@@ -107,6 +107,7 @@ HttpCluster::HttpCluster(const std::string& name,
       load_(),
       queued_(),
       dropped_() {
+  TRACE("ctor(name: $0)", name_);
 }
 
 HttpCluster::~HttpCluster() {
@@ -134,6 +135,7 @@ std::string HttpCluster::configuration() const {
       << "connect-timeout=" << connectTimeout_.milliseconds() << "\n"
       << "read-timeout=" << readTimeout_.milliseconds() << "\n"
       << "write-timeout=" << writeTimeout_.milliseconds() << "\n"
+      << "health-check-success-threshold=" << healthCheckSuccessThreshold_ << "\n"
       << "health-check-host-header=" << healthCheckHostHeader_ << "\n"
       << "health-check-request-path=" << healthCheckRequestPath_ << "\n"
       << "health-check-fcgi-script-filename=" << healthCheckFcgiScriptFilename_ << "\n"
@@ -300,6 +302,21 @@ void HttpCluster::setConfiguration(const std::string& text,
     allowXSendfile_ = value == "true";
   }
 
+  if (settings.load("director", "health-check-success-threshold",
+                     value)) {
+    if (!value.empty()) {
+      int i = std::stoi(value);
+      if (i != 0) {
+        healthCheckSuccessThreshold_ = i;
+      } else {
+        RAISE(RuntimeError, StringUtil::format(
+              "director: Could not load settings value "
+              "director.health-check-success-threshold in file '$0'",
+              path));
+      }
+    }
+  }
+
   if (!settings.load("director", "health-check-host-header",
                      healthCheckHostHeader_)) {
     RAISE(RuntimeError, StringUtil::format(
@@ -393,18 +410,22 @@ void HttpCluster::setConfiguration(const std::string& text,
   }
 #endif
 
+  TRACE("Before iterating section");
   for (auto& section : settings) {
     static const std::string backendSectionPrefix("backend=");
     static const std::string bucketSectionPrefix("bucket=");
 
     std::string key = section.first;
+    TRACE("iterating section: $0", key);
     if (key == "director") continue;
 
     if (key == "cache") continue;
 
     if (key.find(backendSectionPrefix) == 0) {
+      TRACE("should load backend section: $0", key);
       loadBackend(settings, key);
     } else if (key.find(bucketSectionPrefix) == 0) {
+      TRACE("should load bucket section: $0", key);
       loadBucket(settings, key);
     } else {
       RAISE(RuntimeError, StringUtil::format(
@@ -426,6 +447,8 @@ void HttpCluster::setConfiguration(const std::string& text,
 
 void HttpCluster::loadBackend(const IniFile& settings, const std::string& key) {
   std::string name = key.substr(strlen("backend="));
+
+  TRACE("Cluster $0: loading backend: $1", name_, name);
 
   // capacity
   std::string capacityStr;

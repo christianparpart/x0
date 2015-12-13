@@ -14,6 +14,9 @@
 #include <memory>
 
 namespace xzero {
+
+class FileView;
+
 namespace http {
 
 /**
@@ -59,7 +62,7 @@ class XZERO_HTTP_API HttpListener {
    *
    * @note Does nothing but returns true by default.
    */
-  virtual void onMessageHeader(const BufferRef& name, const BufferRef& value);
+  virtual void onMessageHeader(const BufferRef& name, const BufferRef& value) = 0;
 
   /**
    * Invoked once all request headers have been fully parsed.
@@ -67,34 +70,35 @@ class XZERO_HTTP_API HttpListener {
    * (no possible content parsed yet)
    *
    * @note Does nothing but returns true by default.
-   *
-   * @retval true continue processing further content (if any)
-   * @retval false abort message processing
    */
-  virtual void onMessageHeaderEnd();
+  virtual void onMessageHeaderEnd() = 0;
 
   /**
    * Invoked for every chunk of message content being processed.
    *
    * @note Does nothing but returns true by default.
-   *
-   * @retval true continue processing further content (if any)
-   * @retval false abort message processing
    */
-  virtual void onMessageContent(const BufferRef& chunk);
+  virtual void onMessageContent(const BufferRef& chunk) = 0;
+
+  /**
+   * Invoked for every chunk of message content being processed.
+   *
+   * @note Does nothing but returns true by default.
+   */
+  virtual void onMessageContent(FileView&& chunk) = 0;
 
   /**
    * Invoked once a fully HTTP message has been processed.
    *
    * @note Does nothing but returns true by default.
-   *
-   * @retval true continue processing further content (if any)
-   * @retval false abort message processing
    */
-  virtual void onMessageEnd();
+  virtual void onMessageEnd() = 0;
 
   /**
    * HTTP message transport protocol error.
+   *
+   * @param code the HTTP response status code the protocol error would generate.
+   * @param message human readable text giving the reason.
    */
   virtual void onProtocolError(HttpStatus code, const std::string& message) = 0;
 };

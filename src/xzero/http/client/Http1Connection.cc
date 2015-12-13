@@ -17,7 +17,7 @@ namespace xzero {
 namespace http {
 namespace client {
 
-#ifndef NDEBUG
+#if 0 //!defined(NDEBUG)
 #define TRACE(msg...) logTrace("http.client.Http1Connection", msg)
 #else
 #define TRACE(msg...) do {} while (0)
@@ -221,6 +221,10 @@ void Http1Connection::onMessageHeaderEnd() {
 
 void Http1Connection::onMessageContent(const BufferRef& chunk) {
   channel_->onMessageContent(chunk);
+}
+
+void Http1Connection::onMessageContent(FileView&& chunk) {
+  channel_->onMessageContent(std::move(chunk));
 }
 
 void Http1Connection::onMessageEnd() {

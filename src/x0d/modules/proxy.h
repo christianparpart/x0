@@ -59,7 +59,6 @@ class ProxyModule : public XzeroModule,
   bool proxy_cluster_auto(XzeroContext* cx, xzero::flow::vm::Params& args);
   bool verify_proxy_cluster(xzero::flow::Instr* call);
   bool proxy_cluster(XzeroContext* cx, Params& args);
-  bool proxy_pass(XzeroContext* cx, xzero::flow::vm::Params& args);
   bool proxy_api(XzeroContext* cx, xzero::flow::vm::Params& args);
   bool proxy_fcgi(XzeroContext* cx, xzero::flow::vm::Params& args);
   bool proxy_http(XzeroContext* cx, xzero::flow::vm::Params& args);

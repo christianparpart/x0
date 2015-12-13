@@ -120,13 +120,13 @@ static const std::vector<std::string> connectionHeaderFields = {
   "Trailer",
   "Transfer-Encoding",
   "Upgrade",
-  "Via",
 };
 
 inline void requireValidHeader(const std::string& name) {
   for (const auto& test: connectionHeaderFields)
-    if (iequals(name, test))
+    if (iequals(name, test)) {
       RAISE(InvalidArgumentError);
+    }
 }
 
 void HttpResponse::addHeader(const std::string& name,

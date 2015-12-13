@@ -319,7 +319,13 @@ void HttpChannel::handleRequest() {
 }
 
 void HttpChannel::onMessageContent(const BufferRef& chunk) {
+  TRACE("onMessageContent(BufferRef): $0", chunk);
   request_->fillContent(chunk);
+}
+
+void HttpChannel::onMessageContent(FileView&& chunk) {
+  TRACE("onMessageContent(FileView): $0", FileUtil::read(chunk).ref());
+  request_->fillContent(FileUtil::read(chunk));
 }
 
 void HttpChannel::onMessageEnd() {

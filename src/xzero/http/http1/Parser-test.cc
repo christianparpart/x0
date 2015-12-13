@@ -8,6 +8,7 @@
 #include <xzero/http/http1/Parser.h>
 #include <xzero/http/HttpListener.h>
 #include <xzero/http/HttpStatus.h>
+#include <xzero/io/FileUtil.h>
 #include <xzero/RuntimeError.h>
 #include <xzero/Buffer.h>
 #include <vector>
@@ -29,6 +30,7 @@ class ParserListener : public HttpListener {  // {{{
   void onMessageHeader(const BufferRef& name, const BufferRef& value) override;
   void onMessageHeaderEnd() override;
   void onMessageContent(const BufferRef& chunk) override;
+  void onMessageContent(FileView&& chunk) override;
   void onMessageEnd() override;
   void onProtocolError(HttpStatus code, const std::string& msg) override;
 
@@ -92,6 +94,10 @@ void ParserListener::onMessageHeaderEnd() {
 
 void ParserListener::onMessageContent(const BufferRef& chunk) {
   body += chunk;
+}
+
+void ParserListener::onMessageContent(FileView&& chunk) {
+  body += FileUtil::read(chunk);
 }
 
 void ParserListener::onMessageEnd() {

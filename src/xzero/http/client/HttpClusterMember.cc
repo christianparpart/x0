@@ -2,6 +2,7 @@
 #include <xzero/http/client/HttpClusterRequest.h>
 #include <xzero/http/client/HttpHealthMonitor.h>
 #include <xzero/net/InetEndPoint.h>
+#include <xzero/io/FileView.h>
 #include <xzero/JsonWriter.h>
 #include <xzero/logging.h>
 
@@ -86,6 +87,7 @@ HttpClusterSchedulerStatus HttpClusterMember::tryProcess(HttpClusterRequest* cr)
     return HttpClusterSchedulerStatus::Overloaded;
 
   TRACE("Processing request by backend $0 $1", name(), inetAddress_);
+  TRACE("tryProcess: with executor: $0", cr->executor);
 
   //cr->request->responseHeaders.overwrite("X-Director-Backend", name());
 
@@ -108,10 +110,11 @@ void HttpClusterMember::release() {
 
 bool HttpClusterMember::process(HttpClusterRequest* cr) {
 #if 0
+  TRACE("Using executor: $0", cr->executor);
   Future<HttpClient> f = HttpClient::sendAsync(
       inetAddress_,
       cr->requestInfo,
-      BufferRef(), // FIXME: requestBody,
+      BufferRef(), // TODO cr->requestBody,
       connectTimeout_,
       readTimeout_,
       writeTimeout_,
@@ -176,8 +179,13 @@ void HttpClusterMember::onResponseReceived(HttpClusterRequest* cr,
     }
   }
 
+  HttpClient& nclient = const_cast<HttpClient&>(client);
   cr->onMessageHeaderEnd();
-  cr->onMessageContent(client.responseBody());
+  if (client.isResponseBodyBuffered()) {
+    cr->onMessageContent(nclient.responseBody());
+  } else {
+    cr->onMessageContent(nclient.takeResponseBody());
+  }
   cr->onMessageEnd();
 }
 

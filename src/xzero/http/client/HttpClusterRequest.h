@@ -28,6 +28,10 @@ class HttpClusterMember;
 struct HttpClusterRequest : public CustomData,
                             public HttpListener {
  public:
+  HttpClusterRequest() = delete;
+  HttpClusterRequest(const HttpClusterRequest&) = delete;
+  HttpClusterRequest& operator=(const HttpClusterRequest&) = delete;
+
   HttpClusterRequest(const HttpRequestInfo& _requestInfo,
                      std::unique_ptr<InputStream> _requestBody,
                      std::unique_ptr<HttpListener> _responseListener,
@@ -42,6 +46,7 @@ struct HttpClusterRequest : public CustomData,
   void onMessageHeader(const BufferRef& name, const BufferRef& value) override;
   void onMessageHeaderEnd() override;
   void onMessageContent(const BufferRef& chunk) override;
+  void onMessageContent(FileView&& chunk) override;
   void onMessageEnd() override;
   void onProtocolError(HttpStatus code, const std::string& message) override;
 

@@ -111,7 +111,7 @@ void XzeroContext::run() {
       request_->consumeContent(std::bind(&XzeroContext::ready, this));
     });
   } else {
-    ready();
+    request_->consumeContent(std::bind(&XzeroContext::ready, this));
   }
 }
 

@@ -31,6 +31,7 @@ HttpClusterRequest::HttpClusterRequest(const HttpRequestInfo& _requestInfo,
       tryCount(0),
       tokens(0),
       responseListener(std::move(_responseListener)) {
+  TRACE("ctor: executor: $0", executor);
 }
 
 HttpClusterRequest::~HttpClusterRequest() {
@@ -52,6 +53,10 @@ void HttpClusterRequest::onMessageHeaderEnd() {
 
 void HttpClusterRequest::onMessageContent(const BufferRef& chunk) {
   responseListener->onMessageContent(chunk);
+}
+
+void HttpClusterRequest::onMessageContent(FileView&& chunk) {
+  responseListener->onMessageContent(std::move(chunk));
 }
 
 void HttpClusterRequest::onMessageEnd() {

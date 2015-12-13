@@ -14,10 +14,11 @@
 #include <xzero/Option.h>
 #include <xzero/Duration.h>
 #include <xzero/CompletionHandler.h>
-#include <xzero/thread/Future.h>
+#include <xzero/io/FileDescriptor.h>
 #include <xzero/http/HttpRequestInfo.h>
 #include <xzero/http/HttpResponseInfo.h>
 #include <xzero/http/HttpListener.h>
+#include <xzero/thread/Future.h>
 #include <xzero/stdtypes.h>
 #include <vector>
 #include <utility>
@@ -60,7 +61,9 @@ class HttpClient : public HttpListener {
 
   // response message accessor
   const HttpResponseInfo& responseInfo() const noexcept;
-  const Buffer& responseBody() const noexcept;
+  bool isResponseBodyBuffered() const noexcept;
+  const Buffer& responseBody();
+  FileView takeResponseBody();
 
   // WIP brainstorming ideas
   static Future<HttpClient> sendAsync(
@@ -89,6 +92,7 @@ class HttpClient : public HttpListener {
   void onMessageHeader(const BufferRef& name, const BufferRef& value) override;
   void onMessageHeaderEnd() override;
   void onMessageContent(const BufferRef& chunk) override;
+  void onMessageContent(FileView&& chunk) override;
   void onMessageEnd() override;
   void onProtocolError(HttpStatus code, const std::string& message) override;
 
@@ -99,7 +103,9 @@ class HttpClient : public HttpListener {
   HttpTransport* transport_;
 
   HttpResponseInfo responseInfo_;
-  Buffer responseBody_;
+  Buffer responseBodyBuffer_;
+  FileDescriptor responseBodyFd_;
+  size_t responseBodySize_;
 
   Option<Promise<HttpClient*>> promise_;
 };
