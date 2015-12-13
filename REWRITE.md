@@ -67,7 +67,8 @@
 - [x] support TRACE method for `proxy.http`
 - [x] request body tmp stored on disk if larger than N bytes
 - [x] response body tmp stored on disk if larger than N bytes
-- [ ] fix proxy bug NOW
+- [x] load/save `health-check-success-threshold`
+- [ ] fix and use `HttpClient::sendAsync()`
 - [ ] fix request enqueuing/dequeueing
 - ...
 
