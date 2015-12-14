@@ -155,6 +155,12 @@ std::string FileUtil::joinPaths(const std::string& base,
   }
 }
 
+void FileUtil::seek(int fd, off_t offset) {
+  off_t rv = ::lseek(fd, offset, SEEK_SET);
+  if (rv == (off_t) -1)
+    RAISE_ERRNO(errno);
+}
+
 void FileUtil::read(int fd, Buffer* output) {
   struct stat st;
   if (fstat(fd, &st) < 0)

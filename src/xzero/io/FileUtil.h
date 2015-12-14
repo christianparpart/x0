@@ -38,6 +38,7 @@ class XZERO_BASE_API FileUtil {
 
   static std::string joinPaths(const std::string& base, const std::string& append);
 
+  static void seek(int fd, off_t offset);
   static void read(int fd, Buffer* output);
   static void read(File&, Buffer* output);
   static void read(const std::string& path, Buffer* output);
