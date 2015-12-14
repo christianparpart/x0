@@ -114,7 +114,7 @@ bool HttpClusterMember::process(HttpClusterRequest* cr) {
   Future<HttpClient> f = HttpClient::sendAsync(
       inetAddress_,
       cr->requestInfo,
-      BufferRef(), // TODO cr->requestBody,
+      cr->requestBody,
       connectTimeout_,
       readTimeout_,
       writeTimeout_,
@@ -193,9 +193,7 @@ void HttpClusterMember::onConnected(HttpClusterRequest* cr,
                                     const RefPtr<EndPoint>& ep) {
   auto client = new HttpClient(cr->executor, ep);
 
-  BufferRef requestBody; // TODO
-
-  client->send(cr->requestInfo, requestBody);
+  client->send(cr->requestInfo, cr->requestBody);
   Future<HttpClient*> f = client->completed();
   f.onFailure(std::bind(&HttpClusterMember::onFailure2, this, cr, client, std::placeholders::_1));
   f.onSuccess(std::bind(&HttpClusterMember::onResponseReceived2, this, cr, std::placeholders::_1));

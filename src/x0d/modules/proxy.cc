@@ -287,7 +287,7 @@ bool ProxyModule::proxy_cluster_auto(XzeroContext* cx, Params& args) {
 
   HttpClusterRequest* cr = cx->setCustomData<HttpClusterRequest>(this,
       *cx->request(),
-      cx->request()->getContentStream(),
+      cx->request()->getContentBuffer(),
       std::unique_ptr<HttpListener>(new HttpResponseBuilder(
           this, cx->request(), cx->response())),
       cx->response()->executor());
@@ -321,7 +321,7 @@ bool ProxyModule::proxy_cluster(XzeroContext* cx, Params& args) {
 
   HttpClusterRequest* cr = cx->setCustomData<HttpClusterRequest>(this,
       *cx->request(),
-      cx->request()->getContentStream(),
+      cx->request()->getContentBuffer(),
       std::unique_ptr<HttpListener>(new HttpResponseBuilder(
           this, cx->request(), cx->response())),
       cx->response()->executor());

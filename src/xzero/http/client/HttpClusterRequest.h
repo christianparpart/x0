@@ -33,7 +33,7 @@ struct HttpClusterRequest : public CustomData,
   HttpClusterRequest& operator=(const HttpClusterRequest&) = delete;
 
   HttpClusterRequest(const HttpRequestInfo& _requestInfo,
-                     std::unique_ptr<InputStream> _requestBody,
+                     const BufferRef& _requestBody,
                      std::unique_ptr<HttpListener> _responseListener,
                      Executor* _executor);
   ~HttpClusterRequest();
@@ -53,7 +53,7 @@ struct HttpClusterRequest : public CustomData,
  public:
   MonotonicTime ctime;
   const HttpRequestInfo& requestInfo;
-  std::unique_ptr<InputStream> requestBody;
+  BufferRef requestBody;
   Executor* executor;
 
   // the bucket (node) this request is to be scheduled via
