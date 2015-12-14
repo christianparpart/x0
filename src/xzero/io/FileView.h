@@ -90,13 +90,13 @@ class XZERO_BASE_API FileView {
 
   int release() noexcept { close_ = false; return fd_; }
 
-  int handle() const XZERO_NOEXCEPT { return fd_; }
+  int handle() const noexcept { return fd_; }
 
-  off_t offset() const XZERO_NOEXCEPT { return offset_; }
+  off_t offset() const noexcept { return offset_; }
   void setOffset(off_t n) { offset_ = n; }
 
   bool empty() const noexcept { return size_ == 0; }
-  size_t size() const XZERO_NOEXCEPT { return size_; }
+  size_t size() const noexcept { return size_; }
   void setSize(size_t n) { size_ = n; }
 
   void fill(Buffer* output) const;
