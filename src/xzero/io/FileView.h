@@ -88,6 +88,8 @@ class XZERO_BASE_API FileView {
     }
   }
 
+  int release() noexcept { close_ = false; return fd_; }
+
   int handle() const XZERO_NOEXCEPT { return fd_; }
 
   off_t offset() const XZERO_NOEXCEPT { return offset_; }
