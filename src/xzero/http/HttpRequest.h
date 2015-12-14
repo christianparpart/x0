@@ -10,6 +10,7 @@
 #include <xzero/http/Api.h>
 #include <xzero/sysconfig.h>
 #include <xzero/Buffer.h>
+#include <xzero/HugeBuffer.h>
 #include <xzero/io/File.h>
 #include <xzero/io/FileDescriptor.h>
 #include <xzero/http/HttpRequestInfo.h>
@@ -64,6 +65,7 @@ class XZERO_HTTP_API HttpRequest : public HttpRequestInfo {
   void consumeContent(std::function<void()> onReady);
   void fillContent(const BufferRef& chunk);
   void ready();
+
   std::unique_ptr<InputStream> getContentStream();
   BufferRef getContentBuffer();
 
@@ -76,8 +78,7 @@ class XZERO_HTTP_API HttpRequest : public HttpRequestInfo {
   bool secure_;
 
   bool expect100Continue_;
-  Buffer contentBuffer_;
-  FileDescriptor contentFd_;
+  HugeBuffer content_;
   std::function<void()> onContentReady_;
   std::function<void(const BufferRef&)> onContentAvailable_;
 

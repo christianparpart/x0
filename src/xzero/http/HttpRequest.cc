@@ -41,12 +41,12 @@ HttpRequest::HttpRequest(const std::string& method, const std::string& path,
       host_(headers.get("Host")),
       secure_(secure),
       expect100Continue_(false),
-      contentBuffer_(std::move(content)),
-      contentFd_(-1),
+      content_(content),
       onContentReady_(),
       onContentAvailable_(),
       username_() {
   // .
+  content_.write(std::move(content));
 }
 
 void HttpRequest::setRemoteAddress(const Option<InetAddress>& inet) {
@@ -76,8 +76,7 @@ void HttpRequest::recycle() {
   secure_ = false;
   expect100Continue_ = false;
   host_.clear();
-  contentBuffer_.clear();
-  contentFd_.close();
+  content_.reset();
   username_.clear();
 }
 
@@ -92,29 +91,7 @@ void HttpRequest::discardContent(std::function<void()> onReady) {
 
 void HttpRequest::consumeContent(std::function<void()> onReady) {
   onContentAvailable_ = [this](const BufferRef& chunk) {
-    const size_t maxBufferSize = 4 * 1024; // TODO: pass me
-
-    if (contentFd_ < 0 && contentBuffer_.size() + chunk.size() > maxBufferSize) {
-      contentFd_ = FileUtil::createTempFile();
-    }
-
-    if (contentFd_ < 0) {
-      contentBuffer_.push_back(chunk);
-      TRACE("$0: consuming $1 bytes of content", this, chunk.size());
-    } else {
-      size_t offset = 0;
-
-      while (offset < chunk.size()) {
-        ssize_t n = ::write(contentFd_,
-                            chunk.data() + offset,
-                            chunk.size() - offset);
-
-        if (n > 0)
-          offset += n;
-        else if (n < 0 && errno != EINTR)
-          RAISE_ERRNO(errno);
-      }
-    }
+    content_.write(chunk);
   };
 
   onContentReady_ = onReady;
@@ -133,21 +110,11 @@ void HttpRequest::ready() {
 }
 
 std::unique_ptr<InputStream> HttpRequest::getContentStream() {
-  if (contentFd_ != -1) {
-    ::lseek(contentFd_, 0, SEEK_SET);
-  }
-
-  return std::unique_ptr<InputStream>(
-      contentFd_.isClosed()
-          ? static_cast<InputStream*>(new BufferInputStream(&contentBuffer_))
-          : static_cast<InputStream*>(new FileInputStream(contentFd_, false)));
+  return content_.getInputStream();
 }
 
 BufferRef HttpRequest::getContentBuffer() {
-  if (contentBuffer_.empty() && contentFd_.isOpen())
-    contentBuffer_ = FileUtil::read(contentFd_);
-
-  return contentBuffer_;
+  return content_.getBuffer();
 }
 
 }  // namespace http
