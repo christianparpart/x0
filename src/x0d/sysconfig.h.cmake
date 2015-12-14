@@ -11,7 +11,6 @@
 #define X0_VERSION "@X0_VERSION@"
 #define X0D_CLUSTERDIR "@X0D_CLUSTERDIR@"
 #define X0D_LOGDIR "@X0D_LOGDIR@"
-#define X0D_TMPDIR "@X0D_TMPDIR@"
 
 #cmakedefine ENABLE_PCRE
 

@@ -37,8 +37,7 @@ RUN apt-get install -y \
         -DCMAKE_C_COMPILER=/usr/bin/clang-3.5 \
         -DCMAKE_CXX_COMPILER=/usr/bin/clang++-3.5 \
         -DX0D_CLUSTERDIR=/var/lib/x0d \
-        -DX0D_LOGDIR=/var/log/x0d \
-        -DX0D_TMPDIR=/tmp && \
+        -DX0D_LOGDIR=/var/log/x0d && \
     ninja && \
     mkdir -p /etc/x0d /var/log/x0d /var/lib/x0d /var/www && \
     cp src/x0d/x0d /usr/bin/x0d && \

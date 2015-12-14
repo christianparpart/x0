@@ -31,7 +31,6 @@ MIMETYPES_GENERATE_CPP(MT_SRC ${PROJECT_SOURCE_DIR}/3rdparty/mime.types)
 
 set(X0D_CLUSTERDIR "/var/lib/x0d" CACHE PATH "Path to cluster definition directory.")
 set(X0D_LOGDIR "/var/log/x0d" CACHE PATH "Path to log directory.")
-set(X0D_TMPDIR "/tmp" CACHE PATH "Temporary directory for request/response bodies.")
 
 set(x0d_SRC
   ${MT_SRC}
