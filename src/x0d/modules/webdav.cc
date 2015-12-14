@@ -17,8 +17,6 @@ using namespace xzero;
 using namespace xzero::http;
 using namespace xzero::flow;
 
-// TODO: PUT to actually store the file instead of echo'ing back
-
 namespace x0d {
 
 WebdavModule::WebdavModule(x0d::XzeroDaemon* d)
