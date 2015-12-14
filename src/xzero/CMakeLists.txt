@@ -98,6 +98,7 @@ set(xzero_base_SRC
   Counter.cc
   Duration.cc
   ExceptionHandler.cc
+  HugeBuffer.cc
   IEEE754.cc
   ISO8601.cc
   IdleTimeout.cc
