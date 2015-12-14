@@ -136,7 +136,7 @@ class XZERO_HTTP_API HttpResponse {
    */
   void sendError(HttpStatus code, const std::string& message = "");
 
-  bool isCommitted() const XZERO_NOEXCEPT { return committed_; }
+  bool isCommitted() const noexcept { return committed_; }
 
   void setBytesTransmitted(size_t n) { bytesTransmitted_ = n; }
   size_t bytesTransmitted() const noexcept { return bytesTransmitted_; }
