@@ -1,7 +1,8 @@
 # Xzero HTTP Application Web Server
 
-[ ![Build status - Travis-ci](https://secure.travis-ci.org/xzero/x0.png) ](http://travis-ci.org/xzero/x0)
-[ ![Stories in Ready](https://badge.waffle.io/xzero/x0.png?label=ready&title=Ready) ](https://waffle.io/xzero/x0)
+[![](https://badge.imagelayers.io/trapni/xzero-git:latest.svg)](https://imagelayers.io/?images=trapni/xzero-git:latest 'Get your own badge on imagelayers.io')
+[![](https://secure.travis-ci.org/xzero/x0.png) ](http://travis-ci.org/xzero/x0)
+
 
 - official website: http://xzero.io
 - github: http://github.com/xzero/x0
@@ -54,20 +55,18 @@ a number of standard plugins to become *your* web application server.
 
 ## Installation Requirements
 
-- gcc >= 4.8.0 (for building only, CLANG >= 3.4 is also supported)
-- libev >= 4.0
+- gcc >= 4.8.0 (for building only, CLANG >= 3.5 is also supported)
 - cmake (for building only)
 - tbb, Threading Building Blocks (required)
 - zlib (optional & recommended, for compression)
-- bzip2 (optional & recommended, for compression)
-- gnutls (optional & recommended, for SSL/TLS encryption)
+- OpenSSL (optional & recommended, for SSL/TLS encryption)
 - gtest (optional, for unit testing)
 
 ### Building from Source on Ubuntu 14.04:
 
 ```sh
 # Installs required dependencies
-sudo apt-get install make cmake gcc-4.8 g++-4.8 libgnutls28-dev libgcrypt11-dev \
+sudo apt-get install make cmake gcc-4.8 g++-4.8 libssl-dev \
     libmysqlclient-dev libev-dev zlib1g-dev libbz2-dev pkg-config \
     libpcre3-dev libfcgi-dev libgoogle-perftools-dev libtbb-dev libpam-dev git
 
@@ -81,16 +80,17 @@ cd /usr/src/gtest && sudo cmake . && sudo make && \
 git clone git://github.com/xzero/x0.git && cd x0
 
 # Now run cmake to bootstrap the build
-cmake .
+mkdir -p build && cd build
+cmake ..
 
 # Now compiling should just work.
 make && sudo make install
 
 # Run web server on port 8080
-./x0d/src/x0d --instant=`pwd`/www/htdocs,8080
+./src/x0d --instant=`pwd`/www/htdocs,8080
 
 # or try its CLI help
-./x0d/src/x0d -h
+./src/x0d -h
 
 # have fun hacking and don't forget to checkout the just installed man pages ;-)
 ```
@@ -105,7 +105,7 @@ sudo apt-get update
 sudo apt-get install gcc-4.8 g++-4.8
 
 # Installs required dependencies
-sudo apt-get install make cmake libgnutls28-dev libgcrypt11-dev \
+sudo apt-get install make cmake libssl-dev \
     libmysqlclient-dev libev-dev zlib1g-dev libbz2-dev pkg-config \
     libpcre3-dev libfcgi-dev libgoogle-perftools0 libtbb-dev libpam-dev git
 
@@ -120,16 +120,17 @@ cd /usr/src/gtest && sudo cmake -DCMAKE_C_COMPILER=$CC \
 git clone git://github.com/xzero/x0.git && cd x0
 
 # Now run cmake to bootstrap the build
-cmake -DCMAKE_C_COMPILER=/usr/bin/gcc-4.8 -DCMAKE_CXX_COMPILER=/usr/bin/g++-4.8 .
+mkdir -p build && cd build
+cmake .. -DCMAKE_C_COMPILER=/usr/bin/gcc-4.8 -DCMAKE_CXX_COMPILER=/usr/bin/g++-4.8
 
 # Now compiling should just work.
 make && sudo make install
 
 # Run web server on port 8080
-./x0d/src/x0d --instant=`pwd`/www/htdocs,8080
+./src/x0d --instant=`pwd`/www/htdocs,8080
 
 # or try its CLI help
-./x0d/src/x0d -h
+./src/x0d -h
 
 # have fun hacking and don't forget to checkout the just installed man pages ;-)
 ```
