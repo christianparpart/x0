@@ -1,12 +1,14 @@
-0.11.0 (2014-MM-DD)
+0.11.0 (2016-MM-DD)
 
-	* project: split out {base,http,flow} libraries into its own
-		sub projects that can now be imported into the main server
-		via `git subtree` or just `git clone` into 3rdparty/ directory.
-		This is to help pushing Xzero as a C++ library.
+	* project: Almost full rewrite of almost everything in order to support
+		any transport layer for HTTP, such as HTTP/2 and gain better testability
 	* flow: fixes parsing regular expression (versus div operator)
+	* flow: handler keyword can be omitted
 	* x0d: uses TMPDIR environment variable now for temporarly storing
 		request bodies or upstream response bodies
+	* modules: plugins are now statically included to provide a single binary
+	* proxy: the director module was renamed to proxy and its configuration
+		symbols have been adjusted.
 
 0.10.0 (2014-07-03)
 
