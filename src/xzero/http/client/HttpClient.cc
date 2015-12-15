@@ -97,6 +97,7 @@ Future<HttpClient*> HttpClient::sendAsync(InetAddress& addr,
 
   f.onSuccess([this](RefPtr<EndPoint> ep) {
     TRACE("onConnected: $0 $1", requestInfo_.method(), requestInfo_.path());
+    endpoint_ = ep;
     // is not being freed here explicitely, as the endpoint will own that
     transport_ = new Http1Connection(this, ep.get(), executor_);
     transport_->send(requestInfo_, nullptr);

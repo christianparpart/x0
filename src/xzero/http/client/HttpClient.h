@@ -83,6 +83,7 @@ class HttpClient : public HttpListener {
  private:
   Executor* executor_;
 
+  RefPtr<EndPoint> endpoint_;
   HttpTransport* transport_;
 
   HttpRequestInfo requestInfo_;
