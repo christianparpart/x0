@@ -28,54 +28,94 @@ namespace xzero {
 namespace http {
 namespace client {
 
-constexpr size_t responseBodyBufferSize = 4 * 1024;
+template<typename T>
+static bool isConnectionHeader(const T& name) {
+  static const std::vector<T> connectionHeaderFields = {
+    "Connection",
+    "Content-Length",
+    "Close",
+    "Keep-Alive",
+    "TE",
+    "Trailer",
+    "Transfer-Encoding",
+    "Upgrade",
+  };
 
-HttpClient::HttpClient(Executor* executor,
-                       RefPtr<EndPoint> endpoint)
+  for (const auto& test: connectionHeaderFields)
+    if (iequals(name, test))
+      return true;
+
+  return false;
+}
+
+HttpClient::HttpClient(Executor* executor)
     : executor_(executor),
-      endpoint_(endpoint),
       transport_(nullptr),
+      requestInfo_(),
+      requestBody_(),
       responseInfo_(),
-      responseBodyBuffer_(),
-      responseBodyFd_(-1),
-      responseBodySize_(0),
+      responseBody_(32 * 1024 * 1024),
       promise_() {
-
-  if (endpoint_) {
-    // is not being freed here explicitely, as the endpoint will own that
-    transport_ = new Http1Connection(this, endpoint_.get(), executor_);
-  }
 }
 
 HttpClient::HttpClient(HttpClient&& other)
     : executor_(other.executor_),
-      endpoint_(std::move(other.endpoint_)),
       transport_(other.transport_),
+      requestInfo_(std::move(other.requestInfo_)),
+      requestBody_(std::move(other.requestBody_)),
       responseInfo_(std::move(other.responseInfo_)),
-      responseBodyBuffer_(std::move(other.responseBodyBuffer_)),
-      responseBodyFd_(std::move(other.responseBodyFd_)),
-      responseBodySize_(other.responseBodySize_),
+      responseBody_(std::move(other.responseBody_)),
       promise_(std::move(other.promise_)) {
   transport_->setListener(this);
   other.transport_ = nullptr;
-  other.responseBodySize_ = 0;
 }
 
 HttpClient::~HttpClient() {
 }
 
-void HttpClient::send(const HttpRequestInfo& requestInfo,
-                      const BufferRef& requestBody) {
-  TRACE("send: $0 $1", requestInfo.method(), requestInfo.path());
-  transport_->send(requestInfo, nullptr);
-  transport_->send(requestBody, nullptr);
+void HttpClient::setRequest(const HttpRequestInfo& requestInfo,
+                            const BufferRef& requestBody) {
+  requestInfo_ = requestInfo;
+  requestBody_ = requestBody;
+
+  // filter out disruptive connection-level headers
+  requestInfo_.headers().remove("Connection");
+  requestInfo_.headers().remove("Content-Length");
+  requestInfo_.headers().remove("Expect");
+  requestInfo_.headers().remove("Trailer");
+  requestInfo_.headers().remove("Transfer-Encoding");
+  requestInfo_.headers().remove("Upgrade");
 }
 
-Future<HttpClient*> HttpClient::completed() {
-  TRACE("completed()");
+Future<HttpClient*> HttpClient::sendAsync(InetAddress& addr,
+                                          Duration connectTimeout,
+                                          Duration readTimeout,
+                                          Duration writeTimeout) {
+
+  Future<RefPtr<EndPoint>> f = InetEndPoint::connectAsync(
+      addr, connectTimeout, readTimeout, writeTimeout, executor_);
+
+  f.onSuccess([this](RefPtr<EndPoint> ep) {
+    TRACE("onConnected: $0 $1", requestInfo_.method(), requestInfo_.path());
+    // is not being freed here explicitely, as the endpoint will own that
+    transport_ = new Http1Connection(this, ep.get(), executor_);
+    transport_->send(requestInfo_, nullptr);
+    transport_->send(requestBody_, nullptr);
+    transport_->completed();
+  });
+
+  f.onFailure([this](Status s) {
+    promise_.failure(s);
+  });
+
+  return promise_.future();
+}
+
+void HttpClient::send(RefPtr<EndPoint> ep) {
+  transport_ = new Http1Connection(this, ep.get(), executor_);
+  transport_->send(requestInfo_, nullptr);
+  transport_->send(requestBody_, nullptr);
   transport_->completed();
-  promise_ = Some(Promise<HttpClient*>());
-  return promise_->future();
 }
 
 const HttpResponseInfo& HttpClient::responseInfo() const noexcept {
@@ -83,18 +123,15 @@ const HttpResponseInfo& HttpClient::responseInfo() const noexcept {
 }
 
 bool HttpClient::isResponseBodyBuffered() const noexcept {
-  return responseBodyFd_ < 0;
+  return !responseBody_.isFile();
 }
 
-const Buffer& HttpClient::responseBody() {
-  if (responseBodyBuffer_.empty() && responseBodyFd_.isOpen())
-    responseBodyBuffer_ = FileUtil::read(takeResponseBody());
-
-  return responseBodyBuffer_;
+const BufferRef& HttpClient::responseBody() {
+  return responseBody_.getBuffer();
 }
 
 FileView HttpClient::takeResponseBody() {
-  return FileView(std::move(responseBodyFd_), 0, responseBodySize_);
+  return responseBody_.getFileView();
 }
 
 void HttpClient::onMessageBegin(HttpVersion version, HttpStatus code,
@@ -118,139 +155,23 @@ void HttpClient::onMessageHeaderEnd() {
 
 void HttpClient::onMessageContent(const BufferRef& chunk) {
   TRACE("onMessageContent(BufferRef) $0 bytes", chunk.size());
-
-  if (responseBodyBuffer_.size() + chunk.size() > responseBodyBufferSize
-      && responseBodyFd_.isClosed()) {
-    responseBodyFd_ = FileUtil::createTempFile();
-    if (responseBodyFd_.isOpen()) {
-      FileUtil::write(responseBodyFd_, responseBodyBuffer_);
-      responseBodyBuffer_.clear();
-    }
-  }
-
-  if (responseBodyFd_.isOpen())
-    FileUtil::write(responseBodyFd_, chunk);
-  else
-    responseBodyBuffer_ += chunk.str();
-
-  responseBodySize_ += chunk.size();
+  responseBody_.write(chunk);
 }
 
 void HttpClient::onMessageContent(FileView&& chunk) {
   TRACE("onMessageContent(FileView) $0 bytes", chunk.size());
-
-  if (responseBodyBuffer_.size() + chunk.size() > responseBodyBufferSize
-      && responseBodyFd_.isClosed()) {
-    responseBodyFd_ = FileUtil::createTempFile();
-    if (responseBodyFd_.isOpen()) {
-      FileUtil::write(responseBodyFd_, responseBodyBuffer_);
-      responseBodyBuffer_.clear();
-    }
-  }
-
-  if (responseBodyFd_.isOpen())
-    FileUtil::write(responseBodyFd_, chunk);
-  else
-    chunk.fill(&responseBodyBuffer_);
-
-  responseBodySize_ += chunk.size();
+  responseBody_.write(std::move(chunk));
 }
 
 void HttpClient::onMessageEnd() {
   TRACE("onMessageEnd()");
-  responseInfo_.setContentLength(responseBodySize_);
-  promise_->success(this);
+  responseInfo_.setContentLength(responseBody_.size());
+  promise_.success(this);
 }
 
 void HttpClient::onProtocolError(HttpStatus code, const std::string& message) {
   logError("HttpClient", "Protocol Error. $0; $1", code, message);
-  promise_->failure(Status::ForeignError);
-}
-
-Future<HttpClient> HttpClient::sendAsync(
-    const HttpRequestInfo& requestInfo, const BufferRef& requestBody,
-    Executor* executor) {
-
-  std::string host = requestInfo.headers().get("Host");
-  if (host.empty())
-    RAISE(RuntimeError, "No Host HTTP request header given.");
-
-  std::vector<std::string> parts = StringUtil::split(host, ":");
-  host = parts[0];
-  int port = parts.size() == 2 ? stoi(parts[1]) : 80;
-
-  std::vector<IPAddress> ipaddresses = DnsClient().ip(host);
-  if (ipaddresses.empty())
-    RAISE(RuntimeError, "Host header does not resolve to an IP address.");
-
-  Duration connectTimeout = 4_seconds;
-  Duration readTimeout = 30_seconds;
-  Duration writeTimeout = 8_seconds;
-
-  return sendAsync(InetAddress(ipaddresses.front(), port),
-                   requestInfo, requestBody,
-                   connectTimeout, readTimeout, writeTimeout, executor);
-}
-
-Future<HttpClient> HttpClient::sendAsync(
-    const std::string& method,
-    const Uri& url,
-    const std::vector<std::pair<std::string, std::string>>& headers,
-    const BufferRef& requestBody,
-    Executor* executor) {
-
-  HttpRequestInfo requestInfo(HttpVersion::VERSION_1_1, method,
-                              url.pathAndQuery(), requestBody.size(),
-                              headers);
-
-  std::vector<IPAddress> ipaddresses = DnsClient().ip(url.host());
-  if (ipaddresses.empty())
-    RAISE(RuntimeError, "Host header does not resolve to an IP address.");
-
-  Duration connectTimeout = 4_seconds;
-  Duration readTimeout = 30_seconds;
-  Duration writeTimeout = 8_seconds;
-
-  return sendAsync(InetAddress(ipaddresses.front(), url.port()),
-                   requestInfo, requestBody,
-                   connectTimeout, readTimeout, writeTimeout, executor);
-}
-
-Future<HttpClient> HttpClient::sendAsync(
-    const InetAddress& inet,
-    const HttpRequestInfo& requestInfo,
-    const BufferRef& requestBody,
-    Duration connectTimeout,
-    Duration readTimeout,
-    Duration writeTimeout,
-    Executor* executor) {
-
-  Promise<HttpClient> promise;
-
-  Future<RefPtr<EndPoint>> fep = InetEndPoint::connectAsync(inet,
-      connectTimeout, readTimeout, writeTimeout, executor);
-
-  fep.onFailure([promise](Status s) mutable {
-    promise.failure(s);
-  });
-
-  fep.onSuccess([promise, executor, requestInfo, requestBody]
-                (const RefPtr<EndPoint>& ep) mutable {
-      HttpClient* client = new HttpClient(executor, ep);
-
-      client->send(requestInfo, requestBody);
-      Future<HttpClient*> f = client->completed();
-      f.onFailure([promise, client](Status s) mutable {
-        delete client;
-        promise.failure(s);
-      });
-      f.onSuccess([promise, client](HttpClient*) mutable {
-        promise.success(std::move(*client));
-        delete client;
-      });
-  });
-
-  return promise.future();
+  promise_.failure(Status::ForeignError);
 }
 
 } // namespace client

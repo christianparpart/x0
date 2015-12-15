@@ -90,9 +90,7 @@ class HttpHealthMonitor {
   void logSuccess();
   void logFailure();
   void onCheckNow();
-  void onConnectFailure(Status status);
-  void onConnected(const RefPtr<EndPoint>& ep);
-  void onRequestFailure(Status status);
+  void onFailure(Status status);
   void onResponseReceived(HttpClient* client);
 
  private:
@@ -118,7 +116,7 @@ class HttpHealthMonitor {
   size_t consecutiveSuccessCount_;
   Duration totalOfflineTime_;
 
-  std::unique_ptr<HttpClient> client_;
+  HttpClient client_;
 };
 
 } // namespace client

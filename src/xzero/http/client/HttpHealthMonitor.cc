@@ -60,8 +60,18 @@ HttpHealthMonitor::HttpHealthMonitor(Executor* executor,
       totalFailCount_(0),
       consecutiveSuccessCount_(0),
       totalOfflineTime_(Duration::Zero),
-      client_() {
+      client_(executor_) {
   TRACE("ctor: $0", inetAddress);
+
+  BufferRef requestBody;
+  client_.setRequest(HttpRequestInfo(HttpVersion::VERSION_1_1,
+                                     HttpMethod::GET,
+                                     requestPath_,
+                                     requestBody.size(),
+                                     {{"Host", hostHeader_},
+                                      {"User-Agent", "HttpHealthMonitor"}}),
+                     requestBody);
+
   start();
 }
 
@@ -141,43 +151,19 @@ void HttpHealthMonitor::onCheckNow() {
 
   timerHandle_.reset();
 
-  Future<RefPtr<EndPoint>> ep =
-      InetEndPoint::connectAsync(inetAddress_,
-                                 connectTimeout_,
-                                 readTimeout_,
-                                 writeTimeout_,
-                                 executor_);
+  Future<HttpClient*> f = client_.sendAsync(inetAddress_,
+                                            connectTimeout_,
+                                            readTimeout_,
+                                            writeTimeout_);
 
-  ep.onFailure(std::bind(&HttpHealthMonitor::onConnectFailure, this, std::placeholders::_1));
-  ep.onSuccess(std::bind(&HttpHealthMonitor::onConnected, this, std::placeholders::_1));
+  f.onSuccess(std::bind(&HttpHealthMonitor::onResponseReceived, this,
+                        std::placeholders::_1));
+  f.onFailure(std::bind(&HttpHealthMonitor::onFailure, this,
+                        std::placeholders::_1));
 }
 
-void HttpHealthMonitor::onConnectFailure(Status status) {
+void HttpHealthMonitor::onFailure(Status status) {
   DEBUG("Connecting to backend failed. $0", status);
-  logFailure();
-}
-
-void HttpHealthMonitor::onConnected(const RefPtr<EndPoint>& ep) {
-  TRACE("onConnected");
-  client_ = std::unique_ptr<HttpClient>(new HttpClient(executor_, ep));
-
-  BufferRef requestBody;
-
-  HttpRequestInfo requestInfo(HttpVersion::VERSION_1_1,
-                              HttpMethod::GET,
-                              requestPath_,
-                              requestBody.size(),
-                              { {"Host", hostHeader_},
-                                {"User-Agent", "HttpHealthMonitor"} } );
-
-  client_->send(std::move(requestInfo), requestBody);
-  Future<HttpClient*> f = client_->completed();
-  f.onFailure(std::bind(&HttpHealthMonitor::onRequestFailure, this, std::placeholders::_1));
-  f.onSuccess(std::bind(&HttpHealthMonitor::onResponseReceived, this, std::placeholders::_1));
-}
-
-void HttpHealthMonitor::onRequestFailure(Status status) {
-  TRACE("onRequestFailure");
   logFailure();
 }
 

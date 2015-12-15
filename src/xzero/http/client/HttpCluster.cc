@@ -859,8 +859,8 @@ void HttpCluster::onTimeout(HttpClusterRequest* cr) {
     logInfo("HttpCluster",
             "Queued request timed out ($0). $1 $2",
             diff,
-            cr->requestInfo.method(),
-            cr->requestInfo.path());
+            cr->client.requestInfo().method(),
+            cr->client.requestInfo().path());
 
     serviceUnavailable(cr, HttpStatus::GatewayTimeout);
   });

@@ -185,7 +185,7 @@ void XUrl::query(const Uri& uri) {
 }
 
 void XUrl::connected(RefPtr<EndPoint> ep, const Uri& uri) {
-  HttpClient http(&scheduler_, ep);
+  HttpClient http(&scheduler_);
 
   std::string method = flags_.getString("method");
   if (flags_.getBool("head")) {
@@ -211,8 +211,8 @@ void XUrl::connected(RefPtr<EndPoint> ep, const Uri& uri) {
     logInfo("xurl", "< $0: $1", field.name(), field.value());
   }
 
-  http.send(req, body_);
-  http.completed();
+  http.setRequest(req, body_);
+  http.send(ep);
 
   scheduler_.runLoop();
 

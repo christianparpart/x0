@@ -23,8 +23,7 @@ HttpClusterRequest::HttpClusterRequest(const HttpRequestInfo& _requestInfo,
                                        std::unique_ptr<HttpListener> _responseListener,
                                        Executor* _executor)
     : ctime(MonotonicClock::now()),
-      requestInfo(_requestInfo),
-      requestBody(_requestBody),
+      client(_executor),
       executor(_executor),
       bucket(nullptr),
       backend(nullptr),
@@ -32,6 +31,7 @@ HttpClusterRequest::HttpClusterRequest(const HttpRequestInfo& _requestInfo,
       tokens(0),
       responseListener(std::move(_responseListener)) {
   TRACE("ctor: executor: $0", executor);
+  client.setRequest(_requestInfo, _requestBody);
 }
 
 HttpClusterRequest::~HttpClusterRequest() {

@@ -109,29 +109,14 @@ void HttpClusterMember::release() {
 }
 
 bool HttpClusterMember::process(HttpClusterRequest* cr) {
-#if 0
-  TRACE("Using executor: $0", cr->executor);
-  Future<HttpClient> f = HttpClient::sendAsync(
-      inetAddress_,
-      cr->requestInfo,
-      cr->requestBody,
-      connectTimeout_,
-      readTimeout_,
-      writeTimeout_,
-      cr->executor);
+  Future<HttpClient*> f = cr->client.sendAsync(inetAddress_,
+                                               connectTimeout_,
+                                               readTimeout_,
+                                               writeTimeout_);
 
   f.onFailure(std::bind(&HttpClusterMember::onFailure, this,
                         cr, std::placeholders::_1));
-  f.onSuccess(std::bind(&HttpClusterMember::onResponseReceived, this,
-                        cr, std::placeholders::_1));
-#else
-  Future<RefPtr<EndPoint>> f = InetEndPoint::connectAsync(
-      inetAddress_, connectTimeout_, readTimeout_, writeTimeout_, cr->executor);
-  f.onFailure(std::bind(&HttpClusterMember::onFailure, this,
-                        cr, std::placeholders::_1));
-  f.onSuccess(std::bind(&HttpClusterMember::onConnected, this,
-                        cr, std::placeholders::_1));
-#endif
+  f.onSuccess(std::bind(&HttpClusterMember::onResponseReceived, this, cr));
 
   return true;
 }
@@ -145,8 +130,7 @@ void HttpClusterMember::onFailure(HttpClusterRequest* cr, Status status) {
   eventListener_->onProcessingFailed(cr);
 }
 
-void HttpClusterMember::onResponseReceived(HttpClusterRequest* cr,
-                                           const HttpClient& client) {
+void HttpClusterMember::onResponseReceived(HttpClusterRequest* cr) {
   --load_;
 
   auto isConnectionHeader = [](const std::string& name) -> bool {
@@ -169,47 +153,23 @@ void HttpClusterMember::onResponseReceived(HttpClusterRequest* cr,
     return false;
   };
 
-  cr->onMessageBegin(client.responseInfo().version(),
-                     client.responseInfo().status(),
-                     BufferRef(client.responseInfo().reason()));
+  cr->onMessageBegin(cr->client.responseInfo().version(),
+                     cr->client.responseInfo().status(),
+                     BufferRef(cr->client.responseInfo().reason()));
 
-  for (const HeaderField& field: client.responseInfo().headers()) {
+  for (const HeaderField& field: cr->client.responseInfo().headers()) {
     if (!isConnectionHeader(field.name())) {
       cr->onMessageHeader(BufferRef(field.name()), BufferRef(field.value()));
     }
   }
 
-  HttpClient& nclient = const_cast<HttpClient&>(client);
   cr->onMessageHeaderEnd();
-  if (client.isResponseBodyBuffered()) {
-    cr->onMessageContent(nclient.responseBody());
+  if (cr->client.isResponseBodyBuffered()) {
+    cr->onMessageContent(cr->client.responseBody());
   } else {
-    cr->onMessageContent(nclient.takeResponseBody());
+    cr->onMessageContent(cr->client.takeResponseBody());
   }
   cr->onMessageEnd();
-}
-
-void HttpClusterMember::onConnected(HttpClusterRequest* cr,
-                                    const RefPtr<EndPoint>& ep) {
-  auto client = new HttpClient(cr->executor, ep);
-
-  client->send(cr->requestInfo, cr->requestBody);
-  Future<HttpClient*> f = client->completed();
-  f.onFailure(std::bind(&HttpClusterMember::onFailure2, this, cr, client, std::placeholders::_1));
-  f.onSuccess(std::bind(&HttpClusterMember::onResponseReceived2, this, cr, std::placeholders::_1));
-}
-
-void HttpClusterMember::onFailure2(HttpClusterRequest* cr,
-                                   HttpClient* client,
-                                   Status status) {
-  std::unique_ptr<HttpClient> owned(client);
-  onFailure(cr, status);
-}
-
-void HttpClusterMember::onResponseReceived2(HttpClusterRequest* cr,
-                                            HttpClient* client) {
-  std::unique_ptr<HttpClient> owned(client);
-  onResponseReceived(cr, *client);
 }
 
 void HttpClusterMember::serialize(JsonWriter& json) const {

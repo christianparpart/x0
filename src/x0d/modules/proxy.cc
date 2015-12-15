@@ -347,34 +347,6 @@ bool ProxyModule::proxy_fcgi(XzeroContext* cx, xzero::flow::vm::Params& args) {
   return false; // TODO
 }
 
-static HeaderFieldList filter(const HeaderFieldList& list,
-                              std::function<bool(const HeaderField&)> test) {
-  HeaderFieldList result;
-
-  for (const HeaderField& field: list)
-    if (test(field))
-      result.push_back(field);
-
-  return result;
-}
-
-auto skipConnectionFields = [](const HeaderField& f) -> bool {
-  static const std::vector<std::string> connectionHeaderFields = {
-    "Connection",
-    "Content-Length",
-    "Expect",
-    "Trailer",
-    "Transfer-Encoding",
-    "Upgrade",
-  };
-
-  for (const auto& name: connectionHeaderFields)
-    if (iequals(name, f.name()))
-      return false;
-
-  return true;
-};
-
 bool ProxyModule::proxy_http(XzeroContext* cx, xzero::flow::vm::Params& args) {
   InetAddress addr(args.getIPAddress(1), args.getInt(2));
   FlowString onClientAbortStr = args.getString(3);
@@ -386,43 +358,35 @@ bool ProxyModule::proxy_http(XzeroContext* cx, xzero::flow::vm::Params& args) {
   if (tryHandleTrace(cx))
     return true;
 
-  BufferRef requestBody = cx->request()->getContentBuffer();
-  size_t requestBodySize = requestBody.size();
-  HttpRequestInfo requestInfo(
-      HttpVersion::VERSION_1_1,
-      cx->request()->unparsedMethod(),
-      cx->request()->unparsedUri(),
-      requestBodySize,
-      filter(cx->request()->headers(), skipConnectionFields));
-
-  Future<HttpClient> f = HttpClient::sendAsync(
-      addr, requestInfo, requestBody,
-      connectTimeout, readTimeout, writeTimeout, executor);
+  HttpClient* client = new HttpClient(executor);
+  client->setRequest(*cx->request(), cx->request()->getContentBuffer());
+  Future<HttpClient*> f = client->sendAsync(
+      addr, connectTimeout, readTimeout, writeTimeout);
 
   f.onFailure([cx, addr] (Status s) {
     logError("proxy", "Failed to proxy to $0. $1", addr, s);
     cx->response()->setStatus(HttpStatus::ServiceUnavailable);
     cx->response()->completed();
   });
-  f.onSuccess([this, cx] (const HttpClient& client) {
-    for (const HeaderField& field: client.responseInfo().headers()) {
+  f.onSuccess([this, cx] (HttpClient* client) {
+    for (const HeaderField& field: client->responseInfo().headers()) {
       if (!isConnectionHeader(field.name())) {
         cx->response()->addHeader(field.name(), field.value());
       }
     }
     addVia(cx);
 
-    cx->response()->setStatus(client.responseInfo().status());
-    cx->response()->setReason(client.responseInfo().reason());
-    cx->response()->setContentLength(client.responseInfo().contentLength());
+    cx->response()->setStatus(client->responseInfo().status());
+    cx->response()->setReason(client->responseInfo().reason());
+    cx->response()->setContentLength(client->responseInfo().contentLength());
 
-    HttpClient& nclient = const_cast<HttpClient&>(client);
-    if (nclient.isResponseBodyBuffered())
-      cx->response()->write(nclient.responseBody());
+    if (client->isResponseBodyBuffered())
+      cx->response()->write(client->responseBody());
     else
-      cx->response()->write(nclient.takeResponseBody());
+      cx->response()->write(client->takeResponseBody());
 
     cx->response()->completed();
+    delete client;
   });
 
   return true;

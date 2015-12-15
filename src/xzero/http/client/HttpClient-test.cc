@@ -37,12 +37,13 @@ TEST(HttpClient, test_http1_default) {
       new CatchAndLogExceptionHandler("unittest")));
 
   RefPtr<ByteArrayEndPoint> ep = createEndPoint();
-  HttpClient cli(&sched, ep.as<EndPoint>());
+  HttpClient cli(&sched);
 
   HttpRequestInfo req(HttpVersion::VERSION_1_1, "GET", "/", 0, {});
   BufferRef body;
 
-  cli.send(std::move(req), body);
+  cli.setRequest(std::move(req), body);
+  cli.send(ep.as<EndPoint>());
 
   ASSERT_EQ(200, (int) cli.responseInfo().status());
   ASSERT_EQ("unittest", cli.responseInfo().headers().get("Server"));

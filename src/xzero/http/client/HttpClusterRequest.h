@@ -8,6 +8,7 @@
 
 #pragma once
 
+#include <xzero/http/client/HttpClient.h>
 #include <xzero/http/HttpRequestInfo.h>
 #include <xzero/http/HttpListener.h>
 #include <xzero/executor/Executor.h>
@@ -50,10 +51,11 @@ struct HttpClusterRequest : public CustomData,
   void onMessageEnd() override;
   void onProtocolError(HttpStatus code, const std::string& message) override;
 
+  void onFailure(HttpClusterRequest* cr, Status status);
+
  public:
   MonotonicTime ctime;
-  const HttpRequestInfo& requestInfo;
-  BufferRef requestBody;
+  HttpClient client;
   Executor* executor;
 
   // the bucket (node) this request is to be scheduled via

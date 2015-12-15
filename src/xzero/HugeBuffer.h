@@ -21,7 +21,7 @@ class InputStream;
  */
 class HugeBuffer {
  public:
-  HugeBuffer(size_t maxBufferSize);
+  explicit HugeBuffer(size_t maxBufferSize);
 
   bool empty() const noexcept { return actualSize_ == 0; }
   size_t size() const noexcept { return actualSize_; }

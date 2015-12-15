@@ -10,6 +10,7 @@
 
 #include <xzero/Uri.h>
 #include <xzero/Buffer.h>
+#include <xzero/HugeBuffer.h>
 #include <xzero/RefPtr.h>
 #include <xzero/Option.h>
 #include <xzero/Duration.h>
@@ -51,39 +52,22 @@ class HttpTransport;
  */
 class HttpClient : public HttpListener {
  public:
-  HttpClient(Executor* executor, RefPtr<EndPoint> endpoint);
+  explicit HttpClient(Executor* executor);
   HttpClient(HttpClient&& other);
   ~HttpClient();
 
   // request builder
-  void send(const HttpRequestInfo& requestInfo, const BufferRef& requestBody);
-  Future<HttpClient*> completed();
+  const HttpRequestInfo& requestInfo() const noexcept;
+  void setRequest(const HttpRequestInfo& requestInfo, const BufferRef& requestBody);
+  Future<HttpClient*> sendAsync(InetAddress& addr, Duration connectTimeout,
+                                Duration readTimeout, Duration writeTimeout);
+  void send(RefPtr<EndPoint> ep);
 
   // response message accessor
   const HttpResponseInfo& responseInfo() const noexcept;
   bool isResponseBodyBuffered() const noexcept;
-  const Buffer& responseBody();
+  const BufferRef& responseBody();
   FileView takeResponseBody();
-
-  // WIP brainstorming ideas
-  static Future<HttpClient> sendAsync(
-      const std::string& method,
-      const Uri& url,
-      const std::vector<std::pair<std::string, std::string>>& headers,
-      const BufferRef& requestBody,
-      Executor* executor);
-
-  static Future<HttpClient> sendAsync(
-      const HttpRequestInfo& requestInfo, const BufferRef& requestBody,
-      Executor* executor);
-
-  static Future<HttpClient> sendAsync(
-      const InetAddress& inet,
-      const HttpRequestInfo& requestInfo, const BufferRef& requestBody,
-      Duration connectTimeout,
-      Duration readTimeout,
-      Duration writeTimeout,
-      Executor* executor);
 
  private:
   // HttpListener overrides
@@ -99,16 +83,20 @@ class HttpClient : public HttpListener {
  private:
   Executor* executor_;
 
-  RefPtr<EndPoint> endpoint_;
   HttpTransport* transport_;
 
-  HttpResponseInfo responseInfo_;
-  Buffer responseBodyBuffer_;
-  FileDescriptor responseBodyFd_;
-  size_t responseBodySize_;
+  HttpRequestInfo requestInfo_;
+  Buffer requestBody_;
 
-  Option<Promise<HttpClient*>> promise_;
+  HttpResponseInfo responseInfo_;
+  HugeBuffer responseBody_;
+
+  Promise<HttpClient*> promise_;
 };
+
+inline const HttpRequestInfo& HttpClient::requestInfo() const noexcept {
+  return requestInfo_;
+}
 
 } // namespace client
 } // namespace http
