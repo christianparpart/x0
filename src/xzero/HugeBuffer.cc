@@ -27,6 +27,8 @@ void HugeBuffer::write(const BufferRef& chunk) {
     FileUtil::write(fd_, chunk);
   else
     buffer_.push_back(chunk);
+
+  actualSize_ += chunk.size();
 }
 
 void HugeBuffer::write(const FileView& chunk) {
@@ -37,6 +39,8 @@ void HugeBuffer::write(const FileView& chunk) {
     FileUtil::write(fd_, chunk);
   else
     FileUtil::read(chunk, &buffer_);
+
+  actualSize_ += chunk.size();
 }
 
 void HugeBuffer::write(FileView&& chunk) {
@@ -51,6 +55,8 @@ void HugeBuffer::write(FileView&& chunk) {
       FileUtil::write(fd_, chunk);
     else
       FileUtil::read(chunk, &buffer_);
+
+    actualSize_ += chunk.size();
   }
 }
 
@@ -59,6 +65,9 @@ void HugeBuffer::write(Buffer&& chunk) {
   if (actualSize_ == 0) {
     buffer_ = std::move(chunk);
     actualSize_ = buffer_.size();
+  } else {
+    buffer_.push_back(chunk);
+    actualSize_ += chunk.size();
   }
 }
 
