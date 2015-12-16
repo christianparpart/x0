@@ -24,6 +24,7 @@
 - [x] revive `max_request_body`
 - [x] console logger to also log timestamps, can be disabled (enabled by default)
 - [x] HttpRequest: reuse of HttpRequestInfo
+- [x] webdav implements PUT method
 - [ ] x0d-signals: logfile rotating (HUP)
 - [ ] x0d-signals: graceful shutdown (INT, TERM)
 - [ ] x0d-signals: all the others (USR1, USR2, ...?)
@@ -50,7 +51,6 @@
 - [x] HttpClusterScheduler::Chance
 - [x] flow-api: `proxy.http(ipaddr, port)`
 - [x] x0d: 100-continue - pre-read HttpInput
-- [x] webdav implements PUT method
 - [x] proxy.http: support request body
 - [x] HttpHealthMonitor: monitor an HTTP upstream
 - [x] HttpClient: an easier way to connect to an endpoint AND issue the request
@@ -68,9 +68,7 @@
 - [x] request body tmp stored on disk if larger than N bytes
 - [x] response body tmp stored on disk if larger than N bytes
 - [x] load/save `health-check-success-threshold`
-- [ ] HttpRequest/HttpResponse: make use of HttpContent to fix request bodies and benifit from it in response bodies, too
-- [ ] support request bodies
-- [ ] fix and use `HttpClient::sendAsync()`
+- [x] support request bodies
 - [ ] fix request enqueuing/dequeueing
 - ...
 
