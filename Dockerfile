@@ -1,30 +1,16 @@
 FROM ubuntu:15.04
 MAINTAINER Christian Parpart <trapni@gmail.com>
 
-# {{{ Base System
-ENV HOME /root
-ENV LANG en_US.utf8
-ENV PATH /usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
-ENV DEBIAN_FRONTEND noninteractive
-
-RUN dpkg-divert --local --rename --add /sbin/initctl && \
-    rm -f /sbin/initctl && \
-    ln -s /bin/true /sbin/initctl
-
-RUN locale-gen en_US.UTF-8 && \
-    update-locale en_US.UTF-8
-
-RUN apt-mark hold initscripts
-
-RUN echo "force-unsafe-io" > /etc/dpkg/dpkg.cfg.d/02apt-speedup
-RUN echo "Acquire::http {No-Cache=True;};" > /etc/apt/apt.conf.d/no-cache
-RUN apt-get -qq update
-#RUN apt-get -qqy dist-upgrade
-# }}}
-
 ADD . /usr/src/x0
 
-RUN apt-get install -y \
+ENV DEBIAN_FRONTEND="noninteractive" \
+    DOCROOT="/var/www" \
+    PORT="80"
+
+RUN echo "force-unsafe-io" > /etc/dpkg/dpkg.cfg.d/02apt-speedup && \
+    echo "Acquire::http {No-Cache=True;};" > /etc/apt/apt.conf.d/no-cache && \
+    apt-get -qq update && \
+    apt-get install -y \
         make cmake clang++-3.5 libssl-dev zlib1g-dev libbz2-dev pkg-config \
         libpcre3-dev libfcgi-dev libgoogle-perftools-dev libtbb-dev \
         libpam-dev libgtest-dev ninja-build && \
@@ -51,9 +37,6 @@ RUN apt-get install -y \
     apt-get autoremove -y && \
     rm -rvf /var/lib/apt/lists/* && \
     rm -rf /usr/src
-
-ENV DOCROOT "/var/www"
-ENV PORT 80
 
 ADD docker-x0d.conf /etc/x0d/x0d.conf
 VOLUME /etc/x0d /var/www /var/lib/x0d /var/log/x0d
