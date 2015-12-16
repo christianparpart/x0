@@ -105,7 +105,7 @@ void Connection::completed() {
 
   if (channel_->request()->method() != HttpMethod::HEAD &&
       !generator_.isChunked() &&
-      generator_.pendingContentLength() > 0)
+      generator_.remainingContentLength() > 0)
     RAISE(IllegalStateError, "Invalid State. Response not fully written but completed() invoked.");
 
   setCompleter(std::bind(&Connection::onResponseComplete, this,

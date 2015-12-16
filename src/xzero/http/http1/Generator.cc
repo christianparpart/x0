@@ -22,6 +22,7 @@ namespace http1 {
 Generator::Generator(EndPointWriter* output)
     : bytesTransmitted_(0),
       contentLength_(Buffer::npos),
+      actualContentLength_(0),
       chunked_(false),
       buffer_(),
       writer_(output) {
@@ -104,11 +105,11 @@ void Generator::generateBody(const BufferRef& chunk) {
       writer_->write(BufferRef("\r\n"));
     }
   } else {
-    if (chunk.size() <= contentLength_) {
-      contentLength_ -= chunk.size();
+    if (chunk.size() <= remainingContentLength()) {
+      actualContentLength_ += chunk.size();
       writer_->write(chunk);
     } else {
-      throw std::runtime_error("HTTP body chunk exceeds content length.");
+      RAISE(RuntimeError, "HTTP body exceeds the expected content length.");
     }
   }
 }
@@ -137,11 +138,11 @@ void Generator::generateBody(Buffer&& chunk) {
       writer_->write(BufferRef("\r\n"));
     }
   } else {
-    if (chunk.size() <= contentLength_) {
-      contentLength_ -= chunk.size();
+    if (chunk.size() <= remainingContentLength()) {
+      actualContentLength_ += chunk.size();
       writer_->write(std::move(chunk));
     } else {
-      throw std::runtime_error("HTTP body chunk exceeds content length.");
+      RAISE(RuntimeError, "HTTP body exceeds the expected content length.");
     }
   }
 }
@@ -159,9 +160,9 @@ void Generator::generateBody(FileView&& chunk) {
       writer_->write(BufferRef("\r\n"));
     }
   } else {
-    if (chunk.size() <= contentLength_) {
+    if (chunk.size() <= remainingContentLength()) {
       bytesTransmitted_ += chunk.size();
-      contentLength_ -= chunk.size();
+      actualContentLength_ += chunk.size();
       writer_->write(std::move(chunk));
     } else {
       RAISE(RuntimeError, "HTTP body chunk exceeds content length.");
@@ -185,7 +186,7 @@ void Generator::generateRequestLine(const HttpRequestInfo& info) {
       buffer_.push_back(" HTTP/1.1\r\n");
       break;
     default:
-      throw std::runtime_error("Illegal State");
+      RAISE(InvalidArgumentError, "Invalid HttpVersion passed.");
   }
 }
 

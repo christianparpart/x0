@@ -94,9 +94,14 @@ class XZERO_HTTP_API Generator {
   void generateTrailer(const HeaderFieldList& trailers);
 
   /**
-   * Retrieves the number of bytes pending for the content.
+   * Retrieves the number of bytes remaining for the content.
    */
-  size_t pendingContentLength() const XZERO_NOEXCEPT { return contentLength_; }
+  size_t remainingContentLength() const XZERO_NOEXCEPT {
+    return contentLength() - actualContentLength();
+  }
+
+  size_t contentLength() const noexcept { return contentLength_; }
+  size_t actualContentLength() const noexcept { return actualContentLength_; }
 
   /**
    * Retrieves boolean indicating whether chunked response is generated.
@@ -115,6 +120,7 @@ class XZERO_HTTP_API Generator {
  private:
   size_t bytesTransmitted_;
   size_t contentLength_;
+  size_t actualContentLength_;
   bool chunked_;
   Buffer buffer_;
   EndPointWriter* writer_;

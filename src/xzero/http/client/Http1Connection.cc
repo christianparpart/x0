@@ -103,7 +103,7 @@ void Http1Connection::completed() {
   setCompleter(std::bind(&Http1Connection::onRequestComplete, this,
                          std::placeholders::_1));
 
-  if (!generator_.isChunked() && generator_.pendingContentLength() > 0)
+  if (!generator_.isChunked() && generator_.remainingContentLength() > 0)
     RAISE(IllegalStateError, "Invalid State. Request not fully written but completed() invoked.");
 
   //generator_.generateTrailer(channel_->requestInfo()->trailers());
