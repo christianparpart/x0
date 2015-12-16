@@ -70,6 +70,9 @@
 - [x] load/save `health-check-success-threshold`
 - [x] support request bodies
 - [ ] fix request enqueuing/dequeueing
+- [ ] upstream response body's max-buffer-size should be configurable
+      as a per-cluster config variable. this value is used in `HugeBuffer`.
+      Default: 4 mbyte.
 - ...
 
 #### proxy: stage 2
@@ -80,6 +83,9 @@
 - [ ] flow-api: `proxy.fcgi(ipaddr, port)`
 - [ ] HttpClient: support UNIX domain socket alongside with TCP/IP
 - [ ] Executor::HandleRef -> `<xzero/Action.h>` or similar to make it more generic
+- [ ] support disabling caching of upstream response bodies but perform
+      slow I/O instead. make this feaure per-cluster runtime configurable.
+      by default: caching is enabled.
 
 ### Feature Stories
 
