@@ -85,7 +85,7 @@ const BufferRef& HugeBuffer::getBuffer() const {
 }
 
 std::unique_ptr<InputStream> HugeBuffer::getInputStream() {
-  if (fd_ != -1) {
+  if (fd_.isOpen()) {
     // TODO: provide a PositionalFileInputStream (pread's) to get rid of this side-effect
     FileUtil::seek(fd_, 0);
   }
