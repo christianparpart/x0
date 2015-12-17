@@ -1,6 +1,6 @@
 # Xzero HTTP Application Web Server
 
-[![](https://badge.imagelayers.io/trapni/xzero-git:latest.svg)](https://imagelayers.io/?images=trapni/xzero-git:latest 'Get your own badge on imagelayers.io')
+[![](https://badge.imagelayers.io/trapni/x0:git.svg)](https://imagelayers.io/?images=trapni/x0:git 'Get your own badge on imagelayers.io')
 [![](https://secure.travis-ci.org/xzero/x0.png) ](http://travis-ci.org/xzero/x0)
 
 
