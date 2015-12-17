@@ -92,7 +92,7 @@ class HttpClient : public HttpListener {
   HttpResponseInfo responseInfo_;
   HugeBuffer responseBody_;
 
-  Promise<HttpClient*> promise_;
+  std::unique_ptr<Promise<HttpClient*>> promise_;
 };
 
 inline const HttpRequestInfo& HttpClient::requestInfo() const noexcept {

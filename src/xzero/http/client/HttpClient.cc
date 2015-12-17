@@ -106,10 +106,11 @@ Future<HttpClient*> HttpClient::sendAsync(InetAddress& addr,
   });
 
   f.onFailure([this](Status s) {
-    promise_.failure(s);
+    promise_->failure(s);
   });
 
-  return promise_.future();
+  promise_ = std::unique_ptr<Promise<HttpClient*>>(new Promise<HttpClient*>());
+  return promise_->future();
 }
 
 void HttpClient::send(RefPtr<EndPoint> ep) {
@@ -167,12 +168,12 @@ void HttpClient::onMessageContent(FileView&& chunk) {
 void HttpClient::onMessageEnd() {
   TRACE("onMessageEnd()");
   responseInfo_.setContentLength(responseBody_.size());
-  promise_.success(this);
+  promise_->success(this);
 }
 
 void HttpClient::onProtocolError(HttpStatus code, const std::string& message) {
   logError("HttpClient", "Protocol Error. $0; $1", code, message);
-  promise_.failure(Status::ForeignError);
+  promise_->failure(Status::ForeignError);
 }
 
 } // namespace client
