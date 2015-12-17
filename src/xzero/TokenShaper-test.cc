@@ -17,36 +17,6 @@
 
 using namespace xzero;
 
-// {{{
-template <typename T>
-void dumpNode(const T* bucket, const char* title, int depth) {
-  if (title && *title)
-    printf("%20s: ", title);
-  else
-    printf("%20s  ", "");
-
-  for (int i = 0; i < depth; ++i) printf(" -- ");
-
-  printf(
-      "name:%-20s rate:%-2zu (%.2f) ceil:%-2zu (%.2f) \tactual-rate:%-2zu "
-      "queued:%-2zu\n",
-      AnsiColor::colorize(AnsiColor::Green, bucket->name()).c_str(),
-      bucket->rate(), bucket->rateP(), bucket->ceil(), bucket->ceilP(),
-      bucket->actualRate(), bucket->queued().current());
-
-  for (const auto& child : *bucket) dumpNode(child, "", depth + 1);
-
-  if (!depth) {
-    printf("\n");
-  }
-}
-
-template <class T>
-void dump(const TokenShaper<T>& shaper, const char* title) {
-  dumpNode(shaper.rootNode(), title, 0);
-}
-// }}}
-
 class TokenShaperTest : public ::testing::Test {
  public:
   TokenShaperTest();
