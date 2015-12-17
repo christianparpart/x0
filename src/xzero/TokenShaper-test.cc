@@ -6,11 +6,16 @@
 // the License at: http://opensource.org/licenses/MIT
 
 #include <gtest/gtest.h>
-#include <x0/TokenShaper.h>
-#include <x0/AnsiColor.h>
-#include <ev++.h>
+#include <xzero/TokenShaper.h>
+#include <xzero/AnsiColor.h>
+#include <xzero/MonotonicClock.h>
+#include <xzero/MonotonicTime.h>
+#include <xzero/executor/PosixScheduler.h>
+#include <xzero/logging/Logger.h>
+#include <xzero/logging/ConsoleLogTarget.h>
+#include <xzero/StringUtil.h>
 
-using namespace x0;
+using namespace xzero;
 
 // {{{
 template <typename T>
@@ -52,7 +57,8 @@ class TokenShaperTest : public ::testing::Test {
  protected:
   typedef TokenShaper<int> Shaper;
 
-  Shaper* shaper;
+  std::unique_ptr<Scheduler> loop;
+  std::unique_ptr<Shaper> shaper;
   Shaper::Node* root;
   Shaper::Node* vip;
   Shaper::Node* main;
@@ -60,14 +66,21 @@ class TokenShaperTest : public ::testing::Test {
 };
 
 TokenShaperTest::TokenShaperTest()
-    : shaper(nullptr),
+    : loop(nullptr),
+      shaper(nullptr),
       root(nullptr),
       vip(nullptr),
       main(nullptr),
-      upload(nullptr) {}
+      upload(nullptr) {
+}
 
 void TokenShaperTest::SetUp() {
-  shaper = new Shaper(ev_default_loop(0), 10);
+  // Logger::get()->setMinimumLogLevel(LogLevel::Info);
+  // Logger::get()->addTarget(ConsoleLogTarget::get());
+
+  loop.reset(new PosixScheduler());
+
+  shaper.reset(new Shaper(loop.get(), 10, nullptr));
   root = shaper->rootNode();
 
   shaper->createNode("vip", 0.1, 0.3);
@@ -80,9 +93,14 @@ void TokenShaperTest::SetUp() {
   upload = shaper->findNode("upload");
 }
 
-void TokenShaperTest::TearDown() { delete shaper; }
+void TokenShaperTest::TearDown() {
+  shaper.reset();
+  loop.reset();
+}
 
-void TokenShaperTest::dump(const char* msg) { ::dump(*shaper, msg); }
+void TokenShaperTest::dump(const char* msg) {
+  ::dump(*shaper, msg);
+}
 
 TEST_F(TokenShaperTest, Setup) {
   ASSERT_TRUE(vip != nullptr);
@@ -306,30 +324,29 @@ TEST_F(TokenShaperTest, GetWithEnqueuePutDequeue) {
   ASSERT_TRUE(object == nullptr);
 }
 
-TEST_F(TokenShaperTest, /*DISABLED_*/ TimeoutHandling) {
-  ev::tstamp start_at = ev::now(shaper->loop());
-  ev::tstamp fired_at = 0;
+TEST_F(TokenShaperTest, TimeoutHandling) {
+  MonotonicTime start_at = MonotonicClock::now();
+  MonotonicTime fired_at;
   int* object = nullptr;
 
-  vip->setQueueTimeout(TimeSpan::fromSeconds(1));
+  vip->setQueueTimeout(1_seconds);
   vip->setTimeoutHandler([&](int* obj) {
-    fired_at = ev::now(shaper->loop());
+    fired_at = MonotonicClock::now();
     object = obj;
-    shaper->loop().break_loop();
+    loop->breakLoop();
   });
 
   vip->enqueue(new int(42));
-  shaper->loop().run();
+  loop->runLoop();
 
   ASSERT_TRUE(object != nullptr);
   EXPECT_EQ(42, *object);
 
-  ev::tstamp duration = fired_at - start_at;
-  ev::tstamp diff = vip->queueTimeout()() - duration;
+  Duration duration = fired_at - start_at;
+  Duration diff = vip->queueTimeout() - duration;
 
   // be a little greedy with the range here as CPU loads might get sick.
-  EXPECT_TRUE(diff >= -0.01);
-  EXPECT_TRUE(diff <= +0.01);
+  EXPECT_TRUE(diff < 10_milliseconds);
 
   delete object;
 }
