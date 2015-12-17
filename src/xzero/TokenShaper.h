@@ -99,8 +99,7 @@ class TokenShaper {
               std::function<void(T*)> timeoutHandler);
   ~TokenShaper();
 
-  template <typename H>
-  void setTimeoutHandler(H handler);
+  void setTimeoutHandler(TimeoutHandler handler);
 
   Executor* executor() const { return root_->executor_; }
   void setExecutor(Executor* executor);
@@ -266,8 +265,7 @@ TokenShaper<T>::~TokenShaper() {
 }
 
 template <typename T>
-template <typename H>
-void TokenShaper<T>::setTimeoutHandler(H handler) {
+void TokenShaper<T>::setTimeoutHandler(TimeoutHandler handler) {
   root_->setTimeoutHandler(handler);
 }
 
@@ -356,6 +354,16 @@ void TokenShaper<T>::Node::setExecutor(Executor* executor) {
     child->setExecutor(executor);
   }
 }
+
+template <typename T>
+void TokenShaper<T>::Node::setTimeoutHandler(TimeoutHandler handler) {
+  onTimeout_ = handler;
+
+  for (const auto child : children_) {
+    child->setTimeoutHandler(handler);
+  }
+}
+
 
 template <typename T>
 float TokenShaper<T>::Node::childRateP() const {
@@ -582,11 +590,14 @@ size_t TokenShaper<T>::Node::get(size_t n) {
     auto Rc = childRate();
     auto Oc = actualChildOverRate();
 
-    if (std::max(R, Rc + Oc) + n > AR) break;
+    if (std::max(R, Rc + Oc) + n > AR)
+      break;
 
-    if (!actualRate_.increment(n, R)) continue;
+    if (!actualRate_.increment(n, R))
+      continue;
 
-    for (Node* p = parent_; p; p = p->parent_) p->actualRate_ += n;
+    for (Node* p = parent_; p; p = p->parent_)
+      p->actualRate_ += n;
 
     return n;
   }
@@ -705,11 +716,14 @@ void TokenShaper<T>::Node::writeJSON(JsonWriter& json) const {
 
 template <typename T>
 void TokenShaper<T>::Node::updateQueueTimer() {
+  MonotonicTime now = MonotonicClock::now();
+
   // finish already timed out requests
   while (!queue_.empty()) {
     QueueItem front = queue_.front();
-    Duration age(MonotonicClock::now() - front.ctime);
-    if (age < queueTimeout_) break;
+    Duration age = now - front.ctime;
+    if (age < queueTimeout_)
+      break;
 
     // TRACE("updateQueueTimer: dequeueing timed out request");
     queue_.pop_front();
@@ -728,11 +742,10 @@ void TokenShaper<T>::Node::updateQueueTimer() {
 
   // setup queue timer to wake up after next timeout is reached.
   QueueItem front = queue_.front();
-  Duration age(MonotonicClock::now() - front.ctime);
-  Duration ttl(queueTimeout_ - age);
+  Duration age = now - front.ctime;
+  Duration ttl = queueTimeout_ - age;
 
-  // TRACE("updateQueueTimer: starting new timer with ttl %.2f secs (%llu ms)",
-  //       ttl.value(), ttl.totalMilliseconds());
+  // TRACE("updateQueueTimer: starting new timer with TTL $0", ttl);
 
   executor_->executeAfter(
       ttl,
