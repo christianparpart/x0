@@ -11,6 +11,7 @@
 	symbols have been adjusted.
 	* proxy: `response_body_buffer_size(I)V` setup function added,
 	currently only used by proxy module.
+	* proxy: unavailable (not yet ported) features: fastcgi, unix domain sockets
 
 0.10.0 (2014-07-03)
 
