@@ -25,6 +25,8 @@
 #define XZERO_OS_WIN32 1
 #elif defined(__APPLE__)
 #define XZERO_OS_DARWIN 1 /* MacOS/X 10 */
+#elif defined(__linux__)
+#define XZERO_OS_LINUX 1
 #endif
 #endif
 
