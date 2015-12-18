@@ -1,5 +1,32 @@
 ### Incomplete Migration Tasks
 
+- [ ] UnixSignals API
+- [ ] UnixSignals: OS/X (kqueue)
+- [ ] PosixScheduler: add refCount in order to allow checking for interests
+      (just like in libev), so it is easier for UnixSignals to silently
+      watch without letting the event loop being stuck even no actual
+      interest has been created.
+- [ ] UnixSignals: Linux (signalfd)
+
+- [ ] x0d-signals: logfile rotating (HUP)
+- [ ] x0d-signals: graceful shutdown (INT, TERM)
+- [ ] x0d-signals: all the others (USR1, USR2, ...?)
+
+- [ ] revive `lingering`
+- [ ] revive `max_connections`
+- [ ] revive HTTP client side abort notification API
+- [ ] (make thread safe) File::lastModified()
+- [ ] (flow:bug) `"Blah #{call}blah#{call}"` doesn't work
+      unless I specify it as `"Blah #{call()}blah#{call}"`
+- [ ] (flow:bug) `listen(port: "80")` MUST raise a signature mismatch error
+- [ ] (flow) `var x = call1 + '.' + call2;` not working. fix me.
+- [ ] (flow) tag flow handlers to never return (aka. always handle),
+      thus, enabling the compiler to give a warning on dead code after
+      this handler.
+- [ ] (flow) a verifier callback must have the ability to attach custom data
+      to the actual call.
+      something like `CallInstr.attach(OwnedPtr<CustomData> data);
+
 - [x] access to Scheduler API from within HttpRequest or XzeroContext;
       consider merging `Scheduler` and `Executor`;
       consider using `Scheduler` instead of `Executor` in net and http code;
@@ -25,23 +52,6 @@
 - [x] console logger to also log timestamps, can be disabled (enabled by default)
 - [x] HttpRequest: reuse of HttpRequestInfo
 - [x] webdav implements PUT method
-- [ ] x0d-signals: logfile rotating (HUP)
-- [ ] x0d-signals: graceful shutdown (INT, TERM)
-- [ ] x0d-signals: all the others (USR1, USR2, ...?)
-- [ ] revive `lingering`
-- [ ] revive `max_connections`
-- [ ] revive HTTP client side abort notification API
-- [ ] (make thread safe) File::lastModified()
-- [ ] (flow:bug) `"Blah #{call}blah#{call}"` doesn't work
-      unless I specify it as `"Blah #{call()}blah#{call}"`
-- [ ] (flow:bug) `listen(port: "80")` MUST raise a signature mismatch error
-- [ ] (flow) `var x = call1 + '.' + call2;` not working. fix me.
-- [ ] (flow) tag flow handlers to never return (aka. always handle),
-      thus, enabling the compiler to give a warning on dead code after
-      this handler.
-- [ ] (flow) a verifier callback must have the ability to attach custom data
-      to the actual call.
-      something like `CallInstr.attach(OwnedPtr<CustomData> data);
 
 ### proxy
 
@@ -73,7 +83,6 @@
 - [x] upstream response body's max-buffer-size should be configurable
       as a per-cluster config variable. this value is used in `HugeBuffer`.
       Default: 4 mbyte.
-- ...
 
 #### proxy: stage 2
 
