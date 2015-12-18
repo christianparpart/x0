@@ -62,7 +62,6 @@ HttpClusterMember::HttpClusterMember(
           std::bind(&EventListener::onHealthChanged, eventListener,
                     this, std::placeholders::_2))),
       clients_() {
-  eventListener_->onCapacityChanged(this, 0);
 }
 
 HttpClusterMember::~HttpClusterMember() {

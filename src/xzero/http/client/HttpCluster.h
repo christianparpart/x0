@@ -143,7 +143,6 @@ class HttpCluster : public HttpClusterMember::EventListener {
   typedef RequestShaper::Node Bucket;
 
   Executor* executor() const noexcept { return executor_; }
-  void setExecutor(Executor* executor);
 
   TokenShaperError createBucket(const std::string& name, float rate, float ceil);
   Bucket* findBucket(const std::string& name) const;

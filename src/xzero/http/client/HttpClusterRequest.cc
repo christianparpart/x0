@@ -62,13 +62,13 @@ void HttpClusterRequest::onMessageContent(FileView&& chunk) {
 void HttpClusterRequest::onMessageEnd() {
   TRACE("onMessageEnd!");
 
-  assert(tokens > 0);
-  assert(bucket != nullptr);
-  assert(backend != nullptr);
-
-  bucket->put(tokens);
-
-  backend->release();
+  // FYI: timed out requests do not have tokens, backend and bucket
+  if (tokens) {
+    assert(bucket != nullptr);
+    assert(backend != nullptr);
+    bucket->put(tokens);
+    backend->release();
+  }
   responseListener->onMessageEnd();
 }
 

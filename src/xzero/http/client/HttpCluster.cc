@@ -28,8 +28,8 @@ namespace http {
 namespace client {
 
 #ifndef NDEBUG
-# define DEBUG(msg...) logDebug("http.client.HttpCluster", msg)
-# define TRACE(msg...) logTrace("http.client.HttpCluster", msg)
+# define DEBUG(msg...) logDebug("HttpCluster", msg)
+# define TRACE(msg...) logTrace("HttpCluster", msg)
 #else
 # define DEBUG(msg...) do {} while (0)
 # define TRACE(msg...) do {} while (0)
@@ -411,22 +411,18 @@ void HttpCluster::setConfiguration(const std::string& text,
   }
 #endif
 
-  TRACE("Before iterating section");
   for (auto& section : settings) {
     static const std::string backendSectionPrefix("backend=");
     static const std::string bucketSectionPrefix("bucket=");
 
     std::string key = section.first;
-    TRACE("iterating section: $0", key);
     if (key == "director") continue;
 
     if (key == "cache") continue;
 
     if (key.find(backendSectionPrefix) == 0) {
-      TRACE("should load backend section: $0", key);
       loadBackend(settings, key);
     } else if (key.find(bucketSectionPrefix) == 0) {
-      TRACE("should load bucket section: $0", key);
       loadBucket(settings, key);
     } else {
       RAISE(RuntimeError, StringUtil::format(
@@ -774,8 +770,7 @@ void HttpCluster::serviceUnavailable(HttpClusterRequest* cr, HttpStatus status) 
   if (retryAfter() != Duration::Zero) {
     char value[64];
     int vs = snprintf(value, sizeof(value), "%lu", retryAfter().seconds());
-    cr->onMessageHeader(
-        BufferRef("Retry-After"), BufferRef(value, vs));
+    cr->onMessageHeader(BufferRef("Retry-After"), BufferRef(value, vs));
   }
 
   cr->onMessageHeaderEnd();
@@ -839,10 +834,8 @@ void HttpCluster::dequeueTo(HttpClusterMember* backend) {
 HttpClusterRequest* HttpCluster::dequeue() {
   if (auto cr = shaper()->dequeue()) {
     --queued_;
-    TRACE("Director $0 dequeued request ($1 pending).", name(), queued_.current());
     return cr;
   }
-  TRACE("Director $0 dequeue() failed ($1 pending).", name(), queued_.current());
 
   return nullptr;
 }
@@ -864,7 +857,7 @@ void HttpCluster::onTimeout(HttpClusterRequest* cr) {
 
 // {{{ EventListener overrides
 void HttpCluster::onEnabledChanged(HttpClusterMember* backend) {
-  logDebug("HttpCluster", "onBackendEnabledChanged: $0 $1",
+  DEBUG("HttpCluster", "onBackendEnabledChanged: $0 $1",
         backend->name(), backend->isEnabled() ? "enabled" : "disabled");
   TRACE("onBackendEnabledChanged: $0 $1",
         backend->name(), backend->isEnabled() ? "enabled" : "disabled");
@@ -878,23 +871,13 @@ void HttpCluster::onEnabledChanged(HttpClusterMember* backend) {
 
 void HttpCluster::onCapacityChanged(HttpClusterMember* member, size_t old) {
   if (member->isEnabled()) {
+    TRACE("onCapacityChanged: member $0 capacity $1", member->name(), member->capacity());
     shaper()->resize(shaper()->size() - old + member->capacity());
   }
 }
 
 void HttpCluster::onHealthChanged(HttpClusterMember* backend,
                                   HttpHealthMonitor::State oldState) {
-  logDebug("HttpCluster",
-        "onBackendHealthStateChanged: health=$0 -> $1, enabled=$2",
-        oldState,
-        backend->healthMonitor()->state(),
-        backend->isEnabled());
-
-  TRACE("onBackendHealthStateChanged: health=$0 -> $1, enabled=$2",
-        oldState,
-        backend->healthMonitor()->state(),
-        backend->isEnabled());
-
   logInfo("HttpCluster",
           "$0: backend '$1' ($2:$3) is now $4.",
           name(), backend->name(),
@@ -902,14 +885,15 @@ void HttpCluster::onHealthChanged(HttpClusterMember* backend,
           backend->inetAddress().port(),
           backend->healthMonitor()->state());
 
-  if (backend->healthMonitor()->isOnline()) {
-    if (!backend->isEnabled())
-      return;
+  if (!backend->isEnabled())
+    return;
 
+  if (backend->healthMonitor()->isOnline()) {
     // backend is online and enabled
 
-    TRACE("onBackendHealthStateChanged: adding capacity to shaper ($0 + $1)",
+    TRACE("onHealthChanged: adding capacity to shaper ($0 + $1)",
            shaper()->size(), backend->capacity());
+
     shaper()->resize(shaper()->size() + backend->capacity());
 
     if (!stickyOfflineMode()) {
@@ -923,12 +907,11 @@ void HttpCluster::onHealthChanged(HttpClusterMember* backend,
           name(), backend->name());
       backend->setEnabled(false);
     }
-  } else if (backend->isEnabled() && oldState == HttpHealthMonitor::State::Online) {
+  } else if (oldState == HttpHealthMonitor::State::Online) {
     // backend is offline and enabled
-    shaper()->resize(shaper()->size() - backend->capacity());
-
-    TRACE("onBackendHealthStateChanged: removing capacity from shaper ($0 - $1)",
+    TRACE("onHealthChanged: removing capacity from shaper ($0 - $1)",
           shaper()->size(), backend->capacity());
+    shaper()->resize(shaper()->size() - backend->capacity());
   }
 }
 
@@ -937,6 +920,12 @@ void HttpCluster::onProcessingSucceed(HttpClusterMember* member) {
 }
 
 void HttpCluster::onProcessingFailed(HttpClusterRequest* request) {
+  assert(request->bucket != nullptr);
+  assert(request->tokens != 0);
+
+  request->bucket->put(1);
+  request->tokens = 0;
+
   reschedule(request);
 }
 // }}}
