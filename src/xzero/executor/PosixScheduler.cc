@@ -202,10 +202,14 @@ Scheduler::HandleRef PosixScheduler::insertIntoTimersList(MonotonicTime dt,
     i--;
     const RefPtr<Timer>& current = *i;
     if (t->when >= current->when) {
+      TRACE("insertIntoTimersList: test if $0 >= $1 (yes, insert before)",
+            inspect(*current), inspect(*t));
       i++;
       i = timers_.insert(i, t);
       return t.as<Handle>();
     }
+    TRACE("insertIntoTimersList: test if $0 >= $1 (no)",
+          inspect(*current), inspect(*t));
   }
 
   timers_.push_front(t);
@@ -493,11 +497,11 @@ void PosixScheduler::runLoopOnce() {
     }
 
     Duration nt = nextTimeout();
-    TRACE("nextTimeout = $0", nt);
+    TRACE("runLoopOnce(): nextTimeout = $0", nt);
     tv = nt;
   }
 
-  TRACE("runLoopOnce(): select(wmark=$0, in=$1, out=$2, err=$3, tmo=$4), timers=$5, tasks=$6",
+  TRACE("runLoopOnce: select(wmark=$0, in=$1, out=$2, err=$3, tmo=$4), timers=$5, tasks=$6",
         wmark + 1, incount, outcount, errcount, Duration(tv), timers_.size(), tasks_.size());
   TRACE("runLoopOnce: $0", inspect(*this).c_str());
 
@@ -535,6 +539,8 @@ void PosixScheduler::runLoopOnce() {
 Duration PosixScheduler::nextTimeout() const {
   if (!tasks_.empty())
     return Duration::Zero;
+
+  TRACE("nextTimeout: timers = $0", inspect(timers_));
 
   const Duration a = !timers_.empty()
                  ? timers_.front()->when - now()
