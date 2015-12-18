@@ -29,23 +29,36 @@ EndPointWriter::~EndPointWriter() {
 
 void EndPointWriter::write(const BufferRef& data) {
   TRACE("write: enqueue $0 bytes", data.size());
+
+  if (data.empty())
+    return;
+
   chunks_.emplace_back(std::unique_ptr<Chunk>(new BufferRefChunk(data)));
 }
 
 void EndPointWriter::write(Buffer&& chunk) {
   TRACE("write: enqueue $0 bytes", chunk.size());
+
+  if (chunk.empty())
+    return;
+
   chunks_.emplace_back(std::unique_ptr<Chunk>(
         new BufferChunk(std::forward<Buffer>(chunk))));
 }
 
 void EndPointWriter::write(FileView&& chunk) {
   TRACE("write: enqueue $0 bytes", chunk.size());
+
+  if (chunk.empty())
+    return;
+
   chunks_.emplace_back(std::unique_ptr<Chunk>(
         new FileChunk(std::forward<FileView>(chunk))));
 }
 
 bool EndPointWriter::flush(EndPoint* sink) {
   TRACE("write: flushing $0 chunks", chunks_.size());
+
   while (!chunks_.empty()) {
     if (!chunks_.front()->transferTo(sink))
       return false;
