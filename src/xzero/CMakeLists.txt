@@ -115,6 +115,7 @@ set(xzero_base_SRC
   Tokenizer.cc
   TokenShaper.cc
   UnixTime.cc
+  UnixSignals.cc
   Uri.cc
   UTF8.cc
   WallClock.cc
