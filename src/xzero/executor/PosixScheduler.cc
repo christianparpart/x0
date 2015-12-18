@@ -113,9 +113,6 @@ PosixScheduler::PosixScheduler(
       watchers_(),
       firstWatcher_(nullptr),
       lastWatcher_(nullptr),
-      signalWatchers_(),
-      signalWatcherCount_(0),
-      signalFd_(-1),
       readerCount_(0),
       writerCount_(0) {
   if (pipe(wakeupPipe_) < 0) {
@@ -314,13 +311,6 @@ void PosixScheduler::cancelFD(int fd) {
     Watcher* w = &watchers_[fd];
     w->cancel();
   }
-}
-
-Executor::HandleRef PosixScheduler::executeOnSignal(int signo, Task task) {
-  // TODO: verify that signo is a valid signal number
-  signalWatchers_[signo].emplace_back(task);
-  signalWatcherCount_++;
-  breakLoop();
 }
 
 std::string inspectWatchers(PosixScheduler::Watcher* firstWatcher) {

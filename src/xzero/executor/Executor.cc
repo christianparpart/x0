@@ -8,13 +8,15 @@
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 #include <xzero/executor/Executor.h>
+#include <xzero/UnixSignals.h>
 #include <xzero/StringUtil.h>
 #include <xzero/thread/Wakeup.h>
 
 namespace xzero {
 
 Executor::Executor(std::unique_ptr<xzero::ExceptionHandler> eh)
-    : safeCall_(std::move(eh)) {
+    : safeCall_(std::move(eh)),
+      unixSignals_(UnixSignals::create(this)) {
 }
 
 Executor::~Executor() {
@@ -22,6 +24,10 @@ Executor::~Executor() {
 
 void Executor::setExceptionHandler(std::unique_ptr<ExceptionHandler> eh) {
   safeCall_.setExceptionHandler(std::move(eh));
+}
+
+Executor::HandleRef Executor::executeOnSignal(int signo, Task task) {
+  return unixSignals_->executeOnSignal(signo, task);
 }
 
 /**

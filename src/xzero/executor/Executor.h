@@ -17,6 +17,7 @@
 #include <xzero/UnixTime.h>
 #include <xzero/sysconfig.h>
 
+#include <memory>
 #include <mutex>
 #include <atomic>
 #include <exception>
@@ -26,6 +27,7 @@
 namespace xzero {
 
 class Wakeup;
+class UnixSignals;
 
 /**
  * Closure Execution Service API.
@@ -121,7 +123,7 @@ class Executor {
    * @note If you always want to get notified on a given signal, you must
    *       reregister yourself each time you have been fired.
    */
-  virtual HandleRef executeOnSignal(int signo, Task task) = 0;
+  virtual HandleRef executeOnSignal(int signo, Task task);
 
   /**
    * Runs given task when given selectable is non-blocking readable.
@@ -177,6 +179,7 @@ class Executor {
 
  protected:
   SafeCall safeCall_;
+  std::unique_ptr<UnixSignals> unixSignals_;
 };
 
 } // namespace xzero
