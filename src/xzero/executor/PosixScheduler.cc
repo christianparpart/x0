@@ -205,11 +205,6 @@ Scheduler::HandleRef PosixScheduler::insertIntoTimersList(MonotonicTime dt,
       i++;
       i = timers_.insert(i, t);
       return t.as<Handle>();
-
-      // return std::make_shared<Handle>([this, i]() {
-      //   std::lock_guard<std::mutex> lk(lock_);
-      //   timers_.erase(i);
-      // });
     }
   }
 
