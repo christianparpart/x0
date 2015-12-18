@@ -19,10 +19,10 @@ inline constexpr Duration::Duration(uint64_t microseconds)
     : micros_(microseconds) {}
 
 inline Duration::Duration(const struct ::timeval& value)
-    : micros_(value.tv_sec + value.tv_usec * kMicrosPerSecond) {}
+    : micros_(value.tv_usec + value.tv_sec * kMicrosPerSecond) {}
 
 inline Duration::Duration(const struct ::timespec& value)
-    : micros_(value.tv_sec + value.tv_nsec * kMicrosPerSecond / 1000) {}
+    : micros_(value.tv_nsec / 1000 + value.tv_sec * kMicrosPerSecond) {}
 
 inline Duration& Duration::operator=(const Duration& other) {
   micros_ = other.micros_;
