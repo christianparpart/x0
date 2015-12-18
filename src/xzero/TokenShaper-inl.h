@@ -575,7 +575,7 @@ void TokenShaper<T>::Node::updateQueueTimer() {
   Duration age = now - front.ctime;
   Duration ttl = queueTimeout_ - age;
 
-  // TRACE("updateQueueTimer: starting new timer with TTL $0", ttl);
+  TS_TRACE("updateQueueTimer: starting new timer with TTL $0, age $1", ttl, age);
 
   executor_->executeAfter(
       ttl,
