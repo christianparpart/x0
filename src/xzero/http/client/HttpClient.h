@@ -53,6 +53,7 @@ class HttpTransport;
 class HttpClient : public HttpListener {
  public:
   explicit HttpClient(Executor* executor);
+  HttpClient(Executor* executor, size_t responseBodyBufferSize);
   HttpClient(HttpClient&& other);
   ~HttpClient();
 

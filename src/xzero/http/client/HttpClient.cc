@@ -49,12 +49,16 @@ static bool isConnectionHeader(const T& name) {
 }
 
 HttpClient::HttpClient(Executor* executor)
+    : HttpClient(executor, 32 * 1024 * 1024) {
+}
+
+HttpClient::HttpClient(Executor* executor, size_t responseBodyBufferSize)
     : executor_(executor),
       transport_(nullptr),
       requestInfo_(),
       requestBody_(),
       responseInfo_(),
-      responseBody_(32 * 1024 * 1024),
+      responseBody_(responseBodyBufferSize),
       promise_() {
 }
 
