@@ -164,7 +164,8 @@ Scheduler::HandleRef PosixScheduler::insertIntoTimersList(MonotonicTime dt,
   while (i != e) {
     i--;
     const RefPtr<Timer>& current = *i;
-    if (current->when >= t->when) {
+    if (t->when >= current->when) {
+      i++;
       i = timers_.insert(i, t);
       return t.as<Handle>();
 
