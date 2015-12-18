@@ -49,6 +49,7 @@ struct Config {
   size_t maxRequestBodySize = 16 * 1024 * 1024;   // 16 MB
   size_t requestHeaderBufferSize = 16 * 1024;     // 16 KB
   size_t requestBodyBufferSize = 16 * 1024;       // 16 KB
+  size_t responseBodyBufferSize = 4 * 1024 * 1024;// 4 MB
   size_t maxKeepAliveRequests = 100;
   xzero::Duration maxKeepAlive = 8_seconds;
 

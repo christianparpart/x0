@@ -150,6 +150,8 @@ class XzeroDaemon : public xzero::flow::vm::Runtime {
   xzero::LocalFileRepository& vfs() noexcept { return vfs_; }
   xzero::http::HttpFileHandler& fileHandler() noexcept { return fileHandler_; }
 
+  Config& config() const { return *config_; }
+
   template<typename T>
   T* loadModule();
 

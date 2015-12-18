@@ -167,6 +167,7 @@ CoreModule::CoreModule(XzeroDaemon* d)
   setupFunction("max_request_body_size", &CoreModule::max_request_body_size, FlowType::Number);
   setupFunction("request_header_buffer_size", &CoreModule::request_header_buffer_size, FlowType::Number);
   setupFunction("request_body_buffer_size", &CoreModule::request_body_buffer_size, FlowType::Number);
+  setupFunction("response_body_buffer_size", &CoreModule::response_body_buffer_size, FlowType::Number);
 
   // TODO setup error-documents
 
@@ -431,6 +432,10 @@ void CoreModule::request_header_buffer_size(Params& args) {
 
 void CoreModule::request_body_buffer_size(Params& args) {
   daemon().config_->requestBodyBufferSize = args.getInt(1);
+}
+
+void CoreModule::response_body_buffer_size(Params& args) {
+  daemon().config_->responseBodyBufferSize = args.getInt(1);
 }
 
 void CoreModule::listen(Params& args) {

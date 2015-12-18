@@ -290,7 +290,8 @@ bool ProxyModule::proxy_cluster_auto(XzeroContext* cx, Params& args) {
       cx->request()->getContentBuffer(),
       std::unique_ptr<HttpListener>(new HttpResponseBuilder(
           this, cx->request(), cx->response())),
-      cx->response()->executor());
+      cx->response()->executor(),
+      daemon().config().responseBodyBufferSize);
 
   cluster->schedule(cr, nullptr);
 
@@ -324,7 +325,8 @@ bool ProxyModule::proxy_cluster(XzeroContext* cx, Params& args) {
       cx->request()->getContentBuffer(),
       std::unique_ptr<HttpListener>(new HttpResponseBuilder(
           this, cx->request(), cx->response())),
-      cx->response()->executor());
+      cx->response()->executor(),
+      daemon().config().responseBodyBufferSize);
 
   cluster->schedule(cr, bucket);
 

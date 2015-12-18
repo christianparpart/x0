@@ -36,7 +36,8 @@ struct HttpClusterRequest : public CustomData,
   HttpClusterRequest(const HttpRequestInfo& _requestInfo,
                      const BufferRef& _requestBody,
                      std::unique_ptr<HttpListener> _responseListener,
-                     Executor* _executor);
+                     Executor* _executor,
+                     size_t responseBodyBufferSize);
   ~HttpClusterRequest();
 
   void post(Executor::Task task) { executor->execute(task); }

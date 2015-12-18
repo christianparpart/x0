@@ -60,6 +60,7 @@ class CoreModule : public XzeroModule {
   void max_request_body_size(Params& args);
   void request_header_buffer_size(Params& args);
   void request_body_buffer_size(Params& args);
+  void response_body_buffer_size(Params& args);
 
   // setup functions
   void listen(Params& args);

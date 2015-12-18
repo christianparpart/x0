@@ -1,14 +1,16 @@
 0.11.0 (2016-MM-DD)
 
 	* project: Almost full rewrite of almost everything in order to support
-		any transport layer for HTTP, such as HTTP/2 and gain better testability
+	any transport layer for HTTP, such as HTTP/2 and gain better testability
 	* flow: fixes parsing regular expression (versus div operator)
 	* flow: handler keyword can be omitted
 	* x0d: uses TMPDIR environment variable now for temporarly storing
-		request bodies or upstream response bodies
+	request bodies or upstream response bodies
 	* modules: plugins are now statically included to provide a single binary
 	* proxy: the director module was renamed to proxy and its configuration
-		symbols have been adjusted.
+	symbols have been adjusted.
+	* proxy: `response_body_buffer_size(I)V` setup function added,
+	currently only used by proxy module.
 
 0.10.0 (2014-07-03)
 

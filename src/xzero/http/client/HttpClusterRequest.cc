@@ -21,9 +21,10 @@ namespace client {
 HttpClusterRequest::HttpClusterRequest(const HttpRequestInfo& _requestInfo,
                                        const BufferRef& _requestBody,
                                        std::unique_ptr<HttpListener> _responseListener,
-                                       Executor* _executor)
+                                       Executor* _executor,
+                                       size_t responseBodyBufferSize)
     : ctime(MonotonicClock::now()),
-      client(_executor),
+      client(_executor, responseBodyBufferSize),
       executor(_executor),
       bucket(nullptr),
       backend(nullptr),
