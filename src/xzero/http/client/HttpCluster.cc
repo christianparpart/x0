@@ -125,7 +125,7 @@ std::string HttpCluster::configuration() const {
       << "[director]\n"
       << "enabled=" << (enabled_ ? "true" : "false") << "\n"
       << "queue-limit=" << queueLimit_ << "\n"
-      << "queue-timeout=" << queueTimeout_.seconds() << "\n"
+      << "queue-timeout=" << queueTimeout_.milliseconds() << "\n"
       //TODO: << "on-client-abort=" << tos(clientAbortAction_) << "\n"
       << "retry-after=" << retryAfter_.seconds() << "\n"
       << "max-retry-count=" << maxRetryCount_ << "\n"
@@ -207,7 +207,8 @@ void HttpCluster::setConfiguration(const std::string& text,
           "director.queue-timeout in file '$0'",
           path));
   }
-  queueTimeout_ = Duration::fromSeconds(std::stoll(value));
+  queueTimeout_ = Duration::fromMilliseconds(std::stoll(value));
+  shaper()->rootNode()->setQueueTimeout(queueTimeout_);
 
   if (!settings.load("director", "retry-after", value)) {
     RAISE(RuntimeError, StringUtil::format(
