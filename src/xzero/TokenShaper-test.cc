@@ -23,10 +23,12 @@ class TokenShaperTest : public ::testing::Test {
   void SetUp();
   void TearDown();
   void dump(const char* msg = "shaper");
+  void onTimeout(int* i);
 
  protected:
   typedef TokenShaper<int> Shaper;
 
+  Shaper::TimeoutHandler onTimeout_;
   std::unique_ptr<Scheduler> loop;
   std::unique_ptr<Shaper> shaper;
   Shaper::Node* root;
@@ -44,13 +46,20 @@ TokenShaperTest::TokenShaperTest()
       upload(nullptr) {
 }
 
+void TokenShaperTest::onTimeout(int* i) {
+  if (onTimeout_)
+    onTimeout_(i);
+}
+
 void TokenShaperTest::SetUp() {
   // Logger::get()->setMinimumLogLevel(LogLevel::Info);
   // Logger::get()->addTarget(ConsoleLogTarget::get());
 
   loop.reset(new PosixScheduler());
 
-  shaper.reset(new Shaper(loop.get(), 10, nullptr));
+  shaper.reset(new Shaper(loop.get(), 10,
+               std::bind(&TokenShaperTest::onTimeout, this,
+                         std::placeholders::_1)));
   root = shaper->rootNode();
 
   shaper->createNode("vip", 0.1, 0.3);
@@ -300,11 +309,12 @@ TEST_F(TokenShaperTest, TimeoutHandling) {
   int* object = nullptr;
 
   vip->setQueueTimeout(1_seconds);
-  vip->setTimeoutHandler([&](int* obj) {
+
+  onTimeout_ = [&](int* obj) {
     fired_at = MonotonicClock::now();
     object = obj;
     loop->breakLoop();
-  });
+  };
 
   vip->enqueue(new int(42));
   loop->runLoop();

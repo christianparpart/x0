@@ -21,16 +21,6 @@ TokenShaper<T>::~TokenShaper() {
 }
 
 template <typename T>
-void TokenShaper<T>::setTimeoutHandler(TimeoutHandler handler) {
-  root_->setTimeoutHandler(handler);
-}
-
-template <typename T>
-void TokenShaper<T>::setExecutor(Executor* executor) {
-  root_->setExecutor(executor);
-}
-
-template <typename T>
 size_t TokenShaper<T>::size() const {
   return root_->rate();
 }
@@ -113,25 +103,6 @@ template <typename T>
 inline float TokenShaper<T>::Node::ceilP() const noexcept {
   return ceilPercent_;
 }
-
-template <typename T>
-void TokenShaper<T>::Node::setExecutor(Executor* executor) {
-  executor_ = executor;
-
-  for (const auto child : children_) {
-    child->setExecutor(executor);
-  }
-}
-
-template <typename T>
-void TokenShaper<T>::Node::setTimeoutHandler(TimeoutHandler handler) {
-  onTimeout_ = handler;
-
-  for (const auto child : children_) {
-    child->setTimeoutHandler(handler);
-  }
-}
-
 
 template <typename T>
 float TokenShaper<T>::Node::childRateP() const {

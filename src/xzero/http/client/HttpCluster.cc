@@ -676,11 +676,6 @@ void HttpCluster::setHealthCheckSuccessCodes(const std::vector<HttpStatus>& valu
     member->healthMonitor()->setSuccessCodes(value);
 }
 
-void HttpCluster::setExecutor(Executor* executor) {
-  executor_ = executor;
-  shaper()->setExecutor(executor);
-}
-
 TokenShaperError HttpCluster::createBucket(const std::string& name, float rate,
                                             float ceil) {
   return shaper_.createNode(name, rate, ceil);

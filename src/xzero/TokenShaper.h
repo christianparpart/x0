@@ -102,10 +102,7 @@ class TokenShaper {
               std::function<void(T*)> timeoutHandler);
   ~TokenShaper();
 
-  void setTimeoutHandler(TimeoutHandler handler);
-
   Executor* executor() const { return root_->executor_; }
-  void setExecutor(Executor* executor);
 
   size_t size() const;
   void resize(size_t capacity);
@@ -138,7 +135,6 @@ class TokenShaper<T>::Node {
   float rateP() const noexcept;
   float ceilP() const noexcept;
 
-  void setTimeoutHandler(TimeoutHandler handler);
   TokenShaperError setName(const std::string& value);
   TokenShaperError setRate(float value);
   TokenShaperError setCeil(float value);
@@ -191,8 +187,6 @@ class TokenShaper<T>::Node {
   const_iterator cend() const;
 
   void writeJSON(JsonWriter& json) const;
-
-  void setExecutor(Executor* executor);
 
  private:
   friend class TokenShaper;
