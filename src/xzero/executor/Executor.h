@@ -113,6 +113,17 @@ class Executor {
   virtual void cancelFD(int fd) = 0;
 
   /**
+   * Runs given task when given signal was received.
+   *
+   * @param signo UNIX signal number (such as SIGTERM) you want to be called * for.
+   * @param task Task to execute upon given event.
+   *
+   * @note If you always want to get notified on a given signal, you must
+   *       reregister yourself each time you have been fired.
+   */
+  virtual HandleRef executeOnSignal(int signo, Task task) = 0;
+
+  /**
    * Runs given task when given selectable is non-blocking readable.
    *
    * @param fd file descriptor to watch for non-blocking readability.

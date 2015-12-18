@@ -46,6 +46,7 @@ class PosixScheduler : public Scheduler {
   HandleRef executeOnReadable(int fd, Task task, Duration tmo, Task tcb) override;
   HandleRef executeOnWritable(int fd, Task task, Duration tmo, Task tcb) override;
   void cancelFD(int fd) override;
+  HandleRef executeOnSignal(int signo, Task task) override;
   void executeOnWakeup(Task task, Wakeup* wakeup, long generation) override;
   size_t timerCount() override;
   size_t readerCount() override;
@@ -208,6 +209,11 @@ class PosixScheduler : public Scheduler {
   std::vector<Watcher> watchers_;   //!< I/O watchers
   Watcher* firstWatcher_;           //!< I/O watcher with the smallest timeout
   Watcher* lastWatcher_;            //!< I/O watcher with the largest timeout
+
+  typedef std::list<Task> TaskList;
+  std::unordered_map<int, TaskList> signalWatchers_;
+  std::atomic<size_t> signalWatcherCount_;
+  int signalFd_;
 
   std::atomic<size_t> readerCount_; //!< number of active read interests
   std::atomic<size_t> writerCount_; //!< number of active write interests
