@@ -126,12 +126,12 @@ class TokenShaper {
   Node* root_;
 };
 
-// {{{ TokenShaper<T>::Node API
 template <typename T>
 class TokenShaper<T>::Node {
  public:
   //! @todo must be thread safe to allow bucket iteration while modification
   typedef std::vector<TokenShaper<T>::Node*> BucketList;
+  typedef typename BucketList::const_iterator const_iterator;
 
   // user attributes
   const std::string& name() const noexcept;
@@ -185,10 +185,10 @@ class TokenShaper<T>::Node {
   // child bucket access
   bool empty() const;
   size_t size() const;
-  typename BucketList::const_iterator begin() const;
-  typename BucketList::const_iterator end() const;
-  typename BucketList::const_iterator cbegin() const;
-  typename BucketList::const_iterator cend() const;
+  const_iterator begin() const;
+  const_iterator end() const;
+  const_iterator cbegin() const;
+  const_iterator cend() const;
 
   void writeJSON(JsonWriter& json) const;
 
@@ -216,41 +216,50 @@ class TokenShaper<T>::Node {
     QueueItem(T* _token, MonotonicTime _ctime) : token(_token), ctime(_ctime) {}
   };
 
-  Executor* executor_; //!< used for queue timeout management.
+  /** used for queue timeout management. */
+  Executor* executor_;
 
-  std::string name_;  //!< bucket name
+  /** bucket name */
+  std::string name_;
 
-  std::atomic<size_t> rate_;  //!< maximum tokens this bucket and all its
-                              //children are guaranteed.
-  std::atomic<size_t> ceil_;  //!< maximum tokens this bucket can send if parent
-                              //has enough tokens spare.
+  /** maximum tokens this bucket and all its children are guaranteed. */
+  std::atomic<size_t> rate_;
 
-  float ratePercent_;  //!< rate in percent relative to parent's ceil
-  float ceilPercent_;  //!< ceil in percent relative to parent's ceil
+  /** maximum tokens this bucket can send if parent has enough tokens spare. */
+  std::atomic<size_t> ceil_;
 
-  Node* parent_;         //!< parent bucket this bucket is a direct child of
-  BucketList children_;  //!< direct child buckets
+  float ratePercent_;   //!< rate in percent relative to parent's ceil
+  float ceilPercent_;   //!< ceil in percent relative to parent's ceil
 
-  Counter actualRate_;                   //!< bucket load stats
-  Counter queued_;                       //!< bucket queue stats
-  std::atomic<unsigned long long> dropped_;  //!< Number of tokens dropped due
-                                             //to queue timeouts.
+  Node* parent_;        //!< parent bucket this bucket is a direct child of
+  BucketList children_; //!< direct child buckets
 
-  Duration queueTimeout_;    //!< time span on how long a token may stay in
-                                 //queue.
-  std::deque<QueueItem> queue_;  //!< FIFO queue of tokens that could not be
-                                 //passed directly.
-  size_t dequeueOffset_;  //!< dequeue-offset at which child to dequeue next.
+  Counter actualRate_;  //!< bucket load stats
+  Counter queued_;      //!< bucket queue stats
 
-  TimeoutHandler onTimeout_;  //!< Callback, invoked when the token has been queued and just timed out.
+  /** Number of tokens dropped due to queue timeouts. */
+  std::atomic<unsigned long long> dropped_;
+
+  /** time span on how long a token may stay in queue. */
+  Duration queueTimeout_;
+
+  /** FIFO queue of tokens that could not be passed directly. */
+  std::deque<QueueItem> queue_;
+
+  /** dequeue-offset at which child to dequeue next. */
+  size_t dequeueOffset_;
+
+  /** Callback, invoked when the token has been queued and just timed out. */
+  TimeoutHandler onTimeout_;
 
   std::mutex lock_;
 };
-// }}}
-// {{{ free fuunctions
+
+/**
+ * Dumps given TokenShaper to stdout.
+ */
 template <class T>
 void dump(const TokenShaper<T>& shaper, const char* title);
-// }}}
 
 }  // namespace xzero
 
