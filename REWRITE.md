@@ -1,7 +1,7 @@
 ### Incomplete Migration Tasks
 
-- [ ] UnixSignals API
-- [ ] UnixSignals: OS/X (kqueue)
+- [x] UnixSignals API
+- [x] UnixSignals: OS/X (kqueue)
 - [ ] PosixScheduler: add refCount in order to allow checking for interests
       (just like in libev), so it is easier for UnixSignals to silently
       watch without letting the event loop being stuck even no actual
