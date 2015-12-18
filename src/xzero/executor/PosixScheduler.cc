@@ -63,6 +63,42 @@ std::string StringUtil::toString<const PosixScheduler&>(const PosixScheduler& s)
   return inspect(s);
 }
 
+std::string inspect(PosixScheduler::Mode mode) {
+  static const std::string modes[] = {
+    "READABLE",
+    "WRITABLE"
+  };
+  return modes[static_cast<size_t>(mode)];
+}
+
+std::string inspect(const std::list<RefPtr<PosixScheduler::Timer>>& list) {
+  std::string result;
+  MonotonicTime now = MonotonicClock::now();
+  result += "{";
+  for (const auto& t: list) {
+    if (result.size() > 1)
+      result += ", ";
+    result += StringUtil::format("{$0}", t->when - now);
+  }
+  result += "}";
+
+  return result;
+}
+
+std::string inspect(const PosixScheduler::Timer& t) {
+  return StringUtil::format("{$0}", t.when - MonotonicClock::now());
+}
+
+std::string inspect(const PosixScheduler::Watcher& w) {
+  Duration diff = w.timeout - MonotonicClock::now();
+  return StringUtil::format("{$0, $1, $2}",
+                            w.fd, w.mode, diff);
+}
+
+std::string inspect(const PosixScheduler& s) {
+  return s.inspectImpl();
+}
+
 PosixScheduler::PosixScheduler(
     std::unique_ptr<xzero::ExceptionHandler> eh,
     std::function<void()> preInvoke,
@@ -613,24 +649,6 @@ std::string PosixScheduler::inspectImpl() const {
   sstr << "}"; // scheduler
 
   return sstr.str();
-}
-
-std::string inspect(PosixScheduler::Mode mode) {
-  static const std::string modes[] = {
-    "READABLE",
-    "WRITABLE"
-  };
-  return modes[static_cast<size_t>(mode)];
-}
-
-std::string inspect(const PosixScheduler::Watcher& w) {
-  Duration diff = w.timeout - MonotonicClock::now();
-  return StringUtil::format("{$0, $1, $2}",
-                            w.fd, w.mode, diff);
-}
-
-std::string inspect(const PosixScheduler& s) {
-  return s.inspectImpl();
 }
 
 } // namespace xzero
