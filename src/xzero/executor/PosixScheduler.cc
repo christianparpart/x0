@@ -135,7 +135,8 @@ Scheduler::HandleRef PosixScheduler::executeAfter(Duration delay, Task task) {
 }
 
 Scheduler::HandleRef PosixScheduler::executeAt(UnixTime when, Task task) {
-  return executeAfter(when - WallClock::now(), task);
+  TRACE("executeAt: $0", when);
+  return insertIntoTimersList(now() + (when - WallClock::now()), task);
 }
 
 Scheduler::HandleRef PosixScheduler::insertIntoTimersList(MonotonicTime dt,
