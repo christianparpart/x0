@@ -90,9 +90,6 @@
 ### Feature Stories
 
 - [ ] support Server Sent Events (HTTP SSE)
-
-### After-Revival-Release Stories
-
 - [ ] proxy: idempotent HTTP requests should be retried when backend
       returned a 5xx, too.
       configure option: `proxy.retry_idempotent_on_5xx(B)V`
