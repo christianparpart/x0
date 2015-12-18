@@ -69,7 +69,7 @@
 - [x] response body tmp stored on disk if larger than N bytes
 - [x] load/save `health-check-success-threshold`
 - [x] support request bodies
-- [ ] fix request enqueuing/dequeueing
+- [x] fix request enqueuing/dequeueing
 - [ ] upstream response body's max-buffer-size should be configurable
       as a per-cluster config variable. this value is used in `HugeBuffer`.
       Default: 4 mbyte.
