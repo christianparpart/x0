@@ -20,7 +20,8 @@
 #include <signal.h>
 
 #if defined(XZERO_OS_LINUX)
-#include <linux/epoll.h>
+#include <sys/signalfd.h>
+#include <unistd.h>
 #endif
 
 #if defined(XZERO_OS_DARWIN)
@@ -71,12 +72,111 @@ class LinuxSignals : public UnixSignals {
   explicit LinuxSignals(Executor* executor);
   ~LinuxSignals();
   HandleRef executeOnSignal(int signo, Task task) override;
+  void onSignal();
 
  private:
   Executor* executor_;
+  Executor::HandleRef handle_;
   FileDescriptor fd_;
+  sigset_t signalMask_;
+  std::mutex mutex_;
+  std::atomic<size_t> interests_;
   std::vector<std::list<RefPtr<SignalWatcher>>> watchers_;
 };
+
+LinuxSignals::LinuxSignals(Executor* executor)
+    : executor_(executor),
+      fd_(),
+      signalMask_(),
+      mutex_(),
+      interests_(0),
+      watchers_(128) {
+  sigemptyset(&signalMask_);
+}
+
+LinuxSignals::~LinuxSignals() {
+}
+
+UnixSignals::HandleRef LinuxSignals::executeOnSignal(int signo, Task task) {
+  std::lock_guard<std::mutex> _l(mutex_);
+
+  // add event to signal mask
+  if (!sigismember(&signalMask_, signo)) {
+    sigaddset(&signalMask_, signo);
+    sigprocmask(SIG_BLOCK, &signalMask_, nullptr);
+    fd_ = signalfd(fd_, &signalMask_, SFD_NONBLOCK | SFD_CLOEXEC);
+    TRACE("signalfd: $0", fd_.get());
+  }
+
+  RefPtr<SignalWatcher> hr(new SignalWatcher(task));
+  watchers_[signo].emplace_back(hr);
+
+  if (interests_.load() == 0) {
+    handle_ = executor_->executeOnReadable(
+        fd_,
+        std::bind(&LinuxSignals::onSignal, this));
+  }
+
+  interests_++;
+
+  return hr.as<Executor::Handle>();
+}
+
+void LinuxSignals::onSignal() {
+  std::lock_guard<std::mutex> _l(mutex_);
+
+  signalfd_siginfo events[16];
+  ssize_t n = 0;
+  for (;;) {
+    n = read(fd_, events, sizeof(events));
+    TRACE("onSignal: read $0 bytes.", n);
+    if (n < 0) {
+      if (errno == EINTR)
+        continue;
+
+      RAISE_ERRNO(errno);
+    }
+    break;
+  }
+
+  // move pending signals out of the watchers
+  std::vector<RefPtr<SignalWatcher>> pending;
+  n /= sizeof(*events);
+  pending.reserve(n);
+  {
+    for (int i = 0; i < n; ++i) {
+      int signo = events[i].ssi_signo;
+      std::list<RefPtr<SignalWatcher>>& watchers = watchers_[signo];
+
+      logDebug("UnixSignals",
+               "Caught signal $0 from PID $1 UID $2.",
+               sig2str(signo),
+               events[i].ssi_pid,
+               events[i].ssi_uid);
+
+      pending.insert(pending.end(), watchers.begin(), watchers.end());
+      interests_ -= watchers_[signo].size();
+      watchers.clear();
+
+      sigdelset(&signalMask_, signo);
+    }
+
+    // reregister for further signals, if anyone interested
+    if (interests_.load() > 0) {
+      executor_->executeOnReadable(
+          fd_,
+          std::bind(&LinuxSignals::onSignal, this));
+    }
+  }
+
+  // update signal mask
+  sigprocmask(SIG_BLOCK, &signalMask_, nullptr);
+  signalfd(fd_, &signalMask_, 0);
+
+  // notify interests (XXX must not be invoked on local stack)
+  for (RefPtr<SignalWatcher>& hr: pending)
+    executor_->execute(std::bind(&SignalWatcher::fire, hr));
+}
 #endif
 // }}}
 #if defined(XZERO_OS_DARWIN) // {{{
@@ -147,9 +247,18 @@ void KQueueSignals::onSignal() {
   timeout.tv_sec = 0;
   timeout.tv_nsec = 0;
   struct kevent events[16];
-  int rv = kevent(fd_, nullptr, 0, events, 128, &timeout);
-  if (rv < 0)
-    RAISE_ERRNO(errno);
+
+  int rv = 0;
+  for (;;) {
+    rv = kevent(fd_, nullptr, 0, events, 128, &timeout);
+    if (rv < 0) {
+      if (errno == EINTR) {
+        continue;
+      }
+      RAISE_ERRNO(errno);
+    }
+    break;
+  }
 
   std::vector<RefPtr<SignalWatcher>> pending;
   pending.reserve(rv);
@@ -160,9 +269,7 @@ void KQueueSignals::onSignal() {
       int signo = events[i].ident;
       std::list<RefPtr<SignalWatcher>>& watchers = watchers_[signo];
 
-      TRACE("Caught signal $0 with $1 watchers.",
-            sig2str(signo),
-            watchers.size());
+      logDebug("UnixSignals", "Caught signal $0.", sig2str(signo));
 
       pending.insert(pending.end(), watchers.begin(), watchers.end());
       interests_ -= watchers_[signo].size();
