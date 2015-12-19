@@ -26,7 +26,7 @@ void Executor::setExceptionHandler(std::unique_ptr<ExceptionHandler> eh) {
   safeCall_.setExceptionHandler(std::move(eh));
 }
 
-Executor::HandleRef Executor::executeOnSignal(int signo, Task task) {
+Executor::HandleRef Executor::executeOnSignal(int signo, SignalHandler task) {
   return unixSignals_->executeOnSignal(signo, task);
 }
 
