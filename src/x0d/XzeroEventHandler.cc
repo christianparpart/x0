@@ -22,9 +22,9 @@ XzeroEventHandler::~XzeroEventHandler() {
 void XzeroEventHandler::onReload() {
   logNotice("x0d", "Reload signal received.");
 
-  scheduler_->executeOnSignal(SIGHUP, std::bind(&XzeroEventHandler::onReload, this));
-
   daemon_->onCycleLogs();
+
+  scheduler_->executeOnSignal(SIGHUP, std::bind(&XzeroEventHandler::onReload, this));
 }
 
 } // namespace x0d
