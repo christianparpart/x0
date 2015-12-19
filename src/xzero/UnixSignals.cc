@@ -93,13 +93,10 @@ KQueueSignals::HandleRef KQueueSignals::executeOnSignal(int signo, Task task) {
   // add event to kqueue
   if (watchers_[signo].empty()) {
     struct kevent ke;
-    uintptr_t ident = signo;
-    int16_t filter = EVFILT_SIGNAL;
-    uint16_t flags = EV_ADD | EV_ONESHOT;
-    uint32_t fflags = 0;
-    intptr_t data = 0;
-    void* udata = nullptr;
-    EV_SET(&ke, ident, filter, flags, fflags, data, udata);
+    EV_SET(&ke, signo, EVFILT_SIGNAL, EV_ADD | EV_ONESHOT, 
+           0 /* fflags */,
+           0 /* data */,
+           nullptr /* udata */);
     int rv = kevent(fd_, &ke, 1, nullptr, 0, nullptr);
     if (rv < 0) {
       RAISE_ERRNO(errno);
@@ -130,29 +127,30 @@ void KQueueSignals::onSignal() {
   if (rv < 0)
     RAISE_ERRNO(errno);
 
-  // move pending signals out of the watchers
   std::vector<RefPtr<SignalWatcher>> pending(rv);
   {
+    // move pending signals out of the watchers
     std::lock_guard<std::mutex> _l(mutex_);
     for (int i = 0; i < rv; ++i) {
       int signo = events[i].ident;
-      for (RefPtr<SignalWatcher> sig: watchers_[signo]) {
-        pending.emplace_back(sig);
-      }
-      watchers_[signo].clear();
+      std::list<RefPtr<SignalWatcher>>& watchers = watchers_[signo];
+
+      pending.insert(pending.end(), watchers.begin(), watchers.end());
+      interests_ -= watchers_[signo].size();
+      watchers.clear();
+    }
+
+    // reregister for further signals, if anyone interested
+    if (interests_.load() > 0) {
+      handle_ = executor_->executeOnReadable(
+          fd_,
+          std::bind(&KQueueSignals::onSignal, this));
     }
   }
 
   // notify interests
   for (RefPtr<SignalWatcher>& hr: pending)
     executor_->execute(std::bind(&SignalWatcher::fire, hr));
-
-  // reregister for further signals, if anyone interested
-  if (interests_.load() > 0) {
-    handle_ = executor_->executeOnReadable(
-        fd_,
-        std::bind(&KQueueSignals::onSignal, this));
-  }
 }
 #endif
 // }}}
