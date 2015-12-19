@@ -104,8 +104,13 @@ UnixSignals::HandleRef LinuxSignals::executeOnSignal(int signo, Task task) {
   if (!sigismember(&signalMask_, signo)) {
     sigaddset(&signalMask_, signo);
     sigprocmask(SIG_BLOCK, &signalMask_, nullptr);
-    fd_ = signalfd(fd_, &signalMask_, SFD_NONBLOCK | SFD_CLOEXEC);
-    TRACE("signalfd: $0", fd_.get());
+
+    // on-demand create signalfd instance
+    if (fd_.isOpen()) {
+      signalfd(fd_, &signalMask_, 0);
+    } else {
+      fd_ = signalfd(-1, &signalMask_, SFD_NONBLOCK | SFD_CLOEXEC);
+    }
   }
 
   RefPtr<SignalWatcher> hr(new SignalWatcher(task));
@@ -129,7 +134,6 @@ void LinuxSignals::onSignal() {
   ssize_t n = 0;
   for (;;) {
     n = read(fd_, events, sizeof(events));
-    TRACE("onSignal: read $0 bytes.", n);
     if (n < 0) {
       if (errno == EINTR)
         continue;
