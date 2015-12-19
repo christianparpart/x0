@@ -31,6 +31,8 @@ class XzeroEventHandler {
   void setupChild(int pid);
 
  private:
+  void onReload();
+
   // void reopenLogsHandler(ev::sig&, int);
   // void reexecHandler(ev::sig& sig, int);
   // void onChild(ev::child&, int);
@@ -51,7 +53,7 @@ class XzeroEventHandler {
   // ev::sig ctrlcSignal_;
   // ev::sig quitSignal_;
   // ev::sig user1Signal_;
-  // ev::sig hupSignal_;
+  // ev::sig reloadSignal_;
   // ev::sig suspendSignal_;
   // ev::sig resumeSignal_;
   // ev::sig logLevelIncSignal_;

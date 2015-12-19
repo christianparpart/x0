@@ -8,6 +8,7 @@
 
 #include "Config.h"
 #include "XzeroDaemon.h"
+#include "XzeroEventHandler.h"
 #include "XzeroContext.h"
 
 #include "modules/access.h"
@@ -62,6 +63,7 @@ XzeroDaemon::XzeroDaemon()
     : generation_(1),
       startupTime_(),
       terminate_(false),
+      eventHandler_(),
       mimetypes_(),
       vfs_(mimetypes_, "/", true, true, false),
       lastWorker_(0),
@@ -282,6 +284,8 @@ void XzeroDaemon::postConfig() {
   for (XzeroModule* module: modules_) {
     module->onPostConfig();
   }
+
+  eventHandler_.reset(new XzeroEventHandler(this, schedulers_[0].get()));
 }
 
 std::unique_ptr<Scheduler> XzeroDaemon::newScheduler() {

@@ -53,6 +53,7 @@ namespace xzero {
 namespace x0d {
 
 class XzeroModule;
+class XzeroEventHandler;
 
 class XzeroDaemon : public xzero::flow::vm::Runtime {
  public:
@@ -165,6 +166,8 @@ class XzeroDaemon : public xzero::flow::vm::Runtime {
   unsigned generation_;                  //!< process generation number
   xzero::UnixTime startupTime_;          //!< process startup time
   std::atomic<bool> terminate_;
+
+  std::unique_ptr<XzeroEventHandler> eventHandler_;
 
   xzero::MimeTypes mimetypes_;
   xzero::LocalFileRepository vfs_;
