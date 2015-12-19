@@ -68,7 +68,7 @@ unsigned long long CoreModule::setrlimit(
   struct rlimit rlim;
   if (::getrlimit(resource, &rlim) == -1) {
     logWarning("x0d",
-               "Failed to retrieve current resource limit on %s.",
+               "Failed to retrieve current resource limit on $0 ($1).",
                rc2str(resource), resource);
 
     return 0;
@@ -86,7 +86,7 @@ unsigned long long CoreModule::setrlimit(
 
   if (::setrlimit(resource, &rlim) == -1) {
     logWarning("x0d",
-               "Failed to set resource limit on %s from %lld to %lld.",
+               "Failed to set resource limit on $0 from $1 to $2.",
                rc2str(resource), hlast, hvalue);
 
     return 0;
