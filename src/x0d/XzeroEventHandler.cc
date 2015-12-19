@@ -14,6 +14,7 @@ XzeroEventHandler::XzeroEventHandler(XzeroDaemon* daemon,
       state_(XzeroState::Inactive) {
 
   scheduler_->executeOnSignal(SIGHUP, std::bind(&XzeroEventHandler::onReload, this));
+  scheduler_->executeOnSignal(SIGTERM, std::bind(&XzeroEventHandler::onTerminate, this));
 }
 
 XzeroEventHandler::~XzeroEventHandler() {
@@ -25,6 +26,11 @@ void XzeroEventHandler::onReload() {
   daemon_->onCycleLogs();
 
   scheduler_->executeOnSignal(SIGHUP, std::bind(&XzeroEventHandler::onReload, this));
+}
+
+void XzeroEventHandler::onTerminate() {
+  logNotice("x0d", "Initiate termination.");
+  daemon_->terminate();
 }
 
 } // namespace x0d

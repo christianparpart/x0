@@ -32,6 +32,7 @@ class XzeroEventHandler {
 
  private:
   void onReload();
+  void onTerminate();
 
   // void reopenLogsHandler(ev::sig&, int);
   // void reexecHandler(ev::sig& sig, int);
