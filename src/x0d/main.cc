@@ -11,8 +11,6 @@
 #include "sysconfig.h"
 
 #include <xzero-flow/ASTPrinter.h>
-#include <xzero/executor/NativeScheduler.h>
-#include <xzero/logging/LogTarget.h>
 #include <xzero/logging/ConsoleLogTarget.h>
 #include <xzero/logging.h>
 #include <xzero/cli/CLI.h>
@@ -28,7 +26,7 @@ using namespace xzero;
 using namespace xzero::http;
 
 void printHelp(const CLI& cli) {
-  std::cout 
+  std::cout
     << "x0d: Xzero HTTP Web Server " PACKAGE_VERSION
         << " [" PACKAGE_HOMEPAGE_URL "]" << std::endl
     << "Copyright (c) 2009-2015 by Christian Parpart <trapni@gmail.com>" << std::endl
