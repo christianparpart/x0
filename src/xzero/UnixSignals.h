@@ -13,12 +13,14 @@
 
 namespace xzero {
 
+struct UnixSignalInfo;
+
 /**
  * UNIX Signal Notification API.
  */
 class UnixSignals {
  public:
-  typedef Executor::Task Task;
+  typedef std::function<void(const UnixSignalInfo&)> SignalHandler;
   typedef Executor::HandleRef HandleRef;
 
   virtual ~UnixSignals() {}
@@ -33,14 +35,14 @@ class UnixSignals {
    *
    * @param signo UNIX signal number (such as @c SIGTERM) you want
    *              to be called for.
-   * @param task  Task to execute upon given event.
+   * @param task  The SignalHandler to execute upon given event.
    *
    * @note If you always want to get notified on a given signal, you must
    *       reregister yourself each time you have been fired.
    *
-   * @see Executor::executeOnSignal(int signal, Task task)
+   * @see Executor::executeOnSignal(int signal, SignalHandler task)
    */
-  virtual HandleRef executeOnSignal(int signal, Task task) = 0;
+  virtual HandleRef executeOnSignal(int signal, SignalHandler task) = 0;
 };
 
 } // namespace xzero

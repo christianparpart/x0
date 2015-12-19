@@ -7,6 +7,7 @@
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 #include <xzero/UnixSignals.h>
+#include <xzero/UnixSignalInfo.h>
 #include <xzero/executor/Executor.h>
 #include <xzero/io/FileDescriptor.h>
 #include <xzero/RuntimeError.h>
@@ -42,12 +43,17 @@ class SignalWatcher : public Executor::Handle {
  public:
   typedef Executor::Task Task;
 
-  explicit SignalWatcher(Task action) : action_(action) {};
+  explicit SignalWatcher(UnixSignals::SignalHandler action)
+      : action_(action) {};
 
-  void fire() { Executor::Handle::fire(action_); }
+  void fire() {
+    Executor::Handle::fire(std::bind(action_, info));
+  }
+
+  UnixSignalInfo info;
 
  private:
-  Task action_;
+  UnixSignals::SignalHandler action_;
 };
 
 static std::string sig2str(int signo) {
@@ -71,7 +77,7 @@ class LinuxSignals : public UnixSignals {
  public:
   explicit LinuxSignals(Executor* executor);
   ~LinuxSignals();
-  HandleRef executeOnSignal(int signo, Task task) override;
+  HandleRef executeOnSignal(int signo, SignalHandler task) override;
   void onSignal();
 
  private:
@@ -97,7 +103,8 @@ LinuxSignals::LinuxSignals(Executor* executor)
 LinuxSignals::~LinuxSignals() {
 }
 
-UnixSignals::HandleRef LinuxSignals::executeOnSignal(int signo, Task task) {
+UnixSignals::HandleRef LinuxSignals::executeOnSignal(int signo,
+                                                     SignalHandler task) {
   std::lock_guard<std::mutex> _l(mutex_);
 
   // add event to signal mask
@@ -152,14 +159,20 @@ void LinuxSignals::onSignal() {
   pending.reserve(n);
   {
     for (int i = 0; i < n; ++i) {
-      int signo = events[i].ssi_signo;
+      const signalfd_siginfo& event = events[i];
+      int signo = event.ssi_signo;
       std::list<RefPtr<SignalWatcher>>& watchers = watchers_[signo];
 
       logDebug("UnixSignals",
                "Caught signal $0 from PID $1 UID $2.",
                sig2str(signo),
-               events[i].ssi_pid,
-               events[i].ssi_uid);
+               event.ssi_pid,
+               event.ssi_uid);
+
+      for (RefPtr<SignalWatcher>& watcher: watchers) {
+        watcher->info.pid = event.ssi_pid;
+        watcher->info.uid = event.ssi_uid;
+      }
 
       pending.insert(pending.end(), watchers.begin(), watchers.end());
       interests_ -= watchers_[signo].size();
@@ -193,7 +206,7 @@ class KQueueSignals : public UnixSignals {
  public:
   explicit KQueueSignals(Executor* executor);
   ~KQueueSignals();
-  HandleRef executeOnSignal(int signo, Task task) override;
+  HandleRef executeOnSignal(int signo, SignalHandler task) override;
   void onSignal();
 
  private:
@@ -220,13 +233,14 @@ KQueueSignals::~KQueueSignals() {
   }
 }
 
-KQueueSignals::HandleRef KQueueSignals::executeOnSignal(int signo, Task task) {
+KQueueSignals::HandleRef KQueueSignals::executeOnSignal(int signo,
+                                                        SignalHandler task) {
   std::lock_guard<std::mutex> _l(mutex_);
 
   // add event to kqueue
   if (watchers_[signo].empty()) {
     struct kevent ke;
-    EV_SET(&ke, signo, EVFILT_SIGNAL, EV_ADD | EV_ONESHOT, 
+    EV_SET(&ke, signo, EVFILT_SIGNAL, EV_ADD | EV_ONESHOT,
            0 /* fflags */,
            0 /* data */,
            nullptr /* udata */);
