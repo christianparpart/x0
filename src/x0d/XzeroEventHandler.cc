@@ -1,5 +1,6 @@
 #include <x0d/XzeroEventHandler.h>
 #include <x0d/XzeroDaemon.h>
+#include <xzero/UnixSignalInfo.h>
 #include <xzero/executor/Executor.h>
 #include <xzero/logging.h>
 
@@ -14,8 +15,8 @@ XzeroEventHandler::XzeroEventHandler(XzeroDaemon* daemon,
       state_(XzeroState::Inactive) {
 
   executor_->executeOnSignal(SIGHUP, std::bind(&XzeroEventHandler::onConfigReload, this));
-  executor_->executeOnSignal(SIGUSR1, std::bind(&XzeroEventHandler::onCycleLogs, this));
-  executor_->executeOnSignal(SIGUSR2, std::bind(&XzeroEventHandler::onUpgradeBinary, this));
+  executor_->executeOnSignal(SIGUSR1, std::bind(&XzeroEventHandler::onCycleLogs, this, std::placeholders::_1));
+  executor_->executeOnSignal(SIGUSR2, std::bind(&XzeroEventHandler::onUpgradeBinary, this, std::placeholders::_1));
   executor_->executeOnSignal(SIGQUIT, std::bind(&XzeroEventHandler::onGracefulShutdown, this));
   executor_->executeOnSignal(SIGTERM, std::bind(&XzeroEventHandler::onFastShutdown, this));
   executor_->executeOnSignal(SIGINT, std::bind(&XzeroEventHandler::onFastShutdown, this));
@@ -38,15 +39,19 @@ void XzeroEventHandler::onConfigReload() {
   executor_->executeOnSignal(SIGHUP, std::bind(&XzeroEventHandler::onConfigReload, this));
 }
 
-void XzeroEventHandler::onCycleLogs() {
+void XzeroEventHandler::onCycleLogs(const xzero::UnixSignalInfo& info) {
   logNotice("x0d", "Reload signal received.");
 
   daemon_->onCycleLogs();
 
-  executor_->executeOnSignal(SIGUSR1, std::bind(&XzeroEventHandler::onCycleLogs, this));
+  executor_->executeOnSignal(SIGUSR1, std::bind(&XzeroEventHandler::onCycleLogs, this, std::placeholders::_1));
 }
 
-void XzeroEventHandler::onUpgradeBinary() {
+void XzeroEventHandler::onUpgradeBinary(const UnixSignalInfo& info) {
+  logNotice("x0d",
+            "Upgrading binary requested by pid $0 uid $1",
+            info.pid.get(), info.uid.get());
+
   /* TODO
    * 1. suspend the world
    * 2. save state into temporary file with an inheriting file descriptor

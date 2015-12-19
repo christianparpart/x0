@@ -6,10 +6,10 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-#include "Config.h"
-#include "XzeroDaemon.h"
-#include "XzeroEventHandler.h"
-#include "XzeroContext.h"
+#include <x0d/Config.h>
+#include <x0d/XzeroDaemon.h>
+#include <x0d/XzeroEventHandler.h>
+#include <x0d/XzeroContext.h>
 
 #include "modules/access.h"
 #include "modules/accesslog.h"

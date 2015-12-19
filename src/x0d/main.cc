@@ -6,9 +6,9 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-#include "XzeroModule.h"
-#include "XzeroDaemon.h"
-#include "sysconfig.h"
+#include <x0d/XzeroModule.h>
+#include <x0d/XzeroDaemon.h>
+#include <x0d/sysconfig.h>
 
 #include <xzero-flow/ASTPrinter.h>
 #include <xzero/logging/ConsoleLogTarget.h>

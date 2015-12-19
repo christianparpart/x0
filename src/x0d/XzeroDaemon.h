@@ -7,7 +7,7 @@
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 #pragma once
 
-#include "Config.h"
+#include <x0d/Config.h>
 
 #include <xzero/net/Server.h>
 #include <xzero/Buffer.h>

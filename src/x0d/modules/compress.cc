@@ -6,9 +6,10 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-#include "compress.h"
-#include "XzeroModule.h"
-#include "XzeroContext.h"
+#include <x0d/modules/compress.h>
+#include <x0d/XzeroModule.h>
+#include <x0d/XzeroContext.h>
+
 #include <xzero/http/HttpRequest.h>
 #include <xzero/http/HttpResponse.h>
 #include <xzero/io/FileUtil.h>

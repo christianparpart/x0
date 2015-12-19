@@ -7,7 +7,7 @@
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 #pragma once
 
-#include "XzeroModule.h"
+#include <x0d/XzeroModule.h>
 #include <xzero/io/File.h>
 #include <xzero/io/LocalFile.h>
 #include <xzero/io/LocalFileRepository.h>

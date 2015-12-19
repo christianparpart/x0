@@ -6,8 +6,8 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-#include "XzeroModule.h"
-#include "XzeroDaemon.h"
+#include <x0d/XzeroModule.h>
+#include <x0d/XzeroDaemon.h>
 #include <xzero/logging.h>
 #include <xzero/executor/SafeCall.h>
 

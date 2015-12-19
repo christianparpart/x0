@@ -22,7 +22,7 @@
  *     handler auth.require();
  */
 
-#include "auth.h"
+#include <x0d/modules/auth.h>
 #include <xzero/http/HttpRequest.h>
 #include <xzero/http/HttpResponse.h>
 #include <xzero/Base64.h>

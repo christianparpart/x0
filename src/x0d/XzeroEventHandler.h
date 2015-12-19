@@ -10,6 +10,7 @@
 namespace xzero {
   class HttpServer;
   class Executor;
+  struct UnixSignalInfo;
 }
 
 namespace x0d {
@@ -30,8 +31,8 @@ class XzeroEventHandler {
 
  private:
   void onConfigReload();
-  void onCycleLogs();
-  void onUpgradeBinary();
+  void onCycleLogs(const xzero::UnixSignalInfo& info);
+  void onUpgradeBinary(const xzero::UnixSignalInfo& info);
   void onFastShutdown();
   void onGracefulShutdown();
 

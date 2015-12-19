@@ -7,8 +7,8 @@
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 #pragma once
 
-#include "XzeroDaemon.h"
-#include "XzeroContext.h"
+#include <x0d/XzeroDaemon.h>
+#include <x0d/XzeroContext.h>
 #include <xzero/Buffer.h>
 #include <xzero-flow/vm/Params.h>
 #include <string>

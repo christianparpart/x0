@@ -6,7 +6,8 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 #pragma once
-#include "XzeroModule.h"
+
+#include <x0d/XzeroModule.h>
 #include <xzero/http/HttpOutputCompressor.h>
 #include <string>
 
