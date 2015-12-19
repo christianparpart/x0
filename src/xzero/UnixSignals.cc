@@ -130,6 +130,9 @@ UnixSignals::HandleRef LinuxSignals::executeOnSignal(int signo, Task task) {
 void LinuxSignals::onSignal() {
   std::lock_guard<std::mutex> _l(mutex_);
 
+  sigset_t clearMask;
+  sigemptyset(&clearMask);
+
   signalfd_siginfo events[16];
   ssize_t n = 0;
   for (;;) {
@@ -163,6 +166,7 @@ void LinuxSignals::onSignal() {
       watchers.clear();
 
       sigdelset(&signalMask_, signo);
+      sigaddset(&clearMask, signo);
     }
 
     // reregister for further signals, if anyone interested
@@ -174,6 +178,7 @@ void LinuxSignals::onSignal() {
   }
 
   // update signal mask
+  sigprocmask(SIG_UNBLOCK, &clearMask, nullptr);
   sigprocmask(SIG_BLOCK, &signalMask_, nullptr);
   signalfd(fd_, &signalMask_, 0);
 
