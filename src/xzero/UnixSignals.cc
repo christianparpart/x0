@@ -11,11 +11,13 @@
 #include <xzero/io/FileDescriptor.h>
 #include <xzero/RuntimeError.h>
 #include <xzero/Duration.h>
+#include <xzero/logging.h>
 #include <memory>
 #include <mutex>
 #include <atomic>
 #include <vector>
 #include <list>
+#include <signal.h>
 
 #if defined(XZERO_OS_LINUX)
 #include <linux/epoll.h>
@@ -29,6 +31,12 @@
 
 namespace xzero {
 
+#if !defined(NDEBUG)
+#define TRACE(msg...) logTrace("UnixSignals", msg)
+#else
+#define TRACE(msg...) do {} while (0)
+#endif
+
 class SignalWatcher : public Executor::Handle {
  public:
   typedef Executor::Task Task;
@@ -40,6 +48,22 @@ class SignalWatcher : public Executor::Handle {
  private:
   Task action_;
 };
+
+static std::string sig2str(int signo) {
+  switch (signo) {
+    case SIGINT: return "SIGINT";
+    case SIGHUP: return "SIGHUP";
+    case SIGTERM: return "SIGTERM";
+    case SIGCONT: return "SIGCONT";
+    case SIGUSR1: return "SIGUSR1";
+    case SIGUSR2: return "SIGUSR2";
+    default: break;
+  }
+
+  char buf[16];
+  snprintf(buf, sizeof(buf), "<%d>", signo);
+  return buf;
+}
 
 #if defined(XZERO_OS_LINUX) // {{{
 class LinuxSignals : public UnixSignals {
@@ -127,13 +151,18 @@ void KQueueSignals::onSignal() {
   if (rv < 0)
     RAISE_ERRNO(errno);
 
-  std::vector<RefPtr<SignalWatcher>> pending(rv);
+  std::vector<RefPtr<SignalWatcher>> pending;
+  pending.reserve(rv);
   {
     // move pending signals out of the watchers
     std::lock_guard<std::mutex> _l(mutex_);
     for (int i = 0; i < rv; ++i) {
       int signo = events[i].ident;
       std::list<RefPtr<SignalWatcher>>& watchers = watchers_[signo];
+
+      TRACE("Caught signal $0 with $1 watchers.",
+            sig2str(signo),
+            watchers.size());
 
       pending.insert(pending.end(), watchers.begin(), watchers.end());
       interests_ -= watchers_[signo].size();
