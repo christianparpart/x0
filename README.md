@@ -3,17 +3,16 @@
 [![](https://badge.imagelayers.io/trapni/x0:git.svg)](https://imagelayers.io/?images=trapni/x0:git 'Get your own badge on imagelayers.io')
 [![](https://secure.travis-ci.org/xzero/x0.png) ](http://travis-ci.org/xzero/x0)
 
-
 - official website: http://xzero.io
 - github: http://github.com/xzero/x0
 - ohloh: http://www.ohloh.net/p/x0
 - travis-ci: https://travis-ci.org/xzero/x0
 
-`x0d` is a thin low-latency and scalable HTTP web server built on-top 
+`x0d` is a thin low-latency and scalable HTTP web server built on-top
 of the Xzero C++ HTTP Framework.
 
-It supports a very expressive and natural configuration via 
-the [Flow configuration language](https://github.com/xzero/libflow/) and
+It supports a very expressive and natural configuration via
+the [Flow configuration language](https://github.com/xzero/x0/) and
 a number of standard plugins to become *your* web application server.
 
 ## Features
@@ -57,7 +56,6 @@ a number of standard plugins to become *your* web application server.
 
 - gcc >= 4.8.0 (for building only, CLANG >= 3.5 is also supported)
 - cmake (for building only)
-- tbb, Threading Building Blocks (required)
 - zlib (optional & recommended, for compression)
 - OpenSSL (optional & recommended, for SSL/TLS encryption)
 - gtest (optional, for unit testing)

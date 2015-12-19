@@ -17,8 +17,8 @@ sysctl net.ipv4.tcp_tw_reuse=1
 sysctl net.ipv4.ip_local_port_range='32768 61000'
 
 if lsmod | grep -q nf_conntrck; then
-	sysctl net.ipv4.netfilter.ip_conntrack_max=750000
-	sysctl net.netfilter.nf_conntrack_tcp_timeout_fin_wait=60
-	sysctl net.netfilter.nf_conntrack_tcp_timeout_close_wait=30
-	sysctl net.netfilter.nf_conntrack_tcp_timeout_time_wait=15
+  sysctl net.ipv4.netfilter.ip_conntrack_max=750000
+  sysctl net.netfilter.nf_conntrack_tcp_timeout_fin_wait=60
+  sysctl net.netfilter.nf_conntrack_tcp_timeout_close_wait=30
+  sysctl net.netfilter.nf_conntrack_tcp_timeout_time_wait=15
 fi
