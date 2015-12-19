@@ -124,7 +124,10 @@ PosixScheduler::PosixScheduler(
   struct rlimit rlim;
   memset(&rlim, 0, sizeof(rlim));
   getrlimit(RLIMIT_NOFILE, &rlim);
-  size_t nofile = rlim.rlim_max;
+
+  rlim_t nofile = rlim.rlim_max != RLIM_INFINITY
+                ? rlim.rlim_max
+                : 65535;
 
   watchers_.resize(nofile);
 
