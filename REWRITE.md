@@ -2,15 +2,15 @@
 
 - [x] UnixSignals API
 - [x] UnixSignals: OS/X (kqueue)
+- [x] UnixSignals: Linux (signalfd)
+- [x] x0d-signals: logfile rotating (USR1)
+- [ ] x0d-signals: quick shutdown (INT, TERM)
+- [ ] x0d-signals: graceful shutdown (QUIT)
+- [ ] x0d-signals: binary upgrade (USR2)
 - [ ] PosixScheduler: add refCount in order to allow checking for interests
       (just like in libev), so it is easier for UnixSignals to silently
       watch without letting the event loop being stuck even no actual
       interest has been created.
-- [ ] UnixSignals: Linux (signalfd)
-
-- [ ] x0d-signals: logfile rotating (HUP)
-- [ ] x0d-signals: graceful shutdown (INT, TERM)
-- [ ] x0d-signals: all the others (USR1, USR2, ...?)
 
 - [ ] revive `lingering`
 - [ ] revive `max_connections`
