@@ -112,11 +112,6 @@ class XZERO_BASE_API InetConnector : public Connector {
   bool isOpen() const XZERO_NOEXCEPT;
 
   /**
-   * Implicitely stops and finally closes this connnector.
-   */
-  void close();
-
-  /**
    * Retrieves the underlying system socket handle.
    */
   int handle() const XZERO_NOEXCEPT;

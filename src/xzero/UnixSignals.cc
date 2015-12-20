@@ -59,6 +59,7 @@ class SignalWatcher : public Executor::Handle {
 static std::string sig2str(int signo) {
   switch (signo) {
     case SIGINT: return "SIGINT";
+    case SIGQUIT: return "SIGQUIT";
     case SIGHUP: return "SIGHUP";
     case SIGTERM: return "SIGTERM";
     case SIGCONT: return "SIGCONT";

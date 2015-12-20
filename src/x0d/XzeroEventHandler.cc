@@ -18,8 +18,8 @@ XzeroEventHandler::XzeroEventHandler(XzeroDaemon* daemon,
   executor_->executeOnSignal(SIGUSR1, std::bind(&XzeroEventHandler::onCycleLogs, this, std::placeholders::_1));
   executor_->executeOnSignal(SIGUSR2, std::bind(&XzeroEventHandler::onUpgradeBinary, this, std::placeholders::_1));
   executor_->executeOnSignal(SIGQUIT, std::bind(&XzeroEventHandler::onGracefulShutdown, this));
-  executor_->executeOnSignal(SIGTERM, std::bind(&XzeroEventHandler::onFastShutdown, this));
-  executor_->executeOnSignal(SIGINT, std::bind(&XzeroEventHandler::onFastShutdown, this));
+  executor_->executeOnSignal(SIGTERM, std::bind(&XzeroEventHandler::onQuickShutdown, this));
+  executor_->executeOnSignal(SIGINT, std::bind(&XzeroEventHandler::onQuickShutdown, this));
 }
 
 XzeroEventHandler::~XzeroEventHandler() {
@@ -61,8 +61,8 @@ void XzeroEventHandler::onUpgradeBinary(const UnixSignalInfo& info) {
    */
 }
 
-void XzeroEventHandler::onFastShutdown() {
-  logNotice("x0d", "Initiating fast shutdown.");
+void XzeroEventHandler::onQuickShutdown() {
+  logNotice("x0d", "Initiating quick shutdown.");
   daemon_->terminate();
 }
 
@@ -74,6 +74,8 @@ void XzeroEventHandler::onGracefulShutdown() {
    * 2. wait until all requests have been handled.
    * 3. orderly shutdown
    */
+
+  daemon_->server()->stop();
 }
 
 } // namespace x0d

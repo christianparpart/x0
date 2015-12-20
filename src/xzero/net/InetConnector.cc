@@ -40,7 +40,7 @@
 #define SO_REUSEPORT 15
 #endif
 
-#if 0 // !defined(NDEBUG)
+#if !defined(NDEBUG)
 #define TRACE(msg...) logTrace("net.InetConnector", msg)
 #else
 #define TRACE(msg...) do {} while (0)
@@ -111,17 +111,6 @@ void InetConnector::open(const IPAddress& ipaddress, int port, int backlog,
     setReuseAddr(reuseAddr);
 
   bind(ipaddress, port);
-}
-
-void InetConnector::close() {
-  if (isStarted()) {
-    stop();
-  }
-
-  if (isOpen()) {
-    FileUtil::close(socket_);
-    socket_ = -1;
-  }
 }
 
 void InetConnector::bind(const IPAddress& ipaddr, int port) {
@@ -423,14 +412,16 @@ bool InetConnector::isStarted() const XZERO_NOEXCEPT {
 
 void InetConnector::stop() {
   TRACE("stop: $0", this);
-  if (!isStarted()) {
-    return;
-  }
 
   if (schedulerHandle_)
     schedulerHandle_->cancel();
 
   isStarted_ = false;
+
+  if (isOpen()) {
+    FileUtil::close(socket_);
+    socket_ = -1;
+  }
 }
 
 void InetConnector::onConnect() {

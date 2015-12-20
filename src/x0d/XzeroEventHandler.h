@@ -33,7 +33,7 @@ class XzeroEventHandler {
   void onConfigReload();
   void onCycleLogs(const xzero::UnixSignalInfo& info);
   void onUpgradeBinary(const xzero::UnixSignalInfo& info);
-  void onFastShutdown();
+  void onQuickShutdown();
   void onGracefulShutdown();
 
  private:
