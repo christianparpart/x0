@@ -138,15 +138,20 @@ UnixSignals::HandleRef LinuxSignals::executeOnSignal(int signo,
                                                      SignalHandler task) {
   std::lock_guard<std::mutex> _l(mutex_);
 
-  blockSignal(signo);
+  sigaddset(&signalMask_, signo);
 
-  // on-demand create signalfd instance
+  // on-demand create signalfd instance / update signalfd's mask
   if (fd_.isOpen()) {
     signalfd(fd_, &signalMask_, 0);
   } else {
     fd_ = signalfd(-1, &signalMask_, SFD_NONBLOCK | SFD_CLOEXEC);
+    TRACE("executeOnSignal: signalfd=$0", fd_.get());
   }
 
+  // block this signal also to avoid default disposition
+  sigprocmask(SIG_BLOCK, &signalMask_, nullptr);
+
+  TRACE("executeOnSignal: $0", toString(signo));
   RefPtr<SignalWatcher> hr(new SignalWatcher(task));
   watchers_[signo].emplace_back(hr);
 
@@ -201,11 +206,10 @@ void LinuxSignals::onSignal() {
         watcher->info.uid = event.ssi_uid;
       }
 
-      pending.insert(pending.end(), watchers.begin(), watchers.end());
-      interests_ -= watchers_[signo].size();
-      watchers.clear();
-
       sigdelset(&signalMask_, signo);
+      interests_ -= watchers_[signo].size();
+      pending.insert(pending.end(), watchers.begin(), watchers.end());
+      watchers.clear();
     }
 
     // reregister for further signals, if anyone interested
