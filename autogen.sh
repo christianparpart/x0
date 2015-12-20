@@ -16,6 +16,9 @@ fi
 #CXXFLAGS="-I/usr/local/include"
 
 cmake "$(dirname $0)" \
+  -DX0D_CONFIGFILE="`dirname $0`/x0d.conf" \
+  -DX0D_USER="`whoami`" \
+  -DX0D_GROUP="`groups | cut -d' ' -f1`" \
   -DCMAKE_BUILD_TYPE="debug" \
   -DCMAKE_CXX_FLAGS_DEBUG="-O0 -g3" \
   -DCMAKE_CXX_COMPILER="${CXX}" \

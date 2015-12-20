@@ -29,8 +29,12 @@ configure_file(
 
 MIMETYPES_GENERATE_CPP(MT_SRC ${PROJECT_SOURCE_DIR}/3rdparty/mime.types)
 
+set(X0D_CONFIGFILE "/etc/x0d/x0d.conf" CACHE FILEPATH "Default path to x0d config file.")
 set(X0D_CLUSTERDIR "/var/lib/x0d" CACHE PATH "Path to cluster definition directory.")
 set(X0D_LOGDIR "/var/log/x0d" CACHE PATH "Path to log directory.")
+set(X0D_STATEDIR "/var/run/x0d" CACHE PATH "Path to run state directory.")
+set(X0D_USER "www" CACHE STRING "Default user to change to, if currently root.")
+set(X0D_GROUP "www-data" CACHE STRING "Default group to change to, if currently root.")
 
 set(x0d_SRC
   ${MT_SRC}
