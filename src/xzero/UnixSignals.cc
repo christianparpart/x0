@@ -113,7 +113,6 @@ class LinuxSignals : public UnixSignals {
 
  private:
   Executor* executor_;
-  Executor::HandleRef handle_;
   FileDescriptor fd_;
   sigset_t signalMask_;
   std::mutex mutex_;
@@ -156,9 +155,8 @@ UnixSignals::HandleRef LinuxSignals::executeOnSignal(int signo,
   watchers_[signo].emplace_back(hr);
 
   if (interests_.load() == 0) {
-    handle_ = executor_->executeOnReadable(
-        fd_,
-        std::bind(&LinuxSignals::onSignal, this));
+    executor_->executeOnReadable(fd_, std::bind(&LinuxSignals::onSignal, this));
+    executor_->unref();
   }
 
   interests_++;
@@ -168,6 +166,7 @@ UnixSignals::HandleRef LinuxSignals::executeOnSignal(int signo,
 
 void LinuxSignals::onSignal() {
   std::lock_guard<std::mutex> _l(mutex_);
+  executor_->ref();
 
   sigset_t clearMask;
   sigemptyset(&clearMask);
@@ -214,9 +213,8 @@ void LinuxSignals::onSignal() {
 
     // reregister for further signals, if anyone interested
     if (interests_.load() > 0) {
-      executor_->executeOnReadable(
-          fd_,
-          std::bind(&LinuxSignals::onSignal, this));
+      executor_->executeOnReadable(fd_, std::bind(&LinuxSignals::onSignal, this));
+      executor_->unref();
     }
   }
 
@@ -240,7 +238,6 @@ class KQueueSignals : public UnixSignals {
 
  private:
   Executor* executor_;
-  Executor::HandleRef handle_;
   FileDescriptor fd_;
   sigset_t oldSignalMask_;
   std::vector<std::list<RefPtr<SignalWatcher>>> watchers_;
@@ -250,7 +247,6 @@ class KQueueSignals : public UnixSignals {
 
 KQueueSignals::KQueueSignals(Executor* executor)
     : executor_(executor),
-      handle_(),
       fd_(kqueue()),
       oldSignalMask_(),
       watchers_(128),
@@ -260,9 +256,6 @@ KQueueSignals::KQueueSignals(Executor* executor)
 }
 
 KQueueSignals::~KQueueSignals() {
-  if (handle_)
-    handle_->cancel();
-
   // restore old signal mask
   sigprocmask(SIG_SETMASK, &oldSignalMask_, nullptr);
 }
@@ -290,9 +283,8 @@ KQueueSignals::HandleRef KQueueSignals::executeOnSignal(int signo,
   watchers_[signo].emplace_back(hr);
 
   if (interests_.load() == 0) {
-    handle_ = executor_->executeOnReadable(
-        fd_,
-        std::bind(&KQueueSignals::onSignal, this));
+    executor_->executeOnReadable(fd_, std::bind(&KQueueSignals::onSignal, this));
+    executor_->unref();
   }
 
   interests_++;
@@ -301,6 +293,8 @@ KQueueSignals::HandleRef KQueueSignals::executeOnSignal(int signo,
 }
 
 void KQueueSignals::onSignal() {
+  executor_->ref();
+
   // collect pending signals
   timespec timeout;
   timeout.tv_sec = 0;
@@ -330,16 +324,15 @@ void KQueueSignals::onSignal() {
 
       logDebug("UnixSignals", "Caught signal $0.", toString(signo));
 
-      pending.insert(pending.end(), watchers.begin(), watchers.end());
       interests_ -= watchers_[signo].size();
+      pending.insert(pending.end(), watchers.begin(), watchers.end());
       watchers.clear();
     }
 
     // reregister for further signals, if anyone interested
     if (interests_.load() > 0) {
-      handle_ = executor_->executeOnReadable(
-          fd_,
-          std::bind(&KQueueSignals::onSignal, this));
+      executor_->executeOnReadable(fd_, std::bind(&KQueueSignals::onSignal, this));
+      executor_->unref();
     }
   }
 
