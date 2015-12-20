@@ -30,6 +30,10 @@ class UnixSignals {
    */
   static std::unique_ptr<UnixSignals> create(Executor* executor);
 
+  static void blockSignal(int signo);
+
+  static void unblockSignal(int signo);
+
   /**
    * Runs given @p task when given @p signal was received.
    *

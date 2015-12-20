@@ -107,17 +107,13 @@ UnixSignals::HandleRef LinuxSignals::executeOnSignal(int signo,
                                                      SignalHandler task) {
   std::lock_guard<std::mutex> _l(mutex_);
 
-  // add event to signal mask
-  if (!sigismember(&signalMask_, signo)) {
-    sigaddset(&signalMask_, signo);
-    sigprocmask(SIG_BLOCK, &signalMask_, nullptr);
+  blockSignal(signo);
 
-    // on-demand create signalfd instance
-    if (fd_.isOpen()) {
-      signalfd(fd_, &signalMask_, 0);
-    } else {
-      fd_ = signalfd(-1, &signalMask_, SFD_NONBLOCK | SFD_CLOEXEC);
-    }
+  // on-demand create signalfd instance
+  if (fd_.isOpen()) {
+    signalfd(fd_, &signalMask_, 0);
+  } else {
+    fd_ = signalfd(-1, &signalMask_, SFD_NONBLOCK | SFD_CLOEXEC);
   }
 
   RefPtr<SignalWatcher> hr(new SignalWatcher(task));
@@ -179,7 +175,6 @@ void LinuxSignals::onSignal() {
       watchers.clear();
 
       sigdelset(&signalMask_, signo);
-      sigaddset(&clearMask, signo);
     }
 
     // reregister for further signals, if anyone interested
@@ -191,7 +186,6 @@ void LinuxSignals::onSignal() {
   }
 
   // update signal mask
-  sigprocmask(SIG_UNBLOCK, &clearMask, nullptr);
   sigprocmask(SIG_BLOCK, &signalMask_, nullptr);
   signalfd(fd_, &signalMask_, 0);
 
@@ -213,6 +207,7 @@ class KQueueSignals : public UnixSignals {
   Executor* executor_;
   Executor::HandleRef handle_;
   FileDescriptor fd_;
+  sigset_t oldSignalMask_;
   std::vector<std::list<RefPtr<SignalWatcher>>> watchers_;
   std::atomic<size_t> interests_;
   std::mutex mutex_;
@@ -222,15 +217,19 @@ KQueueSignals::KQueueSignals(Executor* executor)
     : executor_(executor),
       handle_(),
       fd_(kqueue()),
+      oldSignalMask_(),
       watchers_(128),
       interests_(0),
       mutex_() {
+  sigprocmask(SIG_SETMASK, nullptr, &oldSignalMask_);
 }
 
 KQueueSignals::~KQueueSignals() {
-  if (handle_) {
+  if (handle_)
     handle_->cancel();
-  }
+
+  // restore old signal mask
+  sigprocmask(SIG_SETMASK, &oldSignalMask_, nullptr);
 }
 
 KQueueSignals::HandleRef KQueueSignals::executeOnSignal(int signo,
@@ -248,6 +247,8 @@ KQueueSignals::HandleRef KQueueSignals::executeOnSignal(int signo,
     if (rv < 0) {
       RAISE_ERRNO(errno);
     }
+
+    blockSignal(signo);
   }
 
   RefPtr<SignalWatcher> hr(new SignalWatcher(task));
@@ -322,6 +323,24 @@ std::unique_ptr<UnixSignals> UnixSignals::create(Executor* executor) {
 #else
 #error "Unsupported platform."
 #endif
+}
+
+void UnixSignals::blockSignal(int signo) {
+  sigset_t sigset;
+  sigemptyset(&sigset);
+  sigaddset(&sigset, signo);
+  int rv = sigprocmask(SIG_BLOCK, &sigset, nullptr);
+  if (rv < 0)
+    RAISE_ERRNO(errno);
+}
+
+void UnixSignals::unblockSignal(int signo) {
+  sigset_t sigset;
+  sigemptyset(&sigset);
+  sigaddset(&sigset, signo);
+  int rv = sigprocmask(SIG_UNBLOCK, &sigset, nullptr);
+  if (rv < 0)
+    RAISE_ERRNO(errno);
 }
 
 } // namespace xzero
