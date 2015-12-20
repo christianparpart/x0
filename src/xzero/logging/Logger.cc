@@ -39,22 +39,29 @@ void Logger::logException(
   }
 
   try {
-    auto rte = dynamic_cast<const RuntimeError&>(exception);
-    log(
-        log_level,
-        component,
-        "$0: $1: $2\n    in $3\n    in $4:$5",
-        message,
-        rte.typeName(),
-        rte.what(),
-        rte.functionName(),
-        rte.sourceFile(),
-        rte.sourceLine());
+    auto rte = dynamic_cast<const RuntimeError*>(&exception);
+    if (rte != nullptr) {
+      log(log_level,
+          component,
+          "$0: $1: $2\n    in $3\n    in $4:$5",
+          message,
+          rte->typeName(),
+          rte->what(),
+          rte->functionName(),
+          rte->sourceFile(),
+          rte->sourceLine());
+    } else {
+      log(log_level,
+          component,
+          "$0: std::exception: <foreign exception> $1",
+          message,
+          exception.what());
+    }
   } catch (const std::exception& bcee) {
     log(
         log_level,
         component,
-        "$0: std::exception: <foreign exception> $1",
+        "$0: std::exception: <nested exception> $1",
         message,
         exception.what());
   }
