@@ -63,4 +63,20 @@ inline Executor::HandleRef Executor::executeOnWritable(int fd, Task task) {
   return executeOnWritable(fd, task, 5_years, nullptr);
 }
 
+inline int Executor::referenceCount() const noexcept {
+  return refs_.load();
+}
+
+inline void Executor::ref() {
+  refs_++;
+}
+
+inline void Executor::unref() {
+  refs_--;
+}
+
+inline void Executor::unref(int count) {
+  refs_ -= count;
+}
+
 }  // namespace xzero

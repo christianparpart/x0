@@ -176,12 +176,53 @@ class Executor {
    */
   void executeOnFirstWakeup(std::function<void()> task, Wakeup* wakeup);
 
+  /**
+   * Retrieves the number of references to tasks that are waiting to be invoked.
+   *
+   * In the Executor API, the reference count is incremented on each
+   * task yet to be executed and decremented once executed.
+   *
+   * The reference count is the number of tasks still pending which helps
+   * runLoop() to determine wheather to continue iterating over
+   * runLoopOnce() or to return to its caller.
+   *
+   * Sometimes you need to manually decrement the reference count in order
+   * to explicitely ignore a pending task in the loop.
+   *
+   * However, you must increment the reference manually as soon
+   * as your task has either been invoked or is to be cancelled to not
+   * cause bugs in counting.
+   */
+  int referenceCount() const noexcept;
+
+  /**
+   * Increments the reference count.
+   *
+   * @see referenceCount() const noexcept;
+   */
+  void ref();
+
+  /**
+   * Decrements the reference count by 1.
+   *
+   * @see referenceCount() const noexcept;
+   */
+  void unref();
+
+  /**
+   * Decrements the reference count by @p count.
+   *
+   * @see referenceCount() const noexcept;
+   */
+  void unref(int count);
+
  protected:
   void safeCall(std::function<void()> callee) noexcept;
 
  protected:
   SafeCall safeCall_;
   std::unique_ptr<UnixSignals> unixSignals_;
+  std::atomic<int> refs_;
 };
 
 } // namespace xzero

@@ -168,9 +168,15 @@ class PosixScheduler : public Scheduler {
   /**
    * Inserts watcher between @p pred and @p pred's successor.
    *
+   * @param w     Watcher to inject into the linked list of watchers.
+   * @param pred  Predecessor. The watdher @p w will be placed right next to it.
+   *              With @p pred being @c nullptr the @p w will be put in front
+   *              of all watchers.
+   * @return the linked Watcher @p w.
+   *
    * @note requires the caller to lock the object mutex.
    */
-  void linkWatcher(Watcher* w, Watcher* pred);
+  Watcher* linkWatcher(Watcher* w, Watcher* pred);
 
   /**
    * Removes given watcher from ordered list of watchers.

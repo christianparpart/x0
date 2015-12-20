@@ -160,6 +160,7 @@ void PosixScheduler::execute(Task task) {
   {
     std::lock_guard<std::mutex> lk(lock_);
     tasks_.emplace_back(std::move(task));
+    ref();
   }
   breakLoop();
 }
@@ -185,6 +186,8 @@ Scheduler::HandleRef PosixScheduler::insertIntoTimersList(MonotonicTime dt,
   RefPtr<Timer> t(new Timer(dt, task));
 
   auto onCancel = [this, t]() {
+    std::lock_guard<std::mutex> _l(lock_);
+
     auto i = timers_.end();
     auto e = timers_.begin();
 
@@ -192,6 +195,7 @@ Scheduler::HandleRef PosixScheduler::insertIntoTimersList(MonotonicTime dt,
       i--;
       if (i->get() == t.get()) {
         timers_.erase(i);
+        unref();
         break;
       }
     }
@@ -199,6 +203,8 @@ Scheduler::HandleRef PosixScheduler::insertIntoTimersList(MonotonicTime dt,
   t->setCancelHandler(onCancel);
 
   std::lock_guard<std::mutex> lk(lock_);
+
+  ref();
 
   auto i = timers_.end();
   auto e = timers_.begin();
@@ -255,11 +261,12 @@ void PosixScheduler::collectTimeouts(std::list<Task>* result) {
     TRACE("collect next timer");
     result->push_back([job] { job->fire(job->action); });
     timers_.pop_front();
+    unref();
   }
 }
 
-void PosixScheduler::linkWatcher(Watcher* w, Watcher* pred) {
-  Watcher* succ = pred->next;
+PosixScheduler::Watcher* PosixScheduler::linkWatcher(Watcher* w, Watcher* pred) {
+  Watcher* succ = pred ? pred->next : firstWatcher_;
 
   w->prev = pred;
   w->next = succ;
@@ -275,6 +282,12 @@ void PosixScheduler::linkWatcher(Watcher* w, Watcher* pred) {
     succ->prev = w;
   else
     lastWatcher_ = w;
+
+  ref();
+
+  breakLoop();
+
+  return w;
 }
 
 PosixScheduler::Watcher* PosixScheduler::unlinkWatcher(Watcher* w) {
@@ -292,6 +305,7 @@ PosixScheduler::Watcher* PosixScheduler::unlinkWatcher(Watcher* w) {
     lastWatcher_ = pred;
 
   w->clear();
+  unref();
 
   return succ;
 }
@@ -371,37 +385,34 @@ PosixScheduler::HandleRef PosixScheduler::setupWatcher(
 
   interest->reset(fd, mode, task, timeout, tcb);
 
+  auto onCancel = [this, interest] () {
+    std::lock_guard<std::mutex> _l(lock_);
+    unlinkWatcher(interest);
+  };
+
+  interest->setCancelHandler(onCancel);
+
+  if (!firstWatcher_)
+    return linkWatcher(interest, nullptr);
+
   // inject watcher ordered by timeout ascending
-  if (lastWatcher_ != nullptr) {
-    Watcher* succ = lastWatcher_;
+  Watcher* succ = lastWatcher_;
 
-    while (succ->prev != nullptr) {
-      if (succ->prev->timeout < interest->timeout) {
-        linkWatcher(interest, succ->prev);
-        breakLoop();
-        return interest;
-      } else {
-        succ = succ->prev;
-      }
-    }
-
-    if (firstWatcher_->timeout < interest->timeout) {
-      // put in back
-      interest->prev = lastWatcher_;
-      lastWatcher_->next = interest;
-      lastWatcher_ = interest;
+  while (succ->prev != nullptr) {
+    if (succ->prev->timeout < interest->timeout) {
+      return linkWatcher(interest, succ->prev);
     } else {
-      // put in front
-      interest->next = firstWatcher_;
-      firstWatcher_->prev = interest;
-      firstWatcher_ = interest;
+      succ = succ->prev;
     }
-  } else {
-    firstWatcher_ = lastWatcher_ = interest;
   }
 
-  breakLoop();
-  return interest; // handle;
+  if (firstWatcher_->timeout < interest->timeout) {
+    // put in back
+    return linkWatcher(interest, lastWatcher_);
+  } else {
+    // put in front
+    return linkWatcher(interest, nullptr);
+  }
 }
 
 void PosixScheduler::collectActiveHandles(const fd_set* input,
@@ -452,15 +463,17 @@ size_t PosixScheduler::taskCount() {
 }
 
 void PosixScheduler::runLoop() {
-  for (;;) {
-    lock_.lock();
-    bool cont = !tasks_.empty()
-             || !timers_.empty()
-             || firstWatcher_ != nullptr;
-    lock_.unlock();
-
-    if (!cont)
-      break;
+  while (referenceCount() > 0) {
+#if !defined(NDEBUG)
+    {
+      std::lock_guard<std::mutex> _l(lock_);
+      size_t watcherCount = 0;
+      for (Watcher* w = firstWatcher_; w != nullptr; w = w->next)
+        watcherCount++;
+      TRACE("runLoop: tasks=$0, timers=$1, watchers=$2, refs=$3",
+          tasks_.size(), timers_.size(), watcherCount, referenceCount());
+    }
+#endif
 
     runLoopOnce();
   }
@@ -531,7 +544,9 @@ void PosixScheduler::runLoopOnce() {
   {
     std::lock_guard<std::mutex> lk(lock_);
 
+    unref(tasks_.size());
     activeTasks = std::move(tasks_);
+
     collectActiveHandles(&input, &output, &activeTasks);
     collectTimeouts(&activeTasks);
   }
