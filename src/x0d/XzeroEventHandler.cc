@@ -36,6 +36,8 @@ void XzeroEventHandler::onConfigReload() {
    * 6. resume the world
    */
 
+  logNotice("x0d", "Reloading configuration.");
+
   executor_->executeOnSignal(SIGHUP, std::bind(&XzeroEventHandler::onConfigReload, this));
 }
 
