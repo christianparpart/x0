@@ -43,13 +43,20 @@ std::string FileUtil::currentWorkingDirectory() {
   RAISE_ERRNO(errno);
 }
 
-std::string FileUtil::realpath(const std::string& relpath) {
-  if (relpath.find(PathSeperator) == std::string::npos)
-    return joinPaths(currentWorkingDirectory(), relpath);
+std::string FileUtil::absolutePath(const std::string& relpath) {
+  if (relpath.empty())
+    return currentWorkingDirectory();
 
+  if (relpath[0] == PathSeperator)
+    return relpath; // absolute already
+
+  return joinPaths(currentWorkingDirectory(), relpath);
+}
+
+std::string FileUtil::realpath(const std::string& relpath) {
   char result[PATH_MAX];
   if (::realpath(relpath.c_str(), result) == nullptr)
-    RAISE_ERRNO(errno);
+    RAISE_SYSERR(errno, "Cannot resolve %s", relpath.c_str());
 
   return result;
 }
