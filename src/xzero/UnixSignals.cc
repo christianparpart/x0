@@ -56,15 +56,45 @@ class SignalWatcher : public Executor::Handle {
   UnixSignals::SignalHandler action_;
 };
 
-static std::string sig2str(int signo) {
+std::string UnixSignals::toString(int signo) {
   switch (signo) {
+    // XXX POSIX.1-1990
+    case SIGHUP: return "SIGHUP";
     case SIGINT: return "SIGINT";
     case SIGQUIT: return "SIGQUIT";
-    case SIGHUP: return "SIGHUP";
+    case SIGILL: return "SIGILL";
+    case SIGABRT: return "SIGABRT";
+    case SIGFPE: return "SIGFPE";
+    /* SIGKILL: cannot be trapped */
+    case SIGSEGV: return "SIGSEGV";
+    case SIGPIPE: return "SIGPIPE";
+    case SIGALRM: return "SIGALRM";
     case SIGTERM: return "SIGTERM";
-    case SIGCONT: return "SIGCONT";
     case SIGUSR1: return "SIGUSR1";
     case SIGUSR2: return "SIGUSR2";
+    case SIGCHLD: return "SIGCHLD";
+    case SIGCONT: return "SIGCONT";
+    /* SIGSTOP: cannot be trapped */
+    // XXX POSIX.1-2001
+    case SIGTSTP: return "SIGTSTP";
+    case SIGTTIN: return "SIGTTIN";
+    case SIGTTOU: return "SIGTTOU";
+    case SIGBUS: return "SIGBUS";
+    case SIGPOLL: return "SIGPOLL";
+    case SIGPROF: return "SIGPROF";
+    case SIGSYS: return "SIGSYS";
+    case SIGTRAP: return "SIGTRAP";
+    case SIGURG: return "SIGURG";
+    case SIGVTALRM: return "SIGVTALRM";
+    case SIGXCPU: return "SIGXCPU";
+    case SIGXFSZ: return "SIGXFSZ";
+    // XXX various other signals
+#if defined(SIGPWR)
+    case SIGPWR: return "SIGPWR";
+#endif
+#if defined(SIGWINCH)
+    case SIGWINCH: return "SIGWINCH";
+#endif
     default: break;
   }
 
@@ -162,7 +192,7 @@ void LinuxSignals::onSignal() {
 
       logDebug("UnixSignals",
                "Caught signal $0 from PID $1 UID $2.",
-               sig2str(signo),
+               toString(signo),
                event.ssi_pid,
                event.ssi_uid);
 
@@ -294,7 +324,7 @@ void KQueueSignals::onSignal() {
       int signo = events[i].ident;
       std::list<RefPtr<SignalWatcher>>& watchers = watchers_[signo];
 
-      logDebug("UnixSignals", "Caught signal $0.", sig2str(signo));
+      logDebug("UnixSignals", "Caught signal $0.", toString(signo));
 
       pending.insert(pending.end(), watchers.begin(), watchers.end());
       interests_ -= watchers_[signo].size();

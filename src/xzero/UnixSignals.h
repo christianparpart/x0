@@ -26,15 +26,6 @@ class UnixSignals {
   virtual ~UnixSignals() {}
 
   /**
-   * Creates a platform-dependant instance of UnixSignals.
-   */
-  static std::unique_ptr<UnixSignals> create(Executor* executor);
-
-  static void blockSignal(int signo);
-
-  static void unblockSignal(int signo);
-
-  /**
    * Runs given @p task when given @p signal was received.
    *
    * @param signo UNIX signal number (such as @c SIGTERM) you want
@@ -47,6 +38,34 @@ class UnixSignals {
    * @see Executor::executeOnSignal(int signal, SignalHandler task)
    */
   virtual HandleRef executeOnSignal(int signal, SignalHandler task) = 0;
+
+  /**
+   * Creates a platform-dependant instance of UnixSignals.
+   */
+  static std::unique_ptr<UnixSignals> create(Executor* executor);
+
+  /**
+   * Blocks given signal.
+   *
+   * You can still handle this signal via the UnixSignals API,
+   * but not with native system API.
+   */
+  static void blockSignal(int signo);
+
+  /**
+   * Unblocks given signal.
+   */
+  static void unblockSignal(int signo);
+
+  /**
+   * Retrieves the (technical) string representation of the given signal number.
+   *
+   * @param signo the signal number to convert into a string.
+   *
+   * @return the 1:1 string representation of the signal number, such as
+   *         the string @c "SIGTERM" for the signal @c SIGTERM.
+   */
+  static std::string toString(int signo);
 };
 
 } // namespace xzero
