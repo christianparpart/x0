@@ -352,12 +352,9 @@ void XzeroDaemon::runOneThread(int index) {
   if (index <= config_->workerAffinities.size())
     setThreadAffinity(config_->workerAffinities[index], index);
 
-  while (!terminate_.load()) {
-    logTrace("x0d", "worker/$0: Event loop enter");
-    scheduler->runLoop();
-  }
-
-  logTrace("x0d", "worker/$0: Event loop terminated.");
+  logTrace("x0d", "worker/$0: Event loop enter", index);
+  scheduler->runLoop();
+  logTrace("x0d", "worker/$0: Event loop terminated.", index);
 }
 
 void XzeroDaemon::setThreadAffinity(int cpu, int workerId) {
