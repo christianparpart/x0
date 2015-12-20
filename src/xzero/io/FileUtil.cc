@@ -171,14 +171,32 @@ void FileUtil::read(int fd, Buffer* output) {
   if (fstat(fd, &st) < 0)
     RAISE_ERRNO(errno);
 
-  size_t beg = output->size();
-  output->reserve(beg + st.st_size + 1);
-  ssize_t nread = ::pread(fd, output->data() + beg, st.st_size, 0);
-  if (nread < 0)
-    RAISE_ERRNO(errno);
+  if (st.st_size > 0) {
+    size_t beg = output->size();
+    output->reserve(beg + st.st_size + 1);
+    ssize_t nread = ::pread(fd, output->data() + beg, st.st_size, 0);
+    if (nread < 0)
+      RAISE_ERRNO(errno);
 
-  output->data()[beg + nread] = '\0';
-  output->resize(beg + nread);
+    output->data()[beg + nread] = '\0';
+    output->resize(beg + nread);
+  } else {
+    // XXX some files do not yield informations via stat, such as files in /proc.
+    // So fallback to standard read() until EOF is reached.
+    output->reserve(output->size() + 4096);
+    for (;;) {
+      ssize_t nread = ::read(fd, output->end(), 4096);
+      if (nread > 0) {
+        output->resize(output->size() + nread);
+      } else if (nread == 0) {
+        break;
+      } else if (errno == EINTR) {
+        continue;
+      } else {
+        RAISE_ERRNO(errno);
+      }
+    }
+  }
 }
 
 void FileUtil::read(File& file, Buffer* output) {
