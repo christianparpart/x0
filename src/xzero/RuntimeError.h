@@ -28,6 +28,9 @@ class XZERO_BASE_API RuntimeError : public std::system_error {
   RuntimeError(int ev, const std::error_category& ec);
   RuntimeError(int ev, const std::error_category& ec, const std::string& what);
 
+  template<typename... Args>
+  RuntimeError(int ev, const std::error_category& ec, const char* fmt, Args... args);
+
   explicit RuntimeError(Status ev);
   RuntimeError(Status ev, const std::string& what);
 
@@ -76,6 +79,12 @@ inline T RuntimeError::setSource(const char* file, int line, const char* fn) {
 
 
 template<typename... Args>
+inline RuntimeError::RuntimeError(int ev, const std::error_category& ec,
+                                  const char* fmt, Args... args)
+  : RuntimeError(ev, ec, cformat(fmt, args...)) {
+}
+
+template<typename... Args>
 inline RuntimeError::RuntimeError(
     Status ev,
     const char* fmt,
@@ -122,6 +131,16 @@ inline RuntimeError::RuntimeError(
  */
 #define RAISE_ERRNO(errno) {                                                  \
   RAISE_CATEGORY(errno, std::system_category());                              \
+}
+
+
+/**
+ * Raises an exception of given operating system error code with custom message.
+ *
+ * @see RAISE_EXCEPTION(E, ...)
+ */
+#define RAISE_SYSERR(errno, fmt...) {                                         \
+  RAISE_EXCEPTION(RuntimeError, ((int) errno), std::system_category(), fmt);  \
 }
 
 /**
