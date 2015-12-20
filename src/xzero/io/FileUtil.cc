@@ -24,6 +24,8 @@
 #include <fcntl.h>
 #include <limits.h>
 #include <stdlib.h>
+#include <pwd.h>
+#include <grp.h>
 
 namespace xzero {
 
@@ -289,6 +291,20 @@ void FileUtil::truncate(const std::string& path, size_t size) {
     RAISE_ERRNO(errno);
 }
 
+std::string FileUtil::dirname(const std::string& path) {
+  size_t n = path.rfind(PathSeperator);
+  return n != std::string::npos
+         ? path.substr(0, n)
+         : std::string(".");
+}
+
+std::string FileUtil::basename(const std::string& path) {
+  size_t n = path.rfind(PathSeperator);
+  return n != std::string::npos
+         ? path.substr(n)
+         : path;
+}
+
 void FileUtil::mkdir(const std::string& path, int mode) {
   if (::mkdir(path.c_str(), mode) < 0)
     RAISE_ERRNO(errno);
@@ -340,6 +356,38 @@ void FileUtil::rm(const std::string& path) {
 void FileUtil::mv(const std::string& path, const std::string& target) {
   if (::rename(path.c_str(), target.c_str()) < 0)
     RAISE_ERRNO(errno);
+}
+
+void FileUtil::chown(const std::string& path, int uid, int gid) {
+  if (::chown(path.c_str(), uid, gid) < 0)
+    RAISE_ERRNO(errno);
+}
+
+void FileUtil::chown(const std::string& path,
+                     const std::string& user,
+                     const std::string& group) {
+  errno = 0;
+  struct passwd* pw = getpwnam(user.c_str());
+  if (!pw) {
+    if (errno != 0) {
+      RAISE_ERRNO(errno);
+    } else {
+      RAISE(RuntimeError, "Unknown user name.");
+    }
+  }
+  int uid = pw->pw_uid;
+
+  struct group* gr = getgrnam(group.c_str());
+  if (!gr) {
+    if (errno != 0) {
+      RAISE_ERRNO(errno);
+    } else {
+      RAISE(RuntimeError, "Unknown group name.");
+    }
+  }
+  int gid = gr->gr_gid;
+
+  FileUtil::chown(path, uid, gid);
 }
 
 int FileUtil::createTempFile() {
