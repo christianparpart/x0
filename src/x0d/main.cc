@@ -45,7 +45,7 @@ int main(int argc, const char* argv[]) {
 
     CLI cli;
     cli.defineBool("help", 'h', "Prints this help and terminates.")
-       .defineString("config", 'c', "PATH", "Specify a custom configuration file.", "/etc/x0d/x0d.conf", nullptr)
+       .defineString("config", 'c', "PATH", "Specify a custom configuration file.", X0D_CONFIGFILE, nullptr)
        .defineString("user", 'u', "NAME", "User privileges to drop down to.", Application::userName())
        .defineString("group", 'g', "NAME", "Group privileges to drop down to.", Application::groupName())
        .defineString("log-level", 'L', "ENUM", "Defines the minimum log level.", "info", nullptr)
