@@ -411,4 +411,20 @@ void Connection::setPersistent(bool enable) {
 
 } // namespace fastcgi
 } // namespace http
+
+template<>
+std::string StringUtil::toString(http::fastcgi::Connection* c) {
+  return "fastcgi::Connection";
+}
+
+template<>
+std::string StringUtil::toString(http::fastcgi::HttpFastCgiTransport* c) {
+  return "fastcgi::Transport";
+}
+
+template<>
+std::string StringUtil::toString(http::fastcgi::HttpFastCgiChannel* c) {
+  return "fastcgi::Channel";
+}
+
 } // namespace xzero
