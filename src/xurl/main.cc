@@ -117,7 +117,7 @@ int XUrl::run(int argc, const char* argv[]) {
 
   flags_ = cli.evaluate(argc, argv);
 
-  Logger::get()->setMinimumLogLevel(to_loglevel(flags_.getString("log-level")));
+  Logger::get()->setMinimumLogLevel(make_loglevel(flags_.getString("log-level")));
 
   if (flags_.getBool("help")) {
     std::cerr

@@ -48,7 +48,7 @@ void ConsoleLogTarget::log(LogLevel level,
     fprintf(stderr,
             "%s[%s] [%s] %s\n",
             createTimestamp().c_str(),
-            logLevelToStr(level),
+            StringUtil::toString(level).c_str(),
             component.c_str(),
             message.c_str());
     fflush(stderr);

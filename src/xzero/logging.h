@@ -168,19 +168,6 @@ void logTrace(
   Logger::get()->logException(LogLevel::kTrace, component, e, msg, args...);
 }
 
-/**
- * Return the human readable string representation of the provided log leval
- */
-const char* logLevelToStr(LogLevel log_level);
-
-std::string to_string(LogLevel log_level);
-
-/**
- * Return the log level from the human readable string representation. This
- * will raise an exception if no such log level is known
- */
-LogLevel strToLogLevel(const String& log_level);
-
-}
+} // namespace xzero
 
 #endif

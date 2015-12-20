@@ -27,7 +27,7 @@ void LogOutputStream::log(
   const auto prefix = StringUtil::format(
       "$0 $1 [$2] ",
       WallClock::now().toString("%Y-%m-%d %H:%M:%S"),
-      logLevelToStr(level),
+      StringUtil::toString(level).c_str(),
       component);
 
   std::string lines = prefix + message;

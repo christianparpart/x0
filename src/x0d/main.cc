@@ -92,7 +92,7 @@ int main(int argc, const char* argv[]) {
     }
 
     // {{{ setup logging
-    Logger::get()->setMinimumLogLevel(to_loglevel(flags.getString("log-level")));
+    Logger::get()->setMinimumLogLevel(make_loglevel(flags.getString("log-level")));
 
     std::string logTarget = flags.getString("log-target");
     if (logTarget == "null") {
