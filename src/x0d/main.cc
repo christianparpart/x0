@@ -140,7 +140,7 @@ int main(int argc, const char* argv[]) {
     if (!x0d.configure())
       return 1;
 
-    std::string pidfilepath = flags.getString("pid-file");
+    std::string pidfilepath = FileUtil::realpath(flags.getString("pid-file"));
     std::string pidfiledir = FileUtil::dirname(pidfilepath);
     if (!FileUtil::exists(pidfiledir)) {
       FileUtil::mkdir_p(pidfiledir);
@@ -154,7 +154,7 @@ int main(int argc, const char* argv[]) {
       Application::daemonize();
     }
 
-    PidFile pidFile = flags.getString("pid-file");
+    PidFile pidFile = pidfilepath;
 
     x0d.run();
   } catch (const std::exception& e) {
