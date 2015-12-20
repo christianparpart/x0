@@ -13,6 +13,7 @@
 #include <xzero-flow/ASTPrinter.h>
 #include <xzero/logging/ConsoleLogTarget.h>
 #include <xzero/logging.h>
+#include <xzero/io/FileUtil.h>
 #include <xzero/cli/CLI.h>
 #include <xzero/cli/Flags.h>
 #include <xzero/Application.h>
@@ -37,7 +38,27 @@ void printHelp(const CLI& cli) {
     << cli.helpText() << std::endl;
 }
 
-#define DEFAULT_CONFIG_PATH PROJECT_ROOT_SRC_DIR "/x0d.conf"
+class PidFile { // {{{
+ public:
+  PidFile(const std::string& path);
+  ~PidFile();
+
+ private:
+  std::string path_;
+};
+
+PidFile::PidFile(const std::string& path)
+    : path_(path) {
+  // TODO: sanity-check (flock?) to ensure that we're the one.
+  logInfo("x0d", "Writing main process ID $0 into file $1",
+          getpid(), path_);
+  FileUtil::write(path_, StringUtil::toString(getpid()));
+}
+
+PidFile::~PidFile() {
+  FileUtil::rm(path_);
+}
+// }}}
 
 int main(int argc, const char* argv[]) {
   try {
@@ -54,6 +75,10 @@ int main(int argc, const char* argv[]) {
        .defineString("instant", 'i', "PATH[:PORT]", "Enable instant-mode (does not need config file).", "", nullptr)
        .defineNumber("optimization-level", 'O', "LEVEL", "Sets the configuration optimization level.", 1)
        .defineBool("daemonize", 'd', "Forks the process into background.")
+       .defineString("pid-file", 0, "PATH",
+                     "Path to PID-file this process will store its main PID.",
+                     FileUtil::joinPaths(X0D_STATEDIR, "x0d.pid"),
+                     nullptr)
        .defineBool("dump-ast", 0, "Dumps configuration AST and exits.")
        .defineBool("dump-ir", 0, "Dumps configuration IR and exits.")
        .defineBool("dump-tc", 0, "Dumps configuration opcode stream and exits.")
@@ -115,10 +140,21 @@ int main(int argc, const char* argv[]) {
     if (!x0d.configure())
       return 1;
 
+    std::string pidfilepath = flags.getString("pid-file");
+    std::string pidfiledir = FileUtil::dirname(pidfilepath);
+    if (!FileUtil::exists(pidfiledir)) {
+      FileUtil::mkdir_p(pidfiledir);
+      FileUtil::chown(pidfiledir, flags.getString("user"),
+                                  flags.getString("group"));
+    }
+
     Application::dropPrivileges(flags.getString("user"), flags.getString("group"));
 
-    if (flags.getBool("daemonize"))
+    if (flags.getBool("daemonize")) {
       Application::daemonize();
+    }
+
+    PidFile pidFile = flags.getString("pid-file");
 
     x0d.run();
   } catch (const std::exception& e) {

@@ -341,7 +341,6 @@ void XzeroDaemon::validateContext(const std::string& entrypointHandlerName,
 
 void XzeroDaemon::run() {
   server_->start();
-  logInfo("x0d", "Up and running on main process ID $0", getpid());
   runOneThread(0);
   logTrace("x0d", "Main loop quit. Shutting down.");
   server_->stop();
