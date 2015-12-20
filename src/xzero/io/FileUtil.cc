@@ -44,6 +44,9 @@ std::string FileUtil::currentWorkingDirectory() {
 }
 
 std::string FileUtil::realpath(const std::string& relpath) {
+  if (relpath.find(PathSeperator) == std::string::npos)
+    return joinPaths(currentWorkingDirectory(), relpath);
+
   char result[PATH_MAX];
   if (::realpath(relpath.c_str(), result) == nullptr)
     RAISE_ERRNO(errno);
