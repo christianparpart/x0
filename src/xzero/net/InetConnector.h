@@ -15,6 +15,7 @@
 #include <xzero/net/IPAddress.h>
 #include <xzero/executor/Executor.h>
 #include <xzero/executor/Scheduler.h>
+#include <xzero/io/FileDescriptor.h>
 #include <xzero/Duration.h>
 #include <xzero/RefPtr.h>
 #include <xzero/stdtypes.h>
@@ -124,7 +125,7 @@ class XZERO_BASE_API InetConnector : public Connector {
   /**
    * Sets the underlying system socket handle.
    */
-  void setSocket(int socket);
+  void setSocket(FileDescriptor&& socket);
 
   size_t backlog() const XZERO_NOEXCEPT;
   void setBacklog(size_t enable);
@@ -299,7 +300,7 @@ class XZERO_BASE_API InetConnector : public Connector {
 
   std::list<RefPtr<EndPoint>> connectedEndPoints_;
   std::mutex mutex_;
-  int socket_;
+  FileDescriptor socket_;
   int addressFamily_;
   int typeMask_;
   int flags_;

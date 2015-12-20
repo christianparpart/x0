@@ -183,18 +183,14 @@ InetConnector::~InetConnector() {
   if (isStarted()) {
     stop();
   }
-
-  if (socket_ >= 0) {
-    FileUtil::close(socket_);
-  }
 }
 
 int InetConnector::handle() const XZERO_NOEXCEPT {
   return socket_;
 }
 
-void InetConnector::setSocket(int socket) {
-  socket_ = socket;
+void InetConnector::setSocket(FileDescriptor&& socket) {
+  socket_ = std::move(socket);
 }
 
 size_t InetConnector::backlog() const XZERO_NOEXCEPT {
@@ -416,12 +412,10 @@ void InetConnector::stop() {
   if (schedulerHandle_)
     schedulerHandle_->cancel();
 
-  isStarted_ = false;
+  if (isOpen())
+    FileUtil::close(socket_.release());
 
-  if (isOpen()) {
-    FileUtil::close(socket_);
-    socket_ = -1;
-  }
+  isStarted_ = false;
 }
 
 void InetConnector::onConnect() {
