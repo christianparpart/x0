@@ -574,6 +574,16 @@ void HttpCluster::setScheduler(UniquePtr<HttpClusterScheduler> scheduler) {
   scheduler_ = std::move(scheduler);
 }
 
+void HttpCluster::addMember(const InetAddress& addr) {
+  addMember(StringUtil::format("$0", addr),
+            addr,
+            0,        // capacity (0 = no limit)
+            true,     // enabled
+            false,    // terminateProtection
+            "http",   // protocol
+            healthCheckInterval_);
+}
+
 void HttpCluster::addMember(const InetAddress& addr, size_t capacity) {
   addMember(StringUtil::format("$0", addr),
             addr,

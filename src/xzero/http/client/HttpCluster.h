@@ -156,6 +156,13 @@ class HttpCluster : public HttpClusterMember::EventListener {
   HttpClusterScheduler* scheduler() const { return scheduler_.get(); }
 
   /**
+   * Adds a new member to the HTTP cluster without any capacity constrain.
+   *
+   * @param addr     upstream TCP/IP address and port
+   */
+  void addMember(const InetAddress& addr);
+
+  /**
    * Adds a new member to the HTTP cluster.
    *
    * @param addr     upstream TCP/IP address and port
