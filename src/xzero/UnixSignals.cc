@@ -80,7 +80,9 @@ std::string UnixSignals::toString(int signo) {
     case SIGTTIN: return "SIGTTIN";
     case SIGTTOU: return "SIGTTOU";
     case SIGBUS: return "SIGBUS";
-    case SIGPOLL: return "SIGPOLL";
+#if defined(SIGIO)
+    case SIGIO: return "SIGIO";
+#endif
     case SIGPROF: return "SIGPROF";
     case SIGSYS: return "SIGSYS";
     case SIGTRAP: return "SIGTRAP";
