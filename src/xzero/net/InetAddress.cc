@@ -6,10 +6,26 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 #include <xzero/net/InetAddress.h>
+#include <xzero/net/IPAddress.h>
+#include <xzero/RuntimeError.h>
 #include <xzero/StringUtil.h>
 #include <xzero/Option.h>
 
 namespace xzero {
+
+InetAddress::InetAddress()
+    : ipaddress_(),
+      port_(0) {
+}
+
+InetAddress::InetAddress(const std::string& spec) : InetAddress() {
+  size_t n = spec.rfind(':');
+  if (n == std::string::npos)
+    RAISE(RuntimeError, "Invalid InetAddress argument. Missing port.");
+
+  setIP(IPAddress(spec.substr(0, n)));
+  setPort(std::stoi(spec.substr(n + 1)));
+}
 
 template<>
 std::string StringUtil::toString(InetAddress addr) {

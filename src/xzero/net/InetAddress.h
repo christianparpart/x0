@@ -19,6 +19,7 @@ class InetAddress {
   InetAddress();
   InetAddress(const std::string& ipaddr, int port, int family = 0);
   InetAddress(const IPAddress& ipaddr, int port);
+  explicit InetAddress(const std::string& spec);
   InetAddress(const InetAddress&) = default;
   InetAddress& operator=(const InetAddress&) = default;
 
