@@ -5,10 +5,12 @@
 // file except in compliance with the License. You may obtain a copy of
 // the License at: http://opensource.org/licenses/MIT
 
+#include <xzero/Application.h>
 #include <xzero/http/HttpService.h>
 #include <xzero/http/HttpRequest.h>
 #include <xzero/http/HttpResponse.h>
 #include <xzero/executor/PosixScheduler.h>
+#include <xzero/executor/ThreadPool.h>
 
 using namespace xzero;
 using namespace xzero::http;
@@ -38,16 +40,28 @@ bool HelloService::handleRequest(HttpRequest* request, HttpResponse* response) {
 }
 
 int main(int argc, const char* argv[]) {
+  Application::logToStderr(LogLevel::Trace);
+
+  std::unique_ptr<ThreadPool> threadpool;
   PosixScheduler scheduler;
   HttpService service(HttpService::HTTP1);
 
   IPAddress bind = IPAddress("127.0.0.1");
   int port = 3000;
 
+  Executor* clientExecutor = &scheduler;
+  bool threaded = false; // TODO FIXME threaded mode (data races in http?)
+
+  if (threaded) {
+    threadpool.reset(new ThreadPool());
+    clientExecutor = threadpool.get();
+  }
+
   HelloService hello;
   service.addHandler(&hello);
 
-  service.configureInet(&scheduler, &scheduler,
+  service.configureInet(&scheduler,
+                        clientExecutor,
                         20_seconds, // read timeout
                         10_seconds, // write timeout
                         8_seconds, // TCP FIN timeout
