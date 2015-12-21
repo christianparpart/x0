@@ -25,13 +25,12 @@ namespace xzero {
 #endif
 
 SslConnector::SslConnector(const std::string& name, Executor* executor,
-                           Scheduler* scheduler,
-                           SchedulerSelector clientSchedulerSelector,
+                           ExecutorSelector clientExecutorSelector,
                            Duration readTimeout, Duration writeTimeout,
                            Duration tcpFinTimeout,
                            const IPAddress& ipaddress, int port, int backlog,
                            bool reuseAddr, bool reusePort)
-    : InetConnector(name, executor, scheduler, clientSchedulerSelector,
+    : InetConnector(name, executor, clientExecutorSelector,
                     readTimeout, writeTimeout, tcpFinTimeout,
                     ipaddress, port, backlog, reuseAddr, reusePort),
       contexts_() {
@@ -93,8 +92,8 @@ std::list<RefPtr<EndPoint>> SslConnector::connectedEndPoints() {
   return InetConnector::connectedEndPoints();
 }
 
-RefPtr<EndPoint> SslConnector::createEndPoint(int cfd, Scheduler* scheduler) {
-  return make_ref<SslEndPoint>(cfd, this, scheduler).as<EndPoint>();
+RefPtr<EndPoint> SslConnector::createEndPoint(int cfd, Executor* executor) {
+  return make_ref<SslEndPoint>(cfd, this, executor).as<EndPoint>();
 }
 
 void SslConnector::onEndPointCreated(const RefPtr<EndPoint>& endpoint) {

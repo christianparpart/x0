@@ -29,7 +29,7 @@ class TokenShaperTest : public ::testing::Test {
   typedef TokenShaper<int> Shaper;
 
   Shaper::TimeoutHandler onTimeout_;
-  std::unique_ptr<Scheduler> loop;
+  std::unique_ptr<EventLoop> loop;
   std::unique_ptr<Shaper> shaper;
   Shaper::Node* root;
   Shaper::Node* vip;

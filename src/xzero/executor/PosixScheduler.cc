@@ -103,7 +103,7 @@ PosixScheduler::PosixScheduler(
     std::unique_ptr<xzero::ExceptionHandler> eh,
     std::function<void()> preInvoke,
     std::function<void()> postInvoke)
-    : Scheduler(std::move(eh)),
+    : EventLoop(std::move(eh)),
       lock_(),
       wakeupPipe_(),
       onPreInvokePending_(preInvoke),
@@ -171,17 +171,17 @@ std::string PosixScheduler::toString() const {
       wakeupPipe_[PIPE_WRITE_END]);
 }
 
-Scheduler::HandleRef PosixScheduler::executeAfter(Duration delay, Task task) {
+EventLoop::HandleRef PosixScheduler::executeAfter(Duration delay, Task task) {
   TRACE("executeAfter: $0", delay);
   return insertIntoTimersList(now() + delay, task);
 }
 
-Scheduler::HandleRef PosixScheduler::executeAt(UnixTime when, Task task) {
+EventLoop::HandleRef PosixScheduler::executeAt(UnixTime when, Task task) {
   TRACE("executeAt: $0", when);
   return insertIntoTimersList(now() + (when - WallClock::now()), task);
 }
 
-Scheduler::HandleRef PosixScheduler::insertIntoTimersList(MonotonicTime dt,
+EventLoop::HandleRef PosixScheduler::insertIntoTimersList(MonotonicTime dt,
                                                           Task task) {
   RefPtr<Timer> t(new Timer(dt, task));
 
@@ -310,13 +310,13 @@ PosixScheduler::Watcher* PosixScheduler::unlinkWatcher(Watcher* w) {
   return succ;
 }
 
-Scheduler::HandleRef PosixScheduler::executeOnReadable(int fd, Task task, Duration tmo, Task tcb) {
+EventLoop::HandleRef PosixScheduler::executeOnReadable(int fd, Task task, Duration tmo, Task tcb) {
   readerCount_++;
   std::lock_guard<std::mutex> lk(lock_);
   return setupWatcher(fd, Mode::READABLE, task, tmo, tcb);
 }
 
-Scheduler::HandleRef PosixScheduler::executeOnWritable(int fd, Task task, Duration tmo, Task tcb) {
+EventLoop::HandleRef PosixScheduler::executeOnWritable(int fd, Task task, Duration tmo, Task tcb) {
   writerCount_++;
   std::lock_guard<std::mutex> lk(lock_);
   return setupWatcher(fd, Mode::WRITABLE, task, tmo, tcb);
@@ -442,24 +442,6 @@ void PosixScheduler::collectActiveHandles(const fd_set* input,
 // FIXME: this is actually so generic, it could be put into Executor API directly
 void PosixScheduler::executeOnWakeup(Task task, Wakeup* wakeup, long generation) {
   wakeup->onWakeup(generation, std::bind(&PosixScheduler::execute, this, task));
-}
-
-size_t PosixScheduler::timerCount() {
-  std::lock_guard<std::mutex> lk(lock_);
-  return timers_.size();
-}
-
-size_t PosixScheduler::readerCount() {
-  return readerCount_.load();
-}
-
-size_t PosixScheduler::writerCount() {
-  return writerCount_.load();
-}
-
-size_t PosixScheduler::taskCount() {
-  std::lock_guard<std::mutex> lk(lock_);
-  return tasks_.size();
 }
 
 void PosixScheduler::runLoop() {

@@ -219,6 +219,13 @@ class Executor {
  protected:
   void safeCall(std::function<void()> callee) noexcept;
 
+  template<typename Container>
+  void safeCallEach(const Container& tasks) {
+    for (Task task: tasks) {
+      safeCall(task);
+    }
+  }
+
  protected:
   SafeCall safeCall_;
   std::unique_ptr<UnixSignals> unixSignals_;

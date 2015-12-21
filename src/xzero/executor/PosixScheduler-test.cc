@@ -126,9 +126,9 @@ TEST(PosixSchedulerTest, executeAfter_cancel_beforeRun) {
     fireCount++;
   });
 
-  EXPECT_EQ(1, scheduler.timerCount());
+  EXPECT_EQ(1, scheduler.referenceCount());
   handle->cancel();
-  EXPECT_EQ(0, scheduler.timerCount());
+  EXPECT_EQ(0, scheduler.referenceCount());
   EXPECT_EQ(0, fireCount);
 }
 
@@ -145,9 +145,9 @@ TEST(PosixSchedulerTest, executeAfter_cancel_beforeRun2) {
     fire2Count++;
   });
 
-  EXPECT_EQ(2, scheduler.timerCount());
+  EXPECT_EQ(2, scheduler.referenceCount());
   handle1->cancel();
-  EXPECT_EQ(1, scheduler.timerCount());
+  EXPECT_EQ(1, scheduler.referenceCount());
 
   scheduler.runLoopOnce();
 

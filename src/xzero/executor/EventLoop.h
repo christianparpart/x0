@@ -16,41 +16,12 @@
 namespace xzero {
 
 /**
- * Interface for scheduling tasks.
+ * Interface for scheduling tasks in a event loop manner.
  */
-class Scheduler : public Executor {
+class EventLoop : public Executor {
  public:
-  Scheduler(std::unique_ptr<ExceptionHandler> eh)
+  EventLoop(std::unique_ptr<ExceptionHandler> eh)
       : Executor(std::move(eh)) {}
-
-  /**
-   * Retrieves the number of active timers.
-   *
-   * @see executeAt(UnixTime dt, Task task)
-   * @see executeAfter(Duration ts, Task task)
-   */
-  virtual size_t timerCount() = 0;
-
-  /**
-   * Retrieves the number of active read-interests.
-   *
-   * @see executeOnReadable(int fd, Task task)
-   */
-  virtual size_t readerCount() = 0;
-
-  /**
-   * Retrieves the number of active write-interests.
-   *
-   * @see executeOnWritable(int fd, Task task)
-   */
-  virtual size_t writerCount() = 0;
-
-  /**
-   * Retrieves the number of pending tasks.
-   *
-   * @see execute(Task task)
-   */
-  virtual size_t taskCount() = 0;
 
   /**
    * Runs the event loop until no event is to be served.
@@ -67,14 +38,6 @@ class Scheduler : public Executor {
    * Breaks loop in case it is blocking while waiting for an event.
    */
   virtual void breakLoop() = 0;
-
- protected:
-  template<typename Container>
-  void safeCallEach(const Container& tasks) {
-    for (Task task: tasks) {
-      safeCall(task);
-    }
-  }
 };
 
 }  // namespace xzero

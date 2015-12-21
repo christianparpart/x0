@@ -67,7 +67,7 @@ XzeroDaemon::XzeroDaemon()
       mimetypes_(),
       vfs_(mimetypes_, "/", true, true, false),
       lastWorker_(0),
-      schedulers_(),
+      eventLoops_(),
       modules_(),
       server_(new Server()),
       unit_(nullptr),
@@ -247,11 +247,11 @@ void XzeroDaemon::postConfig() {
     mimetypes_.load(mimetypes2cc);
   }
 
-  // schedulers & threading
-  schedulers_.emplace_back(newScheduler());
+  // event loops & threading
+  eventLoops_.emplace_back(createEventLoop());
 
   for (int i = 1; i < config_->workers; ++i) {
-    schedulers_.emplace_back(newScheduler());
+    eventLoops_.emplace_back(createEventLoop());
     threadedExecutor_.execute(std::bind(&XzeroDaemon::runOneThread, this, i));
   }
 
@@ -285,11 +285,11 @@ void XzeroDaemon::postConfig() {
     module->onPostConfig();
   }
 
-  eventHandler_.reset(new XzeroEventHandler(this, schedulers_[0].get()));
+  eventHandler_.reset(new XzeroEventHandler(this, eventLoops_[0].get()));
 }
 
-std::unique_ptr<Scheduler> XzeroDaemon::newScheduler() {
-  return std::unique_ptr<Scheduler>(new NativeScheduler(
+std::unique_ptr<EventLoop> XzeroDaemon::createEventLoop() {
+  return std::unique_ptr<EventLoop>(new NativeScheduler(
         std::unique_ptr<xzero::ExceptionHandler>(
               new CatchAndLogExceptionHandler("x0d")),
         nullptr /* preInvoke */,
@@ -347,13 +347,13 @@ void XzeroDaemon::run() {
 }
 
 void XzeroDaemon::runOneThread(int index) {
-  Scheduler* scheduler = schedulers_[index].get();
+  EventLoop* eventLoop = eventLoops_[index].get();
 
-  if (index <= config_->workerAffinities.size())
+  if (index < config_->workerAffinities.size())
     setThreadAffinity(config_->workerAffinities[index], index);
 
   logTrace("x0d", "worker/$0: Event loop enter", index);
-  scheduler->runLoop();
+  eventLoop->runLoop();
   logTrace("x0d", "worker/$0: Event loop terminated.", index);
 }
 
@@ -371,12 +371,12 @@ void XzeroDaemon::setThreadAffinity(int cpu, int workerId) {
   int rv = pthread_setaffinity_np(tid, sizeof(set), &set);
   if (rv < 0) {
     logError("x0d",
-             "setting scheduler affinity on CPU $0 failed for worker $1. $2",
+             "setting event-loopaffinity on CPU $0 failed for worker $1. $2",
              cpu, workerId, strerror(errno));
   }
 #else
   logError("x0d",
-           "setting scheduler affinity on CPU $0 failed for worker $1. $2",
+           "setting event-loop affinity on CPU $0 failed for worker $1. $2",
            cpu, workerId, strerror(ENOTSUP));
 #endif
 }
@@ -384,18 +384,18 @@ void XzeroDaemon::setThreadAffinity(int cpu, int workerId) {
 void XzeroDaemon::terminate() {
   terminate_ = true;
 
-  for (auto& scheduler: schedulers_) {
-    scheduler->breakLoop();
+  for (auto& eventLoop: eventLoops_) {
+    eventLoop->breakLoop();
   }
 }
 
-Scheduler* XzeroDaemon::selectClientScheduler() {
+Executor* XzeroDaemon::selectClientExecutor() {
   // TODO: support least-load
 
-  if (++lastWorker_ >= schedulers_.size())
+  if (++lastWorker_ >= eventLoops_.size())
     lastWorker_ = 0;
 
-  return schedulers_[lastWorker_].get();
+  return eventLoops_[lastWorker_].get();
 }
 
 template<typename T>
@@ -411,11 +411,11 @@ void XzeroDaemon::setupConnector(
   }
 
   if (reusePort) {
-    for (auto& scheduler: schedulers_) {
-      Scheduler* sched = scheduler.get();
+    for (auto& eventLoop: eventLoops_) {
+      EventLoop* loop = eventLoop.get();
       T* connector = doSetupConnector<T>(
-          sched,
-          [sched]() -> Scheduler* { return sched; },
+          loop,
+          [loop]() -> Executor* { return loop; },
           bindAddress, port, backlog,
           multiAcceptCount, reuseAddr, reusePort);
       if (connectorVisitor) {
@@ -424,8 +424,8 @@ void XzeroDaemon::setupConnector(
     }
   } else {
     T* connector = doSetupConnector<T>(
-        schedulers_[0].get(),
-        std::bind(&XzeroDaemon::selectClientScheduler, this),
+        eventLoops_[0].get(),
+        std::bind(&XzeroDaemon::selectClientExecutor, this),
         bindAddress, port, backlog,
         multiAcceptCount, reuseAddr, reusePort);
     if (connectorVisitor) {
@@ -436,16 +436,15 @@ void XzeroDaemon::setupConnector(
 
 template<typename T>
 T* XzeroDaemon::doSetupConnector(
-    xzero::Scheduler* listenerScheduler,
-    xzero::InetConnector::SchedulerSelector clientSchedulerSelector,
+    xzero::Executor* executor,
+    xzero::InetConnector::ExecutorSelector clientExecutorSelector,
     const xzero::IPAddress& ipaddr, int port,
     int backlog, int multiAccept, bool reuseAddr, bool reusePort) {
 
   auto inet = server_->addConnector<T>(
       "inet",
-      listenerScheduler,
-      listenerScheduler,
-      clientSchedulerSelector,
+      executor,
+      clientExecutorSelector,
       config_->maxReadIdle,
       config_->maxWriteIdle,
       config_->tcpFinTimeout,

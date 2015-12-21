@@ -60,10 +60,16 @@ class XZERO_BASE_API DatagramConnector {
    */
   virtual void stop() = 0;
 
+  Executor* executor() const noexcept;
+
  protected:
   std::string name_;
   DatagramHandler handler_;
   Executor* executor_;
 };
+
+inline Executor* DatagramConnector::executor() const noexcept {
+  return executor_;
+}
 
 } // namespace xzero

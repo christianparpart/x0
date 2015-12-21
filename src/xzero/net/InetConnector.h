@@ -13,9 +13,8 @@
 #include <xzero/sysconfig.h>
 #include <xzero/net/Connector.h>
 #include <xzero/net/IPAddress.h>
-#include <xzero/executor/Executor.h>
-#include <xzero/executor/Scheduler.h>
 #include <xzero/io/FileDescriptor.h>
+#include <xzero/executor/Executor.h> // for Executor::HandleRef
 #include <xzero/Duration.h>
 #include <xzero/RefPtr.h>
 #include <xzero/stdtypes.h>
@@ -26,8 +25,6 @@
 namespace xzero {
 
 class Connection;
-class Executor;
-class Scheduler;
 class InetEndPoint;
 class SslEndPoint;
 
@@ -36,14 +33,13 @@ class SslEndPoint;
  */
 class XZERO_BASE_API InetConnector : public Connector {
  public:
-  typedef std::function<Scheduler*()> SchedulerSelector;
+  typedef std::function<Executor*()> ExecutorSelector;
 
   /**
    * Initializes this connector.
    *
    * @param name Describing name for this connector.
    * @param executor Executor service to run handlers on
-   * @param scheduler Scheduler service to use for scheduling tasks
    * @param readTimeout timespan indicating how long a connection may for read
    *                    readiness.
    * @param writeTimeout timespan indicating how long a connection wait for
@@ -59,9 +55,9 @@ class XZERO_BASE_API InetConnector : public Connector {
    *
    * @throw std::runtime_error on any kind of runtime error.
    */
-  InetConnector(const std::string& name, Executor* executor,
-                Scheduler* scheduler,
-                SchedulerSelector clientSchedulerSelector,
+  InetConnector(const std::string& name,
+                Executor* executor,
+                ExecutorSelector clientExecutorSelector,
                 Duration readTimeout,
                 Duration writeTimeout,
                 Duration tcpFinTimeout,
@@ -73,7 +69,6 @@ class XZERO_BASE_API InetConnector : public Connector {
    *
    * @param name Describing name for this connector.
    * @param executor Executor service to run on
-   * @param scheduler Scheduler service to use for timeout management
    * @param readTimeout timespan indicating how long a connection may for read
    *                    readiness.
    * @param writeTimeout timespan indicating how long a connection wait for
@@ -82,16 +77,16 @@ class XZERO_BASE_API InetConnector : public Connector {
    *                      A value of 0 means to leave it at system default.
    * @param eh exception handler for errors in hooks or during events.
    */
-  InetConnector(const std::string& name, Executor* executor,
-                Scheduler* scheduler,
-                SchedulerSelector clientSchedulerSelector,
+  InetConnector(const std::string& name,
+                Executor* executor,
+                ExecutorSelector clientExecutorSelector,
                 Duration readTimeout,
                 Duration writeTimeout,
                 Duration tcpFinTimeout);
 
   ~InetConnector();
 
-  Scheduler* scheduler() const XZERO_NOEXCEPT;
+  Executor* scheduler() const XZERO_NOEXCEPT;
 
   /**
    * Opens this connector by binding to the given @p ipaddress and @p port.
@@ -239,7 +234,7 @@ class XZERO_BASE_API InetConnector : public Connector {
 
  private:
   /**
-   * Registers to the Scheduler API for new incoming connections.
+   * Registers to the Executor API for new incoming connections.
    */
   void notifyOnEvent();
 
@@ -258,9 +253,9 @@ class XZERO_BASE_API InetConnector : public Connector {
    * Creates an EndPoint instance for given client file descriptor.
    *
    * @param cfd       client's file descriptor
-   * @param scheduler client's designated I/O scheduler
+   * @param executor  client's designated I/O scheduler
    */
-  virtual RefPtr<EndPoint> createEndPoint(int cfd, Scheduler* scheduler);
+  virtual RefPtr<EndPoint> createEndPoint(int cfd, Executor* executor);
 
   /**
    * By default, creates Connection from default connection factory and initiates it.
@@ -291,9 +286,8 @@ class XZERO_BASE_API InetConnector : public Connector {
   friend class SslEndPoint;
 
  private:
-  Scheduler* scheduler_;
-  Scheduler::HandleRef schedulerHandle_;
-  SchedulerSelector selectScheduler_;
+  Executor::HandleRef io_;
+  ExecutorSelector selectClientExecutor_;
 
   IPAddress bindAddress_;
   int port_;
@@ -312,10 +306,6 @@ class XZERO_BASE_API InetConnector : public Connector {
   Duration tcpFinTimeout_;
   bool isStarted_;
 };
-
-inline Scheduler* InetConnector::scheduler() const XZERO_NOEXCEPT {
-  return scheduler_;
-}
 
 inline Duration InetConnector::readTimeout() const XZERO_NOEXCEPT {
   return readTimeout_;

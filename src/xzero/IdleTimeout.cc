@@ -11,7 +11,7 @@
 #include <xzero/logging.h>
 #include <xzero/MonotonicClock.h>
 #include <xzero/MonotonicTime.h>
-#include <xzero/executor/Scheduler.h>
+#include <xzero/executor/Executor.h>
 #include <assert.h>
 
 namespace xzero {
@@ -23,8 +23,8 @@ namespace xzero {
 #define TRACE(msg...) do {} while (0)
 #endif
 
-IdleTimeout::IdleTimeout(Scheduler* scheduler) :
-  scheduler_(scheduler),
+IdleTimeout::IdleTimeout(Executor* executor) :
+  executor_(executor),
   timeout_(Duration::Zero),
   fired_(),
   active_(false),
@@ -82,7 +82,7 @@ void IdleTimeout::reschedule() {
   handle_->cancel();
 
   Duration deltaTimeout = timeout_ - (MonotonicClock::now() - fired_);
-  handle_ = scheduler_->executeAfter(deltaTimeout,
+  handle_ = executor_->executeAfter(deltaTimeout,
                                      std::bind(&IdleTimeout::onFired, this));
 }
 
@@ -92,8 +92,8 @@ void IdleTimeout::schedule() {
   if (handle_)
     handle_->cancel();
 
-  handle_ = scheduler_->executeAfter(timeout_,
-                                     std::bind(&IdleTimeout::onFired, this));
+  handle_ = executor_->executeAfter(timeout_,
+                                    std::bind(&IdleTimeout::onFired, this));
 }
 
 void IdleTimeout::onFired() {

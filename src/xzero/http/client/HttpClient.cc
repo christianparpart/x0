@@ -9,7 +9,6 @@
 #include <xzero/http/client/HttpClient.h>
 #include <xzero/http/client/HttpTransport.h>
 #include <xzero/http/client/Http1Connection.h>
-#include <xzero/executor/Scheduler.h>
 #include <xzero/net/InetEndPoint.h>
 #include <xzero/net/DnsClient.h>
 #include <xzero/net/InetAddress.h>

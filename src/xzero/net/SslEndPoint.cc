@@ -13,7 +13,6 @@
 #include <xzero/net/Connection.h>
 #include <xzero/net/ConnectionFactory.h>
 #include <xzero/io/FileUtil.h>
-#include <xzero/executor/Scheduler.h>
 #include <xzero/RuntimeError.h>
 #include <xzero/logging.h>
 #include <openssl/ssl.h>
@@ -35,17 +34,17 @@ namespace xzero {
 }
 
 SslEndPoint::SslEndPoint(
-    int socket, SslConnector* connector, Scheduler* scheduler)
+    int socket, SslConnector* connector, Executor* executor)
     : handle_(socket),
       isCorking_(false),
       connector_(connector),
-      scheduler_(scheduler),
+      executor_(executor),
       ssl_(nullptr),
       bioDesire_(Desire::None),
       io_(),
       readTimeout_(connector->readTimeout()),
       writeTimeout_(connector->writeTimeout()),
-      idleTimeout_(scheduler) {
+      idleTimeout_(executor) {
   TRACE("$0 SslEndPoint() ctor", this);
 
   idleTimeout_.setCallback(std::bind(&SslEndPoint::onTimeout, this));
@@ -89,12 +88,12 @@ void SslEndPoint::shutdown() {
   } else {
     switch (SSL_get_error(ssl_, rv)) {
       case SSL_ERROR_WANT_READ:
-        io_ = scheduler_->executeOnReadable(
+        io_ = executor_->executeOnReadable(
             handle(),
             std::bind(&SslEndPoint::shutdown, this));
         break;
       case SSL_ERROR_WANT_WRITE:
-        io_ = scheduler_->executeOnWritable(
+        io_ = executor_->executeOnWritable(
             handle(),
             std::bind(&SslEndPoint::shutdown, this));
         break;
@@ -213,13 +212,13 @@ void SslEndPoint::wantFill() {
     case Desire::None:
     case Desire::Read:
       TRACE("$0 wantFill: read", this);
-      io_ = scheduler_->executeOnReadable(
+      io_ = executor_->executeOnReadable(
           handle(),
           std::bind(&SslEndPoint::fillable, this));
       break;
     case Desire::Write:
       TRACE("$0 wantFill: write", this);
-      io_ = scheduler_->executeOnWritable(
+      io_ = executor_->executeOnWritable(
           handle(),
           std::bind(&SslEndPoint::fillable, this));
       break;
@@ -251,14 +250,14 @@ void SslEndPoint::wantFlush() {
   switch (bioDesire_) {
     case Desire::Read:
       TRACE("$0 wantFlush: read", this);
-      io_ = scheduler_->executeOnReadable(
+      io_ = executor_->executeOnReadable(
           handle(),
           std::bind(&SslEndPoint::flushable, this));
       break;
     case Desire::None:
     case Desire::Write:
       TRACE("$0 wantFlush: write", this);
-      io_ = scheduler_->executeOnWritable(
+      io_ = executor_->executeOnWritable(
           handle(),
           std::bind(&SslEndPoint::flushable, this));
       break;
@@ -345,12 +344,12 @@ void SslEndPoint::onHandshake() {
     switch (SSL_get_error(ssl_, rv)) {
       case SSL_ERROR_WANT_READ:
         TRACE("$0 onHandshake (want read)", this);
-        scheduler_->executeOnReadable(
+        executor_->executeOnReadable(
             handle(), std::bind(&SslEndPoint::onHandshake, this));
         break;
       case SSL_ERROR_WANT_WRITE:
         TRACE("$0 onHandshake (want write)", this);
-        scheduler_->executeOnWritable(
+        executor_->executeOnWritable(
             handle(), std::bind(&SslEndPoint::onHandshake, this));
         break;
       default: {

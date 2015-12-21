@@ -7,7 +7,7 @@
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 #include <xzero/http/client/HttpClient.h>
-#include <xzero/executor/LocalScheduler.h>
+#include <xzero/executor/NativeScheduler.h>
 #include <xzero/net/ByteArrayEndPoint.h>
 #include <xzero/Application.h>
 #include <xzero/logging.h>
@@ -33,7 +33,7 @@ RefPtr<ByteArrayEndPoint> createEndPoint() {
 TEST(HttpClient, test_http1_default) {
   Application::logToStderr(LogLevel::Trace);
 
-  LocalScheduler sched(std::unique_ptr<xzero::ExceptionHandler>(
+  NativeScheduler sched(std::unique_ptr<xzero::ExceptionHandler>(
       new CatchAndLogExceptionHandler("unittest")));
 
   RefPtr<ByteArrayEndPoint> ep = createEndPoint();

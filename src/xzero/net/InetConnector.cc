@@ -7,7 +7,7 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-#include <xzero/executor/Scheduler.h>
+#include <xzero/executor/EventLoop.h>
 #include <xzero/net/InetConnector.h>
 #include <xzero/net/InetEndPoint.h>
 #include <xzero/net/ConnectionFactory.h>
@@ -48,16 +48,15 @@
 
 namespace xzero {
 
-InetConnector::InetConnector(const std::string& name, Executor* executor,
-                             Scheduler* scheduler,
-                             SchedulerSelector clientSchedulerSelector,
+InetConnector::InetConnector(const std::string& name,
+                             Executor* executor,
+                             ExecutorSelector clientExecutorSelector,
                              Duration readTimeout,
                              Duration writeTimeout,
                              Duration tcpFinTimeout)
     : Connector(name, executor),
-      scheduler_(scheduler),
-      schedulerHandle_(),
-      selectScheduler_(clientSchedulerSelector),
+      io_(),
+      selectClientExecutor_(clientExecutorSelector),
       bindAddress_(),
       port_(-1),
       connectedEndPoints_(),
@@ -75,15 +74,15 @@ InetConnector::InetConnector(const std::string& name, Executor* executor,
       isStarted_(false) {
 }
 
-InetConnector::InetConnector(const std::string& name, Executor* executor,
-                             Scheduler* scheduler,
-                             SchedulerSelector clientSchedulerSelector,
+InetConnector::InetConnector(const std::string& name,
+                             Executor* executor,
+                             ExecutorSelector clientExecutorSelector,
                              Duration readTimeout,
                              Duration writeTimeout,
                              Duration tcpFinTimeout,
                              const IPAddress& ipaddress, int port, int backlog,
                              bool reuseAddr, bool reusePort)
-    : InetConnector(name, executor, scheduler, clientSchedulerSelector,
+    : InetConnector(name, executor, clientExecutorSelector,
                     readTimeout, writeTimeout, tcpFinTimeout) {
 
   open(ipaddress, port, backlog, reuseAddr, reusePort);
@@ -397,7 +396,7 @@ void InetConnector::start() {
 }
 
 void InetConnector::notifyOnEvent() {
-  schedulerHandle_ = scheduler_->executeOnReadable(
+  io_ = executor()->executeOnReadable(
       handle(),
       std::bind(&InetConnector::onConnect, this));
 }
@@ -409,8 +408,8 @@ bool InetConnector::isStarted() const XZERO_NOEXCEPT {
 void InetConnector::stop() {
   TRACE("stop: $0", this);
 
-  if (schedulerHandle_)
-    schedulerHandle_->cancel();
+  if (io_)
+    io_->cancel();
 
   if (isOpen())
     FileUtil::close(socket_.release());
@@ -426,14 +425,15 @@ void InetConnector::onConnect() {
 
     TRACE("onConnect: fd=$0", cfd);
 
-    Scheduler* scheduler = selectScheduler_();
-    RefPtr<EndPoint> ep = createEndPoint(cfd, scheduler);
+    Executor* clientExecutor = selectClientExecutor_();
+    RefPtr<EndPoint> ep = createEndPoint(cfd, clientExecutor);
     {
       std::lock_guard<std::mutex> _lk(mutex_);
       connectedEndPoints_.push_back(ep);
     }
 
-    scheduler->execute(std::bind(&InetConnector::onEndPointCreated, this, ep));
+    clientExecutor->execute(
+        std::bind(&InetConnector::onEndPointCreated, this, ep));
   }
 
   if (isStarted()) {
@@ -487,8 +487,8 @@ int InetConnector::acceptOne() {
   return cfd;
 }
 
-RefPtr<EndPoint> InetConnector::createEndPoint(int cfd, Scheduler* scheduler) {
-  return make_ref<InetEndPoint>(cfd, this, scheduler).as<EndPoint>();
+RefPtr<EndPoint> InetConnector::createEndPoint(int cfd, Executor* executor) {
+  return make_ref<InetEndPoint>(cfd, this, executor).as<EndPoint>();
 }
 
 void InetConnector::onEndPointCreated(const RefPtr<EndPoint>& endpoint) {

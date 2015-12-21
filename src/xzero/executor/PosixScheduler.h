@@ -11,7 +11,7 @@
 
 #include <xzero/RefPtr.h>
 #include <xzero/MonotonicTime.h>
-#include <xzero/executor/Scheduler.h>
+#include <xzero/executor/EventLoop.h>
 #include <sys/select.h>
 #include <set>
 #include <vector>
@@ -20,7 +20,7 @@
 
 namespace xzero {
 
-class PosixScheduler : public Scheduler {
+class PosixScheduler : public EventLoop {
  public:
   PosixScheduler(
       std::unique_ptr<xzero::ExceptionHandler> eh,
@@ -36,8 +36,8 @@ class PosixScheduler : public Scheduler {
 
   MonotonicTime now() const;
 
-  using Scheduler::executeOnReadable;
-  using Scheduler::executeOnWritable;
+  using EventLoop::executeOnReadable;
+  using EventLoop::executeOnWritable;
 
   void execute(Task task) override;
   std::string toString() const override;
@@ -47,10 +47,7 @@ class PosixScheduler : public Scheduler {
   HandleRef executeOnWritable(int fd, Task task, Duration tmo, Task tcb) override;
   void cancelFD(int fd) override;
   void executeOnWakeup(Task task, Wakeup* wakeup, long generation) override;
-  size_t timerCount() override;
-  size_t readerCount() override;
-  size_t writerCount() override;
-  size_t taskCount() override;
+
   void runLoop() override;
   void runLoopOnce() override;
   void breakLoop() override;

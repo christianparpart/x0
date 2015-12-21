@@ -13,6 +13,7 @@
 #include <xzero/net/LocalConnector.h>
 #include <xzero/net/InetConnector.h>
 #include <xzero/net/Server.h>
+#include <xzero/RuntimeError.h>
 #include <xzero/WallClock.h>
 #include <algorithm>
 #include <stdexcept>
@@ -70,18 +71,18 @@ LocalConnector* HttpService::configureLocal() {
 }
 
 InetConnector* HttpService::configureInet(Executor* executor,
-                                          Scheduler* scheduler,
+                                          Executor* clientExecutor,
                                           Duration readTimeout,
                                           Duration writeTimeout,
                                           Duration tcpFinTimeout,
                                           const IPAddress& ipaddress,
                                           int port, int backlog) {
   if (inetConnector_ != nullptr)
-    throw std::runtime_error("Multiple inet connectors not yet supported.");
+    RAISE(RuntimeError, "Multiple inet connectors not yet supported.");
 
   inetConnector_ = server_->addConnector<InetConnector>(
-      "http", executor, scheduler,
-      [scheduler]() { return scheduler; },
+      "http", executor,
+      [clientExecutor]() { return clientExecutor; },
       readTimeout, writeTimeout,
       tcpFinTimeout, ipaddress, port, backlog, true, false);
 

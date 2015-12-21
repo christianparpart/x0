@@ -10,14 +10,12 @@
 #pragma once
 
 #include <xzero/Api.h>
-#include <xzero/executor/Scheduler.h>
+#include <xzero/executor/Executor.h>
 #include <xzero/net/DatagramConnector.h>
 #include <xzero/net/IPAddress.h>
 #include <functional>
 
 namespace xzero {
-
-class Scheduler;
 
 /**
  * Datagram Connector for UDP protocol.
@@ -32,7 +30,6 @@ class XZERO_BASE_API UdpConnector : public DatagramConnector {
    * @param name Human readable name for the given connector (such as "ntp").
    * @param handler Callback handler to be invoked on every incoming message.
    * @param executor Executor service to be used for invoking the handler.
-   * @param scheduler Scheduler service to be used for I/O notifications.
    * @param ipaddress IP address to bind the connector to.
    * @param port UDP port number to bind the connector to.
    * @param reuseAddr Whether or not to enable @c SO_REUSEADDR.
@@ -42,7 +39,6 @@ class XZERO_BASE_API UdpConnector : public DatagramConnector {
       const std::string& name,
       DatagramHandler handler,
       Executor* executor,
-      Scheduler* scheduler,
       const IPAddress& ipaddress, int port,
       bool reuseAddr, bool reusePort);
 
@@ -55,16 +51,13 @@ class XZERO_BASE_API UdpConnector : public DatagramConnector {
   void stop() override;
 
  private:
-  void open(
-      const IPAddress& bind, int port,
-      bool reuseAddr, bool reusePort);
+  void open(const IPAddress& bind, int port, bool reuseAddr, bool reusePort);
 
   void notifyOnEvent();
   void onMessage();
 
  private:
-  Scheduler* scheduler_;
-  Scheduler::HandleRef schedulerHandle_;
+  Executor::HandleRef io_;
   int socket_;
   int addressFamily_;
 };

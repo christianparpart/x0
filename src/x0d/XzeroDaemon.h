@@ -38,7 +38,7 @@ namespace xzero {
   class IPAddress;
   class Connection;
   class Connector;
-  class Scheduler;
+  class EventLoop;
 
   namespace http {
     class HttpRequest;
@@ -79,7 +79,7 @@ class XzeroDaemon : public xzero::flow::vm::Runtime {
   xzero::flow::vm::Program* program() const noexcept { return program_.get(); }
   xzero::flow::IRProgram* programIR() const noexcept { return programIR_.get(); }
 
-  xzero::Scheduler* selectClientScheduler();
+  xzero::Executor* selectClientExecutor();
 
   template<typename T>
   void setupConnector(const xzero::IPAddress& ipaddr, int port,
@@ -88,8 +88,8 @@ class XzeroDaemon : public xzero::flow::vm::Runtime {
                       std::function<void(T*)> connectorVisitor);
 
   template<typename T>
-  T* doSetupConnector(xzero::Scheduler* listenerScheduler,
-                      xzero::InetConnector::SchedulerSelector clientSchedulerSelector,
+  T* doSetupConnector(xzero::Executor* executor,
+                      xzero::InetConnector::ExecutorSelector clientExecutorSelector,
                       const xzero::IPAddress& ipaddr, int port,
                       int backlog, int multiAccept,
                       bool reuseAddr, bool reusePort);
@@ -159,7 +159,7 @@ class XzeroDaemon : public xzero::flow::vm::Runtime {
 
  private:
   void postConfig();
-  std::unique_ptr<xzero::Scheduler> newScheduler();
+  std::unique_ptr<xzero::EventLoop> createEventLoop();
   void runOneThread(int index);
   void setThreadAffinity(int cpu, int workerId);
 
@@ -175,7 +175,7 @@ class XzeroDaemon : public xzero::flow::vm::Runtime {
 
   off_t lastWorker_;                          //!< offset to the last elected worker
   xzero::ThreadedExecutor threadedExecutor_;  //!< non-main worker executor
-  std::vector<std::unique_ptr<xzero::Scheduler>> schedulers_; //!< schedulers, one for each thread
+  std::vector<std::unique_ptr<xzero::EventLoop>> eventLoops_; //!< one for each thread
   std::list<XzeroModule*> modules_;           //!< list of loaded modules
   std::unique_ptr<xzero::Server> server_;     //!< (HTTP) server instance
 

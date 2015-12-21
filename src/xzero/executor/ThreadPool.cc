@@ -47,7 +47,7 @@ ThreadPool::ThreadPool(std::unique_ptr<xzero::ExceptionHandler> eh)
 
 ThreadPool::ThreadPool(size_t num_threads,
                        std::unique_ptr<xzero::ExceptionHandler> eh)
-    : Scheduler(std::move(eh)),
+    : Executor(std::move(eh)),
       active_(true),
       threads_(),
       mutex_(),
@@ -213,47 +213,6 @@ void ThreadPool::executeOnWakeup(Task task, Wakeup* wakeup, long generation) {
     execute(task);
     activeTimers_--;
   });
-}
-
-size_t ThreadPool::timerCount() {
-  return activeTimers_.load();
-}
-
-size_t ThreadPool::readerCount() {
-  return activeReaders_.load();
-}
-
-size_t ThreadPool::writerCount() {
-  return activeWriters_.load();
-}
-
-size_t ThreadPool::taskCount() {
-  return activeTasks_.load();
-}
-
-void ThreadPool::runLoop() {
-  for (;;) {
-    bool cont = !taskCount()
-             || !timerCount()
-             || !readerCount()
-             || !writerCount();
-
-    if (!cont)
-      break;
-
-    runLoopOnce();
-  }
-}
-
-void ThreadPool::runLoopOnce() {
-  // in terms of this implementation, I shall decide, that
-  // a ThreadPool's runLoopOnce() will block the caller until
-  // there is no more task running nor pending.
-  wait();
-}
-
-void ThreadPool::breakLoop() {
-  condition_.notify_all();
 }
 
 std::string ThreadPool::toString() const {

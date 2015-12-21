@@ -53,7 +53,7 @@ class XZERO_HTTP_API HttpService {
    * Configures this service to listen on TCP/IP using the given parameters.
    *
    * @param executor the executor service to run tasks on.
-   * @param scheduler where to schedule timed tasks on.
+   * @param clientExecutor the executor for the client connections.
    * @param readTimeout timespan indicating how long a connection may be idle for read.
    * @param writeTimeout timespan indicating how long a connection may be idle for write.
    * @param tcpFinTimeout Timespan to leave client sockets in FIN_WAIT2 state.
@@ -64,7 +64,7 @@ class XZERO_HTTP_API HttpService {
    *
    */
   InetConnector* configureInet(Executor* executor,
-                               Scheduler* scheduler,
+                               Executor* clientExecutor,
                                Duration readTimeout,
                                Duration writeTimeout,
                                Duration tcpFinTimeout,

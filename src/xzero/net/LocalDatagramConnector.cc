@@ -9,6 +9,7 @@
 
 #include <xzero/net/LocalDatagramConnector.h>
 #include <xzero/net/LocalDatagramEndPoint.h>
+#include <xzero/executor/Executor.h>
 #include <xzero/RuntimeError.h>
 #include <xzero/logging.h>
 

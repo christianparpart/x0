@@ -12,19 +12,17 @@
 #include <xzero/Api.h>
 #include <xzero/Duration.h>
 #include <xzero/MonotonicTime.h>
-#include <xzero/executor/Scheduler.h>
+#include <xzero/executor/Executor.h>
 #include <functional>
 
 namespace xzero {
-
-class Scheduler;
 
 /**
  * Manages a single idle timeout.
  */
 class XZERO_BASE_API IdleTimeout {
  public:
-  IdleTimeout(Scheduler* scheduler);
+  IdleTimeout(Executor* executor);
   ~IdleTimeout();
 
   void setTimeout(Duration value);
@@ -58,12 +56,12 @@ class XZERO_BASE_API IdleTimeout {
   void onFired();
 
  private:
-  Scheduler* scheduler_;
+  Executor* executor_;
   Duration timeout_;
   MonotonicTime fired_;
   bool active_;
   std::function<void()> onTimeout_;
-  Scheduler::HandleRef handle_;
+  Executor::HandleRef handle_;
 };
 
 inline void IdleTimeout::activate(Duration timeout) {

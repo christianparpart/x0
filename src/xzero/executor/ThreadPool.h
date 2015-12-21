@@ -10,7 +10,7 @@
 #pragma once
 
 #include <xzero/sysconfig.h>
-#include <xzero/executor/Scheduler.h>
+#include <xzero/executor/Executor.h>
 #include <xzero/ExceptionHandler.h>
 #include <condition_variable>
 #include <mutex>
@@ -23,7 +23,7 @@ namespace xzero {
 /**
  * Standard thread-safe thread pool.
  */
-class ThreadPool : public Scheduler {
+class ThreadPool : public Executor {
  public:
   /**
    * Initializes this thread pool as many threads as CPU cores are available.
@@ -73,8 +73,8 @@ class ThreadPool : public Scheduler {
    */
   void wait();
 
-  using Scheduler::executeOnReadable;
-  using Scheduler::executeOnWritable;
+  using Executor::executeOnReadable;
+  using Executor::executeOnWritable;
 
   // overrides
   void execute(Task task) override;
@@ -84,13 +84,6 @@ class ThreadPool : public Scheduler {
   HandleRef executeOnWritable(int fd, Task task, Duration tmo, Task tcb) override;
   void cancelFD(int fd) override;
   void executeOnWakeup(Task task, Wakeup* wakeup, long generation) override;
-  size_t timerCount() override;
-  size_t readerCount() override;
-  size_t writerCount() override;
-  size_t taskCount() override;
-  void runLoop() override;
-  void runLoopOnce() override;
-  void breakLoop() override;
   std::string toString() const override;
 
   // compatibility layer to old ThreadPool API

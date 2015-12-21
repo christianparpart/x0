@@ -11,7 +11,7 @@
 #include <xzero/net/UdpEndPoint.h>
 #include <xzero/net/IPAddress.h>
 #include <xzero/io/FileUtil.h>
-#include <xzero/executor/Scheduler.h>
+#include <xzero/executor/Executor.h>
 #include <xzero/RuntimeError.h>
 #include <xzero/logging.h>
 
@@ -30,17 +30,14 @@ UdpConnector::UdpConnector(
     const std::string& name,
     DatagramHandler handler,
     Executor* executor,
-    Scheduler* scheduler,
     const IPAddress& ipaddr, int port,
     bool reuseAddr, bool reusePort)
     : DatagramConnector(name, handler, executor),
-      scheduler_(scheduler),
       socket_(-1),
       addressFamily_(0) {
   open(ipaddr, port, reuseAddr, reusePort);
 
   BUG_ON(executor == nullptr);
-  BUG_ON(scheduler == nullptr);
 }
 
 UdpConnector::~UdpConnector() {
@@ -59,16 +56,16 @@ void UdpConnector::start() {
 }
 
 bool UdpConnector::isStarted() const {
-  return schedulerHandle_.get() != nullptr;
+  return io_.get() != nullptr;
 }
 
 void UdpConnector::stop() {
   if (!isStarted())
     RAISE(IllegalStateError);
 
-  if (schedulerHandle_) {
-    schedulerHandle_->cancel();
-    schedulerHandle_ = nullptr;
+  if (io_) {
+    io_->cancel();
+    io_ = nullptr;
   }
 }
 
@@ -124,7 +121,7 @@ void UdpConnector::open(
 
 void UdpConnector::notifyOnEvent() {
   logTrace("UdpConnector", "notifyOnEvent()");
-  schedulerHandle_ = scheduler_->executeOnReadable(
+  io_ = executor_->executeOnReadable(
       socket_,
       std::bind(&UdpConnector::onMessage, this));
 }

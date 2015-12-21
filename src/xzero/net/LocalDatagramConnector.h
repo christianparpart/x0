@@ -10,7 +10,6 @@
 #pragma once
 
 #include <xzero/Api.h>
-#include <xzero/executor/Scheduler.h>
 #include <xzero/net/DatagramConnector.h>
 #include <xzero/net/LocalDatagramEndPoint.h>
 #include <xzero/net/IPAddress.h>

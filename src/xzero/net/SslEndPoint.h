@@ -11,7 +11,6 @@
 
 #include <xzero/Api.h>
 #include <xzero/net/EndPoint.h>
-#include <xzero/executor/Scheduler.h>
 #include <xzero/IdleTimeout.h>
 #include <openssl/ssl.h>
 
@@ -24,7 +23,7 @@ class SslConnector;
  */
 class XZERO_BASE_API SslEndPoint : public EndPoint {
  public:
-  SslEndPoint(int socket, SslConnector* connector, Scheduler* scheduler);
+  SslEndPoint(int socket, SslConnector* connector, Executor* executor);
   ~SslEndPoint();
 
   int handle() const noexcept { return handle_; }
@@ -107,10 +106,10 @@ class XZERO_BASE_API SslEndPoint : public EndPoint {
   int handle_;
   bool isCorking_;
   SslConnector* connector_;
-  Scheduler* scheduler_;
+  Executor* executor_;
   SSL* ssl_;
   Desire bioDesire_;
-  Scheduler::HandleRef io_;
+  Executor::HandleRef io_;
   Duration readTimeout_;
   Duration writeTimeout_;
   IdleTimeout idleTimeout_;
