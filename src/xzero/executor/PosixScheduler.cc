@@ -114,7 +114,8 @@ PosixScheduler::PosixScheduler(
       firstWatcher_(nullptr),
       lastWatcher_(nullptr),
       readerCount_(0),
-      writerCount_(0) {
+      writerCount_(0),
+      breakLoopCounter_(0) {
   if (pipe(wakeupPipe_) < 0) {
     RAISE_ERRNO(errno);
   }
@@ -162,7 +163,7 @@ void PosixScheduler::execute(Task task) {
     tasks_.emplace_back(std::move(task));
     ref();
   }
-  breakLoop();
+  wakeupLoop();
 }
 
 std::string PosixScheduler::toString() const {
@@ -285,7 +286,7 @@ PosixScheduler::Watcher* PosixScheduler::linkWatcher(Watcher* w, Watcher* pred) 
 
   ref();
 
-  breakLoop();
+  wakeupLoop();
 
   return w;
 }
@@ -445,7 +446,9 @@ void PosixScheduler::executeOnWakeup(Task task, Wakeup* wakeup, long generation)
 }
 
 void PosixScheduler::runLoop() {
-  while (referenceCount() > 0) {
+  breakLoopCounter_.store(0);
+
+  while (breakLoopCounter_.load() == 0 && referenceCount() > 0) {
 #if !defined(NDEBUG)
     {
       std::lock_guard<std::mutex> _l(lock_);
@@ -557,6 +560,11 @@ Duration PosixScheduler::nextTimeout() const {
 
 void PosixScheduler::breakLoop() {
   TRACE("breakLoop()");
+  breakLoopCounter_++;
+  wakeupLoop();
+}
+
+void PosixScheduler::wakeupLoop() {
   int dummy = 42;
   ::write(wakeupPipe_[PIPE_WRITE_END], &dummy, sizeof(dummy));
 }

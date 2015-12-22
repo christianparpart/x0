@@ -22,6 +22,9 @@ namespace xzero {
 
 class PosixScheduler : public EventLoop {
  public:
+  PosixScheduler(const PosixScheduler&) = delete;
+  PosixScheduler& operator=(const PosixScheduler&) = delete;
+
   PosixScheduler(
       std::unique_ptr<xzero::ExceptionHandler> eh,
       std::function<void()> preInvoke,
@@ -51,6 +54,8 @@ class PosixScheduler : public EventLoop {
   void runLoop() override;
   void runLoopOnce() override;
   void breakLoop() override;
+
+  void wakeupLoop();
 
   /**
    * Waits at most @p timeout for @p fd to become readable without blocking.
@@ -214,6 +219,7 @@ class PosixScheduler : public EventLoop {
 
   std::atomic<size_t> readerCount_; //!< number of active read interests
   std::atomic<size_t> writerCount_; //!< number of active write interests
+  std::atomic<size_t> breakLoopCounter_;
 };
 
 std::string inspect(PosixScheduler::Mode mode);
