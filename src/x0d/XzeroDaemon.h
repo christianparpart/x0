@@ -176,7 +176,7 @@ class XzeroDaemon : public xzero::flow::vm::Runtime {
   off_t lastWorker_;                          //!< offset to the last elected worker
   xzero::ThreadedExecutor threadedExecutor_;  //!< non-main worker executor
   std::vector<std::unique_ptr<xzero::EventLoop>> eventLoops_; //!< one for each thread
-  std::list<XzeroModule*> modules_;           //!< list of loaded modules
+  std::list<std::unique_ptr<XzeroModule>> modules_; //!< list of loaded modules
   std::unique_ptr<xzero::Server> server_;     //!< (HTTP) server instance
 
   // Flow configuration
@@ -238,7 +238,7 @@ inline xzero::flow::vm::NativeCallback& XzeroDaemon::mainHandler(
 template<typename T>
 inline T* XzeroDaemon::loadModule() {
   modules_.emplace_back(new T(this));
-  return static_cast<T*>(modules_.back());
+  return static_cast<T*>(modules_.back().get());
 }
 
 // }}}

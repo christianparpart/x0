@@ -281,7 +281,7 @@ void XzeroDaemon::postConfig() {
     }
   }
 
-  for (XzeroModule* module: modules_) {
+  for (std::unique_ptr<XzeroModule>& module: modules_) {
     module->onPostConfig();
   }
 
