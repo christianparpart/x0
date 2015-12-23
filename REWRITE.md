@@ -1,16 +1,3 @@
-### TODO: some flow optimization
-
-```!flow
-handler main {
-  foo;
-  if (expression) { }
-  else { }
-  bar;
-}
-```
-
-if `expression` is side-effect free, the whole CondExpr can be optimized away
-
 ### Incomplete Migration Tasks
 
 - [x] UnixSignals API
