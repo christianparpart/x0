@@ -585,7 +585,10 @@ void CoreModule::log_debug(XzeroContext* cx, Params& args) {
 }
 
 void CoreModule::sleep(XzeroContext* cx, Params& args) {
-  // TODO
+  cx->runner()->suspend();
+  cx->response()->executor()->executeAfter(
+      Duration::fromSeconds(args.getInt(1)),
+      std::bind(&flow::vm::Runner::resume, cx->runner()));
 }
 
 void CoreModule::file_exists(XzeroContext* cx, Params& args) {
