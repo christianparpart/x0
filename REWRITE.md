@@ -1,18 +1,5 @@
 ### Incomplete Migration Tasks
 
-- [x] UnixSignals API
-- [x] UnixSignals: OS/X (kqueue)
-- [x] UnixSignals: Linux (signalfd)
-- [x] PosixScheduler: add refCount in order to allow checking for interests
-      (just like in libev), so it is easier for UnixSignals to silently
-      watch without letting the event loop being stuck even no actual
-      interest has been created.
-- [x] x0d-signals: logfile rotating (USR1)
-- [x] x0d-signals: graceful shutdown (QUIT)
-- [x] x0d-signals: quick shutdown (INT, TERM)
-- [ ] x0d-signals: config reload (HUP)
-- [ ] x0d-signals: binary upgrade (USR2)
-
 - [ ] revive `lingering`
 - [ ] revive `max_connections`
 - [ ] revive HTTP client side abort notification API
@@ -27,7 +14,18 @@
 - [ ] (flow) a verifier callback must have the ability to attach custom data
       to the actual call.
       something like `CallInstr.attach(OwnedPtr<CustomData> data);
-
+- [ ] x0d-signals: binary upgrade (USR2)
+- [ ] x0d-signals: config reload (HUP)
+- [x] UnixSignals API
+- [x] UnixSignals: OS/X (kqueue)
+- [x] UnixSignals: Linux (signalfd)
+- [x] PosixScheduler: add refCount in order to allow checking for interests
+      (just like in libev), so it is easier for UnixSignals to silently
+      watch without letting the event loop being stuck even no actual
+      interest has been created.
+- [x] x0d-signals: logfile rotating (USR1)
+- [x] x0d-signals: graceful shutdown (QUIT)
+- [x] x0d-signals: quick shutdown (INT, TERM)
 - [x] access to Scheduler API from within HttpRequest or XzeroContext;
       consider merging `Scheduler` and `Executor`;
       consider using `Scheduler` instead of `Executor` in net and http code;
@@ -53,9 +51,6 @@
 - [x] console logger to also log timestamps, can be disabled (enabled by default)
 - [x] HttpRequest: reuse of HttpRequestInfo
 - [x] webdav implements PUT method
-
-### proxy
-
 - [x] HttpClient: basic HTTP client API with generic transport layer (HTTP1, ...)
 - [x] HttpClusterScheduler
 - [x] HttpClusterScheduler::RoundRobin
@@ -84,23 +79,3 @@
 - [x] upstream response body's max-buffer-size should be configurable
       as a per-cluster config variable. this value is used in `HugeBuffer`.
       Default: 4 mbyte.
-
-#### proxy: stage 2
-
-- [ ] proxy: properly proxy 'Expect: 100-continue' (Expect-header must be forwarded)
-- [ ] HttpClient: FastCGI
-- [ ] HttpHealthMonitor: FastCGI
-- [ ] flow-api: `proxy.fcgi(ipaddr, port)`
-- [ ] HttpClient: support UNIX domain socket alongside with TCP/IP
-- [ ] Executor::HandleRef -> `<xzero/Action.h>` or similar to make it more generic
-- [ ] support disabling caching of upstream response bodies but perform
-      slow I/O instead. make this feaure per-cluster runtime configurable.
-      by default: caching is enabled.
-
-### Feature Stories
-
-- [ ] support Server Sent Events (HTTP SSE)
-- [ ] proxy: idempotent HTTP requests should be retried when backend
-      returned a 5xx, too.
-      configure option: `proxy.retry_idempotent_on_5xx(B)V`
-
