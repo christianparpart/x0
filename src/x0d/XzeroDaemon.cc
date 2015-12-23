@@ -159,6 +159,8 @@ void XzeroDaemon::loadConfigStream(std::unique_ptr<std::istream>&& is,
   parser.openStream(std::move(is), filename);
   unit_ = parser.parse();
 
+  validateConfig();
+
   flow::IRGenerator irgen;
   irgen.setExports({"setup", "main"});
   irgen.setErrorCallback([&](const std::string& msg) {
@@ -188,8 +190,6 @@ void XzeroDaemon::loadConfigStream(std::unique_ptr<std::istream>&& is,
 
   program_ = flow::TargetCodeGenerator().generate(programIR_.get());
   program_->link(this);
-
-  validateConfig();
 
   if (!program_->findHandler("setup")) {
     RAISE(RuntimeError, "No setup handler found.");
