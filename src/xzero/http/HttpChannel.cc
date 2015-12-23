@@ -106,8 +106,8 @@ void HttpChannel::send(const BufferRef& data, CompletionHandler onComplete) {
 
   if (outputFilters_.empty()) {
     if (!response_->isCommitted()) {
-      HttpResponseInfo info(commitInline());
-      transport_->send(std::move(info), data, onComplete);
+      HttpResponseInfo& info = commitInline();
+      transport_->send(info, data, onComplete);
     } else {
       transport_->send(data, onComplete);
     }
@@ -116,8 +116,8 @@ void HttpChannel::send(const BufferRef& data, CompletionHandler onComplete) {
     Filter::applyFilters(outputFilters_, data, &filtered, false);
 
     if (!response_->isCommitted()) {
-      HttpResponseInfo info(commitInline());
-      transport_->send(std::move(info), std::move(filtered), onComplete);
+      HttpResponseInfo& info = commitInline();
+      transport_->send(info, std::move(filtered), onComplete);
     } else {
       transport_->send(std::move(filtered), onComplete);
     }
@@ -134,8 +134,8 @@ void HttpChannel::send(Buffer&& data, CompletionHandler onComplete) {
   }
 
   if (!response_->isCommitted()) {
-    HttpResponseInfo info(commitInline());
-    transport_->send(std::move(info), std::move(data), onComplete);
+    HttpResponseInfo& info = commitInline();
+    transport_->send(info, std::move(data), onComplete);
   } else {
     transport_->send(std::move(data), onComplete);
   }
@@ -146,10 +146,10 @@ void HttpChannel::send(FileView&& file, CompletionHandler onComplete) {
 
   if (outputFilters_.empty()) {
     if (!response_->isCommitted()) {
-      HttpResponseInfo info(commitInline());
-      transport_->send(std::move(info), BufferRef(), nullptr);
+      HttpResponseInfo& info = commitInline();
+      transport_->send(info, BufferRef(), nullptr);
       transport_->send(std::move(file), onComplete);
-      // transport_->send(std::move(info), BufferRef(),
+      // transport_->send(info, BufferRef(),
       //     std::bind(&HttpTransport::send, transport_, file, onComplete));
     } else {
       transport_->send(std::move(file), onComplete);
@@ -159,8 +159,8 @@ void HttpChannel::send(FileView&& file, CompletionHandler onComplete) {
     Filter::applyFilters(outputFilters_, file, &filtered, false);
 
     if (!response_->isCommitted()) {
-      HttpResponseInfo info(commitInline());
-      transport_->send(std::move(info), std::move(filtered), onComplete);
+      HttpResponseInfo& info = commitInline();
+      transport_->send(info, std::move(filtered), onComplete);
     } else {
       transport_->send(std::move(filtered), onComplete);
     }
@@ -190,7 +190,7 @@ void HttpChannel::onBeforeSend() {
     outputCompressor_->postProcess(request(), response());
 }
 
-HttpResponseInfo HttpChannel::commitInline() {
+HttpResponseInfo& HttpChannel::commitInline() {
   if (!response_->status())
     RAISE(IllegalStateError, "No HTTP response status set yet.");
 
@@ -201,12 +201,9 @@ HttpResponseInfo HttpChannel::commitInline() {
 
   response_->setCommitted(true);
 
-  const bool isHeadReq = request_->method() == HttpMethod::HEAD;
-  HttpResponseInfo info(response_->version(), response_->status(),
-                        response_->reason(), isHeadReq,
-                        response_->contentLength(),
-                        response_->headers(),
-                        response_->trailers());
+  HttpResponseInfo& info = response_->info();
+
+  info.setIsHeadResponse(request_->method() == HttpMethod::HEAD);
 
   if (!info.headers().contains("Server"))
     info.headers().push_back("Server", "xzero/" XZERO_BASE_VERSION);
@@ -237,7 +234,7 @@ void HttpChannel::send100Continue(CompletionHandler onComplete) {
                         "Continue", false, 0, {}, {});
 
   TRACE("send100Continue(): sending it");
-  transport_->send(std::move(info), BufferRef(), onComplete);
+  transport_->send(info, BufferRef(), onComplete);
 }
 
 void HttpChannel::onMessageBegin(const BufferRef& method,
@@ -363,8 +360,8 @@ void HttpChannel::completed() {
     if (!response_->hasContentLength() && request_->method() != HttpMethod::HEAD) {
       response_->setContentLength(0);
     }
-    HttpResponseInfo info(commitInline());
-    transport_->send(std::move(info), BufferRef(), nullptr);
+    HttpResponseInfo& info = commitInline();
+    transport_->send(info, BufferRef(), nullptr);
   }
 
   setState(HttpChannelState::DONE);

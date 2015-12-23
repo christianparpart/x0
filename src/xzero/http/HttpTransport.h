@@ -53,7 +53,7 @@ class XZERO_HTTP_API HttpTransport {
    *
    * @note You must ensure the data chunk is available until sending completed!
    */
-  virtual void send(HttpResponseInfo&& responseInfo, const BufferRef& chunk,
+  virtual void send(HttpResponseInfo& responseInfo, const BufferRef& chunk,
                     CompletionHandler onComplete) = 0;
 
   /**
@@ -63,7 +63,7 @@ class XZERO_HTTP_API HttpTransport {
    * @param chunk response body data chunk.
    * @param onComplete callback invoked when sending chunk is succeed/failed.
    */
-  virtual void send(HttpResponseInfo&& responseInfo, Buffer&& chunk,
+  virtual void send(HttpResponseInfo& responseInfo, Buffer&& chunk,
                     CompletionHandler onComplete) = 0;
 
   /**
@@ -73,7 +73,7 @@ class XZERO_HTTP_API HttpTransport {
    * @param chunk response body chunk represented as a file.
    * @param onComplete callback invoked when sending chunk is succeed/failed.
    */
-  virtual void send(HttpResponseInfo&& responseInfo, FileView&& chunk,
+  virtual void send(HttpResponseInfo& responseInfo, FileView&& chunk,
                     CompletionHandler onComplete) = 0;
 
   /**

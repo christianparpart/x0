@@ -58,9 +58,9 @@ class HttpFastCgiTransport : public HttpTransport { // {{{
 
   void abort() override;
   void completed() override;
-  void send(HttpResponseInfo&& responseInfo, const BufferRef& chunk, CompletionHandler onComplete) override;
-  void send(HttpResponseInfo&& responseInfo, Buffer&& chunk, CompletionHandler onComplete) override;
-  void send(HttpResponseInfo&& responseInfo, FileView&& chunk, CompletionHandler onComplete) override;
+  void send(HttpResponseInfo& responseInfo, const BufferRef& chunk, CompletionHandler onComplete) override;
+  void send(HttpResponseInfo& responseInfo, Buffer&& chunk, CompletionHandler onComplete) override;
+  void send(HttpResponseInfo& responseInfo, FileView&& chunk, CompletionHandler onComplete) override;
   void send(Buffer&& chunk, CompletionHandler onComplete) override;
   void send(FileView&& chunk, CompletionHandler onComplete) override;
   void send(const BufferRef& chunk, CompletionHandler onComplete) override;
@@ -143,17 +143,17 @@ void HttpFastCgiTransport::onResponseComplete(bool success) {
   connection_->removeChannel(id_);
 }
 
-void HttpFastCgiTransport::send(HttpResponseInfo&& responseInfo, const BufferRef& chunk, CompletionHandler onComplete) {
+void HttpFastCgiTransport::send(HttpResponseInfo& responseInfo, const BufferRef& chunk, CompletionHandler onComplete) {
   generator_.generateResponse(responseInfo, chunk);
   setCompleter(onComplete);
 }
 
-void HttpFastCgiTransport::send(HttpResponseInfo&& responseInfo, Buffer&& chunk, CompletionHandler onComplete) {
+void HttpFastCgiTransport::send(HttpResponseInfo& responseInfo, Buffer&& chunk, CompletionHandler onComplete) {
   generator_.generateResponse(responseInfo, std::move(chunk));
   setCompleter(onComplete);
 }
 
-void HttpFastCgiTransport::send(HttpResponseInfo&& responseInfo, FileView&& chunk, CompletionHandler onComplete) {
+void HttpFastCgiTransport::send(HttpResponseInfo& responseInfo, FileView&& chunk, CompletionHandler onComplete) {
   generator_.generateResponse(responseInfo, std::move(chunk));
   setCompleter(onComplete);
 }

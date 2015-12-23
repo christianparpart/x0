@@ -49,6 +49,16 @@ class XZERO_HTTP_API HttpResponse {
 
   void recycle();
 
+  /**
+   * Raw access to the HttpResponseInfo object.
+   */
+  HttpResponseInfo& info() noexcept { return info_; }
+
+  /**
+   * Raw access to the HttpResponseInfo object.
+   */
+  const HttpResponseInfo& info() const noexcept { return info_; }
+
   HttpVersion version() const noexcept;
   void setVersion(HttpVersion version);
 

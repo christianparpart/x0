@@ -88,10 +88,10 @@ void Transport::completed() {
   responseInfo_.setTrailers(channel_->response()->trailers());
 }
 
-void Transport::send(HttpResponseInfo&& responseInfo,
-                         const BufferRef& chunk,
-                         CompletionHandler onComplete) {
-  responseInfo_ = std::move(responseInfo);
+void Transport::send(HttpResponseInfo& responseInfo,
+                     const BufferRef& chunk,
+                     CompletionHandler onComplete) {
+  responseInfo_ = responseInfo;
   responseBody_ += chunk;
 
   if (onComplete) {
@@ -101,10 +101,10 @@ void Transport::send(HttpResponseInfo&& responseInfo,
   }
 }
 
-void Transport::send(HttpResponseInfo&& responseInfo,
-                         Buffer&& chunk,
-                         CompletionHandler onComplete) {
-  responseInfo_ = std::move(responseInfo);
+void Transport::send(HttpResponseInfo& responseInfo,
+                     Buffer&& chunk,
+                     CompletionHandler onComplete) {
+  responseInfo_ = responseInfo;
   responseBody_ += chunk;
 
   if (onComplete) {
@@ -114,10 +114,10 @@ void Transport::send(HttpResponseInfo&& responseInfo,
   }
 }
 
-void Transport::send(HttpResponseInfo&& responseInfo,
-                         FileView&& chunk,
-                         CompletionHandler onComplete) {
-  responseInfo_ = std::move(responseInfo);
+void Transport::send(HttpResponseInfo& responseInfo,
+                     FileView&& chunk,
+                     CompletionHandler onComplete) {
+  responseInfo_ = responseInfo;
 
   chunk.fill(&responseBody_);
 

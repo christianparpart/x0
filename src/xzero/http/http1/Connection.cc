@@ -147,7 +147,7 @@ void Connection::onResponseComplete(bool succeed) {
   }
 }
 
-void Connection::send(HttpResponseInfo&& responseInfo,
+void Connection::send(HttpResponseInfo& responseInfo,
                       const BufferRef& chunk,
                       CompletionHandler onComplete) {
   setCompleter(onComplete, responseInfo.status());
@@ -165,7 +165,7 @@ void Connection::send(HttpResponseInfo&& responseInfo,
   wantFlush();
 }
 
-void Connection::send(HttpResponseInfo&& responseInfo,
+void Connection::send(HttpResponseInfo& responseInfo,
                       Buffer&& chunk,
                       CompletionHandler onComplete) {
   setCompleter(onComplete, responseInfo.status());
@@ -183,7 +183,7 @@ void Connection::send(HttpResponseInfo&& responseInfo,
   wantFlush();
 }
 
-void Connection::send(HttpResponseInfo&& responseInfo,
+void Connection::send(HttpResponseInfo& responseInfo,
                       FileView&& chunk,
                       CompletionHandler onComplete) {
   setCompleter(onComplete, responseInfo.status());

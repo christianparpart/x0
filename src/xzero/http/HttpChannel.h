@@ -169,7 +169,7 @@ class XZERO_HTTP_API HttpChannel : public HttpListener {
  protected:
   void handleRequest();
   void onBeforeSend();
-  HttpResponseInfo commitInline();
+  HttpResponseInfo& commitInline();
 
  protected:
   size_t maxRequestUriLength_;

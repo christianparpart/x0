@@ -44,6 +44,7 @@ class XZERO_HTTP_API HttpResponseInfo : public HttpInfo {
 
   /** Retrieves whether this is an HTTP response to a HEAD request. */
   bool isHeadResponse() const XZERO_NOEXCEPT { return isHeadResponse_; }
+  void setIsHeadResponse(bool value) { isHeadResponse_ = value; }
 
   void reset();
 

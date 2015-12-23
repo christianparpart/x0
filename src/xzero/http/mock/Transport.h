@@ -104,9 +104,9 @@ class XZERO_HTTP_API Transport : public HttpTransport {
   // HttpTransport overrides
   void abort() override;
   void completed() override;
-  void send(HttpResponseInfo&& responseInfo, const BufferRef& chunk, CompletionHandler onComplete) override;
-  void send(HttpResponseInfo&& responseInfo, Buffer&& chunk, CompletionHandler onComplete) override;
-  void send(HttpResponseInfo&& responseInfo, FileView&& chunk, CompletionHandler onComplete) override;
+  void send(HttpResponseInfo& responseInfo, const BufferRef& chunk, CompletionHandler onComplete) override;
+  void send(HttpResponseInfo& responseInfo, Buffer&& chunk, CompletionHandler onComplete) override;
+  void send(HttpResponseInfo& responseInfo, FileView&& chunk, CompletionHandler onComplete) override;
   void send(const BufferRef& chunk, CompletionHandler onComplete) override;
   void send(Buffer&& chunk, CompletionHandler onComplete) override;
   void send(FileView&& chunk, CompletionHandler onComplete) override;
