@@ -98,11 +98,9 @@ bool XzeroContext::verifyDirectoryDepth() {
 }
 
 void XzeroContext::ready() {
-  bool handled = runner_->run();
-  if (!handled) {
-    response_->setStatus(HttpStatus::NotFound);
-    response_->completed();
-  }
+  // XXX the handler will *always* handle the request as we manually
+  // injected a `return 404` at the end of the main handler.
+  runner_->run();
 }
 
 void XzeroContext::run() {

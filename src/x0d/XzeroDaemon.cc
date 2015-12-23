@@ -43,6 +43,7 @@
 #include <xzero-flow/TargetCodeGenerator.h>
 #include <xzero-flow/ir/IRProgram.h>
 #include <xzero-flow/ir/PassManager.h>
+#include <xzero-flow/vm/Signature.h>
 #include <xzero-flow/transform/UnusedBlockPass.h>
 #include <xzero-flow/transform/EmptyBlockElimination.h>
 #include <xzero-flow/transform/InstructionElimination.h>
@@ -166,6 +167,8 @@ void XzeroDaemon::loadConfigStream(std::unique_ptr<std::istream>&& is,
 
   programIR_ = irgen.generate(unit_.get());
 
+  patchProgramIR(&irgen);
+
   {
     flow::PassManager pm;
 
@@ -193,6 +196,27 @@ void XzeroDaemon::loadConfigStream(std::unique_ptr<std::istream>&& is,
   }
 
   main_ = program_->findHandler("main");
+}
+
+void XzeroDaemon::patchProgramIR(xzero::flow::IRGenerator* irgen) {
+  using namespace xzero::flow;
+
+  IRHandler* mainIR = programIR_->findHandler("main");
+  irgen->setHandler(mainIR);
+
+  // this function will never return, thus, we're not injecting
+  // our return(I)V before the RET instruction but replace it.
+  IRBuiltinHandler* returnFn =
+      irgen->getBuiltinHandler(vm::Signature("return(I)B"));
+
+  for (BasicBlock* bb: mainIR->basicBlocks()) {
+    if (auto ret = dynamic_cast<RetInstr*>(bb->getTerminator())) {
+      delete bb->remove(ret);
+
+      irgen->setInsertPoint(bb);
+      irgen->createInvokeHandler(returnFn, { irgen->get(404) });
+    }
+  }
 }
 
 bool XzeroDaemon::configure() {

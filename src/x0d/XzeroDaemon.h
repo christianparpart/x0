@@ -47,6 +47,7 @@ namespace xzero {
 
   namespace flow {
     class CallExpr;
+    class IRGenerator;
   }
 }
 
@@ -158,6 +159,7 @@ class XzeroDaemon : public xzero::flow::vm::Runtime {
   T* loadModule();
 
  private:
+  void patchProgramIR(xzero::flow::IRGenerator* irgen);
   void postConfig();
   std::unique_ptr<xzero::EventLoop> createEventLoop();
   void runOneThread(int index);
