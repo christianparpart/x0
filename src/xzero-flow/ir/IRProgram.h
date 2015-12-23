@@ -12,6 +12,7 @@
 #include <xzero-flow/ir/ConstantValue.h>
 #include <xzero-flow/ir/IRBuiltinHandler.h>
 #include <xzero-flow/ir/IRBuiltinFunction.h>
+#include <xzero-flow/ir/Instructions.h>
 #include <xzero-flow/ir/IRHandler.h>
 #include <xzero-flow/vm/Signature.h>
 #include <xzero/net/IPAddress.h>
@@ -81,6 +82,14 @@ class XZERO_FLOW_API IRProgram {
     return modules_;
   }
   const std::vector<IRHandler*>& handlers() const { return handlers_; }
+
+  IRHandler* findHandler(const std::string& name) {
+    for (IRHandler* handler: handlers_)
+      if (handler->name() == name)
+        return handler;
+
+    return nullptr;
+  }
 
   /**
    * Performs given transformation on all handlers by given type.
