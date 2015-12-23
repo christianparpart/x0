@@ -47,7 +47,7 @@ class XZERO_FLOW_API Value {
    */
   void replaceAllUsesWith(Value* newUse);
 
-  virtual void dump() = 0;
+  virtual void dump();
 
  private:
   FlowType type_;
