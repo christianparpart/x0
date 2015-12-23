@@ -22,7 +22,8 @@ HttpClusterRequest::HttpClusterRequest(const HttpRequestInfo& _requestInfo,
                                        const BufferRef& _requestBody,
                                        std::unique_ptr<HttpListener> _responseListener,
                                        Executor* _executor,
-                                       size_t responseBodyBufferSize)
+                                       size_t responseBodyBufferSize,
+                                       const std::string& proxyId)
     : ctime(MonotonicClock::now()),
       client(_executor, responseBodyBufferSize),
       executor(_executor),
@@ -30,6 +31,9 @@ HttpClusterRequest::HttpClusterRequest(const HttpRequestInfo& _requestInfo,
       backend(nullptr),
       tryCount(0),
       tokens(0),
+      proxyVersion_(_requestInfo.version()),
+      proxyId_(proxyId),
+      viaText_(),
       responseListener(std::move(_responseListener)) {
   TRACE("ctor: executor: $0", executor);
   client.setRequest(_requestInfo, _requestBody);
@@ -45,10 +49,32 @@ void HttpClusterRequest::onMessageBegin(HttpVersion version, HttpStatus code,
 
 void HttpClusterRequest::onMessageHeader(const BufferRef& name,
                                          const BufferRef& value) {
-  responseListener->onMessageHeader(name, value);
+  if (name == "Via") {
+    if (!viaText_.empty()) {
+      viaText_ += ' ';
+    }
+    viaText_ += value;
+  } else {
+    responseListener->onMessageHeader(name, value);
+  }
 }
 
 void HttpClusterRequest::onMessageHeaderEnd() {
+  // RFC 7230, section 5.7.1: makes it clear, that we put ourselfs into the
+  // front of the Via-list.
+
+  if (!proxyId_.empty()) {
+    Buffer buf;
+    buf.reserve(proxyId_.size() + viaText_.size() + 8);
+    buf.push_back(StringUtil::toString(proxyVersion_));
+    buf.push_back(' ');
+    buf.push_back(proxyId_);
+    buf.push_back(viaText_);
+    responseListener->onMessageHeader("Via", buf);
+  } else if (!viaText_.empty()) {
+    responseListener->onMessageHeader("Via", viaText_);
+  }
+
   responseListener->onMessageHeaderEnd();
 }
 

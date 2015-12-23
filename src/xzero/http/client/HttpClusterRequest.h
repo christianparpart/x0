@@ -37,7 +37,8 @@ struct HttpClusterRequest : public CustomData,
                      const BufferRef& _requestBody,
                      std::unique_ptr<HttpListener> _responseListener,
                      Executor* _executor,
-                     size_t responseBodyBufferSize);
+                     size_t responseBodyBufferSize,
+                     const std::string& proxyId);
   ~HttpClusterRequest();
 
   void post(Executor::Task task) { executor->execute(task); }
@@ -70,6 +71,10 @@ struct HttpClusterRequest : public CustomData,
 
   // contains the number of currently acquired tokens by this request
   size_t tokens;
+
+  HttpVersion proxyVersion_;
+  std::string proxyId_;
+  Buffer viaText_;
 
  private:
   std::unique_ptr<HttpListener> responseListener;

@@ -193,9 +193,7 @@ void ProxyModule::onPostConfig() {
 
 class HttpResponseBuilder : public HttpListener { // {{{
  public:
-  explicit HttpResponseBuilder(ProxyModule* proxy,
-                               const HttpRequestInfo* request,
-                               HttpResponse* response);
+  explicit HttpResponseBuilder(HttpResponse* response);
 
   void onMessageBegin(HttpVersion version, HttpStatus code, const BufferRef& text) override;
   void onMessageHeader(const BufferRef& name, const BufferRef& value) override;
@@ -206,17 +204,11 @@ class HttpResponseBuilder : public HttpListener { // {{{
   void onProtocolError(HttpStatus code, const std::string& message) override;
 
  private:
-  ProxyModule* proxy_;
-  const HttpRequestInfo* request_;
   HttpResponse* response_;
 };
 
-HttpResponseBuilder::HttpResponseBuilder(ProxyModule* proxy,
-                                         const HttpRequestInfo* request,
-                                         HttpResponse* response)
-    : proxy_(proxy),
-      request_(request),
-      response_(response) {
+HttpResponseBuilder::HttpResponseBuilder(HttpResponse* response)
+    : response_(response) {
 }
 
 void HttpResponseBuilder::onMessageBegin(HttpVersion version, HttpStatus code, const BufferRef& text) {
@@ -233,7 +225,6 @@ void HttpResponseBuilder::onMessageHeader(const BufferRef& name, const BufferRef
 }
 
 void HttpResponseBuilder::onMessageHeaderEnd() {
-  proxy_->addVia(request_, response_);
 }
 
 void HttpResponseBuilder::onMessageContent(const BufferRef& chunk) {
@@ -285,13 +276,20 @@ bool ProxyModule::proxy_cluster_auto(XzeroContext* cx, Params& args) {
     return true;
   }
 
+  std::string pseudonym = pseudonym_;
+  if (pseudonym.empty()) {
+    pseudonym = StringUtil::format("$0:$1",
+        cx->request()->remoteAddress().get().ip(),
+        cx->request()->remoteAddress().get().port());
+  }
+
   HttpClusterRequest* cr = cx->setCustomData<HttpClusterRequest>(this,
       *cx->request(),
       cx->request()->getContentBuffer(),
-      std::unique_ptr<HttpListener>(new HttpResponseBuilder(
-          this, cx->request(), cx->response())),
+      std::unique_ptr<HttpListener>(new HttpResponseBuilder(cx->response())),
       cx->response()->executor(),
-      daemon().config().responseBodyBufferSize);
+      daemon().config().responseBodyBufferSize,
+      pseudonym_);
 
   cluster->schedule(cr, nullptr);
 
@@ -323,10 +321,10 @@ bool ProxyModule::proxy_cluster(XzeroContext* cx, Params& args) {
   HttpClusterRequest* cr = cx->setCustomData<HttpClusterRequest>(this,
       *cx->request(),
       cx->request()->getContentBuffer(),
-      std::unique_ptr<HttpListener>(new HttpResponseBuilder(
-          this, cx->request(), cx->response())),
+      std::unique_ptr<HttpListener>(new HttpResponseBuilder(cx->response())),
       cx->response()->executor(),
-      daemon().config().responseBodyBufferSize);
+      daemon().config().responseBodyBufferSize,
+      pseudonym_);
 
   cluster->schedule(cr, bucket);
 
