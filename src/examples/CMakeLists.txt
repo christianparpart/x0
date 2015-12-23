@@ -9,4 +9,7 @@ if(EXAMPLES)
 
   add_executable(hello_example hello_example.cc)
   target_link_libraries(hello_example xzero-base)
+
+  add_executable(http_lb http_lb.cc)
+  target_link_libraries(http_lb xzero-base)
 endif()
