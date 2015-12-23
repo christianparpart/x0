@@ -44,9 +44,9 @@ class Program;
 class Handler;
 class Runner;
 
-class XZERO_FLOW_API Match {
+class Match {
  public:
-  Match(const MatchDef& def, Program* program);
+  explicit Match(const MatchDef& def);
   virtual ~Match();
 
   const MatchDef& def() const { return def_; }
@@ -59,57 +59,54 @@ class XZERO_FLOW_API Match {
 
  protected:
   MatchDef def_;
-  Program* program_;
-  Handler* handler_;
-  uint64_t elsePC_;
 };
 
 /** Implements SMATCHEQ instruction. */
-class XZERO_FLOW_API MatchSame : public Match {
+class MatchSame : public Match {
  public:
-  MatchSame(const MatchDef& def, Program* program);
+  MatchSame(const MatchDef& def, std::shared_ptr<Program> program);
   ~MatchSame();
 
-  virtual uint64_t evaluate(const FlowString* condition, Runner* env) const;
+  uint64_t evaluate(const FlowString* condition, Runner* env) const override;
 
  private:
   std::unordered_map<FlowString, uint64_t> map_;
 };
 
 /** Implements SMATCHBEG instruction. */
-class XZERO_FLOW_API MatchHead : public Match {
+class MatchHead : public Match {
  public:
-  MatchHead(const MatchDef& def, Program* program);
+  MatchHead(const MatchDef& def, std::shared_ptr<Program> program);
   ~MatchHead();
 
-  virtual uint64_t evaluate(const FlowString* condition, Runner* env) const;
+  uint64_t evaluate(const FlowString* condition, Runner* env) const override;
 
  private:
   PrefixTree<FlowString, uint64_t> map_;
 };
 
 /** Implements SMATCHBEG instruction. */
-class XZERO_FLOW_API MatchTail : public Match {
+class MatchTail : public Match {
  public:
-  MatchTail(const MatchDef& def, Program* program);
+  MatchTail(const MatchDef& def, std::shared_ptr<Program> program);
   ~MatchTail();
 
-  virtual uint64_t evaluate(const FlowString* condition, Runner* env) const;
+  uint64_t evaluate(const FlowString* condition, Runner* env) const override;
 
  private:
   SuffixTree<FlowString, uint64_t> map_;
 };
 
 /** Implements SMATCHR instruction. */
-class XZERO_FLOW_API MatchRegEx : public Match {
+class MatchRegEx : public Match {
  public:
-  MatchRegEx(const MatchDef& def, Program* program);
+  MatchRegEx(const MatchDef& def, std::shared_ptr<Program> program);
   ~MatchRegEx();
 
-  virtual uint64_t evaluate(const FlowString* condition, Runner* env) const;
+  uint64_t evaluate(const FlowString* condition, Runner* env) const override;
 
  private:
-  std::vector<std::pair<const RegExp*, uint64_t>> map_;
+  std::vector<std::pair<RegExp, uint64_t>> map_;
 };
 
 }  // namespace vm

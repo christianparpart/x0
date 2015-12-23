@@ -34,7 +34,7 @@ namespace xzero {
 namespace flow {
 namespace vm {
 
-std::unique_ptr<Runner> Runner::create(Handler* handler) {
+std::unique_ptr<Runner> Runner::create(std::shared_ptr<Handler> handler) {
   Runner* p = (Runner*)malloc(sizeof(Runner) +
                               handler->registerCount() * sizeof(uint64_t));
   new (p) Runner(handler);
@@ -43,9 +43,8 @@ std::unique_ptr<Runner> Runner::create(Handler* handler) {
 
 static FlowString* t = nullptr;
 
-Runner::Runner(Handler* handler)
+Runner::Runner(std::shared_ptr<Handler> handler)
     : handler_(handler),
-      program_(handler->program()),
       userdata_(nullptr, nullptr),
       regexpContext_(),
       state_(Inactive),
@@ -104,8 +103,6 @@ bool Runner::run() {
 }
 
 bool Runner::loop() {
-  const Program* program = handler_->program();
-
   state_ = Running;
 
 #define OP opcode((Instruction) * pc)
@@ -276,22 +273,22 @@ bool Runner::loop() {
   // }}}
   // {{{ array
   instr(ITCONST) {
-    data_[A] = reinterpret_cast<Register>(&program->constants().getIntArray(B));
+    data_[A] = reinterpret_cast<Register>(&program()->constants().getIntArray(B));
     next;
   }
   instr(STCONST) {
     data_[A] =
-        reinterpret_cast<Register>(&program->constants().getStringArray(B));
+        reinterpret_cast<Register>(&program()->constants().getStringArray(B));
     next;
   }
   instr(PTCONST) {
     data_[A] =
-        reinterpret_cast<Register>(&program->constants().getIPAddressArray(B));
+        reinterpret_cast<Register>(&program()->constants().getIPAddressArray(B));
     next;
   }
   instr(CTCONST) {
     data_[A] =
-        reinterpret_cast<Register>(&program->constants().getCidrArray(B));
+        reinterpret_cast<Register>(&program()->constants().getCidrArray(B));
     next;
   }
   // }}}
@@ -302,7 +299,7 @@ bool Runner::loop() {
   }
 
   instr(NCONST) {
-    data_[A] = program->constants().getInteger(B);
+    data_[A] = program()->constants().getInteger(B);
     next;
   }
 
@@ -515,7 +512,7 @@ bool Runner::loop() {
   // }}}
   // {{{ string
   instr(SCONST) {  // A = stringConstTable[B]
-    data_[A] = reinterpret_cast<Register>(&program->constants().getString(B));
+    data_[A] = reinterpret_cast<Register>(&program()->constants().getString(B));
     next;
   }
 
@@ -593,29 +590,29 @@ bool Runner::loop() {
   }
 
   instr(SMATCHEQ) {
-    auto result = program_->match(B)->evaluate(toStringPtr(A), this);
+    auto result = program()->match(B)->evaluate(toStringPtr(A), this);
     jump_to(result);
   }
 
   instr(SMATCHBEG) {
-    auto result = program_->match(B)->evaluate(toStringPtr(A), this);
+    auto result = program()->match(B)->evaluate(toStringPtr(A), this);
     jump_to(result);
   }
 
   instr(SMATCHEND) {
-    auto result = program_->match(B)->evaluate(toStringPtr(A), this);
+    auto result = program()->match(B)->evaluate(toStringPtr(A), this);
     jump_to(result);
   }
 
   instr(SMATCHR) {
-    auto result = program_->match(B)->evaluate(toStringPtr(A), this);
+    auto result = program()->match(B)->evaluate(toStringPtr(A), this);
     jump_to(result);
   }
   // }}}
   // {{{ ipaddr
   instr(PCONST) {
     data_[A] =
-        reinterpret_cast<Register>(&program->constants().getIPAddress(B));
+        reinterpret_cast<Register>(&program()->constants().getIPAddress(B));
     next;
   }
 
@@ -638,13 +635,13 @@ bool Runner::loop() {
   // }}}
   // {{{ cidr
   instr(CCONST) {
-    data_[A] = reinterpret_cast<Register>(&program->constants().getCidr(B));
+    data_[A] = reinterpret_cast<Register>(&program()->constants().getCidr(B));
     next;
   }
   // }}}
   // {{{ regex
   instr(SREGMATCH) {  // A = B =~ C
-    data_[A] = program_->constants().getRegExp(C).match(
+    data_[A] = program()->constants().getRegExp(C).match(
         toString(B), regexpContext_.regexMatch());
 
     next;

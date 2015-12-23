@@ -17,7 +17,8 @@ namespace vm {
 Handler::Handler() {
 }
 
-Handler::Handler(Program* program, const std::string& name,
+Handler::Handler(std::shared_ptr<Program> program,
+                 const std::string& name,
                  const std::vector<Instruction>& code)
     : program_(program),
       name_(name),
@@ -70,7 +71,9 @@ void Handler::setCode(std::vector<Instruction>&& code) {
 #endif
 }
 
-std::unique_ptr<Runner> Handler::createRunner() { return Runner::create(this); }
+std::unique_ptr<Runner> Handler::createRunner() {
+  return Runner::create(shared_from_this());
+}
 
 bool Handler::run(void* userdata, void* userdata2) {
   auto runner = createRunner();

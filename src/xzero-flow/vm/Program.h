@@ -31,7 +31,7 @@ class MatchDef;
 class NativeCallback;
 class ConstantPool;
 
-class XZERO_FLOW_API Program {
+class Program : public std::enable_shared_from_this<Program> {
  public:
   explicit Program(ConstantPool&& cp);
   Program(Program&) = delete;
@@ -42,7 +42,9 @@ class XZERO_FLOW_API Program {
 
   // accessors to linked data
   const Match* match(size_t index) const { return matches_[index]; }
-  Handler* handler(size_t index) const { return handlers_[index]; }
+  std::shared_ptr<Handler> handler(size_t index) const {
+    return handlers_[index];
+  }
   NativeCallback* nativeHandler(size_t index) const {
     return nativeHandlers_[index];
   }
@@ -52,10 +54,11 @@ class XZERO_FLOW_API Program {
 
   // bulk accessors
   const std::vector<Match*>& matches() const { return matches_; }
-  inline const std::vector<Handler*> handlers() const { return handlers_; }
 
+  std::vector<std::string> handlerNames() const;
   int indexOf(const Handler* handler) const;
-  Handler* findHandler(const std::string& name) const;
+  int indexOf(const std::shared_ptr<Handler>& handler) const;
+  std::shared_ptr<Handler> findHandler(const std::string& name) const;
 
   /**
    * Convenience method to run a handler.
@@ -71,21 +74,20 @@ class XZERO_FLOW_API Program {
 
   void dump();
 
- private:
-  // builders
-  Handler* createHandler(const std::string& name);
-  Handler* createHandler(const std::string& name,
-                         const std::vector<Instruction>& instructions);
+  void setup();
 
  private:
-  void setup(const std::vector<MatchDef>& matches);
+  // builders
+  std::shared_ptr<Handler> createHandler(const std::string& name);
+  std::shared_ptr<Handler> createHandler(const std::string& name,
+      const std::vector<Instruction>& instructions);
 
  private:
   ConstantPool cp_;
 
   // linked data
   Runtime* runtime_;
-  std::vector<Handler*> handlers_;
+  mutable std::vector<std::shared_ptr<Handler>> handlers_;
   std::vector<Match*> matches_;
   std::vector<NativeCallback*> nativeHandlers_;
   std::vector<NativeCallback*> nativeFunctions_;

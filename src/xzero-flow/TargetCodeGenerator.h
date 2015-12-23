@@ -44,7 +44,7 @@ class XZERO_FLOW_API TargetCodeGenerator : public InstructionVisitor {
   TargetCodeGenerator();
   ~TargetCodeGenerator();
 
-  std::unique_ptr<vm::Program> generate(IRProgram* program);
+  std::shared_ptr<vm::Program> generate(IRProgram* program);
 
  protected:
   void generate(IRHandler* handler);

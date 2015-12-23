@@ -22,16 +22,17 @@ namespace vm {
 class Program;
 class Runner;
 
-class XZERO_FLOW_API Handler {
+class Handler : public std::enable_shared_from_this<Handler> {
  public:
   Handler();
-  Handler(Program* program, const std::string& name,
+  Handler(std::shared_ptr<Program> program,
+          const std::string& name,
           const std::vector<Instruction>& instructions);
   Handler(const Handler& handler);
   Handler(Handler&& handler);
   ~Handler();
 
-  Program* program() const { return program_; }
+  std::shared_ptr<Program> program() const { return program_; }
 
   const std::string& name() const { return name_; }
   void setName(const std::string& name) { name_ = name; }
@@ -55,7 +56,7 @@ class XZERO_FLOW_API Handler {
   void disassemble();
 
  private:
-  Program* program_;
+  std::shared_ptr<Program> program_;
   std::string name_;
   size_t registerCount_;
   std::vector<Instruction> code_;

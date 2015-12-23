@@ -48,13 +48,17 @@ TargetCodeGenerator::TargetCodeGenerator()
 
 TargetCodeGenerator::~TargetCodeGenerator() {}
 
-std::unique_ptr<vm::Program> TargetCodeGenerator::generate(
-    IRProgram* program) {
-  for (IRHandler* handler : program->handlers()) generate(handler);
+std::shared_ptr<vm::Program> TargetCodeGenerator::generate(
+    IRProgram* programIR) {
+  for (IRHandler* handler : programIR->handlers())
+    generate(handler);
 
-  cp_.setModules(program->modules());
+  cp_.setModules(programIR->modules());
 
-  return std::unique_ptr<vm::Program>(new vm::Program(std::move(cp_)));
+  auto program = std::shared_ptr<vm::Program>(new vm::Program(std::move(cp_)));
+  program->setup();
+
+  return program;
 }
 
 void TargetCodeGenerator::generate(IRHandler* handler) {

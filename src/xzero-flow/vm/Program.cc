@@ -53,69 +53,89 @@ Program::Program(ConstantPool&& cp)
       matches_(),
       nativeHandlers_(),
       nativeFunctions_() {
-  for (const auto& handler : cp_.getHandlers())
-    createHandler(handler.first, handler.second);
-
-  setup(cp_.getMatchDefs());
 }
 
 Program::~Program() {
-  for (auto m : matches_) delete m;
-
-  for (auto& handler : handlers_) delete handler;
+  for (auto m : matches_)
+    delete m;
 }
 
-void Program::setup(const std::vector<MatchDef>& matches) {
+void Program::setup() {
+  for (const auto& handler : cp_.getHandlers())
+    createHandler(handler.first, handler.second);
+
+  const std::vector<MatchDef>& matches = cp_.getMatchDefs();
   for (size_t i = 0, e = matches.size(); i != e; ++i) {
     const MatchDef& def = matches[i];
     switch (def.op) {
       case MatchClass::Same:
-        matches_.push_back(new MatchSame(def, this));
+        matches_.emplace_back(new MatchSame(def, shared_from_this()));
         break;
       case MatchClass::Head:
-        matches_.push_back(new MatchHead(def, this));
+        matches_.emplace_back(new MatchHead(def, shared_from_this()));
         break;
       case MatchClass::Tail:
-        matches_.push_back(new MatchTail(def, this));
+        matches_.emplace_back(new MatchTail(def, shared_from_this()));
         break;
       case MatchClass::RegExp:
-        matches_.push_back(new MatchRegEx(def, this));
+        matches_.emplace_back(new MatchRegEx(def, shared_from_this()));
         break;
     }
   }
 }
 
-Handler* Program::createHandler(const std::string& name) {
-  Handler* handler = new Handler(this, name, {});
-  handlers_.push_back(handler);
-  return handler;
+std::shared_ptr<Handler> Program::createHandler(const std::string& name) {
+  return createHandler(name, {});
 }
 
-Handler* Program::createHandler(const std::string& name,
-                                const std::vector<Instruction>& instructions) {
-  Handler* handler = new Handler(this, name, instructions);
-  handlers_.push_back(handler);
-
-  return handler;
+std::shared_ptr<Handler> Program::createHandler(
+    const std::string& name,
+    const std::vector<Instruction>& instructions) {
+  auto handler = std::make_shared<Handler>(shared_from_this(),
+                                           name,
+                                           instructions);
+  handlers_.emplace_back(handler);
+  return handlers_.back();
 }
 
-Handler* Program::findHandler(const std::string& name) const {
-  for (auto handler : handlers_)
-    if (handler->name() == name) return handler;
+std::shared_ptr<Handler> Program::findHandler(const std::string& name) const {
+  for (auto& handler: handlers_) {
+    if (handler->name() == name)
+      return handler;
+  }
 
   return nullptr;
 }
 
 bool Program::run(const std::string& handlerName, void* u1, void* u2) {
-  if (Handler* handler = findHandler(handlerName))
+  if (std::shared_ptr<Handler> handler = findHandler(handlerName))
     return handler->run(u1, u2);
 
   RAISE(RuntimeError, "No handler with name '%s' found.", handlerName.c_str());
 }
 
+std::vector<std::string> Program::handlerNames() const {
+  std::vector<std::string> result;
+  result.reserve(handlers_.size());
+
+  for (auto& handler: handlers_)
+    result.emplace_back(handler->name());
+
+  return result;
+}
+
+int Program::indexOf(const std::shared_ptr<Handler>& handler) const {
+  for (int i = 0, e = handlers_.size(); i != e; ++i)
+    if (handlers_[i].get() == handler.get())
+      return i;
+
+  return -1;
+}
+
 int Program::indexOf(const Handler* handler) const {
   for (int i = 0, e = handlers_.size(); i != e; ++i)
-    if (handlers_[i] == handler) return i;
+    if (handlers_[i].get() == handler)
+      return i;
 
   return -1;
 }
@@ -126,7 +146,7 @@ void Program::dump() {
   cp_.dump();
 
   for (size_t i = 0, e = handlers_.size(); i != e; ++i) {
-    Handler* handler = handlers_[i];
+    std::shared_ptr<Handler> handler = handlers_[i];
     printf("\n.handler %-20s ; #%zu (%zu registers, %zu instructions)\n",
            handler->name().c_str(), i,
            handler->registerCount() ? handler->registerCount() - 1

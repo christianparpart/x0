@@ -37,8 +37,7 @@ class XZERO_FLOW_API Runner : public CustomData {
   };
 
  private:
-  Handler* handler_;
-  Program* program_;
+  std::shared_ptr<Handler> handler_;
 
   //! pointer to the currently evaluated HttpRequest/HttpResponse our case
   std::pair<void*,void*> userdata_;
@@ -55,7 +54,7 @@ class XZERO_FLOW_API Runner : public CustomData {
  public:
   ~Runner();
 
-  static std::unique_ptr<Runner> create(Handler* handler);
+  static std::unique_ptr<Runner> create(std::shared_ptr<Handler> handler);
   static void operator delete(void* p);
 
   bool run();
@@ -67,8 +66,8 @@ class XZERO_FLOW_API Runner : public CustomData {
   bool isRunning() const { return state_ == Running; }
   bool isSuspended() const { return state_ == Suspended; }
 
-  Handler* handler() const { return handler_; }
-  Program* program() const { return program_; }
+  std::shared_ptr<Handler> handler() const { return handler_; }
+  std::shared_ptr<Program> program() const { return handler_->program(); }
   void* userdata() const { return userdata_.first; }
   void* userdata2() const { return userdata_.second; }
   void setUserData(void* p, void* q = nullptr) {
@@ -92,7 +91,7 @@ class XZERO_FLOW_API Runner : public CustomData {
   const FlowString* emptyString() const { return &*stringGarbage_.begin(); }
 
  private:
-  explicit Runner(Handler* handler);
+  explicit Runner(std::shared_ptr<Handler> handler);
 
   inline bool loop();
 

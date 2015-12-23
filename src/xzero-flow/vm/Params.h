@@ -14,6 +14,7 @@
 #include <xzero-flow/vm/Runner.h>
 #include <xzero/net/IPAddress.h>
 #include <xzero/net/Cidr.h>
+#include <memory>
 
 namespace xzero {
 namespace flow {
@@ -34,7 +35,7 @@ class XZERO_FLOW_API Params {
   void setResult(bool value) { argv_[0] = value; }
   void setResult(Register value) { argv_[0] = value; }
   void setResult(FlowNumber value) { argv_[0] = (Register)value; }
-  void setResult(Handler* handler) {
+  void setResult(std::shared_ptr<Handler> handler) {
     argv_[0] = caller_->program()->indexOf(handler);
   }
   void setResult(const char* cstr) {
@@ -57,16 +58,22 @@ class XZERO_FLOW_API Params {
 
   bool getBool(size_t offset) const { return at(offset); }
   FlowNumber getInt(size_t offset) const { return at(offset); }
+
   const FlowString& getString(size_t offset) const {
     return *(FlowString*)at(offset);
   }
-  Handler* getHandler(size_t offset) const {
+
+  std::shared_ptr<Handler> getHandler(size_t offset) const {
     return caller_->program()->handler(at(offset));
   }
+
   const IPAddress& getIPAddress(size_t offset) const {
     return *(IPAddress*)at(offset);
   }
-  const Cidr& getCidr(size_t offset) const { return *(Cidr*)at(offset); }
+
+  const Cidr& getCidr(size_t offset) const {
+    return *(Cidr*)at(offset);
+  }
 
   const FlowIntArray& getIntArray(size_t offset) const {
     return *(FlowIntArray*)at(offset);
