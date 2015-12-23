@@ -24,9 +24,12 @@ class Executor;
 class WallClock;
 class Scheduler;
 class IPAddress;
+class HugeBuffer;
 
 namespace http {
 
+class HttpListener;
+class HttpRequestInfo;
 class HttpRequest;
 class HttpResponse;
 
@@ -86,6 +89,18 @@ class XZERO_HTTP_API HttpService {
 
   /** Stops the internal server. */
   void stop();
+
+  /**
+   * Sends given request to the underlying HTTP service layer.
+   *
+   * @param request The incoming request to be handled.
+   * @param requestBody HTTP request body (if any).
+   * @param responseListener callback listener to receive the response
+   *                         by the time it is generated.
+   */
+  void send(const HttpRequestInfo& request,
+            HugeBuffer&& requestBody,
+            HttpListener* responseListener);
 
  private:
   static Protocol getDefaultProtocol();
