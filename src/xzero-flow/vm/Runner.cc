@@ -12,6 +12,7 @@
 #include <xzero-flow/vm/Program.h>
 #include <xzero-flow/vm/Match.h>
 #include <xzero-flow/vm/Instruction.h>
+#include <xzero/logging.h>
 #include <xzero/sysconfig.h>
 #include <vector>
 #include <utility>
@@ -24,7 +25,7 @@
 #include <inttypes.h>
 
 #if 0 // !defined(NDEBUG)
-#define TRACE(level, msg...) XZERO_DEBUG("vm", (level), msg)
+#define TRACE(msg...) logTrace("vm", msg)
 #else
 #define TRACE(msg...) do {} while (0)
 #endif
@@ -83,21 +84,21 @@ FlowString* Runner::catString(const FlowString& a, const FlowString& b) {
 
 void Runner::suspend() {
   assert(state_ == Running);
-  TRACE(1, "Suspending handler $0.", handler_->name());
+  TRACE("Suspending handler $0.", handler_->name());
 
   state_ = Suspended;
 }
 
 bool Runner::resume() {
   assert(state_ == Suspended);
-  TRACE(1, "Resuming handler $0.", handler_->name());
+  TRACE("Resuming handler $0.", handler_->name());
 
   return loop();
 }
 
 bool Runner::run() {
   assert(state_ == Inactive);
-  TRACE(1, "Running handler $0.", handler_->name());
+  TRACE("Running handler $0.", handler_->name());
 
   return loop();
 }
@@ -126,7 +127,7 @@ bool Runner::loop() {
 
 #define instr(name) \
   l_##name : ++pc;  \
-  TRACE(2, "$0",    \
+  TRACE("$0",    \
         disassemble((Instruction) * pc, (pc - code.data()) / 2));
 
 #define get_pc() ((pc - code.data()) / 2)
@@ -145,7 +146,7 @@ bool Runner::loop() {
   const auto& code = handler_->code();
 
 #define instr(name) \
-  l_##name : TRACE(2, "$0", disassemble(*pc, pc - code.data()));
+  l_##name : TRACE("$0", disassemble(*pc, pc - code.data()));
 
 #define get_pc() (pc - code.data())
 #define set_pc(offset)           \
@@ -711,12 +712,13 @@ bool Runner::loop() {
 
     Params args(argc, argv, this);
 
-    TRACE(2, "Calling function: $0",
+    TRACE("Calling function: $0",
           handler_->program()->nativeFunction(id)->signature());
 
     handler_->program()->nativeFunction(id)->invoke(args);
 
     if (state_ == Suspended) {
+      logNotice("flow", "vm suspended. returning (false)");
       pc_ = get_pc() + 1;
       return false;
     }
@@ -730,7 +732,7 @@ bool Runner::loop() {
     Value* argv = &data_[C];
 
     Params args(argc, argv, this);
-    TRACE(2, "Calling handler: $0",
+    TRACE("Calling handler: $0",
           handler_->program()->nativeHandler(id)->signature());
     handler_->program()->nativeHandler(id)->invoke(args);
     const bool handled = (bool)argv[0];
