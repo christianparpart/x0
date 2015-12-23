@@ -40,7 +40,7 @@ class XzeroContext {
   CUSTOMDATA_API_INLINE
  public:
   XzeroContext(
-      xzero::flow::vm::Handler* entrypoint,
+      std::shared_ptr<xzero::flow::vm::Handler> entrypoint,
       xzero::http::HttpRequest* request,
       xzero::http::HttpResponse* response);
 
@@ -75,7 +75,9 @@ class XzeroContext {
 
   bool verifyDirectoryDepth();
 
-  void setErrorHandler(xzero::flow::vm::Handler* eh) { errorHandler_ = eh; }
+  void setErrorHandler(std::shared_ptr<xzero::flow::vm::Handler> eh) {
+    errorHandler_ = eh;
+  }
 
   bool invokeErrorHandler() {
     if (errorHandler_) {
@@ -95,7 +97,7 @@ class XzeroContext {
   std::string documentRoot_; //!< associated document root
   std::string pathInfo_; //!< info-part of the request-path
   std::shared_ptr<xzero::File> file_; //!< local file associated with this request
-  xzero::flow::vm::Handler* errorHandler_; //!< custom error handler
+  std::shared_ptr<xzero::flow::vm::Handler> errorHandler_; //!< custom error handler
 };
 
 } // namespace x0d

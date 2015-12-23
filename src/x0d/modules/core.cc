@@ -866,7 +866,7 @@ void CoreModule::pathinfo(XzeroContext* cx, Params& args) {
 }
 
 void CoreModule::error_handler(XzeroContext* cx, Params& args) {
-  flow::vm::Handler* errorHandler = args.getHandler(1);
+  std::shared_ptr<flow::vm::Handler> errorHandler = args.getHandler(1);
 
   cx->setErrorHandler(errorHandler);
 }

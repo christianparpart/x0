@@ -38,6 +38,7 @@
 #include <xzero/Application.h>
 #include <xzero/StringUtil.h>
 #include <xzero/logging.h>
+#include <xzero-flow/ASTPrinter.h>
 #include <xzero-flow/FlowParser.h>
 #include <xzero-flow/IRGenerator.h>
 #include <xzero-flow/TargetCodeGenerator.h>
@@ -71,15 +72,13 @@ XzeroDaemon::XzeroDaemon()
       eventLoops_(),
       modules_(),
       server_(new Server()),
-      unit_(nullptr),
-      programIR_(nullptr),
-      program_(nullptr),
       main_(nullptr),
       setupApi_(),
       mainApi_(),
       optimizationLevel_(1),
       fileHandler_(),
       http1_(),
+      configFilePath_(),
       config_(new Config) {
 
   // defaulting worker/affinities to total host CPU count
@@ -121,7 +120,8 @@ bool XzeroDaemon::import(
 }
 
 // for instant-mode
-void XzeroDaemon::loadConfigEasy(const std::string& docroot, int port) {
+std::shared_ptr<flow::vm::Program> XzeroDaemon::loadConfigEasy(
+    const std::string& docroot, int port) {
   std::string flow =
       "handler setup {\n"
       "  listen port: #{port};\n"
@@ -135,18 +135,29 @@ void XzeroDaemon::loadConfigEasy(const std::string& docroot, int port) {
   StringUtil::replaceAll(&flow, "#{port}", std::to_string(port));
   StringUtil::replaceAll(&flow, "#{docroot}", docroot);
 
-  loadConfigStream(
+  return loadConfigStream(
       std::unique_ptr<std::istream>(new std::istringstream(flow)),
-      "instant-mode.conf");
+      "instant-mode.conf", false, false, false);
 }
 
-void XzeroDaemon::loadConfigFile(const std::string& configFileName) {
+std::shared_ptr<xzero::flow::vm::Program> XzeroDaemon::loadConfigFile(
+    const std::string& configFileName) {
+  return loadConfigFile(configFileName, false, false, false);
+}
+
+std::shared_ptr<flow::vm::Program> XzeroDaemon::loadConfigFile(
+    const std::string& configFileName,
+    bool printAST, bool printIR, bool printTC) {
+  configFilePath_ = configFileName;
   std::unique_ptr<std::istream> input(new std::ifstream(configFileName));
-  loadConfigStream(std::move(input), configFileName);
+  return loadConfigStream(std::move(input), configFileName,
+      printAST, printIR, printTC);
 }
 
-void XzeroDaemon::loadConfigStream(std::unique_ptr<std::istream>&& is,
-                                   const std::string& filename) {
+std::shared_ptr<flow::vm::Program> XzeroDaemon::loadConfigStream(
+    std::unique_ptr<std::istream>&& is,
+    const std::string& fakeFilename,
+    bool printAST, bool printIR, bool printTC) {
   flow::FlowParser parser(
       this,
       std::bind(&XzeroDaemon::import, this, std::placeholders::_1,
@@ -156,10 +167,10 @@ void XzeroDaemon::loadConfigStream(std::unique_ptr<std::istream>&& is,
         logError("x0d", "Configuration file error. $0", msg);
       });
 
-  parser.openStream(std::move(is), filename);
-  unit_ = parser.parse();
+  parser.openStream(std::move(is), fakeFilename);
+  std::unique_ptr<flow::Unit> unit = parser.parse();
 
-  validateConfig();
+  validateConfig(unit.get());
 
   flow::IRGenerator irgen;
   irgen.setExports({"setup", "main"});
@@ -167,9 +178,9 @@ void XzeroDaemon::loadConfigStream(std::unique_ptr<std::istream>&& is,
     logError("x0d", "$0", msg);
   });
 
-  programIR_ = irgen.generate(unit_.get());
+  std::shared_ptr<flow::IRProgram> programIR = irgen.generate(unit.get());
 
-  patchProgramIR(&irgen);
+  patchProgramIR(programIR.get(), &irgen);
 
   {
     flow::PassManager pm;
@@ -183,25 +194,33 @@ void XzeroDaemon::loadConfigStream(std::unique_ptr<std::istream>&& is,
       pm.registerPass(std::make_unique<flow::InstructionElimination>());
     }
 
-    pm.run(programIR_.get());
+    pm.run(programIR.get());
   }
 
-  verify(programIR_.get());
+  verify(programIR.get());
 
-  program_ = flow::TargetCodeGenerator().generate(programIR_.get());
-  program_->link(this);
+  std::shared_ptr<flow::vm::Program> program =
+      flow::TargetCodeGenerator().generate(programIR.get());
 
-  if (!program_->findHandler("setup")) {
-    RAISE(RuntimeError, "No setup handler found.");
-  }
+  program->link(this);
 
-  main_ = program_->findHandler("main");
+  if (printAST)
+    flow::ASTPrinter::print(unit.get());
+
+  if (printIR)
+    programIR->dump();
+
+  if (printTC)
+    program->dump();
+
+  return program;
 }
 
-void XzeroDaemon::patchProgramIR(xzero::flow::IRGenerator* irgen) {
+void XzeroDaemon::patchProgramIR(xzero::flow::IRProgram* programIR,
+                                 xzero::flow::IRGenerator* irgen) {
   using namespace xzero::flow;
 
-  IRHandler* mainIR = programIR_->findHandler("main");
+  IRHandler* mainIR = programIR->findHandler("main");
   irgen->setHandler(mainIR);
 
   // this function will never return, thus, we're not injecting
@@ -219,16 +238,16 @@ void XzeroDaemon::patchProgramIR(xzero::flow::IRGenerator* irgen) {
   }
 }
 
-bool XzeroDaemon::configure() {
+bool XzeroDaemon::applyConfiguration(flow::vm::Program* program) {
   try {
-    // free up some resources (not needed anymore)
-    programIR_.reset();
-
     // run setup handler
-    program_->findHandler("setup")->run();
-
+    program->findHandler("setup")->run();
+    // TODO: this setup handler might have been invoked in the middle
+    // of a prod-run, so we must find a way to undo here stuff that's not
+    // in anymore. (listening sockets for example)
     postConfig();
 
+    main_ = program->findHandler("main");
     return true;
   } catch (const RuntimeError& e) {
     if (e == Status::ConfigurationError) {
@@ -238,6 +257,34 @@ bool XzeroDaemon::configure() {
 
     throw;
   }
+}
+
+void XzeroDaemon::reloadConfiguration() {
+  if (configFilePath_.empty())
+    return;
+
+  // suspend the world
+  suspend();
+
+  // load new config file into Flow
+  std::shared_ptr<flow::vm::Program> program = loadConfigFile(configFilePath_);
+
+  // run setup gracefully
+  // TODO
+
+  // replace main handler
+  main_ = program->findHandler("main");
+
+  // resume the world
+  resume();
+}
+
+void XzeroDaemon::suspend() {
+  // TODO
+}
+
+void XzeroDaemon::resume() {
+  // TODO
 }
 
 void XzeroDaemon::postConfig() {
@@ -325,14 +372,15 @@ void XzeroDaemon::handleRequest(HttpRequest* request, HttpResponse* response) {
   cx->run();
 }
 
-void XzeroDaemon::validateConfig() {
-  validateContext("setup", setupApi_);
-  validateContext("main", mainApi_);
+void XzeroDaemon::validateConfig(flow::Unit* unit) {
+  validateContext("setup", setupApi_, unit);
+  validateContext("main", mainApi_, unit);
 }
 
 void XzeroDaemon::validateContext(const std::string& entrypointHandlerName,
-                                  const std::vector<std::string>& api) {
-  auto entrypointFn = unit_->findHandler(entrypointHandlerName);
+                                  const std::vector<std::string>& api,
+                                  flow::Unit* unit) {
+  auto entrypointFn = unit->findHandler(entrypointHandlerName);
   if (!entrypointFn)
     RAISE(RuntimeError, "No handler with name %s found.",
                         entrypointHandlerName.c_str());

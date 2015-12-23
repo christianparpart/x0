@@ -68,17 +68,26 @@ class XzeroDaemon : public xzero::flow::vm::Runtime {
 
   void setOptimizationLevel(int level) { optimizationLevel_ = level; }
 
-  void loadConfigFile(const std::string& configFileName);
-  void loadConfigEasy(const std::string& docroot, int port);
-  void loadConfigStream(std::unique_ptr<std::istream>&& is, const std::string& name);
-  bool configure();
+  // {{{ config management
+  std::shared_ptr<xzero::flow::vm::Program> loadConfigFile(
+      const std::string& configFileName);
+  std::shared_ptr<xzero::flow::vm::Program> loadConfigFile(
+      const std::string& configFileName,
+      bool printAST, bool printIR, bool printTC);
+  std::shared_ptr<xzero::flow::vm::Program> loadConfigEasy(
+      const std::string& docroot, int port);
+  std::shared_ptr<xzero::flow::vm::Program> loadConfigStream(
+      std::unique_ptr<std::istream>&& is, const std::string& name,
+      bool printAST, bool printIR, bool printTC);
+  void reloadConfiguration();
+  bool applyConfiguration(xzero::flow::vm::Program* program);
+
+  void suspend();
+  void resume();
+  // }}}
 
   void run();
   void terminate();
-
-  xzero::flow::Unit* programAST() const noexcept { return unit_.get(); }
-  xzero::flow::vm::Program* program() const noexcept { return program_.get(); }
-  xzero::flow::IRProgram* programIR() const noexcept { return programIR_.get(); }
 
   xzero::Executor* selectClientExecutor();
 
@@ -123,9 +132,10 @@ class XzeroDaemon : public xzero::flow::vm::Runtime {
       std::vector<xzero::flow::vm::NativeCallback*>* builtins);
 
  private:
-  void validateConfig();
+  void validateConfig(xzero::flow::Unit* unit);
   void validateContext(const std::string& entrypointHandlerName,
-                       const std::vector<std::string>& api);
+                       const std::vector<std::string>& api,
+                       xzero::flow::Unit* unit);
 
   void handleRequest(xzero::http::HttpRequest* request, xzero::http::HttpResponse* response);
 
@@ -159,7 +169,8 @@ class XzeroDaemon : public xzero::flow::vm::Runtime {
   T* loadModule();
 
  private:
-  void patchProgramIR(xzero::flow::IRGenerator* irgen);
+  void patchProgramIR(xzero::flow::IRProgram* program,
+                      xzero::flow::IRGenerator* irgen);
   void postConfig();
   std::unique_ptr<xzero::EventLoop> createEventLoop();
   void runOneThread(int index);
@@ -182,10 +193,7 @@ class XzeroDaemon : public xzero::flow::vm::Runtime {
   std::unique_ptr<xzero::Server> server_;     //!< (HTTP) server instance
 
   // Flow configuration
-  std::unique_ptr<xzero::flow::Unit> unit_;
-  std::unique_ptr<xzero::flow::IRProgram> programIR_;
-  std::unique_ptr<xzero::flow::vm::Program> program_;
-  xzero::flow::vm::Handler* main_;
+  std::shared_ptr<xzero::flow::vm::Handler> main_;
   std::vector<std::string> setupApi_;
   std::vector<std::string> mainApi_;
   int optimizationLevel_;
@@ -195,6 +203,7 @@ class XzeroDaemon : public xzero::flow::vm::Runtime {
   std::shared_ptr<xzero::http::http1::ConnectionFactory> http1_;
 
   // setup phase
+  std::string configFilePath_;
   std::unique_ptr<Config> config_;
 
   friend class CoreModule;

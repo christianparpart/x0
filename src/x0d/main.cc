@@ -10,7 +10,6 @@
 #include <x0d/XzeroDaemon.h>
 #include <x0d/sysconfig.h>
 
-#include <xzero-flow/ASTPrinter.h>
 #include <xzero/logging/ConsoleLogTarget.h>
 #include <xzero/logging.h>
 #include <xzero/io/FileUtil.h>
@@ -115,29 +114,20 @@ int main(int argc, const char* argv[]) {
 
     x0d.setOptimizationLevel(flags.getNumber("optimization-level"));
 
-    x0d.loadConfigFile(flags.getString("config"));
+    std::shared_ptr<xzero::flow::vm::Program> config =
+        x0d.loadConfigFile(flags.getString("config"),
+                           flags.getBool("dump-ast"),
+                           flags.getBool("dump-ir"),
+                           flags.getBool("dump-tc"));
 
-    bool exitBeforeRun = false;
-
-    if (flags.getBool("dump-ast")) {
-      xzero::flow::ASTPrinter::print(x0d.programAST());
-      exitBeforeRun = true;
-    }
-
-    if (flags.getBool("dump-ir")) {
-      x0d.programIR()->dump();
-      exitBeforeRun = true;
-    }
-
-    if (flags.getBool("dump-tc")) {
-      x0d.program()->dump();
-      exitBeforeRun = true;
-    }
+    bool exitBeforeRun = flags.getBool("dump-ast") ||
+                         flags.getBool("dump-ir") ||
+                         flags.getBool("dump-tc");
 
     if (exitBeforeRun)
       return 0;
 
-    if (!x0d.configure())
+    if (!x0d.applyConfiguration(config.get()))
       return 1;
 
     std::string pidfilepath = FileUtil::absolutePath(flags.getString("pid-file"));

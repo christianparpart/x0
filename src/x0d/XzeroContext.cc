@@ -21,7 +21,7 @@ using namespace xzero::http;
 namespace x0d {
 
 XzeroContext::XzeroContext(
-    xzero::flow::vm::Handler* entrypoint,
+    std::shared_ptr<xzero::flow::vm::Handler> entrypoint,
     xzero::http::HttpRequest* request,
     xzero::http::HttpResponse* response)
     : runner_(entrypoint->createRunner()),
