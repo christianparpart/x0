@@ -1,3 +1,16 @@
+### TODO: some flow optimization
+
+```!flow
+handler main {
+  foo;
+  if (expression) { }
+  else { }
+  bar;
+}
+```
+
+if `expression` is side-effect free, the whole CondExpr can be optimized away
+
 ### Incomplete Migration Tasks
 
 - [x] UnixSignals API
@@ -9,7 +22,8 @@
       interest has been created.
 - [x] x0d-signals: logfile rotating (USR1)
 - [x] x0d-signals: graceful shutdown (QUIT)
-- [ ] x0d-signals: quick shutdown (INT, TERM)
+- [x] x0d-signals: quick shutdown (INT, TERM)
+- [ ] x0d-signals: config reload (HUP)
 - [ ] x0d-signals: binary upgrade (USR2)
 
 - [ ] revive `lingering`
