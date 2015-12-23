@@ -22,6 +22,9 @@ namespace xzero {
 
 class PosixScheduler : public EventLoop {
  public:
+  PosixScheduler(const PosixScheduler&) = delete;
+  PosixScheduler& operator=(const PosixScheduler&) = delete;
+
   PosixScheduler(
       std::unique_ptr<xzero::ExceptionHandler> eh,
       std::function<void()> preInvoke,
