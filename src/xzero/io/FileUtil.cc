@@ -192,7 +192,7 @@ void FileUtil::read(int fd, Buffer* output) {
     // So fallback to standard read() until EOF is reached.
     output->reserve(output->size() + 4096);
     for (;;) {
-      ssize_t nread = ::read(fd, output->end(), 4096);
+      ssize_t nread = ::read(fd, output->end(), output->capacity() - output->size());
       if (nread > 0) {
         output->resize(output->size() + nread);
       } else if (nread == 0) {
