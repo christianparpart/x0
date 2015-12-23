@@ -30,9 +30,22 @@ add_custom_target(release
     WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
 )
 
+set(ENABLE_PROG_XURL FALSE CACHE BOOL "Enable building xurl CLI")
+set(ENABLE_PROG_FLOWCC FALSE CACHE BOOL "Enable building flowcc CLI")
+set(ENABLE_PROG_EXAMPLES TRUE CACHE BOOL "Enable building example program")
+
 add_subdirectory(src/xzero)
 add_subdirectory(src/xzero-flow)
 add_subdirectory(src/x0d)
-add_subdirectory(src/xurl)
-add_subdirectory(src/flowcc)
-add_subdirectory(src/examples)
+
+if(ENABLE_PROG_XURL)
+  add_subdirectory(src/xurl)
+endif()
+
+if(ENABLE_PROG_FLOWCC)
+  add_subdirectory(src/flowcc)
+endif()
+
+if(ENABLE_PROG_EXAMPLES)
+  add_subdirectory(src/examples)
+endif()
