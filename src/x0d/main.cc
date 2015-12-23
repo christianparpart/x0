@@ -114,16 +114,14 @@ int main(int argc, const char* argv[]) {
 
     x0d.setOptimizationLevel(flags.getNumber("optimization-level"));
 
+    bool dumpAST = flags.getBool("dump-ast");
+    bool dumpIR = flags.getBool("dump-ir");
+    bool dumpTC = flags.getBool("dump-tc");
+
     std::shared_ptr<xzero::flow::vm::Program> config =
-        x0d.loadConfigFile(flags.getString("config"),
-                           flags.getBool("dump-ast"),
-                           flags.getBool("dump-ir"),
-                           flags.getBool("dump-tc"));
+        x0d.loadConfigFile(flags.getString("config"), dumpAST, dumpIR, dumpTC);
 
-    bool exitBeforeRun = flags.getBool("dump-ast") ||
-                         flags.getBool("dump-ir") ||
-                         flags.getBool("dump-tc");
-
+    bool exitBeforeRun = dumpAST || dumpIR || dumpTC;
     if (exitBeforeRun)
       return 0;
 
