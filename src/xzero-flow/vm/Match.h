@@ -17,6 +17,7 @@
 #include <sys/types.h>
 #include <cstdint>
 #include <vector>
+#include <memory>
 #include <unordered_map>
 
 namespace xzero {
