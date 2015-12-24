@@ -194,8 +194,7 @@ void Connection::send(HttpResponseInfo& responseInfo,
 
   patchResponseInfo(responseInfo);
 
-  const bool corking_ = true;  // TODO(TCP_CORK): part of HttpResponseInfo?
-  if (corking_)
+  if (corkStream_)
     endpoint()->setCorking(true);
 
   generator_.generateResponse(responseInfo, std::move(chunk));
