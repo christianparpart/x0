@@ -33,7 +33,7 @@
 
 namespace xzero {
 
-#if !defined(NDEBUG)
+#if 0 // !defined(NDEBUG)
 #define TRACE(msg...) logTrace("UnixSignals", msg)
 #else
 #define TRACE(msg...) do {} while (0)

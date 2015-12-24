@@ -10,9 +10,12 @@
 #include <xzero/net/Server.h>
 #include <xzero/net/Connector.h>
 #include <xzero/net/InetConnector.h>
+#include <xzero/logging.h>
 #include <algorithm>
 
 namespace xzero {
+
+#define TRACE(msg...) logTrace("Server", msg)
 
 Server::Server()
     : connectors_(), date_() {
@@ -20,12 +23,12 @@ Server::Server()
 
 Server::Server(int port)
     : connectors_(), date_() {
-  // TODO addConnector<InetConnector>(IPAddress("0.0.0.0"), port);
+  TRACE("TODO addConnector<InetConnector>(IPAddress(\"0.0.0.0\"), port);");
 }
 
 Server::Server(const IPAddress& address, int port)
     : connectors_(), date_() {
-  // TODO addConnector<InetConnector>(address, port);
+  TRACE("TODO addConnector<InetConnector>(address, port);");
 }
 
 Server::~Server() {
@@ -51,15 +54,34 @@ void Server::implAddConnector(Connector* connector) {
   connectors_.push_back(connector);
 }
 
+void Server::removeAllConnectors() {
+  while (!connectors_.empty()) {
+    removeConnector(connectors_.back());
+  }
+}
+
 void Server::removeConnector(Connector* connector) {
   auto i = std::find(connectors_.begin(), connectors_.end(), connector);
   if (i != connectors_.end()) {
+    TRACE("removing connector $0", connector);
+    connectors_.erase(i);
     delete connector;
   }
 }
 
 std::list<Connector*> Server::getConnectors() const {
   return connectors_;
+}
+
+std::list<Connector*> Server::findConnectors(const IPAddress& ip, int port) {
+  std::list<Connector*> result;
+
+  for (Connector* connector: connectors_)
+    if (auto inet = dynamic_cast<InetConnector*>(connector))
+      if (inet->bindAddress() == ip && inet->port() == port)
+        result.push_back(inet);
+
+  return result;
 }
 
 void Server::getDate(char* buf, size_t size) {

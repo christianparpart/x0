@@ -131,6 +131,8 @@ class XZERO_BASE_API Connector {
   /** Retrieves list of connection listeners. */
   const std::list<ConnectionListener*>& listeners() const { return listeners_; }
 
+  virtual std::string toString() const;
+
  private:
   std::string name_;
   Server* server_;

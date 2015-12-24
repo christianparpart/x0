@@ -80,10 +80,7 @@ class XzeroDaemon : public xzero::flow::vm::Runtime {
       std::unique_ptr<std::istream>&& is, const std::string& name,
       bool printAST, bool printIR, bool printTC);
   void reloadConfiguration();
-  bool applyConfiguration(xzero::flow::vm::Program* program);
-
-  void suspend();
-  void resume();
+  bool applyConfiguration(std::shared_ptr<xzero::flow::vm::Program> program);
   // }}}
 
   void run();
@@ -136,12 +133,14 @@ class XzeroDaemon : public xzero::flow::vm::Runtime {
   void validateContext(const std::string& entrypointHandlerName,
                        const std::vector<std::string>& api,
                        xzero::flow::Unit* unit);
+  void stopThreads();
+  void startThreads();
 
   void handleRequest(xzero::http::HttpRequest* request, xzero::http::HttpResponse* response);
 
  public: // signals raised on request in order
   //! This hook is invoked once a new client has connected.
-  ConnectionHook onConnectionOpen; 
+  ConnectionHook onConnectionOpen;
 
   //! is called at the very beginning of a request.
   RequestHook onPreProcess;
@@ -169,6 +168,7 @@ class XzeroDaemon : public xzero::flow::vm::Runtime {
   T* loadModule();
 
  private:
+  std::unique_ptr<Config> createDefaultConfig();
   void patchProgramIR(xzero::flow::IRProgram* program,
                       xzero::flow::IRGenerator* irgen);
   void postConfig();
@@ -193,6 +193,7 @@ class XzeroDaemon : public xzero::flow::vm::Runtime {
   std::unique_ptr<xzero::Server> server_;     //!< (HTTP) server instance
 
   // Flow configuration
+  std::shared_ptr<xzero::flow::vm::Program> program_; // kept to preserve strong reference count
   std::shared_ptr<xzero::flow::vm::Handler> main_;
   std::vector<std::string> setupApi_;
   std::vector<std::string> mainApi_;

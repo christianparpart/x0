@@ -85,6 +85,11 @@ class XZERO_BASE_API Server {
   }
 
   /**
+   * Removes all Connector instances from this server.
+   */
+  void removeAllConnectors();
+
+  /**
    * Removes given @p connector from this server.
    */
   void removeConnector(Connector* connector);
@@ -93,6 +98,11 @@ class XZERO_BASE_API Server {
    * Retrieves list of all registered connectors.
    */
   std::list<Connector*> getConnectors() const;
+
+  /**
+   * Finds all InetConnector instances that match given bind:port tuple.
+   */
+  std::list<Connector*> findConnectors(const IPAddress& ip, int port);
 
   /**
    * Fills given buffer with the current date.

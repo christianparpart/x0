@@ -426,6 +426,10 @@ HttpCluster* ProxyModule::createCluster(const std::string& name,
                                         const std::string& path) {
   // TODO: unordered_map is not thread-safe
 
+  // quick-path if invoked again on the same cluster name
+  if (clusterMap_.find(name) != clusterMap_.end())
+    return clusterMap_[name].get();
+
   Executor* executor = daemon().selectClientExecutor();
   std::shared_ptr<HttpCluster> cluster(new HttpCluster(name, path, executor));
   clusterMap_[name] = cluster;

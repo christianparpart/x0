@@ -232,6 +232,10 @@ class XZERO_BASE_API InetConnector : public Connector {
   void stop() override;
   std::list<RefPtr<EndPoint>> connectedEndPoints() override;
 
+  const IPAddress& bindAddress() const noexcept;
+  int port() const noexcept;
+
+  std::string toString() const override;
  private:
   /**
    * Registers to the Executor API for new incoming connections.
@@ -306,6 +310,14 @@ class XZERO_BASE_API InetConnector : public Connector {
   Duration tcpFinTimeout_;
   bool isStarted_;
 };
+
+inline const IPAddress& InetConnector::bindAddress() const noexcept {
+  return bindAddress_;
+}
+
+inline int InetConnector::port() const noexcept {
+  return port_;
+}
 
 inline Duration InetConnector::readTimeout() const XZERO_NOEXCEPT {
   return readTimeout_;

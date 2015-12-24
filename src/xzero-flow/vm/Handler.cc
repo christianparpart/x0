@@ -8,11 +8,14 @@
 #include <xzero-flow/vm/Handler.h>
 #include <xzero-flow/vm/Runner.h>
 #include <xzero-flow/vm/Instruction.h>
+#include <xzero/logging.h>
 #include <xzero/sysconfig.h>
 
 namespace xzero {
 namespace flow {
 namespace vm {
+
+#define TRACE(msg...) logTrace("flow.vm.Handler", msg)
 
 Handler::Handler() {
 }
@@ -29,6 +32,7 @@ Handler::Handler(std::shared_ptr<Program> program,
       directThreadedCode_()
 #endif
 {
+  TRACE("Handler.ctor: $0 $1", name_, (long long) this);
 }
 
 Handler::Handler(const Handler& v)
@@ -41,6 +45,7 @@ Handler::Handler(const Handler& v)
       directThreadedCode_(v.directThreadedCode_)
 #endif
 {
+  TRACE("Handler.ctor(&): $0 $1", name_, (long long) this);
 }
 
 Handler::Handler(Handler&& v)
@@ -53,9 +58,12 @@ Handler::Handler(Handler&& v)
       directThreadedCode_(std::move(v.directThreadedCode_))
 #endif
 {
+  TRACE("Handler.ctor(&&): $0 $1", name_, (long long) this);
 }
 
-Handler::~Handler() {}
+Handler::~Handler() {
+  TRACE("~Handler: $0 $1", name_, (long long) this);
+}
 
 void Handler::setCode(const std::vector<Instruction>& code) {
   code_ = code;
@@ -72,6 +80,7 @@ void Handler::setCode(std::vector<Instruction>&& code) {
 }
 
 std::unique_ptr<Runner> Handler::createRunner() {
+  TRACE("Handler.createRunner: use_count=$0", shared_from_this().use_count());
   return Runner::create(shared_from_this());
 }
 

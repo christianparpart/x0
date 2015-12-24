@@ -45,6 +45,7 @@ static FlowString* t = nullptr;
 
 Runner::Runner(std::shared_ptr<Handler> handler)
     : handler_(handler),
+      program_(handler->program()),
       userdata_(nullptr, nullptr),
       regexpContext_(),
       state_(Inactive),

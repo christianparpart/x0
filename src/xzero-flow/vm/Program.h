@@ -42,9 +42,7 @@ class Program : public std::enable_shared_from_this<Program> {
 
   // accessors to linked data
   const Match* match(size_t index) const { return matches_[index]; }
-  std::shared_ptr<Handler> handler(size_t index) const {
-    return handlers_[index];
-  }
+  std::shared_ptr<Handler> handler(size_t index) const;
   NativeCallback* nativeHandler(size_t index) const {
     return nativeHandlers_[index];
   }

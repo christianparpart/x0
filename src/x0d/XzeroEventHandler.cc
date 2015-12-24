@@ -26,17 +26,8 @@ XzeroEventHandler::~XzeroEventHandler() {
 }
 
 void XzeroEventHandler::onConfigReload() {
-  /* TODO
-   * 1. suspend the world
-   * 2. load new config file
-   * 3. run setup handler with producing a diff to what is to be removed
-   * 4. Undo anything that's not in setup handler anymore (e.g. tcp listeners)
-   * 5. replace main request handler with new one
-   * 6. run post-config
-   * 6. resume the world
-   */
-
   logNotice("x0d", "Reloading configuration.");
+  daemon_->reloadConfiguration();
 
   executor_->executeOnSignal(SIGHUP, std::bind(&XzeroEventHandler::onConfigReload, this));
 }

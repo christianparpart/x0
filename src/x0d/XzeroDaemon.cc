@@ -56,6 +56,8 @@
 using namespace xzero;
 using namespace xzero::http;
 
+#define TRACE(msg...) logTrace("x0d", msg)
+
 // XXX variable defined by mimetypes2cc compiler
 extern std::unordered_map<std::string, std::string> mimetypes2cc;
 
@@ -72,21 +74,15 @@ XzeroDaemon::XzeroDaemon()
       eventLoops_(),
       modules_(),
       server_(new Server()),
-      main_(nullptr),
+      program_(),
+      main_(),
       setupApi_(),
       mainApi_(),
       optimizationLevel_(1),
       fileHandler_(),
       http1_(),
       configFilePath_(),
-      config_(new Config) {
-
-  // defaulting worker/affinities to total host CPU count
-  config_->workers = CoreModule::cpuCount();
-  config_->workerAffinities.resize(config_->workers);
-  for (int i = 0; i < config_->workers; ++i)
-    config_->workerAffinities[i] = i;
-
+      config_(createDefaultConfig()) {
   loadModule<AccessModule>();
   loadModule<AccesslogModule>();
   loadModule<AuthModule>();
@@ -238,16 +234,16 @@ void XzeroDaemon::patchProgramIR(xzero::flow::IRProgram* programIR,
   }
 }
 
-bool XzeroDaemon::applyConfiguration(flow::vm::Program* program) {
+bool XzeroDaemon::applyConfiguration(std::shared_ptr<flow::vm::Program> program) {
   try {
-    // run setup handler
     program->findHandler("setup")->run();
-    // TODO: this setup handler might have been invoked in the middle
-    // of a prod-run, so we must find a way to undo here stuff that's not
-    // in anymore. (listening sockets for example)
-    postConfig();
 
+    // Override main and *then* preserve the program reference.
+    // XXX The order is important to not accidentally generate stale weak ptrs.
     main_ = program->findHandler("main");
+    program_ = program;
+
+    postConfig();
     return true;
   } catch (const RuntimeError& e) {
     if (e == Status::ConfigurationError) {
@@ -259,32 +255,65 @@ bool XzeroDaemon::applyConfiguration(flow::vm::Program* program) {
   }
 }
 
+std::unique_ptr<Config> XzeroDaemon::createDefaultConfig() {
+  std::unique_ptr<Config> config(new Config);
+
+  // defaulting worker/affinities to total host CPU count
+  config->workers = CoreModule::cpuCount();
+  config->workerAffinities.resize(config->workers);
+  for (int i = 0; i < config->workers; ++i)
+    config->workerAffinities[i] = i;
+
+  return config;
+}
+
 void XzeroDaemon::reloadConfiguration() {
-  if (configFilePath_.empty())
+  /*
+   * 1. suspend the world
+   * 2. load new config file
+   * 3. run setup handler with producing a diff to what is to be removed
+   * 4. Undo anything that's not in setup handler anymore (e.g. tcp listeners)
+   * 5. replace main request handler with new one
+   * 6. run post-config
+   * 6. resume the world
+   */
+
+  if (configFilePath_.empty()) {
+    logNotice("x0d", "No configuration file given at startup. Nothing to reload.");
     return;
+  }
 
-  // suspend the world
-  suspend();
+  // reset to config
+  config_ = std::move(createDefaultConfig());
 
-  // load new config file into Flow
-  std::shared_ptr<flow::vm::Program> program = loadConfigFile(configFilePath_);
+  try {
+    // run setup gracefully
+    stopThreads();
 
-  // run setup gracefully
-  // TODO
+    // load new config file into Flow
+    std::shared_ptr<flow::vm::Program> program = loadConfigFile(configFilePath_);
 
-  // replace main handler
-  main_ = program->findHandler("main");
+    threadedExecutor_.joinAll();
+    server_->stop();
 
-  // resume the world
-  resume();
+    applyConfiguration(program);
+  } catch (const std::exception& e) {
+    logError("x0d", e, "Error cought while reloading configuration.");
+  }
+  logNotice("x0d", "Configuration reloading done.");
 }
 
-void XzeroDaemon::suspend() {
-  // TODO
+void XzeroDaemon::stopThreads() {
+  // suspend all worker threads
+  std::for_each(std::next(eventLoops_.begin()), eventLoops_.end(),
+                std::bind(&EventLoop::breakLoop, std::placeholders::_1));
 }
 
-void XzeroDaemon::resume() {
-  // TODO
+void XzeroDaemon::startThreads() {
+  // resume all worker threads
+  for (int i = 1; i < config_->workers; ++i) {
+    threadedExecutor_.execute(std::bind(&XzeroDaemon::runOneThread, this, i));
+  }
 }
 
 void XzeroDaemon::postConfig() {
@@ -318,15 +347,18 @@ void XzeroDaemon::postConfig() {
     mimetypes_.load(mimetypes2cc);
   }
 
-  // event loops & threading
-  eventLoops_.emplace_back(createEventLoop());
-
-  for (int i = 1; i < config_->workers; ++i) {
+  // event loops
+  if (eventLoops_.empty())
     eventLoops_.emplace_back(createEventLoop());
-    threadedExecutor_.execute(std::bind(&XzeroDaemon::runOneThread, this, i));
-  }
+
+  for (int i = 1; i < config_->workers; ++i)
+    eventLoops_.emplace_back(createEventLoop());
+
+  while (eventLoops_.size() > config_->workers)
+    eventLoops_.erase(std::prev(eventLoops_.end()));
 
   // listeners
+  server_->removeAllConnectors();
   for (const ListenerConfig& l: config_->listeners) {
     if (l.ssl) {
       if (config_->sslContexts.empty()) {
@@ -356,7 +388,8 @@ void XzeroDaemon::postConfig() {
     module->onPostConfig();
   }
 
-  eventHandler_.reset(new XzeroEventHandler(this, eventLoops_[0].get()));
+  server_->start();
+  startThreads();
 }
 
 std::unique_ptr<EventLoop> XzeroDaemon::createEventLoop() {
@@ -412,9 +445,9 @@ void XzeroDaemon::validateContext(const std::string& entrypointHandlerName,
 }
 
 void XzeroDaemon::run() {
-  server_->start();
+  eventHandler_.reset(new XzeroEventHandler(this, eventLoops_[0].get()));
   runOneThread(0);
-  logTrace("x0d", "Main loop quit. Shutting down.");
+  TRACE("Main loop quit. Shutting down.");
   server_->stop();
 }
 
@@ -424,9 +457,9 @@ void XzeroDaemon::runOneThread(int index) {
   if (index < config_->workerAffinities.size())
     setThreadAffinity(config_->workerAffinities[index], index);
 
-  logTrace("x0d", "worker/$0: Event loop enter", index);
+  TRACE("worker/$0: Event loop enter", index);
   eventLoop->runLoop();
-  logTrace("x0d", "worker/$0: Event loop terminated.", index);
+  TRACE("worker/$0: Event loop terminated.", index);
 }
 
 void XzeroDaemon::setThreadAffinity(int cpu, int workerId) {
@@ -436,7 +469,7 @@ void XzeroDaemon::setThreadAffinity(int cpu, int workerId) {
   CPU_ZERO(&set);
   CPU_SET(cpu, &set);
 
-  logTrace("x0d", "setAffinity: cpu $0 on worker $1", cpu, workerId);
+  TRACE("setAffinity: cpu $0 on worker $1", cpu, workerId);
 
   pthread_t tid = pthread_self();
 

@@ -90,9 +90,20 @@ std::shared_ptr<ConnectionFactory> Connector::defaultConnectionFactory() const {
   return defaultConnectionFactory_;
 }
 
+std::string Connector::toString() const {
+  char buf[128];
+  int n = snprintf(buf, sizeof(buf), "Connector/%s @ %p", name_.c_str(), this);
+  return std::string(buf, n);
+}
+
 template <>
-std::string StringUtil::toString(const Connector* value) {
-  return StringUtil::format("Connector[$0@$1]", value->name(), (void*) value);
+std::string StringUtil::toString(Connector* connector) {
+  return connector->toString();
+}
+
+template <>
+std::string StringUtil::toString(const Connector* connector) {
+  return connector->toString();
 }
 
 } // namespace xzero

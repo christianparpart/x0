@@ -125,7 +125,7 @@ int main(int argc, const char* argv[]) {
     if (exitBeforeRun)
       return 0;
 
-    if (!x0d.applyConfiguration(config.get()))
+    if (!x0d.applyConfiguration(config))
       return 1;
 
     std::string pidfilepath = FileUtil::absolutePath(flags.getString("pid-file"));

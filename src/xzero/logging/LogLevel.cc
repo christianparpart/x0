@@ -19,6 +19,10 @@ template<> std::string StringUtil::toString(LogLevel value) {
   switch (value) {
     case LogLevel::None:
       return "none";
+    case LogLevel::Alert:
+      return "alert";
+    case LogLevel::Critical:
+      return "critical";
     case LogLevel::Error:
       return "error";
     case LogLevel::Warning:
@@ -41,6 +45,12 @@ LogLevel make_loglevel(const std::string& str) {
 
   if (value == "none")
     return LogLevel::None;
+
+  if (value == "alert")
+    return LogLevel::Alert;
+
+  if (value == "critical")
+    return LogLevel::Critical;
 
   if (value == "error")
     return LogLevel::Error;

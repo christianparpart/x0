@@ -39,6 +39,14 @@ class XZERO_FLOW_API Runner : public CustomData {
  private:
   std::shared_ptr<Handler> handler_;
 
+  /**
+   * We especially keep this ref to prevent ensure handler has
+   * access to the program until the end, which is not garranteed
+   * as it is only having a weak reference to the program (to avoid cycling
+   * references).
+   */
+  std::shared_ptr<Program> program_;
+
   //! pointer to the currently evaluated HttpRequest/HttpResponse our case
   std::pair<void*,void*> userdata_;
 
@@ -67,7 +75,7 @@ class XZERO_FLOW_API Runner : public CustomData {
   bool isSuspended() const { return state_ == Suspended; }
 
   std::shared_ptr<Handler> handler() const { return handler_; }
-  std::shared_ptr<Program> program() const { return handler_->program(); }
+  std::shared_ptr<Program> program() const { return program_; }
   void* userdata() const { return userdata_.first; }
   void* userdata2() const { return userdata_.second; }
   void setUserData(void* p, void* q = nullptr) {

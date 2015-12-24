@@ -13,6 +13,7 @@
 #include <xzero-flow/vm/Runner.h>
 #include <xzero-flow/vm/Match.h>
 #include <xzero/RuntimeError.h>
+#include <xzero/logging.h>
 #include <utility>
 #include <vector>
 #include <memory>
@@ -21,6 +22,8 @@
 namespace xzero {
 namespace flow {
 namespace vm {
+
+#define TRACE(msg...) logTrace("flow.vm.Program", msg)
 
 /* {{{ possible binary file format
  * ----------------------------------------------
@@ -53,11 +56,17 @@ Program::Program(ConstantPool&& cp)
       matches_(),
       nativeHandlers_(),
       nativeFunctions_() {
+  TRACE("Program.ctor");
 }
 
 Program::~Program() {
+  TRACE("~Program.dtor");
   for (auto m : matches_)
     delete m;
+}
+
+std::shared_ptr<Handler> Program::handler(size_t index) const {
+  return handlers_[index];
 }
 
 void Program::setup() {
@@ -95,7 +104,7 @@ std::shared_ptr<Handler> Program::createHandler(
                                            name,
                                            instructions);
   handlers_.emplace_back(handler);
-  return handlers_.back();
+  return handler;
 }
 
 std::shared_ptr<Handler> Program::findHandler(const std::string& name) const {
@@ -124,17 +133,17 @@ std::vector<std::string> Program::handlerNames() const {
   return result;
 }
 
-int Program::indexOf(const std::shared_ptr<Handler>& handler) const {
+int Program::indexOf(const std::shared_ptr<Handler>& that) const {
   for (int i = 0, e = handlers_.size(); i != e; ++i)
-    if (handlers_[i].get() == handler.get())
+    if (handler(i).get() == that.get())
       return i;
 
   return -1;
 }
 
-int Program::indexOf(const Handler* handler) const {
+int Program::indexOf(const Handler* that) const {
   for (int i = 0, e = handlers_.size(); i != e; ++i)
-    if (handlers_[i].get() == handler)
+    if (handler(i).get() == that)
       return i;
 
   return -1;
@@ -146,7 +155,7 @@ void Program::dump() {
   cp_.dump();
 
   for (size_t i = 0, e = handlers_.size(); i != e; ++i) {
-    std::shared_ptr<Handler> handler = handlers_[i];
+    std::shared_ptr<Handler> handler = this->handler(i);
     printf("\n.handler %-20s ; #%zu (%zu registers, %zu instructions)\n",
            handler->name().c_str(), i,
            handler->registerCount() ? handler->registerCount() - 1
@@ -188,8 +197,9 @@ bool Program::link(Runtime* runtime) {
       nativeHandlers_[i] = cb;
     } else {
       nativeHandlers_[i] = nullptr;
-      fprintf(stderr, "Unresolved native handler signature: %s\n",
-              signature.c_str());
+      logError("flow.vm.Program",
+               "Unresolved native handler signature: $0",
+               signature);
       // TODO unresolvedSymbols_.push_back(signature);
       errors++;
     }
@@ -204,8 +214,9 @@ bool Program::link(Runtime* runtime) {
       nativeFunctions_[i] = cb;
     } else {
       nativeFunctions_[i] = nullptr;
-      fprintf(stderr, "Unresolved native function signature: %s\n",
-              signature.c_str());
+      logError("flow.vm.Program",
+               "Unresolved native function signature: %s\n",
+               signature);
       // TODO unresolvedSymbols_.push_back(signature);
       errors++;
     }

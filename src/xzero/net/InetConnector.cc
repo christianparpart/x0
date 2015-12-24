@@ -380,6 +380,7 @@ void InetConnector::setTcpFinTimeout(Duration value) {
 }
 
 void InetConnector::start() {
+  TRACE("start: ip=$0, port=$1", bindAddress_, port_);
   if (!isOpen()) {
     RAISE_STATUS(IllegalStateError);
   }
@@ -524,8 +525,15 @@ void InetConnector::onEndPointClosed(EndPoint* endpoint) {
   }
 }
 
+std::string InetConnector::toString() const {
+  char buf[128];
+  int n = snprintf(buf, sizeof(buf), "InetConnector/%s@%p[%s:%d]",
+                   name().c_str(), this, bindAddress_.c_str(), port_);
+  return std::string(buf, n);
+}
+
 template<> std::string StringUtil::toString(InetConnector* c) {
-  return StringUtil::format("InetConnector/$0", (void*) c);
+  return c->toString();
 }
 
 }  // namespace xzero
