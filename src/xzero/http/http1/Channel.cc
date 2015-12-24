@@ -12,10 +12,17 @@
 #include <xzero/http/HttpResponse.h>
 #include <xzero/Tokenizer.h>
 #include <xzero/RuntimeError.h>
+#include <xzero/logging.h>
 
 namespace xzero {
 namespace http {
 namespace http1 {
+
+#if !defined(NDEBUG)
+#define TRACE(fmt...) logTrace("http.http1.Channel", fmt)
+#else
+#define TRACE(msg...) do {} while (0)
+#endif
 
 Channel::Channel(Connection* transport,
                  Executor* executor,
@@ -77,10 +84,12 @@ void Channel::onMessageHeader(const BufferRef& name,
   for (const BufferRef& option: options) {
     connectionOptions_.push_back(option.str());
 
-    if (iequals(option, "Keep-Alive"))
+    if (iequals(option, "Keep-Alive")) {
+      TRACE("enable keep-alive");
       persistent_ = true;
-    else if (iequals(option, "close"))
+    } else if (iequals(option, "close")) {
       persistent_ = false;
+    }
   }
 }
 

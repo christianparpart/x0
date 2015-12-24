@@ -505,6 +505,8 @@ Executor* XzeroDaemon::selectClientExecutor() {
   if (++lastWorker_ >= eventLoops_.size())
     lastWorker_ = 0;
 
+  TRACE("select client scheduler $0", lastWorker_);
+
   return eventLoops_[lastWorker_].get();
 }
 

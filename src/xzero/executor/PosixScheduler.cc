@@ -34,7 +34,7 @@ namespace xzero {
 
 #define ERROR(msg...) logError("PosixScheduler", msg)
 
-#if 1 // !defined(NDEBUG)
+#if 0 // !defined(NDEBUG)
 #define TRACE(msg...) logTrace("PosixScheduler", msg)
 #else
 #define TRACE(msg...) do {} while (0)
@@ -469,6 +469,10 @@ void PosixScheduler::runLoop() {
     for (Watcher* w = firstWatcher_; w != nullptr; w = w->next)
       watcherCount++;
     TRACE("runLoop at exit: tasks=$0, timers=$1, watchers=$2, refs=$3, breakLoop=$4",
+        tasks_.size(), timers_.size(), watcherCount, referenceCount(), breakLoopCounter_.load());
+    logNotice(
+        "PosixScheduler",
+        "runLoop at exit: tasks=$0, timers=$1, watchers=$2, refs=$3, breakLoop=$4",
         tasks_.size(), timers_.size(), watcherCount, referenceCount(), breakLoopCounter_.load());
   }
 }

@@ -29,8 +29,11 @@ Generator::Generator(EndPointWriter* output)
 }
 
 void Generator::recycle() {
-  buffer_.clear();
   bytesTransmitted_ = 0;
+  contentLength_ = Buffer::npos;
+  actualContentLength_ = 0;
+  chunked_ = false;
+  buffer_.clear();
 }
 
 void Generator::generateRequest(const HttpRequestInfo& info,

@@ -255,6 +255,7 @@ void HttpChannel::onMessageBegin(const BufferRef& method,
 
 void HttpChannel::onMessageHeader(const BufferRef& name,
                                   const BufferRef& value) {
+  TRACE("onMessageHeader $0: $1", name, value);
   request_->headers().push_back(name.str(), value.str());
 
   if (iequals(name, "Expect") && iequals(value, "100-continue"))
@@ -272,6 +273,7 @@ void HttpChannel::onMessageHeader(const BufferRef& name,
 }
 
 void HttpChannel::onMessageHeaderEnd() {
+  TRACE("onMessageHeaderEnd");
   if (state() != HttpChannelState::HANDLING) {
     setState(HttpChannelState::HANDLING);
 

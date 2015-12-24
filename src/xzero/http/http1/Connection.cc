@@ -29,7 +29,7 @@ namespace http1 {
 
 #define ERROR(msg...) logError("http.http1.Connection", msg)
 
-#ifndef NDEBUG
+#if !defined(NDEBUG)
 #define TRACE(msg...) logTrace("http.http1.Connection", msg)
 #else
 #define TRACE(msg...) do {} while (0)
@@ -299,6 +299,7 @@ void Connection::parseFragment() {
   try {
     TRACE("parseFragment: calling parseFragment ($0 into $1)",
           inputOffset_, inputBuffer_.size());
+    TRACE("dump: '$0'", inputBuffer_.ref(inputOffset_));
     size_t n = parser_.parseFragment(inputBuffer_.ref(inputOffset_));
     TRACE("parseFragment: called ($0 into $1) => $2 ($3)",
           inputOffset_, inputBuffer_.size(), n,

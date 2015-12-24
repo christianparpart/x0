@@ -1,6 +1,8 @@
 ### Intermediate Tasks
 
-- [ ] threaded mode doesn't work (requests hang)
+- [ ] http/1 pipelining/keepalive (test via `ab -k`)
+- [ ] threaded mode
+
 - [ ] (make thread safe) File::lastModified()
 - [ ] (flow:bug) `"Blah #{call}blah#{call}"` doesn't work
       unless I specify it as `"Blah #{call()}blah#{call}"`
