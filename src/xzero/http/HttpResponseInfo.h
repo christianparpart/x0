@@ -34,16 +34,16 @@ class XZERO_HTTP_API HttpResponseInfo : public HttpInfo {
                    const HeaderFieldList& trailers);
 
   /** Retrieves the HTTP response status code. */
-  HttpStatus status() const XZERO_NOEXCEPT { return status_; }
+  HttpStatus status() const noexcept { return status_; }
 
   void setStatus(HttpStatus status) { status_ = status; }
 
-  const std::string& reason() const XZERO_NOEXCEPT { return reason_; }
+  const std::string& reason() const noexcept { return reason_; }
 
   void setReason(const std::string& text) { reason_ = text; }
 
   /** Retrieves whether this is an HTTP response to a HEAD request. */
-  bool isHeadResponse() const XZERO_NOEXCEPT { return isHeadResponse_; }
+  bool isHeadResponse() const noexcept { return isHeadResponse_; }
   void setIsHeadResponse(bool value) { isHeadResponse_ = value; }
 
   void reset();

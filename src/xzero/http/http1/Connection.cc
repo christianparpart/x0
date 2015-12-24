@@ -261,7 +261,7 @@ void Connection::send(Buffer&& chunk, CompletionHandler onComplete) {
 }
 
 void Connection::send(const BufferRef& chunk,
-                          CompletionHandler onComplete) {
+                      CompletionHandler onComplete) {
   setCompleter(onComplete);
   TRACE("$0 send(BufferRef, chunkSize=$1)", this, chunk.size());
   generator_.generateBody(chunk);

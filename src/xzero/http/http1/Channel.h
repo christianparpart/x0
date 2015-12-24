@@ -29,8 +29,8 @@ class Channel : public HttpChannel {
           HttpOutputCompressor* outputCompressor);
   ~Channel();
 
-  bool isPersistent() const XZERO_NOEXCEPT { return persistent_; }
-  void setPersistent(bool value) XZERO_NOEXCEPT { persistent_ = value; }
+  bool isPersistent() const noexcept { return persistent_; }
+  void setPersistent(bool value) noexcept { persistent_ = value; }
 
   void reset() override;
 

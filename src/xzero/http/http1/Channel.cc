@@ -47,8 +47,8 @@ void Channel::reset() {
 }
 
 void Channel::onMessageBegin(const BufferRef& method,
-                                 const BufferRef& entity,
-                                 HttpVersion version) {
+                             const BufferRef& entity,
+                             HttpVersion version) {
   request_->setBytesReceived(bytesReceived());
 
   switch (version) {
@@ -71,7 +71,7 @@ size_t Channel::bytesReceived() const noexcept {
 }
 
 void Channel::onMessageHeader(const BufferRef& name,
-                                  const BufferRef& value) {
+                              const BufferRef& value) {
   request_->setBytesReceived(bytesReceived());
 
   if (!iequals(name, "Connection")) {
@@ -105,6 +105,8 @@ void Channel::onMessageHeaderEnd() {
 }
 
 void Channel::onProtocolError(HttpStatus code, const std::string& message) {
+  TRACE("Protocol Error: $0 $1", code, message);
+
   request_->setBytesReceived(bytesReceived());
 
   if (!response_->isCommitted()) {

@@ -43,20 +43,20 @@ class XZERO_HTTP_API HttpConnectionFactory : public ConnectionFactory {
 
   ~HttpConnectionFactory();
 
-  size_t maxRequestUriLength() const XZERO_NOEXCEPT { return maxRequestUriLength_; }
+  size_t maxRequestUriLength() const noexcept { return maxRequestUriLength_; }
   void setMaxRequestUriLength(size_t value) { maxRequestUriLength_ = value; }
 
-  size_t maxRequestBodyLength() const XZERO_NOEXCEPT { return maxRequestBodyLength_; }
+  size_t maxRequestBodyLength() const noexcept { return maxRequestBodyLength_; }
   void setMaxRequestBodyLength(size_t value) { maxRequestBodyLength_ = value; }
 
-  const HttpHandler& handler() const XZERO_NOEXCEPT { return handler_; }
+  const HttpHandler& handler() const noexcept { return handler_; }
   void setHandler(HttpHandler&& handler);
 
   /** Access to the output compression service. */
-  HttpOutputCompressor* outputCompressor() const XZERO_NOEXCEPT;
+  HttpOutputCompressor* outputCompressor() const noexcept;
 
   /** Access to the @c Date response header generator. */
-  HttpDateGenerator* dateGenerator() XZERO_NOEXCEPT;
+  HttpDateGenerator* dateGenerator() noexcept;
 
   Connection* configure(Connection* connection, Connector* connector) override;
 
@@ -69,11 +69,11 @@ class XZERO_HTTP_API HttpConnectionFactory : public ConnectionFactory {
 };
 
 // {{{ inlines
-inline HttpOutputCompressor* HttpConnectionFactory::outputCompressor() const XZERO_NOEXCEPT {
+inline HttpOutputCompressor* HttpConnectionFactory::outputCompressor() const noexcept {
   return outputCompressor_.get();
 }
 
-inline HttpDateGenerator* HttpConnectionFactory::dateGenerator() XZERO_NOEXCEPT {
+inline HttpDateGenerator* HttpConnectionFactory::dateGenerator() noexcept {
   return &dateGenerator_;
 }
 // }}}

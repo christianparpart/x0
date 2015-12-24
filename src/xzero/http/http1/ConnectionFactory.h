@@ -41,10 +41,10 @@ class XZERO_HTTP_API ConnectionFactory : public HttpConnectionFactory {
   size_t requestBodyBufferSize() const noexcept { return requestBodyBufferSize_; }
   void setRequestBodyBufferSize(size_t value) { requestBodyBufferSize_ = value; }
 
-  size_t maxRequestCount() const XZERO_NOEXCEPT { return maxRequestCount_; }
+  size_t maxRequestCount() const noexcept { return maxRequestCount_; }
   void setMaxRequestCount(size_t value) { maxRequestCount_ = value; }
 
-  Duration maxKeepAlive() const XZERO_NOEXCEPT { return maxKeepAlive_; }
+  Duration maxKeepAlive() const noexcept { return maxKeepAlive_; }
   void setMaxKeepAlive(Duration value) { maxKeepAlive_ = value; }
 
   bool corkStream() const noexcept { return corkStream_; }

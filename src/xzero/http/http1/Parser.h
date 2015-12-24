@@ -147,7 +147,7 @@ class XZERO_HTTP_API Parser {
   bool isProcessingHeader() const;
   bool isProcessingBody() const;
 
-  bool isContentExpected() const XZERO_NOEXCEPT {
+  bool isContentExpected() const noexcept {
     return contentLength_ > 0 || chunked_ ||
            (contentLength_ < 0 && mode_ != REQUEST);
   }

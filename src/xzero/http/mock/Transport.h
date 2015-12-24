@@ -85,16 +85,16 @@ class XZERO_HTTP_API Transport : public HttpTransport {
            const std::string& body = "");
 
   /** Retrieves the response message status line and headers. */
-  const HttpResponseInfo& responseInfo() const XZERO_NOEXCEPT;
+  const HttpResponseInfo& responseInfo() const noexcept;
 
   /** Retrieves the response message body. */
-  const Buffer& responseBody() const XZERO_NOEXCEPT;
+  const Buffer& responseBody() const noexcept;
 
   /** Tests whether this transport was aborted in last request handling. */
-  bool isAborted() const XZERO_NOEXCEPT;
+  bool isAborted() const noexcept;
 
   /** Tests whether last message was completed. */
-  bool isCompleted() const XZERO_NOEXCEPT;
+  bool isCompleted() const noexcept;
 
   HttpChannel* channel() const noexcept { return channel_.get(); }
 
@@ -127,19 +127,19 @@ class XZERO_HTTP_API Transport : public HttpTransport {
 };
 
 // {{{ inlines
-inline const HttpResponseInfo& Transport::responseInfo() const XZERO_NOEXCEPT {
+inline const HttpResponseInfo& Transport::responseInfo() const noexcept {
   return responseInfo_;
 }
 
-inline const Buffer& Transport::responseBody() const XZERO_NOEXCEPT {
+inline const Buffer& Transport::responseBody() const noexcept {
   return responseBody_;
 }
 
-inline bool Transport::isAborted() const XZERO_NOEXCEPT {
+inline bool Transport::isAborted() const noexcept {
   return isAborted_;
 }
 
-inline bool Transport::isCompleted() const XZERO_NOEXCEPT {
+inline bool Transport::isCompleted() const noexcept {
   return isCompleted_;
 }
 // }}}

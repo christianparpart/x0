@@ -30,13 +30,13 @@ class XZERO_HTTP_API HttpOutputCompressor {
   bool containsMimeType(const std::string& value) const;
 
   void setMinSize(size_t value);
-  size_t minSize() const XZERO_NOEXCEPT { return minSize_; }
+  size_t minSize() const noexcept { return minSize_; }
 
   void setMaxSize(size_t value);
-  size_t maxSize() const XZERO_NOEXCEPT { return maxSize_; }
+  size_t maxSize() const noexcept { return maxSize_; }
 
   void setCompressionLevel(int value) { level_ = value; }
-  int compressionLevel() const XZERO_NOEXCEPT { return level_; }
+  int compressionLevel() const noexcept { return level_; }
 
   /**
    * Injects a preCommit handler to automatically add output compression.

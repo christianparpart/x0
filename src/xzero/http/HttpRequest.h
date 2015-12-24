@@ -46,14 +46,14 @@ class XZERO_HTTP_API HttpRequest : public HttpRequestInfo {
   size_t bytesReceived() const noexcept { return bytesReceived_; }
   void setBytesReceived(size_t n) { bytesReceived_ = n; }
 
-  const std::string& host() const XZERO_NOEXCEPT { return host_; }
+  const std::string& host() const noexcept { return host_; }
   void setHost(const std::string& value);
 
-  bool isSecure() const XZERO_NOEXCEPT { return secure_; }
+  bool isSecure() const noexcept { return secure_; }
   void setSecure(bool secured) { secure_ = secured; }
 
-  bool expect100Continue() const XZERO_NOEXCEPT { return expect100Continue_; }
-  void setExpect100Continue(bool value) XZERO_NOEXCEPT { expect100Continue_ = value; }
+  bool expect100Continue() const noexcept { return expect100Continue_; }
+  void setExpect100Continue(bool value) noexcept { expect100Continue_ = value; }
 
   const std::string& username() const noexcept { return username_; }
   void setUserName(const std::string& value) { username_ = value; }

@@ -96,7 +96,7 @@ class XZERO_HTTP_API Generator {
   /**
    * Retrieves the number of bytes remaining for the content.
    */
-  size_t remainingContentLength() const XZERO_NOEXCEPT {
+  size_t remainingContentLength() const noexcept {
     return contentLength() - actualContentLength();
   }
 
@@ -106,7 +106,7 @@ class XZERO_HTTP_API Generator {
   /**
    * Retrieves boolean indicating whether chunked response is generated.
    */
-  bool isChunked() const XZERO_NOEXCEPT { return chunked_; }
+  bool isChunked() const noexcept { return chunked_; }
 
   size_t bytesTransmitted() const noexcept { return bytesTransmitted_; }
 
