@@ -307,12 +307,17 @@ void XzeroDaemon::stopThreads() {
   // suspend all worker threads
   std::for_each(std::next(eventLoops_.begin()), eventLoops_.end(),
                 std::bind(&EventLoop::breakLoop, std::placeholders::_1));
+  for (int i = 1; i < config_->workers; ++i) {
+    eventLoops_[i]->unref(); // refers to the startThreads()'s ref()-action
+    eventLoops_[i]->breakLoop();
+  }
 }
 
 void XzeroDaemon::startThreads() {
   // resume all worker threads
   for (int i = 1; i < config_->workers; ++i) {
     threadedExecutor_.execute(std::bind(&XzeroDaemon::runOneThread, this, i));
+    eventLoops_[i]->ref(); // we ref here to keep the loop running
   }
 }
 
