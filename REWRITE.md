@@ -1,8 +1,6 @@
-### Incomplete Migration Tasks
+### Intermediate Tasks
 
-- [ ] revive `lingering`
-- [ ] revive `max_connections`
-- [ ] revive HTTP client side abort notification API
+- [ ] threaded mode doesn't work (requests hang)
 - [ ] (make thread safe) File::lastModified()
 - [ ] (flow:bug) `"Blah #{call}blah#{call}"` doesn't work
       unless I specify it as `"Blah #{call()}blah#{call}"`
@@ -11,11 +9,19 @@
 - [ ] (flow) tag flow handlers to never return (aka. always handle),
       thus, enabling the compiler to give a warning on dead code after
       this handler.
+
+### Smallish Features
+
 - [ ] (flow) a verifier callback must have the ability to attach custom data
       to the actual call.
       something like `CallInstr.attach(OwnedPtr<CustomData> data);
-- [ ] x0d-signals: binary upgrade (USR2)
-- [ ] x0d-signals: config reload (HUP)
+
+### Incomplete Migration Tasks
+
+- [ ] revive `lingering`
+- [ ] revive `max_connections`
+- [ ] revive HTTP client side abort notification API
+- [x] x0d-signals: config reload (HUP)
 - [x] UnixSignals API
 - [x] UnixSignals: OS/X (kqueue)
 - [x] UnixSignals: Linux (signalfd)
