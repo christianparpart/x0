@@ -40,7 +40,9 @@ class XZERO_HTTP_API HttpTransport {
   virtual void abort() = 0;
 
   /**
-   * Invoked when the currently generated response has been fully transmitted.
+   * Invoked when the current message has been fully generated.
+   *
+   * This does not imply transmission, there can still be some bytes left.
    */
   virtual void completed() = 0;
 
