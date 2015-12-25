@@ -13,11 +13,18 @@
 #include <xzero/net/EndPointWriter.h>
 #include <xzero/io/FileView.h>
 #include <xzero/RuntimeError.h>
+#include <xzero/logging.h>
 #include <xzero/sysconfig.h>
 
 namespace xzero {
 namespace http {
 namespace http1 {
+
+#if !defined(NDEBUG)
+#define TRACE(msg...) logTrace("http.http1.Generator", msg)
+#else
+#define TRACE(msg...) do {} while (0)
+#endif
 
 Generator::Generator(EndPointWriter* output)
     : bytesTransmitted_(0),
@@ -133,6 +140,7 @@ void Generator::generateTrailer(const HeaderFieldList& trailers) {
 
 void Generator::generateBody(Buffer&& chunk) {
   if (chunked_) {
+    TRACE("generateBody: Buffer.size=$0 (chunked encoding)", chunk.size());
     if (chunk.size() > 0) {
       Buffer buf(12);
       buf.printf("%zx\r\n", chunk.size());
@@ -141,6 +149,9 @@ void Generator::generateBody(Buffer&& chunk) {
       writer_->write(BufferRef("\r\n"));
     }
   } else {
+    TRACE("generateBody: chunk: $0 (actual: $1, total: $2)",
+          chunk.size(), actualContentLength(), contentLength());
+
     if (chunk.size() <= remainingContentLength()) {
       actualContentLength_ += chunk.size();
       writer_->write(std::move(chunk));
@@ -152,6 +163,7 @@ void Generator::generateBody(Buffer&& chunk) {
 
 void Generator::generateBody(FileView&& chunk) {
   if (chunked_) {
+    TRACE("generateBody: FileView.size=$0 (chunked encoding)", chunk.size());
     int n;
     char buf[12];
 
@@ -163,6 +175,9 @@ void Generator::generateBody(FileView&& chunk) {
       writer_->write(BufferRef("\r\n"));
     }
   } else {
+    TRACE("generateBody: chunk: $0 (actual: $1, total: $2)",
+          chunk.size(), actualContentLength(), contentLength());
+
     if (chunk.size() <= remainingContentLength()) {
       bytesTransmitted_ += chunk.size();
       actualContentLength_ += chunk.size();
@@ -222,6 +237,7 @@ void Generator::generateResponseLine(const HttpResponseInfo& info) {
 void Generator::generateHeaders(const HttpInfo& info, bool bodyForbidden) {
   chunked_ = info.hasContentLength() == false || info.hasTrailers();
   contentLength_ = info.contentLength();
+  TRACE("generateHeaders: content-length: $0", contentLength_);
 
   for (const HeaderField& header: info.headers()) {
     buffer_.push_back(header.name());
