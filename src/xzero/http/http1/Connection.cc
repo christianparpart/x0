@@ -108,11 +108,16 @@ void Connection::completed() {
       generator_.remainingContentLength() > 0)
     RAISE(IllegalStateError, "Invalid State. Response not fully written but completed() invoked.");
 
-  setCompleter(std::bind(&Connection::onResponseComplete, this,
-                         std::placeholders::_1));
-
   generator_.generateTrailer(channel_->response()->trailers());
-  wantFlush();
+
+  if (writer_.empty()) {
+    onResponseComplete(true);
+  } else {
+    setCompleter(std::bind(&Connection::onResponseComplete, this,
+                           std::placeholders::_1));
+
+    wantFlush();
+  }
 }
 
 void Connection::onResponseComplete(bool succeed) {
