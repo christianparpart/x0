@@ -231,6 +231,10 @@ set(xzero_base_SRC
   http/http1/Generator.cc
   http/http1/Parser.cc
 
+  # HTTP transport: http/2
+  http/http2/Generator.cc
+  http/http2/StreamState.cc
+
   # HTTP client
   http/client/HttpClient.cc
   http/client/HttpTransport.cc

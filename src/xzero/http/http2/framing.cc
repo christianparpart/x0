@@ -1,29 +1,37 @@
 // This file is part of the "x0" project, http://xzero.io/
-//   (c) 2009-2014 Christian Parpart <trapni@gmail.com>
+//   (c) 2009-2015 Christian Parpart <trapni@gmail.com>
 //
 // Licensed under the MIT License (the "License"); you may not use this
 // file except in compliance with the License. You may obtain a copy of
 // the License at: http://opensource.org/licenses/MIT
 
-// vim:ts=2:sw=2
-#include <xzero/http/2.h>
-#include <base/Buffer.h>
+#include <xzero/http/http2/framing.h>
+#include <xzero/StringUtil.h>
+#include <xzero/Buffer.h>
 #include <memory>
 #include <vector>
 #include <utility>
 #include <stdio.h>
 #include <arpa/inet.h>
+#include <assert.h>
 
 namespace xzero {
-namespace framing {
 
-// {{{ free functions
-std::string to_string(FrameType type) {
-  static const std::string values[] =
-      {[0] = "DATA",         [1] = "HEADERS",  [2] = "PRIORITY",
-       [3] = "RST_STREAM",   [4] = "SETTINGS", [5] = "PUSH_PROMISE",
-       [6] = "PING",         [7] = "GOAWAY",   [8] = "WINDOW_UPDATE",
-       [9] = "CONTINUATION", };
+// {{{ toString helper
+template<>
+std::string StringUtil::toString(http::http2::FrameType type) {
+  static const std::string values[] = {
+      [0] = "DATA",
+      [1] = "HEADERS",
+      [2] = "PRIORITY",
+      [3] = "RST_STREAM",
+      [4] = "SETTINGS",
+      [5] = "PUSH_PROMISE",
+      [6] = "PING",
+      [7] = "GOAWAY",
+      [8] = "WINDOW_UPDATE",
+      [9] = "CONTINUATION"
+  };
 
   size_t offset = static_cast<size_t>(type);
   if (offset <= 9) {
@@ -35,7 +43,8 @@ std::string to_string(FrameType type) {
   return std::string(buf);
 }
 
-std::string to_string(ErrorCode ec) {
+template<>
+std::string StringUtil::toString(http::http2::ErrorCode ec) {
   static const std::string values[] =
       {[0x0] = "NO_ERROR",            [0x1] = "PROTOCOL_ERROR",
        [0x2] = "INTERNAL_ERROR",      [0x3] = "FLOW_CONTROL_ERROR",
@@ -55,51 +64,53 @@ std::string to_string(ErrorCode ec) {
   return std::string(buf, len);
 }
 
-std::string to_string(uint8_t flags, FrameType type) {
-  static const std::unordered_map<unsigned, std::map<unsigned, std::string>>
-  mapping = {{(unsigned)FrameType::DATA,
-              {{DataFrame::END_STREAM, "END_STREAM"},    // 0x01
-               {DataFrame::END_SEGMENT, "END_SEGMENT"},  // 0x02
-               {DataFrame::PADDED, "PADDED"}             // 0x08
-              }},
-             {(unsigned)FrameType::HEADERS,
-              {{HeadersFrame::END_STREAM, "END_STREAM"},    // 0x01
-               {HeadersFrame::END_SEGMENT, "END_SEGMENT"},  // 0x02
-               {HeadersFrame::END_HEADERS, "END_HEADERS"},  // 0x04
-               {HeadersFrame::PADDED, "PADDED"},            // 0x08
-               {HeadersFrame::PRIORITY, "PRIORITY"}         // 0x20
-              }},
-             {(unsigned)FrameType::PRIORITY,
-              {/* no flags */
-              }},
-             {(unsigned)FrameType::RST_STREAM,
-              {/* no flags */
-              }},
-             {(unsigned)FrameType::SETTINGS,
-              {{SettingsFrame::ACK, "ACK"}  // 0x01
-              }},
-             {(unsigned)FrameType::PUSH_PROMISE,
-              {{PushPromiseFrame::END_HEADERS, "END_HEADERS"},  // 0x04
-               {PushPromiseFrame::PADDED, "PADDED"}             // 0x08
-              }},
-             {(unsigned)FrameType::PING,
-              {{PingFrame::ACK, "ACK"},  // 0x01
-              }},
-             {(unsigned)FrameType::GOAWAY,
-              {/* no flags */
-              }},
-             {(unsigned)FrameType::WINDOW_UPDATE,
-              {/* no flags */
-              }},
-             {(unsigned)FrameType::CONTINUATION,
-              {{HeadersFrame::END_HEADERS, "END_HEADERS"},  // 0x04
-              }}};
+std::string formatFlags(uint8_t flags, http::http2::FrameType type) {
+  using namespace http::http2;
+  typedef std::map<unsigned, std::string> IntStringMap;
+  typedef std::map<unsigned, IntStringMap> FlagsFormatMap;
+
+  static const FlagsFormatMap mapping = {
+      { (unsigned)FrameType::DATA, {
+        {DataFrame::END_STREAM, "END_STREAM"},    // 0x01
+        {DataFrame::END_SEGMENT, "END_SEGMENT"},  // 0x02
+        {DataFrame::PADDED, "PADDED"}             // 0x08
+      }},
+      { (unsigned)FrameType::HEADERS, {
+         {HeadersFrame::END_STREAM, "END_STREAM"},    // 0x01
+         {HeadersFrame::END_SEGMENT, "END_SEGMENT"},  // 0x02
+         {HeadersFrame::END_HEADERS, "END_HEADERS"},  // 0x04
+         {HeadersFrame::PADDED, "PADDED"},            // 0x08
+         {HeadersFrame::PRIORITY, "PRIORITY"}         // 0x20
+      }},
+      { (unsigned)FrameType::PRIORITY, {
+         /* no flags */
+      }},
+      { (unsigned)FrameType::RST_STREAM, {
+        /* no flags */
+      }},
+      { (unsigned)FrameType::SETTINGS, {
+        {SettingsFrame::ACK, "ACK"}  // 0x01
+      }},
+      { (unsigned)FrameType::PUSH_PROMISE, {
+        {PushPromiseFrame::END_HEADERS, "END_HEADERS"},  // 0x04
+        {PushPromiseFrame::PADDED, "PADDED"}             // 0x08
+      }},
+      { (unsigned)FrameType::PING, {
+        {PingFrame::ACK, "ACK"},  // 0x01
+      }},
+      { (unsigned)FrameType::GOAWAY, {
+        /* no flags */
+      }},
+      { (unsigned)FrameType::WINDOW_UPDATE, {
+        /* no flags */
+      }},
+      { (unsigned)FrameType::CONTINUATION, {
+        {HeadersFrame::END_HEADERS, "END_HEADERS"},  // 0x04
+      }}
+  };
 
   const auto i = mapping.find(static_cast<unsigned>(type));
-  if (i == mapping.end()) {
-    fprintf(stderr, "BUG! Unknown frame type: %d\n", type);
-    abort();
-  }
+  assert(i != mapping.end() && "BUG! Unknown frame type!");
 
   const auto& flagsMap = i->second;
   std::string out;
@@ -122,20 +133,24 @@ std::string to_string(uint8_t flags, FrameType type) {
   return out;
 }
 // }}}
+
+namespace http {
+namespace http2 {
+
 // {{{ Frame
 void Frame::dumpHeader() const {
   printf(" * %s: flags=[%s], stream_id=%u, length=%zu\n",
-         to_string(type()).c_str(), to_string(flags(), type()).c_str(),
+         StringUtil::toString(type()).c_str(),
+         formatFlags(flags(), type()).c_str(),
          streamID(), payloadLength());
 }
 
 void Frame::setHeader(size_t payloadLength, FrameType type, unsigned flags,
                       unsigned streamID) {
-  reserved1_ = 0;
   length_ = htons(payloadLength);
   type_ = (unsigned)type;
   flags_ = flags;
-  reserved2_ = 0;
+  reserved_ = 0;
   streamID_ = htonl(streamID);
 }
 
@@ -219,7 +234,6 @@ void PriorityFrame::encode(Buffer* out, bool exclusive,
   frame.isExclusive_ = exclusive;
   frame.dependantStreamID_ = htonl(dependantStreamID);
   frame.weight_ = weight;
-  frame.unused_ = 0;
 
   out->push_back(&frame, sizeof(frame));
 }
@@ -227,7 +241,7 @@ void PriorityFrame::encode(Buffer* out, bool exclusive,
 // {{{ ResetStreamFrame
 void ResetStreamFrame::dump() const {
   dumpHeader();
-  printf("    ; errorCode: %s\n", to_string(errorCode()).c_str());
+  printf("    ; errorCode: %s\n", StringUtil::toString(errorCode()).c_str());
 }
 
 void ResetStreamFrame::encode(Buffer* out, ErrorCode ec, unsigned streamID) {
@@ -257,7 +271,6 @@ SettingsFrame::Parameter SettingsFrame::Parameter::encode(Type type,
   Parameter param;
 
   param.type_ = htons(type);
-  param.unused_ = 0;
   param.value_ = htonl(value);
 
   return param;
@@ -288,7 +301,7 @@ void PushPromiseFrame::dump() const {
 // {{{ PingFrame
 void PingFrame::dump() const {
   dumpHeader();
-  printf("    ; opaqueData = 0x%08lx\n", data());
+  printf("    ; opaqueData = 0x%08llx\n", data());
 }
 
 void PingFrame::encode(Buffer* out, uint64_t data) {
@@ -338,12 +351,13 @@ void PingFrame::encodeAck(Buffer* out, uint64_t data) {
 void GoAwayFrame::dump() const {
   dumpHeader();
   printf("    ; lastStreamID=%u, errorCode=%s\n", lastStreamID(),
-         to_string(errorCode()).c_str());
+         StringUtil::toString(errorCode()).c_str());
 
   BufferRef debug = debugData();
 
   if (!debug.empty()) {
-    debug.dump("    ; AdditionalDebugData");
+    printf("    ; AdditionalDebugData\n");
+    debug.hexdump();
   }
 }
 
@@ -397,5 +411,7 @@ void ContinuationFrame::dump() const {
 }
 // }}}
 
-}  // namespace framing
-}  // namespace xzero
+} // namespace http2
+} // namespace http
+
+} // namespace xzero
