@@ -139,8 +139,8 @@ bool HttpFileHandler::handle(
 #if defined(HAVE_POSIX_FADVISE)
     posix_fadvise(fd, 0, transferFile->size(), POSIX_FADV_SEQUENTIAL);
 #endif
-    response->write(FileView(fd, 0, transferFile->size(), true),
-        std::bind(&HttpResponse::completed, response));
+    response->write(FileView(fd, 0, transferFile->size(), true));
+    response->completed();
   } else {
     response->completed();
   }
