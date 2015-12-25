@@ -126,10 +126,11 @@ void Connection::onResponseComplete(bool succeed) {
   }
 
   if (channel_->isPersistent()) {
-    TRACE("$0 completed.onComplete", this);
+    TRACE("$0 onResponseComplete: keep-alive was enabled", this);
 
     // re-use on keep-alive
     channel_->reset();
+    generator_.reset();
 
     endpoint()->setCorking(false);
 
