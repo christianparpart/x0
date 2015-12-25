@@ -1,8 +1,5 @@
 ### Intermediate Tasks
 
-- [ ] http/1 pipelining/keepalive (test via `ab -k`)
-- [ ] threaded mode
-
 - [ ] (make thread safe) File::lastModified()
 - [ ] (flow:bug) `"Blah #{call}blah#{call}"` doesn't work
       unless I specify it as `"Blah #{call()}blah#{call}"`
@@ -11,6 +8,13 @@
 - [ ] (flow) tag flow handlers to never return (aka. always handle),
       thus, enabling the compiler to give a warning on dead code after
       this handler.
+
+### Cleanup Tasks
+
+- [ ] (test) ensure http1 keep-alive is working on the transport-level
+- [ ] (test) ensure http1 pipelined processing
+- [ ] (quality) HttpChannelState::DONE is questionable as we're switching
+      back to SENDING after DONE, then to HANDLING again.
 
 ### Smallish Features
 
