@@ -35,7 +35,9 @@ Generator::Generator(EndPointWriter* output)
       writer_(output) {
 }
 
-void Generator::recycle() {
+void Generator::reset() {
+  TRACE("recycle");
+
   bytesTransmitted_ = 0;
   contentLength_ = Buffer::npos;
   actualContentLength_ = 0;

@@ -44,7 +44,7 @@ class XZERO_HTTP_API Generator {
   explicit Generator(EndPointWriter* output);
 
   /** resets any runtime state. */
-  void recycle();
+  void reset();
 
   /**
    * Generates an HTTP request message.
