@@ -69,6 +69,13 @@ bool EndPointWriter::flush(EndPoint* sink) {
   return true;
 }
 
+bool EndPointWriter::empty() const {
+  if (chunks_.empty())
+    return true;
+
+  return chunks_.front()->empty();
+}
+
 // {{{ EndPointWriter::BufferChunk
 bool EndPointWriter::BufferChunk::transferTo(EndPoint* sink) {
   size_t n = sink->flush(data_.ref(offset_));
@@ -79,6 +86,10 @@ bool EndPointWriter::BufferChunk::transferTo(EndPoint* sink) {
 
   return offset_ == data_.size();
 }
+
+bool EndPointWriter::BufferChunk::empty() const {
+  return offset_ == data_.size();
+}
 // }}}
 // {{{ EndPointWriter::BufferRefChunk
 bool EndPointWriter::BufferRefChunk::transferTo(EndPoint* sink) {
@@ -86,6 +97,10 @@ bool EndPointWriter::BufferRefChunk::transferTo(EndPoint* sink) {
   TRACE("BufferRefChunk.transferTo: $0 bytes", n);
 
   offset_ += n;
+  return offset_ == data_.size();
+}
+
+bool EndPointWriter::BufferRefChunk::empty() const {
   return offset_ == data_.size();
 }
 // }}}
@@ -100,6 +115,10 @@ bool EndPointWriter::FileChunk::transferTo(EndPoint* sink) {
   file_.setSize(file_.size() - n);
   file_.setOffset(file_.offset() + n);
 
+  return file_.size() == 0;
+}
+
+bool EndPointWriter::FileChunk::empty() const {
   return file_.size() == 0;
 }
 // }}}

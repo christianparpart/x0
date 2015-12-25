@@ -58,6 +58,13 @@ class XZERO_BASE_API EndPointWriter {
    */
   bool flush(EndPoint* sink);
 
+  /** Tests whether there are pending bytes to be flushed.
+   *
+   * @retval true Yes, we have at least one or more pending bytes to be flushed.
+   * @retval false Nothing to be flushed yet.
+   */
+  bool empty() const;
+
  private:
   class Chunk;
   class BufferChunk;
@@ -73,6 +80,7 @@ class XZERO_BASE_API EndPointWriter::Chunk {
   virtual ~Chunk() {}
 
   virtual bool transferTo(EndPoint* sink) = 0;
+  virtual bool empty() const = 0;
 };
 
 class XZERO_BASE_API EndPointWriter::BufferChunk : public Chunk {
@@ -87,6 +95,7 @@ class XZERO_BASE_API EndPointWriter::BufferChunk : public Chunk {
       : data_(copy), offset_(0) {}
 
   bool transferTo(EndPoint* sink) override;
+  bool empty() const override;
 
  private:
   Buffer data_;
@@ -99,6 +108,7 @@ class XZERO_BASE_API EndPointWriter::BufferRefChunk : public Chunk {
       : data_(buffer), offset_(0) {}
 
   bool transferTo(EndPoint* sink) override;
+  bool empty() const override;
 
  private:
   BufferRef data_;
@@ -113,6 +123,7 @@ class XZERO_BASE_API EndPointWriter::FileChunk : public Chunk {
   ~FileChunk();
 
   bool transferTo(EndPoint* sink) override;
+  bool empty() const override;
 
  private:
   FileView file_;
