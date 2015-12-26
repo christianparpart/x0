@@ -13,6 +13,9 @@
 namespace xzero {
 namespace http {
 
+typedef std::string HeaderFieldName;
+typedef std::string HeaderFieldValue;
+
 /**
  * Represents a single HTTP message header name/value pair.
  */

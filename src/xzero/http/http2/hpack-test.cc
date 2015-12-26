@@ -6,117 +6,63 @@
 // the License at: http://opensource.org/licenses/MIT
 
 #include <gtest/gtest.h>
-#include <x0/http/hpack.h>
+#include <xzero/http/http2/hpack.h>
 
-using namespace x0;
-using namespace x0::hpack;
+using namespace xzero;
+using namespace xzero::http;
+using namespace xzero::http::http2;
+using namespace xzero::http::http2::hpack;
 
-// {{{ HeaderField
-TEST(hpack_HeaderField, ctor_v) {
-  HeaderField field;
-  ASSERT_EQ("", field.name);
-  ASSERT_EQ("", field.value);
-}
-
-TEST(hpack_HeaderField, ctor_initializer_list) {
-  HeaderField field = { "foo", "bar" };
-  ASSERT_EQ("foo", field.name);
-  ASSERT_EQ("bar", field.value);
-}
-
-TEST(hpack_HeaderField, ctor_explicit) {
-  HeaderField field("foo", "bar");
-  ASSERT_EQ("foo", field.name);
-  ASSERT_EQ("bar", field.value);
-}
-
-TEST(hpack_HeaderField, copy) {
-  HeaderField field("foo", "bar");
-  HeaderField other = field;
-  ASSERT_EQ("foo", other.name);
-  ASSERT_EQ("bar", other.value);
-}
-
-TEST(hpack_HeaderField, move) {
-  HeaderField field("foo", "bar");
-  HeaderField other = std::move(field);
-
-  ASSERT_EQ("", field.name);
-  ASSERT_EQ("", field.value);
-
-  ASSERT_EQ("foo", other.name);
-  ASSERT_EQ("bar", other.value);
-}
-
-TEST(hpack_HeaderField, eq) {
-  HeaderField field("foo", "bar");
-  HeaderField other = field;
-
-  ASSERT_EQ(field, other);
-}
-
-TEST(hpack_HeaderField, ne) {
-  HeaderField field("foo", "bar");
-  
-  // value differs
-  HeaderField other(field.name, "nar");
-  ASSERT_NE(field, other);
-
-  // name differs
-  other = {"boo", field.value};
-  ASSERT_NE(field, other);
-}
-// }}}
 // {{{ HeaderTable
-TEST(hpack_HeaderTable, initiallyEmpty) {
+TEST(http_hpack_HeaderTable, initiallyEmpty) {
   HeaderTable table(10);
   ASSERT_EQ(true, table.empty());
 }
 
-TEST(hpack_HeaderTable, add) {
-  HeaderTable table(10);
-  ASSERT_EQ(true, table.empty());
-  ASSERT_EQ(0, table.size());
-
-  table.add({":host", "blah"});
-  ASSERT_EQ(1, table.size());
-  ASSERT_EQ(":host", table.entry(1)->name);
-
-  table.add({"user-agent", "blubb"});
-  ASSERT_EQ(2, table.size());
-  ASSERT_EQ("user-agent", table.entry(1)->name);
-  ASSERT_EQ(":host", table.entry(2)->name);
-}
-
-TEST(hpack_HeaderTable, first) {
+TEST(http_hpack_HeaderTable, add) {
   HeaderTable table(10);
   ASSERT_EQ(true, table.empty());
   ASSERT_EQ(0, table.size());
 
   table.add({":host", "blah"});
   ASSERT_EQ(1, table.size());
-  ASSERT_EQ(":host", table.first().name);
+  ASSERT_EQ(":host", table.entry(1)->name());
 
   table.add({"user-agent", "blubb"});
   ASSERT_EQ(2, table.size());
-  ASSERT_EQ("user-agent", table.first().name);
+  ASSERT_EQ("user-agent", table.entry(1)->name());
+  ASSERT_EQ(":host", table.entry(2)->name());
 }
 
-TEST(hpack_HeaderTable, last) {
+TEST(http_hpack_HeaderTable, first) {
   HeaderTable table(10);
   ASSERT_EQ(true, table.empty());
   ASSERT_EQ(0, table.size());
 
   table.add({":host", "blah"});
   ASSERT_EQ(1, table.size());
-  ASSERT_EQ(":host", table.last().name);
+  ASSERT_EQ(":host", table.first().name());
 
   table.add({"user-agent", "blubb"});
   ASSERT_EQ(2, table.size());
-  ASSERT_EQ(":host", table.last().name);
+  ASSERT_EQ("user-agent", table.first().name());
 }
 
-TEST(hpack_HeaderTable, setMaxEntries) {
+TEST(http_hpack_HeaderTable, last) {
+  HeaderTable table(10);
+  ASSERT_EQ(true, table.empty());
+  ASSERT_EQ(0, table.size());
+
+  table.add({":host", "blah"});
+  ASSERT_EQ(1, table.size());
+  ASSERT_EQ(":host", table.last().name());
+
+  table.add({"user-agent", "blubb"});
+  ASSERT_EQ(2, table.size());
+  ASSERT_EQ(":host", table.last().name());
+}
+
+TEST(http_hpack_HeaderTable, setMaxEntries) {
   HeaderTable table(2);
   ASSERT_EQ(2, table.maxEntries());
 
@@ -128,7 +74,7 @@ TEST(hpack_HeaderTable, setMaxEntries) {
   table.setMaxEntries(1);
   ASSERT_EQ(1, table.maxEntries());
   ASSERT_EQ(1, table.size());
-  ASSERT_EQ("bar", table.first().name);
+  ASSERT_EQ("bar", table.first().name());
 
   // advance
   table.setMaxEntries(3);
@@ -136,20 +82,20 @@ TEST(hpack_HeaderTable, setMaxEntries) {
   ASSERT_EQ(3, table.maxEntries());
 }
 
-TEST(hpack_HeaderTable, overcommit) {
+TEST(http_hpack_HeaderTable, overcommit) {
   HeaderTable table(1);
 
   table.add({"foo", "the foo"});
   table.add({"bar", "the bar"});
   ASSERT_EQ(1, table.size());
-  ASSERT_EQ("bar", table.first().name);
+  ASSERT_EQ("bar", table.first().name());
 
   table.add({"fnord", "the fnord"});
   ASSERT_EQ(1, table.size());
-  ASSERT_EQ("fnord", table.first().name);
+  ASSERT_EQ("fnord", table.first().name());
 }
 
-TEST(hpack_HeaderTable, clear) {
+TEST(http_hpack_HeaderTable, clear) {
   HeaderTable table(42);
   table.add({"foo", "the foo"});
   table.add({"bar", "the bar"});
@@ -164,7 +110,7 @@ TEST(hpack_HeaderTable, clear) {
 // {{{ ReferenceSet
 
 // The reference set is initially empty.
-TEST(hpack_ReferenceSet, isInitiallyEmpty) {
+TEST(http_hpack_ReferenceSet, isInitiallyEmpty) {
   HeaderTable table(10);
   table.add({"foo", "the foo"});
 
@@ -173,7 +119,7 @@ TEST(hpack_ReferenceSet, isInitiallyEmpty) {
   ASSERT_EQ(0, rs.size());
 }
 
-TEST(hpack_ReferenceSet, itNeverContainsDuplicateEntries) {
+TEST(http_hpack_ReferenceSet, itNeverContainsDuplicateEntries) {
   HeaderTable table(10);
   table.add({"foo", "the foo"});
 
@@ -185,7 +131,7 @@ TEST(hpack_ReferenceSet, itNeverContainsDuplicateEntries) {
 
 // Adding an entry to the reference set that is not available
 // in its header table is invalid.
-TEST(hpack_ReferenceSet, addNotFound) {
+TEST(http_hpack_ReferenceSet, addNotFound) {
   HeaderTable table(10);
   table.add({"foo", "the foo"});
 
@@ -200,7 +146,7 @@ TEST(hpack_ReferenceSet, addNotFound) {
 // When an entry is evicted from the header table, if it was referenced
 // from the reference set, its reference is removed from the reference
 // set.
-TEST(hpack_ReferenceSet, eviction) {
+TEST(http_hpack_ReferenceSet, eviction) {
   HeaderTable table(10);
   table.add({"foo", "the foo"});
   table.add({"bar", "the bar"});
@@ -220,7 +166,7 @@ TEST(hpack_ReferenceSet, eviction) {
 }
 
 // iterating over a reference set should work as expected.
-TEST(hpack_ReferenceSet, iterator) {
+TEST(http_hpack_ReferenceSet, iterator) {
   HeaderTable table(10);
   table.add({"foo", "the foo"}); // #3
   table.add({"bar", "the bar"}); // #2
@@ -235,9 +181,9 @@ TEST(hpack_ReferenceSet, iterator) {
   unsigned notFound = 0;
 
   for (const HeaderField& field: rs) {
-    if (field.name == "foo")
+    if (field.name() == "foo")
       ++fooFound;
-    else if (field.name == "bar")
+    else if (field.name() == "bar")
       ++barFound;
     else
       ++notFound;
@@ -248,7 +194,7 @@ TEST(hpack_ReferenceSet, iterator) {
   ASSERT_EQ(0, notFound);
 }
 
-TEST(hpack_ReferenceSet, iteratorEmpty) {
+TEST(http_hpack_ReferenceSet, iteratorEmpty) {
   HeaderTable table(10);
   table.add({"foo", "the foo"});
   table.add({"bar", "the bar"});
@@ -267,7 +213,7 @@ TEST(hpack_ReferenceSet, iteratorEmpty) {
 }
 // }}}
 // {{{ Encoder
-TEST(hpack_Encoder, encodeInt_0x00) {
+TEST(http_hpack_Encoder, encodeInt_0x00) {
   Buffer buf;
   EncoderHelper::encodeInt(&buf, 0x00, 8);
 
@@ -282,7 +228,7 @@ TEST(hpack_Encoder, encodeInt_0x00) {
   ASSERT_EQ(0x00, decoded);
 }
 
-TEST(hpack_Encoder, encodeInt_0xFFFFFF) {
+TEST(http_hpack_Encoder, encodeInt_0xFFFFFF) {
   Buffer buf;
   EncoderHelper::encodeInt(&buf, 0xFFFFFF, 8);
 
@@ -301,7 +247,7 @@ TEST(hpack_Encoder, encodeInt_0xFFFFFF) {
   ASSERT_EQ(0xFFFFFF, decoded);
 }
 
-TEST(hpack_Encoder, encodeInt8Bit_fit) {
+TEST(http_hpack_Encoder, encodeInt8Bit_fit) {
   // encode
   Buffer buf;
   EncoderHelper::encodeInt(&buf, 57, 8);
@@ -315,7 +261,7 @@ TEST(hpack_Encoder, encodeInt8Bit_fit) {
   ASSERT_EQ(1, nb);
 }
 
-TEST(hpack_Encoder, encodeInt8Bit_nofit2) {
+TEST(http_hpack_Encoder, encodeInt8Bit_nofit2) {
   // encode
   Buffer buf;
   EncoderHelper::encodeInt(&buf, 356, 8);
@@ -329,7 +275,7 @@ TEST(hpack_Encoder, encodeInt8Bit_nofit2) {
   ASSERT_EQ(2, nb);
 }
 
-TEST(hpack_Encoder, encodeInt8Bit_nofit4) {
+TEST(http_hpack_Encoder, encodeInt8Bit_nofit4) {
   // encode
   Buffer buf;
   EncoderHelper::encodeInt(&buf, 0x12345678llu, 8);
@@ -352,7 +298,7 @@ TEST(hpack_Encoder, encodeInt8Bit_nofit4) {
 }
 
 // Appending D.1.2) encode 1337 with 5bit prefix
-TEST(hpack_Encoder, encodeInt_1337_5bit) {
+TEST(http_hpack_Encoder, encodeInt_1337_5bit) {
   Buffer buf;
   EncoderHelper::encodeInt(&buf, 1337, 5);
 
@@ -368,15 +314,13 @@ TEST(hpack_Encoder, encodeInt_1337_5bit) {
 }
 // }}}
 // {{{ Decoder
-TEST(hpack_Decoder, example_2) {}
+TEST(http_hpack_Decoder, example_2) {}
 // }}}
 // {{{ misc
-TEST(hpack_misc, test1) {
+TEST(http_hpack_misc, test1) {
   HeaderSet hs;
 
   hs.push_back({"foo", "bar"});
   hs.push_back({"foo", "fnord"});
 }
 // }}}
-
-// vim:ts=2:sw=2

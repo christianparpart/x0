@@ -4,11 +4,12 @@
 // Licensed under the MIT License (the "License"); you may not use this
 // file except in compliance with the License. You may obtain a copy of
 // the License at: http://opensource.org/licenses/MIT
-
 #pragma once
 
-#include <xzero/http/Api.h>
-#include <base/Buffer.h>
+#include <xzero/http/HeaderField.h>
+#include <xzero/http/HeaderFieldList.h>
+#include <xzero/Buffer.h>
+
 #include <map>
 #include <list>
 #include <deque>
@@ -19,41 +20,9 @@
 #include <stdint.h>
 
 namespace xzero {
-
-using namespace base;
-
+namespace http {
+namespace http2 {
 namespace hpack {
-
-typedef std::string HeaderFieldName;
-typedef std::string HeaderFieldValue;
-
-/**
- * A name-value pair.
- *
- * Both the name and value are treated as opaque sequences of octets.
- */
-struct HeaderField {
- public:
-  HeaderField() = default;
-  HeaderField(HeaderField&&) = default;
-  HeaderField(const HeaderField&) = default;
-  HeaderField& operator=(const HeaderField&) = default;
-  HeaderField(const HeaderFieldName& nam, const HeaderFieldValue& val)
-      : name(nam), value(val) {}
-
-  bool operator==(const HeaderField& other) const {
-    return name == other.name && value == other.value;
-  }
-
-  bool operator!=(const HeaderField& other) const {
-    //.
-    return !(*this == other);
-  }
-
- public:
-  HeaderFieldName name;
-  HeaderFieldValue value;
-};
 
 /**
  * Unordered group of header fields.
@@ -73,7 +42,7 @@ typedef std::list<HeaderField> HeaderSet;
  * and may be shared amongst
  * all encoding contexts.
  */
-class XZERO_HTTP_API StaticTable {
+class StaticTable {
  public:
   StaticTable();
   ~StaticTable();
@@ -92,7 +61,7 @@ class ReferenceSet;
  * The header table (see Section 3.2) is a component used
  * to associate stored header fields to index values.
  */
-class XZERO_HTTP_API HeaderTable {
+class HeaderTable {
  public:
   explicit HeaderTable(size_t maxEntries);
   ~HeaderTable();
@@ -152,7 +121,7 @@ class XZERO_HTTP_API HeaderTable {
 /**
  * used for differential encoding of a new header set.
  */
-class XZERO_HTTP_API ReferenceSet {
+class ReferenceSet {
  public:
   explicit ReferenceSet(HeaderTable* headerTable);
   ~ReferenceSet();
@@ -176,7 +145,7 @@ class XZERO_HTTP_API ReferenceSet {
   std::list<const HeaderField*> references_;
 };
 
-class XZERO_HTTP_API ReferenceSet::iterator {
+class ReferenceSet::iterator {
  public:
   iterator();
   iterator(ReferenceSet* rs, std::list<const HeaderField*>::iterator init);
@@ -197,9 +166,9 @@ class XZERO_HTTP_API ReferenceSet::iterator {
 };
 
 /**
- * Helper methods for encoding header fragments. 
+ * Helper methods for encoding header fragments.
  */
-class XZERO_HTTP_API EncoderHelper {
+class EncoderHelper {
  public:
   static void encodeInt(Buffer* output, uint64_t i, unsigned prefixBits);
   static void encodeIndexed(Buffer* output, unsigned index);
@@ -211,7 +180,7 @@ class XZERO_HTTP_API EncoderHelper {
   static void encodeTableSizeChange(Buffer* output, unsigned newSize);
 };
 
-class XZERO_HTTP_API Encoder : private EncoderHelper {
+class Encoder : private EncoderHelper {
  public:
   Encoder();
   ~Encoder();
@@ -220,15 +189,15 @@ class XZERO_HTTP_API Encoder : private EncoderHelper {
 };
 
 /**
- * Helper methods for decoding header fragments. 
+ * Helper methods for decoding header fragments.
  */
-class XZERO_HTTP_API DecoderHelper {
+class DecoderHelper {
  public:
   static uint64_t decodeInt(const BufferRef& input, unsigned prefixBits,
                             unsigned* bytesConsumed);
 };
 
-class XZERO_HTTP_API Decoder : private DecoderHelper {
+class Decoder : private DecoderHelper {
  public:
   Decoder();
   ~Decoder();
@@ -236,7 +205,7 @@ class XZERO_HTTP_API Decoder : private DecoderHelper {
   void decode(const BufferRef& headerBlock);
 };
 
-}  // namespace hpack
-}  // namespace xzero
-
-// vim:ts=2:sw=2
+} // namespace hpack
+} // namespace http2
+} // namespace http
+} // namespace xzero

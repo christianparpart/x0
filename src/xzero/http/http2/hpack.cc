@@ -5,11 +5,13 @@
 // file except in compliance with the License. You may obtain a copy of
 // the License at: http://opensource.org/licenses/MIT
 
-#include <xzero/hpack.h>
+#include <xzero/http/http2/hpack.h>
 #include <algorithm>
 #include <inttypes.h>
 
 namespace xzero {
+namespace http {
+namespace http2 {
 namespace hpack {
 
 // {{{ StaticTable
@@ -118,7 +120,7 @@ HeaderTable::iterator HeaderTable::find(const HeaderFieldName& name) {
   return std::find_if(entries_.begin(), entries_.end(),
                       [&](const HeaderField& f) {
     // just test on header name
-    return f.name == name;
+    return f.name() == name;
   });
 }
 
@@ -127,7 +129,7 @@ HeaderTable::const_iterator HeaderTable::find(
   return std::find_if(entries_.cbegin(), entries_.cend(),
                       [&](const HeaderField& f) {
     // just test on header name
-    return f.name == name;
+    return f.name() == name;
   });
 }
 
@@ -390,6 +392,6 @@ uint64_t DecoderHelper::decodeInt(const BufferRef& data, unsigned prefixBits,
 // }}}
 
 }  // namespace hpack
+}  // namespace http2
+}  // namespace http
 }  // namespace xzero
-
-// vim:ts=2:sw=2
