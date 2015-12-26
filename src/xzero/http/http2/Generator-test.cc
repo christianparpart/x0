@@ -8,7 +8,7 @@
 
 #include <gtest/gtest.h>
 #include <xzero/http/http2/Generator.h>
-#include <xzero/DataChain.h>
+#include <xzero/io/DataChain.h>
 #include <xzero/Application.h>
 
 using namespace xzero;

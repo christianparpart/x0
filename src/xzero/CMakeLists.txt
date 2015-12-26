@@ -96,7 +96,6 @@ set(xzero_base_SRC
   BufferUtil.cc
   CivilTime.cc
   Counter.cc
-  DataChain.cc
   Duration.cc
   ExceptionHandler.cc
   HugeBuffer.cc
@@ -134,6 +133,7 @@ set(xzero_base_SRC
 
   hash/FNV.cc
 
+  io/DataChain.cc
   io/GzipFilter.cc
   io/File.cc
   io/FileDescriptor.cc

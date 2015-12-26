@@ -7,7 +7,7 @@
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 #include <gtest/gtest.h>
-#include <xzero/DataChain.h>
+#include <xzero/io/DataChain.h>
 #include <xzero/io/FileUtil.h>
 
 using namespace xzero;

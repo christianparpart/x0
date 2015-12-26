@@ -8,7 +8,7 @@
 
 #include <xzero/http/http2/Generator.h>
 #include <xzero/http/http2/SettingParameter.h>
-#include <xzero/DataChain.h>
+#include <xzero/io/DataChain.h>
 #include <xzero/Buffer.h>
 #include <xzero/logging.h>
 #include <assert.h>

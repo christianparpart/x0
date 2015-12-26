@@ -11,7 +11,7 @@
 #include <xzero/http/http2/StreamState.h>
 #include <xzero/http/http2/StreamID.h>
 #include <xzero/http/HttpChannel.h>
-#include <xzero/DataChain.h>
+#include <xzero/io/DataChain.h>
 
 namespace xzero {
 namespace http {

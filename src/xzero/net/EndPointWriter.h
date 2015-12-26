@@ -12,7 +12,7 @@
 #include <xzero/Api.h>
 #include <xzero/Buffer.h>
 #include <xzero/io/FileView.h>
-#include <xzero/DataChain.h>
+#include <xzero/io/DataChain.h>
 #include <memory>
 #include <deque>
 
