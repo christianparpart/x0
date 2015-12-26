@@ -27,7 +27,7 @@ void FileView::fill(Buffer* output) const {
   if (n != size())
     throw std::runtime_error("Did not read all required bytes from FileView.");
 
-  output->resize(n);
+  output->resize(output->size() + n);
 #else
 # error "Implementation missing"
 #endif
