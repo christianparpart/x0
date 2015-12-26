@@ -101,11 +101,20 @@ class XZERO_BASE_API FileView {
 
   void fill(Buffer* output) const;
 
+  FileView view(size_t offset, size_t n) const;
+
  private:
   int fd_;
   off_t offset_;
   size_t size_;
   bool close_;
 };
+
+inline FileView FileView::view(size_t offset, size_t n) const {
+  return FileView(fd_,
+                  offset_ + offset,
+                  std::min(n, size_ - offset),
+                  false);
+}
 
 } // namespace xzero
