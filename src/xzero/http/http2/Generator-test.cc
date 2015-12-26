@@ -43,7 +43,6 @@ TEST(http_http2_Generator, settings) {
       {SettingParameter::MaxConcurrentStreams, 16},
       {SettingParameter::InitialWindowSize, 42},
   });
-  generator.flushBuffer();
 
   BufferSink sink;
   chain.transferTo(&sink);
@@ -57,7 +56,6 @@ TEST(http_http2_Generator, settingsAck) {
   Generator generator(&chain);
 
   generator.generateSettingsAcknowledgement();
-  generator.flushBuffer();
 
   BufferSink sink;
   chain.transferTo(&sink);
