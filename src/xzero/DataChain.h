@@ -33,6 +33,11 @@ class DataChain {
   void write(Buffer&& buf);
   void write(FileView&& file);
 
+  void write8(uint8_t bin);
+  void write16(uint16_t bin);
+  void write24(uint32_t bin);
+  void write32(uint32_t bin);
+
   /**
    * Transfers as much chained data chunks to @p target as possible.
    *
