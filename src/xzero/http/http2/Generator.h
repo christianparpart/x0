@@ -100,9 +100,13 @@ class Generator {
 
   /**
    * Initializes the HTTP/2 generator with custom @c SETTINGS parameter.
+   *
+   * @param sink DataChain to serialize binary frames to.
+   * @param maxFrameSize initial @c MAX_FRAME_SIZE to honor.
+   * @param headerTableSize initial @c HEADER_TABLE_SIZE to honor in HPACK.
+   * @param maxHeaderListSize initial @c MAX_HEADER_LIST_SIZE to honor in HPACK.
    */
   Generator(DataChain* sink,
-            size_t paddingSize,
             size_t maxFrameSize,
             size_t headerTableSize,
             size_t maxHeaderListSize);
@@ -171,19 +175,6 @@ class Generator {
                         StreamID dependantStreamID, unsigned weight = 16);
 
   /**
-   * Generates one @c PING frame.
-   *
-   * @param sid stream identifier
-   * @param payload any custom data to be transmitted as payload.
-   */
-  void generatePing(StreamID sid, const BufferRef& payload);
-
-  /**
-   * Generates one @c GO_AWAY frame.
-   */
-  void generateGoAway(StreamID sid);
-
-  /**
    * Generates one @c RST_STREAM frame.
    */
   void generateResetStream(StreamID sid, ErrorCode errorCode);
@@ -199,7 +190,7 @@ class Generator {
   /**
    * Generates one @c SETTINGS frame to acknowledge the peers @c SETTINGS frame.
    */
-  void generateSettingsAcknowledgement();
+  void generateSettingsAck();
 
   /**
    * Generates one @c PUSH_PROMISE frame with 0 or more @c CONTINUATION frames.
@@ -212,6 +203,40 @@ class Generator {
   void generatePushPromise(StreamID sid, StreamID psid,
                            const HttpResponseInfo& info);
 
+  // =========================================================================
+
+  /**
+   * Generates one @c PING frame.
+   *
+   * @param payload any custom data to be transmitted as payload.
+   */
+  void generatePing(uint64_t payload);
+
+  /**
+   * Generates one @c PING frame.
+   *
+   * @param payload any custom data to be transmitted as payload.
+   */
+  void generatePing(const BufferRef& payload);
+
+  /**
+   * Generates one @c PING acknowledge-frame.
+   *
+   * @param payload any custom data to be transmitted as payload.
+   */
+  void generatePingAck(const BufferRef& payload);
+
+  /**
+   * Generates one @c GO_AWAY frame.
+   *
+   * @param lastStreamID identifier of last stream that might have been
+   *                     processed on the local end.
+   * @param errorCode reason why we're sending the @c GO_AWAY frame.
+   * @param debugData optional debug data.
+   */
+  void generateGoAway(StreamID lastStreamID, ErrorCode errorCode,
+                      const BufferRef& debugData = BufferRef());
+
   /**
    * Generates one @c WINDOW_UPDATE frame to update the window size of the given
    * stream @c sid.
@@ -219,20 +244,20 @@ class Generator {
    * @param sid the stream that will be granted the window update.
    * @param size window size in bytes to be granted.
    */
-  void generateWindowUpdate(StreamID sid, unsigned size);
+  void generateWindowUpdate(StreamID sid, size_t size);
 
  protected:
   void generateFrameHeader(FrameType frameType, unsigned frameFlags,
                            StreamID streamID, size_t payloadSize);
 
-  void write32(unsigned value);
-  void write24(unsigned value);
-  void write16(unsigned value);
   void write8(unsigned value);
+  void write16(unsigned value);
+  void write24(unsigned value);
+  void write32(unsigned value);
+  void write64(uint64_t value);
 
  private:
   DataChain* sink_;
-  size_t paddingSize_;
   size_t maxFrameSize_;
 };
 

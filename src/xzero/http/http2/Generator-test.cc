@@ -8,7 +8,7 @@
 
 #include <gtest/gtest.h>
 #include <xzero/http/http2/Generator.h>
-#include <xzero/io/DataChainListener.h>
+#include <xzero/http/http2/ErrorCode.h>
 #include <xzero/io/DataChain.h>
 #include <xzero/Application.h>
 
@@ -50,16 +50,24 @@ TEST(http_http2_Generator, data_single_frame) {
 }
 
 TEST(http_http2_Generator, data_split_frames) {
+  static constexpr size_t InitialMaxFrameSize = 16384;
   DataChain chain;
   Generator generator(&chain);
-  generator.setMaxFrameSize(6); // XXX 16384 is actually the minimum allowed
 
-  generator.generateData(42, "Hello World", true);
+  Buffer payload(InitialMaxFrameSize, 'x');
+  payload.push_back('y'); // force to exceed MAX_FRAME_SIZE
+
+  generator.generateData(42, payload, true);
 
   Buffer sink;
   chain.transferTo(&sink);
 
-  ASSERT_EQ(29, sink.size());
+  // expect 2 frames (16384 + 1 + 2*9 = 16403)
+  // - frame 1: 9 bytes header + 16384 payload
+  // - frame 2: 9 bytes header + 1 byte payload
+
+  ASSERT_EQ(16403, sink.size());
+  ASSERT_EQ('y', sink[16402]);
 }
 
 // TODO: header...
@@ -85,6 +93,25 @@ TEST(http_http2_Generator, priority) {
   EXPECT_EQ((uint8_t) 255, (uint8_t) sink[13]);
 }
 
+TEST(http_http2_Generator, reset_stream) {
+  DataChain chain;
+  Generator generator(&chain);
+
+  generator.generateResetStream(42, ErrorCode::EnhanceYourCalm);
+
+  Buffer sink;
+  chain.transferTo(&sink);
+
+  ASSERT_EQ(13, sink.size()); // 9 + 4
+
+  // ErrorCode (32 bit)
+  EXPECT_EQ(0, sink[9]);
+  EXPECT_EQ(0, sink[10]);
+  EXPECT_EQ(0, sink[11]);
+  EXPECT_EQ(11, sink[12]); // 11 = EnhanceYourCalm
+
+}
+
 TEST(http_http2_Generator, settings) {
   DataChain chain;
   Generator generator(&chain);
@@ -107,7 +134,7 @@ TEST(http_http2_Generator, settingsAck) {
   DataChain chain;
   Generator generator(&chain);
 
-  generator.generateSettingsAcknowledgement();
+  generator.generateSettingsAck();
 
   Buffer sink;
   chain.transferTo(&sink);
