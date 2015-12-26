@@ -14,6 +14,12 @@
 
 namespace xzero {
 
+/**
+ * Interface to implement the other endpoint to transfer data out of a DataChain.
+ *
+ * Implement this interface if you want to splice your data
+ * efficiently into a socket or pipe for example.
+ */
 class DataChainListener {
  public:
   virtual ~DataChainListener() {}
@@ -22,6 +28,9 @@ class DataChainListener {
   virtual size_t transfer(const FileView& chunk) = 0;
 };
 
+/**
+ * API to hold an ordered chain of different text data types.
+ */
 class DataChain {
  protected:
   class Chunk;
@@ -31,18 +40,59 @@ class DataChain {
  public:
   DataChain();
 
+  /**
+   * Removes any pending data from this chain, effectively emptying it out.
+   */
   void reset();
 
+  /**
+   * Appends a C-string at the end of the chain.
+   */
   void write(const char* cstr);
+
+  /**
+   * Appends an arbitrary buffer @p buf of @p n bytes at the end of the chain.
+   */
   void write(const char* buf, size_t n);
+
+  /**
+   * Appends an arbitrary buffer @p buf at the endo f the chain.
+   */
   void write(const BufferRef& buf);
+
+  /**
+   * Appends an arbitrary buffer @p buf at the end of the chain.
+   */
   void write(Buffer&& buf);
+
+  /**
+   * Appends a @p file chunk at the end of the chain.
+   */
   void write(FileView&& file);
+
+  /**
+   * Appends an opaque data @p chunk at the end of the chain.
+   */
   void write(std::unique_ptr<Chunk>&& chunk);
 
+  /**
+   * Appends a byte at the end of the chain.
+   */
   void write8(uint8_t bin);
+
+  /**
+   * Appends two bytes at the end of the chain.
+   */
   void write16(uint16_t bin);
+
+  /**
+   * Appends a three bytes at the end of the chain.
+   */
   void write24(uint32_t bin);
+
+  /**
+   * Appends 4 bytes at the end of the chain.
+   */
   void write32(uint32_t bin);
 
   /**
@@ -72,7 +122,14 @@ class DataChain {
    */
   bool transferTo(DataChainListener* target, size_t n);
 
+  /**
+   * Tests if this data chain is empty.
+   */
   bool empty() const noexcept;
+
+  /**
+   * Retrieves the total number of bytes this chain holds.
+   */
   size_t size() const noexcept;
 
  protected:
@@ -84,6 +141,9 @@ class DataChain {
   size_t size_;
 };
 
+/**
+ * The abstract interface for a Chunk (of data) within a DataChain.
+ */
 class DataChain::Chunk {
  public:
   virtual ~Chunk() {}
