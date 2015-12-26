@@ -7,40 +7,19 @@
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 #pragma once
 
-#include <string>
+#include <xzero/http/http2/SettingParameter.h>
 
 namespace xzero {
-
-class BufferRef;
-
 namespace http {
 namespace http2 {
 
-class FrameListener;
-
-enum class ParserState {
-  Idle,
-  Data,
-  Headers,
-  Priority,
-  Reset,
-};
-
-class Parser {
- public:
-  explicit Parser(FrameListener* listener);
-
-  bool parseFragment(const BufferRef& chunk);
-
- protected:
-  void data();
-  void headers();
-  void priority();
-  void resetStream();
-
- private:
-  FrameListener* listener_;
-  ParserState state_;
+struct Settings {
+  unsigned headerTableSize = 4096;
+  bool enablePush = true;
+  unsigned maxConcurrentStreams = 100;
+  unsigned initialWindowSize = 65535;
+  unsigned maxFrameSize = 16384; // XXX max allowed <= (2^24 - 1)
+  unsigned maxHeaderListSize = 0xffff; // XXX initial value: unlimited
 };
 
 } // namespace http2

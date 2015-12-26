@@ -7,42 +7,13 @@
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 #pragma once
 
-#include <string>
-
 namespace xzero {
-
-class BufferRef;
-
 namespace http {
 namespace http2 {
 
-class FrameListener;
-
-enum class ParserState {
-  Idle,
-  Data,
-  Headers,
-  Priority,
-  Reset,
-};
-
-class Parser {
- public:
-  explicit Parser(FrameListener* listener);
-
-  bool parseFragment(const BufferRef& chunk);
-
- protected:
-  void data();
-  void headers();
-  void priority();
-  void resetStream();
-
- private:
-  FrameListener* listener_;
-  ParserState state_;
-};
+typedef unsigned StreamID;
 
 } // namespace http2
 } // namespace http
 } // namespace xzero
+

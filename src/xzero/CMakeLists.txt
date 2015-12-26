@@ -233,7 +233,11 @@ set(xzero_base_SRC
   http/http1/Parser.cc
 
   # HTTP transport: http/2
+  http/http2/ErrorCode.cc
   http/http2/Generator.cc
+  http/http2/Parser.cc
+  http/http2/SettingParameter.cc
+  http/http2/Settings.cc
   http/http2/StreamState.cc
 
   # HTTP client
