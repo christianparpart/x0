@@ -8,6 +8,8 @@
 - [ ] (flow) tag flow handlers to never return (aka. always handle),
       thus, enabling the compiler to give a warning on dead code after
       this handler.
+- [ ] fix license fuckup (different license headers in different files)
+      And update year to ..2016 in all
 
 ### Cleanup Tasks
 
