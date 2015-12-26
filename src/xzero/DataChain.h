@@ -32,6 +32,7 @@ class DataChain {
   DataChain();
 
   void reset();
+
   void write(const char* cstr);
   void write(const char* buf, size_t n);
   void write(const BufferRef& buf);

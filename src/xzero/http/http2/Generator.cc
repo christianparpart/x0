@@ -42,7 +42,7 @@ void Generator::setMaxFrameSize(size_t value) {
   maxFrameSize_ = value;
 }
 
-size_t Generator::generateData(StreamID sid, const BufferRef& data, bool last) {
+void Generator::generateData(StreamID sid, const BufferRef& data, bool last) {
   constexpr unsigned END_STREAM = 0x01;
   constexpr unsigned PADDED = 0x08;
 
@@ -96,7 +96,7 @@ void Generator::generateFrameHeader(FrameType frameType, unsigned frameFlags,
   write24(payloadSize);
   write8((unsigned) frameType);
   write8(frameFlags);
-  write32(payloadSize & ~(1 << 31)); // XXX bit 31 is cleared out (reserved)
+  write32(streamID & ~(1 << 31)); // XXX bit 31 is cleared out (reserved)
 }
 
 void Generator::write8(unsigned value) {

@@ -112,10 +112,8 @@ class Generator {
    * @param sid the stream ID this data frame belongs to.
    * @param chunk the data payload to be transmitted (whithout padding).
    * @param last whether or not this is the last frame of the stream @p sid.
-   *
-   * @return number of bytes taking from @p chunk.
    */
-  size_t generateData(StreamID sid, const BufferRef& data, bool last);
+  void generateData(StreamID sid, const BufferRef& data, bool last);
 
   /**
    * Generates the binary frame for a DATA frame and.
@@ -123,10 +121,8 @@ class Generator {
    * @param sid the stream ID this data frame belongs to.
    * @param chunk the data payload to be transmitted (whithout padding).
    * @param last whether or not this is the last frame of the stream @p sid.
-   *
-   * @return number of bytes taking from @p chunk.
    */
-  size_t generateData(StreamID sid, FileView&& chunk, bool last);
+  void generateData(StreamID sid, FileView&& chunk, bool last);
 
   void generateHeaders(StreamID sid, const HeaderFieldList& headers,
                        bool last);
