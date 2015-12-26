@@ -143,8 +143,6 @@ class Generator {
   void generatePushPromise(StreamID sid, const HttpResponseInfo&);
   void generateWindowUpdate(StreamID sid, unsigned size);
 
-  void flushBuffer();
-
  protected:
   void generateFrameHeader(FrameType frameType, unsigned frameFlags,
                            StreamID streamID, size_t payloadSize);
@@ -158,7 +156,6 @@ class Generator {
   DataChain* sink_;
   size_t paddingSize_;
   size_t maxFrameSize_;
-  Buffer buffer_;
 };
 
 } // namespace http2

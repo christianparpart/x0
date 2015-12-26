@@ -30,9 +30,9 @@ Generator::Generator(DataChain* sink,
                      size_t maxHeaderListSize)
     : sink_(sink),
       paddingSize_(paddingSize),
-      maxFrameSize_(maxFrameSize),
-      //headerGenerator_(headerTableSize, maxHeaderListSize),
-      buffer_() {
+      maxFrameSize_(maxFrameSize)
+      //, headerGenerator_(headerTableSize, maxHeaderListSize),
+{
   assert(maxFrameSize_ > FrameHeaderSize + 1);
 }
 
@@ -89,10 +89,6 @@ void Generator::generateSettingsAcknowledgement() {
   constexpr unsigned ACK = 0x01;
 
   generateFrameHeader(FrameType::Settings, ACK, 0, 0);
-}
-
-void Generator::flushBuffer() {
-  sink_->write(std::move(buffer_));
 }
 
 void Generator::generateFrameHeader(FrameType frameType, unsigned frameFlags,
