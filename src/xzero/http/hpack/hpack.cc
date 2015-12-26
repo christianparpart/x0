@@ -5,7 +5,7 @@
 // file except in compliance with the License. You may obtain a copy of
 // the License at: http://opensource.org/licenses/MIT
 
-#include <xzero/http/hpack.h>
+#include <xzero/http/hpack/hpack.h>
 #include <algorithm>
 #include <inttypes.h>
 

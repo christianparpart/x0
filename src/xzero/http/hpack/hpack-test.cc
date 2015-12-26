@@ -6,11 +6,10 @@
 // the License at: http://opensource.org/licenses/MIT
 
 #include <gtest/gtest.h>
-#include <xzero/http/hpack.h>
+#include <xzero/http/hpack/hpack.h>
 
 using namespace xzero;
 using namespace xzero::http;
-using namespace xzero::http::http2;
 using namespace xzero::http::hpack;
 
 // {{{ HeaderTable

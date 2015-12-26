@@ -240,7 +240,7 @@ set(xzero_base_SRC
   http/http2/SettingParameter.cc
   http/http2/Settings.cc
   http/http2/StreamState.cc
-  http/http2/hpack.cc
+  http/hpack/hpack.cc
 
   # HTTP client
   http/client/HttpClient.cc
