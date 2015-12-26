@@ -477,6 +477,7 @@ class XZERO_BASE_API Buffer : public MutableBuffer<mutableEnsure> {
  public:
   Buffer();
   explicit Buffer(size_t capacity);
+  explicit Buffer(size_t size, char value);
   explicit Buffer(const char* value);
   explicit Buffer(const BufferRef& v);
   template <typename PodType, size_t N>
@@ -1610,6 +1611,12 @@ inline Buffer::Buffer(size_t _capacity)
     : MutableBuffer<mutableEnsure>(),
       mark_(0) {
   reserve(_capacity);
+}
+
+inline Buffer::Buffer(size_t size, char value)
+    : Buffer(size) {
+  memset(data(), value, size);
+  resize(size);
 }
 
 template <typename PodType, size_t N>
