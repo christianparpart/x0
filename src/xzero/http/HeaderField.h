@@ -64,6 +64,13 @@ class XZERO_HTTP_API HeaderField {
   std::string value_;
 };
 
+// {{{ inlines
+inline HeaderField::HeaderField(const std::string& name,
+                                const std::string& value)
+  : name_(name), value_(value) {
+}
+// }}}
+
 XZERO_HTTP_API std::string inspect(const HeaderField& field);
 
 }  // namespace http

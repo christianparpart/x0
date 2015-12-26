@@ -25,10 +25,6 @@ HeaderField HeaderField::parse(const std::string& field) {
   return HeaderField(name, value);
 }
 
-HeaderField::HeaderField(const std::string& name, const std::string& value)
-  : name_(name), value_(value) {
-}
-
 bool HeaderField::operator==(const HeaderField& other) const {
   return iequals(name(), other.name()) && iequals(value(), other.value());
 }
