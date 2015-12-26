@@ -7,7 +7,6 @@
 #pragma once
 
 #include <xzero/http/HeaderField.h>
-#include <xzero/http/HeaderFieldList.h>
 #include <xzero/Buffer.h>
 
 #include <map>
@@ -21,21 +20,14 @@
 
 namespace xzero {
 namespace http {
+
+class HeaderFieldList;
+
 namespace hpack {
 
 /**
- * Unordered group of header fields.
- *
- * A header set is an unordered group of header fields that
- * are encoded jointly. It can contain duplicate header fields.  A
- * complete set of key-value pairs contained in a HTTP request or
- * response is a header set.
- */
-typedef std::list<HeaderField> HeaderSet;
-
-/**
  * The static table (see Appendix B) is a component used
- * to associate static header fields to index values. 
+ * to associate static header fields to index values.
  *
  * This data is ordered, read-only, always accessible,
  * and may be shared amongst
@@ -184,7 +176,7 @@ class Encoder : private EncoderHelper {
   Encoder();
   ~Encoder();
 
-  void encode(const HeaderSet& headerBlock);
+  void encode(const HeaderFieldList& headerBlock);
 };
 
 /**

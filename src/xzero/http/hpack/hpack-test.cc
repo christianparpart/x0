@@ -7,6 +7,7 @@
 
 #include <gtest/gtest.h>
 #include <xzero/http/hpack/hpack.h>
+#include <xzero/http/HeaderFieldList.h>
 
 using namespace xzero;
 using namespace xzero::http;
@@ -317,7 +318,7 @@ TEST(http_hpack_Decoder, example_2) {}
 // }}}
 // {{{ misc
 TEST(http_hpack_misc, test1) {
-  HeaderSet hs;
+  HeaderFieldList hs;
 
   hs.push_back({"foo", "bar"});
   hs.push_back({"foo", "fnord"});
