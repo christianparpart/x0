@@ -102,6 +102,7 @@ class Generator {
    * Updates the maximum frame size a frame may fill in bytes.
    */
   void setMaxFrameSize(size_t value);
+  size_t maxFrameSize() const noexcept;
 
   void setHeaderTableSize(size_t value);
   void setMaxHeaderListSize(size_t value);
@@ -153,6 +154,12 @@ class Generator {
   size_t paddingSize_;
   size_t maxFrameSize_;
 };
+
+// {{{ inlines
+inline size_t Generator::maxFrameSize() const noexcept {
+  return maxFrameSize_;
+}
+// }}}
 
 } // namespace http2
 } // namespace http

@@ -11,11 +11,18 @@
 #include <xzero/net/EndPointWriter.h>
 #include <xzero/net/EndPoint.h>
 #include <xzero/Buffer.h>
+#include <xzero/logging.h>
 #include <assert.h>
 
 namespace xzero {
 namespace http {
 namespace http2 {
+
+#if !defined(NDEBUG)
+#define TRACE(msg...) logTrace("http.http2.Generator", msg)
+#else
+#define TRACE(msg...) do {} while (0)
+#endif
 
 static constexpr size_t FrameHeaderSize = 9;
 
@@ -37,40 +44,32 @@ Generator::Generator(DataChain* sink,
 }
 
 void Generator::setMaxFrameSize(size_t value) {
-  assert(value > FrameHeaderSize + 1);
+  // TODO: value = std::max(value, 16384);
 
   maxFrameSize_ = value;
 }
 
 void Generator::generateData(StreamID sid, const BufferRef& data, bool last) {
   constexpr unsigned END_STREAM = 0x01;
-  constexpr unsigned PADDED = 0x08;
+  //constexpr unsigned PADDED = 0x08;
 
-  if (data.size() - FrameHeaderSize > maxFrameSize_) {
-    // perform partial write
-    size_t usedDataSize = maxFrameSize_ - FrameHeaderSize;
+  const size_t maxPayloadSize = maxFrameSize();
+  size_t offset = 0;
 
-    generateFrameHeader(FrameType::Data, 0, sid, data.size());
-    sink_->write(data.ref(0, usedDataSize));
+  for (;;) {
+    const size_t remainingDataSize = data.size() - offset;
+    const size_t payloadSize = std::min(remainingDataSize, maxPayloadSize);
+    const unsigned flags = !last && payloadSize < remainingDataSize
+                         ? 0
+                         : END_STREAM;
 
-    return usedDataSize;
-  } else {
-    // perform full data write
-    if (paddingSize_) {
-      const unsigned flags = PADDED | (last ? END_STREAM : 0);
-      const size_t padSize = paddingSize_ + (data.size() % paddingSize_);
-      generateFrameHeader(FrameType::Data, flags, sid, data.size() + padSize);
-      sink_->write(data);
+    generateFrameHeader(FrameType::Data, flags, sid, payloadSize);
+    sink_->write(data.ref(offset, payloadSize));
 
-      uint8_t* padding = (uint8_t*) alloca(padSize);
-      memset(padding, 0, padSize);
-      //sink_->write(BufferRef(padding, padSize));
-    } else {
-      const unsigned flags = last ? END_STREAM : 0;
-      generateFrameHeader(FrameType::Data, flags, sid, data.size());
-      sink_->write(data);
-    }
-    return data.size();
+    offset += payloadSize;
+
+    if (offset == data.size())
+      break;
   }
 }
 
@@ -93,6 +92,9 @@ void Generator::generateSettingsAcknowledgement() {
 
 void Generator::generateFrameHeader(FrameType frameType, unsigned frameFlags,
                                     StreamID streamID, size_t payloadSize) {
+  TRACE("header: type:$0 flags:$1, sid:$2, payloadSize:$3",
+      frameType, frameFlags, streamID, payloadSize);
+
   write24(payloadSize);
   write8((unsigned) frameType);
   write8(frameFlags);

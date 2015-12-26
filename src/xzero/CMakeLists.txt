@@ -234,6 +234,7 @@ set(xzero_base_SRC
 
   # HTTP transport: http/2
   http/http2/ErrorCode.cc
+  http/http2/FrameType.cc
   http/http2/Generator.cc
   http/http2/Parser.cc
   http/http2/SettingParameter.cc

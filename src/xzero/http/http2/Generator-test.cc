@@ -9,6 +9,7 @@
 #include <gtest/gtest.h>
 #include <xzero/http/http2/Generator.h>
 #include <xzero/DataChain.h>
+#include <xzero/Application.h>
 
 using namespace xzero;
 using namespace xzero::http::http2;
@@ -25,6 +26,7 @@ class BufferSink : public DataChainSink { // {{{
     return chunk.size();
   }
 
+  uint8_t operator[](size_t index) const { return buffer_[index]; }
   const Buffer& get() const noexcept { return buffer_; }
   const Buffer* operator->() const noexcept { return &buffer_; }
   const Buffer& operator*() const noexcept { return buffer_; }
@@ -33,6 +35,53 @@ class BufferSink : public DataChainSink { // {{{
  private:
   Buffer buffer_;
 }; // }}}
+
+TEST(http_http2_Generator, data) {
+  DataChain chain;
+  Generator generator(&chain);
+
+  generator.generateData(42, "Hello World", true);
+
+  BufferSink sink;
+  chain.transferTo(&sink);
+
+  ASSERT_EQ(20, sink->size());
+
+  // frame length
+  EXPECT_EQ(0, (int)sink[0]);
+  EXPECT_EQ(0, (int)sink[1]);
+  EXPECT_EQ(11, (int)sink[2]);
+
+  // frame type
+  EXPECT_EQ(FrameType::Data, ((FrameType) sink[3]));
+
+  // flags: END_STREAM
+  EXPECT_EQ(0x01, sink[4]);
+
+  // stream ID
+  EXPECT_EQ(0, sink[5]);
+  EXPECT_EQ(0, sink[6]);
+  EXPECT_EQ(0, sink[7]);
+  EXPECT_EQ(42, sink[8]);
+
+  // payload
+  EXPECT_EQ("Hello World", sink->ref(9));
+}
+
+TEST(http_http2_Generator, data_split_frames) {
+  Application::logToStderr(LogLevel::Trace);
+
+  DataChain chain;
+  Generator generator(&chain);
+  generator.setMaxFrameSize(6); // XXX 16384 is actually the minimum allowed
+
+  generator.generateData(42, "Hello World", true);
+
+  BufferSink sink;
+  chain.transferTo(&sink);
+
+  ASSERT_EQ(29, sink->size());
+}
 
 TEST(http_http2_Generator, settings) {
   DataChain chain;
@@ -48,6 +97,7 @@ TEST(http_http2_Generator, settings) {
   chain.transferTo(&sink);
 
   ASSERT_EQ(9 + 3 * 6, sink->size());
+
   // TODO: some binary comparison of what we expect
 }
 

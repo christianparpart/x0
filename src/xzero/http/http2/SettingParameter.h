@@ -16,7 +16,7 @@ enum class SettingParameter {
   EnablePush = 2,
   MaxConcurrentStreams = 3,
   InitialWindowSize = 4,
-  MaxFrameSize = 5,
+  MaxFrameSize = 5,           //!< max frame *payload* size
   MaxHeaderListSize = 6,
 };
 
