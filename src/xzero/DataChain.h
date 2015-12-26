@@ -23,6 +23,11 @@ class DataChainSink {
 };
 
 class DataChain {
+ protected:
+  class Chunk;
+  class BufferChunk;
+  class FileChunk;
+
  public:
   DataChain();
 
@@ -32,11 +37,23 @@ class DataChain {
   void write(const BufferRef& buf);
   void write(Buffer&& buf);
   void write(FileView&& file);
+  void write(std::unique_ptr<Chunk>&& chunk);
 
   void write8(uint8_t bin);
   void write16(uint16_t bin);
   void write24(uint32_t bin);
   void write32(uint32_t bin);
+
+  /**
+   * Splits up to @p n bytes data from the front chunk of the data chain.
+   *
+   * The chunk is potentially cut to meet the byte requirements.
+   *
+   * @note This method only operates on the front chunk, never on many.
+   *
+   * @return the given chunk or @c nullptr if none available.
+   */
+  std::unique_ptr<Chunk> get(size_t n);
 
   /**
    * Transfers as much chained data chunks to @p target as possible.
@@ -61,10 +78,6 @@ class DataChain {
   void flushBuffer();
 
  protected:
-  class Chunk;
-  class BufferChunk;
-  class FileChunk;
-
   std::deque<std::unique_ptr<Chunk>> chunks_;
   Buffer buffer_;
   size_t size_;
@@ -81,15 +94,20 @@ class DataChain::Chunk {
  public:
   virtual ~Chunk() {}
 
+  virtual std::unique_ptr<Chunk> get(size_t n) = 0;
   virtual size_t transferTo(DataChainSink* sink, size_t n) = 0;
   virtual size_t size() const = 0;
 };
 
 class DataChain::BufferChunk : public Chunk {
  public:
+  explicit BufferChunk(const BufferRef& buffer)
+      : buffer_(buffer), offset_(0) {}
+
   explicit BufferChunk(Buffer&& buffer)
       : buffer_(std::forward<Buffer>(buffer)), offset_(0) {}
 
+  std::unique_ptr<Chunk> get(size_t n) override;
   size_t transferTo(DataChainSink* sink, size_t n) override;
   size_t size() const override;
 
@@ -103,6 +121,7 @@ class DataChain::FileChunk : public Chunk {
   explicit FileChunk(FileView&& ref)
       : file_(std::forward<FileView>(ref)) {}
 
+  std::unique_ptr<Chunk> get(size_t n) override;
   size_t transferTo(DataChainSink* sink, size_t n) override;
   size_t size() const override;
 

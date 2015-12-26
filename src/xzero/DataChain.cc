@@ -58,9 +58,15 @@ void DataChain::write(Buffer&& buf) {
 void DataChain::write(FileView&& file) {
   flushBuffer();
   if (!file.empty()) {
-    size_ += file.size();
     chunks_.emplace_back(new FileChunk(std::move(file)));
+    size_ += chunks_.back()->size();
   }
+}
+
+void DataChain::write(std::unique_ptr<Chunk>&& chunk) {
+  flushBuffer();
+  chunks_.emplace_back(std::move(chunk));
+  size_ += chunks_.back()->size();
 }
 
 void DataChain::write8(uint8_t bin) {
@@ -95,6 +101,29 @@ void DataChain::flushBuffer() {
   }
 }
 
+std::unique_ptr<DataChain::Chunk> DataChain::get(size_t n) {
+  if (chunks_.empty()) {
+    flushBuffer();
+
+    if (chunks_.empty()) {
+      return nullptr;
+    }
+  }
+
+  assert(chunks_.front() != nullptr);
+
+  if (chunks_.front()->size() < n) {
+    std::unique_ptr<Chunk> out = std::move(chunks_.front());
+    size_ -= out->size();
+    chunks_.pop_front();
+    return out;
+  }
+
+  auto chunk = chunks_.front()->get(n);
+  size_ -= chunk->size();
+  return chunk;
+}
+
 bool DataChain::transferTo(DataChainSink* target) {
   return transferTo(target, size_);
 }
@@ -110,21 +139,26 @@ bool DataChain::transferTo(DataChainSink* target, size_t n) {
     size_ -= transferred;
     n -= transferred;
 
-    if (front->size() == 0) {
+    if (transferred < front->size() && n > 0)
+      return false; // incomplete transfer
+
+    if (front->size() == 0)
       chunks_.pop_front();
-    }
 
     if (n == 0)
       return true;
-
-    if (transferred < n)
-      return false; // incomplete transfer
   }
 
   return n == 0;
 }
 
 // {{{ BufferChunk impl
+std::unique_ptr<DataChain::Chunk> DataChain::BufferChunk::get(size_t n) {
+  std::unique_ptr<Chunk> chunk(new BufferChunk(buffer_.ref(offset_, n)));
+  offset_ += n;
+  return chunk;
+}
+
 size_t DataChain::BufferChunk::transferTo(DataChainSink* sink, size_t n) {
   size_t out = sink->transfer(buffer_.ref(offset_, std::min(n, size())));
   offset_ += out;
@@ -136,6 +170,15 @@ size_t DataChain::BufferChunk::size() const {
 }
 // }}}
 // {{{ FileChunk impl
+std::unique_ptr<DataChain::Chunk> DataChain::FileChunk::get(size_t n) {
+  std::unique_ptr<Chunk> chunk(new FileChunk(file_.view(0, n)));
+
+  file_.setSize(file_.size() - n);
+  file_.setOffset(file_.offset() + n);
+
+  return chunk;
+}
+
 size_t DataChain::FileChunk::transferTo(DataChainSink* sink, size_t n) {
   size_t out = sink->transfer(file_.view(0, n));
 
