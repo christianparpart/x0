@@ -13,35 +13,14 @@
 
 using namespace xzero;
 
-class BufferSink : public DataChainListener { // {{{
- public:
-  size_t transfer(const BufferRef& chunk) override {
-    buffer_.push_back(chunk);
-    return chunk.size();
-  }
-
-  size_t transfer(const FileView& chunk) override {
-    chunk.fill(&buffer_);
-    return chunk.size();
-  }
-
-  const Buffer& get() const noexcept { return buffer_; }
-  const Buffer* operator->() const noexcept { return &buffer_; }
-  const Buffer& operator*() const noexcept { return buffer_; }
-  void clear() { buffer_.clear(); }
-
- private:
-  Buffer buffer_;
-}; // }}}
-
 TEST(DataChain, cstring) {
   DataChain source;
   source.write("Hello");
 
-  BufferSink sink;
+  Buffer sink;
   source.transferTo(&sink);
-  EXPECT_EQ(5, sink->size());
-  EXPECT_EQ("Hello", *sink);
+  EXPECT_EQ(5, sink.size());
+  EXPECT_EQ("Hello", sink);
 }
 
 TEST(DataChain, many_chunks) {
@@ -50,26 +29,26 @@ TEST(DataChain, many_chunks) {
   source.write(" ");
   source.write("World");
 
-  BufferSink sink;
+  Buffer sink;
   source.transferTo(&sink);
-  EXPECT_EQ(11, sink->size());
-  EXPECT_EQ("Hello World", *sink);
+  EXPECT_EQ(11, sink.size());
+  EXPECT_EQ("Hello World", sink);
 }
 
 TEST(DataChain, transfer_partial_from_buffer) {
   DataChain source;
   source.write("Hello World");
 
-  BufferSink sink;
+  Buffer sink;
   source.transferTo(&sink, 5);
-  EXPECT_EQ(5, sink->size());
-  EXPECT_EQ("Hello", *sink);
+  EXPECT_EQ(5, sink.size());
+  EXPECT_EQ("Hello", sink);
   EXPECT_EQ(6, source.size());
 
   sink.clear();
   source.transferTo(&sink, 128);
-  EXPECT_EQ(6, sink->size());
-  EXPECT_EQ(" World", *sink);
+  EXPECT_EQ(6, sink.size());
+  EXPECT_EQ(" World", sink);
 }
 
 TEST(DataChain, file) {
@@ -79,10 +58,10 @@ TEST(DataChain, file) {
   DataChain source;
   source.write(FileView(std::move(fd), 0, 11));
 
-  BufferSink sink;
+  Buffer sink;
   source.transferTo(&sink);
-  EXPECT_EQ(11, sink->size());
-  EXPECT_EQ("Hello World", *sink);
+  EXPECT_EQ(11, sink.size());
+  EXPECT_EQ("Hello World", sink);
 }
 
 
@@ -93,16 +72,16 @@ TEST(DataChain, transfer_partial_from_file) {
   DataChain source;
   source.write(FileView(std::move(fd), 0, 11));
 
-  BufferSink sink;
+  Buffer sink;
   source.transferTo(&sink, 5);
-  EXPECT_EQ(5, sink->size());
-  EXPECT_EQ("Hello", *sink);
+  EXPECT_EQ(5, sink.size());
+  EXPECT_EQ("Hello", sink);
   EXPECT_EQ(6, source.size());
 
   sink.clear();
   source.transferTo(&sink, 128);
-  EXPECT_EQ(6, sink->size());
-  EXPECT_EQ(" World", *sink);
+  EXPECT_EQ(6, sink.size());
+  EXPECT_EQ(" World", sink);
 }
 
 TEST(DataChain, get_n_buffer) {
@@ -116,10 +95,10 @@ TEST(DataChain, get_n_buffer) {
   source.write(std::move(chunk));
   EXPECT_EQ(11, source.size());
 
-  BufferSink sink;
+  Buffer sink;
   source.transferTo(&sink);
-  EXPECT_EQ(11, sink->size());
-  EXPECT_EQ(" WorldHello", *sink);
+  EXPECT_EQ(11, sink.size());
+  EXPECT_EQ(" WorldHello", sink);
 }
 
 TEST(DataChain, get_n_file) {
@@ -136,9 +115,9 @@ TEST(DataChain, get_n_file) {
   source.write(std::move(chunk));
   ASSERT_EQ(11, source.size());
 
-  BufferSink sink;
+  Buffer sink;
   source.transferTo(&sink);
   ASSERT_EQ(0, source.size());
-  EXPECT_EQ(11, sink->size());
-  EXPECT_EQ(" WorldHello", *sink);
+  EXPECT_EQ(11, sink.size());
+  EXPECT_EQ(" WorldHello", sink);
 }

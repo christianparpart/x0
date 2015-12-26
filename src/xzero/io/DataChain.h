@@ -111,6 +111,18 @@ class DataChain {
   bool transferTo(DataChainListener* target, size_t n);
 
   /**
+   * Convenience helper to move at most all bytes data into
+   * given @p target buffer.
+   */
+  bool transferTo(Buffer* target);
+
+  /**
+   * Convenience helper to move up to @p n bytes data into
+   * given @p target buffer.
+   */
+  bool transferTo(Buffer* target, size_t n);
+
+  /**
    * Tests if this data chain is empty.
    */
   bool empty() const noexcept;
@@ -144,6 +156,14 @@ class DataChain::Chunk {
 // {{{ inlines
 inline size_t DataChain::size() const noexcept {
   return size_;
+}
+
+inline bool DataChain::transferTo(DataChainListener* target) {
+  return transferTo(target, size());
+}
+
+inline bool DataChain::transferTo(Buffer* target) {
+  return transferTo(target, size());
 }
 // }}}
 

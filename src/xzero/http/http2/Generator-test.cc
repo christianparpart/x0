@@ -15,38 +15,18 @@
 using namespace xzero;
 using namespace xzero::http::http2;
 
-class BufferSink : public DataChainListener { // {{{
- public:
-  size_t transfer(const BufferRef& chunk) override {
-    buffer_.push_back(chunk);
-    return chunk.size();
-  }
-
-  size_t transfer(const FileView& chunk) override {
-    chunk.fill(&buffer_);
-    return chunk.size();
-  }
-
-  uint8_t operator[](size_t index) const { return buffer_[index]; }
-  const Buffer& get() const noexcept { return buffer_; }
-  const Buffer* operator->() const noexcept { return &buffer_; }
-  const Buffer& operator*() const noexcept { return buffer_; }
-  void clear() { buffer_.clear(); }
-
- private:
-  Buffer buffer_;
-}; // }}}
-
 TEST(http_http2_Generator, data_single_frame) {
+  Application::logToStderr(LogLevel::Trace);
+
   DataChain chain;
   Generator generator(&chain);
 
   generator.generateData(42, "Hello World", true);
 
-  BufferSink sink;
+  Buffer sink;
   chain.transferTo(&sink);
 
-  ASSERT_EQ(20, sink->size());
+  ASSERT_EQ(20, sink.size());
 
   // frame length
   EXPECT_EQ(0, (int)sink[0]);
@@ -66,22 +46,20 @@ TEST(http_http2_Generator, data_single_frame) {
   EXPECT_EQ(42, sink[8]);
 
   // payload
-  EXPECT_EQ("Hello World", sink->ref(9));
+  EXPECT_EQ("Hello World", sink.ref(9));
 }
 
 TEST(http_http2_Generator, data_split_frames) {
-  Application::logToStderr(LogLevel::Trace);
-
   DataChain chain;
   Generator generator(&chain);
   generator.setMaxFrameSize(6); // XXX 16384 is actually the minimum allowed
 
   generator.generateData(42, "Hello World", true);
 
-  BufferSink sink;
+  Buffer sink;
   chain.transferTo(&sink);
 
-  ASSERT_EQ(29, sink->size());
+  ASSERT_EQ(29, sink.size());
 }
 
 // TODO: header...
@@ -92,19 +70,19 @@ TEST(http_http2_Generator, priority) {
 
   generator.generatePriority(42, true, 28, 256);
 
-  BufferSink sink;
+  Buffer sink;
   chain.transferTo(&sink);
 
-  ASSERT_EQ(14, sink->size());
+  ASSERT_EQ(14, sink.size());
 
   // dependant stream ID + E-bit
-  EXPECT_EQ((1<<7), sink[9]); // Exclusive-bit set
+  EXPECT_EQ((uint8_t) (1<<7), (uint8_t) sink[9]); // Exclusive-bit set
   EXPECT_EQ(0, sink[10]);
   EXPECT_EQ(0, sink[11]);
   EXPECT_EQ(28, sink[12]);
 
   // weight
-  EXPECT_EQ(256 - 1, sink[13]);
+  EXPECT_EQ((uint8_t) 255, (uint8_t) sink[13]);
 }
 
 TEST(http_http2_Generator, settings) {
@@ -117,10 +95,10 @@ TEST(http_http2_Generator, settings) {
       {SettingParameter::InitialWindowSize, 42},
   });
 
-  BufferSink sink;
+  Buffer sink;
   chain.transferTo(&sink);
 
-  ASSERT_EQ(9 + 3 * 6, sink->size());
+  ASSERT_EQ(9 + 3 * 6, sink.size());
 
   // TODO: some binary comparison of what we expect
 }
@@ -131,9 +109,9 @@ TEST(http_http2_Generator, settingsAck) {
 
   generator.generateSettingsAcknowledgement();
 
-  BufferSink sink;
+  Buffer sink;
   chain.transferTo(&sink);
 
-  ASSERT_EQ(9, sink->size());
+  ASSERT_EQ(9, sink.size());
   // TODO: some binary comparison of what we expect
 }

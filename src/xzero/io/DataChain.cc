@@ -84,6 +84,23 @@ size_t DataChain::FileChunk::size() const {
   return file_.size();
 }
 // }}}
+class DataChainBufferSink : public DataChainListener { // {{{
+ public:
+  explicit DataChainBufferSink(Buffer* sink) : buffer_(sink) {}
+
+  size_t transfer(const BufferRef& chunk) override {
+    buffer_->push_back(chunk);
+    return chunk.size();
+  }
+
+  size_t transfer(const FileView& chunk) override {
+    chunk.fill(buffer_);
+    return chunk.size();
+  }
+
+ private:
+  Buffer* buffer_;
+}; // }}}
 
 DataChain::DataChain()
     : chunks_(),
@@ -197,10 +214,6 @@ std::unique_ptr<DataChain::Chunk> DataChain::get(size_t n) {
   return chunk;
 }
 
-bool DataChain::transferTo(DataChainListener* target) {
-  return transferTo(target, size_);
-}
-
 bool DataChain::transferTo(DataChainListener* target, size_t n) {
   flushBuffer();
 
@@ -223,6 +236,11 @@ bool DataChain::transferTo(DataChainListener* target, size_t n) {
   }
 
   return n == 0;
+}
+
+bool DataChain::transferTo(Buffer* target, size_t n) {
+  DataChainBufferSink sink(target);
+  return transferTo(&sink, n);
 }
 
 } // namespace xzero
