@@ -88,10 +88,19 @@ class XZERO_PACKED DataFrame : public Frame {
 };
 #endif
 
+/**
+ * Generates HTTP/2 compliant binary frames.
+ */
 class Generator {
  public:
+  /**
+   * Initializes the HTTP/2 generator with standard @c SETTINGS parameter.
+   */
   explicit Generator(DataChain* sink);
 
+  /**
+   * Initializes the HTTP/2 generator with custom @c SETTINGS parameter.
+   */
   Generator(DataChain* sink,
             size_t paddingSize,
             size_t maxFrameSize,
@@ -101,11 +110,20 @@ class Generator {
   /**
    * Updates the maximum frame size in bytes a frame may fill its payload with.
    *
+   * @param value frame size in bytes this Generator is allowed to use per
+   *              frame.
+   *
    * @note This value is excluding the 9 bytes frame header.
    */
   void setMaxFrameSize(size_t value);
+
+  /**
+   * Retrieves the frame size in bytes (without the header,
+   * that is, only the payload).
+   */
   size_t maxFrameSize() const noexcept;
 
+  // (HPACK) HeaderEncoder tweaks
   void setHeaderTableSize(size_t value);
   void setMaxHeaderListSize(size_t value);
 
@@ -121,25 +139,86 @@ class Generator {
   /**
    * Generates the binary frame for a DATA frame and.
    *
+   * @note If the @p chunk has to be split into multiple @c DATA frames
+   *       and if @p chunk owns the its file descriptor, only the last
+   *       @c DATA frame will be closing the file descriptor.
+   *
    * @param sid the stream ID this data frame belongs to.
    * @param chunk the data payload to be transmitted (whithout padding).
    * @param last whether or not this is the last frame of the stream @p sid.
    */
   void generateData(StreamID sid, FileView&& chunk, bool last);
 
+  /**
+   * Generates one @c HEADERS frame and 0 or more @c CONTINUATION frames.
+   *
+   * @param sid stream identifier
+   * @param headers HTTP message headers
+   * @param last @c true if no @c DATA frame is following, @c false otherwise.
+   */
   void generateHeaders(StreamID sid, const HeaderFieldList& headers,
                        bool last);
+
+  /**
+   * Generates one @c PRIORITY frame.
+   *
+   * @param sid stream identifier
+   * @param exclusive is this an exclusive dependancy on @p dependantStreamID ?
+   * @param dependantStreamID the stream (ID) the stream @p sid depends on.
+   * @param weight bandwidth weight between 1 and 256 (default 16).
+   */
   void generatePriority(StreamID sid, bool exclusive,
-                        StreamID dependantStreamID, unsigned weight);
+                        StreamID dependantStreamID, unsigned weight = 16);
+
+  /**
+   * Generates one @c PING frame.
+   *
+   * @param sid stream identifier
+   * @param payload any custom data to be transmitted as payload.
+   */
   void generatePing(StreamID sid, const BufferRef& payload);
+
+  /**
+   * Generates one @c GO_AWAY frame.
+   */
   void generateGoAway(StreamID sid);
+
+  /**
+   * Generates one @c RST_STREAM frame.
+   */
   void generateResetStream(StreamID sid, ErrorCode errorCode);
 
+  /**
+   * Generates one @c SETTINGS frame.
+   *
+   * @param settings vector of (parameter/value) tuples.
+   */
   void generateSettings(
       const std::vector<std::pair<SettingParameter, unsigned>>& settings);
+
+  /**
+   * Generates one @c SETTINGS frame to acknowledge the peers @c SETTINGS frame.
+   */
   void generateSettingsAcknowledgement();
 
-  void generatePushPromise(StreamID sid, const HttpResponseInfo&);
+  /**
+   * Generates one @c PUSH_PROMISE frame with 0 or more @c CONTINUATION frames.
+   *
+   * @param sid stream identifier this @c PUSH_PROMISE is accociated with.
+   * @param psid the push-promise's stream id. Future @c DATA frames must
+   *             use this stream identifier as a reference to this push promise.
+   * @param info the HTTP message header info
+   */
+  void generatePushPromise(StreamID sid, StreamID psid,
+                           const HttpResponseInfo& info);
+
+  /**
+   * Generates one @c WINDOW_UPDATE frame to update the window size of the given
+   * stream @c sid.
+   *
+   * @param sid the stream that will be granted the window update.
+   * @param size window size in bytes to be granted.
+   */
   void generateWindowUpdate(StreamID sid, unsigned size);
 
  protected:
