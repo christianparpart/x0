@@ -21,7 +21,8 @@
 namespace xzero {
 
 EndPointWriter::EndPointWriter()
-    : chunks_() {
+    : chain_(),
+      sink_(nullptr) {
 }
 
 EndPointWriter::~EndPointWriter() {
@@ -29,98 +30,37 @@ EndPointWriter::~EndPointWriter() {
 
 void EndPointWriter::write(const BufferRef& data) {
   TRACE("write: enqueue $0 bytes", data.size());
-
-  if (data.empty())
-    return;
-
-  chunks_.emplace_back(std::unique_ptr<Chunk>(new BufferRefChunk(data)));
+  chain_.push_back(data);
 }
 
 void EndPointWriter::write(Buffer&& chunk) {
   TRACE("write: enqueue $0 bytes", chunk.size());
-
-  if (chunk.empty())
-    return;
-
-  chunks_.emplace_back(std::unique_ptr<Chunk>(
-        new BufferChunk(std::forward<Buffer>(chunk))));
+  chain_.push_back(std::move(chunk));
 }
 
 void EndPointWriter::write(FileView&& chunk) {
   TRACE("write: enqueue $0 bytes", chunk.size());
-
-  if (chunk.empty())
-    return;
-
-  chunks_.emplace_back(std::unique_ptr<Chunk>(
-        new FileChunk(std::forward<FileView>(chunk))));
+  chain_.push_back(std::move(chunk));
 }
 
 bool EndPointWriter::flush(EndPoint* sink) {
-  TRACE("write: flushing $0 chunks", chunks_.size());
-
-  while (!chunks_.empty()) {
-    if (!chunks_.front()->transferTo(sink))
-      return false;
-
-    chunks_.pop_front();
-  }
-
-  return true;
+  TRACE("write: flushing $0 bytes", chain_.size());
+  sink_ = sink;
+  return chain_.transferTo(this);
 }
 
 bool EndPointWriter::empty() const {
-  if (chunks_.empty())
-    return true;
-
-  return chunks_.front()->empty();
+  return chain_.empty();
 }
 
-// {{{ EndPointWriter::BufferChunk
-bool EndPointWriter::BufferChunk::transferTo(EndPoint* sink) {
-  size_t n = sink->flush(data_.ref(offset_));
-  TRACE("BufferChunk.transferTo(): $0/$1 bytes written",
-        n, data_.size() - offset_);
-
-  offset_ += n;
-
-  return offset_ == data_.size();
+size_t EndPointWriter::transfer(const BufferRef& chunk) {
+  TRACE("transfer(buf): $0 bytes", chunk.size());
+  return sink_->flush(chunk);
 }
 
-bool EndPointWriter::BufferChunk::empty() const {
-  return offset_ == data_.size();
+size_t EndPointWriter::transfer(const FileView& file) {
+  TRACE("transfer(file): $0 bytes, fd $1", file.size(), file.handle());
+  return sink_->flush(file.handle(), file.offset(), file.size());
 }
-// }}}
-// {{{ EndPointWriter::BufferRefChunk
-bool EndPointWriter::BufferRefChunk::transferTo(EndPoint* sink) {
-  size_t n = sink->flush(data_.ref(offset_));
-  TRACE("BufferRefChunk.transferTo: $0 bytes", n);
-
-  offset_ += n;
-  return offset_ == data_.size();
-}
-
-bool EndPointWriter::BufferRefChunk::empty() const {
-  return offset_ == data_.size();
-}
-// }}}
-// {{{ EndPointWriter::FileChunk
-EndPointWriter::FileChunk::~FileChunk() {
-}
-
-bool EndPointWriter::FileChunk::transferTo(EndPoint* sink) {
-  const size_t n = sink->flush(file_.handle(), file_.offset(), file_.size());
-  TRACE("FileChunk.transferTo(): $0/$1 bytes written", n, file_.size());
-
-  file_.setSize(file_.size() - n);
-  file_.setOffset(file_.offset() + n);
-
-  return file_.size() == 0;
-}
-
-bool EndPointWriter::FileChunk::empty() const {
-  return file_.size() == 0;
-}
-// }}}
 
 } // namespace xzero

@@ -12,6 +12,7 @@
 #include <xzero/Api.h>
 #include <xzero/Buffer.h>
 #include <xzero/io/FileView.h>
+#include <xzero/DataChain.h>
 #include <memory>
 #include <deque>
 
@@ -28,7 +29,7 @@ class EndPoint;
  * @todo 2 consecutive buffer writes should merge.
  * @todo consider managing its own BufferPool
  */
-class XZERO_BASE_API EndPointWriter {
+class XZERO_BASE_API EndPointWriter : public DataChainSink {
  public:
   EndPointWriter();
   ~EndPointWriter();
@@ -65,69 +66,13 @@ class XZERO_BASE_API EndPointWriter {
    */
   bool empty() const;
 
- private:
-  class Chunk;
-  class BufferChunk;
-  class BufferRefChunk;
-  class FileChunk;
-
-  std::deque<std::unique_ptr<Chunk>> chunks_;
-};
-
-// {{{ Chunk API
-class XZERO_BASE_API EndPointWriter::Chunk {
- public:
-  virtual ~Chunk() {}
-
-  virtual bool transferTo(EndPoint* sink) = 0;
-  virtual bool empty() const = 0;
-};
-
-class XZERO_BASE_API EndPointWriter::BufferChunk : public Chunk {
- public:
-  explicit BufferChunk(Buffer&& buffer)
-      : data_(std::forward<Buffer>(buffer)), offset_(0) {}
-
-  explicit BufferChunk(const BufferRef& buffer)
-      : data_(buffer), offset_(0) {}
-
-  explicit BufferChunk(const Buffer& copy)
-      : data_(copy), offset_(0) {}
-
-  bool transferTo(EndPoint* sink) override;
-  bool empty() const override;
+ protected:
+  size_t transfer(const BufferRef& chunk) override;
+  size_t transfer(const FileView& chunk) override;
 
  private:
-  Buffer data_;
-  size_t offset_;
+  DataChain chain_;
+  EndPoint* sink_;
 };
-
-class XZERO_BASE_API EndPointWriter::BufferRefChunk : public Chunk {
- public:
-  explicit BufferRefChunk(const BufferRef& buffer)
-      : data_(buffer), offset_(0) {}
-
-  bool transferTo(EndPoint* sink) override;
-  bool empty() const override;
-
- private:
-  BufferRef data_;
-  size_t offset_;
-};
-
-class XZERO_BASE_API EndPointWriter::FileChunk : public Chunk {
- public:
-  explicit FileChunk(FileView&& ref)
-      : file_(std::forward<FileView>(ref)) {}
-
-  ~FileChunk();
-
-  bool transferTo(EndPoint* sink) override;
-  bool empty() const override;
-
- private:
-  FileView file_;
-};
-// }}}
 
 } // namespace xzero
