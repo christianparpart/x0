@@ -35,7 +35,7 @@ class BufferSink : public DataChainSink { // {{{
 
 TEST(DataChain, cstring) {
   DataChain source;
-  source.push_back("Hello");
+  source.write("Hello");
 
   BufferSink sink;
   source.transferTo(&sink);
@@ -45,9 +45,9 @@ TEST(DataChain, cstring) {
 
 TEST(DataChain, many_chunks) {
   DataChain source;
-  source.push_back("Hello");
-  source.push_back(" ");
-  source.push_back("World");
+  source.write("Hello");
+  source.write(" ");
+  source.write("World");
 
   BufferSink sink;
   source.transferTo(&sink);
@@ -57,7 +57,7 @@ TEST(DataChain, many_chunks) {
 
 TEST(DataChain, transfer_partial_from_buffer) {
   DataChain source;
-  source.push_back("Hello World");
+  source.write("Hello World");
 
   BufferSink sink;
   source.transferTo(&sink, 5);
@@ -76,7 +76,7 @@ TEST(DataChain, file) {
   FileUtil::write(fd, "Hello World");
 
   DataChain source;
-  source.push_back(FileView(std::move(fd), 0, 11));
+  source.write(FileView(std::move(fd), 0, 11));
 
   BufferSink sink;
   source.transferTo(&sink);
@@ -90,7 +90,7 @@ TEST(DataChain, transfer_partial_from_file) {
   FileUtil::write(fd, "Hello World");
 
   DataChain source;
-  source.push_back(FileView(std::move(fd), 0, 11));
+  source.write(FileView(std::move(fd), 0, 11));
 
   BufferSink sink;
   source.transferTo(&sink, 5);

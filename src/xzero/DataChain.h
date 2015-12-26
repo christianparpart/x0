@@ -27,11 +27,11 @@ class DataChain {
   DataChain();
 
   void reset();
-  void push_back(const char* cstr);
-  void push_back(const char* buf, size_t n);
-  void push_back(const BufferRef& buf);
-  void push_back(Buffer&& buf);
-  void push_back(FileView&& file);
+  void write(const char* cstr);
+  void write(const char* buf, size_t n);
+  void write(const BufferRef& buf);
+  void write(Buffer&& buf);
+  void write(FileView&& file);
 
   /**
    * Transfers as much chained data chunks to @p target as possible.

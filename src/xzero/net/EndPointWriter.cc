@@ -30,17 +30,17 @@ EndPointWriter::~EndPointWriter() {
 
 void EndPointWriter::write(const BufferRef& data) {
   TRACE("write: enqueue $0 bytes", data.size());
-  chain_.push_back(data);
+  chain_.write(data);
 }
 
 void EndPointWriter::write(Buffer&& chunk) {
   TRACE("write: enqueue $0 bytes", chunk.size());
-  chain_.push_back(std::move(chunk));
+  chain_.write(std::move(chunk));
 }
 
 void EndPointWriter::write(FileView&& chunk) {
   TRACE("write: enqueue $0 bytes", chunk.size());
-  chain_.push_back(std::move(chunk));
+  chain_.write(std::move(chunk));
 }
 
 bool EndPointWriter::flush(EndPoint* sink) {

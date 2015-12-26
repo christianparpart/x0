@@ -28,23 +28,23 @@ bool DataChain::empty() const noexcept {
   return chunks_.empty() && buffer_.empty();
 }
 
-void DataChain::push_back(const char* cstr) {
+void DataChain::write(const char* cstr) {
   size_t clen = strlen(cstr);
   buffer_.push_back(cstr, clen);
   size_ += clen;
 }
 
-void DataChain::push_back(const char* buf, size_t n) {
+void DataChain::write(const char* buf, size_t n) {
   buffer_.push_back(buf, n);
   size_ += n;
 }
 
-void DataChain::push_back(const BufferRef& buf) {
+void DataChain::write(const BufferRef& buf) {
   buffer_.push_back(buf.data(), buf.size());
   size_ += buf.size();
 }
 
-void DataChain::push_back(Buffer&& buf) {
+void DataChain::write(Buffer&& buf) {
   if (buf.size() < 1024) { // buffer to small to justify a new object?
     buffer_.push_back(buf);
     size_ += buf.size();
@@ -55,7 +55,7 @@ void DataChain::push_back(Buffer&& buf) {
   }
 }
 
-void DataChain::push_back(FileView&& file) {
+void DataChain::write(FileView&& file) {
   flushBuffer();
   if (!file.empty()) {
     size_ += file.size();
