@@ -96,6 +96,7 @@ set(xzero_base_SRC
   BufferUtil.cc
   CivilTime.cc
   Counter.cc
+  DataChain.cc
   Duration.cc
   ExceptionHandler.cc
   HugeBuffer.cc
