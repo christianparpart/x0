@@ -29,7 +29,7 @@ class EndPoint;
  * @todo 2 consecutive buffer writes should merge.
  * @todo consider managing its own BufferPool
  */
-class XZERO_BASE_API EndPointWriter : public DataChainSink {
+class XZERO_BASE_API EndPointWriter : public DataChainListener {
  public:
   EndPointWriter();
   ~EndPointWriter();

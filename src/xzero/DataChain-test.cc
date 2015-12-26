@@ -12,7 +12,7 @@
 
 using namespace xzero;
 
-class BufferSink : public DataChainSink { // {{{
+class BufferSink : public DataChainListener { // {{{
  public:
   size_t transfer(const BufferRef& chunk) override {
     buffer_.push_back(chunk);

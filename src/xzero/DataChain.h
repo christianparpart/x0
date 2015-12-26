@@ -14,9 +14,9 @@
 
 namespace xzero {
 
-class DataChainSink {
+class DataChainListener {
  public:
-  virtual ~DataChainSink() {}
+  virtual ~DataChainListener() {}
 
   virtual size_t transfer(const BufferRef& chunk) = 0;
   virtual size_t transfer(const FileView& chunk) = 0;
@@ -62,7 +62,7 @@ class DataChain {
    * @retval true all data transferred
    * @retval false still data in chain pending
    */
-  bool transferTo(DataChainSink* target);
+  bool transferTo(DataChainListener* target);
 
   /**
    * Transfers up to @p n bytes of chained data chunks to @p target.
@@ -70,7 +70,7 @@ class DataChain {
    * @retval true all @p n bytes of requested data transferred
    * @retval false not all @p n bytes of requested data transferred
    */
-  bool transferTo(DataChainSink* target, size_t n);
+  bool transferTo(DataChainListener* target, size_t n);
 
   bool empty() const noexcept;
   size_t size() const noexcept;
@@ -89,7 +89,7 @@ class DataChain::Chunk {
   virtual ~Chunk() {}
 
   virtual std::unique_ptr<Chunk> get(size_t n) = 0;
-  virtual size_t transferTo(DataChainSink* sink, size_t n) = 0;
+  virtual size_t transferTo(DataChainListener* sink, size_t n) = 0;
   virtual size_t size() const = 0;
 };
 

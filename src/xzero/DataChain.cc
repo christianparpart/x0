@@ -22,7 +22,7 @@ class DataChain::BufferChunk : public Chunk {
       : buffer_(std::forward<Buffer>(buffer)), offset_(0) {}
 
   std::unique_ptr<Chunk> get(size_t n) override;
-  size_t transferTo(DataChainSink* sink, size_t n) override;
+  size_t transferTo(DataChainListener* sink, size_t n) override;
   size_t size() const override;
 
  private:
@@ -36,7 +36,7 @@ class DataChain::FileChunk : public Chunk {
       : file_(std::forward<FileView>(ref)) {}
 
   std::unique_ptr<Chunk> get(size_t n) override;
-  size_t transferTo(DataChainSink* sink, size_t n) override;
+  size_t transferTo(DataChainListener* sink, size_t n) override;
   size_t size() const override;
 
  private:
@@ -50,7 +50,7 @@ std::unique_ptr<DataChain::Chunk> DataChain::BufferChunk::get(size_t n) {
   return chunk;
 }
 
-size_t DataChain::BufferChunk::transferTo(DataChainSink* sink, size_t n) {
+size_t DataChain::BufferChunk::transferTo(DataChainListener* sink, size_t n) {
   size_t out = sink->transfer(buffer_.ref(offset_, std::min(n, size())));
   offset_ += out;
   return out;
@@ -70,7 +70,7 @@ std::unique_ptr<DataChain::Chunk> DataChain::FileChunk::get(size_t n) {
   return chunk;
 }
 
-size_t DataChain::FileChunk::transferTo(DataChainSink* sink, size_t n) {
+size_t DataChain::FileChunk::transferTo(DataChainListener* sink, size_t n) {
   size_t out = sink->transfer(file_.view(0, n));
 
   file_.setSize(file_.size() - out);
@@ -196,11 +196,11 @@ std::unique_ptr<DataChain::Chunk> DataChain::get(size_t n) {
   return chunk;
 }
 
-bool DataChain::transferTo(DataChainSink* target) {
+bool DataChain::transferTo(DataChainListener* target) {
   return transferTo(target, size_);
 }
 
-bool DataChain::transferTo(DataChainSink* target, size_t n) {
+bool DataChain::transferTo(DataChainListener* target, size_t n) {
   flushBuffer();
 
   while (n > 0 && size_ > 0) {
