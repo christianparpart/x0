@@ -8,6 +8,7 @@
 
 #include <gtest/gtest.h>
 #include <xzero/io/DataChain.h>
+#include <xzero/io/DataChainListener.h>
 #include <xzero/io/FileUtil.h>
 
 using namespace xzero;

@@ -14,19 +14,7 @@
 
 namespace xzero {
 
-/**
- * Interface to implement the other endpoint to transfer data out of a DataChain.
- *
- * Implement this interface if you want to splice your data
- * efficiently into a socket or pipe for example.
- */
-class DataChainListener {
- public:
-  virtual ~DataChainListener() {}
-
-  virtual size_t transfer(const BufferRef& chunk) = 0;
-  virtual size_t transfer(const FileView& chunk) = 0;
-};
+class DataChainListener;
 
 /**
  * API to hold an ordered chain of different text data types.

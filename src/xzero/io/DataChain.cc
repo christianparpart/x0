@@ -7,6 +7,7 @@
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 #include <xzero/io/DataChain.h>
+#include <xzero/io/DataChainListener.h>
 #include <xzero/io/FileView.h>
 #include <xzero/Buffer.h>
 
