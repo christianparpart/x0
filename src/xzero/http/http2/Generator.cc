@@ -8,8 +8,7 @@
 
 #include <xzero/http/http2/Generator.h>
 #include <xzero/http/http2/SettingParameter.h>
-#include <xzero/net/EndPointWriter.h>
-#include <xzero/net/EndPoint.h>
+#include <xzero/DataChain.h>
 #include <xzero/Buffer.h>
 #include <xzero/logging.h>
 #include <assert.h>
@@ -50,6 +49,8 @@ void Generator::setMaxFrameSize(size_t value) {
 }
 
 void Generator::generateData(StreamID sid, const BufferRef& data, bool last) {
+  assert(sid != 0);
+
   constexpr unsigned END_STREAM = 0x01;
   //constexpr unsigned PADDED = 0x08;
 
@@ -71,6 +72,16 @@ void Generator::generateData(StreamID sid, const BufferRef& data, bool last) {
     if (offset == data.size())
       break;
   }
+}
+
+void Generator::generatePriority(StreamID sid, bool exclusive,
+                                 StreamID dependantStreamID, unsigned weight) {
+  assert(1 <= weight && weight <= 256);
+  assert(sid != 0);
+
+  generateFrameHeader(FrameType::Priority, 0, sid, 5);
+  write32(dependantStreamID | (exclusive ? (1 << 31) : 0)); // bit 31 is the Exclusive-bit
+  write8(weight - 1);
 }
 
 void Generator::generateSettings(

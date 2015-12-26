@@ -36,7 +36,7 @@ class BufferSink : public DataChainSink { // {{{
   Buffer buffer_;
 }; // }}}
 
-TEST(http_http2_Generator, data) {
+TEST(http_http2_Generator, data_single_frame) {
   DataChain chain;
   Generator generator(&chain);
 
@@ -81,6 +81,29 @@ TEST(http_http2_Generator, data_split_frames) {
   chain.transferTo(&sink);
 
   ASSERT_EQ(29, sink->size());
+}
+
+// TODO: header...
+
+TEST(http_http2_Generator, priority) {
+  DataChain chain;
+  Generator generator(&chain);
+
+  generator.generatePriority(42, true, 28, 256);
+
+  BufferSink sink;
+  chain.transferTo(&sink);
+
+  ASSERT_EQ(14, sink->size());
+
+  // dependant stream ID + E-bit
+  EXPECT_EQ((1<<7), sink[9]); // Exclusive-bit set
+  EXPECT_EQ(0, sink[10]);
+  EXPECT_EQ(0, sink[11]);
+  EXPECT_EQ(28, sink[12]);
+
+  // weight
+  EXPECT_EQ(256 - 1, sink[13]);
 }
 
 TEST(http_http2_Generator, settings) {

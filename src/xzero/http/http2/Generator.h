@@ -99,7 +99,9 @@ class Generator {
             size_t maxHeaderListSize);
 
   /**
-   * Updates the maximum frame size a frame may fill in bytes.
+   * Updates the maximum frame size in bytes a frame may fill its payload with.
+   *
+   * @note This value is excluding the 9 bytes frame header.
    */
   void setMaxFrameSize(size_t value);
   size_t maxFrameSize() const noexcept;
