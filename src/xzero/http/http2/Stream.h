@@ -11,6 +11,7 @@
 #include <xzero/http/http2/StreamState.h>
 #include <xzero/http/http2/StreamID.h>
 #include <xzero/http/HttpChannel.h>
+#include <xzero/DataChain.h>
 
 namespace xzero {
 namespace http {
@@ -41,6 +42,7 @@ class Stream {
   StreamState state_;                     // default: Idle
   int weight_;                            // default: 16
   StreamTreeNode* node_;                  // ref in the stream dependency tree
+  DataChain responseBodyChain_;           // pending response body chunks
 };
 
 inline bool streamCompare(Stream* a, Stream* b) {

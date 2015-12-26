@@ -19,16 +19,16 @@ namespace http2 {
 
 static constexpr size_t FrameHeaderSize = 9;
 
-Generator::Generator(EndPointWriter* writer)
-    : Generator(writer, 0, 16384, 4096, 0xffff) {
+Generator::Generator(DataChain* sink)
+    : Generator(sink, 0, 16384, 4096, 0xffff) {
 }
 
-Generator::Generator(EndPointWriter* writer,
+Generator::Generator(DataChain* sink,
                      size_t paddingSize,
                      size_t maxFrameSize,
                      size_t headerTableSize,
                      size_t maxHeaderListSize)
-    : writer_(writer),
+    : sink_(sink),
       paddingSize_(paddingSize),
       maxFrameSize_(maxFrameSize),
       //headerGenerator_(headerTableSize, maxHeaderListSize),
@@ -51,7 +51,7 @@ size_t Generator::generateData(StreamID sid, const BufferRef& data, bool last) {
     size_t usedDataSize = maxFrameSize_ - FrameHeaderSize;
 
     generateFrameHeader(FrameType::Data, 0, sid, data.size());
-    writer_->write(data.ref(0, usedDataSize));
+    sink_->write(data.ref(0, usedDataSize));
 
     return usedDataSize;
   } else {
@@ -60,15 +60,15 @@ size_t Generator::generateData(StreamID sid, const BufferRef& data, bool last) {
       const unsigned flags = PADDED | (last ? END_STREAM : 0);
       const size_t padSize = paddingSize_ + (data.size() % paddingSize_);
       generateFrameHeader(FrameType::Data, flags, sid, data.size() + padSize);
-      writer_->write(data);
+      sink_->write(data);
 
       uint8_t* padding = (uint8_t*) alloca(padSize);
       memset(padding, 0, padSize);
-      //writer_->write(BufferRef(padding, padSize));
+      //sink_->write(BufferRef(padding, padSize));
     } else {
       const unsigned flags = last ? END_STREAM : 0;
       generateFrameHeader(FrameType::Data, flags, sid, data.size());
-      writer_->write(data);
+      sink_->write(data);
     }
     return data.size();
   }
@@ -92,7 +92,7 @@ void Generator::generateSettingsAcknowledgement() {
 }
 
 void Generator::flushBuffer() {
-  writer_->write(std::move(buffer_));
+  sink_->write(std::move(buffer_));
 }
 
 void Generator::generateFrameHeader(FrameType frameType, unsigned frameFlags,
@@ -104,25 +104,19 @@ void Generator::generateFrameHeader(FrameType frameType, unsigned frameFlags,
 }
 
 void Generator::write8(unsigned value) {
-  buffer_.push_back(static_cast<char>(value & 0xFF));
+  sink_->write8(value);
 }
 
 void Generator::write16(unsigned value) {
-  buffer_.push_back(static_cast<char>((value >> 8) & 0xFF));
-  buffer_.push_back(static_cast<char>(value & 0xFF));
+  sink_->write16(value);
 }
 
 void Generator::write24(unsigned value) {
-  buffer_.push_back(static_cast<char>((value >> 16) & 0xFF));
-  buffer_.push_back(static_cast<char>((value >> 8) & 0xFF));
-  buffer_.push_back(static_cast<char>(value & 0xFF));
+  sink_->write24(value);
 }
 
 void Generator::write32(unsigned value) {
-  buffer_.push_back(static_cast<char>((value >> 24) & 0xFF));
-  buffer_.push_back(static_cast<char>((value >> 16) & 0xFF));
-  buffer_.push_back(static_cast<char>((value >> 8) & 0xFF));
-  buffer_.push_back(static_cast<char>(value & 0xFF));
+  sink_->write32(value);
 }
 
 } // namespace http2

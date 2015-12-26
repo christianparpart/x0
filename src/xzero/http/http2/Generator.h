@@ -19,7 +19,7 @@ namespace xzero {
 
 class BufferRef;
 class FileView;
-class EndPointWriter;
+class DataChain;
 
 namespace http {
 
@@ -90,9 +90,9 @@ class XZERO_PACKED DataFrame : public Frame {
 
 class Generator {
  public:
-  explicit Generator(EndPointWriter* writer);
+  explicit Generator(DataChain* sink);
 
-  Generator(EndPointWriter* writer,
+  Generator(DataChain* sink,
             size_t paddingSize,
             size_t maxFrameSize,
             size_t headerTableSize,
@@ -155,7 +155,7 @@ class Generator {
   void write8(unsigned value);
 
  private:
-  EndPointWriter* writer_;
+  DataChain* sink_;
   size_t paddingSize_;
   size_t maxFrameSize_;
   Buffer buffer_;

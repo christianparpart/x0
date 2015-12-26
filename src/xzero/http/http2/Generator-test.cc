@@ -8,15 +8,35 @@
 
 #include <gtest/gtest.h>
 #include <xzero/http/http2/Generator.h>
-#include <xzero/net/ByteArrayEndPoint.h>
-#include <xzero/net/EndPointWriter.h>
+#include <xzero/DataChain.h>
 
 using namespace xzero;
 using namespace xzero::http::http2;
 
+class BufferSink : public DataChainSink { // {{{
+ public:
+  size_t transfer(const BufferRef& chunk) override {
+    buffer_.push_back(chunk);
+    return chunk.size();
+  }
+
+  size_t transfer(const FileView& chunk) override {
+    chunk.fill(&buffer_);
+    return chunk.size();
+  }
+
+  const Buffer& get() const noexcept { return buffer_; }
+  const Buffer* operator->() const noexcept { return &buffer_; }
+  const Buffer& operator*() const noexcept { return buffer_; }
+  void clear() { buffer_.clear(); }
+
+ private:
+  Buffer buffer_;
+}; // }}}
+
 TEST(http_http2_Generator, settings) {
-  EndPointWriter writer;
-  Generator generator(&writer);
+  DataChain chain;
+  Generator generator(&chain);
 
   generator.generateSettings({
       {SettingParameter::EnablePush, 1},
@@ -25,23 +45,23 @@ TEST(http_http2_Generator, settings) {
   });
   generator.flushBuffer();
 
-  ByteArrayEndPoint endpoint;
-  writer.flush(&endpoint);
+  BufferSink sink;
+  chain.transferTo(&sink);
 
-  ASSERT_EQ(9 + 3 * 6, endpoint.output().size());
+  ASSERT_EQ(9 + 3 * 6, sink->size());
   // TODO: some binary comparison of what we expect
 }
 
 TEST(http_http2_Generator, settingsAck) {
-  EndPointWriter writer;
-  Generator generator(&writer);
+  DataChain chain;
+  Generator generator(&chain);
 
   generator.generateSettingsAcknowledgement();
   generator.flushBuffer();
 
-  ByteArrayEndPoint endpoint;
-  writer.flush(&endpoint);
+  BufferSink sink;
+  chain.transferTo(&sink);
 
-  ASSERT_EQ(9, endpoint.output().size());
+  ASSERT_EQ(9, sink->size());
   // TODO: some binary comparison of what we expect
 }
