@@ -84,13 +84,6 @@ class DataChain {
   size_t size_;
 };
 
-// {{{ inlines
-inline size_t DataChain::size() const noexcept {
-  return size_;
-}
-// }}}
-
-// {{{ Chunk API
 class DataChain::Chunk {
  public:
   virtual ~Chunk() {}
@@ -100,35 +93,10 @@ class DataChain::Chunk {
   virtual size_t size() const = 0;
 };
 
-class DataChain::BufferChunk : public Chunk {
- public:
-  explicit BufferChunk(const BufferRef& buffer)
-      : buffer_(buffer), offset_(0) {}
-
-  explicit BufferChunk(Buffer&& buffer)
-      : buffer_(std::forward<Buffer>(buffer)), offset_(0) {}
-
-  std::unique_ptr<Chunk> get(size_t n) override;
-  size_t transferTo(DataChainSink* sink, size_t n) override;
-  size_t size() const override;
-
- private:
-  Buffer buffer_;
-  size_t offset_;
-};
-
-class DataChain::FileChunk : public Chunk {
- public:
-  explicit FileChunk(FileView&& ref)
-      : file_(std::forward<FileView>(ref)) {}
-
-  std::unique_ptr<Chunk> get(size_t n) override;
-  size_t transferTo(DataChainSink* sink, size_t n) override;
-  size_t size() const override;
-
- private:
-  FileView file_;
-};
+// {{{ inlines
+inline size_t DataChain::size() const noexcept {
+  return size_;
+}
 // }}}
 
 } // namespace xzero
