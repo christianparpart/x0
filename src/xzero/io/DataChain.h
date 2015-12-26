@@ -84,6 +84,11 @@ class DataChain {
   void write32(uint32_t bin);
 
   /**
+   * Appends 8 bytes at the end of the chain.
+   */
+  void write64(uint64_t bin);
+
+  /**
    * Splits up to @p n bytes data from the front chunk of the data chain.
    *
    * The chunk is potentially cut to meet the byte requirements.

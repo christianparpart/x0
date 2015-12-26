@@ -161,12 +161,14 @@ void DataChain::write(std::unique_ptr<Chunk>&& chunk) {
 
 void DataChain::write8(uint8_t bin) {
   buffer_.push_back((char) bin);
+
   size_ += 1;
 }
 
 void DataChain::write16(uint16_t bin) {
   buffer_.push_back((char) ((bin >> 8) & 0xFF));
   buffer_.push_back((char) (bin & 0xFF));
+
   size_ += 2;
 }
 
@@ -174,6 +176,7 @@ void DataChain::write24(uint32_t bin) {
   buffer_.push_back((char) ((bin >> 16) & 0xFF));
   buffer_.push_back((char) ((bin >> 8) & 0xFF));
   buffer_.push_back((char) (bin & 0xFF));
+
   size_ += 3;
 }
 
@@ -182,7 +185,22 @@ void DataChain::write32(uint32_t bin) {
   buffer_.push_back((char) ((bin >> 16) & 0xFF));
   buffer_.push_back((char) ((bin >> 8) & 0xFF));
   buffer_.push_back((char) (bin & 0xFF));
+
   size_ += 4;
+}
+
+void DataChain::write64(uint64_t bin) {
+  buffer_.push_back((char) ((bin >> 56) & 0xFF));
+  buffer_.push_back((char) ((bin >> 48) & 0xFF));
+  buffer_.push_back((char) ((bin >> 40) & 0xFF));
+  buffer_.push_back((char) ((bin >> 32) & 0xFF));
+
+  buffer_.push_back((char) ((bin >> 24) & 0xFF));
+  buffer_.push_back((char) ((bin >> 16) & 0xFF));
+  buffer_.push_back((char) ((bin >> 8) & 0xFF));
+  buffer_.push_back((char) (bin & 0xFF));
+
+  size_ += 8;
 }
 
 void DataChain::flushBuffer() {
