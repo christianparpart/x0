@@ -5,13 +5,12 @@
 // file except in compliance with the License. You may obtain a copy of
 // the License at: http://opensource.org/licenses/MIT
 
-#include <xzero/http/http2/hpack.h>
+#include <xzero/http/hpack.h>
 #include <algorithm>
 #include <inttypes.h>
 
 namespace xzero {
 namespace http {
-namespace http2 {
 namespace hpack {
 
 // {{{ StaticTable
@@ -392,6 +391,5 @@ uint64_t DecoderHelper::decodeInt(const BufferRef& data, unsigned prefixBits,
 // }}}
 
 }  // namespace hpack
-}  // namespace http2
 }  // namespace http
 }  // namespace xzero

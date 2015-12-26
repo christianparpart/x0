@@ -21,7 +21,6 @@
 
 namespace xzero {
 namespace http {
-namespace http2 {
 namespace hpack {
 
 /**
@@ -206,6 +205,5 @@ class Decoder : private DecoderHelper {
 };
 
 } // namespace hpack
-} // namespace http2
 } // namespace http
 } // namespace xzero
