@@ -27,6 +27,8 @@ class Generator {
    */
   explicit Generator(size_t maxSize);
 
+  void setMaxSize(size_t maxSize);
+
   /**
    * Clears the generated header block but keeps dynamic-table state.
    */
@@ -69,8 +71,13 @@ class Generator {
    * @return number of bytes used for encoding.
    */
   static size_t encodeInt(uint64_t value,
-                          unsigned prefixBits,
+                          uint8_t prefixBits,
                           unsigned char* output);
+
+ protected:
+  void encodeInt(uint8_t suffix, uint8_t prefixBits, uint64_t value);
+  void encodeString(const std::string& value, bool compressed = false);
+  bool isIndexable(const HeaderField& field) const;
 
  private:
   DynamicTable dynamicTable_;

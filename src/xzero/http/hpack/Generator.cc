@@ -7,6 +7,8 @@
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 #include <xzero/http/hpack/Generator.h>
+#include <xzero/http/hpack/StaticTable.h>
+#include <xzero/http/hpack/DynamicTable.h>
 #include <xzero/http/HeaderFieldList.h>
 #include <xzero/http/HeaderField.h>
 #include <xzero/Buffer.h>
@@ -25,6 +27,12 @@ namespace hpack {
 Generator::Generator(size_t maxSize)
     : dynamicTable_(maxSize),
       headerBlock_() {
+  headerBlock_.reserve(maxSize);
+}
+
+void Generator::setMaxSize(size_t maxSize) {
+  dynamicTable_.setMaxSize(maxSize);
+  headerBlock_.reserve(maxSize);
 }
 
 void Generator::clear() {
@@ -35,7 +43,11 @@ void Generator::reset() {
   dynamicTable_.clear();
   headerBlock_.clear();
 
-  headerBlock_.push_back(0x00); // TODO: instr. clear dyntable
+  // set header table size to 0 (for full eviction)
+  encodeInt(1, 5, (size_t) 0);
+
+  // now set it back to some meaningful value
+  encodeInt(1, 5, dynamicTable_.maxSize());
 }
 
 void Generator::generateHeaders(const HeaderFieldList& fields) {
@@ -45,11 +57,84 @@ void Generator::generateHeaders(const HeaderFieldList& fields) {
 }
 
 void Generator::generateHeader(const HeaderField& field) {
-  // TODO
+  // search in static table
+  bool nameValueMatch;
+  size_t index = StaticTable::find(field, &nameValueMatch);
+  if (index != StaticTable::npos) {
+    if (nameValueMatch) {
+      // (6.1) indexed header field
+      encodeInt(1, 7, index);
+    } else if (isIndexable(field)) {
+      // (6.2.1) indexed name, literal value, indexable
+      dynamicTable_.add(field);
+      encodeInt(1, 6, index);
+      encodeString(field.value());
+    } else {
+      // (6.2.2) indexed name, literal value, non-indexable
+      encodeInt(0, 4, index);
+      encodeString(field.value());
+    }
+  }
+
+  // search in dynamic table
+  index = dynamicTable_.find(field, &nameValueMatch);
+  if (index != DynamicTable::npos) {
+    index += StaticTable::length();
+    if (nameValueMatch) {
+      // indexed header field (6.1)
+      encodeInt(1, 7, index);
+    } else if (isIndexable(field)) {
+      // (6.2.1) indexed name, literal value, indexable
+      dynamicTable_.add(field);
+      encodeInt(1, 6, index);
+      encodeString(field.value());
+    } else {
+      // (6.2.2) indexed name, literal value, non-indexable
+      encodeInt(0, 4, index);
+      encodeString(field.value());
+    }
+  }
+
+  // literal name, literal value
+  if (isIndexable(field)) {
+    // with future-indexing
+    dynamicTable_.add(field);
+    headerBlock_.push_back(1 << 6); // 0100_0000
+    encodeString(field.name());
+    encodeString(field.value());
+  } else {
+    // without future-indexing
+    headerBlock_.push_back(0);
+    encodeString(field.name());
+    encodeString(field.value());
+  }
+}
+
+void Generator::encodeString(const std::string& value, bool compressed) {
+  // section 5.2) String Literal Representation
+
+  if (compressed) {
+    // TODO: huffman-encoded string (fallback to no-huffman for now)
+    encodeInt(0, 7, value.size());
+    headerBlock_.push_back(value);
+  } else {
+    // Huffman encoding disabled
+    encodeInt(0, 7, value.size());
+    headerBlock_.push_back(value);
+  }
+}
+
+void Generator::encodeInt(uint8_t suffix, uint8_t prefixBits, uint64_t value) {
+  unsigned char* output = (unsigned char*) headerBlock_.end();
+
+  headerBlock_.reserve(headerBlock_.size() + 4);
+  size_t n = encodeInt(value, prefixBits, output); // TODO: add suffix here instead
+  *output |= suffix << prefixBits;
+  headerBlock_.resize(headerBlock_.size() + n);
 }
 
 size_t Generator::encodeInt(uint64_t value,
-                            unsigned prefixBits,
+                            uint8_t prefixBits,
                             unsigned char* output) {
   assert(prefixBits >= 1 && prefixBits <= 8);
 
@@ -73,6 +158,10 @@ size_t Generator::encodeInt(uint64_t value,
     *output = static_cast<unsigned char>(value);
     return n;
   }
+}
+
+bool Generator::isIndexable(const HeaderField& field) const {
+  return !field.isSecure();
 }
 
 } // namespace hpack
