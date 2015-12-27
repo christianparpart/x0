@@ -9,6 +9,7 @@
 #include <xzero/http/hpack/Generator.h>
 #include <xzero/http/hpack/StaticTable.h>
 #include <xzero/http/hpack/DynamicTable.h>
+#include <xzero/http/hpack/Huffman.h>
 #include <xzero/http/HeaderFieldList.h>
 #include <xzero/http/HeaderField.h>
 #include <xzero/Buffer.h>
@@ -111,12 +112,12 @@ void Generator::generateHeader(const HeaderField& field) {
 }
 
 void Generator::encodeString(const std::string& value, bool compressed) {
-  // section 5.2) String Literal Representation
+  // (5.2) String Literal Representation
 
   if (compressed) {
-    // TODO: huffman-encoded string (fallback to no-huffman for now)
-    encodeInt(0, 7, value.size());
-    headerBlock_.push_back(value);
+    std::string smaller = Huffman::compress(value);
+    encodeInt(1, 7, smaller.size());
+    headerBlock_.push_back(smaller);
   } else {
     // Huffman encoding disabled
     encodeInt(0, 7, value.size());
