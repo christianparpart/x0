@@ -244,7 +244,6 @@ set(xzero_base_SRC
   http/hpack/Generator.cc
   http/hpack/Parser.cc
   http/hpack/StaticTable.cc
-  http/hpack/hpack.cc
 
   # HTTP client
   http/client/HttpClient.cc
