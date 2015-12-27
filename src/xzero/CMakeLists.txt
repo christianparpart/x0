@@ -240,6 +240,10 @@ set(xzero_base_SRC
   http/http2/SettingParameter.cc
   http/http2/Settings.cc
   http/http2/StreamState.cc
+  http/hpack/DynamicTable.cc
+  http/hpack/Generator.cc
+  http/hpack/Parser.cc
+  http/hpack/StaticTable.cc
   http/hpack/hpack.cc
 
   # HTTP client

@@ -26,27 +26,6 @@ class HeaderFieldList;
 namespace hpack {
 
 /**
- * The static table (see Appendix B) is a component used
- * to associate static header fields to index values.
- *
- * This data is ordered, read-only, always accessible,
- * and may be shared amongst
- * all encoding contexts.
- */
-class StaticTable {
- public:
-  StaticTable();
-  ~StaticTable();
-
-  static StaticTable* get();
-
- private:
-  std::vector<HeaderField> entries_;
-};
-
-class ReferenceSet;
-
-/**
  * List of headers.
  *
  * The header table (see Section 3.2) is a component used
@@ -98,62 +77,8 @@ class HeaderTable {
   const_iterator find(const HeaderFieldName& name) const;
 
  private:
-  friend class ReferenceSet;
-
-  void link(ReferenceSet* ref);
-  void unlink(ReferenceSet* ref);
-
- private:
   size_t maxEntries_;
   std::deque<HeaderField> entries_;
-  std::list<ReferenceSet*> referenceSets_;
-};
-
-/**
- * used for differential encoding of a new header set.
- */
-class ReferenceSet {
- public:
-  explicit ReferenceSet(HeaderTable* headerTable);
-  ~ReferenceSet();
-
-  bool empty() const;
-  size_t size() const;
-
-  void add(const HeaderField* field);
-  bool contains(const HeaderField* field) const;
-  void remove(const HeaderField* field);
-
-  struct iterator;
-
-  iterator begin();
-  iterator end();
-
-  HeaderTable* headerTable() const { return headerTable_; }
-
- private:
-  HeaderTable* headerTable_;
-  std::list<const HeaderField*> references_;
-};
-
-class ReferenceSet::iterator {
- public:
-  iterator();
-  iterator(ReferenceSet* rs, std::list<const HeaderField*>::iterator init);
-  iterator(iterator&& other) = default;
-  iterator(const iterator& other) = default;
-  iterator& operator=(const iterator& other) = default;
-
-  iterator& operator++();
-  bool operator==(const iterator& other) const;
-  bool operator!=(const iterator& other) const;
-
-  const HeaderField& operator*() const;
-
- private:
-  ReferenceSet* referenceSet_;
-  std::list<const HeaderField*>::iterator current_;
-  std::list<const HeaderField*>::iterator end_;
 };
 
 /**
