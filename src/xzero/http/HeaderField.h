@@ -23,7 +23,7 @@ class XZERO_HTTP_API HeaderField {
  public:
   static HeaderField parse(const std::string& field);
 
-  HeaderField() = default;
+  HeaderField();
   HeaderField(HeaderField&&) = default;
   HeaderField(const HeaderField&) = default;
   HeaderField& operator=(HeaderField&&) = default;
@@ -36,6 +36,20 @@ class XZERO_HTTP_API HeaderField {
 
   const std::string& value() const { return value_; }
   void setValue(const std::string& value) { value_ = value; }
+
+  /**
+   * Flag that determines whether or not the underlying protocol
+   * should treat this HeaderField with special security (at potential
+   * cost of performance / network latency).
+   */
+  bool isSecure() const noexcept { return secure_; }
+
+  /**
+   * Toggles whether or not the underlying transport protocol should
+   * treat this HeaderField with special security (at potential
+   * cost of performance / network latency).
+   */
+  void setSecure(bool value) { secure_ = value; }
 
   void prependValue(const std::string& value, const std::string& delim = "") {
     if (value_.empty()) {
@@ -63,16 +77,21 @@ class XZERO_HTTP_API HeaderField {
  private:
   std::string name_;
   std::string value_;
+  bool secure_;
 };
 
 // {{{ inlines
+inline HeaderField::HeaderField()
+    : name_(), value_(), secure_(false) {
+}
+
 inline HeaderField::HeaderField(const std::pair<std::string, std::string>& field)
     : HeaderField(field.first, field.second) {
 }
 
 inline HeaderField::HeaderField(const std::string& name,
                                 const std::string& value)
-    : name_(name), value_(value) {
+    : name_(name), value_(value), secure_(false) {
 }
 // }}}
 
