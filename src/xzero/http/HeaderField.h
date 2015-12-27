@@ -29,6 +29,7 @@ class XZERO_HTTP_API HeaderField {
   HeaderField& operator=(HeaderField&&) = default;
   HeaderField& operator=(const HeaderField&) = default;
   HeaderField(const std::string& name, const std::string& value);
+  HeaderField(const std::pair<std::string, std::string>& field);
 
   const std::string& name() const { return name_; }
   void setName(const std::string& name) { name_ = name; }
@@ -65,9 +66,13 @@ class XZERO_HTTP_API HeaderField {
 };
 
 // {{{ inlines
+inline HeaderField::HeaderField(const std::pair<std::string, std::string>& field)
+    : HeaderField(field.first, field.second) {
+}
+
 inline HeaderField::HeaderField(const std::string& name,
                                 const std::string& value)
-  : name_(name), value_(value) {
+    : name_(name), value_(value) {
 }
 // }}}
 
