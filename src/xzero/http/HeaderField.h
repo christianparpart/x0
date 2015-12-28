@@ -42,14 +42,14 @@ class XZERO_HTTP_API HeaderField {
    * should treat this HeaderField with special security (at potential
    * cost of performance / network latency).
    */
-  bool isSecure() const noexcept { return secure_; }
+  bool isSensitive() const noexcept { return sensitive_; }
 
   /**
    * Toggles whether or not the underlying transport protocol should
    * treat this HeaderField with special security (at potential
    * cost of performance / network latency).
    */
-  void setSecure(bool value) { secure_ = value; }
+  void setSensitive(bool value) { sensitive_ = value; }
 
   void prependValue(const std::string& value, const std::string& delim = "") {
     if (value_.empty()) {
@@ -77,12 +77,12 @@ class XZERO_HTTP_API HeaderField {
  private:
   std::string name_;
   std::string value_;
-  bool secure_;
+  bool sensitive_;
 };
 
 // {{{ inlines
 inline HeaderField::HeaderField()
-    : name_(), value_(), secure_(false) {
+    : name_(), value_(), sensitive_(false) {
 }
 
 inline HeaderField::HeaderField(const std::pair<std::string, std::string>& field)
@@ -91,7 +91,7 @@ inline HeaderField::HeaderField(const std::pair<std::string, std::string>& field
 
 inline HeaderField::HeaderField(const std::string& name,
                                 const std::string& value)
-    : name_(name), value_(value), secure_(false) {
+    : name_(name), value_(value), sensitive_(false) {
 }
 // }}}
 
