@@ -81,6 +81,7 @@ std::string StatusCategory::message(int ec) const {
     case Status::CaughtUnknownExceptionError: return "Caught Unknown exception Error";
     case Status::ConfigurationError: return "Configuration Error";
     case Status::AlreadyWatchingOnResource: return "Already watching on resource";
+    case Status::CompressionError: return "Compression error";
     //.
     default: return "Unknown Xzero Status Code";
   }

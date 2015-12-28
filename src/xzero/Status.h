@@ -59,6 +59,7 @@ enum class Status {
   CaughtUnknownExceptionError,
   ConfigurationError,
   AlreadyWatchingOnResource,
+  CompressionError,
 };
 
 class StatusCategory : public std::error_category {
