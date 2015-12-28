@@ -9,6 +9,7 @@
 
 #include <xzero/http/hpack/DynamicTable.h>
 #include <xzero/Buffer.h>
+#include <functional>
 
 namespace xzero {
 namespace http {
@@ -30,7 +31,9 @@ class Parser {
   typedef unsigned char value_type;
   typedef unsigned char* iterator;
 
-  explicit Parser(size_t maxSize);
+  typedef std::function<void(const std::string&, const std::string&)> Emitter;
+
+  Parser(size_t maxSize, Emitter emitter);
 
   /**
    * Parses a syntactically complete header block.
@@ -43,11 +46,13 @@ class Parser {
   iterator updateTableSize(iterator i, iterator e);
   iterator literalHeader(iterator i, iterator e);
 
-  static size_t decodeInt(uint64_t* output, iterator pos, iterator end);
+  static size_t decodeInt(uint8_t prefixBits, uint64_t* output,
+                          iterator pos, iterator end);
   static size_t decodeString(std::string* output, iterator pos, iterator end);
 
  private:
   DynamicTable dynamicTable_;
+  Emitter emitter_;
 };
 
 } // namespace hpack

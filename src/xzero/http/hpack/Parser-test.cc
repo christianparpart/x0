@@ -19,13 +19,13 @@ using namespace xzero::http::hpack;
      (i3 << 3) | (i2 << 2) | (i1 << 1) | i0)
 
 TEST(http_hpack_Parser, updateTableSize) {
-  Parser parser(4096);
+  Parser parser(4096, nullptr);
 }
 
 // ----------------------------------------------------------------------
 TEST(http_hpack_Parser, decodeInt) {
   static constexpr int X = 0;
-  Parser parser(4096);
+  Parser parser(4096, nullptr);
   uint8_t encodedInt[4] = {0};
   uint8_t* encodedIntEnd = encodedInt + 4;
   uint64_t decodedInt = 0;
@@ -38,7 +38,7 @@ TEST(http_hpack_Parser, decodeInt) {
    *   +---+---+---+---+---+---+---+---+
    */
   encodedInt[0] = BIN8(X, X, X, 0, 1, 0, 1, 0);
-  size_t nparsed = Parser::decodeInt(&decodedInt, encodedInt, encodedIntEnd);
+  size_t nparsed = Parser::decodeInt(5, &decodedInt, encodedInt, encodedIntEnd);
   ASSERT_EQ(1, nparsed);
   ASSERT_EQ(10, decodedInt);
 
@@ -54,7 +54,7 @@ TEST(http_hpack_Parser, decodeInt) {
   encodedInt[0] = BIN8(X, X, X, 1, 1, 1, 1, 1);
   encodedInt[1] = BIN8(1, 0, 0, 1, 1, 0, 1, 0);
   encodedInt[2] = BIN8(0, 0, 0, 0, 1, 0, 1, 0);
-  nparsed = Parser::decodeInt(&decodedInt, encodedInt, encodedIntEnd);
+  nparsed = Parser::decodeInt(5, &decodedInt, encodedInt, encodedIntEnd);
   ASSERT_EQ(3, nparsed);
   ASSERT_EQ(1337, decodedInt);
 
@@ -66,7 +66,7 @@ TEST(http_hpack_Parser, decodeInt) {
    *   +---+---+---+---+---+---+---+---+
    */
   encodedInt[0] = BIN8(0, 0, 1, 0, 1, 0, 1, 0);
-  nparsed = Parser::decodeInt(&decodedInt, encodedInt, encodedIntEnd);
+  nparsed = Parser::decodeInt(8, &decodedInt, encodedInt, encodedIntEnd);
   ASSERT_EQ(1, nparsed);
   ASSERT_EQ(42, decodedInt);
 }

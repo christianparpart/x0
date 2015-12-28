@@ -162,7 +162,9 @@ size_t Generator::encodeInt(uint64_t value,
 }
 
 bool Generator::isIndexable(const HeaderField& field) const {
-  return !field.isSecure();
+  return !field.isSensitive() &&
+          field.name().size() + field.value().size() +
+          DynamicTable::HeaderFieldOverheadSize < dynamicTable_.maxSize();
 }
 
 } // namespace hpack

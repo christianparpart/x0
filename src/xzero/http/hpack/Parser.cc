@@ -9,13 +9,15 @@
 #include <xzero/http/hpack/Parser.h>
 #include <xzero/http/HeaderFieldList.h>
 #include <xzero/http/HeaderField.h>
+#include <xzero/RuntimeError.h>
 
 namespace xzero {
 namespace http {
 namespace hpack {
 
-Parser::Parser(size_t maxSize)
-    : dynamicTable_(maxSize) {
+Parser::Parser(size_t maxSize, Emitter emitter)
+    : dynamicTable_(maxSize),
+      emitter_(emitter) {
 }
 
 bool Parser::parse(const BufferRef& headerBlock) {
@@ -65,8 +67,38 @@ Parser::iterator Parser::literalHeader(iterator i, iterator e) {
   return i;
 }
 
-size_t Parser::decodeInt(uint64_t* output, iterator pos, iterator end) {
-  return 0; // TODO
+// 2^n
+#define BIT(n) (1 << (n))
+
+// LSB from 0 to n set, rest cleared
+#define BITMASK(n) (BIT(n) - 1)
+
+size_t Parser::decodeInt(uint8_t prefixBits, uint64_t* output,
+                         iterator pos, iterator end) {
+  assert(prefixBits <= 8);
+  assert(pos != end);
+
+  *output = *pos;
+
+  if (prefixBits < 8)
+    *output &= BITMASK(prefixBits);
+
+  if (*output < BITMASK(prefixBits))
+    return 1;
+
+  size_t nbytes = 1;
+  while (pos != end) {
+    uint8_t part = *pos & BITMASK(7);
+    *output += part;
+    pos++;
+    nbytes++;
+
+    if ((part & BIT(7)) == 0) {
+      return nbytes;
+    }
+  }
+
+  RAISE(RuntimeError, "Need more data");
 }
 
 } // namespace hpack

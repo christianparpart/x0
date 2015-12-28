@@ -19,13 +19,6 @@ namespace hpack {
 #define TRACE(msg...) do {} while (0)
 #endif
 
-// XXX: The additional 32 octets account for an estimated overhead associated
-// with an entry. For example, an entry structure using two 64-bit pointers to
-// reference the name and the value of the entry and two 64-bit integers for
-// counting the number of references to the name and value would have 32
-// octets of overhead.
-static const size_t HeaderFieldOverheadSize = 32;
-
 DynamicTable::DynamicTable(size_t maxSize)
     : maxSize_(maxSize),
       size_(0),
