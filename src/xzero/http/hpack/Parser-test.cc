@@ -8,6 +8,7 @@
 
 #include <xzero/http/hpack/Parser.h>
 #include <xzero/http/HeaderFieldList.h>
+#include <xzero/Application.h>
 #include <gtest/gtest.h>
 
 using namespace xzero;
@@ -24,6 +25,8 @@ TEST(http_hpack_Parser, updateTableSize) {
 
 // ----------------------------------------------------------------------
 TEST(http_hpack_Parser, decodeInt) {
+  Application::logToStderr(LogLevel::Trace);
+
   static constexpr int X = 0;
   Parser parser(4096, nullptr);
   uint8_t encodedInt[4] = {0};

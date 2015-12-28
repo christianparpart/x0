@@ -10,10 +10,17 @@
 #include <xzero/http/HeaderFieldList.h>
 #include <xzero/http/HeaderField.h>
 #include <xzero/RuntimeError.h>
+#include <xzero/logging.h>
 
 namespace xzero {
 namespace http {
 namespace hpack {
+
+#if !defined(NDEBUG)
+#define TRACE(msg...) logTrace("http.hpack.Parser", msg)
+#else
+#define TRACE(msg...) do {} while (0)
+#endif
 
 Parser::Parser(size_t maxSize, Emitter emitter)
     : dynamicTable_(maxSize),
@@ -83,17 +90,26 @@ size_t Parser::decodeInt(uint8_t prefixBits, uint64_t* output,
   if (prefixBits < 8)
     *output &= BITMASK(prefixBits);
 
+  TRACE("decodeInt: byte 0 value: $0", (int)*output);
+
   if (*output < BITMASK(prefixBits))
     return 1;
 
   size_t nbytes = 1;
+  unsigned multiplier = 0;
   while (pos != end) {
-    uint8_t part = *pos & BITMASK(7);
-    *output += part;
+    uint8_t part = *pos;
+    *output += (part & BITMASK(7)) << multiplier;
+    multiplier += 7;
+
+    TRACE("decodeInt: byte $0 value: $1 ($2)", nbytes,
+          (unsigned) part, (unsigned)*output);
+
     pos++;
     nbytes++;
 
     if ((part & BIT(7)) == 0) {
+      TRACE("decodeInt: byte $0: bit 7 not set. result $part.", nbytes, part);
       return nbytes;
     }
   }
