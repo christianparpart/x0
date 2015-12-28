@@ -14,37 +14,58 @@ namespace xzero {
 namespace http {
 namespace hpack {
 
+Parser::Parser(size_t maxSize)
+    : dynamicTable_(maxSize) {
+}
+
 bool Parser::parse(const BufferRef& headerBlock) {
-  const uint8_t* i = (const uint8_t*) headerBlock.begin();
-  const uint8_t* e = (const uint8_t*) headerBlock.end();
+  iterator i = iterator(headerBlock.begin());
+  iterator e = iterator(headerBlock.end());
 
   while (i != e) {
-    uint8_t octet = *i;
-    bool indexed = false;
+    value_type octet = *i;
 
     if (octet & (1 << 7)) {
       // indexed header field
-      indexed = true;
+      i = indexedHeaderField(i, e);
     }
     else if (octet & (1 << 6)) {
       // literal header field with incremental indexing
+      i = incrementalIndexedField(i, e);
     }
     else if (octet & (1 << 5)) {
       // dynamic table size update
+      i = updateTableSize(i, e);
     }
     else if (octet & (1 << 4)) {
       // literal header field (never indexed)
+      i = literalHeader(i, e);
     }
     else {
       // literal header field (without indexing)
+      i = literalHeader(i, e);
     }
   }
-  return false;
+  return i == e;
 }
 
-size_t Parser::decodeInt(uint64_t* output,
-                         const unsigned char* pos,
-                         const unsigned char* end) {
+Parser::iterator Parser::indexedHeaderField(iterator i, iterator e) {
+  return i;
+}
+
+Parser::iterator Parser::incrementalIndexedField(iterator i, iterator e) {
+  return i;
+}
+
+Parser::iterator Parser::updateTableSize(iterator i, iterator e) {
+  return i;
+}
+
+Parser::iterator Parser::literalHeader(iterator i, iterator e) {
+  return i;
+}
+
+size_t Parser::decodeInt(uint64_t* output, iterator pos, iterator end) {
   return 0; // TODO
 }
 

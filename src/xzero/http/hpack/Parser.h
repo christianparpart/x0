@@ -18,13 +18,33 @@ class HeaderFieldList;
 
 namespace hpack {
 
+enum class ParseError {
+  NoError,
+  NeedMoreData,
+  InternalError,
+  CompressionError,
+};
+
 class Parser {
  public:
+  typedef unsigned char value_type;
+  typedef unsigned char* iterator;
+
+  explicit Parser(size_t maxSize);
+
+  /**
+   * Parses a syntactically complete header block.
+   */
   bool parse(const BufferRef& headerBlock);
 
-  static size_t decodeInt(uint64_t* output,
-                          const unsigned char* pos,
-                          const unsigned char* end);
+ public: // helper api
+  iterator indexedHeaderField(iterator i, iterator e);
+  iterator incrementalIndexedField(iterator i, iterator e);
+  iterator updateTableSize(iterator i, iterator e);
+  iterator literalHeader(iterator i, iterator e);
+
+  static size_t decodeInt(uint64_t* output, iterator pos, iterator end);
+  static size_t decodeString(std::string* output, iterator pos, iterator end);
 
  private:
   DynamicTable dynamicTable_;
