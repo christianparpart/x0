@@ -114,8 +114,8 @@ void Generator::generateHeader(const HeaderField& field) {
 void Generator::encodeString(const std::string& value, bool compressed) {
   // (5.2) String Literal Representation
 
-  if (compressed) {
-    std::string smaller = Huffman::compress(value);
+  if (compressed && Huffman::encodeLength(value) < value.size()) {
+    std::string smaller = Huffman::encode(value);
     encodeInt(1, 7, smaller.size());
     headerBlock_.push_back(smaller);
   } else {

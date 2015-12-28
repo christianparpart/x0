@@ -12,11 +12,29 @@ namespace xzero {
 namespace http {
 namespace hpack {
 
-std::string Huffman::compress(const std::string& value) {
+struct HuffmanCode {
+  unsigned nbits;
+  uint32_t code;
+};
+
+static HuffmanCode huffmanCodes[] = {
+  // TODO [sym] = { nbits, code },
+};
+
+size_t Huffman::encodeLength(const std::string& value) {
+  size_t n = 0;
+
+  for (uint8_t ch: value)
+    n += huffmanCodes[ch].nbits;
+
+  return (n + 7) / 8;
+}
+
+std::string Huffman::encode(const std::string& value) {
   return ""; //TODO
 }
 
-std::string Huffman::decompress(const std::string& value) {
+std::string Huffman::decode(const std::string& value) {
   return ""; //TODO
 }
 

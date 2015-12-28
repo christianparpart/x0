@@ -15,8 +15,10 @@ namespace hpack {
 
 class Huffman {
  public:
-  static std::string compress(const std::string& value);
-  static std::string decompress(const std::string& value);
+  static std::string encode(const std::string& value);
+  static std::string decode(const std::string& value);
+
+  static size_t encodeLength(const std::string& value);
 };
 
 } // namespace hpack
