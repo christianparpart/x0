@@ -89,7 +89,7 @@ Parser::const_iterator Parser::incrementalIndexedField(const_iterator pos,
                                                        const_iterator end) {
   // (6.2.1) Literal Header Field with Incremental Indexing
 
-  size_t index;
+  uint64_t index;
   size_t n = decodeInt(6, &index, pos, end);
   pos += n;
 
