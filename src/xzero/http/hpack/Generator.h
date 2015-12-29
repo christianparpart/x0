@@ -69,7 +69,7 @@ class Generator {
   /**
    * Gives read-only access to the generated header block.
    */
-  const BufferRef& headerBlock() const;
+  const BufferRef& headerBlock() const noexcept;
 
   /**
    * Encodes an integer.
@@ -87,15 +87,37 @@ class Generator {
                           uint64_t value,
                           unsigned char* output);
 
- protected:
+ public: // XXX raw access, be aware !
   void encodeInt(uint8_t suffix, uint8_t prefixBits, uint64_t value);
   void encodeString(const std::string& value, bool compressed = false);
   bool isIndexable(const HeaderField& field) const;
+
+  void encodeHeaderIndexed(size_t index,
+                           bool fullMatch,
+                           const std::string& name,
+                           const std::string& value,
+                           bool sensitive);
+ private:
+  void write8(uint8_t byte);
 
  private:
   DynamicTable dynamicTable_;
   Buffer headerBlock_;
 };
+
+// {{{ inlines
+inline size_t Generator::size() const noexcept {
+  return headerBlock_.size();
+}
+
+inline const BufferRef& Generator::headerBlock() const noexcept {
+  return headerBlock_;
+}
+
+inline void Generator::write8(uint8_t byte) {
+  headerBlock_.push_back((char) byte);
+}
+// }}}
 
 } // namespace hpack
 } // namespace http

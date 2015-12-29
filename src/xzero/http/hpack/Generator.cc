@@ -40,8 +40,9 @@ Generator::Generator(size_t maxSize)
 }
 
 void Generator::setMaxSize(size_t maxSize) {
-  dynamicTable_.setMaxSize(maxSize);
   headerBlock_.reserve(maxSize);
+  dynamicTable_.setMaxSize(maxSize);
+  encodeInt(1, 5, maxSize);
 }
 
 void Generator::clear() {
@@ -72,39 +73,58 @@ void Generator::generateHeader(const HeaderField& field) {
 void Generator::generateHeader(const std::string& name,
                                const std::string& value,
                                bool sensitive) {
-  auto isIndexable = [&]() -> bool {
-      return !sensitive &&
-          name.size() + value.size() +
-          DynamicTable::HeaderFieldOverheadSize < dynamicTable_.maxSize();
-  };
-
   // search in static table
   bool nameValueMatch;
   size_t index = StaticTable::find(name, value, &nameValueMatch);
   if (index != StaticTable::npos) {
-    if (nameValueMatch) {
-      // (6.1) indexed header field
-      encodeInt(1, 7, index);
-    } else if (isIndexable()) {
-      // (6.2.1) indexed name, literal value, indexable
-      dynamicTable_.add(name, value);
-      encodeInt(1, 6, index);
-      encodeString(value);
-    } else {
-      // (6.2.2) indexed name, literal value, non-indexable
-      encodeInt(0, 4, index);
-      encodeString(value);
-    }
+    encodeHeaderIndexed(index + 1, nameValueMatch, name, value, sensitive);
+    return;
   }
 
   // search in dynamic table
   index = dynamicTable_.find(name, value, &nameValueMatch);
   if (index != DynamicTable::npos) {
-    index += StaticTable::length();
-    if (nameValueMatch) {
-      // indexed header field (6.1)
-      encodeInt(1, 7, index);
-    } else if (isIndexable()) {
+    encodeHeaderIndexed(index + StaticTable::length(),
+                        nameValueMatch, name, value, sensitive);
+    return;
+  }
+
+  const size_t fieldSize = name.size() + value.size() +
+                           DynamicTable::HeaderFieldOverheadSize;
+
+  if (sensitive) {
+    // (6.2.3) Literal Header Field Never Indexed (new name)
+    write8(1 << 4);
+    encodeString(name);
+    encodeString(value);
+  } else if (fieldSize < dynamicTable_.maxSize()) {
+    // (6.2.1) Literal Header Field with Incremental Indexing (new name)
+    dynamicTable_.add(name, value);
+    write8(1 << 6);
+    encodeString(name);
+    encodeString(value);
+  } else {
+    // (6.2.2) Literal Header Field without Indexing (new name)
+    write8(0);
+    encodeString(name);
+    encodeString(value);
+  }
+}
+
+void Generator::encodeHeaderIndexed(size_t index,
+                                    bool nameValueMatch,
+                                    const std::string& name,
+                                    const std::string& value,
+                                    bool sensitive) {
+  const size_t fieldSize = name.size() + value.size() +
+                           DynamicTable::HeaderFieldOverheadSize;
+
+  if (nameValueMatch) {
+    // (6.1) indexed header field
+    encodeInt(1, 7, index);
+  } else if (!sensitive) {
+    // can be indexed
+    if (fieldSize < dynamicTable_.maxSize()) {
       // (6.2.1) indexed name, literal value, indexable
       dynamicTable_.add(name, value);
       encodeInt(1, 6, index);
@@ -114,21 +134,18 @@ void Generator::generateHeader(const std::string& name,
       encodeInt(0, 4, index);
       encodeString(value);
     }
-  }
-
-  // literal name, literal value
-  if (isIndexable()) {
-    // with future-indexing
-    dynamicTable_.add(name, value);
-    headerBlock_.push_back(1 << 6); // 0100_0000
-    encodeString(name);
-    encodeString(value);
   } else {
-    // without future-indexing
-    headerBlock_.push_back(0);
-    encodeString(name);
+    // (6.2.3) indexed name, literal value, never index
+    encodeInt(1, 4, index);
     encodeString(value);
   }
+}
+
+void Generator::encodeInt(uint8_t suffix, uint8_t prefixBits, uint64_t value) {
+  headerBlock_.reserve(headerBlock_.size() + 8);
+  unsigned char* output = (unsigned char*) headerBlock_.end();
+  size_t n = encodeInt(suffix, prefixBits, value, output);
+  headerBlock_.resize(headerBlock_.size() + n);
 }
 
 void Generator::encodeString(const std::string& value, bool compressed) {
@@ -143,14 +160,6 @@ void Generator::encodeString(const std::string& value, bool compressed) {
     encodeInt(0, 7, value.size());
     headerBlock_.push_back(value);
   }
-}
-
-void Generator::encodeInt(uint8_t suffix, uint8_t prefixBits, uint64_t value) {
-  unsigned char* output = (unsigned char*) headerBlock_.end();
-
-  headerBlock_.reserve(headerBlock_.size() + 8);
-  size_t n = encodeInt(suffix, prefixBits, value, output);
-  headerBlock_.resize(headerBlock_.size() + n);
 }
 
 size_t Generator::encodeInt(uint8_t suffix,

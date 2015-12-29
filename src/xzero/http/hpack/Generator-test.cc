@@ -13,21 +13,6 @@ using namespace xzero;
 using namespace xzero::http;
 using namespace xzero::http::hpack;
 
-std::string tob(uint8_t value) {
-  std::string s;
-  for (int i = 7; i >= 0; i--) {
-    if (value & (1 << i))
-      s += '1';
-    else
-      s += '0';
-  }
-  return s;
-}
-
-void dumpb(const char* msg, uint8_t value) {
-  printf("%s: %s\n", msg, tob(value).c_str());
-}
-
 TEST(hpack_Generator, encodeInt) {
   unsigned char encoded[8];
   unsigned nwritten;
@@ -68,4 +53,106 @@ TEST(hpack_Generator, encodeInt) {
   nwritten = Generator::encodeInt(0, 8, 42, encoded);
   EXPECT_EQ(1, nwritten);
   EXPECT_EQ(0b00101010, encoded[0]);
+}
+
+TEST(hpack_Generator, encodeString) {
+  {
+    Generator generator(4096);
+    generator.encodeString("");
+    ASSERT_EQ(1, generator.headerBlock().size());
+    EXPECT_EQ(0x00, generator.headerBlock()[0]);
+  }
+
+  {
+    Generator generator(4096);
+    generator.encodeString("Hello");
+    ASSERT_EQ(6, generator.headerBlock().size());
+    EXPECT_EQ(0x05, generator.headerBlock()[0]);
+    EXPECT_EQ("Hello", generator.headerBlock().ref(1));
+  }
+}
+
+TEST(hpack_Generator, literalHeaderFieldWithIndex) {
+  /* C.2.1 Literal Header Field with Indexing
+   *
+   * custom-key: custom-header
+   *
+   * 400a 6375 7374 6f6d 2d6b 6579 0d63 7573 | @.custom-key.cus
+   * 746f 6d2d 6865 6164 6572                | tom-header
+   */
+
+  Generator generator(4096);
+
+  generator.generateHeader("custom-key", "custom-header", false);
+  const BufferRef& headerBlock = generator.headerBlock();
+
+  ASSERT_EQ(26, headerBlock.size());
+  EXPECT_EQ(0x40, headerBlock[0]);  // prefix
+  EXPECT_EQ(0x0A, headerBlock[1]);  // first string
+  EXPECT_EQ(0x0D, headerBlock[12]); // second string
+}
+
+TEST(hpack_Generator, literalHeaderWithoutIndexing) {
+  /* C.2.2 Literal Header Field without Indexing
+   *
+   * :path: /sample/path
+   *
+   * 040c 2f73 616d 706c 652f 7061 7468      | ../sample/path
+   */
+
+  // we set maxSize small enough in order to avoid indexing
+  Generator generator(16);
+  generator.generateHeader(":path", "/sample/path", false);
+  const BufferRef& headerBlock = generator.headerBlock();
+
+  ASSERT_EQ(14, headerBlock.size());
+  EXPECT_EQ(0x04, headerBlock[0]);
+  EXPECT_EQ(0x0c, headerBlock[1]);
+  EXPECT_EQ(0x2f, headerBlock[2]);
+  EXPECT_EQ(0x73, headerBlock[3]);
+}
+
+TEST(hpack_Generator, literalHeaderNeverIndex) {
+  /* C.2.3 Literal Header Field Never Indexed
+   *
+   * password: secret
+   */
+
+  // uint8_t block[] = {
+  //     0x10, 0x08, 0x70, 0x61, 0x73, 0x73, 0x77, 0x6f, 0x72, 0x64,
+  //     0x06, 0x73, 0x65, 0x63, 0x72, 0x65, 0x74 };
+
+  Generator generator(4096);
+  generator.generateHeader("password", "secret", true);
+  const BufferRef& headerBlock = generator.headerBlock();
+
+  ASSERT_EQ(17, headerBlock.size());
+  EXPECT_EQ(0x10, headerBlock[0]);
+  EXPECT_EQ(0x08, headerBlock[1]);
+  EXPECT_EQ(0x70, headerBlock[2]);
+}
+
+TEST(hpack_Generator, literalHeaderFieldFromIndex) {
+  /* C.2.4 Indexed Header Field
+   *
+   * :method: GET
+   *
+   * 82
+   */
+
+  Generator generator(64);
+  generator.generateHeader(":method", "GET", false);
+  const BufferRef& headerBlock = generator.headerBlock();
+
+  ASSERT_EQ(1, headerBlock.size());
+  EXPECT_EQ('\x82', headerBlock[0]);
+}
+
+TEST(hpack_Generator, updateTableSize) {
+  Generator generator(4096);
+  generator.setMaxSize(5);
+  const BufferRef& headerBlock = generator.headerBlock();
+
+  ASSERT_EQ(1, headerBlock.size());
+  EXPECT_EQ(0x25, headerBlock[0]);
 }
