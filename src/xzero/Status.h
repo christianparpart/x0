@@ -60,6 +60,7 @@ enum class Status {
   ConfigurationError,
   AlreadyWatchingOnResource,
   CompressionError,
+  ProtocolError,
 };
 
 class StatusCategory : public std::error_category {
