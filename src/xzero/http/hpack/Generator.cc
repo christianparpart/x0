@@ -122,21 +122,18 @@ void Generator::encodeHeaderIndexed(size_t index,
   if (nameValueMatch) {
     // (6.1) indexed header field
     encodeInt(1, 7, index);
-  } else if (!sensitive) {
-    // can be indexed
-    if (fieldSize < dynamicTable_.maxSize()) {
-      // (6.2.1) indexed name, literal value, indexable
-      dynamicTable_.add(name, value);
-      encodeInt(1, 6, index);
-      encodeString(value);
-    } else {
-      // (6.2.2) indexed name, literal value, non-indexable
-      encodeInt(0, 4, index);
-      encodeString(value);
-    }
-  } else {
+  } else if (sensitive) {
     // (6.2.3) indexed name, literal value, never index
     encodeInt(1, 4, index);
+    encodeString(value);
+  } else if (fieldSize < dynamicTable_.maxSize()) {
+    // (6.2.1) indexed name, literal value, indexable
+    dynamicTable_.add(name, value);
+    encodeInt(1, 6, index);
+    encodeString(value);
+  } else {
+    // (6.2.2) indexed name, literal value, non-indexable
+    encodeInt(0, 4, index);
     encodeString(value);
   }
 }
