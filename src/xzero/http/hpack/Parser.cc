@@ -9,7 +9,6 @@
 #include <xzero/http/hpack/Parser.h>
 #include <xzero/http/hpack/StaticTable.h>
 #include <xzero/http/hpack/DynamicTable.h>
-#include <xzero/http/HeaderFieldList.h>
 #include <xzero/http/HeaderField.h>
 #include <xzero/RuntimeError.h>
 #include <xzero/logging.h>

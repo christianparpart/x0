@@ -15,7 +15,6 @@ namespace xzero {
 namespace http {
 
 class HeaderField;
-class HeaderFieldList;
 
 namespace hpack {
 
