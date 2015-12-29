@@ -7,6 +7,7 @@
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 #include <xzero/http/hpack/Huffman.h>
+#include <xzero/RuntimeError.h>
 
 namespace xzero {
 namespace http {
@@ -31,11 +32,11 @@ size_t Huffman::encodeLength(const std::string& value) {
 }
 
 std::string Huffman::encode(const std::string& value) {
-  return ""; //TODO
+  RAISE(NotImplementedError, "Huffman encoding not implemented yet");
 }
 
-std::string Huffman::decode(const std::string& value) {
-  return ""; //TODO
+std::string Huffman::decode(const uint8_t* pos, const uint8_t* end) {
+  RAISE(NotImplementedError, "Huffman decoding not implemented yet");
 }
 
 } // namespace hpack

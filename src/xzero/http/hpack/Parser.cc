@@ -9,6 +9,7 @@
 #include <xzero/http/hpack/Parser.h>
 #include <xzero/http/hpack/StaticTable.h>
 #include <xzero/http/hpack/DynamicTable.h>
+#include <xzero/http/hpack/Huffman.h>
 #include <xzero/http/HeaderField.h>
 #include <xzero/RuntimeError.h>
 #include <xzero/logging.h>
@@ -260,12 +261,17 @@ size_t Parser::decodeString(std::string* output,
 
   uint64_t slen;
   size_t n = decodeInt(7, &slen, pos, end);
+  bool compressed = *pos & (1 << 7);
   pos += n;
 
   if (slen > end - pos)
     RAISE(CompressionError, "Need more data");
 
-  output->assign((char*) pos, slen);
+  if (compressed)
+    *output = Huffman::decode(pos, pos + slen);
+  else
+    output->assign((char*) pos, slen);
+
   n += slen;
 
   return n;

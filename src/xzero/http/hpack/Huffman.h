@@ -16,7 +16,7 @@ namespace hpack {
 class Huffman {
  public:
   static std::string encode(const std::string& value);
-  static std::string decode(const std::string& value);
+  static std::string decode(const uint8_t* pos, const uint8_t* end);
 
   static size_t encodeLength(const std::string& value);
 };
