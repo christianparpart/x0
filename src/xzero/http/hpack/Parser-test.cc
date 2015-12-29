@@ -80,11 +80,78 @@ TEST(hpack_Parser, decodeString) {
   ASSERT_EQ("Hello", decoded);
 }
 
+TEST(hpack_Parser, literalHeaderFieldWithIndex) {
+  /* C.2.1 Literal Header Field with Indexing
+   *
+   * custom-key: custom-header
+   *
+   * 400a 6375 7374 6f6d 2d6b 6579 0d63 7573 | @.custom-key.cus
+   * 746f 6d2d 6865 6164 6572                | tom-header
+   */
+
+  uint8_t block[] = {
+      0x40, 0x0a, 0x63, 0x75, 0x73, 0x74, 0x6f, 0x6d, 0x2d, 0x6b, 0x65,
+      0x79, 0x0d, 0x63, 0x75, 0x73, 0x74, 0x6f, 0x6d, 0x2d, 0x68, 0x65,
+      0x61, 0x64, 0x65, 0x72 };
+
+  std::string name;
+  std::string value;
+  Option<bool> sensitive;
+
+  auto gotcha = [&](const std::string& _name, const std::string& _value, bool s) {
+    name = _name;
+    value = _value;
+    sensitive = Some(s);
+  };
+
+  Parser parser(4096, gotcha);
+  size_t nparsed = parser.parse(block, std::end(block));
+
+  ASSERT_EQ(26, nparsed);
+  ASSERT_EQ("custom-key", name);
+  ASSERT_EQ("custom-header", value);
+  ASSERT_TRUE(sensitive.isSome());
+  ASSERT_FALSE(sensitive.get());
+}
+
+TEST(hpack_Parser, literalHeaderWithoutIndexing) {
+  /* C.2.2 Literal Header Field without Indexing
+   *
+   * :path: /sample/path
+   *
+   * 040c 2f73 616d 706c 652f 7061 7468      | ../sample/path
+   */
+
+  uint8_t block[] = {
+      0x04, 0x0c, 0x2f, 0x73, 0x61, 0x6d, 0x70, 0x6c, 0x65, 0x2f,
+      0x70, 0x61, 0x74, 0x68 };
+
+  std::string name;
+  std::string value;
+  Option<bool> sensitive;
+
+  auto gotcha = [&](const std::string& _name, const std::string& _value, bool s) {
+    name = _name;
+    value = _value;
+    sensitive = Some(s);
+  };
+
+  Parser parser(4096, gotcha);
+  size_t nparsed = parser.parse(block, std::end(block));
+
+  ASSERT_EQ(14, nparsed);
+  ASSERT_EQ(":path", name);
+  ASSERT_EQ("/sample/path", value);
+  ASSERT_TRUE(sensitive.isSome());
+  ASSERT_FALSE(sensitive.get());
+}
+
 TEST(hpack_Parser, literalHeaderNeverIndex) {
   /* C.2.3 Literal Header Field Never Indexed
    *
    * password: secret
    */
+
   uint8_t block[] = {
       0x10, 0x08, 0x70, 0x61, 0x73, 0x73, 0x77, 0x6f, 0x72, 0x64,
       0x06, 0x73, 0x65, 0x63, 0x72, 0x65, 0x74 };
@@ -109,7 +176,45 @@ TEST(hpack_Parser, literalHeaderNeverIndex) {
   ASSERT_TRUE(sensitive.get());
 }
 
-TEST(hpack_Parser, updateTableSize) {
-  Parser parser(4096, nullptr);
+TEST(hpack_Parser, literalHeaderFieldFromIndex) {
+  /* C.2.4 Indexed Header Field
+   *
+   * :method: GET
+   *
+   * 82
+   */
+
+  uint8_t block[] = { 0x82 };
+
+  std::string name;
+  std::string value;
+  Option<bool> sensitive;
+
+  auto gotcha = [&](const std::string& _name, const std::string& _value, bool s) {
+    name = _name;
+    value = _value;
+    sensitive = Some(s);
+  };
+
+  Parser parser(4096, gotcha);
+  size_t nparsed = parser.parse(block, std::end(block));
+
+  ASSERT_EQ(1, nparsed);
+  ASSERT_EQ(":method", name);
+  ASSERT_EQ("GET", value);
+  ASSERT_TRUE(sensitive.isSome());
+  ASSERT_FALSE(sensitive.get());
 }
 
+TEST(hpack_Parser, updateTableSize) {
+  uint8_t block[] = { 0x25 };
+
+  Parser parser(4096, nullptr);
+  size_t nparsed = parser.parse(block, std::end(block));
+
+  ASSERT_EQ(1, nparsed);
+  ASSERT_EQ(5, parser.internalMaxSize());
+}
+
+// TODO: C.3.x three requests without huffman coding
+// TODO: C.4.x three requests with huffman coding

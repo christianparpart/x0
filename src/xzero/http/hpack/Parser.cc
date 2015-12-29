@@ -154,7 +154,7 @@ Parser::const_iterator Parser::literalHeaderNoIndex(const_iterator pos,
 
     emitSenstive(name, value, false);
   } else {
-    // literal, literal)
+    // (literal, literal)
     std::string name;
     size_t n = decodeString(&name, pos, end);
     pos += n;

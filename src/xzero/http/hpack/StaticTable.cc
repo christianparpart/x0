@@ -14,7 +14,6 @@ namespace http {
 namespace hpack {
 
 HeaderField StaticTable::entries_[] = {
-    /*  0 */ {"", ""},
     /*  1 */ {":authority", ""},
     /*  2 */ {":method", "GET"},
     /*  3 */ {":method", "POST"},
