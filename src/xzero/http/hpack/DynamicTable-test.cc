@@ -8,7 +8,6 @@
 
 #include <xzero/http/hpack/DynamicTable.h>
 #include <xzero/http/hpack/StaticTable.h>
-#include <xzero/Application.h>
 #include <gtest/gtest.h>
 
 using xzero::http::hpack::DynamicTable;
@@ -16,8 +15,6 @@ using xzero::http::hpack::StaticTable;
 using namespace xzero;
 
 TEST(hpack_DynamicTable, walkthrough) {
-  Application::logToStderr(LogLevel::Trace);
-
   DynamicTable dt(45);
 
   dt.add({"Hello", "World"}); // adds 42
