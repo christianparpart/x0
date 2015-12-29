@@ -49,8 +49,21 @@ class Parser {
    */
   Parser(size_t maxSize, Emitter emitter);
 
+  /**
+   * Sets the maximum value the internal maxSize limit can be set to.
+   */
   void setMaxSize(size_t limit);
+
+  /**
+   * Retrieves the maximum internal maxSize limit.
+   */
   size_t maxSize() const noexcept { return maxSize_; }
+
+  /**
+   * Retrieves the actual internal size limit in bytes.
+   *
+   * This value can never go past the set maxSize.
+   */
   size_t internalMaxSize() const noexcept { return dynamicTable_.maxSize(); }
 
   /**
@@ -65,13 +78,38 @@ class Parser {
   const_iterator literalHeaderNoIndex(const_iterator pos, const_iterator end);
   const_iterator literalHeaderNeverIndex(const_iterator pos, const_iterator end);
 
+  /**
+   * Retrieves an indexed header field from either static or dynamic table.
+   *
+   * @param index the HPACK conform index that represents the header field.
+   *              A value between 1 and StaticTable::length() is a field
+   *              from the static table.
+   *              A value between StaticTable::length() + 1 and above
+   *              will be retrieving the value from the DynamicTable's
+   *              offset minus StaticTable::length().
+   */
   const HeaderField& at(size_t index);
 
+  /**
+   * Decodes a variable sized unsigned integer.
+   *
+   * @param prefixBits number of used bits at @p pos.
+   * @param output the resulting integer will be stored here.
+   * @param pos beginning position to start decoding from.
+   * @param end maximum position to be able to read to (excluding).
+   */
   static size_t decodeInt(uint8_t prefixBits,
                           uint64_t* output,
                           const_iterator pos,
                           const_iterator end);
 
+  /**
+   * Decodes a length-encoded string.
+   *
+   * @param output the resulting string will be stored here.
+   * @param pos beginning position to start decoding from.
+   * @param end maximum position to be able to read to (excluding).
+   */
   static size_t decodeString(std::string* output,
                              const_iterator pos,
                              const_iterator end);
