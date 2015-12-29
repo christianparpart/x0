@@ -260,8 +260,8 @@ size_t Parser::decodeString(std::string* output,
   assert(output != nullptr);
 
   uint64_t slen;
-  size_t n = decodeInt(7, &slen, pos, end);
   bool compressed = *pos & (1 << 7);
+  size_t n = decodeInt(7, &slen, pos, end);
   pos += n;
 
   if (slen > end - pos)
