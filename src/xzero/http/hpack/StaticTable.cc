@@ -13,7 +13,7 @@ namespace xzero {
 namespace http {
 namespace hpack {
 
-HeaderField StaticTable::entries_[] = {
+TableEntry StaticTable::entries_[] = {
     /*  1 */ {":authority", ""},
     /*  2 */ {":method", "GET"},
     /*  3 */ {":method", "POST"},
@@ -86,25 +86,30 @@ size_t StaticTable::length() {
   return sizeof(entries_) / sizeof(entries_[0]);
 }
 
-size_t StaticTable::find(const std::string& name,
-                         const std::string& value,
-                         bool* nameValueMatch) {
-  for (size_t index = 0, max = length(); index < max; index++) {
-    if (name != entries_[index].name())
+bool StaticTable::find(const TableEntry& entry,
+                       size_t* index,
+                       bool* nameValueMatch) {
+  return find(entry.first, entry.second, index, nameValueMatch);
+}
+
+bool StaticTable::find(const std::string& name,
+                       const std::string& value,
+                       size_t* index,
+                       bool* nameValueMatch) {
+  // TODO: binary search instead, std::lower_bound() ?
+  for (size_t i = 0, max = length(); i < max; i++) {
+    if (name != entries_[i].first)
       continue;
 
-    *nameValueMatch = value == entries_[index].value();
-    return index;
+    *index = i;
+    *nameValueMatch = value == entries_[i].second;
+    return true;
   }
 
-  return npos;
+  return false;
 }
 
-size_t StaticTable::find(const HeaderField& field, bool* nameValueMatch) {
-  return find(field.name(), field.value(), nameValueMatch);
-}
-
-const HeaderField& StaticTable::at(size_t index) {
+const TableEntry& StaticTable::at(size_t index) {
   assert(index < length());
   return entries_[index];
 }

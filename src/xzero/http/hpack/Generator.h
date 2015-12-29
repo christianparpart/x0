@@ -97,6 +97,10 @@ class Generator {
                            const std::string& name,
                            const std::string& value,
                            bool sensitive);
+
+  void encodeHeaderLiteral(const std::string& name,
+                           const std::string& value,
+                           bool sensitive);
  private:
   void write8(uint8_t byte);
 

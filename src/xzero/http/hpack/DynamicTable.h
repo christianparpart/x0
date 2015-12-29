@@ -7,8 +7,10 @@
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 #pragma once
 
-#include <xzero/http/HeaderField.h>
+#include <xzero/http/hpack/TableEntry.h>
 #include <deque>
+#include <string>
+#include <utility>
 #include <cstdint>
 
 namespace xzero {
@@ -16,7 +18,7 @@ namespace http {
 namespace hpack {
 
 /**
-  * Compression Sensitive HeaderField Table.
+  * Compression Sensitive Header Field Table.
   *
   * The dynamic table (see Section 2.3.2) is a table that associates stored
   * header fields with index values. This table is dynamic and specific to an
@@ -63,33 +65,50 @@ class DynamicTable {
   void setMaxSize(size_t limit);
 
   /**
-   * Adds given @p field to the dynamic table.
-   */
-  void add(const HeaderField& field);
-
-  /**
    * Adds given @p name and @p value pair to the table.
    */
   void add(const std::string& name, const std::string& value);
+
+  /**
+   * Adds given table @p entry to the table.
+   */
+  void add(const TableEntry& entry);
+
+  /**
+   * Searches for given @p field in the dynamic table.
+   *
+   * @param entry Header field name/value pair to match for.
+   * @param index output parameter that will contain the matching table index
+   * @param nameValueMatch output parameter that will contain the match type
+   *                       that is @c true if it was a full (name,value)-match
+   *                       or @c false if just a name-match.
+   *
+   * @retval true table entry found. @p index and @p nameValueMatch updated.
+   * @retval false No table entry found.
+   */
+  bool find(const TableEntry& entry,
+            size_t* index,
+            bool* nameValueMatch) const;
 
   /**
    * Searches for given @p field in the dynamic table.
    *
    * @param name Header field name to match for.
    * @param value Header field value to match for (optionally).
+   * @param index output parameter that will contain the matching table index
    * @param nameValueMatch output parameter that will contain the match type
    *                       that is @c true if it was a full (name,value)-match
    *                       or @c false if just a name-match.
    *
-   * @return @c 0 if not found or the index into the DynamicTable if found.
+   * @retval true table entry found. @p index and @p nameValueMatch updated.
+   * @retval false No table entry found.
    */
-  size_t find(const std::string& name,
-              const std::string& value,
-              bool* nameValueMatch) const;
+  bool find(const std::string& name,
+            const std::string& value,
+            size_t* index,
+            bool* nameValueMatch) const;
 
-  size_t find(const HeaderField& field, bool* nameValueMatch) const;
-
-  const HeaderField& at(size_t index) const;
+  const TableEntry& at(size_t index) const;
 
   void clear();
 
@@ -100,7 +119,7 @@ class DynamicTable {
   size_t maxSize_;
   size_t size_;
 
-  std::deque<HeaderField> entries_;
+  std::deque<TableEntry> entries_;
 };
 
 } // namespace hpack

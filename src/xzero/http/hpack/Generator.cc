@@ -73,42 +73,16 @@ void Generator::generateHeader(const HeaderField& field) {
 void Generator::generateHeader(const std::string& name,
                                const std::string& value,
                                bool sensitive) {
-  // search in static table
   bool nameValueMatch;
-  size_t index = StaticTable::find(name, value, &nameValueMatch);
-  if (index != StaticTable::npos) {
-    encodeHeaderIndexed(index + 1, nameValueMatch, name, value, sensitive);
-    return;
-  }
+  size_t index;
 
-  // search in dynamic table
-  index = dynamicTable_.find(name, value, &nameValueMatch);
-  if (index != DynamicTable::npos) {
+  if (StaticTable::find(name, value, &index, &nameValueMatch))
+    encodeHeaderIndexed(index + 1, nameValueMatch, name, value, sensitive);
+  else if (dynamicTable_.find(name, value, &index, &nameValueMatch))
     encodeHeaderIndexed(index + StaticTable::length(),
                         nameValueMatch, name, value, sensitive);
-    return;
-  }
-
-  const size_t fieldSize = name.size() + value.size() +
-                           DynamicTable::HeaderFieldOverheadSize;
-
-  if (sensitive) {
-    // (6.2.3) Literal Header Field Never Indexed (new name)
-    write8(1 << 4);
-    encodeString(name);
-    encodeString(value);
-  } else if (fieldSize < dynamicTable_.maxSize()) {
-    // (6.2.1) Literal Header Field with Incremental Indexing (new name)
-    dynamicTable_.add(name, value);
-    write8(1 << 6);
-    encodeString(name);
-    encodeString(value);
-  } else {
-    // (6.2.2) Literal Header Field without Indexing (new name)
-    write8(0);
-    encodeString(name);
-    encodeString(value);
-  }
+  else
+    encodeHeaderLiteral(name, value, sensitive);
 }
 
 void Generator::encodeHeaderIndexed(size_t index,
@@ -134,6 +108,31 @@ void Generator::encodeHeaderIndexed(size_t index,
   } else {
     // (6.2.2) indexed name, literal value, non-indexable
     encodeInt(0, 4, index);
+    encodeString(value);
+  }
+}
+
+void Generator::encodeHeaderLiteral(const std::string& name,
+                                    const std::string& value,
+                                    bool sensitive) {
+  const size_t fieldSize = name.size() + value.size() +
+                           DynamicTable::HeaderFieldOverheadSize;
+
+  if (sensitive) {
+    // (6.2.3) Literal Header Field Never Indexed (new name)
+    write8(1 << 4);
+    encodeString(name);
+    encodeString(value);
+  } else if (fieldSize < dynamicTable_.maxSize()) {
+    // (6.2.1) Literal Header Field with Incremental Indexing (new name)
+    dynamicTable_.add(name, value);
+    write8(1 << 6);
+    encodeString(name);
+    encodeString(value);
+  } else {
+    // (6.2.2) Literal Header Field without Indexing (new name)
+    write8(0);
+    encodeString(name);
     encodeString(value);
   }
 }

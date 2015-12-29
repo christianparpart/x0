@@ -13,9 +13,6 @@
 
 namespace xzero {
 namespace http {
-
-class HeaderField;
-
 namespace hpack {
 
 enum class ParseError {
@@ -88,7 +85,7 @@ class Parser {
    *              will be retrieving the value from the DynamicTable's
    *              offset minus StaticTable::length().
    */
-  const HeaderField& at(size_t index);
+  const TableEntry& at(size_t index);
 
   /**
    * Decodes a variable sized unsigned integer.

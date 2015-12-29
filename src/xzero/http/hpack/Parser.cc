@@ -10,7 +10,6 @@
 #include <xzero/http/hpack/StaticTable.h>
 #include <xzero/http/hpack/DynamicTable.h>
 #include <xzero/http/hpack/Huffman.h>
-#include <xzero/http/HeaderField.h>
 #include <xzero/RuntimeError.h>
 #include <xzero/logging.h>
 
@@ -79,8 +78,8 @@ Parser::const_iterator Parser::indexedHeaderField(const_iterator pos,
   size_t n = decodeInt(7, &index, pos, end);
   pos += n;
 
-  const HeaderField& field = at(index);
-  emit(field.name(), field.value());
+  const TableEntry& field = at(index);
+  emit(field.first, field.second);
 
   return pos;
 }
@@ -95,7 +94,7 @@ Parser::const_iterator Parser::incrementalIndexedField(const_iterator pos,
 
   if (index != 0) {
     // (index, literal)
-    const std::string& name = at(index).name();
+    const std::string& name = at(index).first;
 
     std::string value;
     n = decodeString(&value, pos, end);
@@ -146,7 +145,7 @@ Parser::const_iterator Parser::literalHeaderNoIndex(const_iterator pos,
 
   if (index != 0) {
     // (index, literal)
-    const std::string& name = at(index).name();
+    const std::string& name = at(index).first;
 
     std::string value;
     n = decodeString(&value, pos, end);
@@ -180,7 +179,7 @@ Parser::const_iterator Parser::literalHeaderNeverIndex(
 
   if (index != 0) {
     // (index, literal)
-    const std::string& name = at(index).name();
+    const std::string& name = at(index).first;
 
     std::string value;
     n = decodeString(&value, pos, end);
@@ -203,7 +202,7 @@ Parser::const_iterator Parser::literalHeaderNeverIndex(
   return pos;
 }
 
-const HeaderField& Parser::at(size_t index) {
+const TableEntry& Parser::at(size_t index) {
   if (index == 0)
     RAISE(CompressionError, "Invalid index (must not be 0)");
 

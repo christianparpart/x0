@@ -30,39 +30,40 @@ void DynamicTable::setMaxSize(size_t limit) {
   evict();
 }
 
-void DynamicTable::add(const HeaderField& field) {
-  entries_.emplace_front(field);
-  size_ += field.name().size() + field.value().size() + HeaderFieldOverheadSize;
+void DynamicTable::add(const std::string& name, const std::string& value) {
+  entries_.emplace_front(name, value);
+  size_ += name.size() + value.size() + HeaderFieldOverheadSize;
   evict();
 }
 
-void DynamicTable::add(const std::string& name, const std::string& value) {
-  add({name, value});
+void DynamicTable::add(const TableEntry& entry) {
+  add(entry.first, entry.second);
 }
 
-size_t DynamicTable::find(const std::string& name,
-                          const std::string& value,
-                          bool* nameValueMatch) const {
-  for (size_t index = 0, max = entries_.size(); index < max; index++) {
-    if (name != entries_[index].name())
+bool DynamicTable::find(const TableEntry& entry,
+                        size_t* index,
+                        bool* nameValueMatch) const {
+  return find(entry.first, entry.second, index, nameValueMatch);
+}
+
+bool DynamicTable::find(const std::string& name,
+                        const std::string& value,
+                        size_t* index,
+                        bool* nameValueMatch) const {
+  for (size_t i = 0, max = entries_.size(); i < max; i++) {
+    if (name != entries_[i].first)
       continue;
 
-    *nameValueMatch = value == entries_[index].value();
-    return index;
+    *index = i;
+    *nameValueMatch = value == entries_[i].second;
+    return true;
   }
 
-  return npos;
+  return false;
 }
 
-size_t DynamicTable::find(const HeaderField& field,
-                          bool* nameValueMatch) const {
-  return find(field.name(), field.value(), nameValueMatch);
-}
-
-const HeaderField& DynamicTable::at(size_t index) const {
-  return index < StaticTable::length()
-      ? StaticTable::at(index)
-      : entries_[index - StaticTable::length()];
+const TableEntry& DynamicTable::at(size_t index) const {
+  return entries_[index];
 }
 
 
@@ -72,8 +73,8 @@ void DynamicTable::evict() {
   while (size_ > maxSize_) {
     TRACE("evict: evicting last field as current size $0 > max size $1",
           size_, maxSize_);
-    size_ -= (entries_.back().name().size() +
-              entries_.back().value().size() +
+    size_ -= (entries_.back().first.size() +
+              entries_.back().second.size() +
               HeaderFieldOverheadSize);
     n++;
 

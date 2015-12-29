@@ -17,22 +17,22 @@ using namespace xzero;
 TEST(hpack_DynamicTable, walkthrough) {
   DynamicTable dt(45);
 
-  dt.add({"Hello", "World"}); // adds 42
+  dt.add("Hello", "World"); // adds 42
   EXPECT_EQ(42, dt.size());
 
-  dt.add({"Bongo", "Yolo"});  // adds 41, removing the first
+  dt.add("Bongo", "Yolo");  // adds 41, removing the first
   EXPECT_EQ(41, dt.size());
   ASSERT_EQ(1, dt.length());
 }
 
 TEST(hpack_DynamicTable, evict_to_zero) {
   DynamicTable dt(45);
-  dt.add({"Hello", "World"}); // adds 42
+  dt.add("Hello", "World"); // adds 42
 
   dt.setMaxSize(40);
   EXPECT_EQ(0, dt.size());
 
-  dt.add({"Bongo", "Yolo"});  // would add 41; but not added at all
+  dt.add("Bongo", "Yolo");  // would add 41; but not added at all
   EXPECT_EQ(0, dt.size());
 }
 
@@ -41,12 +41,16 @@ TEST(hpack_DynamicTable, find) {
   dt.add(StaticTable::at(2)); // {:method, GET}
   dt.add(StaticTable::at(4)); // {:path, /}
 
+  size_t index;
   bool fullMatch;
-  size_t index = dt.find(StaticTable::at(2), &fullMatch);
+
+  bool match = dt.find(StaticTable::at(2), &index, &fullMatch);
+
+  ASSERT_TRUE(match);
   ASSERT_EQ(1, index);
   ASSERT_TRUE(fullMatch);
 
-  index = dt.find(StaticTable::at(7), &fullMatch);
-  ASSERT_EQ((size_t) DynamicTable::npos, (size_t) index);
+  match = dt.find(StaticTable::at(7), &index, &fullMatch);
+  ASSERT_FALSE(match);
 }
 
