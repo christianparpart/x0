@@ -16,14 +16,9 @@ using namespace xzero;
 using namespace xzero::http;
 using namespace xzero::http::hpack;
 
-#define BIN8(i7, i6, i5, i4, i3, i2, i1, i0) \
-    ((i7 << 7) | (i6 << 6) | (i5 << 5) | (i4 << 4) | \
-     (i3 << 3) | (i2 << 2) | (i1 << 1) | i0)
-
 TEST(hpack_Parser, decodeInt) {
   Application::logToStderr(LogLevel::Trace);
 
-  static constexpr int X = 0;
   Parser parser(4096, nullptr);
   uint8_t helloInt[4] = {0};
   uint8_t* helloIntEnd = helloInt + 4;
@@ -36,7 +31,7 @@ TEST(hpack_Parser, decodeInt) {
    *   | X | X | X | 0 | 1 | 0 | 1 | 0 |   10 stored on 5 bits
    *   +---+---+---+---+---+---+---+---+
    */
-  helloInt[0] = BIN8(X, X, X, 0, 1, 0, 1, 0);
+  helloInt[0] = 0b00001010;
   size_t nparsed = Parser::decodeInt(5, &decodedInt, helloInt, helloIntEnd);
   ASSERT_EQ(1, nparsed);
   ASSERT_EQ(10, decodedInt);
@@ -50,9 +45,9 @@ TEST(hpack_Parser, decodeInt) {
    *   | 0 | 0 | 0 | 0 | 1 | 0 | 1 | 0 |  10<128, encode(10), done
    *   +---+---+---+---+---+---+---+---+
    */
-  helloInt[0] = BIN8(X, X, X, 1, 1, 1, 1, 1);
-  helloInt[1] = BIN8(1, 0, 0, 1, 1, 0, 1, 0);
-  helloInt[2] = BIN8(0, 0, 0, 0, 1, 0, 1, 0);
+  helloInt[0] = 0b00011111;
+  helloInt[1] = 0b10011010;
+  helloInt[2] = 0b00001010;
   nparsed = Parser::decodeInt(5, &decodedInt, helloInt, helloIntEnd);
   ASSERT_EQ(3, nparsed);
   ASSERT_EQ(1337, decodedInt);
@@ -64,7 +59,7 @@ TEST(hpack_Parser, decodeInt) {
    *   | 0 | 0 | 1 | 0 | 1 | 0 | 1 | 0 |   42 stored on 8 bits
    *   +---+---+---+---+---+---+---+---+
    */
-  helloInt[0] = BIN8(0, 0, 1, 0, 1, 0, 1, 0);
+  helloInt[0] = 0b00101010;
   nparsed = Parser::decodeInt(8, &decodedInt, helloInt, helloIntEnd);
   ASSERT_EQ(1, nparsed);
   ASSERT_EQ(42, decodedInt);
