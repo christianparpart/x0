@@ -64,8 +64,8 @@ size_t Parser::parse(const_iterator beg, const_iterator end) {
       pos = literalHeaderNeverIndex(pos, end);
     }
     else {
+      // literal header field (no index)
       pos = literalHeaderNoIndex(pos, end);
-      RAISE(RuntimeError, "Oh what instraction are you?");
     }
   }
 
