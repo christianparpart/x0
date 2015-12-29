@@ -268,7 +268,7 @@ size_t Parser::decodeString(std::string* output,
     RAISE(CompressionError, "Need more data");
 
   if (compressed)
-    *output = Huffman::decode(pos, pos + slen);
+    Huffman::decode(output, pos, pos + slen);
   else
     output->assign((char*) pos, slen);
 

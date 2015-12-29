@@ -36,6 +36,12 @@ std::string Huffman::encode(const std::string& value) {
 }
 
 std::string Huffman::decode(const uint8_t* pos, const uint8_t* end) {
+  std::string output;
+  decode(&output, pos, end);
+  return output;
+}
+
+void Huffman::decode(std::string* output, const uint8_t* pos, const uint8_t* end) {
   RAISE(NotImplementedError, "Huffman decoding not implemented yet");
 }
 
