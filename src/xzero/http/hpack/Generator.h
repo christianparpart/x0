@@ -82,8 +82,9 @@ class Generator {
    *
    * @return number of bytes used for encoding.
    */
-  static size_t encodeInt(uint64_t value,
+  static size_t encodeInt(uint8_t suffix,
                           uint8_t prefixBits,
+                          uint64_t value,
                           unsigned char* output);
 
  protected:

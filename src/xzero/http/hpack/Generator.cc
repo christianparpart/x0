@@ -15,6 +15,8 @@
 #include <xzero/Buffer.h>
 #include <xzero/logging.h>
 
+extern std::string tob(uint8_t value);
+
 namespace xzero {
 namespace http {
 namespace hpack {
@@ -24,6 +26,12 @@ namespace hpack {
 #else
 #define TRACE(msg...) do {} while (0)
 #endif
+
+//! 2^n, mask given bit, rest cleared
+#define BIT(n) (1 << (n))
+
+//! least significant bits (from 0) to n set, rest cleared
+#define maskLSB(n) ((1 << (n)) - 1)
 
 Generator::Generator(size_t maxSize)
     : dynamicTable_(maxSize),
@@ -140,37 +148,38 @@ void Generator::encodeString(const std::string& value, bool compressed) {
 void Generator::encodeInt(uint8_t suffix, uint8_t prefixBits, uint64_t value) {
   unsigned char* output = (unsigned char*) headerBlock_.end();
 
-  headerBlock_.reserve(headerBlock_.size() + 4);
-  size_t n = encodeInt(value, prefixBits, output); // TODO: add suffix here instead
-  *output |= suffix << prefixBits;
+  headerBlock_.reserve(headerBlock_.size() + 8);
+  size_t n = encodeInt(suffix, prefixBits, value, output);
   headerBlock_.resize(headerBlock_.size() + n);
 }
 
-size_t Generator::encodeInt(uint64_t value,
+size_t Generator::encodeInt(uint8_t suffix,
                             uint8_t prefixBits,
+                            uint64_t value,
                             unsigned char* output) {
   assert(prefixBits >= 1 && prefixBits <= 8);
 
-  const unsigned maxValue = (1 << prefixBits) - 1;
+  const unsigned maxValue = maskLSB(prefixBits);
 
   if (value < maxValue) {
-    *output = value;
+    *output = (suffix << prefixBits) | static_cast<uint8_t>(value);
     return 1;
-  } else {
-    *output++ = static_cast<char>(maxValue);
-    value -= maxValue;
-    size_t n = 2;
-
-    while (value >= 128) {
-      const unsigned char byte = (1 << 7) | (value & 0x7f);
-      *output++ = byte;
-      value /= 128;
-      n++;
-    }
-
-    *output = static_cast<unsigned char>(value);
-    return n;
   }
+
+  *output++ = maxValue;
+  value -= maxValue;
+
+  size_t n = 2;
+
+  while (value > maskLSB(7)) {
+    const unsigned char byte = BIT(7) | (value & maskLSB(7));
+    *output++ = byte;
+    value >>= 7;
+    n++;
+  }
+
+  *output = static_cast<unsigned char>(value);
+  return n;
 }
 
 } // namespace hpack
