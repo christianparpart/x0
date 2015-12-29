@@ -26,31 +26,63 @@ enum class ParseError {
   CompressionError,
 };
 
+/**
+ * Parses an HPACK header block and emits it in human readable form to a
+ * header emitter.
+ */
 class Parser {
  public:
   typedef unsigned char value_type;
   typedef unsigned char* iterator;
+  typedef const unsigned char* const_iterator;
 
-  typedef std::function<void(const std::string&, const std::string&)> Emitter;
+  typedef std::function<void(const std::string& /* name */,
+                             const std::string& /* value */,
+                             bool /* sensitive */)>
+      Emitter;
 
+  /**
+   * Initializes a new HPACK parser with given dynamic-table @p maxSize
+   * and the @p emitter.
+   *
+   * @param maxSize initial maximum size of the internal dynamic table in bytes.
+   * @param emitter callback to receive all parsed headers.
+   */
   Parser(size_t maxSize, Emitter emitter);
+
+  void setMaxSize(size_t limit);
+  size_t maxSize() const noexcept { return maxSize_; }
+  size_t internalMaxSize() const noexcept { return dynamicTable_.maxSize(); }
 
   /**
    * Parses a syntactically complete header block.
    */
-  bool parse(const BufferRef& headerBlock);
+  size_t parse(const_iterator pos, const_iterator end);
 
  public: // helper api
-  iterator indexedHeaderField(iterator i, iterator e);
-  iterator incrementalIndexedField(iterator i, iterator e);
-  iterator updateTableSize(iterator i, iterator e);
-  iterator literalHeader(iterator i, iterator e);
+  const_iterator indexedHeaderField(const_iterator pos, const_iterator end);
+  const_iterator incrementalIndexedField(const_iterator pos, const_iterator end);
+  const_iterator updateTableSize(const_iterator pos, const_iterator end);
+  const_iterator literalHeaderNoIndex(const_iterator pos, const_iterator end);
+  const_iterator literalHeaderNeverIndex(const_iterator pos, const_iterator end);
 
-  static size_t decodeInt(uint8_t prefixBits, uint64_t* output,
-                          iterator pos, iterator end);
-  static size_t decodeString(std::string* output, iterator pos, iterator end);
+  const HeaderField& at(size_t index);
+
+  static size_t decodeInt(uint8_t prefixBits,
+                          uint64_t* output,
+                          const_iterator pos,
+                          const_iterator end);
+
+  static size_t decodeString(std::string* output,
+                             const_iterator pos,
+                             const_iterator end);
 
  private:
+  void emit(const std::string& name, const std::string& value);
+  void emitSenstive(const std::string& name, const std::string& value, bool sensitive);
+
+ private:
+  size_t maxSize_;
   DynamicTable dynamicTable_;
   Emitter emitter_;
 };

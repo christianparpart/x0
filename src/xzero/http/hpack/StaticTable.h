@@ -42,13 +42,18 @@ class StaticTable {
   /**
    * Retrieves the index of the given header @p field or @c npos if not found.
    *
-   * @param field the (name,value?) pair to search for.
+   * @param name Header field name to match for.
+   * @param value Header field value to match for (optionally).
    * @param nameValueMatch output parameter that will contain the match type
    *                       that is @c true if it was a full (name,value)-match
    *                       or @c false if just a name-match.
    *
    * @return @c 0 if not found or the index into the DynamicTable if found.
    */
+  static size_t find(const std::string& name,
+                     const std::string& value,
+                     bool* nameValueMatch);
+
   static size_t find(const HeaderField& field, bool* nameValueMatch);
 
   static const HeaderField& at(size_t index);

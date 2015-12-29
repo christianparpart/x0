@@ -68,18 +68,28 @@ class DynamicTable {
   void add(const HeaderField& field);
 
   /**
+   * Adds given @p name and @p value pair to the table.
+   */
+  void add(const std::string& name, const std::string& value);
+
+  /**
    * Searches for given @p field in the dynamic table.
    *
-   * @param field the (name,value?) pair to search for.
+   * @param name Header field name to match for.
+   * @param value Header field value to match for (optionally).
    * @param nameValueMatch output parameter that will contain the match type
    *                       that is @c true if it was a full (name,value)-match
    *                       or @c false if just a name-match.
    *
    * @return @c 0 if not found or the index into the DynamicTable if found.
    */
+  size_t find(const std::string& name,
+              const std::string& value,
+              bool* nameValueMatch) const;
+
   size_t find(const HeaderField& field, bool* nameValueMatch) const;
 
-  const HeaderField& operator[](size_t index) const;
+  const HeaderField& at(size_t index) const;
 
   void clear();
 

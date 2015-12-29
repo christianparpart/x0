@@ -36,24 +36,35 @@ void DynamicTable::add(const HeaderField& field) {
   evict();
 }
 
-size_t DynamicTable::find(const HeaderField& field,
+void DynamicTable::add(const std::string& name, const std::string& value) {
+  add({name, value});
+}
+
+size_t DynamicTable::find(const std::string& name,
+                          const std::string& value,
                           bool* nameValueMatch) const {
   for (size_t index = 0, max = entries_.size(); index < max; index++) {
-    if (field.name() != entries_[index].name())
+    if (name != entries_[index].name())
       continue;
 
-    *nameValueMatch = field.value() == entries_[index].value();
+    *nameValueMatch = value == entries_[index].value();
     return index;
   }
 
   return npos;
 }
 
-const HeaderField& DynamicTable::operator[](size_t index) const {
+size_t DynamicTable::find(const HeaderField& field,
+                          bool* nameValueMatch) const {
+  return find(field.name(), field.value(), nameValueMatch);
+}
+
+const HeaderField& DynamicTable::at(size_t index) const {
   return index < StaticTable::length()
       ? StaticTable::at(index)
       : entries_[index - StaticTable::length()];
 }
+
 
 void DynamicTable::evict() {
   size_t n = 0;

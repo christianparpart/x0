@@ -50,6 +50,18 @@ class Generator {
   void generateHeader(const HeaderField& field);
 
   /**
+   * Adds given header by @p name and @p value.
+   *
+   * @param name Header field name.
+   * @param value Header field value.
+   * @param sensitive Boolean, indicating whether or not this field is
+   *                  containing sensitive data. Sensitive data is not
+   *                  subject of indexing on any intermediary or upstream.
+   */
+  void generateHeader(const std::string& name, const std::string& value,
+                      bool sensitive);
+
+  /**
    * Number of already generate and not yet flushed bytes.
    */
   size_t size() const noexcept;

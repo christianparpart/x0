@@ -58,56 +58,68 @@ void Generator::generateHeaders(const HeaderFieldList& fields) {
 }
 
 void Generator::generateHeader(const HeaderField& field) {
+  generateHeader(field.name(), field.value(), field.isSensitive());
+}
+
+void Generator::generateHeader(const std::string& name,
+                               const std::string& value,
+                               bool sensitive) {
+  auto isIndexable = [&]() -> bool {
+      return !sensitive &&
+          name.size() + value.size() +
+          DynamicTable::HeaderFieldOverheadSize < dynamicTable_.maxSize();
+  };
+
   // search in static table
   bool nameValueMatch;
-  size_t index = StaticTable::find(field, &nameValueMatch);
+  size_t index = StaticTable::find(name, value, &nameValueMatch);
   if (index != StaticTable::npos) {
     if (nameValueMatch) {
       // (6.1) indexed header field
       encodeInt(1, 7, index);
-    } else if (isIndexable(field)) {
+    } else if (isIndexable()) {
       // (6.2.1) indexed name, literal value, indexable
-      dynamicTable_.add(field);
+      dynamicTable_.add(name, value);
       encodeInt(1, 6, index);
-      encodeString(field.value());
+      encodeString(value);
     } else {
       // (6.2.2) indexed name, literal value, non-indexable
       encodeInt(0, 4, index);
-      encodeString(field.value());
+      encodeString(value);
     }
   }
 
   // search in dynamic table
-  index = dynamicTable_.find(field, &nameValueMatch);
+  index = dynamicTable_.find(name, value, &nameValueMatch);
   if (index != DynamicTable::npos) {
     index += StaticTable::length();
     if (nameValueMatch) {
       // indexed header field (6.1)
       encodeInt(1, 7, index);
-    } else if (isIndexable(field)) {
+    } else if (isIndexable()) {
       // (6.2.1) indexed name, literal value, indexable
-      dynamicTable_.add(field);
+      dynamicTable_.add(name, value);
       encodeInt(1, 6, index);
-      encodeString(field.value());
+      encodeString(value);
     } else {
       // (6.2.2) indexed name, literal value, non-indexable
       encodeInt(0, 4, index);
-      encodeString(field.value());
+      encodeString(value);
     }
   }
 
   // literal name, literal value
-  if (isIndexable(field)) {
+  if (isIndexable()) {
     // with future-indexing
-    dynamicTable_.add(field);
+    dynamicTable_.add(name, value);
     headerBlock_.push_back(1 << 6); // 0100_0000
-    encodeString(field.name());
-    encodeString(field.value());
+    encodeString(name);
+    encodeString(value);
   } else {
     // without future-indexing
     headerBlock_.push_back(0);
-    encodeString(field.name());
-    encodeString(field.value());
+    encodeString(name);
+    encodeString(value);
   }
 }
 
@@ -159,12 +171,6 @@ size_t Generator::encodeInt(uint64_t value,
     *output = static_cast<unsigned char>(value);
     return n;
   }
-}
-
-bool Generator::isIndexable(const HeaderField& field) const {
-  return !field.isSensitive() &&
-          field.name().size() + field.value().size() +
-          DynamicTable::HeaderFieldOverheadSize < dynamicTable_.maxSize();
 }
 
 } // namespace hpack

@@ -13,5 +13,5 @@ using namespace xzero;
 using namespace xzero::http;
 using namespace xzero::http::hpack;
 
-TEST(http_hpack_Generator, encodeInt) {
+TEST(hpack_Generator, encodeInt) {
 }

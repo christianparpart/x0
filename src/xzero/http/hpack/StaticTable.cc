@@ -87,20 +87,26 @@ size_t StaticTable::length() {
   return sizeof(entries_) / sizeof(entries_[0]);
 }
 
-size_t StaticTable::find(const HeaderField& field, bool* nameValueMatch) {
+size_t StaticTable::find(const std::string& name,
+                         const std::string& value,
+                         bool* nameValueMatch) {
   for (size_t index = 0, max = length(); index < max; index++) {
-    if (field.name() != entries_[index].name())
+    if (name != entries_[index].name())
       continue;
 
-    *nameValueMatch = field.value() == entries_[index].value();
+    *nameValueMatch = value == entries_[index].value();
     return index;
   }
 
   return npos;
 }
 
+size_t StaticTable::find(const HeaderField& field, bool* nameValueMatch) {
+  return find(field.name(), field.value(), nameValueMatch);
+}
+
 const HeaderField& StaticTable::at(size_t index) {
-  assert(index > 0 && index < length());
+  assert(index < length());
   return entries_[index];
 }
 

@@ -15,7 +15,7 @@ using xzero::http::hpack::DynamicTable;
 using xzero::http::hpack::StaticTable;
 using namespace xzero;
 
-TEST(http_hpack_DynamicTable, walkthrough) {
+TEST(hpack_DynamicTable, walkthrough) {
   Application::logToStderr(LogLevel::Trace);
 
   DynamicTable dt(45);
@@ -28,7 +28,7 @@ TEST(http_hpack_DynamicTable, walkthrough) {
   ASSERT_EQ(1, dt.length());
 }
 
-TEST(http_hpack_DynamicTable, evict_to_zero) {
+TEST(hpack_DynamicTable, evict_to_zero) {
   DynamicTable dt(45);
   dt.add({"Hello", "World"}); // adds 42
 
@@ -39,7 +39,7 @@ TEST(http_hpack_DynamicTable, evict_to_zero) {
   EXPECT_EQ(0, dt.size());
 }
 
-TEST(http_hpack_DynamicTable, find) {
+TEST(hpack_DynamicTable, find) {
   DynamicTable dt(16384);
   dt.add(StaticTable::at(2)); // {:method, GET}
   dt.add(StaticTable::at(4)); // {:path, /}
