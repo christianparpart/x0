@@ -68,6 +68,8 @@ class Parser {
    */
   size_t parse(const_iterator pos, const_iterator end);
 
+  size_t parse(const BufferRef& headerBlock);
+
  public: // helper api
   const_iterator indexedHeaderField(const_iterator pos, const_iterator end);
   const_iterator incrementalIndexedField(const_iterator pos, const_iterator end);

@@ -40,6 +40,11 @@ void Parser::setMaxSize(size_t newMaxSize) {
   dynamicTable_.setMaxSize(newMaxSize);
 }
 
+size_t Parser::parse(const BufferRef& headerBlock) {
+  return parse((const_iterator) headerBlock.begin(),
+               (const_iterator) headerBlock.end());
+}
+
 size_t Parser::parse(const_iterator beg, const_iterator end) {
   const_iterator pos = beg;
 
