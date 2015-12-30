@@ -37,6 +37,15 @@ class XZERO_HTTP_API HttpRequestInfo : public HttpInfo {
   const std::string& unparsedMethod() const noexcept { return unparsedMethod_; }
   void setMethod(const std::string& value);
 
+  /**
+   * Retrieves the Host header (on HTTP/1) or :authority pseudo header on HTTP/2.
+   */
+  const std::string& authority() const;
+  void setAuthority(const std::string& value);
+
+  const std::string& scheme() const;
+  void setScheme(const std::string& value);
+
   bool setUri(const std::string& uri);
   const std::string& unparsedUri() const noexcept { return unparsedUri_; }
   const std::string& path() const noexcept { return path_; }

@@ -29,6 +29,26 @@ void HttpRequestInfo::setMethod(const std::string& value) {
   method_ = to_method(value);
 }
 
+const std::string& HttpRequestInfo::authority() const {
+  const std::string& value = headers().get(":authority");
+  if (!value.empty())
+    return value;
+
+  return headers().get("Host");
+}
+
+void HttpRequestInfo::setAuthority(const std::string& value) {
+  headers().overwrite(":authority", value);
+}
+
+const std::string& HttpRequestInfo::scheme() const {
+  return headers().get(":scheme");
+}
+
+void HttpRequestInfo::setScheme(const std::string& value) {
+  headers().overwrite(":scheme", value);
+}
+
 bool HttpRequestInfo::setUri(const std::string& uri) {
   unparsedUri_ = uri;
 
