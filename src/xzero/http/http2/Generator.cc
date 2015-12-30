@@ -127,10 +127,11 @@ void Generator::generateHeaders(StreamID sid, const HeaderFieldList& headers,
 
   assert(sid != 0);
 
-  for (const HeaderField& field: headers) {
+  headerGenerator_.clear();
+  for (const HeaderField& field: headers)
     headerGenerator_.generateHeader(field.name(), field.value(),
                                     field.isSensitive());
-  }
+
   const BufferRef& payload = headerGenerator_.headerBlock();
 
   unsigned flags = 0;
@@ -138,24 +139,44 @@ void Generator::generateHeaders(StreamID sid, const HeaderFieldList& headers,
   if (last)
     flags |= END_STREAM;
 
-  if (payload.size() < maxFrameSize_)
-    flags |= END_HEADERS;
-
   if (dependsOnSID)
     flags |= PRIORITY;
 
-  generateFrameHeader(FrameType::Headers, flags, sid, payload.size());
-  if (dependsOnSID) {
-    if (isExclusive)
-      write32(dependsOnSID | (1 << 31));
-    else
-      write32(dependsOnSID & ~(1 << 31));
-    write8(weight);
+  if (payload.size() <= maxFrameSize_) {
+    flags |= END_HEADERS;
+
+    generateFrameHeader(FrameType::Headers, flags, sid, payload.size());
+    if (dependsOnSID) {
+      if (isExclusive)
+        write32(dependsOnSID | (1 << 31));
+      else
+        write32(dependsOnSID & ~(1 << 31));
+      write8(weight);
+    }
+  } else {
+    generateFrameHeader(FrameType::Headers, flags, sid, maxFrameSize_);
+    if (dependsOnSID) {
+      if (isExclusive)
+        write32(dependsOnSID | (1 << 31));
+      else
+        write32(dependsOnSID & ~(1 << 31));
+      write8(weight);
+    }
+
+    // any middle-CONTINUATION frames
+    auto pos = payload.data() + maxFrameSize_;
+    size_t count = payload.size() - maxFrameSize_;
+    while (count > maxFrameSize_) {
+      generateFrameHeader(FrameType::Continuation, 0, sid, maxFrameSize_);
+      sink_->write(pos, maxFrameSize_);
+      count -= maxFrameSize_;
+      pos += maxFrameSize_;
+    }
+
+    // last CONTINUATION frame
+    generateFrameHeader(FrameType::Continuation, END_HEADERS, sid, count);
+    sink_->write(pos, count);
   }
-
-  sink_->write(payload);
-
-  // TODO: introduce CONTINUATION frames in case this one wound be too big.
 }
 
 void Generator::generatePriority(StreamID sid, bool exclusive,
