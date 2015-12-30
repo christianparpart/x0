@@ -242,10 +242,13 @@ void Generator::generateHeaders(const HttpInfo& info, bool bodyForbidden) {
   TRACE("generateHeaders: content-length: $0", contentLength_);
 
   for (const HeaderField& header: info.headers()) {
-    buffer_.push_back(header.name());
-    buffer_.push_back(": ");
-    buffer_.push_back(header.value());
-    buffer_.push_back("\r\n");
+    // skip pseudo headers (that might have come via HTTP/2)
+    if (header.name()[0] != ':') {
+      buffer_.push_back(header.name());
+      buffer_.push_back(": ");
+      buffer_.push_back(header.value());
+      buffer_.push_back("\r\n");
+    }
   }
 
   if (!info.trailers().empty()) {
