@@ -31,6 +31,7 @@ inline uint32_t read32(const char* buf) {
 
 Parser::Parser(FrameListener* listener)
     : listener_(listener),
+      headerParser_(4096, nullptr), // TODO
       state_(ParserState::Idle) {
 }
 
@@ -68,7 +69,10 @@ void Parser::parseFrame(const BufferRef& frame) {
 
   switch (type) {
     case FrameType::Headers:
-      headers(flags, sid, payload);
+      parseHeaders(flags, sid, payload);
+      break;
+    case FrameType::Continuation:
+      parseContinuation(flags, sid, payload);
       break;
     default:
       // skip this frame
@@ -76,7 +80,7 @@ void Parser::parseFrame(const BufferRef& frame) {
   }
 }
 
-void Parser::headers(uint8_t flags, StreamID sid, const BufferRef& payload) {
+void Parser::parseHeaders(uint8_t flags, StreamID sid, const BufferRef& payload) {
   /* +---------------+
    * |Pad Length? (8)|
    * +-+-------------+-----------------------------------------------+
@@ -94,6 +98,39 @@ void Parser::headers(uint8_t flags, StreamID sid, const BufferRef& payload) {
   //constexpr unsigned PADDED = 0x08;
   constexpr unsigned PRIORITY = 0x20;
 
+  isExclusiveDependency_ = flags & PRIORITY;
+
+  if (flags & END_HEADERS) {
+    headers_.clear();
+    pendingHeaders_.push_back(payload);
+    headerParser_.parse(pendingHeaders_);
+    listener_->onHeaders(sid, flags & END_STREAM, headers_);
+  } else {
+    // expecting CONTINUATION headers
+    pendingHeaders_.push_back(payload);
+  }
+}
+
+void Parser::parseContinuation(uint8_t flags, StreamID sid,
+                               const BufferRef& payload) {
+  if (lastStreamID_ != sid) {
+    listener_->onProtocolError("Interleaved CONTINUATION frame received.");
+    return;
+  }
+
+  switch (lastFrameType_) {
+    case FrameType::Headers:
+    case FrameType::Continuation:
+    case FrameType::PushPromise:
+      break;
+    default:
+      break;
+  }
+
+  if (pendingHeaders_.empty()) {
+    listener_->onProtocolError("Missing leading HEADERS frame for CONTINUATION.");
+    return;
+  }
 }
 
 } // namespace http2

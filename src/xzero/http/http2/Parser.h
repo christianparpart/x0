@@ -8,6 +8,10 @@
 #pragma once
 
 #include <xzero/http/http2/StreamID.h>
+#include <xzero/http/hpack/Parser.h>
+#include <xzero/Buffer.h>
+#include <list>
+#include <utility>
 #include <string>
 
 namespace xzero {
@@ -35,13 +39,21 @@ class Parser {
   void parseFrame(const BufferRef& frame);
 
  protected:
-  void data();
-  void headers(uint8_t flags, StreamID sid, const BufferRef& payload);
-  void priority();
-  void resetStream();
+  void parseData();
+  void parseHeaders(uint8_t flags, StreamID sid, const BufferRef& payload);
+  void parseContinuation(uint8_t flags, StreamID sid, const BufferRef& payload);
+  void parsePriority();
+  void parseResetStream();
 
  private:
   FrameListener* listener_;
+  hpack::Parser headerParser_;
+  Buffer pendingHeaders_;
+  FrameType lastFrameType_;
+  StreamID lastStreamID_;
+  StreamID dependsOnSID_;
+  bool isExclusiveDependency_;
+  std::list<std::pair<std::string, std::string>> headers_;
   ParserState state_;
 };
 

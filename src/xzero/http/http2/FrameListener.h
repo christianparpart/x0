@@ -9,6 +9,7 @@
 
 #include <xzero/http/http2/SettingParameter.h>
 #include <vector>
+#include <list>
 #include <utility>
 
 namespace xzero {
@@ -21,7 +22,16 @@ class FrameListener {
 
   // frame type callbacks
   virtual void onData(const BufferRef& data) = 0;
-  virtual void onHeaders() = 0;
+  virtual void onHeaders(
+      StreamID sid,
+      bool closed,
+      const std::list<std::pair<std::string, std::string>>&) = 0;
+  virtual void onHeaders(
+      StreamID sid,
+      bool closed,
+      StreamID dependsOnSID,
+      bool exclusive,
+      const std::list<std::pair<std::string, std::string>>&) = 0;
   virtual void onPriority() = 0;
   virtual void onPing(const BufferRef& data) = 0;
   virtual void onPingAck(const BufferRef& data) = 0;
