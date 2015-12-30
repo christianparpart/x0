@@ -23,10 +23,12 @@ class FrameListener {
   virtual void onData(const BufferRef& data) = 0;
   virtual void onHeaders() = 0;
   virtual void onPriority() = 0;
-  virtual void onPing() = 0;
+  virtual void onPing(const BufferRef& data) = 0;
+  virtual void onPingAck(const BufferRef& data) = 0;
   virtual void onGoAway() = 0;
   virtual void onReset() = 0;
   virtual void onSettings(const std::vector<std::pair<SettingParameter, unsigned long>>& settings) = 0;
+  virtual void onSettingsAck() = 0;
   virtual void onPushPromise() = 0;
   virtual void onWindowUpdate() = 0;
 

@@ -29,8 +29,8 @@ namespace http2 {
 constexpr size_t FrameHeaderSize = 9;
 
 constexpr size_t InitialHeaderTableSize = 4096;
-constexpr size_t InitialMaxConcurrentStreams = 0x7fffffff; // (infinite)
-constexpr size_t InitialWindowSize = 65535;
+//constexpr size_t InitialMaxConcurrentStreams = 0x7fffffff; // (infinite)
+//constexpr size_t InitialWindowSize = 65535;
 constexpr size_t InitialMaxFrameSize = 16384;
 constexpr size_t InitialMaxHeaderListSize = 0x7fffffff; // (infinite)
 

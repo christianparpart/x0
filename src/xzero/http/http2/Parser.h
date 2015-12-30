@@ -7,6 +7,7 @@
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 #pragma once
 
+#include <xzero/http/http2/StreamID.h>
 #include <string>
 
 namespace xzero {
@@ -30,11 +31,12 @@ class Parser {
  public:
   explicit Parser(FrameListener* listener);
 
-  bool parseFragment(const BufferRef& chunk);
+  size_t parseFragment(const BufferRef& chunk);
+  void parseFrame(const BufferRef& frame);
 
  protected:
   void data();
-  void headers();
+  void headers(uint8_t flags, StreamID sid, const BufferRef& payload);
   void priority();
   void resetStream();
 
