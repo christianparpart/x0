@@ -25,7 +25,7 @@ class DataChain;
 namespace http {
 
 class HeaderFieldList;
-class HttpResponseInfo;
+class HttpRequestInfo;
 
 namespace http2 {
 
@@ -217,10 +217,10 @@ class Generator {
    * @param sid stream identifier this @c PUSH_PROMISE is accociated with.
    * @param psid the push-promise's stream id. Future @c DATA frames must
    *             use this stream identifier as a reference to this push promise.
-   * @param info the HTTP message header info
+   * @param info the pushed HTTP message request (without body).
    */
   void generatePushPromise(StreamID sid, StreamID psid,
-                           const HttpResponseInfo& info);
+                           const HttpRequestInfo& info);
 
   // =========================================================================
 
@@ -266,6 +266,7 @@ class Generator {
   void generateWindowUpdate(StreamID sid, size_t size);
 
  protected:
+  void generateContinuations(StreamID sid, const BufferRef& payload);
   void generateFrameHeader(FrameType frameType, unsigned frameFlags,
                            StreamID streamID, size_t payloadSize);
 

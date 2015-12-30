@@ -8,6 +8,7 @@
 
 #include <xzero/http/http2/Generator.h>
 #include <xzero/http/http2/SettingParameter.h>
+#include <xzero/http/HttpRequestInfo.h>
 #include <xzero/http/HeaderFieldList.h>
 #include <xzero/http/HeaderField.h>
 #include <xzero/io/DataChain.h>
@@ -162,20 +163,8 @@ void Generator::generateHeaders(StreamID sid, const HeaderFieldList& headers,
         write32(dependsOnSID & ~(1 << 31));
       write8(weight);
     }
-
-    // any middle-CONTINUATION frames
-    auto pos = payload.data() + maxFrameSize_;
-    size_t count = payload.size() - maxFrameSize_;
-    while (count > maxFrameSize_) {
-      generateFrameHeader(FrameType::Continuation, 0, sid, maxFrameSize_);
-      sink_->write(pos, maxFrameSize_);
-      count -= maxFrameSize_;
-      pos += maxFrameSize_;
-    }
-
-    // last CONTINUATION frame
-    generateFrameHeader(FrameType::Continuation, END_HEADERS, sid, count);
-    sink_->write(pos, count);
+    sink_->write(payload.ref(0, maxFrameSize_));
+    generateContinuations(sid, payload.ref(maxFrameSize_));
   }
 }
 
@@ -238,7 +227,7 @@ void Generator::generateSettingsAck() {
 }
 
 void Generator::generatePushPromise(StreamID sid, StreamID psid,
-                                    const HttpResponseInfo& info) {
+                                    const HttpRequestInfo& info) {
   /*
    * +---------------+
    * |Pad Length? (8)|
@@ -251,18 +240,53 @@ void Generator::generatePushPromise(StreamID sid, StreamID psid,
    * +---------------------------------------------------------------+
    */
 
-  // static constexpr unsigned END_HEADERS = 0x04;
+  static constexpr unsigned END_HEADERS = 0x04;
   // static constexpr unsigned PADDED = 0x08;
 
-  BufferRef padding;
-  Buffer headerBlockFragment;
-  // headerGenerator_.encode(&headerBlockFragment); // TODO <--
+  headerGenerator_.clear();
+  headerGenerator_.generateHeader(":method", info.unparsedMethod());
+  headerGenerator_.generateHeader(":path", info.path());
+  headerGenerator_.generateHeader(":scheme", info.scheme());
+  headerGenerator_.generateHeader(":authority", info.authority());
+  for (const HeaderField& field: info.headers()) {
+    if (field.name().empty() || field.name()[0] == ':')
+      continue;
 
-  const unsigned flags = 0;
-  const size_t payloadSize = 4 + headerBlockFragment.size();
-  generateFrameHeader(FrameType::PushPromise, flags, sid, payloadSize);
-  write32(psid & ~(1 << 31)); // promised id with R-flag cleared.
-  sink_->write(headerBlockFragment);
+    headerGenerator_.generateHeader(field.name(), field.value(),
+                                    field.isSensitive());
+  }
+
+  const BufferRef& payload = headerGenerator_.headerBlock();
+
+  if (payload.size() <= maxFrameSize_) {
+    generateFrameHeader(FrameType::PushPromise, END_HEADERS, sid, payload.size());
+    write32(psid & ~(1 << 31)); // promised id with R-flag cleared.
+    sink_->write(payload);
+  } else {
+    generateFrameHeader(FrameType::PushPromise, 0, sid, maxFrameSize_);
+    sink_->write(payload.ref(0, maxFrameSize_));
+    generateContinuations(sid, payload.ref(maxFrameSize_));
+  }
+}
+
+void Generator::generateContinuations(StreamID sid, const BufferRef& payload) {
+  static constexpr unsigned END_HEADERS = 0x04;
+
+  auto pos = payload.data();
+  size_t count = payload.size();
+
+  // any middle-CONTINUATION frames
+  while (count > maxFrameSize_) {
+    generateFrameHeader(FrameType::Continuation, 0, sid, maxFrameSize_);
+    sink_->write(pos, maxFrameSize_);
+
+    count -= maxFrameSize_;
+    pos += maxFrameSize_;
+  }
+
+  // last CONTINUATION frame
+  generateFrameHeader(FrameType::Continuation, END_HEADERS, sid, count);
+  sink_->write(pos, count);
 }
 
 void Generator::generatePing(uint64_t payload) {
