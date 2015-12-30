@@ -105,6 +105,7 @@ TEST(hpack_Generator, literalHeaderWithoutIndexing) {
   generator.generateHeader(":path", "/sample/path", false);
   const BufferRef& headerBlock = generator.headerBlock();
 
+  printf("hexdump:\n%s\n", headerBlock.hexdump().c_str());
   ASSERT_EQ(14, headerBlock.size());
   EXPECT_EQ(0x04, headerBlock[0]);
   EXPECT_EQ(0x0c, headerBlock[1]);

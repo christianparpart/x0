@@ -10,6 +10,7 @@
 #include <xzero/http/http2/StreamID.h>
 #include <xzero/http/http2/FrameType.h>
 #include <xzero/http/http2/SettingParameter.h>
+#include <xzero/http/hpack/Generator.h>
 #include <xzero/defines.h>
 #include <utility>
 #include <vector>
@@ -132,7 +133,7 @@ class Generator {
   void setMaxHeaderListSize(size_t value);
 
   /**
-   * Generates the binary frame for a DATA frame and.
+   * Generates the binary frame for a DATA frame.
    *
    * @param sid the stream ID this data frame belongs to.
    * @param chunk the data payload to be transmitted (whithout padding).
@@ -141,7 +142,7 @@ class Generator {
   void generateData(StreamID sid, const BufferRef& data, bool last);
 
   /**
-   * Generates the binary frame for a DATA frame and.
+   * Generates the binary frame for a DATA frame.
    *
    * @note If the @p chunk has to be split into multiple @c DATA frames
    *       and if @p chunk owns the its file descriptor, only the last
@@ -161,6 +162,24 @@ class Generator {
    * @param last @c true if no @c DATA frame is following, @c false otherwise.
    */
   void generateHeaders(StreamID sid, const HeaderFieldList& headers,
+                       bool last);
+
+  /**
+   * Generates one @c HEADERS frame and 0 or more @c CONTINUATION frames.
+   *
+   * @param sid stream identifier
+   * @param headers HTTP message headers
+   * @param dependsOnSID ID of stream this stream depends on.
+   * @param isExclusive if stream dependency is given, indicates if it is
+   *                    exclusive.
+   * @param weight      weighting when sharing bandwidth with other streams.
+   *                    TODO (ensure): A value between 1 and 256.
+   * @param last @c true if no @c DATA frame is following, @c false otherwise.
+   */
+  void generateHeaders(StreamID sid, const HeaderFieldList& headers,
+                       StreamID dependsOnSID,
+                       bool isExclusive,
+                       uint8_t weight,
                        bool last);
 
   /**
@@ -259,6 +278,7 @@ class Generator {
  private:
   DataChain* sink_;
   size_t maxFrameSize_;
+  hpack::Generator headerGenerator_;
 };
 
 // {{{ inlines

@@ -76,13 +76,17 @@ void Generator::generateHeader(const std::string& name,
   bool nameValueMatch;
   size_t index;
 
-  if (StaticTable::find(name, value, &index, &nameValueMatch))
+  if (StaticTable::find(name, value, &index, &nameValueMatch)) {
+    printf("found header in static table\n");
     encodeHeaderIndexed(index + 1, nameValueMatch, name, value, sensitive);
-  else if (dynamicTable_.find(name, value, &index, &nameValueMatch))
+  } else if (dynamicTable_.find(name, value, &index, &nameValueMatch)) {
+    printf("found header in dynamic table\n");
     encodeHeaderIndexed(index + StaticTable::length(),
                         nameValueMatch, name, value, sensitive);
-  else
+  } else {
+    printf("found header nowhere\n");
     encodeHeaderLiteral(name, value, sensitive);
+  }
 }
 
 void Generator::encodeHeaderIndexed(size_t index,

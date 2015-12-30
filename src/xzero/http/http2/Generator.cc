@@ -8,6 +8,8 @@
 
 #include <xzero/http/http2/Generator.h>
 #include <xzero/http/http2/SettingParameter.h>
+#include <xzero/http/HeaderFieldList.h>
+#include <xzero/http/HeaderField.h>
 #include <xzero/io/DataChain.h>
 #include <xzero/Buffer.h>
 #include <xzero/logging.h>
@@ -43,9 +45,8 @@ Generator::Generator(DataChain* sink,
                      size_t headerTableSize,
                      size_t maxHeaderListSize)
     : sink_(sink),
-      maxFrameSize_(maxFrameSize)
-      //, headerGenerator_(headerTableSize, maxHeaderListSize),
-{
+      maxFrameSize_(maxFrameSize),
+      headerGenerator_(headerTableSize/*TODO: solve this, maxHeaderListSize*/) {
   assert(maxFrameSize_ > FrameHeaderSize + 1);
 }
 
@@ -92,6 +93,69 @@ void Generator::generateData(StreamID sid, const BufferRef& data, bool last) {
     if (offset == data.size())
       break;
   }
+}
+
+void Generator::generateHeaders(StreamID sid, const HeaderFieldList& headers,
+                                bool last) {
+  StreamID dependsOnSID = 0;
+  bool isExclusive = false;
+  uint8_t weight = 0;
+  generateHeaders(sid, headers, last, dependsOnSID, isExclusive, weight);
+}
+
+void Generator::generateHeaders(StreamID sid, const HeaderFieldList& headers,
+                                StreamID dependsOnSID,
+                                bool isExclusive,
+                                uint8_t weight,
+                                bool last) {
+  /* +---------------+
+   * |Pad Length? (8)|
+   * +-+-------------+-----------------------------------------------+
+   * |E|                 Stream Dependency? (31)                     |
+   * +-+-------------+-----------------------------------------------+
+   * |  Weight? (8)  |
+   * +-+-------------+-----------------------------------------------+
+   * |                   Header Block Fragment (*)                 ...
+   * +---------------------------------------------------------------+
+   * |                           Padding (*)                       ...
+   * +---------------------------------------------------------------+
+   */
+  constexpr unsigned END_STREAM = 0x01;
+  constexpr unsigned END_HEADERS = 0x04;
+  //constexpr unsigned PADDED = 0x08;
+  constexpr unsigned PRIORITY = 0x20;
+
+  assert(sid != 0);
+
+  for (const HeaderField& field: headers) {
+    headerGenerator_.generateHeader(field.name(), field.value(),
+                                    field.isSensitive());
+  }
+  const BufferRef& payload = headerGenerator_.headerBlock();
+
+  unsigned flags = 0;
+
+  if (last)
+    flags |= END_STREAM;
+
+  if (payload.size() < maxFrameSize_)
+    flags |= END_HEADERS;
+
+  if (dependsOnSID)
+    flags |= PRIORITY;
+
+  generateFrameHeader(FrameType::Headers, flags, sid, payload.size());
+  if (dependsOnSID) {
+    if (isExclusive)
+      write32(dependsOnSID | (1 << 31));
+    else
+      write32(dependsOnSID & ~(1 << 31));
+    write8(weight);
+  }
+
+  sink_->write(payload);
+
+  // TODO: introduce CONTINUATION frames in case this one wound be too big.
 }
 
 void Generator::generatePriority(StreamID sid, bool exclusive,
