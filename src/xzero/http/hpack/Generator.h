@@ -59,7 +59,7 @@ class Generator {
    *                  subject of indexing on any intermediary or upstream.
    */
   void generateHeader(const std::string& name, const std::string& value,
-                      bool sensitive);
+                      bool sensitive = false);
 
   /**
    * Number of already generate and not yet flushed bytes.
@@ -88,6 +88,7 @@ class Generator {
                           unsigned char* output);
 
  public: // XXX raw access, be aware !
+
   void encodeInt(uint8_t suffix, uint8_t prefixBits, uint64_t value);
   void encodeString(const std::string& value, bool compressed = false);
   bool isIndexable(const HeaderField& field) const;
