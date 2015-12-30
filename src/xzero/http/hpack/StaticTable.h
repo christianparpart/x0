@@ -79,7 +79,18 @@ class StaticTable {
   static iterator end();
 
  private:
-  static TableEntry entries_[];
+  static TableEntry entries_[61];
+
+  // Need this duplication, unfortunately.
+  struct SortedEntry {
+    size_t index;
+    std::string name;
+    std::string value;
+
+    SortedEntry(size_t i, const std::string& n, const std::string& v)
+        : index(i), name(n), value(v) {}
+  };
+  static SortedEntry sortedEntries_[61];
 };
 
 // {{{ inlines

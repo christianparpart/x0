@@ -13,74 +13,151 @@ namespace xzero {
 namespace http {
 namespace hpack {
 
-TableEntry StaticTable::entries_[] = {
-    /*  1 */ {":authority", ""},
-    /*  2 */ {":method", "GET"},
-    /*  3 */ {":method", "POST"},
-    /*  4 */ {":path", "/"},
-    /*  5 */ {":path", "/index.html"},
-    /*  6 */ {":scheme", "http"},
-    /*  7 */ {":scheme", "https"},
-    /*  8 */ {":status", "200"},
-    /*  9 */ {":status", "204"},
+TableEntry StaticTable::entries_[61] = { // {{{
+    /*  0 */ {":authority", ""},
+    /*  1 */ {":method", "GET"},
+    /*  2 */ {":method", "POST"},
+    /*  3 */ {":path", "/"},
+    /*  4 */ {":path", "/index.html"},
+    /*  5 */ {":scheme", "http"},
+    /*  6 */ {":scheme", "https"},
+    /*  7 */ {":status", "200"},
+    /*  8 */ {":status", "204"},
+    /*  9 */ {":status", "206"},
 
-    /* 10 */ {":status", "206"},
-    /* 11 */ {":status", "304"},
-    /* 12 */ {":status", "400"},
-    /* 13 */ {":status", "404"},
-    /* 14 */ {":status", "500"},
-    /* 15 */ {"accept-charset", ""},
-    /* 16 */ {"accept-encoding", "gzip, deflate"},
-    /* 17 */ {"accept-language", ""},
-    /* 18 */ {"accept-ranges", ""},
-    /* 19 */ {"accept", ""},
+    /* 10 */ {":status", "304"},
+    /* 11 */ {":status", "400"},
+    /* 12 */ {":status", "404"},
+    /* 13 */ {":status", "500"},
+    /* 14 */ {"accept-charset", ""},
+    /* 15 */ {"accept-encoding", "gzip, deflate"},
+    /* 16 */ {"accept-language", ""},
+    /* 17 */ {"accept-ranges", ""},
+    /* 18 */ {"accept", ""},
+    /* 19 */ {"access-control-allow-origin", ""},
 
-    /* 20 */ {"access-control-allow-origin", ""},
-    /* 21 */ {"age", ""},
-    /* 22 */ {"allow", ""},
-    /* 23 */ {"authorization", ""},
-    /* 24 */ {"cache-control", ""},
-    /* 25 */ {"content-disposition", ""},
-    /* 26 */ {"content-encoding", ""},
-    /* 27 */ {"content-language", ""},
-    /* 28 */ {"content-length", ""},
-    /* 29 */ {"content-location", ""},
+    /* 20 */ {"age", ""},
+    /* 21 */ {"allow", ""},
+    /* 22 */ {"authorization", ""},
+    /* 23 */ {"cache-control", ""},
+    /* 24 */ {"content-disposition", ""},
+    /* 25 */ {"content-encoding", ""},
+    /* 26 */ {"content-language", ""},
+    /* 27 */ {"content-length", ""},
+    /* 28 */ {"content-location", ""},
+    /* 29 */ {"content-range", ""},
 
-    /* 30 */ {"content-range", ""},
-    /* 31 */ {"content-type", ""},
-    /* 32 */ {"cookie", ""},
-    /* 33 */ {"date", ""},
-    /* 34 */ {"etag", ""},
-    /* 35 */ {"expect", ""},
-    /* 36 */ {"expires", ""},
-    /* 37 */ {"from", ""},
-    /* 38 */ {"host", ""},
-    /* 39 */ {"if-match", ""},
+    /* 30 */ {"content-type", ""},
+    /* 31 */ {"cookie", ""},
+    /* 32 */ {"date", ""},
+    /* 33 */ {"etag", ""},
+    /* 34 */ {"expect", ""},
+    /* 35 */ {"expires", ""},
+    /* 36 */ {"from", ""},
+    /* 37 */ {"host", ""},
+    /* 38 */ {"if-match", ""},
+    /* 39 */ {"if-modified-since", ""},
 
-    /* 40 */ {"if-modified-since", ""},
-    /* 41 */ {"if-none-match", ""},
-    /* 42 */ {"if-range", ""},
-    /* 43 */ {"if-unmodified-since", ""},
-    /* 44 */ {"last-modified", ""},
-    /* 45 */ {"link", ""},
-    /* 46 */ {"location", ""},
-    /* 47 */ {"max-forwards", ""},
+    /* 40 */ {"if-none-match", ""},
+    /* 41 */ {"if-range", ""},
+    /* 42 */ {"if-unmodified-since", ""},
+    /* 43 */ {"last-modified", ""},
+    /* 44 */ {"link", ""},
+    /* 45 */ {"location", ""},
+    /* 46 */ {"max-forwards", ""},
+    /* 47 */ {"proxy-authenticate", ""},
+    /* 48 */ {"proxy-authorization", ""},
+    /* 49 */ {"range", ""},
 
-    /* 48 */ {"proxy-authenticate", ""},
-    /* 49 */ {"proxy-authorization", ""},
-    /* 50 */ {"range", ""},
-    /* 51 */ {"referer", ""},
-    /* 52 */ {"refresh", ""},
-    /* 53 */ {"retry-after", ""},
-    /* 54 */ {"server", ""},
-    /* 55 */ {"set-cookie", ""},
-    /* 56 */ {"strict-transport-security", ""},
-    /* 57 */ {"transfer-encoding", ""},
-    /* 58 */ {"user-agent", ""},
-    /* 59 */ {"vary", ""},
-    /* 60 */ {"via", ""},
-    /* 61 */ {"www-authenticate", ""}
+    /* 50 */ {"referer", ""},
+    /* 51 */ {"refresh", ""},
+    /* 52 */ {"retry-after", ""},
+    /* 53 */ {"server", ""},
+    /* 54 */ {"set-cookie", ""},
+    /* 55 */ {"strict-transport-security", ""},
+    /* 56 */ {"transfer-encoding", ""},
+    /* 57 */ {"user-agent", ""},
+    /* 58 */ {"vary", ""},
+    /* 59 */ {"via", ""},
+
+    /* 60 */ {"www-authenticate", ""}
 };
+// }}}
+StaticTable::SortedEntry StaticTable::sortedEntries_[61] = { // {{{
+    /* XXX Yes, this is not ideal, even though the list looks sorted, it is not.
+     * In order to still have quick search over it, I'll duplicate the
+     * array of header fields and put the *ONLY* misguided field
+     * into a new position, so that binary search works.
+     */
+    { 0, ":authority", ""},
+    { 1, ":method", "GET"},
+    { 2, ":method", "POST"},
+    { 3, ":path", "/"},
+    { 4, ":path", "/index.html"},
+    { 5, ":scheme", "http"},
+    { 6, ":scheme", "https"},
+    { 7, ":status", "200"},
+    { 8, ":status", "204"},
+    { 9, ":status", "206"},
+
+    {10, ":status", "304"},
+    {11, ":status", "400"},
+    {12, ":status", "404"},
+    {13, ":status", "500"},
+    {18, "accept", ""}, // XXX *** this is the change (moved up) *** XXX
+    {14, "accept-charset", ""},
+    {15, "accept-encoding", "gzip, deflate"},
+    {16, "accept-language", ""},
+    {17, "accept-ranges", ""},
+    {19, "access-control-allow-origin", ""},
+
+    {20, "age", ""},
+    {21, "allow", ""},
+    {22, "authorization", ""},
+    {23, "cache-control", ""},
+    {24, "content-disposition", ""},
+    {25, "content-encoding", ""},
+    {26, "content-language", ""},
+    {27, "content-length", ""},
+    {28, "content-location", ""},
+    {29, "content-range", ""},
+
+    {30, "content-type", ""},
+    {31, "cookie", ""},
+    {32, "date", ""},
+    {33, "etag", ""},
+    {34, "expect", ""},
+    {35, "expires", ""},
+    {36, "from", ""},
+    {37, "host", ""},
+    {38, "if-match", ""},
+    {39, "if-modified-since", ""},
+
+    {40, "if-none-match", ""},
+    {41, "if-range", ""},
+    {42, "if-unmodified-since", ""},
+    {43, "last-modified", ""},
+    {44, "link", ""},
+    {45, "location", ""},
+    {46, "max-forwards", ""},
+    {47, "proxy-authenticate", ""},
+    {48, "proxy-authorization", ""},
+    {49, "range", ""},
+
+    {50, "referer", ""},
+    {51, "refresh", ""},
+    {52, "retry-after", ""},
+    {53, "server", ""},
+    {54, "set-cookie", ""},
+    {55, "strict-transport-security", ""},
+    {56, "transfer-encoding", ""},
+    {57, "user-agent", ""},
+    {58, "vary", ""},
+    {59, "via", ""},
+
+    {60, "www-authenticate", ""}
+};
+// }}}
 
 size_t StaticTable::length() {
   return sizeof(entries_) / sizeof(entries_[0]);
@@ -96,17 +173,55 @@ bool StaticTable::find(const std::string& name,
                        const std::string& value,
                        size_t* index,
                        bool* nameValueMatch) {
-  // TODO: binary search instead, std::lower_bound() ?
-  for (size_t i = 0, max = length(); i < max; i++) {
-    if (name != entries_[i].first)
-      continue;
+  size_t r = sizeof(sortedEntries_) / sizeof(*sortedEntries_) - 1;
+  size_t l = 0;
 
-    *index = i;
-    *nameValueMatch = value == entries_[i].second;
-    return true;
+  auto compare = [](const std::string& a, const std::string& b) -> int {
+    int result = a.compare(b);
+    return result;
+  };
+
+  while (r - l >= 2) {
+    size_t m = (l + r) / 2;
+    int cmp = compare(name, sortedEntries_[m].name);
+
+    if (cmp < 0) {
+      r = m - 1;
+    } else if (cmp > 0) {
+      l = m + 1;
+    } else {
+      cmp = compare(value, sortedEntries_[m].value);
+      if (cmp < 0) {
+        r = m - 1;
+      } else if (cmp > 0) {
+        l = m + 1;
+      } else {
+        *index = sortedEntries_[m].index;
+        *nameValueMatch = true;
+        return true;
+      }
+    }
   }
 
-  return false;
+  int foundLeftName = compare(name, sortedEntries_[l].name) == 0;
+  if (foundLeftName) {
+    *index = sortedEntries_[l].index;
+    if (compare(value, sortedEntries_[l].value) == 0) {
+      *nameValueMatch = true;
+      return true;
+    }
+  }
+
+  int foundRightName = compare(name, sortedEntries_[r].name) == 0;
+  if (foundRightName) {
+    *index = sortedEntries_[r].index;
+    if (compare(value, sortedEntries_[r].value) == 0) {
+      *nameValueMatch = true;
+      return true;
+    }
+  }
+
+  return foundLeftName || foundRightName;
 }
 
 const TableEntry& StaticTable::at(size_t index) {

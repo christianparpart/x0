@@ -32,3 +32,16 @@ TEST(hpack_StaticTable, find_field_nothing) {
   bool match = StaticTable::find("not", "found", &index, &nameValueMatch);
   EXPECT_FALSE(match);
 }
+
+TEST(hpack_StaticTable, find_them_all_binary_search_test) {
+  // make sure we find them all, just to unit-test our binary search
+  size_t index;
+  bool nameValueMatch;
+
+  for (size_t i = 0; i < StaticTable::length(); i++) {
+    bool match = StaticTable::find(StaticTable::at(i), &index, &nameValueMatch);
+    ASSERT_EQ(index, i);
+    ASSERT_EQ(true, nameValueMatch);
+    ASSERT_EQ(true, match);
+  }
+}
