@@ -243,6 +243,7 @@ class Generator {
    *
    * @param payload any custom data to be transmitted as payload.
    */
+  void generatePingAck(uint64_t payload);
   void generatePingAck(const BufferRef& payload);
 
   /**

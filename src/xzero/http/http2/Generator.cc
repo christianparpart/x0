@@ -306,8 +306,8 @@ void Generator::generatePing(const BufferRef& payload) {
    * |                      Opaque Data (64)                         |
    * +---------------------------------------------------------------+
    */
-  assert(payload.size() == 4);
 
+  assert(payload.size() == 8);
   generateFrameHeader(FrameType::Ping, 0, 0, 8);
   sink_->write(payload);
 }
@@ -319,12 +319,22 @@ void Generator::generatePingAck(const BufferRef& payload) {
    * +---------------------------------------------------------------+
    */
 
+  assert(payload.size() == 8);
   static constexpr unsigned ACK = 0x01;
-
-  assert(payload.size() == 4);
-
   generateFrameHeader(FrameType::Ping, ACK, 0, 8);
   sink_->write(payload);
+}
+
+void Generator::generatePingAck(uint64_t payload) {
+  /*
+   * +---------------------------------------------------------------+
+   * |                      Opaque Data (64)                         |
+   * +---------------------------------------------------------------+
+   */
+
+  static constexpr unsigned ACK = 0x01;
+  generateFrameHeader(FrameType::Ping, ACK, 0, 8);
+  write64(payload);
 }
 
 void Generator::generateGoAway(StreamID lastStreamID,

@@ -10,14 +10,42 @@
 #include <xzero/http/http2/Generator.h>
 #include <xzero/http/http2/ErrorCode.h>
 #include <xzero/io/DataChain.h>
-#include <xzero/Application.h>
 
 using namespace xzero;
 using namespace xzero::http::http2;
 
-TEST(http_http2_Generator, data_single_frame) {
-  Application::logToStderr(LogLevel::Trace);
+// {{{ helper
+inline uint32_t read24(const BufferRef& buf, size_t offset) {
+  uint32_t value = 0;
 
+  assert(offset + 3 <= buf.size());
+
+  value |= (static_cast<uint64_t>(buf[offset + 0]) & 0xFF) << 16;
+  value |= (static_cast<uint64_t>(buf[offset + 1]) & 0xFF) << 8;
+  value |= (static_cast<uint64_t>(buf[offset + 2]) & 0xFF);
+
+  return value;
+}
+
+inline uint64_t read64(const BufferRef& buf, size_t offset) {
+  uint64_t value = 0;
+
+  assert(offset + 8 <= buf.size());
+
+  value |= (static_cast<uint64_t>(buf[offset + 0]) & 0xFF) << 56;
+  value |= (static_cast<uint64_t>(buf[offset + 1]) & 0xFF) << 48;
+  value |= (static_cast<uint64_t>(buf[offset + 2]) & 0xFF) << 40;
+  value |= (static_cast<uint64_t>(buf[offset + 3]) & 0xFF) << 32;
+  value |= (static_cast<uint64_t>(buf[offset + 4]) & 0xFF) << 24;
+  value |= (static_cast<uint64_t>(buf[offset + 5]) & 0xFF) << 16;
+  value |= (static_cast<uint64_t>(buf[offset + 6]) & 0xFF) << 8;
+  value |= (static_cast<uint64_t>(buf[offset + 7]) & 0xFF);
+
+  return value;
+}
+// }}}
+
+TEST(http_http2_Generator, data_single_frame) {
   DataChain chain;
   Generator generator(&chain);
 
@@ -103,6 +131,7 @@ TEST(http_http2_Generator, reset_stream) {
   chain.transferTo(&sink);
 
   ASSERT_EQ(13, sink.size()); // 9 + 4
+  ASSERT_EQ(4, read24(sink, 0)); // payload size
 
   // ErrorCode (32 bit)
   EXPECT_EQ(0, sink[9]);
@@ -141,4 +170,36 @@ TEST(http_http2_Generator, settingsAck) {
 
   ASSERT_EQ(9, sink.size());
   // TODO: some binary comparison of what we expect
+}
+
+TEST(http_http2_Generator, ping) {
+  DataChain chain;
+  Generator generator(&chain);
+
+  generator.generatePing("pingpong");
+
+  Buffer sink;
+  chain.transferTo(&sink);
+
+  ASSERT_EQ(17, sink.size());                               // packet size
+  ASSERT_EQ(8, read24(sink, 0));                            // payload size
+  ASSERT_EQ((uint8_t) FrameType::Ping, (uint8_t) sink[3]);  // type
+  ASSERT_EQ((uint8_t) 0x00, (uint8_t) sink[4]);             // flags
+  ASSERT_EQ("pingpong", sink.ref(9));                       // payload
+}
+
+TEST(http_http2_Generator, pingAck) {
+  DataChain chain;
+  Generator generator(&chain);
+
+  generator.generatePingAck("Welcome!");
+
+  Buffer sink;
+  chain.transferTo(&sink);
+
+  ASSERT_EQ(17, sink.size());                               // packet size
+  ASSERT_EQ(8, read24(sink, 0));                            // payload size
+  ASSERT_EQ((uint8_t) FrameType::Ping, (uint8_t) sink[3]);  // type
+  ASSERT_EQ((uint8_t) 0x01, (uint8_t) sink[4]);             // flags
+  ASSERT_EQ("Welcome!", sink.ref(9));                       // payload
 }
