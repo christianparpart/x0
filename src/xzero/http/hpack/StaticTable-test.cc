@@ -10,7 +10,7 @@ TEST(hpack_StaticTable, find_field_name_only) {
   bool match = StaticTable::find(":path", "/custom", &index, &nameValueMatch);
 
   EXPECT_TRUE(match);
-  EXPECT_EQ(3, index);
+  EXPECT_EQ(4, index);
   EXPECT_FALSE(nameValueMatch);
 }
 

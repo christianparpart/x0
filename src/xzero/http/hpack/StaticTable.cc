@@ -176,46 +176,43 @@ bool StaticTable::find(const std::string& name,
   size_t r = sizeof(sortedEntries_) / sizeof(*sortedEntries_) - 1;
   size_t l = 0;
 
-  auto compare = [](const std::string& a, const std::string& b) -> int {
-    int result = a.compare(b);
-    return result;
+  auto compare = [&](size_t m) -> int {
+    int result = name.compare(sortedEntries_[m].name);
+    if (result != 0)
+      return result;
+
+    return value.compare(sortedEntries_[m].value);
   };
 
   while (r - l >= 2) {
     size_t m = (l + r) / 2;
-    int cmp = compare(name, sortedEntries_[m].name);
+    int cmp = compare(m);
 
     if (cmp < 0) {
-      r = m - 1;
+      r = m;
     } else if (cmp > 0) {
-      l = m + 1;
+      l = m;
     } else {
-      cmp = compare(value, sortedEntries_[m].value);
-      if (cmp < 0) {
-        r = m - 1;
-      } else if (cmp > 0) {
-        l = m + 1;
-      } else {
-        *index = sortedEntries_[m].index;
-        *nameValueMatch = true;
-        return true;
-      }
-    }
-  }
-
-  int foundLeftName = compare(name, sortedEntries_[l].name) == 0;
-  if (foundLeftName) {
-    *index = sortedEntries_[l].index;
-    if (compare(value, sortedEntries_[l].value) == 0) {
+      *index = sortedEntries_[m].index;
       *nameValueMatch = true;
       return true;
     }
   }
 
-  int foundRightName = compare(name, sortedEntries_[r].name) == 0;
+  bool foundLeftName = name.compare(sortedEntries_[l].name) == 0;
+
+  if (foundLeftName) {
+    *index = sortedEntries_[l].index;
+    if (value.compare(sortedEntries_[l].value) == 0) {
+      *nameValueMatch = true;
+      return true;
+    }
+  }
+
+  bool foundRightName = name.compare(sortedEntries_[r].name) == 0;
   if (foundRightName) {
     *index = sortedEntries_[r].index;
-    if (compare(value, sortedEntries_[r].value) == 0) {
+    if (value.compare(sortedEntries_[r].value) == 0) {
       *nameValueMatch = true;
       return true;
     }
