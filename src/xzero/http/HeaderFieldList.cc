@@ -38,20 +38,32 @@ void HeaderFieldList::push_back(HeaderFieldList&& list) {
 }
 
 void HeaderFieldList::push_back(const HeaderField& field) {
+  if (field.name().empty())
+    RAISE(RuntimeError, "Invalid field name.");
+
   entries_.emplace_back(field);
 }
 
 void HeaderFieldList::push_back(HeaderField&& field) {
+  if (field.name().empty())
+    RAISE(RuntimeError, "Invalid field name.");
+
   entries_.emplace_back(std::move(field));
 }
 
 void HeaderFieldList::push_back(const std::string& name,
                                 const std::string& value) {
+  if (name.empty())
+    RAISE(RuntimeError, "Invalid field name.");
+
   entries_.emplace_back(name, value);
 }
 
 void HeaderFieldList::overwrite(const std::string& name,
                                 const std::string& value) {
+  if (name.empty())
+    RAISE(RuntimeError, "Invalid field name.");
+
   remove(name);
   push_back(name, value);
 }
