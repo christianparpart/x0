@@ -1,14 +1,28 @@
 #include <xzero/http/http2/Parser.h>
 #include <xzero/http/http2/FrameType.h>
 #include <xzero/http/http2/FrameListener.h>
+#include <xzero/http/HttpRequestInfo.h>
 #include <xzero/StringUtil.h>
 #include <xzero/Buffer.h>
+
+#define HTTP2_STRICT 1
 
 namespace xzero {
 namespace http {
 namespace http2 {
 
-inline uint32_t read24(const char* buf) {
+template<typename T>
+inline uint16_t read16(const T* buf) {
+  uint16_t value = 0;
+
+  value |= (static_cast<uint64_t>(buf[1]) & 0xFF) << 8;
+  value |= (static_cast<uint64_t>(buf[2]) & 0xFF);
+
+  return value;
+}
+
+template<typename T>
+inline uint32_t read24(const T* buf) {
   uint32_t value = 0;
 
   value |= (static_cast<uint64_t>(buf[0]) & 0xFF) << 16;
@@ -18,7 +32,8 @@ inline uint32_t read24(const char* buf) {
   return value;
 }
 
-inline uint32_t read32(const char* buf) {
+template<typename T>
+inline uint32_t read32(const T* buf) {
   uint32_t value = 0;
 
   value |= (static_cast<uint64_t>(buf[0]) & 0xFF) << 24;
@@ -30,9 +45,23 @@ inline uint32_t read32(const char* buf) {
 }
 
 Parser::Parser(FrameListener* listener)
+    : Parser(listener, 1 << 14, 4096) {
+}
+
+Parser::Parser(FrameListener* listener,
+               size_t maxFrameSize,
+               size_t maxHeaderTableSize)
     : listener_(listener),
-      headerParser_(4096, nullptr), // TODO
-      state_(ParserState::Idle) {
+      maxFrameSize_(maxFrameSize),
+      maxHeaderTableSize_(maxHeaderTableSize),
+      headerContext_(maxHeaderTableSize),
+      pendingHeaders_(),
+      newestStreamID_(0),
+      lastFrameType_(),
+      lastStreamID_(0),
+      dependsOnSID_(0),
+      isStreamClosed_(false),
+      isExclusiveDependency_(false) {
 }
 
 size_t Parser::parseFragment(const BufferRef& chunk) {
@@ -67,20 +96,107 @@ void Parser::parseFrame(const BufferRef& frame) {
 
   printf("Parser.parseFrame: %s\n", StringUtil::toString(type).c_str());
 
+  if (payload.size() > maxFrameSize_) {
+    if (sid != 0)
+      listener_->onStreamError(
+          sid,
+          ErrorCode::FrameSizeError,
+          "Received frame exceeds negotiated maximum frame size.");
+    else
+      listener_->onConnectionError(
+          ErrorCode::FrameSizeError,
+          "Received frame exceeds negotiated maximum frame size.");
+    return;
+  }
+
   switch (type) {
+    case FrameType::Data:
+      parseData(flags, sid, payload);
+      break;
     case FrameType::Headers:
       parseHeaders(flags, sid, payload);
+      break;
+    case FrameType::Priority:
+      parsePriority(sid, payload);
+      break;
+    case FrameType::ResetStream:
+      parseResetStream(sid, payload);
+      break;
+    case FrameType::Settings:
+      parseSettings(flags, sid, payload);
+      break;
+    case FrameType::PushPromise:
+      parsePushPromise(flags, sid, payload);
+      break;
+    case FrameType::Ping:
+      parsePing(flags, sid, payload);
+      break;
+    case FrameType::GoAway:
+      parseGoAway(flags, sid, payload);
+      break;
+    case FrameType::WindowUpdate:
+      parseWindowUpdate(flags, sid, payload);
       break;
     case FrameType::Continuation:
       parseContinuation(flags, sid, payload);
       break;
     default:
-      // skip this frame
-      break;
+      // silently skip this frame, and do not remember its SID nor frame type.
+      return;
   }
+
+  lastFrameType_ = type;
+  lastStreamID_ = sid;
 }
 
-void Parser::parseHeaders(uint8_t flags, StreamID sid, const BufferRef& payload) {
+void Parser::parseData(uint8_t flags, StreamID sid, const BufferRef& payload) {
+  /* +---------------+
+   * |Pad Length? (8)|
+   * +---------------+-----------------------------------------------+
+   * |                            Data (*)                         ...
+   * +---------------------------------------------------------------+
+   * |                           Padding (*)                       ...
+   * +---------------------------------------------------------------+
+   */
+
+  constexpr uint8_t END_STREAM = 0x01;
+  constexpr uint8_t PADDED = 0x08;
+
+  size_t contentLength = payload.size();
+  size_t paddingLength = 0;
+
+  if (flags & PADDED) {
+    paddingLength = payload[0];
+  }
+
+  if (sid == 0) {
+    listener_->onConnectionError(
+        ErrorCode::ProtocolError,
+        "Invalid stream id 0 on DATA frame.");
+    return;
+  }
+
+  if (paddingLength) {
+    if (paddingLength >= contentLength) {
+      listener_->onConnectionError(
+          ErrorCode::ProtocolError,
+          "DATA's padding length is larger than the frame.");
+      return;
+    }
+
+    if (!verifyPadding(payload.ref(contentLength))) {
+      return;
+    }
+  }
+
+  const bool last = flags & END_STREAM;
+
+  listener_->onData(sid, payload.ref(0, contentLength), last);
+}
+
+void Parser::parseHeaders(uint8_t flags,
+                          StreamID sid,
+                          const BufferRef& payload) {
   /* +---------------+
    * |Pad Length? (8)|
    * +-+-------------+-----------------------------------------------+
@@ -93,28 +209,349 @@ void Parser::parseHeaders(uint8_t flags, StreamID sid, const BufferRef& payload)
    * |                           Padding (*)                       ...
    * +---------------------------------------------------------------+
    */
-  constexpr unsigned END_STREAM = 0x01;
-  constexpr unsigned END_HEADERS = 0x04;
-  //constexpr unsigned PADDED = 0x08;
-  constexpr unsigned PRIORITY = 0x20;
 
-  isExclusiveDependency_ = flags & PRIORITY;
+  constexpr uint8_t END_STREAM = 0x01;
+  constexpr uint8_t END_HEADERS = 0x04;
+  constexpr uint8_t PADDED = 0x08;
+  constexpr uint8_t PRIORITY = 0x20;
+
+  const uint8_t* pos = (uint8_t*) payload.data();
+  size_t headerBlockLength = payload.size();
+
+  size_t padlen = 0;
+  if (flags & PADDED) {
+    padlen = *pos;
+    pos++;
+  }
+
+  if (flags & PRIORITY) {
+    headerBlockLength -= 6;
+
+    isExclusiveDependency_ = *pos & (1 << 7);
+    dependsOnSID_ = read32(pos) & ~(1 << 31);
+    pos += 4;
+
+    streamWeight_ = std::min(1 + *pos, 256);
+    pos++;
+  } else {
+    isExclusiveDependency_ = false;
+  }
+
+  // apply padlen
+  if (padlen > headerBlockLength) {
+    listener_->onConnectionError(
+        ErrorCode::ProtocolError,
+        "HEADERS padding-length too large.");
+    return;
+  }
+
+  if (sid <= newestStreamID_) {
+    listener_->onConnectionError(
+        ErrorCode::ProtocolError,
+        "Unexpected stream id for HEADERS frame received.");
+    return;
+  }
+
+  newestStreamID_ = sid;
+
+  headerBlockLength -= padlen;
+  isStreamClosed_ = flags & END_STREAM;
+  promisedStreamID_ = 0; // for indication in CONTINUATION that we're a HEADERS.
+
+  pendingHeaders_.push_back(pos, headerBlockLength);
 
   if (flags & END_HEADERS) {
-    headers_.clear();
-    pendingHeaders_.push_back(payload);
-    headerParser_.parse(pendingHeaders_);
-    listener_->onHeaders(sid, flags & END_STREAM, headers_);
-  } else {
-    // expecting CONTINUATION headers
-    pendingHeaders_.push_back(payload);
+    onRequestBegin();
   }
 }
 
-void Parser::parseContinuation(uint8_t flags, StreamID sid,
+void Parser::parsePriority(StreamID sid, const BufferRef& payload) {
+  /* +-+-------------------------------------------------------------+
+   * |E|                  Stream Dependency (31)                     |
+   * +-+-------------+-----------------------------------------------+
+   * |   Weight (8)  |
+   * +-+-------------+
+   */
+
+  if (payload.size() != 5) {
+    listener_->onStreamError(
+        sid,
+        ErrorCode::FrameSizeError,
+        "PRIORITY frame size must be 5 bytes");
+    return;
+  }
+
+  if (sid == 0) {
+    listener_->onConnectionError(
+        ErrorCode::ProtocolError,
+        "Invalid stream id 0 on PRIORITY frame.");
+    return;
+  }
+
+  bool isExclusiveDependency = payload[0] & (1 << 7);
+  StreamID streamDependency = read32(payload.data()) & ~(1 << 31);
+  unsigned weight = payload[5] + 1;
+
+  listener_->onPriority(sid, isExclusiveDependency, streamDependency, weight);
+}
+
+void Parser::parseResetStream(StreamID sid, const BufferRef& payload) {
+  /* +---------------------------------------------------------------+
+   * |                        Error Code (32)                        |
+   * +---------------------------------------------------------------+
+   */
+
+  if (payload.size() != 4) {
+    listener_->onConnectionError(
+        ErrorCode::FrameSizeError,
+        "RST_STREAM frame size must be 4 bytes");
+    return;
+  }
+
+  if (sid == 0) {
+    listener_->onConnectionError(
+        ErrorCode::ProtocolError,
+        "Invalid stream id 0 on RST_STREAM frame.");
+    return;
+  }
+
+  if (sid > newestStreamID_) {
+    listener_->onConnectionError(
+        ErrorCode::ProtocolError,
+        "RST_STREAM received for an idle stream.");
+    return;
+  }
+
+  ErrorCode errorCode = static_cast<ErrorCode>(read32(payload.data()));
+
+  listener_->onResetStream(sid, errorCode);
+}
+
+void Parser::parseSettings(uint8_t flags,
+                           StreamID sid,
+                           const BufferRef& payload) {
+  /* +-------------------------------+
+   * |       Identifier (16)         |
+   * +-------------------------------+-------------------------------+
+   * |                        Value (32)                             |
+   * +---------------------------------------------------------------+
+   */
+
+  constexpr uint8_t ACK = 0x01;
+
+  if (sid != 0) {
+    listener_->onConnectionError(
+        ErrorCode::ProtocolError,
+        "SETTINGS frame received an invalid stream identifier.");
+    return;
+  }
+
+  if (payload.size() % 6 != 0) {
+    listener_->onConnectionError(
+        ErrorCode::FrameSizeError,
+        "SETTINGS frame contains wrong frame size");
+    return;
+  }
+
+  if (flags & ACK) {
+    if (!payload.empty()) {
+      listener_->onConnectionError(
+          ErrorCode::FrameSizeError,
+          "SETTINGS frame with ACK flags set must not contain any payload.");
+    } else {
+      listener_->onSettingsAck();
+    }
+    return;
+  }
+
+  std::vector<std::pair<SettingParameter, unsigned long>> settings;
+  const auto end = payload.end();
+  auto pos = payload.begin();
+
+  while (pos != end) {
+    SettingParameter id = static_cast<SettingParameter>(read16(pos));
+    pos += 2;
+
+    uint32_t value = read32(pos);
+    pos += 4;
+
+    switch (id) {
+      case SettingParameter::HeaderTableSize:
+        maxHeaderTableSize_ = value;
+        headerContext_.setMaxSize(value);
+        break;
+      case SettingParameter::EnablePush:
+        settings.emplace_back(id, value);
+        break;
+      case SettingParameter::MaxConcurrentStreams:
+        settings.emplace_back(id, value);
+        break;
+      case SettingParameter::InitialWindowSize:
+        if (value < (1llu << 31) - 1) {
+          settings.emplace_back(id, value);
+        } else {
+          listener_->onConnectionError(
+              ErrorCode::FlowControlError,
+              "Given SETTINGS_INITIAL_WINDOW_size exceeds valid range.");
+        }
+        break;
+      case SettingParameter::MaxFrameSize:
+        if (value >= (1 << 14) - 1 && value <= (1 << 24) - 1) {
+          settings.emplace_back(id, value);
+        } else {
+          listener_->onConnectionError(
+              ErrorCode::ProtocolError,
+              "SETTINGS frame received invalid MAX_FRAME_SIZE.");
+        }
+        break;
+      case SettingParameter::MaxHeaderListSize:
+        settings.emplace_back(id, value);
+        break;
+      default:
+        // ignore any unknown
+        break;
+    }
+  }
+
+  listener_->onSettings(settings);
+}
+
+void Parser::parsePushPromise(uint8_t flags, StreamID sid, const BufferRef& payload) {
+  /* +---------------+
+   * |Pad Length? (8)|
+   * +-+-------------+-----------------------------------------------+
+   * |R|                  Promised Stream ID (31)                    |
+   * +-+-----------------------------+-------------------------------+
+   * |                   Header Block Fragment (*)                 ...
+   * +---------------------------------------------------------------+
+   * |                           Padding (*)                       ...
+   * +---------------------------------------------------------------+
+   */
+
+  constexpr uint8_t END_HEADERS = 0x04;
+  constexpr uint8_t PADDED = 0x08;
+
+  auto pos = payload.begin();
+  size_t contentLength = payload.size();
+  size_t paddingLength = 0;
+
+  if (flags & PADDED) {
+    paddingLength = *pos;
+    ++pos;
+  }
+
+  promisedStreamID_ = read32(pos) & ~(1 << 31);
+  pos += 4;
+
+  if (paddingLength > contentLength) {
+    listener_->onConnectionError(
+        ErrorCode::ProtocolError,
+        "PUSH_PROMISE padding-length too large.");
+    return;
+  }
+
+  contentLength -= paddingLength;
+
+  pendingHeaders_.push_back(pos, contentLength);
+
+  if (flags & END_HEADERS) {
+    onRequestBegin();
+  }
+}
+
+void Parser::parsePing(uint8_t flags, StreamID sid, const BufferRef& payload) {
+  /* +---------------------------------------------------------------+
+   * |                      Opaque Data (64)                         |
+   * +---------------------------------------------------------------+
+   */
+
+  constexpr uint8_t ACK = 0x08;
+
+  if (payload.size() != 8) {
+    listener_->onConnectionError(
+        ErrorCode::FrameSizeError,
+        "PING frame size must be 8 bytes.");
+    return;
+  }
+
+  if (flags & ACK) {
+    listener_->onPingAck(payload);
+  } else {
+    listener_->onPing(payload);
+  }
+}
+
+void Parser::parseGoAway(uint8_t flags, StreamID sid, const BufferRef& payload) {
+  /* +-+-------------------------------------------------------------+
+   * |R|                  Last-Stream-ID (31)                        |
+   * +-+-------------------------------------------------------------+
+   * |                      Error Code (32)                          |
+   * +---------------------------------------------------------------+
+   * |                  Additional Debug Data (*)                    |
+   * +---------------------------------------------------------------+
+   */
+
+  if (sid != 0) {
+    listener_->onConnectionError(
+        ErrorCode::ProtocolError,
+        "Unepxected stream id on GO_AWAY frame.");
+    return;
+  }
+
+  if (payload.size() < 8) {
+    listener_->onConnectionError(
+        ErrorCode::FrameSizeError,
+        "GO_AWAY frame size too small.");
+    return;
+  }
+
+  auto pos = payload.begin();
+
+  StreamID lastStreamID = read32(pos) & ~(1 << 31);
+  pos += 4;
+
+  ErrorCode errorCode = static_cast<ErrorCode>(read32(pos));
+  pos += 4;
+
+  BufferRef debugData(pos, payload.end() - pos);
+
+  listener_->onGoAway(lastStreamID, errorCode, debugData);
+}
+
+void Parser::parseWindowUpdate(uint8_t flags, StreamID sid, const BufferRef& payload) {
+  /* +-+-------------------------------------------------------------+
+   * |R|              Window Size Increment (31)                     |
+   * +-+-------------------------------------------------------------+
+   */
+
+  if (payload.size() != 4) {
+    listener_->onConnectionError(
+        ErrorCode::FrameSizeError,
+        "WINDOW_UPDATE frame size must be 4 bytes");
+  }
+
+  uint32_t windowSizeUpdate = read32(payload.begin()) & ~(1 << 31);
+
+  if (windowSizeUpdate == 0) {
+    listener_->onStreamError(
+        sid,
+        ErrorCode::ProtocolError,
+        "WINDOW_UPDATE received an invalid increment of 0.");
+    return;
+  }
+
+  listener_->onWindowUpdate(sid, windowSizeUpdate);
+}
+
+void Parser::parseContinuation(uint8_t flags,
+                               StreamID sid,
                                const BufferRef& payload) {
+  constexpr uint8_t END_HEADERS = 0x04;
+
   if (lastStreamID_ != sid) {
-    listener_->onProtocolError("Interleaved CONTINUATION frame received.");
+    listener_->onConnectionError(
+        ErrorCode::ProtocolError,
+        "Interleaved CONTINUATION frame received.");
     return;
   }
 
@@ -124,12 +561,61 @@ void Parser::parseContinuation(uint8_t flags, StreamID sid,
     case FrameType::PushPromise:
       break;
     default:
-      break;
+      listener_->onConnectionError(
+          ErrorCode::ProtocolError,
+          "A CONTINUATION frame must be following a HEADERS, PUSH_PROMISE or "
+          "CONTINUATION frame.");
+      return;
   }
 
-  if (pendingHeaders_.empty()) {
-    listener_->onProtocolError("Missing leading HEADERS frame for CONTINUATION.");
+  if (payload.empty()) {
+    listener_->onConnectionError(
+        ErrorCode::FrameSizeError,
+        "Payload empty in CONTINUATION frame.");
     return;
+  }
+
+  if (flags & END_HEADERS) {
+    onRequestBegin();
+  }
+}
+
+bool Parser::verifyPadding(const BufferRef& padding) {
+  for (auto ch: padding) {
+    if (ch != 0x00) {
+      listener_->onConnectionError(
+          ErrorCode::ProtocolError,
+          "DATA's padding contains non-zero bytes.");
+      return false;
+    }
+  }
+  return true;
+}
+
+void Parser::onRequestBegin() {
+  HttpRequestInfo info;
+
+  auto addHeader = [&](const std::string& name,
+                       const std::string& value,
+                       bool sensitive) {
+    printf("-- header %s: %s\n", name.c_str(), value.c_str());
+    info.headers().push_back(name, value, sensitive);
+  };
+
+  const size_t maxHeaderSize = 4096; // TODO: pass via ctor
+
+  hpack::Parser parser(&headerContext_, maxHeaderSize, addHeader);
+  parser.parse(pendingHeaders_);
+
+  // XXX `info.authority` is implicitely given, as of right now
+  info.setMethod(info.headers().get(":method"));
+  info.setUri(info.headers().get(":path"));
+
+  if (!promisedStreamID_) {
+    listener_->onRequestBegin(lastStreamID_, isStreamClosed_, std::move(info));
+  } else {
+    listener_->onPushPromise(lastStreamID_, promisedStreamID_,
+                             std::move(info));
   }
 }
 
