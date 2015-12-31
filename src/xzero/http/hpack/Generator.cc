@@ -12,6 +12,7 @@
 #include <xzero/http/hpack/Huffman.h>
 #include <xzero/http/HeaderFieldList.h>
 #include <xzero/http/HeaderField.h>
+#include <xzero/StringUtil.h>
 #include <xzero/Buffer.h>
 #include <xzero/logging.h>
 
@@ -76,16 +77,19 @@ void Generator::generateHeader(const std::string& name,
   bool nameValueMatch;
   size_t index;
 
-  if (StaticTable::find(name, value, &index, &nameValueMatch)) {
+  std::string lwrName = name;
+  StringUtil::toLower(&lwrName);
+
+  if (StaticTable::find(lwrName, value, &index, &nameValueMatch)) {
     printf("found header in static table\n");
-    encodeHeaderIndexed(index + 1, nameValueMatch, name, value, sensitive);
-  } else if (dynamicTable_.find(name, value, &index, &nameValueMatch)) {
+    encodeHeaderIndexed(index + 1, nameValueMatch, lwrName, value, sensitive);
+  } else if (dynamicTable_.find(lwrName, value, &index, &nameValueMatch)) {
     printf("found header in dynamic table\n");
     encodeHeaderIndexed(index + StaticTable::length(),
-                        nameValueMatch, name, value, sensitive);
+                        nameValueMatch, lwrName, value, sensitive);
   } else {
     printf("found header nowhere\n");
-    encodeHeaderLiteral(name, value, sensitive);
+    encodeHeaderLiteral(lwrName, value, sensitive);
   }
 }
 

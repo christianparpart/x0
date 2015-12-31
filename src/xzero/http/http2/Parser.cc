@@ -592,20 +592,38 @@ bool Parser::verifyPadding(const BufferRef& padding) {
   return true;
 }
 
+static inline bool isAnyUpper(const std::string& text) {
+  for (char ch: text)
+    if (ch == std::toupper(ch))
+      return true;
+
+  return false;
+}
+
 void Parser::onRequestBegin() {
   HttpRequestInfo info;
+  unsigned protoErrors = 0;
 
   auto addHeader = [&](const std::string& name,
                        const std::string& value,
                        bool sensitive) {
     printf("-- header %s: %s\n", name.c_str(), value.c_str());
+    if (isAnyUpper(name))
+      protoErrors++;
+
     info.headers().push_back(name, value, sensitive);
   };
 
-  const size_t maxHeaderSize = 4096; // TODO: pass via ctor
-
-  hpack::Parser parser(&headerContext_, maxHeaderSize, addHeader);
+  hpack::Parser parser(&headerContext_, maxHeaderTableSize_, addHeader);
   parser.parse(pendingHeaders_);
+
+  if (protoErrors != 0) {
+    listener_->onStreamError(
+        lastStreamID_,
+        ErrorCode::ProtocolError,
+        "Malformed header name received.");
+    return;
+  }
 
   // XXX `info.authority` is implicitely given, as of right now
   info.setMethod(info.headers().get(":method"));
