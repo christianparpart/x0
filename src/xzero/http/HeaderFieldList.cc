@@ -59,6 +59,15 @@ void HeaderFieldList::push_back(const std::string& name,
   entries_.emplace_back(name, value);
 }
 
+void HeaderFieldList::push_back(const std::string& name,
+                                const std::string& value,
+                                bool sensitive) {
+  if (name.empty())
+    RAISE(RuntimeError, "Invalid field name.");
+
+  entries_.emplace_back(name, value, sensitive);
+}
+
 void HeaderFieldList::overwrite(const std::string& name,
                                 const std::string& value) {
   if (name.empty())

@@ -29,6 +29,7 @@ class XZERO_HTTP_API HeaderField {
   HeaderField& operator=(HeaderField&&) = default;
   HeaderField& operator=(const HeaderField&) = default;
   HeaderField(const std::string& name, const std::string& value);
+  HeaderField(const std::string& name, const std::string& value, bool sensitive);
   HeaderField(const std::pair<std::string, std::string>& field);
 
   const std::string& name() const { return name_; }
@@ -91,7 +92,13 @@ inline HeaderField::HeaderField(const std::pair<std::string, std::string>& field
 
 inline HeaderField::HeaderField(const std::string& name,
                                 const std::string& value)
-    : name_(name), value_(value), sensitive_(false) {
+    : HeaderField(name, value, false) {
+}
+
+inline HeaderField::HeaderField(const std::string& name,
+                                const std::string& value,
+                                bool sensitive)
+    : name_(name), value_(value), sensitive_(sensitive) {
 }
 // }}}
 
