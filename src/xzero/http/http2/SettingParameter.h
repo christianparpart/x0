@@ -6,6 +6,7 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 #pragma once
+#include <limits>
 
 namespace xzero {
 namespace http {
@@ -23,3 +24,11 @@ enum class SettingParameter {
 } // namespace http2
 } // namespace http
 } // namespace xzero
+
+namespace std {
+  template<>
+  constexpr xzero::http::http2::SettingParameter
+      numeric_limits<xzero::http::http2::SettingParameter>::max() noexcept {
+    return xzero::http::http2::SettingParameter::MaxHeaderListSize;
+  }
+}
