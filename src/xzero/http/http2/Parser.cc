@@ -11,6 +11,7 @@ namespace xzero {
 namespace http {
 namespace http2 {
 
+// {{{ read16 / read24 / read32 helper
 template<typename T>
 inline uint16_t read16(const T* buf) {
   uint16_t value = 0;
@@ -43,6 +44,13 @@ inline uint32_t read32(const T* buf) {
 
   return value;
 }
+// }}}
+
+constexpr uint8_t END_STREAM = 0x01;
+constexpr uint8_t ACK = 0x01;
+constexpr uint8_t END_HEADERS = 0x04;
+constexpr uint8_t PADDED = 0x08;
+constexpr uint8_t PRIORITY = 0x20;
 
 Parser::Parser(FrameListener* listener)
     : Parser(listener, 1 << 14, 4096) {
@@ -159,9 +167,6 @@ void Parser::parseData(uint8_t flags, StreamID sid, const BufferRef& payload) {
    * +---------------------------------------------------------------+
    */
 
-  constexpr uint8_t END_STREAM = 0x01;
-  constexpr uint8_t PADDED = 0x08;
-
   size_t contentLength = payload.size();
   size_t paddingLength = 0;
 
@@ -209,11 +214,6 @@ void Parser::parseHeaders(uint8_t flags,
    * |                           Padding (*)                       ...
    * +---------------------------------------------------------------+
    */
-
-  constexpr uint8_t END_STREAM = 0x01;
-  constexpr uint8_t END_HEADERS = 0x04;
-  constexpr uint8_t PADDED = 0x08;
-  constexpr uint8_t PRIORITY = 0x20;
 
   const uint8_t* pos = (uint8_t*) payload.data();
   size_t headerBlockLength = payload.size();
@@ -337,8 +337,6 @@ void Parser::parseSettings(uint8_t flags,
    * +---------------------------------------------------------------+
    */
 
-  constexpr uint8_t ACK = 0x01;
-
   if (sid != 0) {
     listener_->onConnectionError(
         ErrorCode::ProtocolError,
@@ -428,9 +426,6 @@ void Parser::parsePushPromise(uint8_t flags, StreamID sid, const BufferRef& payl
    * +---------------------------------------------------------------+
    */
 
-  constexpr uint8_t END_HEADERS = 0x04;
-  constexpr uint8_t PADDED = 0x08;
-
   auto pos = payload.begin();
   size_t contentLength = payload.size();
   size_t paddingLength = 0;
@@ -464,8 +459,6 @@ void Parser::parsePing(uint8_t flags, StreamID sid, const BufferRef& payload) {
    * |                      Opaque Data (64)                         |
    * +---------------------------------------------------------------+
    */
-
-  constexpr uint8_t ACK = 0x08;
 
   if (payload.size() != 8) {
     listener_->onConnectionError(
@@ -546,8 +539,6 @@ void Parser::parseWindowUpdate(uint8_t flags, StreamID sid, const BufferRef& pay
 void Parser::parseContinuation(uint8_t flags,
                                StreamID sid,
                                const BufferRef& payload) {
-  constexpr uint8_t END_HEADERS = 0x04;
-
   if (lastStreamID_ != sid) {
     listener_->onConnectionError(
         ErrorCode::ProtocolError,
