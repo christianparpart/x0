@@ -67,7 +67,7 @@ enum class HttpStatus  // {{{
   UnsupportedMediaType = 415,
   RequestedRangeNotSatisfiable = 416,
   ExpectationFailed = 417,
-  ThereAreTooManyConnectionsFromYourIP = 421,
+  MisdirectedRequest = 421,
   UnprocessableEntity = 422,
   Locked = 423,
   FailedDependency = 424,

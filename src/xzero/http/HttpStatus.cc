@@ -49,7 +49,7 @@ const std::string& to_string(HttpStatus code) {
     case HttpStatus::UnsupportedMediaType: SRET("Unsupported Media Type");
     case HttpStatus::RequestedRangeNotSatisfiable: SRET("Requested Range Not Satisfiable");
     case HttpStatus::ExpectationFailed: SRET("Expectation Failed");
-    case HttpStatus::ThereAreTooManyConnectionsFromYourIP: SRET("There Are Too Many Connections From Your IP");
+    case HttpStatus::MisdirectedRequest: SRET("Misdirected Request");
     case HttpStatus::UnprocessableEntity: SRET("Unprocessable Entity");
     case HttpStatus::Locked: SRET("Locked");
     case HttpStatus::FailedDependency: SRET("Failed Dependency");
