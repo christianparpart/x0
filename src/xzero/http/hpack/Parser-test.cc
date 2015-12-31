@@ -19,7 +19,8 @@ using namespace xzero::http::hpack;
 TEST(hpack_Parser, decodeInt) {
   Application::logToStderr(LogLevel::Trace);
 
-  Parser parser(4096, nullptr);
+  DynamicTable dt(4096);
+  Parser parser(&dt, 4096, nullptr);
   uint8_t helloInt[4] = {0};
   uint8_t* helloIntEnd = helloInt + 4;
   uint64_t decodedInt = 0;
@@ -104,7 +105,8 @@ TEST(hpack_Parser, literalHeaderFieldWithIndex) {
     sensitive = Some(s);
   };
 
-  Parser parser(4096, gotcha);
+  DynamicTable dt(4096);
+  Parser parser(&dt, 4096, gotcha);
   size_t nparsed = parser.parse(block, std::end(block));
 
   ASSERT_EQ(26, nparsed);
@@ -136,7 +138,8 @@ TEST(hpack_Parser, literalHeaderWithoutIndexing) {
     sensitive = Some(s);
   };
 
-  Parser parser(4096, gotcha);
+  DynamicTable dt(4096);
+  Parser parser(&dt, 4096, gotcha);
   size_t nparsed = parser.parse(block, std::end(block));
 
   ASSERT_EQ(14, nparsed);
@@ -166,7 +169,8 @@ TEST(hpack_Parser, literalHeaderNeverIndex) {
     sensitive = Some(s);
   };
 
-  Parser parser(4096, gotcha);
+  DynamicTable dt(4096);
+  Parser parser(&dt, 4096, gotcha);
   size_t nparsed = parser.parse(block, std::end(block));
 
   ASSERT_EQ(17, nparsed);
@@ -196,7 +200,8 @@ TEST(hpack_Parser, literalHeaderFieldFromIndex) {
     sensitive = Some(s);
   };
 
-  Parser parser(4096, gotcha);
+  DynamicTable dt(4096);
+  Parser parser(&dt, 4096, gotcha);
   size_t nparsed = parser.parse(block, std::end(block));
 
   ASSERT_EQ(1, nparsed);
@@ -209,7 +214,8 @@ TEST(hpack_Parser, literalHeaderFieldFromIndex) {
 TEST(hpack_Parser, updateTableSize) {
   uint8_t block[] = { 0x25 };
 
-  Parser parser(4096, nullptr);
+  DynamicTable dt(4096);
+  Parser parser(&dt, 4096, nullptr);
   size_t nparsed = parser.parse(block, std::end(block));
 
   ASSERT_EQ(1, nparsed);

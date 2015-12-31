@@ -41,15 +41,11 @@ class Parser {
    * Initializes a new HPACK parser with given dynamic-table @p maxSize
    * and the @p emitter.
    *
+   * @param dynamicTable the dynamic table, used as decompression context.
    * @param maxSize initial maximum size of the internal dynamic table in bytes.
    * @param emitter callback to receive all parsed headers.
    */
-  Parser(size_t maxSize, Emitter emitter);
-
-  /**
-   * Sets the maximum value the internal maxSize limit can be set to.
-   */
-  void setMaxSize(size_t limit);
+  Parser(DynamicTable* context, size_t maxSize, Emitter emitter);
 
   /**
    * Retrieves the maximum internal maxSize limit.
@@ -61,7 +57,7 @@ class Parser {
    *
    * This value can never go past the set maxSize.
    */
-  size_t internalMaxSize() const noexcept { return dynamicTable_.maxSize(); }
+  size_t internalMaxSize() const noexcept { return dynamicTable_->maxSize(); }
 
   /**
    * Parses a syntactically complete header block.
@@ -119,7 +115,7 @@ class Parser {
 
  private:
   size_t maxSize_;
-  DynamicTable dynamicTable_;
+  DynamicTable* dynamicTable_;
   Emitter emitter_;
 };
 

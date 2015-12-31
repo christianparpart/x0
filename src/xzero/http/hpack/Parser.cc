@@ -29,15 +29,10 @@ namespace hpack {
 // LSB from 0 to n set, rest cleared
 #define BITMASK(n) (BIT(n) - 1)
 
-Parser::Parser(size_t maxSize, Emitter emitter)
+Parser::Parser(DynamicTable* dynamicTable, size_t maxSize, Emitter emitter)
     : maxSize_(maxSize),
-      dynamicTable_(maxSize),
+      dynamicTable_(dynamicTable),
       emitter_(emitter) {
-}
-
-void Parser::setMaxSize(size_t newMaxSize) {
-  maxSize_ = newMaxSize;
-  dynamicTable_.setMaxSize(newMaxSize);
 }
 
 size_t Parser::parse(const BufferRef& headerBlock) {
@@ -105,7 +100,7 @@ Parser::const_iterator Parser::incrementalIndexedField(const_iterator pos,
     n = decodeString(&value, pos, end);
     pos += n;
 
-    dynamicTable_.add(name, value);
+    dynamicTable_->add(name, value);
     emit(name, value);
   } else {
     // (literal, literal)
@@ -117,7 +112,7 @@ Parser::const_iterator Parser::incrementalIndexedField(const_iterator pos,
     n = decodeString(&value, pos, end);
     pos += n;
 
-    dynamicTable_.add(name, value);
+    dynamicTable_->add(name, value);
     emit(name, value);
   }
 
@@ -135,7 +130,7 @@ Parser::const_iterator Parser::updateTableSize(const_iterator pos,
   if (newMaxSize > maxSize_)
     RAISE(CompressionError, "Received a MAX_SIZE value larger than allowed.");
 
-  setMaxSize(newMaxSize);
+  dynamicTable_->setMaxSize(newMaxSize);
 
   return pos;
 }
@@ -218,8 +213,8 @@ const TableEntry& Parser::at(size_t index) {
 
   index -= StaticTable::length();
 
-  if (index < dynamicTable_.length())
-    return dynamicTable_.at(index);
+  if (index < dynamicTable_->length())
+    return dynamicTable_->at(index);
 
   RAISE(CompressionError, "Index out of bounds");
 }
