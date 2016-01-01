@@ -31,64 +31,6 @@ namespace http2 {
 
 enum class ErrorCode;
 
-#if 0
-class XZERO_PACKED Frame {
- public:
-  Frame(StreamID sid, FrameType type, unsigned flags);
-
-  size_t payloadSize() const noexcept { return length_; }
-  FrameType type() const noexcept { return (FrameType) type_; }
-  unsigned flags() const noexcept { return flags_; }
-  StreamID streamID() const noexcept { return streamID_; }
-  const uint8_t* payload() const noexcept { return payload_; }
-
- protected:
-  unsigned length_ : 24;
-  unsigned type_ : 8;
-  unsigned flags_ : 8;
-  unsigned reserved_ : 1;
-  unsigned streamID_ : 31;
-  uint8_t payload_[];
-};
-
-class XZERO_PACKED DataFrame : public Frame {
- public:
-  static constexpr END_STREAM = 0x01;
-  static constexpr PADDING = 0x08;
-
-  DataFrame(StreamID sid, const BufferRef& data, unsigned flags)
-      : Frame(sid, FrameType::Data, flags) {
-    std::memcpy(payload_, data.data(), data.size());
-  }
-
-  bool isEndStream() const { return flags() & END_STREAM; }
-  bool isPadded() const { return flags() & PADDED; }
-
-  size_t dataSize() const {
-    return isPadded() ? payloadSize() - paddingLength_ : payloadSize();
-  }
-
-  size_t paddingSize() const {
-    return isPadded() ? paddingLength_ : 0;
-  }
-
-  BufferRef data() const {
-    return isPadded()
-        ? BufferRef(payload() + 1, payloadSize() - 1)
-        : BufferRef(payload(), payloadSize());
-  }
-
-  BufferRef padding() const {
-    return isPadded()
-        ? BufferRef(payload() + payloadSize() - paddingSize(), paddingSize())
-        : BufferRef();
-  }
-
- protected:
-  uint8_t paddingLength_;
-};
-#endif
-
 /**
  * Generates HTTP/2 compliant binary frames.
  */
