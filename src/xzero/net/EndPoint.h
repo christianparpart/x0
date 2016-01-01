@@ -50,12 +50,12 @@ class EndPoint : public RefCounted {
   /**
    * Retrieves the connection object associated with this EndPoint.
    */
-  Connection* connection() const { return connection_; }
+  Connection* connection() const { return connection_.get(); }
 
   /**
    * Associates a Connection associated with this EndPoint.
    */
-  void setConnection(Connection* connection);
+  void setConnection(std::unique_ptr<Connection>&& connection);
 
   /**
    * Tests whether or not this endpoint is still connected.
@@ -180,7 +180,7 @@ class EndPoint : public RefCounted {
   virtual Option<InetAddress> localAddress() const;
 
  private:
-  Connection* connection_;
+  std::unique_ptr<Connection> connection_;
 };
 
 }  // namespace xzero

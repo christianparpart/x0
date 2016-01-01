@@ -21,7 +21,7 @@ Connection::Connection(EndPoint* endpoint,
       listeners_() {
 
   if (endpoint_) {
-    endpoint_->setConnection(this);
+    endpoint_->setConnection(std::unique_ptr<Connection>(this));
   }
 }
 
