@@ -10,6 +10,7 @@
 
 #include <xzero/http/http2/StreamState.h>
 #include <xzero/http/http2/StreamID.h>
+#include <xzero/http/HttpTransport.h>
 #include <xzero/http/HttpChannel.h>
 #include <xzero/io/DataChain.h>
 
@@ -18,14 +19,15 @@ namespace http {
 namespace http2 {
 
 class Connection;
+class Stream;
 
 bool streamCompare(Stream* a, Stream* b);
 
 // XXX PriorityTree<> ?
-typedef DependencyTree<Stream*, streamCompare> StreamTree;
-typedef StreamTree::Node StreamTreeNode;
+// typedef DependencyTree<Stream*, streamCompare> StreamTree;
+// typedef StreamTree::Node StreamTreeNode;
 
-class Stream {
+class Stream : public ::xzero::http::HttpTransport {
  public:
   Stream(Connection* connection, StreamID id);
 
@@ -35,13 +37,27 @@ class Stream {
 
   void sendWindowUpdate(size_t windowSize);
 
+ public:
+  // HttpTransport overrides
+  void abort() override;
+  void completed() override;
+  void send(HttpResponseInfo& responseInfo, Buffer&& chunk,
+            CompletionHandler onComplete) override;
+  void send(HttpResponseInfo& responseInfo, const BufferRef& chunk,
+            CompletionHandler onComplete) override;
+  void send(HttpResponseInfo& responseInfo, FileView&& chunk,
+            CompletionHandler onComplete) override;
+  void send(Buffer&& chunk, CompletionHandler onComplete) override;
+  void send(const BufferRef& chunk, CompletionHandler onComplete) override;
+  void send(FileView&& chunk, CompletionHandler onComplete) override;
+
  private:
   Connection* connection;                 // HTTP/2 connection layer
   std::unique_ptr<HttpChannel> channel_;  // HTTP semantics layer
   StreamID id_;                           // stream id
   StreamState state_;                     // default: Idle
   int weight_;                            // default: 16
-  StreamTreeNode* node_;                  // ref in the stream dependency tree
+  //StreamTreeNode* node_;                  // ref in the stream dependency tree
   DataChain responseBodyChain_;           // pending response body chunks
 };
 

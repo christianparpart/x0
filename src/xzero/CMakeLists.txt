@@ -233,6 +233,8 @@ set(xzero_base_SRC
   http/http1/Parser.cc
 
   # HTTP transport: http/2
+  http/http2/Connection.cc
+  http/http2/ConnectionFactory.cc
   http/http2/ErrorCode.cc
   http/http2/FrameType.cc
   http/http2/Generator.cc
@@ -240,6 +242,7 @@ set(xzero_base_SRC
   http/http2/SettingParameter.cc
   http/http2/Settings.cc
   http/http2/StreamState.cc
+  http/http2/Stream.cc
   http/hpack/DynamicTable.cc
   http/hpack/Generator.cc
   http/hpack/Huffman.cc

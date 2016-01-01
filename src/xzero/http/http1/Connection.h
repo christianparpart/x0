@@ -45,6 +45,8 @@ class XZERO_HTTP_API Connection : public ::xzero::Connection,
                  bool corkStream);
   ~Connection();
 
+  size_t maxRequestCount() const noexcept { return requestMax_; }
+
   size_t bytesReceived() const noexcept { return parser_.bytesReceived(); }
   size_t bytesTransmitted() const noexcept { return generator_.bytesTransmitted(); }
 

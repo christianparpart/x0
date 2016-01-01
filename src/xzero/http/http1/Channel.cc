@@ -1,3 +1,11 @@
+// This file is part of the "x0" project
+//   (c) 2009-2015 Christian Parpart <https://github.com/christianparpart>
+//
+// x0 is free software: you can redistribute it and/or modify it under
+// the terms of the GNU Affero General Public License v3.0.
+// You should have received a copy of the GNU Affero General Public License
+// along with this program. If not, see <http://www.gnu.org/licenses/>.
+
 // This file is part of the "x0" project, http://xzero.io/
 //   (c) 2009-2014 Christian Parpart <trapni@gmail.com>
 //
@@ -7,9 +15,11 @@
 
 #include <xzero/http/http1/Channel.h>
 #include <xzero/http/http1/Connection.h>
+#include <xzero/http/http2/Connection.h>
 #include <xzero/http/HttpTransport.h>
 #include <xzero/http/HttpRequest.h>
 #include <xzero/http/HttpResponse.h>
+#include <xzero/net/EndPoint.h>
 #include <xzero/Tokenizer.h>
 #include <xzero/RuntimeError.h>
 #include <xzero/logging.h>
@@ -96,12 +106,56 @@ void Channel::onMessageHeader(const BufferRef& name,
 void Channel::onMessageHeaderEnd() {
   request_->setBytesReceived(bytesReceived());
 
+  bool h2c_upgrade = request_->headers().get("Upgrade") == "h2c";
+  std::string h2_settings = request_->headers().get("HTTP2-Settings");
+
   // hide transport-level header fields
   request_->headers().remove("Connection");
-  for (const auto& name: connectionOptions_)
+  for (const auto& name: connectionOptions_) {
+    connectionHeaders_.push_back(name, request_->headers().get(name));
     request_->headers().remove(name);
+  }
+
+  if (h2c_upgrade) {
+    HttpHandler nextHandler = handler_;
+    handler_ = std::bind(&Channel::h2c_switching_protocols, this,
+                         h2_settings, nextHandler);
+  }
 
   HttpChannel::onMessageHeaderEnd();
+}
+
+void Channel::h2c_switching_protocols(const std::string& settings,
+                                      const HttpHandler& nextHandler) {
+  printf("http1: attempt to upgrade to h2c.\n");
+
+  // TODO: fully consume body first
+
+  response_->onResponseEnd(std::bind(&Channel::h2c_start, this, settings, nextHandler));
+
+  response_->setStatus(HttpStatus::SwitchingProtocols);
+  response_->headers().push_back("Upgrade", "h2c");
+  response_->completed();
+}
+
+void Channel::h2c_start(const std::string& settings,
+                        const HttpHandler& nextHandler) {
+  // 1. now exchange http/1.1 connection with h2c connection,
+  // 2. negotiate settings
+  // 3. start stream #1 with existing request from previous http/1 connection
+  printf("http1: NOW, I would switch protocols to h2c: %s\n", settings.c_str());
+
+  Connection* connection = static_cast<Connection*>(transport_);
+  EndPoint* endpoint = connection->endpoint();
+
+  endpoint->setConnection<http2::Connection>(
+      endpoint,
+      executor_,
+      nextHandler,
+      dateGenerator_,
+      outputCompressor_,
+      maxRequestBodyLength_,
+      connection->maxRequestCount());
 }
 
 void Channel::onProtocolError(HttpStatus code, const std::string& message) {

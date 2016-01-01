@@ -8,6 +8,7 @@
 #pragma once
 
 #include <xzero/http/HttpChannel.h>
+#include <xzero/http/HeaderFieldList.h>
 #include <xzero/sysconfig.h>
 #include <list>
 #include <string>
@@ -43,8 +44,14 @@ class Channel : public HttpChannel {
   void onMessageHeaderEnd() override;
   void onProtocolError(HttpStatus code, const std::string& message) override;
 
+  void h2c_switching_protocols(const std::string& settings,
+                               const HttpHandler& nextHandler);
+  void h2c_start(const std::string& settings,
+                 const HttpHandler& nextHandler);
+
  private:
   bool persistent_;
+  HeaderFieldList connectionHeaders_;
   std::list<std::string> connectionOptions_;
 };
 

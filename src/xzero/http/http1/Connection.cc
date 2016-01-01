@@ -250,11 +250,11 @@ void Connection::patchResponseInfo(HttpResponseInfo& responseInfo) {
                (unsigned long long) maxKeepAlive_.seconds(),
                requestMax_ - requestCount_);
 
-      responseInfo.headers().push_back("Connection", "Keep-Alive");
+      responseInfo.headers().append("Connection", "Keep-Alive", ", ");
       responseInfo.headers().push_back("Keep-Alive", keepAlive);
     } else {
       channel_->setPersistent(false);
-      responseInfo.headers().push_back("Connection", "closed");
+      responseInfo.headers().append("Connection", "closed", ", ");
     }
   }
 }
