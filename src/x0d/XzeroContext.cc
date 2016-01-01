@@ -97,19 +97,13 @@ bool XzeroContext::verifyDirectoryDepth() {
   return true;
 }
 
-void XzeroContext::ready() {
-  // XXX the handler will *always* handle the request as we manually
-  // injected a `return 404` at the end of the main handler.
-  runner_->run();
-}
-
 void XzeroContext::run() {
   if (request_->expect100Continue()) {
     response_->send100Continue([this](bool succeed) {
-      request_->consumeContent(std::bind(&XzeroContext::ready, this));
+      request_->consumeContent(std::bind(&flow::vm::Runner::run, runner_.get()));
     });
   } else {
-    request_->consumeContent(std::bind(&XzeroContext::ready, this));
+    request_->consumeContent(std::bind(&flow::vm::Runner::run, runner_.get()));
   }
 }
 

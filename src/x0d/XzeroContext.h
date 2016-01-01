@@ -87,8 +87,6 @@ class XzeroContext {
     }
   }
 
-  void ready();
-
  private:
   std::unique_ptr<xzero::flow::vm::Runner> runner_; //!< Flow VM execution unit.
   xzero::UnixTime createdAt_; //!< When the request started
