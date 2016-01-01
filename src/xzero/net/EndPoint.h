@@ -58,6 +58,12 @@ class EndPoint : public RefCounted {
   void setConnection(std::unique_ptr<Connection>&& connection);
 
   /**
+   * Associates a Connection associated with this EndPoint.
+   */
+  template<typename T, typename... Args>
+  void setConnection(Args... args);
+
+  /**
    * Tests whether or not this endpoint is still connected.
    */
   virtual bool isOpen() const = 0;
@@ -182,5 +188,10 @@ class EndPoint : public RefCounted {
  private:
   std::unique_ptr<Connection> connection_;
 };
+
+template<typename T, typename... Args>
+inline void EndPoint::setConnection(Args... args) {
+  setConnection(std::unique_ptr<T>(new T(args...)));
+}
 
 }  // namespace xzero
