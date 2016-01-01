@@ -10,6 +10,7 @@
 #include <xzero/http/fastcgi/ConnectionFactory.h>
 #include <xzero/http/fastcgi/Connection.h>
 #include <xzero/net/Connector.h>
+#include <xzero/net/EndPoint.h>
 #include <xzero/WallClock.h>
 
 namespace xzero {
@@ -39,14 +40,14 @@ ConnectionFactory::~ConnectionFactory() {
 xzero::Connection* ConnectionFactory::create(
     Connector* connector,
     EndPoint* endpoint) {
-  return configure(new Connection(endpoint,
-                                  connector->executor(),
-                                  handler(),
-                                  dateGenerator(),
-                                  outputCompressor(),
-                                  maxRequestUriLength(),
-                                  maxRequestBodyLength(),
-                                  maxKeepAlive()),
+  return configure(endpoint->setConnection<Connection>(endpoint,
+                                                       connector->executor(),
+                                                       handler(),
+                                                       dateGenerator(),
+                                                       outputCompressor(),
+                                                       maxRequestUriLength(),
+                                                       maxRequestBodyLength(),
+                                                       maxKeepAlive()),
                    connector);
 }
 

@@ -50,17 +50,18 @@ ConnectionFactory::~ConnectionFactory() {
 
 ::xzero::Connection* ConnectionFactory::create(Connector* connector,
                                                 EndPoint* endpoint) {
-  return configure(new http1::Connection(endpoint,
-                                         connector->executor(),
-                                         handler(),
-                                         dateGenerator(),
-                                         outputCompressor(),
-                                         maxRequestUriLength(),
-                                         maxRequestBodyLength(),
-                                         maxRequestCount(),
-                                         maxKeepAlive(),
-                                         corkStream()),
-                   connector);
+  return configure(endpoint->setConnection<http1::Connection>(
+                       endpoint,
+                       connector->executor(),
+                       handler(),
+                       dateGenerator(),
+                       outputCompressor(),
+                       maxRequestUriLength(),
+                       maxRequestBodyLength(),
+                       maxRequestCount(),
+                       maxKeepAlive(),
+                       corkStream()),
+      connector);
 }
 
 ::xzero::Connection* ConnectionFactory::configure(

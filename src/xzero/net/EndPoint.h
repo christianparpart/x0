@@ -61,7 +61,7 @@ class EndPoint : public RefCounted {
    * Associates a Connection associated with this EndPoint.
    */
   template<typename T, typename... Args>
-  void setConnection(Args... args);
+  T* setConnection(Args... args);
 
   /**
    * Tests whether or not this endpoint is still connected.
@@ -190,8 +190,9 @@ class EndPoint : public RefCounted {
 };
 
 template<typename T, typename... Args>
-inline void EndPoint::setConnection(Args... args) {
+inline T* EndPoint::setConnection(Args... args) {
   setConnection(std::unique_ptr<T>(new T(args...)));
+  return static_cast<T*>(connection());
 }
 
 }  // namespace xzero

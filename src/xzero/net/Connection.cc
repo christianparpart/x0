@@ -19,10 +19,6 @@ Connection::Connection(EndPoint* endpoint,
     : endpoint_(endpoint),
       executor_(executor),
       listeners_() {
-
-  if (endpoint_) {
-    endpoint_->setConnection(std::unique_ptr<Connection>(this));
-  }
 }
 
 Connection::~Connection() {
