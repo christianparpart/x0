@@ -167,6 +167,7 @@ void Channel::h2cUpgradeHandler(const HttpHandler& nextHandler,
   Connection* connection = static_cast<Connection*>(transport_);
 
   upgrade("h2c", std::bind(&Channel::h2cUpgrade,
+                           settings,
                            std::placeholders::_1,
                            executor_,
                            nextHandler,
@@ -176,7 +177,8 @@ void Channel::h2cUpgradeHandler(const HttpHandler& nextHandler,
                            connection->maxRequestCount()));
 }
 
-void Channel::h2cUpgrade(EndPoint* endpoint,
+void Channel::h2cUpgrade(const Http2Settings& settings,
+                         EndPoint* endpoint,
                          Executor* executor,
                          const HttpHandler& handler,
                          HttpDateGenerator* dateGenerator,
@@ -188,6 +190,9 @@ void Channel::h2cUpgrade(EndPoint* endpoint,
   // TODO: pass negotiated settings
   // TODO: pass initial request to be served directly
 
+  HttpRequestInfo info;
+  HugeBuffer body(16384);
+
   endpoint->setConnection<http2::Connection>(
       endpoint,
       executor,
@@ -195,7 +200,10 @@ void Channel::h2cUpgrade(EndPoint* endpoint,
       dateGenerator,
       outputCompressor,
       maxRequestBodyLength,
-      maxRequestCount);
+      maxRequestCount,
+      settings,
+      std::move(info),
+      std::move(body));
 }
 
 void Channel::onProtocolError(HttpStatus code, const std::string& message) {

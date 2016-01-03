@@ -16,14 +16,14 @@ namespace http2 {
 
 #define TRACE(msg...) logNotice("http2.Connection", msg)
 
-Connection::Connection(EndPoint* ep,
+Connection::Connection(EndPoint* endpoint,
                        Executor* executor,
                        const HttpHandler& handler,
                        HttpDateGenerator* dateGenerator,
                        HttpOutputCompressor* outputCompressor,
                        size_t maxRequestBodyLength,
                        size_t maxRequestCount)
-    : xzero::Connection(ep, executor),
+    : xzero::Connection(endpoint, executor),
       inputBuffer_(),
       inputOffset_(0),
       parser_(this),
@@ -38,6 +38,28 @@ Connection::Connection(EndPoint* ep,
   TRACE("ctor");
 }
 
+Connection::Connection(EndPoint* endpoint,
+                       Executor* executor,
+                       const HttpHandler& handler,
+                       HttpDateGenerator* dateGenerator,
+                       HttpOutputCompressor* outputCompressor,
+                       size_t maxRequestBodyLength,
+                       size_t maxRequestCount,
+                       const Settings& settings,
+                       HttpRequestInfo&& initialRequestInfo,
+                       HugeBuffer&& initialRequestBody)
+    : Connection(endpoint, executor, handler, dateGenerator, outputCompressor,
+                 maxRequestBodyLength, maxRequestCount) {
+
+  // TODO: apply settings (without ACK)
+  (void) settings;
+
+  // start request with sid = 1
+  Stream* stream = createStream(std::move(initialRequestInfo), 1);
+  stream->appendBody(initialRequestBody.getBuffer());
+  // streams will be automatically be started upon Connection::onOpen()
+}
+
 Connection::~Connection() {
   TRACE("dtor");
 }
@@ -50,6 +72,10 @@ void Connection::onOpen() {
   // send initial server connection preface
   generator_.generateSettings({}); // leave settings at defaults
   wantFlush();
+
+  for (std::unique_ptr<Stream>& stream: streams_) {
+    stream->handleRequest();
+  }
 }
 
 void Connection::onClose() {
@@ -108,6 +134,15 @@ void Connection::onData(StreamID sid, const BufferRef& data, bool last) {
 
 void Connection::onRequestBegin(StreamID sid, bool noContent,
                                 HttpRequestInfo&& info) {
+  Stream* stream = createStream(info, sid);
+  if (noContent) {
+    stream->handleRequest();
+  }
+}
+
+Stream* Connection::createStream(HttpRequestInfo&& info, StreamID sid) {
+  // TODO
+  return nullptr;
 }
 
 void Connection::onPriority(StreamID sid,
@@ -117,10 +152,12 @@ void Connection::onPriority(StreamID sid,
 }
 
 void Connection::onPing(const BufferRef& data) {
-
+  generator_.generatePingAck(data);
+  wantFlush();
 }
 
 void Connection::onPingAck(const BufferRef& data) {
+  // cheers
 }
 
 void Connection::onGoAway(StreamID sid, ErrorCode errorCode,

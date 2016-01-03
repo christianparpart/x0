@@ -29,13 +29,17 @@ bool streamCompare(Stream* a, Stream* b);
 
 class Stream : public ::xzero::http::HttpTransport {
  public:
-  Stream(Connection* connection, StreamID id);
+  Stream(Connection* connection, StreamID id,
+         const HttpHandler& handler);
 
   unsigned id() const noexcept;
   StreamState state() const noexcept;
   HttpChannel* channel() const noexcept;
 
   void sendWindowUpdate(size_t windowSize);
+  void appendBody(const BufferRef& data);
+
+  void handleRequest();
 
  public:
   // HttpTransport overrides
@@ -59,6 +63,7 @@ class Stream : public ::xzero::http::HttpTransport {
   int weight_;                            // default: 16
   //StreamTreeNode* node_;                  // ref in the stream dependency tree
   DataChain responseBodyChain_;           // pending response body chunks
+  HttpHandler handler_;                   // HTTP request handler
 };
 
 inline bool streamCompare(Stream* a, Stream* b) {

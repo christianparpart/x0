@@ -71,7 +71,8 @@ class Channel : public HttpChannel {
   void h2cUpgradeHandler(const HttpHandler& nextHandler,
                          const Http2Settings& settings);
 
-  static void h2cUpgrade(EndPoint* endpoint,
+  static void h2cUpgrade(const Http2Settings& settings,
+                         EndPoint* endpoint,
                          Executor* executor,
                          const HttpHandler& handler,
                          HttpDateGenerator* dateGenerator,

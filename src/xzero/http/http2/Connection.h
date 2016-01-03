@@ -24,6 +24,7 @@ namespace xzero {
 
 class EndPoint;
 class Executor;
+class HugeBuffer;
 
 namespace http {
 
@@ -36,7 +37,10 @@ class Connection
   : public ::xzero::Connection,
     public FrameListener {
  public:
-  Connection(EndPoint* ep,
+  typedef std::vector<std::pair<http2::SettingParameter, unsigned long>>
+      Settings;
+
+  Connection(EndPoint* endpoint,
              Executor* executor,
              const HttpHandler& handler,
              HttpDateGenerator* dateGenerator,
@@ -44,10 +48,23 @@ class Connection
              size_t maxRequestBodyLength,
              size_t maxRequestCount);
 
+  Connection(EndPoint* endpoint,
+             Executor* executor,
+             const HttpHandler& handler,
+             HttpDateGenerator* dateGenerator,
+             HttpOutputCompressor* outputCompressor,
+             size_t maxRequestBodyLength,
+             size_t maxRequestCount,
+             const Settings& settings,
+             HttpRequestInfo&& initialRequestInfo,
+             HugeBuffer&& initialRequestBody);
+
   ~Connection();
 
   void setMaxConcurrentStreams(size_t value);
   size_t maxConcurrentStreams() const;
+
+  Stream* createStream(HttpRequestInfo&& info, StreamID sid);
 
  protected:
   void parseFragment();
@@ -85,13 +102,16 @@ class Connection
                      const std::string& message) override;
 
  private:
+  // input management
   Buffer inputBuffer_;
   size_t inputOffset_;
   Parser parser_;
 
+  // output management
   EndPointWriter writer_;
   Generator generator_;
 
+  // stream management
   size_t lowestStreamIdLocal_;
   size_t lowestStreamIdRemote_;
   size_t maxStreamIdLocal_;
