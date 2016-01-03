@@ -2,6 +2,9 @@
 
 - [ ] http1: move connection-headers into http1::Channel
       (removed from request headers)
+- [ ] http1: provide a better (more generic) protocol-upgrade API
+- [ ] fix license fuckup (different license headers in different files)
+      And update year to ..2016 in all
 
 - [ ] (make thread safe) File::lastModified()
 - [ ] (flow:bug) `"Blah #{call}blah#{call}"` doesn't work
@@ -11,8 +14,6 @@
 - [ ] (flow) tag flow handlers to never return (aka. always handle),
       thus, enabling the compiler to give a warning on dead code after
       this handler.
-- [ ] fix license fuckup (different license headers in different files)
-      And update year to ..2016 in all
 
 ### Cleanup Tasks
 
