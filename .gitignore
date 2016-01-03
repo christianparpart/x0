@@ -12,6 +12,7 @@ access.log
 error.log
 environ
 experimental
+*.pch
 
 /docs/x0d.8
 /docs/x0d.conf.5
