@@ -61,7 +61,7 @@ class EndPoint : public RefCounted {
    * Associates a Connection associated with this EndPoint.
    */
   template<typename T, typename... Args>
-  T* setConnection(Args... args);
+  T* setConnection(Args&&... args);
 
   /**
    * Tests whether or not this endpoint is still connected.
@@ -190,8 +190,8 @@ class EndPoint : public RefCounted {
 };
 
 template<typename T, typename... Args>
-inline T* EndPoint::setConnection(Args... args) {
-  setConnection(std::unique_ptr<T>(new T(args...)));
+inline T* EndPoint::setConnection(Args&&... args) {
+  setConnection(std::unique_ptr<T>(new T(std::forward<Args>(args)...)));
   return static_cast<T*>(connection());
 }
 
