@@ -20,7 +20,15 @@ XZERO_INIT static void tbi_initialize() {
 #endif
 
 MonotonicTime MonotonicClock::now() {
-#if defined(HAVE_CLOCK_GETTIME) // POSIX realtime API
+#if defined(XZERO_OS_DARWIN)
+  uint64_t machTimeUnits = mach_absolute_time();
+  uint64_t nanos = machTimeUnits * timebaseInfo.numer / timebaseInfo.denom;
+
+  return MonotonicTime(nanos);
+#else
+  // FIXME: doesn't work inside docker ubuntu:12.04
+  // => defined(HAVE_CLOCK_GETTIME) // POSIX realtime API
+
   timespec ts;
   int rv = clock_gettime(CLOCK_MONOTONIC, &ts);
 
@@ -32,14 +40,6 @@ MonotonicTime MonotonicClock::now() {
       ts.tv_nsec;
 
   return MonotonicTime(nanos);
-#elif defined(XZERO_OS_DARWIN)
-  uint64_t machTimeUnits = mach_absolute_time();
-  uint64_t nanos = machTimeUnits * timebaseInfo.numer / timebaseInfo.denom;
-
-  return MonotonicTime(nanos);
-#else
-  // TODO
-  #error "MonotonicClock: Your platform is not implemented."
 #endif
 }
 
