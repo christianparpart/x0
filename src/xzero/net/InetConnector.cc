@@ -338,7 +338,7 @@ bool InetConnector::isReusePortSupported() {
     return false;
 
   int rc = 1;
-  bool res = ::setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &rc, sizeof(rc)) == 0;
+  bool res = ::setsockopt(fd, SOL_SOCKET, SO_REUSEPORT, &rc, sizeof(rc)) == 0;
 
   FileUtil::close(fd);
   return res;
