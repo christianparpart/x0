@@ -67,6 +67,8 @@ class XZERO_BASE_API EndPointWriter : public DataChainListener {
    */
   bool empty() const;
 
+  DataChain* chain() noexcept { return &chain_; }
+
  protected:
   size_t transfer(const BufferRef& chunk) override;
   size_t transfer(const FileView& chunk) override;
