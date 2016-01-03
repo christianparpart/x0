@@ -1,5 +1,8 @@
 ### Intermediate Tasks
 
+- [ ] http1: move connection-headers into http1::Channel
+      (removed from request headers)
+
 - [ ] (make thread safe) File::lastModified()
 - [ ] (flow:bug) `"Blah #{call}blah#{call}"` doesn't work
       unless I specify it as `"Blah #{call()}blah#{call}"`
