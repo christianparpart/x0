@@ -26,6 +26,10 @@
 
 namespace xzero {
 
+#if !defined(SO_REUSEPORT)
+#define SO_REUSEPORT 15
+#endif
+
 UdpConnector::UdpConnector(
     const std::string& name,
     DatagramHandler handler,
