@@ -91,7 +91,8 @@ endif()
 set(xzero_base_SRC
   AnsiColor.cc
   Application.cc
-  Base64.cc
+  base64.cc
+  base64url.cc
   Buffer.cc
   BufferUtil.cc
   CivilTime.cc
