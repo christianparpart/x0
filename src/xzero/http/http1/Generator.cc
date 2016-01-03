@@ -100,6 +100,8 @@ void Generator::generateResponseInfo(const HttpResponseInfo& info) {
 
   if (static_cast<int>(info.status()) >= 200) {
     generateHeaders(info, isContentForbidden(info.status()));
+  } else if (info.status() == HttpStatus::SwitchingProtocols) {
+    generateHeaders(info, isContentForbidden(info.status()));
   } else {
     buffer_.push_back("\r\n");
   }

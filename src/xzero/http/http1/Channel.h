@@ -30,10 +30,23 @@ class Channel : public HttpChannel {
           HttpOutputCompressor* outputCompressor);
   ~Channel();
 
+  void reset() override;
+
+  /**
+   * Sends an Upgrade (101 Switching Protocols) response & invokes the callback.
+   *
+   * @param protocol the describing protocol name, be put into the
+   *                 Upgrade response header.
+   * @param callback A callback to be invoked when the response has been fully
+   *                 sent out and the HTTP/1 connection has been removed
+   *                 from the EndPoint. The callback must install a new
+   *                 connection object to handle the application layer.
+   */
+  void upgrade(const std::string& protocol,
+               std::function<void(EndPoint*)> callback);
+
   bool isPersistent() const noexcept { return persistent_; }
   void setPersistent(bool value) noexcept { persistent_ = value; }
-
-  void reset() override;
 
   size_t bytesReceived() const noexcept;
 

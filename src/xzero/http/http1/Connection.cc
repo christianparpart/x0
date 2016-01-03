@@ -120,6 +120,12 @@ void Connection::completed() {
   }
 }
 
+void Connection::upgrade(const std::string& protocol,
+                         std::function<void(EndPoint*)> callback) {
+  TRACE("upgrade: $0", protocol);
+  upgradeCallback_ = callback;
+}
+
 void Connection::onResponseComplete(bool succeed) {
   TRACE("$0 onResponseComplete($1)", this, succeed ? "succeed" : "failure");
   channel_->response()->setBytesTransmitted(generator_.bytesTransmitted());
@@ -127,6 +133,24 @@ void Connection::onResponseComplete(bool succeed) {
 
   if (!succeed) {
     // writing trailer failed. do not attempt to do anything on the wire.
+    return;
+  }
+
+  if (channel_->response()->status() == HttpStatus::SwitchingProtocols) {
+    TRACE("upgrade in action. releasing HTTP/1 connection and invoking callback");
+    auto upgrade = upgradeCallback_;
+    auto ep = endpoint();
+
+    onClose();
+    ep->setConnection(nullptr);
+    upgrade(ep);
+    TRACE("upgrade complete");
+
+    if (ep->connection())
+      ep->connection()->onOpen();
+    else
+      ep->close();
+
     return;
   }
 

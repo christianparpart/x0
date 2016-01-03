@@ -63,6 +63,19 @@ class XZERO_HTTP_API Connection : public ::xzero::Connection,
   void send(const BufferRef& chunk, CompletionHandler onComplete) override;
   void send(FileView&& chunk, CompletionHandler onComplete) override;
 
+  /**
+   * Sends an Upgrade (101 Switching Protocols) response & invokes the callback.
+   *
+   * @param protocol the describing protocol name, be put into the
+   *                 Upgrade response header.
+   * @param callback A callback to be invoked when the response has been fully
+   *                 sent out and the HTTP/1 connection has been removed
+   *                 from the EndPoint. The callback must install a new
+   *                 connection object to handle the application layer.
+   */
+  void upgrade(const std::string& protocol,
+               std::function<void(EndPoint*)> callback);
+
  private:
   void setCompleter(CompletionHandler cb);
   void setCompleter(CompletionHandler cb, HttpStatus status);
@@ -96,6 +109,8 @@ class XZERO_HTTP_API Connection : public ::xzero::Connection,
   size_t requestCount_;
   size_t requestMax_;
   bool corkStream_;
+
+  std::function<void(EndPoint*)> upgradeCallback_;
 };
 
 }  // namespace http1

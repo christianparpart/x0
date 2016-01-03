@@ -56,6 +56,18 @@ void Channel::reset() {
   HttpChannel::reset();
 }
 
+void Channel::upgrade(const std::string& protocol,
+                      std::function<void(EndPoint*)> callback) {
+  TRACE("upgrade: $0", protocol);
+  Connection* connection = static_cast<Connection*>(transport_);
+
+  connection->upgrade(protocol, callback);
+
+  response_->setStatus(HttpStatus::SwitchingProtocols);
+  response_->headers().overwrite("Upgrade", protocol);
+  response_->completed();
+}
+
 void Channel::onMessageBegin(const BufferRef& method,
                              const BufferRef& entity,
                              HttpVersion version) {
