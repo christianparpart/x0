@@ -3,6 +3,7 @@
 #include <xzero/UnixSignalInfo.h>
 #include <xzero/executor/Executor.h>
 #include <xzero/logging.h>
+#include <signal.h>
 
 namespace x0d {
 
