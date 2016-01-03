@@ -75,6 +75,17 @@ class Generator {
   void setMaxHeaderListSize(size_t value);
 
   /**
+   * Generates the client-side HTTP/2 connection preface.
+   *
+   * The client must be sent this always as the first data in an
+   * HTTP/2 connection.
+   *
+   * However, the client may already start sending the actual framed messages
+   * without waiting for the server to respond.
+   */
+  void generateClientConnectionPreface();
+
+  /**
    * Generates the binary frame for a DATA frame.
    *
    * @param sid the stream ID this data frame belongs to.

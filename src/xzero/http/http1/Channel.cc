@@ -22,6 +22,7 @@
 #include <xzero/net/EndPoint.h>
 #include <xzero/Tokenizer.h>
 #include <xzero/RuntimeError.h>
+#include <xzero/base64url.h>
 #include <xzero/logging.h>
 
 namespace xzero {
@@ -128,46 +129,73 @@ void Channel::onMessageHeaderEnd() {
     request_->headers().remove(name);
   }
 
-  if (h2c_upgrade) {
-    HttpHandler nextHandler = handler_;
-    handler_ = std::bind(&Channel::h2c_switching_protocols, this,
-                         h2_settings, nextHandler);
-  }
+  if (h2c_upgrade)
+    h2cVerifyUpgrade(std::move(h2_settings));
 
   HttpChannel::onMessageHeaderEnd();
 }
 
-void Channel::h2c_switching_protocols(const std::string& settings,
-                                      const HttpHandler& nextHandler) {
-  printf("http1: attempt to upgrade to h2c.\n");
+void Channel::h2cVerifyUpgrade(std::string&& settingsPayload) {
+  TRACE("http1: verify upgrade to h2c");
 
-  // TODO: fully consume body first
+  Buffer settingsBuffer;
+  settingsBuffer.reserve(base64::decodeLength(settingsPayload));
+  settingsBuffer.resize(base64url::decode(settingsPayload.begin(),
+                                          settingsPayload.end(),
+                                          settingsBuffer.data()));
 
-  response_->onResponseEnd(std::bind(&Channel::h2c_start, this, settings, nextHandler));
+  std::string debugData;
+  Http2Settings settings;
+  http2::ErrorCode errorCode = http2::Parser::decodeSettings(settingsBuffer,
+                                                             &settings,
+                                                             &debugData);
 
-  response_->setStatus(HttpStatus::SwitchingProtocols);
-  response_->headers().push_back("Upgrade", "h2c");
-  response_->completed();
+  if (errorCode != http2::ErrorCode::NoError) {
+    logDebug("http1.Channel", "Upgrade to h2c failed. $0. $1",
+             errorCode, debugData);
+    return;
+  }
+
+  handler_ = std::bind(&Channel::h2cUpgradeHandler, this,
+                       handler_, settings);
 }
 
-void Channel::h2c_start(const std::string& settings,
-                        const HttpHandler& nextHandler) {
-  // 1. now exchange http/1.1 connection with h2c connection,
-  // 2. negotiate settings
-  // 3. start stream #1 with existing request from previous http/1 connection
-  printf("http1: NOW, I would switch protocols to h2c: %s\n", settings.c_str());
+void Channel::h2cUpgradeHandler(const HttpHandler& nextHandler,
+                                const Http2Settings& settings) {
+  // TODO: fully consume body first
 
   Connection* connection = static_cast<Connection*>(transport_);
-  EndPoint* endpoint = connection->endpoint();
+
+  upgrade("h2c", std::bind(&Channel::h2cUpgrade,
+                           std::placeholders::_1,
+                           executor_,
+                           nextHandler,
+                           dateGenerator_,
+                           outputCompressor_,
+                           maxRequestBodyLength_,
+                           connection->maxRequestCount()));
+}
+
+void Channel::h2cUpgrade(EndPoint* endpoint,
+                         Executor* executor,
+                         const HttpHandler& handler,
+                         HttpDateGenerator* dateGenerator,
+                         HttpOutputCompressor* outputCompressor,
+                         size_t maxRequestBodyLength,
+                         size_t maxRequestCount) {
+  TRACE("http1: Upgrading to h2c.");
+
+  // TODO: pass negotiated settings
+  // TODO: pass initial request to be served directly
 
   endpoint->setConnection<http2::Connection>(
       endpoint,
-      executor_,
-      nextHandler,
-      dateGenerator_,
-      outputCompressor_,
-      maxRequestBodyLength_,
-      connection->maxRequestCount());
+      executor,
+      handler,
+      dateGenerator,
+      outputCompressor,
+      maxRequestBodyLength,
+      maxRequestCount);
 }
 
 void Channel::onProtocolError(HttpStatus code, const std::string& message) {

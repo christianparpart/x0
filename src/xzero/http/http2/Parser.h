@@ -9,6 +9,8 @@
 
 #include <xzero/http/http2/StreamID.h>
 #include <xzero/http/http2/FrameType.h>
+#include <xzero/http/http2/ErrorCode.h>
+#include <xzero/http/http2/SettingParameter.h>
 #include <xzero/http/hpack/Parser.h>
 #include <xzero/http/hpack/DynamicTable.h>
 #include <xzero/Buffer.h>
@@ -47,6 +49,17 @@ class Parser {
          size_t maxFrameSize,
          size_t maxHeaderTableSize);
 
+  /** Available HTTP/2 Parser States. */
+  enum class State {
+    ConnectionPreface,
+    Framing,
+  };
+
+  /**
+   * Manually changes the parser state.
+   */
+  void setState(State newState);
+
   /**
    * Parses @p chunk of HTTP/2 frames.
    *
@@ -60,6 +73,14 @@ class Parser {
    * Parses a single and complete @p frame.
    */
   void parseFrame(const BufferRef& frame);
+
+  /**
+   * Decodes a settings frame payload.
+   */
+  static ErrorCode decodeSettings(
+      const BufferRef& payload,
+      std::vector<std::pair<SettingParameter, unsigned long>>* settings,
+      std::string* debugData);
 
  protected:
   void parseData(uint8_t flags, StreamID sid, const BufferRef& payload);
@@ -76,6 +97,8 @@ class Parser {
   void onRequestBegin();
 
  private:
+  State state_;
+
   FrameListener* listener_;
   size_t maxFrameSize_;
 

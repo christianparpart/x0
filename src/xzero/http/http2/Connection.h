@@ -14,6 +14,8 @@
 #include <xzero/http/http2/FrameListener.h>
 #include <xzero/http/HttpHandler.h>
 #include <xzero/net/Connection.h>
+#include <xzero/net/EndPointWriter.h>
+#include <xzero/Buffer.h>
 #include <memory>
 #include <deque>
 #include <cstdint>
@@ -42,10 +44,22 @@ class Connection
              size_t maxRequestBodyLength,
              size_t maxRequestCount);
 
+  ~Connection();
+
   void setMaxConcurrentStreams(size_t value);
   size_t maxConcurrentStreams() const;
 
  protected:
+  void parseFragment();
+
+  // Connection overrides
+  void onOpen() override;
+  void onClose() override;
+  void setInputBufferSize(size_t size) override;
+  void onFillable() override;
+  void onFlushable() override;
+  void onInterestFailure(const std::exception& error) override;
+
   // FrameListener overrides
   void onData(StreamID sid, const BufferRef& data, bool last) override;
   void onRequestBegin(StreamID sid, bool noContent,
@@ -70,16 +84,12 @@ class Connection
   void onStreamError(StreamID sid, ErrorCode ec,
                      const std::string& message) override;
 
-  // Connection overrides
-  void onOpen() override;
-  void onClose() override;
-  void setInputBufferSize(size_t size) override;
-  void onFillable() override;
-  void onFlushable() override;
-  void onInterestFailure(const std::exception& error) override;
-
  private:
+  Buffer inputBuffer_;
+  size_t inputOffset_;
   Parser parser_;
+
+  EndPointWriter writer_;
   Generator generator_;
 
   size_t lowestStreamIdLocal_;

@@ -9,11 +9,17 @@
 
 #include <xzero/http/HttpChannel.h>
 #include <xzero/http/HeaderFieldList.h>
+#include <xzero/http/http2/SettingParameter.h>
 #include <xzero/sysconfig.h>
 #include <list>
+#include <vector>
+#include <utility>
 #include <string>
 
 namespace xzero {
+
+class EndPoint;
+
 namespace http {
 namespace http1 {
 
@@ -57,10 +63,21 @@ class Channel : public HttpChannel {
   void onMessageHeaderEnd() override;
   void onProtocolError(HttpStatus code, const std::string& message) override;
 
-  void h2c_switching_protocols(const std::string& settings,
-                               const HttpHandler& nextHandler);
-  void h2c_start(const std::string& settings,
-                 const HttpHandler& nextHandler);
+  typedef std::vector<std::pair<http2::SettingParameter, unsigned long>>
+      Http2Settings;
+
+  void h2cVerifyUpgrade(std::string&& settings);
+
+  void h2cUpgradeHandler(const HttpHandler& nextHandler,
+                         const Http2Settings& settings);
+
+  static void h2cUpgrade(EndPoint* endpoint,
+                         Executor* executor,
+                         const HttpHandler& handler,
+                         HttpDateGenerator* dateGenerator,
+                         HttpOutputCompressor* outputCompressor,
+                         size_t maxRequestBodyLength,
+                         size_t maxRequestCount);
 
  private:
   bool persistent_;

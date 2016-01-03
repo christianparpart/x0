@@ -16,8 +16,8 @@ template<typename T>
 inline uint16_t read16(const T* buf) {
   uint16_t value = 0;
 
-  value |= (static_cast<uint64_t>(buf[1]) & 0xFF) << 8;
-  value |= (static_cast<uint64_t>(buf[2]) & 0xFF);
+  value |= (static_cast<uint64_t>(buf[0]) & 0xFF) << 8;
+  value |= (static_cast<uint64_t>(buf[1]) & 0xFF);
 
   return value;
 }
@@ -59,7 +59,8 @@ Parser::Parser(FrameListener* listener)
 Parser::Parser(FrameListener* listener,
                size_t maxFrameSize,
                size_t maxHeaderTableSize)
-    : listener_(listener),
+    : state_(State::ConnectionPreface),
+      listener_(listener),
       maxFrameSize_(maxFrameSize),
       maxHeaderTableSize_(maxHeaderTableSize),
       headerContext_(maxHeaderTableSize),
@@ -72,8 +73,27 @@ Parser::Parser(FrameListener* listener,
       isExclusiveDependency_(false) {
 }
 
+void Parser::setState(State newState) {
+  state_ = newState;
+}
+
 size_t Parser::parseFragment(const BufferRef& chunk) {
+  constexpr BufferRef ConnectionPreface = "PRI * HTTP/2.0\r\n\r\nSM\r\n\r\n";
   size_t offset = 0;
+
+  if (state_ == State::ConnectionPreface) {
+    printf("http2.Parser: state in preface\n");
+    if (chunk.begins(ConnectionPreface)) {
+      printf("http2.Parser: preface found, skipping %zu bytes\n", ConnectionPreface.size());
+      setState(State::Framing);
+      offset += ConnectionPreface.size();
+    } else {
+      listener_->onConnectionError(
+          ErrorCode::ProtocolError,
+          "No connection preface found.");
+      return 0;
+    }
+  }
 
   while (offset + 9 < chunk.size()) {
     uint32_t frameSize = read24(chunk.data() + offset);
@@ -102,7 +122,8 @@ void Parser::parseFrame(const BufferRef& frame) {
   StreamID sid = read32(frame.data() + 5) & ~(1 << 31);
   BufferRef payload = frame.ref(9);
 
-  printf("Parser.parseFrame: %s\n", StringUtil::toString(type).c_str());
+  printf("Parser.parseFrame: %s (0x%02x), flags=%02x, sid=%d, len=%zu\n",
+         StringUtil::toString(type).c_str(), (int)type, flags, sid, payload.size());
 
   if (payload.size() > maxFrameSize_) {
     if (sid != 0)
@@ -344,13 +365,6 @@ void Parser::parseSettings(uint8_t flags,
     return;
   }
 
-  if (payload.size() % 6 != 0) {
-    listener_->onConnectionError(
-        ErrorCode::FrameSizeError,
-        "SETTINGS frame contains wrong frame size");
-    return;
-  }
-
   if (flags & ACK) {
     if (!payload.empty()) {
       listener_->onConnectionError(
@@ -362,7 +376,41 @@ void Parser::parseSettings(uint8_t flags,
     return;
   }
 
+  std::string debugData;
   std::vector<std::pair<SettingParameter, unsigned long>> settings;
+
+  ErrorCode ec = decodeSettings(payload, &settings, &debugData);
+
+  if (ec != ErrorCode::NoError) {
+    listener_->onConnectionError(ec, debugData);
+    return;
+  }
+
+  // directly apply any parser related settings
+  for (const auto& setting: settings) {
+    switch (setting.first) {
+      case SettingParameter::HeaderTableSize:
+        maxHeaderTableSize_ = setting.second;
+        headerContext_.setMaxSize(setting.second);
+        break;
+      default:
+        // ignore any unknown
+        break;
+    }
+  }
+
+  listener_->onSettings(settings);
+}
+
+ErrorCode Parser::decodeSettings(
+    const BufferRef& payload,
+    std::vector<std::pair<SettingParameter, unsigned long>>* settings,
+    std::string* debugData) {
+  if (payload.size() % 6 != 0) {
+    *debugData = "SETTINGS frame contains wrong frame size";
+    return ErrorCode::FrameSizeError;
+  }
+
   const auto end = payload.end();
   auto pos = payload.begin();
 
@@ -374,44 +422,35 @@ void Parser::parseSettings(uint8_t flags,
     pos += 4;
 
     switch (id) {
-      case SettingParameter::HeaderTableSize:
-        maxHeaderTableSize_ = value;
-        headerContext_.setMaxSize(value);
-        break;
-      case SettingParameter::EnablePush:
-        settings.emplace_back(id, value);
-        break;
-      case SettingParameter::MaxConcurrentStreams:
-        settings.emplace_back(id, value);
-        break;
       case SettingParameter::InitialWindowSize:
         if (value < (1llu << 31) - 1) {
-          settings.emplace_back(id, value);
+          settings->emplace_back(id, value);
         } else {
-          listener_->onConnectionError(
-              ErrorCode::FlowControlError,
-              "Given SETTINGS_INITIAL_WINDOW_size exceeds valid range.");
+          *debugData = "Given SETTINGS_INITIAL_WINDOW_size exceeds valid range.";
+          return ErrorCode::FlowControlError;
         }
         break;
       case SettingParameter::MaxFrameSize:
-        if (value >= (1 << 14) - 1 && value <= (1 << 24) - 1) {
-          settings.emplace_back(id, value);
-        } else {
-          listener_->onConnectionError(
-              ErrorCode::ProtocolError,
-              "SETTINGS frame received invalid MAX_FRAME_SIZE.");
-        }
+        settings->emplace_back(id, value);
+        // if (value >= (1 << 14) - 1 && value <= (1 << 24) - 1) {
+        //   settings->emplace_back(id, value);
+        // } else {
+        //   *debugData = "SETTINGS frame received invalid MAX_FRAME_SIZE.";
+        //   return ErrorCode::ProtocolError;
+        // }
         break;
       case SettingParameter::MaxHeaderListSize:
-        settings.emplace_back(id, value);
+      case SettingParameter::HeaderTableSize:
+      case SettingParameter::EnablePush:
+      case SettingParameter::MaxConcurrentStreams:
+        settings->emplace_back(id, value);
         break;
       default:
         // ignore any unknown
         break;
     }
   }
-
-  listener_->onSettings(settings);
+  return ErrorCode::NoError;
 }
 
 void Parser::parsePushPromise(uint8_t flags, StreamID sid, const BufferRef& payload) {

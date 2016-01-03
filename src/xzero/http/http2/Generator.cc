@@ -57,6 +57,10 @@ void Generator::setMaxFrameSize(size_t value) {
   maxFrameSize_ = value;
 }
 
+void Generator::generateClientConnectionPreface() {
+  sink_->write("PRI * HTTP/2.0\r\n\r\nSM\r\n\r\n");
+}
+
 void Generator::generateData(StreamID sid, const BufferRef& data, bool last) {
   /*
    * +---------------+
