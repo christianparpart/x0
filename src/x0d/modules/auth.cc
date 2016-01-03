@@ -25,7 +25,7 @@
 #include <x0d/modules/auth.h>
 #include <xzero/http/HttpRequest.h>
 #include <xzero/http/HttpResponse.h>
-#include <xzero/Base64.h>
+#include <xzero/base64.h>
 #include <xzero/StringUtil.h>
 #include <xzero/logging.h>
 #include "sysconfig.h"
@@ -277,7 +277,11 @@ bool AuthModule::auth_require(XzeroContext* cx, flow::vm::Params& args) {
 
   if (StringUtil::beginsWith(authorization, "Basic ")) {
     std::string authcode = authorization.substr(6);
-    Buffer plain = Base64::decode(authcode);
+
+    Buffer plain;
+    plain.reserve(base64::decodeLength(authcode));
+    plain.resize(base64::decode(authcode, plain.begin()));
+
     const char* user = plain.c_str();
     char* pass = strchr(const_cast<char*>(plain.c_str()), ':');
     if (!pass)
