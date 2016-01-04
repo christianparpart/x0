@@ -55,15 +55,20 @@ class Stream : public ::xzero::http::HttpTransport {
   void send(const BufferRef& chunk, CompletionHandler onComplete) override;
   void send(FileView&& chunk, CompletionHandler onComplete) override;
 
+  void sendHeaders(const HttpResponseInfo& info);
+  void setCompleter(CompletionHandler onComplete);
+  void close();
+
  private:
-  Connection* connection;                 // HTTP/2 connection layer
+  Connection* connection_;                // HTTP/2 connection layer
   std::unique_ptr<HttpChannel> channel_;  // HTTP semantics layer
   StreamID id_;                           // stream id
   StreamState state_;                     // default: Idle
   int weight_;                            // default: 16
   //StreamTreeNode* node_;                  // ref in the stream dependency tree
-  DataChain responseBodyChain_;           // pending response body chunks
   HttpHandler handler_;                   // HTTP request handler
+  DataChain body_;                        // pending response body chunks
+  CompletionHandler onComplete_;
 };
 
 inline bool streamCompare(Stream* a, Stream* b) {

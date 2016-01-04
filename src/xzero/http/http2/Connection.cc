@@ -7,7 +7,9 @@
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 #include <xzero/http/http2/Connection.h>
+#include <xzero/http/HttpResponseInfo.h>
 #include <xzero/net/EndPoint.h>
+#include <xzero/HugeBuffer.h>
 #include <xzero/logging.h>
 
 namespace xzero {
@@ -55,7 +57,7 @@ Connection::Connection(EndPoint* endpoint,
   (void) settings;
 
   // start request with sid = 1
-  Stream* stream = createStream(std::move(initialRequestInfo), 1);
+  Stream* stream = createStream(initialRequestInfo, 1);
   stream->appendBody(initialRequestBody.getBuffer());
   // streams will be automatically be started upon Connection::onOpen()
 }
@@ -140,7 +142,7 @@ void Connection::onRequestBegin(StreamID sid, bool noContent,
   }
 }
 
-Stream* Connection::createStream(HttpRequestInfo&& info, StreamID sid) {
+Stream* Connection::createStream(const HttpRequestInfo& info, StreamID sid) {
   // TODO
   return nullptr;
 }
