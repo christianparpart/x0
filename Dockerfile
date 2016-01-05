@@ -30,8 +30,8 @@ RUN echo "force-unsafe-io" > /etc/dpkg/dpkg.cfg.d/02apt-speedup && \
         -DX0D_LOGDIR=/var/log/x0d && \
     ninja && \
     mkdir -p /etc/x0d /var/log/x0d /var/lib/x0d /var/www && \
-    cp xzero/test-base /usr/bin/test-xzero-base && \
-    cp xzero-flow/test-flow /usr/bin/test-xzero-flow && \
+    cp src/xzero/test-base /usr/bin/test-xzero-base && \
+    cp src/xzero-flow/test-flow /usr/bin/test-xzero-flow && \
     cp src/x0d/x0d /usr/bin/x0d && \
     apt-get purge -y \
         make cmake clang++-3.5 libssl-dev zlib1g-dev libbz2-dev pkg-config \
