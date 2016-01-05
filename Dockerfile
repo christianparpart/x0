@@ -12,9 +12,9 @@ RUN echo "force-unsafe-io" > /etc/dpkg/dpkg.cfg.d/02apt-speedup && \
     apt-get -qq update && \
     apt-get install -y \
         make cmake clang++-3.5 libssl-dev zlib1g-dev libbz2-dev pkg-config \
-        libpcre3-dev libfcgi-dev libgoogle-perftools-dev libtbb-dev \
+        libpcre3-dev libfcgi-dev libgoogle-perftools-dev \
         libpam-dev libgtest-dev ninja-build && \
-    apt-get install -y libssl1.0.0 zlib1g libbz2-1.0 libpcre3 libtbb2 \
+    apt-get install -y libssl1.0.0 zlib1g libbz2-1.0 libpcre3 \
         libpam0g && \
     cd /usr/src/gtest && cmake . && make && \
         cp -vpi libgtest*.a /usr/local/lib/ && \
@@ -31,7 +31,7 @@ RUN echo "force-unsafe-io" > /etc/dpkg/dpkg.cfg.d/02apt-speedup && \
     cp src/x0d/x0d /usr/bin/x0d && \
     apt-get purge -y \
         make cmake clang++-3.5 libssl-dev zlib1g-dev libbz2-dev pkg-config \
-        libpcre3-dev libfcgi-dev libgoogle-perftools-dev libtbb-dev \
+        libpcre3-dev libfcgi-dev libgoogle-perftools-dev \
         libpam-dev libgtest-dev ninja-build && \
     apt-get purge -y perl && \
     echo 'Yes, do as I say!' | apt-get remove -y --force-yes \
