@@ -16,8 +16,12 @@ RUN echo "force-unsafe-io" > /etc/dpkg/dpkg.cfg.d/02apt-speedup && \
         libpam-dev libgtest-dev ninja-build && \
     apt-get install -y libssl1.0.0 zlib1g libbz2-1.0 libpcre3 \
         libpam0g && \
-    cd /usr/src/gtest && cmake . && make && \
-        cp -vpi libgtest*.a /usr/local/lib/ && \
+    cd /usr/src/gtest && \
+    cmake -DCMAKE_C_COMPILER=/usr/bin/clang-3.5 \
+          -DCMAKE_CXX_COMPILER=/usr/bin/clang++-3.5 \
+          . && \
+    make && \
+    cp -vpi libgtest*.a /usr/local/lib/ && \
     cd /usr/src/x0 && cmake -GNinja \
         -DCMAKE_BUILD_TYPE=release \
         -DCMAKE_C_COMPILER=/usr/bin/clang-3.5 \
