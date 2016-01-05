@@ -3,11 +3,6 @@
 [![](https://badge.imagelayers.io/trapni/x0:git.svg)](https://imagelayers.io/?images=trapni/x0:git 'Get your own badge on imagelayers.io')
 [![](https://secure.travis-ci.org/xzero/x0.png) ](http://travis-ci.org/xzero/x0)
 
-- official website: http://xzero.io
-- github: http://github.com/xzero/x0
-- ohloh: http://www.ohloh.net/p/x0
-- travis-ci: https://travis-ci.org/xzero/x0
-
 `x0d` is a thin low-latency and scalable HTTP web server built on-top
 of the Xzero C++ HTTP Framework.
 
@@ -66,7 +61,7 @@ a number of standard plugins to become *your* web application server.
 # Installs required dependencies
 sudo apt-get install make cmake gcc-4.8 g++-4.8 libssl-dev \
     libmysqlclient-dev libev-dev zlib1g-dev libbz2-dev pkg-config \
-    libpcre3-dev libfcgi-dev libgoogle-perftools-dev libtbb-dev libpam-dev git
+    libpcre3-dev libfcgi-dev libgoogle-perftools-dev libpam-dev git
 
 # If you want to built the tests, you must install libgtest-dev and then
 # built it yourself
@@ -105,7 +100,7 @@ sudo apt-get install gcc-4.8 g++-4.8
 # Installs required dependencies
 sudo apt-get install make cmake libssl-dev \
     libmysqlclient-dev libev-dev zlib1g-dev libbz2-dev pkg-config \
-    libpcre3-dev libfcgi-dev libgoogle-perftools0 libtbb-dev libpam-dev git
+    libpcre3-dev libfcgi-dev libgoogle-perftools0 libpam-dev git
 
 # If you want to built the tests, you must install libgtest-dev and then
 # built it yourself
