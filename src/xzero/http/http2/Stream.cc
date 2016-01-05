@@ -11,26 +11,37 @@ namespace http2 {
 
 #define TRACE(msg...) logTrace("http.http2.Stream", msg)
 
-Stream::Stream(Connection* connection, StreamID id,
-               const HttpHandler& handler),
+Stream::Stream(StreamID id,
+               Connection* connection,
+               Executor* executor,
+               const HttpHandler& handler,
+               size_t maxRequestUriLength,
+               size_t maxRequestBodyLength,
+               HttpDateGenerator* dateGenerator,
+               HttpOutputCompressor* outputCompressor)
     : connection_(connection),
-      channel_(new HttpChannel(this)),
+      channel_(new HttpChannel(this,
+                               executor,
+                               handler,
+                               maxRequestUriLength,
+                               maxRequestBodyLength,
+                               dateGenerator,
+                               outputCompressor)),
       id_(id),
       state_(StreamState::Idle),
       weight_(16),
       //StreamTreeNode* node_;
-      handler_(handler),
-      body_(16384),
+      body_(),
       onComplete_() {
 }
 
 void Stream::abort() {
-  transport_->resetStream(id_);
+  //tTODO ransport_->resetStream(id_);
 }
 
 void Stream::completed() {
   // ensure last DATA packet has with END_STREAM flag set
-  transport_->completed(id_);
+  //TODO transport_->completed(id_);
 }
 
 void Stream::send(HttpResponseInfo& responseInfo, Buffer&& chunk,
@@ -68,6 +79,21 @@ void Stream::send(FileView&& chunk, CompletionHandler onComplete) {
   body_.write(std::move(chunk));
 }
 
+void Stream::sendWindowUpdate(size_t windowSize) {
+}
+
+void Stream::appendBody(const BufferRef& data) {
+}
+
+void Stream::handleRequest() {
+}
+
+void Stream::sendHeaders(const HttpResponseInfo& info) {
+}
+
+void Stream::setCompleter(CompletionHandler onComplete) {
+}
+
 void Stream::close() {
   // XXX should be already in StreamState::HalfClosedRemote
   state_ = StreamState::Closed;
@@ -86,6 +112,7 @@ void Stream::close() {
       break;
   }
 }
+
 
 } // namespace http2
 } // namespace http

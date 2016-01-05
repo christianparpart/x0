@@ -15,7 +15,14 @@
 #include <xzero/io/DataChain.h>
 
 namespace xzero {
+
+class Executor;
+
 namespace http {
+
+class HttpDateGenerator;
+class HttpOutputCompressor;
+
 namespace http2 {
 
 class Connection;
@@ -29,8 +36,14 @@ bool streamCompare(Stream* a, Stream* b);
 
 class Stream : public ::xzero::http::HttpTransport {
  public:
-  Stream(Connection* connection, StreamID id,
-         const HttpHandler& handler);
+  Stream(StreamID id,
+         Connection* connection,
+         Executor* executor,
+         const HttpHandler& handler,
+         size_t maxRequestUriLength,
+         size_t maxRequestBodyLength,
+         HttpDateGenerator* dateGenerator,
+         HttpOutputCompressor* outputCompressor);
 
   unsigned id() const noexcept;
   StreamState state() const noexcept;
@@ -38,10 +51,13 @@ class Stream : public ::xzero::http::HttpTransport {
 
   void sendWindowUpdate(size_t windowSize);
   void appendBody(const BufferRef& data);
-
   void handleRequest();
 
  public:
+  void sendHeaders(const HttpResponseInfo& info);
+  void setCompleter(CompletionHandler onComplete);
+  void close();
+
   // HttpTransport overrides
   void abort() override;
   void completed() override;
@@ -55,10 +71,6 @@ class Stream : public ::xzero::http::HttpTransport {
   void send(const BufferRef& chunk, CompletionHandler onComplete) override;
   void send(FileView&& chunk, CompletionHandler onComplete) override;
 
-  void sendHeaders(const HttpResponseInfo& info);
-  void setCompleter(CompletionHandler onComplete);
-  void close();
-
  private:
   Connection* connection_;                // HTTP/2 connection layer
   std::unique_ptr<HttpChannel> channel_;  // HTTP semantics layer
@@ -66,7 +78,6 @@ class Stream : public ::xzero::http::HttpTransport {
   StreamState state_;                     // default: Idle
   int weight_;                            // default: 16
   //StreamTreeNode* node_;                  // ref in the stream dependency tree
-  HttpHandler handler_;                   // HTTP request handler
   DataChain body_;                        // pending response body chunks
   CompletionHandler onComplete_;
 };
