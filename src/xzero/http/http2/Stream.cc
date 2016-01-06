@@ -35,8 +35,48 @@ Stream::Stream(StreamID id,
       onComplete_() {
 }
 
+void Stream::sendWindowUpdate(size_t windowSize) {
+}
+
+void Stream::appendBody(const BufferRef& data) {
+}
+
+void Stream::handleRequest() {
+}
+
+void Stream::setCompleter(CompletionHandler onComplete) {
+  if (cb && onComplete_)
+    RAISE(IllegalStateError, "There is still another completion hook.");
+
+  onComplete_ = std::move(cb);
+}
+
+void Stream::sendHeaders(const HttpResponseInfo& info) {
+  //const bool last = false;
+  //TODO connection()->sendHeaders(id_, info.headers());
+}
+
+void Stream::close() {
+  // XXX should be already in StreamState::HalfClosedRemote
+  state_ = StreamState::Closed;
+  switch (state_) {
+    case StreamState::Idle:
+    case StreamState::Open:
+    case StreamState::ReservedRemote:
+    case StreamState::ReservedLocal:
+    case StreamState::HalfClosedLocal:
+      // TODO: what's the state *valid* change?
+      break;
+    case StreamState::HalfClosedRemote:
+      state_ = StreamState::Closed;
+      break;
+    case StreamState::Closed:
+      break;
+  }
+}
+
 void Stream::abort() {
-  //tTODO ransport_->resetStream(id_);
+  //TODO transport_->resetStream(id_);
 }
 
 void Stream::completed() {
@@ -78,41 +118,6 @@ void Stream::send(FileView&& chunk, CompletionHandler onComplete) {
   setCompleter(onComplete);
   body_.write(std::move(chunk));
 }
-
-void Stream::sendWindowUpdate(size_t windowSize) {
-}
-
-void Stream::appendBody(const BufferRef& data) {
-}
-
-void Stream::handleRequest() {
-}
-
-void Stream::sendHeaders(const HttpResponseInfo& info) {
-}
-
-void Stream::setCompleter(CompletionHandler onComplete) {
-}
-
-void Stream::close() {
-  // XXX should be already in StreamState::HalfClosedRemote
-  state_ = StreamState::Closed;
-  switch (state_) {
-    case StreamState::Idle:
-    case StreamState::Open:
-    case StreamState::ReservedRemote:
-    case StreamState::ReservedLocal:
-    case StreamState::HalfClosedLocal:
-      // TODO: what's the state *valid* change?
-      break;
-    case StreamState::HalfClosedRemote:
-      state_ = StreamState::Closed;
-      break;
-    case StreamState::Closed:
-      break;
-  }
-}
-
 
 } // namespace http2
 } // namespace http

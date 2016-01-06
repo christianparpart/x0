@@ -65,6 +65,7 @@ class Connection
   size_t maxConcurrentStreams() const;
 
   Stream* createStream(const HttpRequestInfo& info, StreamID sid);
+  void resetStream(Stream* stream);
 
  protected:
   void parseFragment();

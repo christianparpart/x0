@@ -54,8 +54,9 @@ class Stream : public ::xzero::http::HttpTransport {
   void handleRequest();
 
  public:
-  void sendHeaders(const HttpResponseInfo& info);
   void setCompleter(CompletionHandler onComplete);
+
+  void sendHeaders(const HttpResponseInfo& info);
   void close();
 
   // HttpTransport overrides
