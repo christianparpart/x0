@@ -44,7 +44,7 @@ void Stream::appendBody(const BufferRef& data) {
 void Stream::handleRequest() {
 }
 
-void Stream::setCompleter(CompletionHandler onComplete) {
+void Stream::setCompleter(CompletionHandler cb) {
   if (cb && onComplete_)
     RAISE(IllegalStateError, "There is still another completion hook.");
 
