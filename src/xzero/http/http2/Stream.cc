@@ -59,28 +59,26 @@ void Stream::setCompleter(CompletionHandler cb) {
   onComplete_ = std::move(cb);
 }
 
+void Stream::invokeCompleter(bool success) {
+  if (onComplete_) {
+    TRACE("invoking completion callback");
+    auto callback = std::move(onComplete_);
+    onComplete_ = nullptr;
+    callback(success);
+  }
+}
+
 void Stream::sendHeaders(const HttpResponseInfo& info) {
   //const bool last = false;
   //TODO connection()->sendHeaders(id_, info.headers());
 }
 
-void Stream::close() {
-  // XXX should be already in StreamState::HalfClosedRemote
-  state_ = StreamState::Closed;
-  switch (state_) {
-    case StreamState::Idle:
-    case StreamState::Open:
-    case StreamState::ReservedRemote:
-    case StreamState::ReservedLocal:
-    case StreamState::HalfClosedLocal:
-      // TODO: what's the state *valid* change?
-      break;
-    case StreamState::HalfClosedRemote:
-      state_ = StreamState::Closed;
-      break;
-    case StreamState::Closed:
-      break;
-  }
+void Stream::closeInput() {
+  inputClosed_ = true;
+}
+
+void Stream::closeOutput() {
+  outputClosed_ = true;
 }
 
 void Stream::abort() {

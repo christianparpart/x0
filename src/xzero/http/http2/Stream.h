@@ -54,9 +54,11 @@ class Stream : public ::xzero::http::HttpTransport {
 
  public:
   void setCompleter(CompletionHandler onComplete);
+  void invokeCompleter(bool success);
 
   void sendHeaders(const HttpResponseInfo& info);
-  void close();
+  void closeInput();
+  void closeOutput();
 
   // HttpTransport overrides
   void abort() override;
@@ -75,6 +77,8 @@ class Stream : public ::xzero::http::HttpTransport {
   Connection* connection_;                // HTTP/2 connection layer
   std::unique_ptr<HttpChannel> channel_;  // HTTP semantics layer
   StreamID id_;                           // stream id
+  bool inputClosed_;                      // remote endpoint has closed
+  bool outputClosed_;                     // local endpoint has closed
   StreamState state_;                     // default: Idle
   int weight_;                            // default: 16
   //StreamTreeNode* node_;                  // ref in the stream dependency tree
@@ -82,6 +86,7 @@ class Stream : public ::xzero::http::HttpTransport {
   CompletionHandler onComplete_;
 };
 
+// {{{ inlines
 inline unsigned Stream::id() const noexcept {
   return id_;
 }
@@ -98,6 +103,7 @@ inline HttpChannel* Stream::channel() const noexcept {
 inline bool streamCompare(Stream* a, Stream* b) {
   return a->id() == b->id();
 }
+// }}}
 
 } // namespace http2
 } // namespace http

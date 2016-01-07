@@ -65,6 +65,7 @@ Connection::Connection(EndPoint* endpoint,
   // start request with sid = 1
   Stream* stream = createStream(initialRequestInfo, 1);
   stream->appendBody(initialRequestBody.getBuffer());
+  stream->closeInput();
   // streams will be automatically be started upon Connection::onOpen()
 }
 
@@ -144,7 +145,7 @@ void Connection::onRequestBegin(StreamID sid, bool noContent,
                                 HttpRequestInfo&& info) {
   Stream* stream = createStream(info, sid);
   if (noContent) {
-    stream->handleRequest();
+    stream->closeInput();
   }
 }
 
