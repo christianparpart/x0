@@ -82,6 +82,19 @@ class Stream : public ::xzero::http::HttpTransport {
   CompletionHandler onComplete_;
 };
 
+inline unsigned Stream::id() const noexcept {
+  return id_;
+}
+
+inline StreamState Stream::state() const noexcept {
+  return state_;
+}
+
+inline HttpChannel* Stream::channel() const noexcept {
+  return channel_.get();
+}
+
+
 inline bool streamCompare(Stream* a, Stream* b) {
   return a->id() == b->id();
 }

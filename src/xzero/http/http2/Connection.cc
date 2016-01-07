@@ -6,6 +6,7 @@
 // the License at: http://opensource.org/licenses/MIT
 
 #include <xzero/http/http2/Connection.h>
+#include <xzero/http/HttpRequestInfo.h>
 #include <xzero/http/HttpResponseInfo.h>
 #include <xzero/net/EndPoint.h>
 #include <xzero/HugeBuffer.h>
@@ -28,6 +29,12 @@ Connection::Connection(EndPoint* endpoint,
       inputBuffer_(),
       inputOffset_(0),
       parser_(this),
+      maxRequestUriLength_(1024), // TODO
+      maxRequestBodyLength_(maxRequestBodyLength),
+      maxRequestCount_(maxRequestCount),
+      handler_(handler),
+      dateGenerator_(dateGenerator),
+      outputCompressor_(outputCompressor),
       writer_(),
       generator_(writer_.chain()),
       lowestStreamIdLocal_(0),
@@ -142,8 +149,34 @@ void Connection::onRequestBegin(StreamID sid, bool noContent,
 }
 
 Stream* Connection::createStream(const HttpRequestInfo& info, StreamID sid) {
+  streams_.emplace_back(new Stream(
+      sid,
+      this,
+      executor(),
+      handler_,
+      maxRequestUriLength_,
+      maxRequestBodyLength_,
+      dateGenerator_,
+      outputCompressor_));
+
+  Stream* stream = streams_.back().get();
+  HttpChannel* channel = stream->channel();
+
+  channel->onMessageBegin(BufferRef(info.unparsedMethod().data(), info.unparsedMethod().size()),
+                          BufferRef(info.unparsedUri().data(), info.unparsedUri().size()),
+                          info.version());
+
+  for (const HeaderField& header: info.headers()) {
+    channel->onMessageHeader(BufferRef(header.name().data(), header.name().size()),
+                             BufferRef(header.value().data(), header.value().size()));
+  }
+
+  channel->onMessageHeaderEnd();
+
   // TODO
-  return nullptr;
+
+  return stream;
+
 }
 
 void Connection::onPriority(StreamID sid,

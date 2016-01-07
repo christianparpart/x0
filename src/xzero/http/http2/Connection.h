@@ -107,6 +107,14 @@ class Connection
   size_t inputOffset_;
   Parser parser_;
 
+  size_t maxRequestUriLength_;
+  size_t maxRequestBodyLength_;
+  size_t maxRequestCount_;
+
+  HttpHandler handler_;
+  HttpDateGenerator* dateGenerator_;
+  HttpOutputCompressor* outputCompressor_;
+
   // output management
   EndPointWriter writer_;
   Generator generator_;

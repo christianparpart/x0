@@ -46,6 +46,7 @@ void Stream::sendWindowUpdate(size_t windowSize) {
 }
 
 void Stream::appendBody(const BufferRef& data) {
+  channel_->onMessageContent(data);
 }
 
 void Stream::handleRequest() {
