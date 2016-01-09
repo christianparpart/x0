@@ -667,6 +667,7 @@ void Parser::onRequestBegin() {
   info.setUri(info.headers().get(":path"));
 
   if (!promisedStreamID_) {
+    // TODO: pass (dependsOnSID_, isExclusiveDependency_, streamWeight_)
     listener_->onRequestBegin(lastStreamID_, isStreamClosed_, std::move(info));
   } else {
     listener_->onPushPromise(lastStreamID_, promisedStreamID_,

@@ -26,6 +26,7 @@ Connection::Connection(EndPoint* endpoint,
                        size_t maxRequestBodyLength,
                        size_t maxRequestCount)
     : xzero::Connection(endpoint, executor),
+      inputFlow_(),
       inputBuffer_(),
       inputOffset_(0),
       parser_(this),
@@ -35,6 +36,7 @@ Connection::Connection(EndPoint* endpoint,
       handler_(handler),
       dateGenerator_(dateGenerator),
       outputCompressor_(outputCompressor),
+      outputFlow_(),
       writer_(),
       generator_(writer_.chain()),
       lowestStreamIdLocal_(0),
@@ -73,6 +75,59 @@ Connection::~Connection() {
   TRACE("dtor");
 }
 
+Stream* Connection::createStream(const HttpRequestInfo& info, StreamID sid) {
+  streams_[sid] = std::unique_ptr<Stream>(new Stream(
+      sid,
+      this,
+      executor(),
+      handler_,
+      maxRequestUriLength_,
+      maxRequestBodyLength_,
+      dateGenerator_,
+      outputCompressor_));
+
+  Stream* stream = streams_[sid].get();
+  HttpChannel* channel = stream->channel();
+
+  channel->onMessageBegin(BufferRef(info.unparsedMethod().data(), info.unparsedMethod().size()),
+                          BufferRef(info.unparsedUri().data(), info.unparsedUri().size()),
+                          info.version());
+
+  for (const HeaderField& header: info.headers()) {
+    channel->onMessageHeader(BufferRef(header.name().data(), header.name().size()),
+                             BufferRef(header.value().data(), header.value().size()));
+  }
+
+  channel->onMessageHeaderEnd();
+
+  // TODO
+
+  return stream;
+
+}
+
+Stream* Connection::getStreamByID(StreamID sid) {
+  auto s = streams_.find(sid);
+  return s != streams_.end() ? s->second.get() : nullptr;
+}
+
+void Connection::resetStream(Stream* stream, ErrorCode errorCode) {
+  generator_.generateResetStream(stream->id(), errorCode);
+  endpoint()->wantFlush();
+
+  streams_.erase(stream->id());
+}
+
+void Connection::getAllDependantStreams(StreamID parentStreamID,
+                                        std::list<Stream*>* output) {
+  // TODO:
+  // for (auto& stream: streams_) {
+  //   if (stream.second->parentStreamID() == parentStreamID) {
+  //     output->push_back(stream);
+  //   }
+  // }
+}
+
 // {{{ net::Connection overrides
 void Connection::onOpen() {
   TRACE("onOpen");
@@ -82,9 +137,10 @@ void Connection::onOpen() {
   generator_.generateSettings({}); // leave settings at defaults
   wantFlush();
 
-  for (std::unique_ptr<Stream>& stream: streams_) {
-    stream->handleRequest();
-  }
+  // TODO
+  // for (std::unique_ptr<Stream>& stream: streams_) {
+  //   stream->handleRequest();
+  // }
 }
 
 void Connection::onClose() {
@@ -147,37 +203,6 @@ void Connection::onRequestBegin(StreamID sid, bool noContent,
   if (noContent) {
     stream->closeInput();
   }
-}
-
-Stream* Connection::createStream(const HttpRequestInfo& info, StreamID sid) {
-  streams_.emplace_back(new Stream(
-      sid,
-      this,
-      executor(),
-      handler_,
-      maxRequestUriLength_,
-      maxRequestBodyLength_,
-      dateGenerator_,
-      outputCompressor_));
-
-  Stream* stream = streams_.back().get();
-  HttpChannel* channel = stream->channel();
-
-  channel->onMessageBegin(BufferRef(info.unparsedMethod().data(), info.unparsedMethod().size()),
-                          BufferRef(info.unparsedUri().data(), info.unparsedUri().size()),
-                          info.version());
-
-  for (const HeaderField& header: info.headers()) {
-    channel->onMessageHeader(BufferRef(header.name().data(), header.name().size()),
-                             BufferRef(header.value().data(), header.value().size()));
-  }
-
-  channel->onMessageHeaderEnd();
-
-  // TODO
-
-  return stream;
-
 }
 
 void Connection::onPriority(StreamID sid,

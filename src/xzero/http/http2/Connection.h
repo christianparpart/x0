@@ -10,13 +10,15 @@
 #include <xzero/http/http2/Parser.h>
 #include <xzero/http/http2/Generator.h>
 #include <xzero/http/http2/Stream.h>
+#include <xzero/http/http2/Flow.h>
 #include <xzero/http/http2/FrameListener.h>
+#include <xzero/http/http2/ErrorCode.h>
 #include <xzero/http/HttpHandler.h>
 #include <xzero/net/Connection.h>
 #include <xzero/net/EndPointWriter.h>
 #include <xzero/Buffer.h>
 #include <memory>
-#include <deque>
+#include <unordered_map>
 #include <cstdint>
 
 namespace xzero {
@@ -64,7 +66,18 @@ class Connection
   size_t maxConcurrentStreams() const;
 
   Stream* createStream(const HttpRequestInfo& info, StreamID sid);
-  void resetStream(Stream* stream);
+  Stream* getStreamByID(StreamID sid);
+  void resetStream(Stream* stream, ErrorCode errorCode);
+
+  /**
+   * Retrieves all streams that currently depend on given parent stream.
+   *
+   * @param parentStreamID the parent stream ID to retrieves the dependant
+   *                       streams for.
+   * @param output         all dependant streams will be appended here.
+   */
+  void getAllDependantStreams(StreamID parentStreamID,
+                              std::list<Stream*>* output);
 
  protected:
   void parseFragment();
@@ -103,6 +116,7 @@ class Connection
 
  private:
   // input management
+  Flow inputFlow_;
   Buffer inputBuffer_;
   size_t inputOffset_;
   Parser parser_;
@@ -116,6 +130,7 @@ class Connection
   HttpOutputCompressor* outputCompressor_;
 
   // output management
+  Flow outputFlow_;
   EndPointWriter writer_;
   Generator generator_;
 
@@ -124,7 +139,7 @@ class Connection
   size_t lowestStreamIdRemote_;
   size_t maxStreamIdLocal_;
   size_t maxStreamIdRemote_;
-  std::deque<std::unique_ptr<Stream>> streams_;
+  std::unordered_map<StreamID, std::unique_ptr<Stream>> streams_;
 };
 
 inline size_t Connection::maxConcurrentStreams() const {

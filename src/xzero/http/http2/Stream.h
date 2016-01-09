@@ -9,6 +9,7 @@
 
 #include <xzero/http/http2/StreamState.h>
 #include <xzero/http/http2/StreamID.h>
+#include <xzero/http/http2/Flow.h>
 #include <xzero/http/HttpTransport.h>
 #include <xzero/http/HttpChannel.h>
 #include <xzero/io/DataChain.h>
@@ -81,7 +82,9 @@ class Stream : public ::xzero::http::HttpTransport {
   bool outputClosed_;                     // local endpoint has closed
   StreamState state_;                     // default: Idle
   int weight_;                            // default: 16
-  //StreamTreeNode* node_;                  // ref in the stream dependency tree
+  Stream* parentStream_;
+  Flow inputFlow_;                        // flow for receiving stream frames
+  Flow outputFlow_;                       // flow for transmitted stream frames
   DataChain body_;                        // pending response body chunks
   CompletionHandler onComplete_;
 };
