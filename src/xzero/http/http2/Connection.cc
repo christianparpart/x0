@@ -75,12 +75,24 @@ Connection::~Connection() {
   TRACE("dtor");
 }
 
-Stream* Connection::createStream(const HttpRequestInfo& info, StreamID sid) {
+Stream* Connection::createStream(const HttpRequestInfo& info,
+                                 StreamID sid) {
+  return createStream(info, sid, nullptr, false, 16);
+}
+
+Stream* Connection::createStream(const HttpRequestInfo& info,
+                                 StreamID sid,
+                                 StreamID parentStreamID,
+                                 bool exclusive,
+                                 unsigned weight) {
   if (streams_.size() >= maxConcurrentStreams_)
     return nullptr;
 
   streams_[sid] = std::unique_ptr<Stream>(new Stream(
       sid,
+      parentStreamID,
+      exclusive,
+      weight,
       this,
       executor(),
       handler_,
@@ -125,7 +137,7 @@ void Connection::resetStream(Stream* stream, ErrorCode errorCode) {
   streams_.erase(sid);
 }
 
-void Connection::getAllDependantStreams(StreamID parentStreamID,
+void Connection::getAllDependentStreams(StreamID parentStreamID,
                                         std::list<Stream*>* output) {
   // TODO:
   // for (auto& stream: streams_) {

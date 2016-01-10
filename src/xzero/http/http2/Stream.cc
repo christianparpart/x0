@@ -19,6 +19,9 @@ namespace http2 {
 #define TRACE(msg...) logTrace("http.http2.Stream", msg)
 
 Stream::Stream(StreamID id,
+               Stream* parentStream,
+               bool exclusiveDependency,
+               unsigned weight,
                Connection* connection,
                Executor* executor,
                const HttpHandler& handler,
@@ -35,11 +38,78 @@ Stream::Stream(StreamID id,
                                dateGenerator,
                                outputCompressor)),
       id_(id),
-      state_(StreamState::Idle),
-      weight_(16),
-      //StreamTreeNode* node_;
+      parentStream_(parentStream),
+      prevSiblingStream_(nullptr),
+      nextSiblingStream_(nullptr),
+      firstDependantStream_(nullptr),
+      weight_(weight),
       body_(),
       onComplete_() {
+  if (parentStream_) {
+    if (exclusiveDependency) {
+      // reparent all dependent streams from parentStream
+      Stream* dependent = parentStream_->firstDependantStream_;
+      while (dependent != nullptr) {
+        dependent->parentStream_ = this;
+        dependent = dependent->nextSiblingStream_;
+      }
+      parentStream_->firstDependantStream_ = this;
+    } else {
+      // move this stream into the dependent-stream list of parentStream
+      nextSiblingStream_ = parentStream_->firstDependantStream_;
+      parentStream_->firstDependantStream_->prevSiblingStream_ = this;
+      parentStream_->firstDependantStream_ = this;
+    }
+  }
+}
+
+bool Stream::isAncestor(const Stream* other) const noexcept {
+  while (other != nullptr) {
+    if (other == this)
+      return true;
+
+    other = other->parentStream_;
+  }
+
+  return false;
+}
+
+bool Stream::isDescendant(const Stream* other) const noexcept {
+  return other->isAncestor(this);
+}
+
+void Stream::reparent(Stream* newParent, bool exclusive) {
+  // RFC 7540, 5.3.3
+
+  if (newParent == this)
+    return;
+
+  // if the newParent's is a descendant of this, reparent newParent to our
+  // current parent first.
+  for (Stream* p = newParent; p != nullptr; p = p->parentStream_) {
+    if (p->parentStream_ == this) {
+      newParent->parentStream_ = parentStream_;
+      break;
+    }
+  }
+  parentStream_ = newParent;
+
+  if (exclusive) {
+    if (parentStream_) {
+      // reparent dependants to grand-parent
+      Stream* dependent = parentStream_->firstDependantStream_;
+      parentStream_->firstDependantStream_ = this;
+      while (dependent != nullptr) {
+        dependent->parentStream_ = this;
+        dependent = dependent->nextSiblingStream_;
+      }
+    } else {
+      // reparent to root
+      Stream* root = parentStream_;
+      while (root->parentStream_ != nullptr)
+        root = root->parentStream_;
+    }
+  }
 }
 
 void Stream::sendWindowUpdate(size_t windowSize) {

@@ -66,6 +66,13 @@ class Connection
   size_t maxConcurrentStreams() const;
 
   Stream* createStream(const HttpRequestInfo& info, StreamID sid);
+
+  Stream* createStream(const HttpRequestInfo& info,
+                       StreamID sid,
+                       StreamID parentStreamID,
+                       bool exclusive,
+                       unsigned weight);
+
   Stream* getStreamByID(StreamID sid);
   void resetStream(Stream* stream, ErrorCode errorCode);
 
@@ -76,7 +83,7 @@ class Connection
    *                       streams for.
    * @param output         all dependant streams will be appended here.
    */
-  void getAllDependantStreams(StreamID parentStreamID,
+  void getAllDependentStreams(StreamID parentStreamID,
                               std::list<Stream*>* output);
 
  protected:
