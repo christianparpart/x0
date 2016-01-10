@@ -139,11 +139,12 @@ class Connection
   size_t lowestStreamIdRemote_;
   size_t maxStreamIdLocal_;
   size_t maxStreamIdRemote_;
+  size_t maxConcurrentStreams_;
   std::unordered_map<StreamID, std::unique_ptr<Stream>> streams_;
 };
 
 inline size_t Connection::maxConcurrentStreams() const {
-  return streams_.size();
+  return maxConcurrentStreams_;
 }
 
 } // namespace http2

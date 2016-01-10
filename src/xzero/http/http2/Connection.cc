@@ -76,6 +76,9 @@ Connection::~Connection() {
 }
 
 Stream* Connection::createStream(const HttpRequestInfo& info, StreamID sid) {
+  if (streams_.size() >= maxConcurrentStreams_)
+    return nullptr;
+
   streams_[sid] = std::unique_ptr<Stream>(new Stream(
       sid,
       this,
@@ -112,10 +115,14 @@ Stream* Connection::getStreamByID(StreamID sid) {
 }
 
 void Connection::resetStream(Stream* stream, ErrorCode errorCode) {
-  generator_.generateResetStream(stream->id(), errorCode);
+  StreamID sid = stream->id();
+
+  // TODO: also close any stream < sid
+
+  generator_.generateResetStream(sid, errorCode);
   endpoint()->wantFlush();
 
-  streams_.erase(stream->id());
+  streams_.erase(sid);
 }
 
 void Connection::getAllDependantStreams(StreamID parentStreamID,
