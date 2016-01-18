@@ -6,7 +6,7 @@
 // the License at: http://opensource.org/licenses/MIT
 #pragma once
 
-#include <cstdint>
+#include <stdint.h>
 
 namespace xzero {
 namespace http {
@@ -21,7 +21,7 @@ class Flow {
    * Maximum number of credits (bytes) a single flow may be charged with in
    * total at single time.
    */
-  static const std::size_t MaxValue = (1llu << 31) - 1;
+  static const size_t MaxValue = (1llu << 31) - 1;
 
   Flow();
 
@@ -30,29 +30,29 @@ class Flow {
    *
    * @param n number of credits (bytes) to pre-charge.
    */
-  explicit Flow(std::size_t n);
+  explicit Flow(size_t n);
 
   /**
    * Retrieves the number of credits (bytes) available in this flow.
    */
-  std::size_t available() const noexcept;
+  size_t available() const noexcept;
 
   /**
    * Charges the flow by given credits (bytes) @p n.
    *
    * @param n number of credits (bytes) to add.
    */
-  bool charge(std::size_t n);
+  bool charge(size_t n);
 
   /**
    * Takes off @p n credits from this flow.
    *
    * @param n number of credits (bytes) to (exactly) take.
    */
-  void take(std::size_t n);
+  void take(size_t n);
 
  private:
-  std::size_t credits_;
+  size_t credits_;
 };
 
 } // namespace http2

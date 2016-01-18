@@ -69,7 +69,7 @@ class Connection
 
   Stream* createStream(const HttpRequestInfo& info,
                        StreamID sid,
-                       StreamID parentStreamID,
+                       Stream* parentStream,
                        bool exclusive,
                        unsigned weight);
 

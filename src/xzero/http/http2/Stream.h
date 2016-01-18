@@ -7,10 +7,10 @@
 
 #pragma once
 
-#include <xzero/http/http2/StreamID.h>
-#include <xzero/http/http2/Flow.h>
 #include <xzero/http/HttpTransport.h>
 #include <xzero/http/HttpChannel.h>
+#include <xzero/http/http2/Flow.h>
+#include <xzero/http/http2/StreamID.h>
 #include <xzero/io/DataChain.h>
 
 namespace xzero {

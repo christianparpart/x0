@@ -82,7 +82,7 @@ Stream* Connection::createStream(const HttpRequestInfo& info,
 
 Stream* Connection::createStream(const HttpRequestInfo& info,
                                  StreamID sid,
-                                 StreamID parentStreamID,
+                                 Stream* parentStream,
                                  bool exclusive,
                                  unsigned weight) {
   if (streams_.size() >= maxConcurrentStreams_)
@@ -90,7 +90,7 @@ Stream* Connection::createStream(const HttpRequestInfo& info,
 
   streams_[sid] = std::unique_ptr<Stream>(new Stream(
       sid,
-      parentStreamID,
+      parentStream,
       exclusive,
       weight,
       this,
