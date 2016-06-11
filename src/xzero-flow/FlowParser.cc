@@ -1322,7 +1322,7 @@ std::unique_ptr<Stmt> FlowParser::ifStmt() {
   std::unique_ptr<Stmt> elseStmt;
 
   if (consumeIf(FlowToken::Else)) {
-    elseStmt = std::move(stmt());
+    elseStmt = stmt();
     if (!elseStmt) {
       return nullptr;
     }

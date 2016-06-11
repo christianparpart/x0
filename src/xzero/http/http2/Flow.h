@@ -7,6 +7,8 @@
 #pragma once
 
 #include <stdint.h>
+#include <cstdint>
+#include <cstdlib>
 
 namespace xzero {
 namespace http {

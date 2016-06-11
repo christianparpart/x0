@@ -1,4 +1,4 @@
-FROM ubuntu:15.10
+FROM ubuntu:14.04
 MAINTAINER Christian Parpart <trapni@gmail.com>
 
 ADD . /usr/src/x0
