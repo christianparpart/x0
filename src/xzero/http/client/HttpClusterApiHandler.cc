@@ -17,7 +17,7 @@
 #include <xzero/Uri.h>
 #include <xzero/Buffer.h>
 #include <xzero/logging.h>
-#include <x0d/sysconfig.h>
+#include <xzero/sysconfig.h>
 #include <stdio.h>
 #include <list>
 
@@ -261,7 +261,7 @@ void HttpClusterApiHandler::processCluster() {
 }
 
 void HttpClusterApiHandler::createCluster(const std::string& name) {
-  std::string path = FileUtil::joinPaths(X0D_CLUSTERDIR,
+  std::string path = FileUtil::joinPaths(XZERO_CLUSTERDIR,
                                          name + ".cluster.conf");
 
   HttpCluster* cluster = api_->createCluster(name, path);

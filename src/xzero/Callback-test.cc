@@ -5,13 +5,13 @@
 // file except in compliance with the License. You may obtain a copy of
 // the License at: http://opensource.org/licenses/MIT
 
-#include <xzero/Signal.h>
+#include <xzero/Callback.h>
 #include <gtest/gtest.h>
 
 using namespace xzero;
 
-TEST(Signal, empty) {
-  Signal<void(int)> s;
+TEST(Callback, empty) {
+  Callback<void(int)> s;
 
   ASSERT_TRUE(s.empty());
   ASSERT_EQ(0, s.size());
@@ -19,8 +19,8 @@ TEST(Signal, empty) {
   s(42);
 }
 
-TEST(Signal, one) {
-  Signal<void(int)> s;
+TEST(Callback, one) {
+  Callback<void(int)> s;
   int invokationValue = 0;
 
   auto c = s.connect([&](int i) { invokationValue += i; });

@@ -8,7 +8,7 @@
 #pragma once
 
 #include <xzero/http/Api.h>
-#include <xzero/Signal.h>
+#include <xzero/Callback.h>
 #include <xzero/CompletionHandler.h>
 #include <xzero/http/HttpListener.h>
 #include <xzero/http/HttpHandler.h>
@@ -184,8 +184,8 @@ class XZERO_HTTP_API HttpChannel : public HttpListener {
   HttpOutputCompressor* outputCompressor_;
   HttpHandler handler_;
 
-  Signal<void()> onPostProcess_;
-  Signal<void()> onResponseEnd_;
+  Callback<void()> onPostProcess_;
+  Callback<void()> onResponseEnd_;
 };
 
 inline Executor* HttpChannel::executor() const noexcept {

@@ -21,19 +21,19 @@ namespace xzero {
  * Multi channel signal API.
  */
 template <typename SignatureT>
-class Signal;
+class Callback;
 
 /**
- * @brief Signal API
+ * @brief Callback API
  *
  * This API is based on the idea of Qt's signal/slot API.
  * You can connect zero or more callbacks to this signal that get invoked
  * sequentially when this signal is fired.
  */
 template <typename... Args>
-class Signal<void(Args...)> {
-  Signal(const Signal&) = delete;
-  Signal& operator=(const Signal&) = delete;
+class Callback<void(Args...)> {
+  Callback(const Callback&) = delete;
+  Callback& operator=(const Callback&) = delete;
 
  private:
   typedef std::list<std::function<void(Args...)>> list_type;
@@ -42,9 +42,9 @@ class Signal<void(Args...)> {
   typedef typename list_type::iterator Connection;
 
  public:
-  Signal() = default;
-  Signal(Signal&&) = default;
-  Signal& operator=(Signal&&) = default;
+  Callback() = default;
+  Callback(Callback&&) = default;
+  Callback& operator=(Callback&&) = default;
 
   /**
    * Tests whether this signal contains any listeners.

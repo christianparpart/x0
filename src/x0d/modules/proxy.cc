@@ -13,6 +13,7 @@
 
 #include <x0d/modules/proxy.h>
 #include <x0d/XzeroContext.h>
+#include <xzero/sysconfig.h>
 #include <xzero/http/client/HttpCluster.h>
 #include <xzero/http/client/HttpClusterRequest.h>
 #include <xzero/http/client/HttpClusterApiHandler.h>
@@ -46,8 +47,6 @@
 #include <time.h>
 #include <pwd.h>
 #include <grp.h>
-
-#include "sysconfig.h"
 
 namespace x0d {
 
@@ -166,7 +165,7 @@ bool ProxyModule::verify_proxy_cluster(xzero::flow::Instr* call) {
   }
 
   std::string path = pathArg->get().empty()
-      ? FileUtil::joinPaths(X0D_CLUSTERDIR, nameArg->get() + ".cluster.conf")
+      ? FileUtil::joinPaths(XZERO_CLUSTERDIR, nameArg->get() + ".cluster.conf")
       : pathArg->get();
 
   call->setOperand(2, program->get(path));
@@ -251,7 +250,7 @@ HttpCluster* ProxyModule::findLocalCluster(const std::string& host) {
   if (i != clusterMap_.end())
     return i->second.get();
 
-  std::string path = FileUtil::joinPaths(X0D_CLUSTERDIR,
+  std::string path = FileUtil::joinPaths(XZERO_CLUSTERDIR,
                                          host + ".cluster.conf");
   if (!FileUtil::exists(path))
     return nullptr;

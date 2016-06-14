@@ -25,8 +25,8 @@ namespace base64 {
 
   template<typename Iterator, typename Alphabet>
   std::string encode(Iterator begin, Iterator end, Alphabet alphabet) {
-    const size_t inputLength = std::distance(begin, end);
-    const size_t outputLength = ((inputLength + 2) / 3 * 4) + 1;
+    const int inputLength = std::distance(begin, end);
+    const int outputLength = ((inputLength + 2) / 3 * 4) + 1;
 
     std::string output;
     output.resize(outputLength);
@@ -82,7 +82,7 @@ namespace base64 {
   size_t decodeLength(Iterator begin, Iterator end, const IndexTable& index) {
     Iterator pos = begin;
 
-    while (index[static_cast<size_t>(*pos)] <= 63)
+    while (pos != end && index[static_cast<size_t>(*pos)] <= 63)
       pos++;
 
     int nprbytes = std::distance(begin, pos) - 1;

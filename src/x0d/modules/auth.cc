@@ -27,7 +27,7 @@
 #include <xzero/base64.h>
 #include <xzero/StringUtil.h>
 #include <xzero/logging.h>
-#include "sysconfig.h"
+#include <xzero/sysconfig.h>
 #include <fstream>
 
 #if defined(HAVE_SECURITY_PAM_APPL_H)

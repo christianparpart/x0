@@ -206,7 +206,7 @@ HttpResponseInfo& HttpChannel::commitInline() {
   info.setIsHeadResponse(request_->method() == HttpMethod::HEAD);
 
   if (!info.headers().contains("Server"))
-    info.headers().push_back("Server", "xzero/" XZERO_BASE_VERSION);
+    info.headers().push_back("Server", "xzero/" PACKAGE_VERSION);
 
   if (!info.headers().contains("Date") &&
       dateGenerator_ &&

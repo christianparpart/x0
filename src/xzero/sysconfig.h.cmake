@@ -13,6 +13,7 @@
 //#include <base/sysconfig.h>
 
 #cmakedefine XZERO_BASE_VERSION "@XZERO_BASE_VERSION@"
+#cmakedefine PACKAGE_VERSION "@XZERO_BASE_VERSION@"
 
 // --------------------------------------------------------------------------
 // feature tests

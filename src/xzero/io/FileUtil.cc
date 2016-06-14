@@ -421,7 +421,7 @@ int FileUtil::createTempFile() {
 }
 
 int FileUtil::createTempFileAt(const std::string& basedir, std::string* result) {
-#if defined(O_TMPFILE)
+#if defined(ENABLE_O_TMPFILE) && defined(O_TMPFILE)
   int flags = O_TMPFILE | O_CLOEXEC | O_RDWR;
   int mode = S_IRUSR | S_IWUSR;
   int fd = ::open(basedir.c_str(), flags, mode);

@@ -7,8 +7,8 @@
 
 #include <x0d/XzeroModule.h>
 #include <x0d/XzeroDaemon.h>
-#include <x0d/sysconfig.h>
 
+#include <xzero/sysconfig.h>
 #include <xzero/logging/ConsoleLogTarget.h>
 #include <xzero/logging.h>
 #include <xzero/io/FileUtil.h>
@@ -18,16 +18,13 @@
 #include <iostream>
 #include <unistd.h>
 
-#define PACKAGE_VERSION X0_VERSION
-#define PACKAGE_HOMEPAGE_URL "https://xzero.io"
-
 using namespace xzero;
 using namespace xzero::http;
 
 void printHelp(const CLI& cli) {
   std::cout
     << "x0d: Xzero HTTP Web Server " PACKAGE_VERSION
-        << " [" PACKAGE_HOMEPAGE_URL "]" << std::endl
+        << " [" PACKAGE_URL "]" << std::endl
     << "Copyright (c) 2009-2015 by Christian Parpart <trapni@gmail.com>" << std::endl
     << std::endl
     << "Usage: x0d [options ...]" << std::endl
@@ -75,7 +72,7 @@ int main(int argc, const char* argv[]) {
        .defineBool("daemonize", 'd', "Forks the process into background.")
        .defineString("pid-file", 0, "PATH",
                      "Path to PID-file this process will store its main PID.",
-                     FileUtil::joinPaths(X0D_STATEDIR, "x0d.pid"),
+                     X0D_PIDFILE,
                      nullptr)
        .defineBool("dump-ast", 0, "Dumps configuration AST and exits.")
        .defineBool("dump-ir", 0, "Dumps configuration IR and exits.")

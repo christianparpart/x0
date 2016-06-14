@@ -173,7 +173,7 @@ inline bool operator==(const Option<T>& a, const Option<T>& b) {
 }
 
 template <typename T>
-inline bool operator==(const Option<T>& a, const None& b) {
+inline bool operator==(const Option<T>& a, const None& /*b*/) {
   return a.isNone();
 }
 

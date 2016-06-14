@@ -13,6 +13,7 @@ error.log
 environ
 experimental
 *.pch
+*~
 
 /docs/x0d.8
 /docs/x0d.conf.5
@@ -40,3 +41,16 @@ debian/tmp/
 debian/files
 *-stamp
 /3rdparty/libflow/tests/libflow-test
+
+# autotools
+Makefile.in
+/ar-lib
+/aclocal.m4
+/compile
+/autom4te.cache
+/configure
+/install-sh
+/missing
+/depcomp
+/src/xzero/sysconfig.h.in
+/src/xzero-flow/sysconfig.h.in

@@ -702,7 +702,7 @@ inline size_t BufferBase<T>::find(PodType (&value)[N], size_t offset) const {
 }
 
 template <typename T>
-inline size_t BufferBase<T>::rfind(const value_type* value) const {
+inline size_t BufferBase<T>::rfind(const value_type* /*value*/) const {
   //! \todo implementation
   assert(0 && "not implemented");
   return npos;

@@ -88,27 +88,27 @@ void CatchAndAbortExceptionHandler::installGlobalHandlers() {
   sigact.sa_sigaction = &globalSEGVHandler;
   sigact.sa_flags = SA_SIGINFO;
 
-  if (sigaction(SIGSEGV, &sigact, NULL) < 0) {
+  if (sigaction(SIGSEGV, &sigact, nullptr) < 0) {
     RAISE_ERRNO(errno);
   }
 
-  if (sigaction(SIGABRT, &sigact, NULL) < 0) {
+  if (sigaction(SIGABRT, &sigact, nullptr) < 0) {
     RAISE_ERRNO(errno);
   }
 
-  if (sigaction(SIGBUS, &sigact, NULL) < 0) {
+  if (sigaction(SIGBUS, &sigact, nullptr) < 0) {
     RAISE_ERRNO(errno);
   }
 
-  if (sigaction(SIGSYS, &sigact, NULL) < 0) {
+  if (sigaction(SIGSYS, &sigact, nullptr) < 0) {
     RAISE_ERRNO(errno);
   }
 
-  if (sigaction(SIGILL, &sigact, NULL) < 0) {
+  if (sigaction(SIGILL, &sigact, nullptr) < 0) {
     RAISE_ERRNO(errno);
   }
 
-  if (sigaction(SIGFPE, &sigact, NULL) < 0) {
+  if (sigaction(SIGFPE, &sigact, nullptr) < 0) {
     RAISE_ERRNO(errno);
   }
 }

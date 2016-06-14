@@ -13,7 +13,7 @@
 #include <xzero/Buffer.h>
 #include <xzero/MimeTypes.h>
 #include <xzero/io/LocalFileRepository.h>
-#include <xzero/Signal.h>
+#include <xzero/Callback.h>
 #include <xzero/UnixTime.h>
 #include <xzero/Duration.h>
 #include <xzero/net/InetConnector.h>
@@ -58,9 +58,9 @@ class XzeroEventHandler;
 
 class XzeroDaemon : public xzero::flow::vm::Runtime {
  public:
-  typedef xzero::Signal<void(xzero::Connection*)> ConnectionHook;
-  typedef xzero::Signal<void(xzero::http::HttpRequest*, xzero::http::HttpResponse*)> RequestHook;
-  typedef xzero::Signal<void()> CycleLogsHook;
+  typedef xzero::Callback<void(xzero::Connection*)> ConnectionHook;
+  typedef xzero::Callback<void(xzero::http::HttpRequest*, xzero::http::HttpResponse*)> RequestHook;
+  typedef xzero::Callback<void()> CycleLogsHook;
 
  public:
   XzeroDaemon();
