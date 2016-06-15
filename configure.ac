@@ -1,4 +1,4 @@
-AC_INIT(x0d, 0.11.0, trapni@gmail.com)
+AC_INIT(x0, 0.11.0-dev, trapni@gmail.com)
 AM_INIT_AUTOMAKE([foreign subdir-objects serial-tests])
 AM_MAINTAINER_MODE([enable])
 AC_CONFIG_SRCDIR([configure.ac])
