@@ -485,6 +485,71 @@ libxzeroflow_a_SOURCES = \
 	src/xzero-flow/vm/Signature.cc \
 	src/xzero-flow/vm/Signature.h
 
+####### TESTS #################################################################
+
+TESTS = test_x0
+check_PROGRAMS = test_x0
+
+text_x0_CXXFLAGS = \
+	$(AM_CXXFLAGS) \
+	-I$(abs_top_srcdir)/3rdparty/gtest-1.7.0/include
+
+text_x0_LIBADD = \
+	-lgtest
+
+test_x0_SOURCES = \
+	src/xzero-flow/FlowLexer-test.cc \
+	src/xzero-flow/FlowParser-test.cc \
+	src/xzero/Base64-test.cc \
+	src/xzero/Buffer-test.cc \
+	src/xzero/Callback-test.cc \
+	src/xzero/Option-test.cc \
+	src/xzero/RefPtr-test.cc \
+	src/xzero/StringUtil-test.cc \
+	src/xzero/TokenShaper-test.cc \
+	src/xzero/Tokenizer-test.cc \
+	src/xzero/Uri-test.cc \
+	src/xzero/cli/CLI-test.cc \
+	src/xzero/executor/PosixScheduler-test.cc \
+	src/xzero/executor/ThreadPool-test.cc \
+	src/xzero/hash/FNV-test.cc \
+	src/xzero/http/HeaderField-test.cc \
+	src/xzero/http/HeaderFieldList-test.cc \
+	src/xzero/http/HttpChannel-test.cc \
+	src/xzero/http/HttpFileHandler-test.cc \
+	src/xzero/http/HttpRangeDef-test.cc \
+	src/xzero/http/HttpRequestInfo-test.cc \
+	src/xzero/http/client/HttpClient-test.cc \
+	src/xzero/http/fastcgi/Generator-test.cc \
+	src/xzero/http/fastcgi/RequestParser-test.cc \
+	src/xzero/http/fastcgi/ResponseParser-test.cc \
+	src/xzero/http/hpack/DynamicTable-test.cc \
+	src/xzero/http/hpack/Generator-test.cc \
+	src/xzero/http/hpack/Parser-test.cc \
+	src/xzero/http/hpack/StaticTable-test.cc \
+	src/xzero/http/http1/Connection-test.cc \
+	src/xzero/http/http1/Generator-test.cc \
+	src/xzero/http/http1/Parser-test.cc \
+	src/xzero/http/http2/Connection-test.cc \
+	src/xzero/http/http2/Flow-test.cc \
+	src/xzero/http/http2/Generator-test.cc \
+	src/xzero/http/http2/Parser-test.cc \
+	src/xzero/http/http2/Stream-test.cc \
+	src/xzero/http/router/PathRouter-test.cc \
+	src/xzero/io/DataChain-test.cc \
+	src/xzero/io/MemoryFile-test.cc \
+	src/xzero/io/MemoryMap-test.cc \
+	src/xzero/net/ByteArrayEndPoint-test.cc \
+	src/xzero/net/Cidr-test.cc \
+	src/xzero/thread/Future-test.cc \
+	src/xzero/thread/Queue-test.cc
+
+test_x0_LDADD = \
+	libxzero.a \
+	libxzeroflow.a \
+	$(OPENSSL_LDADD) \
+	$(PAM_LDFLAGS)
+
 ####### x0d ###################################################################
 
 bin_PROGRAMS = x0d
