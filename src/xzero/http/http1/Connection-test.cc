@@ -12,7 +12,6 @@
 #include <xzero/http/HttpResponse.h>
 #include <xzero/executor/LocalExecutor.h>
 #include <xzero/logging/LogTarget.h>
-#include <xzero/logging/LogAggregator.h>
 #include <xzero/net/Server.h>
 #include <xzero/net/LocalConnector.h>
 #include <xzero/Buffer.h>
