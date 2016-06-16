@@ -30,9 +30,11 @@
 
 // api decl tools
 #if defined(__GNUC__)
+
 #define XZERO_NO_EXPORT __attribute__((visibility("hidden")))
 #define XZERO_EXPORT __attribute__((visibility("default")))
 #define XZERO_IMPORT /*!*/
+#define XZERO_UNUSED __attribute__ ((unused))
 #define XZERO_WARN_UNUSED_RESULT __attribute__((warn_unused_result))
 #define XZERO_NO_RETURN __attribute__((no_return))
 #define XZERO_DEPRECATED __attribute__((__deprecated__))
@@ -40,16 +42,22 @@
 #define XZERO_PACKED __attribute__((packed))
 #define XZERO_INIT __attribute__((constructor))
 #define XZERO_FINI __attribute__((destructor))
+#define XZERO_DISABLE_COPY(ClassName)                       \
+          ClassName(const ClassName&) = delete;             \
+          ClassName& operator=(const ClassName&) = delete;
 #if !defined(likely)
 #define likely(x) __builtin_expect((x), 1)
 #endif
 #if !defined(unlikely)
 #define unlikely(x) __builtin_expect((x), 0)
 #endif
+
 #elif defined(__MINGW32__)
+
 #define XZERO_NO_EXPORT /*!*/
 #define XZERO_EXPORT __declspec(export)
 #define XZERO_IMPORT __declspec(import)
+#define XZERO_UNUSED /*!*/
 #define XZERO_WARN_UNUSED_RESULT __attribute__((warn_unused_result))
 #define XZERO_NO_RETURN __attribute__((no_return))
 #define XZERO_DEPRECATED __attribute__((__deprecated__))
@@ -57,16 +65,20 @@
 #define XZERO_PACKED __attribute__((packed))
 #define XZERO_INIT /*!*/
 #define XZERO_FINI /*!*/
+#define XZERO_DISABLE_COPY(ClassName) /*!*/
 #if !defined(likely)
 #define likely(x) (x)
 #endif
 #if !defined(unlikely)
 #define unlikely(x) (x)
 #endif
+
 #elif defined(__MSVC__)
+
 #define XZERO_NO_EXPORT /*!*/
 #define XZERO_EXPORT __declspec(export)
 #define XZERO_IMPORT __declspec(import)
+#define XZERO_UNUSED /*!*/
 #define XZERO_WARN_UNUSED_RESULT /*!*/
 #define XZERO_NO_RETURN          /*!*/
 #define XZERO_DEPRECATED         /*!*/
@@ -74,17 +86,21 @@
 #define XZERO_PACKED __packed    /* ? */
 #define XZERO_INIT               /*!*/
 #define XZERO_FINI               /*!*/
+#define XZERO_DISABLE_COPY(ClassName) /*!*/
 #if !defined(likely)
 #define likely(x) (x)
 #endif
 #if !defined(unlikely)
 #define unlikely(x) (x)
 #endif
+
 #else
+
 #warning Unknown platform
 #define XZERO_NO_EXPORT          /*!*/
 #define XZERO_EXPORT             /*!*/
 #define XZERO_IMPORT             /*!*/
+#define XZERO_UNUSED             /*!*/
 #define XZERO_WARN_UNUSED_RESULT /*!*/
 #define XZERO_NO_RETURN          /*!*/
 #define XZERO_DEPRECATED         /*!*/
@@ -92,12 +108,14 @@
 #define XZERO_PACKED             /*!*/
 #define XZERO_INIT               /*!*/
 #define XZERO_FINI               /*!*/
+#define XZERO_DISABLE_COPY(ClassName) /*!*/
 #if !defined(likely)
 #define likely(x) (x)
 #endif
 #if !defined(unlikely)
 #define unlikely(x) (x)
 #endif
+
 #endif
 
 #if defined(__GNUC__)
