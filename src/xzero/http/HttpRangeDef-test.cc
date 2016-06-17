@@ -5,7 +5,7 @@
 // file except in compliance with the License. You may obtain a copy of
 // the License at: http://opensource.org/licenses/MIT
 
-#include <gtest/gtest.h>
+#include <xzero/testing.h>
 // FIXME #include <xzero/http/HttpRangeDef.h>
 #include <xzero/Buffer.h>
 #include <iostream>

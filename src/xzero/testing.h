@@ -38,6 +38,26 @@ namespace testing {
     FAIL((actual), (expected));                                               \
   } while (0)
 
+#define EXPECT_GE(actual, expected)                                           \
+  do if (!((actual) >= (expected))) {                                         \
+    FAIL((actual), (expected));                                               \
+  } while (0)
+
+#define EXPECT_LE(actual, expected)                                           \
+  do if (!((actual) <= (expected))) {                                         \
+    FAIL((actual), (expected));                                               \
+  } while (0)
+
+#define EXPECT_GT(actual, expected)                                           \
+  do if (!((actual) > (expected))) {                                         \
+    FAIL((actual), (expected));                                               \
+  } while (0)
+
+#define EXPECT_LT(actual, expected)                                           \
+  do if (!((actual) < (expected))) {                                         \
+    FAIL((actual), (expected));                                               \
+  } while (0)
+
 #define EXPECT_TRUE(actual)                                                   \
   do if (!static_cast<bool>(actual)) {                                        \
     FAIL((actual), (expected));                                               \
@@ -48,8 +68,10 @@ namespace testing {
     FAIL((actual), (expected));                                               \
   } while (0)
 
-#define EXPECT_EXCEPTION(ExceptionType, program)  // TODO
 #define EXPECT_NEAR(actual, expected, diff)       // TODO
+#define EXPECT_EXCEPTION(ExceptionType, program)  // TODO
+#define EXPECT_THROW(ExceptionType, program)      // TODO
+#define EXPECT_ANY_THROW(program)                 // TODO
 #define EXPECT_THROW_STATUS(status, program)      // TODO
 
 // ############################################################################
@@ -68,6 +90,26 @@ namespace testing {
     FAIL_HARD((actual), (expected));                                          \
   } while (0)
 
+#define ASSERT_GE(actual, expected)                                           \
+  do if (!((actual) >= (expected))) {                                         \
+    FAIL_HARD((actual), (expected));                                          \
+  } while (0)
+
+#define ASSERT_LE(actual, expected)                                           \
+  do if (!((actual) <= (expected))) {                                         \
+    FAIL_HARD((actual), (expected));                                          \
+  } while (0)
+
+#define ASSERT_GT(actual, expected)                                           \
+  do if (!((actual) > (expected))) {                                          \
+    FAIL_HARD((actual), (expected));                                          \
+  } while (0)
+
+#define ASSERT_LT(actual, expected)                                           \
+  do if (!((actual) < (expected))) {                                          \
+    FAIL_HARD((actual), (expected));                                          \
+  } while (0)
+
 #define ASSERT_TRUE(actual)                                                   \
   do if (!static_cast<bool>(actual)) {                                        \
     FAIL_HARD((actual), (expected));                                          \
@@ -78,8 +120,10 @@ namespace testing {
     FAIL_HARD((actual), (expected));                                          \
   } while (0)
 
-#define ASSERT_EXCEPTION(ExceptionType, program)  // TODO
 #define ASSERT_NEAR(actual, expected, diff)       // TODO
+#define ASSERT_EXCEPTION(ExceptionType, program)  // TODO
+#define ASSERT_ANY_THROW(program)                 // TODO
+#define ASSERT_THROW(ExceptionType, program)      // TODO
 #define ASSERT_THROW_STATUS(status, program)      // TODO
 
 // ############################################################################

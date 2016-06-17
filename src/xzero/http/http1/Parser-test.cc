@@ -12,7 +12,7 @@
 #include <xzero/RuntimeError.h>
 #include <xzero/Buffer.h>
 #include <vector>
-#include <gtest/gtest.h>
+#include <xzero/testing.h>
 
 using namespace xzero;
 using namespace xzero::http;

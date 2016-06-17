@@ -5,7 +5,7 @@
 // file except in compliance with the License. You may obtain a copy of
 // the License at: http://opensource.org/licenses/MIT
 
-#include <gtest/gtest.h>
+#include <xzero/testing.h>
 #include <x0/http/HttpServer.h>
 #include <x0/http/HttpClient.h>
 #include <x0/Buffer.h>

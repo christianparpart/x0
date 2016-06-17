@@ -6,7 +6,7 @@
 // the License at: http://opensource.org/licenses/MIT
 
 #include <xzero-flow/FlowParser.h>
-#include <gtest/gtest.h>
+#include <xzero/testing.h>
 #include <memory>
 
 using namespace xzero;

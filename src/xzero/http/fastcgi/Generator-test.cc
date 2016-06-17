@@ -9,7 +9,7 @@
 #include <xzero/net/EndPointWriter.h>
 #include <xzero/net/ByteArrayEndPoint.h>
 #include <xzero/logging.h>
-#include <gtest/gtest.h>
+#include <xzero/testing.h>
 
 using namespace xzero;
 using namespace xzero::http;

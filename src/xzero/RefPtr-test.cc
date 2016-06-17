@@ -8,7 +8,7 @@
 #include <xzero/RefPtr.h>
 #include <xzero/RefCounted.h>
 #include <xzero/WallClock.h>
-#include <gtest/gtest.h>
+#include <xzero/testing.h>
 #include <memory>
 
 class RTest : public xzero::RefCounted {

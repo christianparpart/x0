@@ -7,7 +7,7 @@
 
 #include <xzero/http/hpack/DynamicTable.h>
 #include <xzero/http/hpack/StaticTable.h>
-#include <gtest/gtest.h>
+#include <xzero/testing.h>
 
 using xzero::http::hpack::DynamicTable;
 using xzero::http::hpack::StaticTable;

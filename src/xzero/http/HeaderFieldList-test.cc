@@ -7,7 +7,7 @@
 
 #include <xzero/http/HeaderFieldList.h>
 #include <xzero/http/HeaderField.h>
-#include <gtest/gtest.h>
+#include <xzero/testing.h>
 
 using namespace xzero;
 using namespace xzero::http;

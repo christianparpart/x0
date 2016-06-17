@@ -15,7 +15,7 @@
 #include <xzero/net/Server.h>
 #include <xzero/net/LocalConnector.h>
 #include <xzero/Buffer.h>
-#include <gtest/gtest.h>
+#include <xzero/testing.h>
 
 using namespace xzero;
 using namespace xzero::http;

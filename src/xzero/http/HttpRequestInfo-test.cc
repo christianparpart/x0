@@ -9,7 +9,7 @@
 #include <xzero/Application.h>
 #include <xzero/logging.h>
 #include <xzero/stdtypes.h>
-#include <gtest/gtest.h>
+#include <xzero/testing.h>
 
 using namespace xzero;
 using namespace xzero::http;

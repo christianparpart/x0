@@ -7,7 +7,7 @@
 
 #include <xzero/http/http2/Parser.h>
 #include <xzero/http/http2/FrameListener.h>
-#include <gtest/gtest.h>
+#include <xzero/testing.h>
 
 using namespace xzero;
 using namespace xzero::http;

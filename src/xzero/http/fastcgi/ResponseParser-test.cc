@@ -7,7 +7,7 @@
 
 #include <initializer_list>
 #include <vector>
-#include <gtest/gtest.h>
+#include <xzero/testing.h>
 #include <xzero/http/fastcgi/RequestParser.h>
 #include <xzero/http/fastcgi/ResponseParser.h>
 #include <xzero/http/HttpRequest.h>

@@ -8,7 +8,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <xzero/StringUtil.h>
-#include <gtest/gtest.h>
+#include <xzero/testing.h>
 
 using namespace xzero;
 

@@ -12,7 +12,7 @@
 #include <xzero/RuntimeError.h>
 #include <xzero/logging.h>
 #include <memory>
-#include <gtest/gtest.h>
+#include <xzero/testing.h>
 
 #include <fcntl.h>
 #include <unistd.h>

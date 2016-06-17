@@ -8,7 +8,7 @@
 #include <xzero/cli/CLI.h>
 #include <xzero/cli/Flags.h>
 #include <xzero/net/IPAddress.h>
-#include <gtest/gtest.h>
+#include <xzero/testing.h>
 
 using namespace xzero;
 

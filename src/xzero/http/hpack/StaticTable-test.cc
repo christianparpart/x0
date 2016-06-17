@@ -6,7 +6,7 @@
 // the License at: http://opensource.org/licenses/MIT
 
 #include <xzero/http/hpack/StaticTable.h>
-#include <gtest/gtest.h>
+#include <xzero/testing.h>
 
 using xzero::http::hpack::StaticTable;
 

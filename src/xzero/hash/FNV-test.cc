@@ -5,7 +5,7 @@
 // file except in compliance with the License. You may obtain a copy of
 // the License at: http://opensource.org/licenses/MIT
 
-#include <gtest/gtest.h>
+#include <xzero/testing.h>
 #include <xzero/hash/FNV.h>
 
 TEST(FNV, FNV64) {

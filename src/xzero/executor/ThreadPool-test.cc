@@ -8,7 +8,7 @@
 #include <xzero/executor/ThreadPool.h>
 #include <xzero/MonotonicClock.h>
 #include <xzero/MonotonicTime.h>
-#include <gtest/gtest.h>
+#include <xzero/testing.h>
 #include <unistd.h> // usleep()
 
 using namespace xzero;

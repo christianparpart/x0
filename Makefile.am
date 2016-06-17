@@ -11,6 +11,8 @@ AM_CXXFLAGS = \
 	-D_GNU_SOURCE \
 	-D_LARGEFILE_SOURCE -D_LARGE_FILES \
 	-Wall -Wextra -std=c++11 \
+	-Wno-unused-variable \
+	-Wno-unused-parameter \
 	-DXZERO_CLUSTERDIR="\"$(XZERO_CLUSTERDIR)\"" \
 	$(PLATFORM_CXXFLAGS) \
 	$(LIBPCRE_CFLAGS) \
@@ -500,10 +502,10 @@ libxzeroflow_a_SOURCES = \
 
 ####### TESTS #################################################################
 
-TESTS += test_x0
-check_PROGRAMS += test_x0
+TESTS += xzero_test
+check_PROGRAMS += xzero_test
 
-test_x0_SOURCES = \
+xzero_test_SOURCES = \
 	src/xzero-flow/FlowLexer-test.cc \
 	src/xzero-flow/FlowParser-test.cc \
 	src/xzero/Base64-test.cc \
@@ -550,23 +552,11 @@ test_x0_SOURCES = \
 	src/xzero/thread/Future-test.cc \
 	src/xzero/thread/Queue-test.cc
 
-test_x0_LDADD = \
-	$(OPENSSL_LDADD) \
-	$(PAM_LDFLAGS) \
-	libXzeroTesting_main.a \
-	libxzeroflow.a \
-	libxzero.a
-
-####### tests #################################################################
-
-bin_PROGRAMS += xzero_test
-
-xzero_test_SOURCES = src/xzero/testing-test.cc
 xzero_test_LDADD = \
 	$(OPENSSL_LDADD) \
 	$(PAM_LDFLAGS) \
-	libxzeroflow.a \
 	libXzeroTesting_main.a \
+	libxzeroflow.a \
 	libxzero.a
 
 ####### x0d ###################################################################

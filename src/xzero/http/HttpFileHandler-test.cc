@@ -19,7 +19,7 @@
 #include <xzero/io/FileUtil.h>
 #include <xzero/MimeTypes.h>
 #include <xzero/Buffer.h>
-#include <gtest/gtest.h>
+#include <xzero/testing.h>
 
 using namespace xzero;
 using namespace xzero::http;
