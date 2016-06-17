@@ -1,3 +1,10 @@
+// This file is part of the "x0" project, http://github.com/christianparpart/x0>
+//   (c) 2009-2016 Christian Parpart <trapni@gmail.com>
+//
+// Licensed under the MIT License (the "License"); you may not use this
+// file except in compliance with the License. You may obtain a copy of
+// the License at: http://opensource.org/licenses/MIT
+
 #pragma once
 
 #include <xzero/defines.h>
@@ -9,19 +16,75 @@
 namespace xzero {
 namespace testing {
 
-#define EXPECT_NEAR(actual, expected, diff)
-#define EXPECT_EQ(actual, expected)
-#define EXPECT_NE(actual, expected)
-#define EXPECT_TRUE(actual)
-#define EXPECT_FALSE(actual)
-#define EXPECT_EXCEPTION(exception, program)
-#define EXPECT_THROW_STATUS(status, program)
-#define TEST(testCase, testName) _CREATE_TEST(testCase, testName, ::xzero::testing::Test)
-#define TEST_F(testFixture, testName)
+#define TEST_ENV_SETUP(Name)    // TODO
+#define TEST_ENV_TEARDOWN(Name) // TODO
 
 // ############################################################################
 
-int run(int argc, char** argv);
+#define TEST(testCase, testName) _CREATE_TEST(testCase, testName, ::xzero::testing::Test)
+#define TEST_F(testFixture, testName) _CREATE_TEST(testFixture, testName, testFixture)
+
+#define FAIL(actual, expected)                                                \
+    ::xzero::testing::UnitTest::instance()->reportFailure(                    \
+        __FILE__, __LINE__, #expected, #actual, false);
+
+#define EXPECT_EQ(actual, expected)                                           \
+  do if ((actual) != (expected)) {                                            \
+    FAIL((actual), (expected));                                               \
+  } while (0)
+
+#define EXPECT_NE(actual, expected)                                           \
+  do if ((actual) != (expected)) {                                            \
+    FAIL((actual), (expected));                                               \
+  } while (0)
+
+#define EXPECT_TRUE(actual)                                                   \
+  do if (!static_cast<bool>(actual)) {                                        \
+    FAIL((actual), (expected));                                               \
+  } while (0)
+
+#define EXPECT_FALSE(actual)                                                  \
+  do if (static_cast<bool>(actual)) {                                         \
+    FAIL((actual), (expected));                                               \
+  } while (0)
+
+#define EXPECT_EXCEPTION(ExceptionType, program)  // TODO
+#define EXPECT_NEAR(actual, expected, diff)       // TODO
+#define EXPECT_THROW_STATUS(status, program)      // TODO
+
+// ############################################################################
+
+#define FAIL_HARD(actual, expected)                                           \
+    ::xzero::testing::UnitTest::instance()->reportFailure(                    \
+        __FILE__, __LINE__, #expected, #actual, true);
+
+#define ASSERT_EQ(actual, expected)                                           \
+  do if ((actual) != (expected)) {                                            \
+    FAIL_HARD((actual), (expected));                                          \
+  } while (0)                                                               
+
+#define ASSERT_NE(actual, expected)                                           \
+  do if ((actual) != (expected)) {                                            \
+    FAIL_HARD((actual), (expected));                                          \
+  } while (0)
+
+#define ASSERT_TRUE(actual)                                                   \
+  do if (!static_cast<bool>(actual)) {                                        \
+    FAIL_HARD((actual), (expected));                                          \
+  } while (0)
+
+#define ASSERT_FALSE(actual)                                                  \
+  do if (static_cast<bool>(actual)) {                                         \
+    FAIL_HARD((actual), (expected));                                          \
+  } while (0)
+
+#define ASSERT_EXCEPTION(ExceptionType, program)  // TODO
+#define ASSERT_NEAR(actual, expected, diff)       // TODO
+#define ASSERT_THROW_STATUS(status, program)      // TODO
+
+// ############################################################################
+
+int main(int argc, char** argv);
 
 // ############################################################################
 
@@ -30,7 +93,7 @@ int run(int argc, char** argv);
  */
 class Test {
  public:
-  virtual ~Test() {}
+  virtual ~Test();
 
   virtual void SetUp();
   virtual void TestBody();
@@ -55,21 +118,6 @@ class TestFactoryTemplate : public TestFactory {
     return std::unique_ptr<Test>(new TheTestClass());
   }
 };
-#define _TEST_FACTORY(TheTestClass) TestFactoryTemplate<TheTestClass>
-
-/**
- * Stores the result of a test run.
- */
-class TestResult {
- public:
-  TestResult() {};
-
-  bool isSuccess() const noexcept { return success_; }
-  bool isFailed() const noexcept { return !success_; }
-
- private:
-  bool success_;
-};
 
 /**
  * TestInfo describes a single test.
@@ -82,22 +130,17 @@ class TestInfo {
            bool enabled,
            std::unique_ptr<TestFactory>&& testFactory);
 
+  const std::string& testCaseName() const { return testCaseName_; }
+  const std::string& testName() const { return testName_; }
+  bool isEnabled() const { return enabled_; }
+
+  std::unique_ptr<Test> createTest() { return testFactory_->createTest(); }
+
  private:
   std::string testCaseName_;
   std::string testName_;
   bool enabled_;
   std::unique_ptr<TestFactory> testFactory_;
-  TestResult testResult_;
-};
-
-class TestCase {
- public:
-  void run();
-
- private:
-  std::string name_;
-  bool enabled_;
-  std::list<TestInfo*> tests_;
 };
 
 class UnitTest {
@@ -105,10 +148,23 @@ class UnitTest {
   UnitTest();
   ~UnitTest();
 
-  int run();
+  static UnitTest* instance();
+
+  int main(int argc, char** argv);
+
+  TestInfo* addTest(const char* testCaseName,
+                    const char* testName,
+                    std::unique_ptr<TestFactory>&& testFactory);
+
+  void reportFailure(const char* fileName,
+                     int lineNo,
+                     const char* actual,
+                     const char* expected,
+                     bool bailOut);
 
  private:
-  std::list<std::unique_ptr<TestCase>> testCases_;
+  int failCount_;
+  std::list<std::unique_ptr<TestInfo>> testCases_;
 };
 
 #define _TEST_CLASS_NAME(testCaseName, testName) \
@@ -127,18 +183,13 @@ class _TEST_CLASS_NAME(testCaseName, testName) : public ParentClass {         \
                                                                               \
 ::xzero::testing::TestInfo* const                                             \
 _TEST_CLASS_NAME(testCaseName, testName)::test_info_ =                        \
-    ::xzero::testing::_registerTestInfo(                                      \
+    ::xzero::testing::UnitTest::instance()->addTest(                          \
         #testCaseName, #testName,                                             \
         std::unique_ptr<::xzero::testing::TestFactory>(                       \
             new ::xzero::testing::TestFactoryTemplate<                        \
-                _TEST_CLASS_NAME(testCaseName, testName)>));                   \
+                _TEST_CLASS_NAME(testCaseName, testName)>));                  \
                                                                               \
 void _TEST_CLASS_NAME(testCaseName, testName)::TestBody()
 
-TestInfo* _registerTestInfo(const char* testCaseName,
-                            const char* testName,
-                            std::unique_ptr<TestFactory>&& testFactory);
-
 } // namespace testing
 } // namespace xzero
-

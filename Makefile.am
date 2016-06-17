@@ -25,6 +25,12 @@ AM_LDFLAGS = \
 	$(ZLIB_LIBS) \
 	$(BZLIB_LIBS)
 
+####### libXzeroTesting_main.a ################################################
+
+lib_LIBRARIES += libXzeroTesting_main.a
+libXzeroTesting_main_a_SOURCES = src/xzero/testing_main.cc
+libXzeroTesting_main_a_LIBADD = libxzero.a
+
 ####### libxzero.a ############################################################
 
 lib_LIBRARIES += libxzero.a
@@ -376,6 +382,8 @@ libxzero_a_SOURCES = \
 	src/xzero/reflect/property.h \
 	src/xzero/reflect/property_impl.h \
 	src/xzero/stdtypes.h \
+	src/xzero/testing.cc \
+	src/xzero/testing.h \
 	src/xzero/text/IniFile.cc \
 	src/xzero/text/IniFile.h \
 	src/xzero/thread/Future-impl.h \
@@ -545,6 +553,7 @@ test_x0_SOURCES = \
 test_x0_LDADD = \
 	$(OPENSSL_LDADD) \
 	$(PAM_LDFLAGS) \
+	libXzeroTesting_main.a \
 	libxzeroflow.a \
 	libxzero.a
 
@@ -553,6 +562,12 @@ test_x0_LDADD = \
 bin_PROGRAMS += xzero_test
 
 xzero_test_SOURCES = src/xzero/testing-test.cc
+xzero_test_LDADD = \
+	$(OPENSSL_LDADD) \
+	$(PAM_LDFLAGS) \
+	libxzeroflow.a \
+	libXzeroTesting_main.a \
+	libxzero.a
 
 ####### x0d ###################################################################
 
