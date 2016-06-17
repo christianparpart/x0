@@ -1,4 +1,8 @@
 EXTRA_DIST = autogen.sh
+bin_PROGRAMS =
+lib_LIBRARIES =
+check_PROGRAMS =
+TESTS =
 
 ####### compile opts ##########################################################
 
@@ -11,7 +15,8 @@ AM_CXXFLAGS = \
 	$(PLATFORM_CXXFLAGS) \
 	$(LIBPCRE_CFLAGS) \
 	$(OPENSSL_CFLAGS) \
-	-I$(top_srcdir)/src -I$(top_builddir)/src
+	-I$(top_builddir)/src \
+	-I$(top_srcdir)/src
 
 AM_LDFLAGS = \
 	$(PLATFORM_LDFLAGS) \
@@ -22,7 +27,7 @@ AM_LDFLAGS = \
 
 ####### libxzero.a ############################################################
 
-lib_LIBRARIES = libxzero.a
+lib_LIBRARIES += libxzero.a
 
 libxzero_a_LIBADD = $(OPENSSL_LDADD)
 
@@ -487,15 +492,8 @@ libxzeroflow_a_SOURCES = \
 
 ####### TESTS #################################################################
 
-TESTS = test_x0
-check_PROGRAMS = test_x0
-
-text_x0_CXXFLAGS = \
-	$(AM_CXXFLAGS) \
-	-I$(abs_top_srcdir)/3rdparty/gtest-1.7.0/include
-
-text_x0_LIBADD = \
-	-lgtest
+TESTS += test_x0
+check_PROGRAMS += test_x0
 
 test_x0_SOURCES = \
 	src/xzero-flow/FlowLexer-test.cc \
@@ -545,14 +543,20 @@ test_x0_SOURCES = \
 	src/xzero/thread/Queue-test.cc
 
 test_x0_LDADD = \
-	libxzero.a \
-	libxzeroflow.a \
 	$(OPENSSL_LDADD) \
-	$(PAM_LDFLAGS)
+	$(PAM_LDFLAGS) \
+	libxzeroflow.a \
+	libxzero.a
+
+####### tests #################################################################
+
+bin_PROGRAMS += xzero_test
+
+xzero_test_SOURCES = src/xzero/testing-test.cc
 
 ####### x0d ###################################################################
 
-bin_PROGRAMS = x0d
+bin_PROGRAMS += x0d
 
 x0d_CXXFLAGS = \
 	$(AM_CXXFLAGS) \

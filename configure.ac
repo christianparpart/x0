@@ -1,17 +1,22 @@
+dnl AC_PREREQ([2.69])
 AC_INIT(x0, 0.11.0-dev, trapni@gmail.com)
+dnl AC_CONFIG_AUX_DIR([build-aux])
+AC_CONFIG_SRCDIR([configure.ac])
+dnl AC_CONFIG_MACRO_DIRS([m4])
 AM_INIT_AUTOMAKE([foreign subdir-objects serial-tests])
 AM_MAINTAINER_MODE([enable])
-AC_CONFIG_SRCDIR([configure.ac])
 AM_SILENT_RULES([yes])
 
 AC_LANG_CPLUSPLUS
+AC_PROG_RANLIB
 AC_PROG_CC
 #AC_PROG_CC_FOR_BUILD
 AC_PROG_CXX
 #AC_PROG_CXX_FOR_BUILD
-AC_PROG_RANLIB
+#AC_PROC_LIBTOOL
 AM_PROG_AR
 AM_PROG_AS
+#LT_INIT
 PKG_PROG_PKG_CONFIG([0.25])
 
 uname_system=`uname -s`
@@ -60,6 +65,17 @@ AC_CHECK_FUNCS([mkostemps])
 AC_CHECK_FUNCS([backtrace])
 
 # ----------------------------------------------------------------------------
+# libxzero configuration
+
+AC_ARG_WITH([clusterdir],
+            AS_HELP_STRING([--with-clusterdir],
+                           [Path to HTTP cluster config directory]))
+AS_IF([test "x$with_clusterdir" = "x"],
+      [XZERO_CLUSTERDIR="$localstatedir/cluster"],
+      [XZERO_CLUSTERDIR="$with_clusterdir"])
+AC_SUBST([XZERO_CLUSTERDIR])
+
+# ----------------------------------------------------------------------------
 # x0d configuration
 
 AC_ARG_WITH([configfile],
@@ -83,14 +99,6 @@ AS_IF([test "x$with_pidfile" = "x"],
       [X0D_PIDFILE="$localstatedir/run/x0d.pid"],
       [X0D_PIDFILE="$with_pidfile"])
 AC_SUBST([X0D_PIDFILE])
-
-AC_ARG_WITH([clusterdir],
-            AS_HELP_STRING([--with-clusterdir],
-                           [Path to HTTP cluster config directory]))
-AS_IF([test "x$with_clusterdir" = "x"],
-      [XZERO_CLUSTERDIR="$localstatedir/cluster"],
-      [XZERO_CLUSTERDIR="$with_clusterdir"])
-AC_SUBST([XZERO_CLUSTERDIR])
 
 # ----------------------------------------------------------------------------
 # Conditional Features

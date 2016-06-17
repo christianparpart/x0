@@ -22,3 +22,9 @@ if test "$1" == "clean"; then
 fi
 
 exec autoreconf --verbose --force --install $ROOT
+
+glibtoolize --force
+aclocal
+autoheader
+automake --force-missing --add-missing
+autoconf
