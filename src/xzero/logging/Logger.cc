@@ -83,6 +83,11 @@ void Logger::log(
 }
 
 void Logger::addTarget(LogTarget* target) {
+  // avoid adding it twice
+  for (size_t i = 0, e = max_listener_index_.load(); i != e; ++i)
+    if (listeners_[i].load() == target)
+      return;
+
   auto listener_id = max_listener_index_.fetch_add(1);
   listeners_[listener_id] = target;
 }
