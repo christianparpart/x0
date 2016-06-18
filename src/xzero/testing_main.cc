@@ -7,6 +7,6 @@
 
 #include <xzero/testing.h>
 
-int main(int argc, char** argv) {
+int main(int argc, const char* argv[]) {
   return ::xzero::testing::main(argc, argv);
 }

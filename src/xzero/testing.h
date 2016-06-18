@@ -11,7 +11,7 @@
 
 #include <string>
 #include <memory>
-#include <list>
+#include <vector>
 
 namespace xzero {
 namespace testing {
@@ -128,7 +128,7 @@ namespace testing {
 
 // ############################################################################
 
-int main(int argc, char** argv);
+int main(int argc, const char* argv[]);
 
 // ############################################################################
 
@@ -194,7 +194,7 @@ class UnitTest {
 
   static UnitTest* instance();
 
-  int main(int argc, char** argv);
+  int main(int argc, const char* argv[]);
 
   TestInfo* addTest(const char* testCaseName,
                     const char* testName,
@@ -207,8 +207,27 @@ class UnitTest {
                      bool bailOut);
 
  private:
+  void randomizeTestOrder();
+  void sortTestsAlphabetically();
+  void printTestList();
+  void runAllTestsOnce();
+  void printSummary();
+  size_t enabledCount() const;
+  size_t disabledCount() const;
+
+ private:
+  std::vector<std::unique_ptr<TestInfo>> testCases_;
+  std::vector<size_t> testOrder_;
+
+  int repeats_;
+  int successCount_;
   int failCount_;
-  std::list<std::unique_ptr<TestInfo>> testCases_;
+  bool randomize_;
+  bool printProgress_;
+  bool printSummaryDetails_;
+
+  size_t currentCount_;
+  size_t totalCount_;
 };
 
 #define _TEST_CLASS_NAME(testCaseName, testName) \
