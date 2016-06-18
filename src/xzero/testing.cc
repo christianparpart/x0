@@ -10,11 +10,13 @@
 #include <xzero/cli/Flags.h>
 #include <xzero/Application.h>
 #include <xzero/AnsiColor.h>
+#include <xzero/StringUtil.h>
 #include <xzero/Buffer.h>
 #include <algorithm>
 #include <random>
 #include <chrono>
 #include <cstdlib>
+#include <fnmatch.h>
 
 namespace xzero {
 namespace testing {
@@ -66,12 +68,12 @@ static std::string colorsOk = AnsiColor::make(AnsiColor::Green);
 UnitTest::UnitTest()
   : testCases_(),
     testOrder_(),
+    filter_("*"),
     repeats_(1),
     randomize_(false),
     printProgress_(false),
     printSummaryDetails_(false),
     currentCount_(0),
-    totalCount_(0),
     successCount_(0),
     failCount_(0) {
 }
@@ -124,6 +126,7 @@ int UnitTest::main(int argc, const char* argv[]) {
   cli.defineBool("help", 'h', "Prints this help and terminates.")
      .defineString("log-level", 'L', "ENUM", "Defines the minimum log level.", "info", nullptr)
      .defineString("log-target", 0, "ENUM", "Specifies logging target. One of syslog, file, systemd, console.", "console", nullptr)
+     .defineString("filter", 'f', "GLOB", "Filters tests by given glob.", "*")
      .defineBool("list", 'l', "Prints all tests and exits.")
      .defineBool("randomize", 'R', "Randomizes test order.")
      .defineBool("no-progress", 0, "Avoids printing progress.")
@@ -137,16 +140,30 @@ int UnitTest::main(int argc, const char* argv[]) {
     return 0;
   }
 
+  filter_ = flags.getString("filter");
   repeats_ = flags.getNumber("repeat");
   randomize_ = flags.getBool("randomize");
   printProgress_ = !flags.getBool("no-progress");
-
-  totalCount_ = repeats_ * enabledCount();
 
   if (randomize_)
     randomizeTestOrder();
   else
     sortTestsAlphabetically();
+
+  { // if (filter_ != "*") {
+    std::vector<size_t> filtered;
+    for (size_t i = 0, e = testOrder_.size(); i != e; ++i) {
+      TestInfo* testInfo = testCases_[testOrder_[i]].get();
+      std::string matchName = StringUtil::format("$0.$1",
+          testInfo->testCaseName(), testInfo->testName());
+      const int flags = 0;
+
+      if (fnmatch(filter_.c_str(), matchName.c_str(), flags) == 0) {
+        filtered.push_back(testOrder_[i]);
+      }
+    }
+    testOrder_ = std::move(filtered);
+  }
 
   if (flags.getBool("list")) {
     printTestList();
@@ -189,20 +206,32 @@ void UnitTest::printSummary() {
 }
 
 size_t UnitTest::enabledCount() const {
-  return testCases_.size() - disabledCount();
+  size_t count = 0;
+
+  for (size_t i = 0, e = testOrder_.size(); i != e; ++i) {
+    if (testCases_[testOrder_[i]]->isEnabled()) {
+      count++;
+    }
+  }
+
+  return count;
 }
 
 size_t UnitTest::disabledCount() const {
   size_t count = 0;
 
-  for (const auto& info: testCases_) {
-    if (!info->isEnabled())
+  for (size_t i = 0, e = testOrder_.size(); i != e; ++i) {
+    if (!testCases_[testOrder_[i]]->isEnabled()) {
       count++;
+    }
   }
+
   return count;
 }
 
 void UnitTest::runAllTestsOnce() {
+  const int totalCount = repeats_ * enabledCount();
+
   for (size_t i = 0, e = testOrder_.size(); i != e; ++i) {
     TestInfo* testCase = testCases_[testOrder_[i]].get();
     std::unique_ptr<Test> test = testCase->createTest();
@@ -220,7 +249,7 @@ void UnitTest::runAllTestsOnce() {
     }
 
     currentCount_++;
-    int percentage = currentCount_ * 100 / totalCount_;
+    int percentage = currentCount_ * 100 / totalCount;
 
     if (printProgress_) {
       printf("%s%3d%% Running test: %s.%s%s\n",

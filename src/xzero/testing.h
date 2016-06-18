@@ -217,15 +217,17 @@ class UnitTest {
 
  private:
   std::vector<std::unique_ptr<TestInfo>> testCases_;
+
+  //! ordered list of tests as offsets into testCases_
   std::vector<size_t> testOrder_;
 
+  std::string filter_;
   int repeats_;
   bool randomize_;
   bool printProgress_;
   bool printSummaryDetails_;
 
   size_t currentCount_;
-  size_t totalCount_;
   int successCount_;
   int failCount_;
 };
