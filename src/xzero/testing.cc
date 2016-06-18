@@ -67,13 +67,13 @@ UnitTest::UnitTest()
   : testCases_(),
     testOrder_(),
     repeats_(1),
-    successCount_(0),
-    failCount_(0),
     randomize_(false),
     printProgress_(false),
     printSummaryDetails_(false),
     currentCount_(0),
-    totalCount_(0) {
+    totalCount_(0),
+    successCount_(0),
+    failCount_(0) {
 }
 
 UnitTest::~UnitTest() {
@@ -182,6 +182,10 @@ void UnitTest::printSummary() {
       failCount_,
       disabledCount(),
       colorsReset.c_str());
+
+  if (printSummaryDetails_) {
+    // TODO: print summary details
+  }
 }
 
 size_t UnitTest::enabledCount() const {

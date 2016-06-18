@@ -220,14 +220,14 @@ class UnitTest {
   std::vector<size_t> testOrder_;
 
   int repeats_;
-  int successCount_;
-  int failCount_;
   bool randomize_;
   bool printProgress_;
   bool printSummaryDetails_;
 
   size_t currentCount_;
   size_t totalCount_;
+  int successCount_;
+  int failCount_;
 };
 
 #define _TEST_CLASS_NAME(testCaseName, testName) \
