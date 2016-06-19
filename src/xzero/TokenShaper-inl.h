@@ -470,7 +470,7 @@ inline const Counter& TokenShaper<T>::Node::queued() const noexcept {
 }
 
 template <typename T>
-inline const unsigned long long TokenShaper<T>::Node::dropped() const {
+inline unsigned long long TokenShaper<T>::Node::dropped() const {
   return dropped_.load();
 }
 

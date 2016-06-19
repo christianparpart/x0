@@ -174,7 +174,7 @@ class TokenShaper<T>::Node {
   T* dequeue();
 
   const Counter& queued() const noexcept;
-  const unsigned long long dropped() const;
+  unsigned long long dropped() const;
 
   Duration queueTimeout() const;
   void setQueueTimeout(Duration value);

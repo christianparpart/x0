@@ -34,7 +34,8 @@ struct XZERO_FLOW_API MatchCaseDef {
   MatchCaseDef(uint64_t l, uint64_t p) : label(l), pc(p) {}
 };
 
-struct XZERO_FLOW_API MatchDef {
+class XZERO_FLOW_API MatchDef {
+ public:
   size_t handlerId;
   MatchClass op;  // == =^ =$ =~
   uint64_t elsePC;

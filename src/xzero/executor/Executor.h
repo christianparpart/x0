@@ -26,7 +26,7 @@ namespace xzero {
 
 class Wakeup;
 class UnixSignals;
-class UnixSignalInfo;
+struct UnixSignalInfo;
 
 /**
  * Closure Execution Service API.

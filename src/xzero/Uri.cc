@@ -73,7 +73,7 @@ const std::string& Uri::host() const {
   return host_;
 }
 
-const unsigned Uri::port() const {
+unsigned Uri::port() const {
   return port_;
 }
 

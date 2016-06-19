@@ -25,7 +25,7 @@ namespace vm {
  *
  * @see Program
  */
-struct XZERO_FLOW_API ConstantPool {
+class XZERO_FLOW_API ConstantPool {
  public:
   ConstantPool(const ConstantPool& v) = delete;
   ConstantPool& operator=(const ConstantPool& v) = delete;

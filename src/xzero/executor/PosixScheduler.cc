@@ -322,10 +322,12 @@ EventLoop::HandleRef PosixScheduler::executeOnWritable(int fd, Task task, Durati
 }
 
 void PosixScheduler::cancelFD(int fd) {
-  std::lock_guard<std::mutex> lk(lock_);
-  if (fd < watchers_.size()) {
-    Watcher* w = &watchers_[fd];
-    w->cancel();
+  if (fd >= 0) {
+    std::lock_guard<std::mutex> lk(lock_);
+    if (static_cast<size_t>(fd) < watchers_.size()) {
+      Watcher* w = &watchers_[fd];
+      w->cancel();
+    }
   }
 }
 
@@ -370,7 +372,7 @@ PosixScheduler::HandleRef PosixScheduler::setupWatcher(
 
   MonotonicTime timeout = now() + tmo;
 
-  if (fd >= watchers_.size()) {
+  if (static_cast<size_t>(fd) >= watchers_.size()) {
     // we cannot dynamically resize here without also updating the doubly linked
     // list as a realloc() can potentially change memory locations.
     RAISE(IOError, "fd number too high");

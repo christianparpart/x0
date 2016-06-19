@@ -25,7 +25,7 @@ namespace client {
 
 class HttpClusterMember;
 
-struct HttpClusterRequest : public CustomData,
+class HttpClusterRequest : public CustomData,
                             public HttpListener {
  public:
   HttpClusterRequest() = delete;
