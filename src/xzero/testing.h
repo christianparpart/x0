@@ -19,6 +19,10 @@ namespace testing {
 #define TEST_ENV_SETUP(Name)    // TODO
 #define TEST_ENV_TEARDOWN(Name) // TODO
 
+#define TEST_ENV_F(EnvName)                                                   \
+  ::xzero::testing::UnitTest::instance()->addEnvironment(                     \
+      std::unique_ptr<::xzero::testing::Environment>(EnvName));
+
 // ############################################################################
 
 #define TEST(testCase, testName) _CREATE_TEST(testCase, testName, ::xzero::testing::Test)
@@ -133,6 +137,17 @@ int main(int argc, const char* argv[]);
 // ############################################################################
 
 /**
+ * Environment hooks.
+ */
+class Environment {
+ public:
+  virtual ~Environment();
+
+  virtual void SetUp();
+  virtual void TearDown();
+};
+
+/**
  * interface to a single test.
  */
 class Test {
@@ -140,7 +155,7 @@ class Test {
   virtual ~Test();
 
   virtual void SetUp();
-  virtual void TestBody();
+  virtual void TestBody() = 0;
   virtual void TearDown();
 };
 
@@ -196,6 +211,8 @@ class UnitTest {
 
   int main(int argc, const char* argv[]);
 
+  void addEnvironment(std::unique_ptr<Environment>&& env);
+
   TestInfo* addTest(const char* testCaseName,
                     const char* testName,
                     std::unique_ptr<TestFactory>&& testFactory);
@@ -216,6 +233,7 @@ class UnitTest {
   size_t disabledCount() const;
 
  private:
+  std::vector<std::unique_ptr<Environment>> environments_;
   std::vector<std::unique_ptr<TestInfo>> testCases_;
 
   //! ordered list of tests as offsets into testCases_

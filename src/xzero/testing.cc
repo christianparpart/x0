@@ -34,13 +34,21 @@ class BailOutException {
 
 // ############################################################################
 
+Environment::~Environment() {
+}
+
+void Environment::SetUp() {
+}
+
+void Environment::TearDown() {
+}
+
+// ############################################################################
+
 Test::~Test() {
 }
 
 void Test::SetUp() {
-}
-
-void Test::TestBody() {
 }
 
 void Test::TearDown() {
@@ -66,7 +74,8 @@ static std::string colorsError = AnsiColor::make(AnsiColor::Red);
 static std::string colorsOk = AnsiColor::make(AnsiColor::Green);
 
 UnitTest::UnitTest()
-  : testCases_(),
+  : environments_(),
+    testCases_(),
     testOrder_(),
     filter_("*"),
     repeats_(1),
@@ -170,8 +179,16 @@ int UnitTest::main(int argc, const char* argv[]) {
     return 0;
   }
 
+  for (auto& env: environments_) {
+    env->SetUp();
+  }
+
   for (int i = 0; i < repeats_; i++) {
     runAllTestsOnce();
+  }
+
+  for (auto& env: environments_) {
+    env->TearDown();
   }
 
   printSummary();
@@ -314,6 +331,10 @@ void UnitTest::reportFailure(const char* fileName,
   if (bailOut) {
     throw BailOutException();
   }
+}
+
+void UnitTest::addEnvironment(std::unique_ptr<Environment>&& env) {
+  environments_.emplace_back(std::move(env));
 }
 
 TestInfo* UnitTest::addTest(const char* testCaseName,
