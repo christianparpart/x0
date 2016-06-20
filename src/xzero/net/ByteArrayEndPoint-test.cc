@@ -50,9 +50,9 @@ TEST(ByteArrayEndPoint, DISABLED_close) {
 
   ep.setInput("foo");
 
-  ASSERT_EQ(true, ep.isOpen());
+  ASSERT_TRUE(ep.isOpen());
   ep.close();
-  ASSERT_EQ(false, ep.isOpen());
+  ASSERT_FALSE(ep.isOpen());
 
   ssize_t rv = ep.fill(&output);
   ASSERT_EQ(0, rv);

@@ -6,6 +6,7 @@
 // the License at: http://opensource.org/licenses/MIT
 
 #include <xzero-flow/FlowToken.h>
+#include <xzero/StringUtil.h>
 #include <cstdio>
 #include <cstdlib>
 #include <assert.h>
@@ -298,4 +299,10 @@ const char *FlowToken::c_str() const throw() {
 }
 
 }  // namespace flow
+
+template <>
+std::string StringUtil::toString(flow::FlowToken value) {
+  return value.c_str();
+}
+
 }  // namespace xzero

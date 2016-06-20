@@ -38,7 +38,7 @@ std::shared_ptr<Stream> createNopStreamExclusive(const std::shared_ptr<Stream>& 
 }
 // }}}
 
-TEST(http_http2_Stream, dependencies) {
+TEST(DISABLED_http_http2_Stream, dependencies) {
   // RFC 7540, 5.3.1, Figure 3
   auto A = createNopStream(nullptr);
   ASSERT_EQ(nullptr, A->parentStream());
@@ -57,7 +57,7 @@ TEST(http_http2_Stream, dependencies) {
   ASSERT_EQ(B.get(), C->nextSiblingStream());
 }
 
-TEST(http_http2_Stream, dependenciesExclusive) {
+TEST(DISABLED_http_http2_Stream, dependenciesExclusive) {
   // RFC 7540, 5.3.1, Figure 4
   auto A = createNopStream(nullptr);
   auto B = createNopStream(A);
@@ -70,7 +70,7 @@ TEST(http_http2_Stream, dependenciesExclusive) {
   ASSERT_EQ(D.get(), C->parentStream());
 }
 
-TEST(http_http2_Stream, repriorization_exclusive) {
+TEST(DISABLED_http_http2_Stream, repriorization_exclusive) {
   // RFC 7540, 5.3.3, Figure 5
   /*
    *   x                x                x
@@ -106,7 +106,7 @@ TEST(http_http2_Stream, repriorization_exclusive) {
   ASSERT_EQ(C.get(), E->parentStream());
 }
 
-TEST(http_http2_Stream, repriorization_inclusive) {
+TEST(DISABLED_http_http2_Stream, repriorization_inclusive) {
   // RFC 7540, 5.3.3, Figure 5
   /*
    *   x                x                x

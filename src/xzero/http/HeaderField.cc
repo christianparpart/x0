@@ -40,4 +40,10 @@ std::string inspect(const HeaderField& field) {
 }
 
 } // namespace http
+
+template <>
+std::string StringUtil::toString(http::HeaderField field) {
+  return StringUtil::format("{\"$0\": \"$1\"}", field.name(), field.value());
+}
+
 } // namespace xzero

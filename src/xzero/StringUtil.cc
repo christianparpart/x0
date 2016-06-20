@@ -89,6 +89,23 @@ std::string StringUtil::toString(const void* value) {
 }
 
 template <>
+std::string StringUtil::toString(float value) {
+  char buf[128];
+  *buf = 0;
+
+  auto len = snprintf(buf, sizeof(buf), "%f", value);
+  if (len < 0) {
+    RAISE(RuntimeError, "snprintf() failed");
+  }
+
+  while (len > 2 && buf[len - 1] == '0' && buf[len - 2] != '.') {
+    buf[len--] = 0;
+  }
+
+  return String(buf, len);
+}
+
+template <>
 std::string StringUtil::toString(double value) {
   char buf[128]; // FIXPAUL
   *buf = 0;

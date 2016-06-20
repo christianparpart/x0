@@ -197,4 +197,12 @@ void Stream::send(FileView&& chunk, CompletionHandler onComplete) {
 
 } // namespace http2
 } // namespace http
+
+template <>
+std::string StringUtil::toString(http::http2::Stream* value) {
+  char buf[64];
+  int n = snprintf(buf, sizeof(buf), "@%p", value);
+  return std::string(buf, 0, n);
+}
+
 } // namespace xzero

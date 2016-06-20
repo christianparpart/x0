@@ -7,6 +7,7 @@
 
 #include <xzero/net/Cidr.h>
 #include <xzero/net/IPAddress.h>
+#include <xzero/StringUtil.h>
 
 namespace xzero {
 
@@ -71,5 +72,10 @@ bool operator==(const Cidr& a, const Cidr& b) {
 }
 
 bool operator!=(const Cidr& a, const Cidr& b) { return !(a == b); }
+
+template <>
+std::string StringUtil::toString(Cidr value) {
+  return value.str();
+}
 
 }  // namespace xzero

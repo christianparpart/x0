@@ -206,4 +206,19 @@ template<> std::string StringUtil::toString(const Buffer& value) {
   return value.str();
 }
 
+template <>
+std::string StringUtil::toString(const FixedBuffer& value) {
+  return value.str();
+}
+
+template <>
+std::string StringUtil::toString(FixedBuffer value) {
+  return value.str();
+}
+
+template <>
+std::string StringUtil::toString(Buffer value) {
+  return value.str();
+}
+
 }  // namespace xzero
