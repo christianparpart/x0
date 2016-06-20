@@ -70,7 +70,7 @@ TestInfo::TestInfo(const std::string& testCaseName,
 
 static std::string colorsReset = AnsiColor::make(AnsiColor::Reset);
 static std::string colorsTestCaseHeader = AnsiColor::make(AnsiColor::Cyan);
-static std::string colorsError = AnsiColor::make(AnsiColor::Red);
+static std::string colorsError = AnsiColor::make(AnsiColor::Red | AnsiColor::Bold);
 static std::string colorsOk = AnsiColor::make(AnsiColor::Green);
 
 UnitTest::UnitTest()
@@ -81,9 +81,8 @@ UnitTest::UnitTest()
     repeats_(1),
     randomize_(false),
     printProgress_(false),
-    printSummaryDetails_(false),
+    printSummaryDetails_(true),
     currentCount_(0),
-    successCount_(0),
     failCount_(0) {
 }
 
@@ -212,13 +211,21 @@ void UnitTest::printSummary() {
                 : colorsOk.c_str(),
       repeats_,
       testCases_.size(),
-      successCount_,
+      repeats_ * testCases_.size() - failCount_,
       failCount_,
       disabledCount(),
       colorsReset.c_str());
 
   if (printSummaryDetails_) {
-    // TODO: print summary details
+    printf("Summary:\n");
+    for (size_t i = 0, e = failures_.size(); i != e; ++i) {
+      const auto& failure = failures_[i];
+      printf(" %4zu. %s%s%s\n",
+          i + 1,
+          colorsError.c_str(),
+          failure.c_str(),
+          colorsReset.c_str());
+    }
   }
 }
 
@@ -284,6 +291,7 @@ void UnitTest::runAllTestsOnce() {
     } catch (const BailOutException&) {
       // SHOULD NOT HAPPEND: complain about it
     } catch (...) {
+      // TODO: report failure upon set-up phase, hence skipping actual test
       failed++;
     }
 
@@ -293,42 +301,38 @@ void UnitTest::runAllTestsOnce() {
       } catch (const BailOutException&) {
         // no-op
       } catch (...) {
-        failed++;
+        // TODO: reportFailure: unexpected exception in test body
       }
-    }
 
-    try {
-      test->TearDown();
-    } catch (const BailOutException&) {
-      // SHOULD NOT HAPPEND: complain about it
-    } catch (...) {
-      failed++;
-    }
-
-    if (failed != 0) {
-      failCount_++;
-    } else {
-      successCount_++;
+      try {
+        test->TearDown();
+      } catch (const BailOutException&) {
+        // SHOULD NOT HAPPEND: complain about it
+      } catch (...) {
+        // TODO: report failure in tear-down
+      }
     }
   }
 }
 
 void UnitTest::reportFailure(const char* fileName,
                              int lineNo,
-                             const char* actual,
                              const char* expected,
-                             bool bailOut) {
-  printf("%sExpected %s but got %s in %s:%d%s\n",
+                             const std::string& actual,
+                             bool fatal) {
+  std::string message =
+    StringUtil::format("Expected $0 but got $1 in $2:$3",
+        expected, actual, fileName, lineNo);
+
+  printf("%s%s%s\n",
       colorsError.c_str(),
-      expected,
-      actual,
-      fileName,
-      lineNo,
+      message.c_str(),
       colorsReset.c_str());
 
   failCount_++;
+  failures_.emplace_back(message);
 
-  if (bailOut) {
+  if (fatal) {
     throw BailOutException();
   }
 }
