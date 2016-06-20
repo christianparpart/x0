@@ -35,7 +35,7 @@ namespace testing {
   } while (0)
 
 #define EXPECT_NE(expected, actual)                                           \
-  do if ((actual) != (expected)) {                                            \
+  do if ((actual) == (expected)) {                                            \
     FAIL((expected), (actual));                                               \
   } while (0)
 
@@ -83,7 +83,7 @@ namespace testing {
   } while (0)                                                               
 
 #define ASSERT_NE(expected, actual)                                           \
-  do if ((actual) != (expected)) {                                            \
+  do if ((actual) == (expected)) {                                            \
     FAIL_HARD((expected), (actual));                                          \
   } while (0)
 
@@ -270,7 +270,7 @@ class UnitTest {
   std::vector<std::unique_ptr<TestInfo>> testCases_;
 
   //! ordered list of tests as offsets into testCases_
-  std::vector<size_t> testOrder_;
+  std::vector<size_t> activeTests_;
 
   std::string filter_;
   int repeats_;
@@ -278,8 +278,8 @@ class UnitTest {
   bool printProgress_;
   bool printSummaryDetails_;
 
+  TestInfo* currentTestCase_;
   size_t currentCount_;
-  int successCount_;
   int failCount_;
   std::vector<std::string> failures_;
 };
