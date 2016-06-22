@@ -31,19 +31,19 @@ std::string BufferUtil::hexPrint(
     bool reverse /* = fase */) {
   static const char hexTable[] = "0123456789abcdef";
   auto data = (const unsigned char*) buf->data();
-  auto size = buf->size();
+  int size = static_cast<int>(buf->size());
   std::string str;
 
-  if (reverse) {
-    for (int i = size - 1; i >= 0; --i) {
-      if (sep && i < size - 1) { str += " "; }
+  if (!reverse) {
+    for (int i = 0; i < size; ++i) {
+      if (sep && i > 0) { str += " "; }
       auto byte = data[i];
       str += hexTable[(byte & 0xf0) >> 4];
       str += hexTable[byte & 0x0f];
     }
   } else {
-    for (int i = 0; i < size; ++i) {
-      if (sep && i > 0) { str += " "; }
+    for (int i = size - 1; i >= 0; --i) {
+      if (sep && i < size - 1) { str += " "; }
       auto byte = data[i];
       str += hexTable[(byte & 0xf0) >> 4];
       str += hexTable[byte & 0x0f];
@@ -52,5 +52,5 @@ std::string BufferUtil::hexPrint(
 
   return str;
 }
-} // namespace xzero
 
+} // namespace xzero
