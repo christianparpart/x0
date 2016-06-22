@@ -84,6 +84,7 @@ UnitTest::UnitTest()
     printSummaryDetails_(true),
     currentTestCase_(nullptr),
     currentCount_(0),
+    successCount_(0),
     failCount_(0) {
 }
 
@@ -183,6 +184,10 @@ int UnitTest::main(int argc, const char* argv[]) {
     env->SetUp();
   }
 
+  for (auto& init: initializers_) {
+    init->invoke();
+  }
+
   for (int i = 0; i < repeats_; i++) {
     runAllTestsOnce();
   }
@@ -195,6 +200,7 @@ int UnitTest::main(int argc, const char* argv[]) {
 
   return failCount_ == 0 ? EXIT_SUCCESS : EXIT_FAILURE;
 }
+
 void UnitTest::printTestList() {
   for (size_t i = 0, e = activeTests_.size(); i != e; ++i) {
     TestInfo* testCase = testCases_[activeTests_[i]].get();
@@ -212,17 +218,19 @@ void UnitTest::printSummary() {
                 : colorsOk.c_str(),
       repeats_,
       activeTests_.size(),
-      repeats_ * activeTests_.size() - failCount_,
+      successCount_,
       failCount_,
       disabledCount(),
       colorsReset.c_str());
 
-  if (printSummaryDetails_) {
-    printf("Summary:\n");
+  if (printSummaryDetails_ && !failures_.empty()) {
+    printf("================================\n");
+    printf(" Summary:\n");
+    printf("================================\n");
+
     for (size_t i = 0, e = failures_.size(); i != e; ++i) {
       const auto& failure = failures_[i];
-      printf(" %4zu. %s%s%s\n",
-          i + 1,
+      printf("%s%s%s\n",
           colorsError.c_str(),
           failure.c_str(),
           colorsReset.c_str());
@@ -283,6 +291,7 @@ void UnitTest::runAllTestsOnce() {
       test->SetUp();
     } catch (const BailOutException&) {
       // SHOULD NOT HAPPEND: complain about it
+      failed++;
     } catch (...) {
       // TODO: report failure upon set-up phase, hence skipping actual test
       failed++;
@@ -293,40 +302,75 @@ void UnitTest::runAllTestsOnce() {
         test->TestBody();
       } catch (const BailOutException&) {
         // no-op
+        failed++;
       } catch (...) {
-        // TODO: reportFailure: unexpected exception in test body
+        reportMessage("Unhandled exception caught in test.", false);
+        failed++;
       }
 
       try {
         test->TearDown();
       } catch (const BailOutException&) {
         // SHOULD NOT HAPPEND: complain about it
+        failed++;
       } catch (...) {
         // TODO: report failure in tear-down
+        failed++;
+      }
+
+      if (!failed) {
+        successCount_++;
       }
     }
   }
 }
 
-void UnitTest::reportFailure(const char* fileName,
-                             int lineNo,
-                             const char* expected,
-                             const std::string& actual,
-                             bool fatal) {
-  std::string message =
-    StringUtil::format("Expected $0 but got $1 in $2:$3",
-        expected, actual, fileName, lineNo);
+void UnitTest::reportBinary(const char* fileName,
+                            int lineNo,
+                            bool fatal,
+                            const char* expected,
+                            const char* actual,
+                            const std::string& actualEvaluated,
+                            const char* op) {
+  std::string message = StringUtil::format(
+      "$0:$1: Failure\n"
+      "  Value of: $2\n"
+      "  Expected: $3 $4\n"
+      "    Actual: $5\n",
+      fileName, lineNo,
+      actual,
+      expected, op,
+      actualEvaluated);
 
+  reportMessage(message, fatal);
+}
+
+void UnitTest::reportEH(const char* fileName,
+                        int lineNo,
+                        bool fatal,
+                        const char* program,
+                        const char* expected,
+                        const char* actual) {
+  std::string message = StringUtil::format(
+      "$0:$1: $2\n"
+      "  Value of: $3\n"
+      "  Expected: $4\n"
+      "    Actual: $5\n",
+      fileName, lineNo,
+      actual ? "Unexpected exception caught"
+             : "No exception caught",
+      program,
+      expected,
+      actual);
+
+  reportMessage(message, fatal);
+}
+
+void UnitTest::reportMessage(const std::string& message, bool fatal) {
   printf("%s%s%s\n",
       colorsError.c_str(),
       message.c_str(),
       colorsReset.c_str());
-
-  message = StringUtil::format(
-      "$0.$1: $2",
-      currentTestCase_->testCaseName(),
-      currentTestCase_->testName(),
-      message);
 
   failCount_++;
   failures_.emplace_back(message);
@@ -338,6 +382,11 @@ void UnitTest::reportFailure(const char* fileName,
 
 void UnitTest::addEnvironment(std::unique_ptr<Environment>&& env) {
   environments_.emplace_back(std::move(env));
+}
+
+Callback* UnitTest::addInitializer(std::unique_ptr<Callback>&& cb) {
+  initializers_.emplace_back(std::move(cb));
+  return initializers_.back().get();
 }
 
 TestInfo* UnitTest::addTest(const char* testCaseName,

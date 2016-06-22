@@ -17,7 +17,24 @@
 namespace xzero {
 namespace testing {
 
-#define TEST_ENV_SETUP(Name)    // TODO
+#define TEST_ENV_SETUP(Name)                                                  \
+  class _CALLBACK_NAME(Name) : public ::xzero::testing::Callback {            \
+   public:                                                                    \
+    void invoke() override;                                                   \
+   private:                                                                   \
+    static ::xzero::testing::Callback* const ref_ XZERO_UNUSED;               \
+  };                                                                          \
+                                                                              \
+  ::xzero::testing::Callback* const                                           \
+  _CALLBACK_NAME(Name)::ref_ =                                                \
+      ::xzero::testing::UnitTest::instance()->addInitializer(                 \
+          std::unique_ptr<::xzero::testing::Callback>(                        \
+                new _CALLBACK_NAME(Name)));                                   \
+                                                                              \
+  void _CALLBACK_NAME(Name)::invoke()
+
+#define _CALLBACK_NAME(Name) Callback_##Name
+
 #define TEST_ENV_TEARDOWN(Name) // TODO
 
 #define TEST_ENV_F(EnvName)                                                   \
@@ -29,115 +46,134 @@ namespace testing {
 #define TEST(testCase, testName) _CREATE_TEST(testCase, testName, ::xzero::testing::Test)
 #define TEST_F(testFixture, testName) _CREATE_TEST(testFixture, testName, testFixture)
 
-#define EXPECT_EQ(expected, actual)                                           \
-  do if ((actual) != (expected)) {                                            \
-    FAIL((expected), (actual));                                               \
-  } while (0)
+#define EXPECT_EQ(expected, actual) \
+  _EXPECT_BINARY(__FILE__, __LINE__, false, expected, actual, ==)
 
-#define EXPECT_NE(expected, actual)                                           \
-  do if ((actual) == (expected)) {                                            \
-    FAIL((expected), (actual));                                               \
-  } while (0)
+#define EXPECT_NE(expected, actual) \
+  _EXPECT_BINARY(__FILE__, __LINE__, false, expected, actual, !=)
 
-#define EXPECT_GE(expected, actual)                                           \
-  do if (!((actual) >= (expected))) {                                         \
-    FAIL((expected), (actual));                                               \
-  } while (0)
+#define EXPECT_GE(expected, actual) \
+  _EXPECT_BINARY(__FILE__, __LINE__, false, expected, actual, >=)
 
-#define EXPECT_LE(expected, actual)                                           \
-  do if (!((actual) <= (expected))) {                                         \
-    FAIL((expected), (actual));                                               \
-  } while (0)
+#define EXPECT_LE(expected, actual) \
+  _EXPECT_BINARY(__FILE__, __LINE__, false, expected, actual, <=)
 
-#define EXPECT_GT(expected, actual)                                           \
-  do if (!((actual) > (expected))) {                                          \
-    FAIL((expected), (actual));                                               \
-  } while (0)
+#define EXPECT_GT(expected, actual) \
+  _EXPECT_BINARY(__FILE__, __LINE__, false, expected, actual, >)
 
-#define EXPECT_LT(expected, actual)                                           \
-  do if (!((actual) < (expected))) {                                          \
-    FAIL((expected), (actual));                                               \
-  } while (0)
+#define EXPECT_LT(expected, actual) \
+  _EXPECT_BINARY(__FILE__, __LINE__, false, expected, actual, <)
 
-#define EXPECT_TRUE(actual)                                                   \
-  do if (!static_cast<bool>(actual)) {                                        \
-    FAIL(true, (actual));                                                     \
-  } while (0)
+#define EXPECT_TRUE(actual) \
+  _EXPECT_BOOLEAN(__FILE__, __LINE__, false, true, actual)
 
-#define EXPECT_FALSE(actual)                                                  \
-  do if (static_cast<bool>(actual)) {                                         \
-    FAIL(false, (actual));                                                    \
-  } while (0)
+#define EXPECT_FALSE(actual) \
+  _EXPECT_BOOLEAN(__FILE__, __LINE__, false, false, actual)
 
 #define EXPECT_NEAR(expected, actual, diff)       // TODO
-#define EXPECT_EXCEPTION(ExceptionType, program)  // TODO
-#define EXPECT_THROW(ExceptionType, program)      // TODO
-#define EXPECT_ANY_THROW(program)                 // TODO
 #define EXPECT_THROW_STATUS(status, program)      // TODO
 
+#define EXPECT_THROW(program, ExceptionType)                                  \
+  do {                                                                        \
+    try {                                                                     \
+      program;                                                                \
+      ::xzero::testing::UnitTest::instance()->reportEH(                       \
+          __FILE__, __LINE__, false, #program, #ExceptionType,                \
+          "<no exception thrown>");                                           \
+    } catch (const ExceptionType&) {                                          \
+      break; \
+    } catch (...) { \
+      ::xzero::testing::UnitTest::instance()->reportEH(                       \
+          __FILE__, __LINE__, false, #program, #ExceptionType, "<foreign>");  \
+    }                                                                         \
+  } while (0)
+
+#define EXPECT_ANY_THROW(program)                                             \
+  do {                                                                        \
+    try {                                                                     \
+      program;                                                                \
+      ::xzero::testing::UnitTest::instance()->reportEH(                       \
+          __FILE__, __LINE__, false, #program, "<any exception>",             \
+          "<no exception thrown>");                                           \
+    } catch (...) {                                                           \
+    }                                                                         \
+  } while (0)
+
 // ############################################################################
 
-#define ASSERT_EQ(expected, actual)                                           \
-  do if ((actual) != (expected)) {                                            \
-    FAIL_HARD((expected), (actual));                                          \
-  } while (0)                                                               
+#define ASSERT_EQ(expected, actual) \
+  _EXPECT_BINARY(__FILE__, __LINE__, true, expected, actual, ==)
 
-#define ASSERT_NE(expected, actual)                                           \
-  do if ((actual) == (expected)) {                                            \
-    FAIL_HARD((expected), (actual));                                          \
-  } while (0)
+#define ASSERT_NE(expected, actual) \
+  _EXPECT_BINARY(__FILE__, __LINE__, true, expected, actual, !=)
 
-#define ASSERT_GE(expected, actual)                                           \
-  do if (!((actual) >= (expected))) {                                         \
-    FAIL_HARD((expected), (actual));                                          \
-  } while (0)
+#define ASSERT_GE(expected, actual) \
+  _EXPECT_BINARY(__FILE__, __LINE__, true, expected, actual, >=)
 
-#define ASSERT_LE(expected, actual)                                           \
-  do if (!((actual) <= (expected))) {                                         \
-    FAIL_HARD((expected), (actual));                                          \
-  } while (0)
+#define ASSERT_LE(expected, actual) \
+  _EXPECT_BINARY(__FILE__, __LINE__, true, expected, actual, <=)
 
-#define ASSERT_GT(expected, actual)                                           \
-  do if (!((actual) > (expected))) {                                          \
-    FAIL_HARD((expected), (actual));                                          \
-  } while (0)
+#define ASSERT_GT(expected, actual) \
+  _EXPECT_BINARY(__FILE__, __LINE__, true, expected, actual, >)
 
-#define ASSERT_LT(expected, actual)                                           \
-  do if (!((actual) < (expected))) {                                          \
-    FAIL_HARD((expected), (actual));                                          \
-  } while (0)
+#define ASSERT_LT(expected, actual) \
+  _EXPECT_BINARY(__FILE__, __LINE__, true, expected, actual, <)
 
-#define ASSERT_TRUE(actual)                                                   \
-  do if (!static_cast<bool>(actual)) {                                        \
-    FAIL_HARD(true, (actual));                                                \
-  } while (0)
+#define ASSERT_TRUE(actual) \
+  _EXPECT_BOOLEAN(__FILE__, __LINE__, true, true, actual)
 
-#define ASSERT_FALSE(actual)                                                  \
-  do if (static_cast<bool>(actual)) {                                         \
-    FAIL_HARD(false, (actual));                                               \
-  } while (0)
+#define ASSERT_FALSE(actual) \
+  _EXPECT_BOOLEAN(__FILE__, __LINE__, true, false, actual)
 
 #define ASSERT_NEAR(expected, actual, diff)       // TODO
-#define ASSERT_EXCEPTION(ExceptionType, program)  // TODO
-#define ASSERT_ANY_THROW(program)                 // TODO
-#define ASSERT_THROW(ExceptionType, program)      // TODO
 #define ASSERT_THROW_STATUS(status, program)      // TODO
+
+#define ASSERT_THROW(program, ExceptionType)                                  \
+  do {                                                                        \
+    try {                                                                     \
+      program;                                                                \
+      ::xzero::testing::UnitTest::instance()->reportEH(                       \
+          __FILE__, __LINE__, true, #program, #ExceptionType,                 \
+          "<no exception thrown>");                                           \
+    } catch (const ExceptionType&) {                                          \
+      break; \
+    } catch (...) { \
+      ::xzero::testing::UnitTest::instance()->reportEH(                       \
+          __FILE__, __LINE__, true, #program, #ExceptionType, "<foreign>");   \
+    }                                                                         \
+  } while (0)
+
+#define ASSERT_ANY_THROW(program)                                             \
+  do {                                                                        \
+    try {                                                                     \
+      program;                                                                \
+      ::xzero::testing::UnitTest::instance()->reportEH(                       \
+          __FILE__, __LINE__, true, #program, "<any exception>",              \
+          "<no exception thrown>");                                           \
+    } catch (...) {                                                           \
+    }                                                                         \
+  } while (0)
 
 // ############################################################################
 
-#define FAIL(expected, actual)                                                \
-    ::xzero::testing::UnitTest::instance()->reportFailure(                    \
-        __FILE__, __LINE__,                                                   \
-        #expected,                                                            \
-        ::xzero::StringUtil::toString(actual),                                \
-        false)
+#define _EXPECT_BOOLEAN(fileName, lineNo, fatal, expected, actual)            \
+  do {                                                                        \
+    bool actualEvaluated = actual;                                            \
+    bool failed = (expected && !actualEvaluated)                              \
+               || (!expected && actualEvaluated);                             \
+    if (failed) {                                                             \
+      ::xzero::testing::UnitTest::instance()->reportBinary(                   \
+          __FILE__, __LINE__, fatal, #expected, #actual,                      \
+          ::xzero::StringUtil::toString(actual), "");                         \
+    } \
+  } while (0)
 
-#define FAIL_HARD(expected, actual)                                           \
-    ::xzero::testing::UnitTest::instance()->reportFailure(                    \
-        __FILE__, __LINE__,                                                   \
-        #expected,                                                            \
-        ::xzero::StringUtil::toString(actual),                                \
-        true)
+#define _EXPECT_BINARY(fileName, lineNo, fatal, expected, actual, op)         \
+  do if (!(expected op actual)) {                                             \
+    ::xzero::testing::UnitTest::instance()->reportBinary(                     \
+        __FILE__, __LINE__, fatal, #expected, #actual,                        \
+        ::xzero::StringUtil::toString(actual), #op);                          \
+  } while (0)
 
 #define _TEST_CLASS_NAME(testCaseName, testName) \
   Test_##testCaseName##testName
@@ -168,6 +204,13 @@ void _TEST_CLASS_NAME(testCaseName, testName)::TestBody()
 int main(int argc, const char* argv[]);
 
 // ############################################################################
+
+class Callback {
+ public:
+  virtual ~Callback() {}
+
+  virtual void invoke() = 0;
+};
 
 /**
  * Environment hooks.
@@ -246,15 +289,28 @@ class UnitTest {
 
   void addEnvironment(std::unique_ptr<Environment>&& env);
 
+  Callback* addInitializer(std::unique_ptr<Callback>&& cb);
+
   TestInfo* addTest(const char* testCaseName,
                     const char* testName,
                     std::unique_ptr<TestFactory>&& testFactory);
 
-  void reportFailure(const char* fileName,
-                     int lineNo,
-                     const char* expected,
-                     const std::string& actual,
-                     bool fatal);
+  void reportBinary(const char* fileName,
+                    int lineNo,
+                    bool fatal,
+                    const char* expected,
+                    const char* actual,
+                    const std::string& actualEvaluated,
+                    const char* op);
+
+  void reportEH(const char* fileName,
+                int lineNo,
+                bool fatal,
+                const char* program,
+                const char* expected,
+                const char* actual);
+
+  void reportMessage(const std::string& message, bool fatal);
 
  private:
   void randomizeTestOrder();
@@ -267,6 +323,7 @@ class UnitTest {
 
  private:
   std::vector<std::unique_ptr<Environment>> environments_;
+  std::vector<std::unique_ptr<Callback>> initializers_;
   std::vector<std::unique_ptr<TestInfo>> testCases_;
 
   //! ordered list of tests as offsets into testCases_
@@ -280,6 +337,7 @@ class UnitTest {
 
   TestInfo* currentTestCase_;
   size_t currentCount_;
+  size_t successCount_;
   int failCount_;
   std::vector<std::string> failures_;
 };
