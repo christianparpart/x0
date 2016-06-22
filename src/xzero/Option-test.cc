@@ -93,8 +93,8 @@ TEST(Option, getSome) {
 TEST(Option, getNone) {
   Option<int> x = None();
 
-  ASSERT_ANY_THROW(x.get());
-  ASSERT_ANY_THROW(*x);
+  EXPECT_ANY_THROW(x.get());
+  EXPECT_ANY_THROW(*x);
 }
 
 TEST(Option, clear) {
