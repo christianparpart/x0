@@ -34,7 +34,7 @@ struct SslContext {
 };
 
 struct Config {
-  int workers = 1;
+  size_t workers = 1;
   std::vector<int> workerAffinities;
 
   std::list<ListenerConfig> listeners;

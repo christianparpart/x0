@@ -26,7 +26,7 @@ class CoreModule : public XzeroModule {
   explicit CoreModule(XzeroDaemon* d);
   ~CoreModule();
 
-  static int cpuCount();
+  static size_t cpuCount();
 
  private:
   // helper

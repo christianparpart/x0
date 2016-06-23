@@ -314,7 +314,7 @@ void XzeroDaemon::stopThreads() {
 
 void XzeroDaemon::startThreads() {
   // resume all worker threads
-  for (int i = 1; i < config_->workers; ++i) {
+  for (size_t i = 1; i < config_->workers; ++i) {
     threadedExecutor_.execute(std::bind(&XzeroDaemon::runOneThread, this, i));
     eventLoops_[i]->ref(); // we ref here to keep the loop running
   }
@@ -457,7 +457,7 @@ void XzeroDaemon::run() {
   server_->stop();
 }
 
-void XzeroDaemon::runOneThread(int index) {
+void XzeroDaemon::runOneThread(size_t index) {
   EventLoop* eventLoop = eventLoops_[index].get();
 
   if (index < config_->workerAffinities.size())

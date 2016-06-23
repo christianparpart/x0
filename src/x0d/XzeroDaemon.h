@@ -173,7 +173,7 @@ class XzeroDaemon : public xzero::flow::vm::Runtime {
                       xzero::flow::IRGenerator* irgen);
   void postConfig();
   std::unique_ptr<xzero::EventLoop> createEventLoop();
-  void runOneThread(int index);
+  void runOneThread(size_t index);
   void setThreadAffinity(int cpu, int workerId);
 
  private:
@@ -186,7 +186,7 @@ class XzeroDaemon : public xzero::flow::vm::Runtime {
   xzero::MimeTypes mimetypes_;
   xzero::LocalFileRepository vfs_;
 
-  off_t lastWorker_;                          //!< offset to the last elected worker
+  size_t lastWorker_;                          //!< offset to the last elected worker
   xzero::ThreadedExecutor threadedExecutor_;  //!< non-main worker executor
   std::vector<std::unique_ptr<xzero::EventLoop>> eventLoops_; //!< one for each thread
   std::list<std::unique_ptr<XzeroModule>> modules_; //!< list of loaded modules

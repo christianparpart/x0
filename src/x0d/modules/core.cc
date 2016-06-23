@@ -98,7 +98,7 @@ unsigned long long CoreModule::setrlimit(
   return value;
 }
 
-int CoreModule::cpuCount() {
+size_t CoreModule::cpuCount() {
   static int numCPU_ = -1;
 
   if (numCPU_ < 0) {
@@ -109,7 +109,7 @@ int CoreModule::cpuCount() {
     }
   }
 
-  return numCPU_;
+  return static_cast<size_t>(numCPU_);
 }
 
 CoreModule::CoreModule(XzeroDaemon* d)
@@ -477,14 +477,19 @@ void CoreModule::ssl_context(Params& args) {
 }
 
 void CoreModule::workers(Params& args) {
-  int workerCount = args.getInt(1);
+  int y = args.getInt(1);
+  if (y < 0) {
+    return;
+  }
+  size_t workerCount = static_cast<size_t>(y);
+
   daemon().config_->workers = workerCount;
   daemon().config_->workerAffinities.clear();
 
   if (workerCount == cpuCount()) {
     logDebug("x0d", "Worker count equals CPU count. Defining linear processor affinity.");
     daemon().config_->workerAffinities.resize(workerCount);
-    for (int i = 0; i < workerCount; ++i) {
+    for (size_t i = 0; i < workerCount; ++i) {
       daemon().config_->workerAffinities[i] = i;
     }
   }
