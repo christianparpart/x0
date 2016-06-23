@@ -1,6 +1,13 @@
+# This file is part of the "x0" project, http://github.com/christianparpart/x0>
+#   (c) 2009-2016 Christian Parpart <trapni@gmail.com>
+#
+# Licensed under the MIT License (the "License"); you may not use this
+# file except in compliance with the License. You may obtain a copy of
+# the License at: http://opensource.org/licenses/MIT
+
 EXTRA_DIST = autogen.sh
 bin_PROGRAMS =
-lib_LIBRARIES =
+noinst_LIBRARIES =
 check_PROGRAMS =
 TESTS =
 
@@ -30,15 +37,15 @@ AM_LDFLAGS = \
 
 ####### libXzeroTesting_main.a ################################################
 
-lib_LIBRARIES += libXzeroTesting_main.a
+noinst_LIBRARIES += libXzeroTesting_main.a
 libXzeroTesting_main_a_SOURCES = src/xzero/testing_main.cc
-libXzeroTesting_main_a_LIBADD = libxzero.a
+libXzeroTesting_main_a_LIBADD = libXzero.a
 
-####### libxzero.a ############################################################
+####### libXzero.a ############################################################
 
-lib_LIBRARIES += libxzero.a
+noinst_LIBRARIES += libXzero.a
 
-libxzero_a_SOURCES = \
+libXzero_a_SOURCES = \
 	src/xzero/AnsiColor.cc \
 	src/xzero/AnsiColor.h \
 	src/xzero/Api.h \
@@ -407,7 +414,7 @@ libxzero_a_SOURCES = \
 
 # TODO: finalize
 # if PLATFORM_LINUX
-# libxzero_a_SOURCES += \
+# libXzero_a_SOURCES += \
 # 	src/xzero/executor/LinuxScheduler.cc \
 # 	src/xzero/executor/LinuxScheduler.h
 # endif
@@ -416,13 +423,13 @@ if PLATFORM_DARWIN
 # XXX some stuff here, if any
 endif
 
-####### libxzeroflow.a ########################################################
+####### libXzeroFlow.a ########################################################
 
 # TODO option(ENABLE_FLOW_DIRECT_THREADED_VM "Flow VM using direct threaded mode [default: off]" OFF)
 
-lib_LIBRARIES += libxzeroflow.a
+noinst_LIBRARIES += libXzeroFlow.a
 
-libxzeroflow_a_SOURCES = \
+libXzeroFlow_a_SOURCES = \
 	src/xzero-flow/AST.cc \
 	src/xzero-flow/AST.h \
 	src/xzero-flow/ASTPrinter.cc \
@@ -556,8 +563,8 @@ xzero_test_LDADD = \
 	$(OPENSSL_LDADD) \
 	$(PAM_LDFLAGS) \
 	libXzeroTesting_main.a \
-	libxzeroflow.a \
-	libxzero.a
+	libXzeroFlow.a \
+	libXzero.a
 
 ####### x0d ###################################################################
 
@@ -570,11 +577,13 @@ x0d_CXXFLAGS = \
 	-DX0D_PIDFILE="\"$(X0D_PIDFILE)\""
 
 x0d_LDADD = \
-	libxzero.a \
-	libxzeroflow.a \
+	libXzero.a \
+	libXzeroFlow.a \
 	-lpthread -ldl \
 	$(OPENSSL_LDADD) \
 	$(PAM_LDFLAGS)
+
+# x0d_LDFLAGS = -static -static-libgcc -static-libstdc++
 
 x0d_SOURCES = \
 	$(x0d_types) \
@@ -610,4 +619,5 @@ dist_noinst_DATA = $(x0d_types)
 %.mt.cc: %.types
 	$(abs_top_srcdir)/mimetypes2cc.sh $^ $@ mimetypes2cc
 
+# vim:ts=8
 # EOF
