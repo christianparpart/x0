@@ -13,6 +13,7 @@ AM_CXXFLAGS = \
 	-Wall -Wextra -std=c++11 \
 	-Wno-unused-variable \
 	-Wno-unused-parameter \
+	-pthread \
 	-DXZERO_CLUSTERDIR="\"$(XZERO_CLUSTERDIR)\"" \
 	$(PLATFORM_CXXFLAGS) \
 	$(LIBPCRE_CFLAGS) \
@@ -36,8 +37,6 @@ libXzeroTesting_main_a_LIBADD = libxzero.a
 ####### libxzero.a ############################################################
 
 lib_LIBRARIES += libxzero.a
-
-libxzero_a_LIBADD = $(OPENSSL_LDADD)
 
 libxzero_a_SOURCES = \
 	src/xzero/AnsiColor.cc \
@@ -573,6 +572,7 @@ x0d_CXXFLAGS = \
 x0d_LDADD = \
 	libxzero.a \
 	libxzeroflow.a \
+	-lpthread -ldl \
 	$(OPENSSL_LDADD) \
 	$(PAM_LDFLAGS)
 
