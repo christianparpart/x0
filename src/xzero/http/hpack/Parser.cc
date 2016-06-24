@@ -262,7 +262,7 @@ size_t Parser::decodeString(std::string* output,
   size_t n = decodeInt(7, &slen, pos, end);
   pos += n;
 
-  if (slen > end - pos)
+  if (slen > static_cast<size_t>(end - pos))
     RAISE(CompressionError, "Need more data");
 
   if (compressed)

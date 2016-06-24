@@ -287,7 +287,7 @@ void FileUtil::write(const std::string& path, const Buffer& buffer) {
 }
 
 void FileUtil::write(int fd, const BufferRef& buffer) {
-  ssize_t nwritten = 0;
+  size_t nwritten = 0;
   do {
     ssize_t rv = ::write(fd, buffer.data() + nwritten, buffer.size() - nwritten);
     if (rv < 0) {

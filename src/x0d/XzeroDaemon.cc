@@ -260,7 +260,7 @@ std::unique_ptr<Config> XzeroDaemon::createDefaultConfig() {
   // defaulting worker/affinities to total host CPU count
   config->workers = CoreModule::cpuCount();
   config->workerAffinities.resize(config->workers);
-  for (int i = 0; i < config->workers; ++i)
+  for (size_t i = 0; i < config->workers; ++i)
     config->workerAffinities[i] = i;
 
   return config;
@@ -306,7 +306,7 @@ void XzeroDaemon::stopThreads() {
   // suspend all worker threads
   std::for_each(std::next(eventLoops_.begin()), eventLoops_.end(),
                 std::bind(&EventLoop::breakLoop, std::placeholders::_1));
-  for (int i = 1; i < config_->workers; ++i) {
+  for (size_t i = 1; i < config_->workers; ++i) {
     eventLoops_[i]->unref(); // refers to the startThreads()'s ref()-action
     eventLoops_[i]->breakLoop();
   }
@@ -355,7 +355,7 @@ void XzeroDaemon::postConfig() {
   if (eventLoops_.empty())
     eventLoops_.emplace_back(createEventLoop());
 
-  for (int i = 1; i < config_->workers; ++i)
+  for (size_t i = 1; i < config_->workers; ++i)
     eventLoops_.emplace_back(createEventLoop());
 
   while (eventLoops_.size() > config_->workers)

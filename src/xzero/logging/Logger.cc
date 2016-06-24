@@ -72,8 +72,8 @@ void Logger::log(
     return;
   }
 
-  const auto max_idx = max_listener_index_.load();
-  for (int i = 0; i < max_idx; ++i) {
+  const size_t max_idx = max_listener_index_.load();
+  for (size_t i = 0; i < max_idx; ++i) {
     auto listener = listeners_[i].load();
 
     if (listener != nullptr) {

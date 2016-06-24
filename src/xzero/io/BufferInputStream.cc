@@ -27,7 +27,7 @@ size_t BufferInputStream::read(Buffer* target, size_t n) {
 }
 
 size_t BufferInputStream::transferTo(OutputStream* target) {
-  // TODO
+  RAISE(RuntimeError, "Not Implemented Yet"); // TODO
 }
 
 } // namespace xzero

@@ -26,7 +26,7 @@ int OutputStream::printf(const char* fmt, ...) {
     RAISE_ERRNO(errno);
   }
 
-  if (pos < sizeof(buf)) {
+  if (static_cast<size_t>(pos) < sizeof(buf)) {
     write(buf, pos);
   } else {
     RAISE_ERRNO(errno);

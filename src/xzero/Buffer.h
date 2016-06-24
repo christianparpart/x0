@@ -109,7 +109,8 @@ class XZERO_BASE_API BufferBase {
   typedef typename BufferTraits<T>::const_iterator const_iterator;
   typedef typename BufferTraits<T>::data_type data_type;
 
-  enum { npos = size_t(-1) };
+  // enum { npos = size_t(-1) };
+  static const size_t npos = (size_t) -1;
 
  protected:
   data_type data_;

@@ -22,8 +22,8 @@ void FileView::fill(Buffer* output) const {
   if (n < 0)
     throw std::system_error(errno, std::system_category());
 
-  if (n != size())
-    throw std::runtime_error("Did not read all required bytes from FileView.");
+  if (static_cast<size_t>(n) != size())
+    RAISE(RuntimeError, "Did not read all required bytes from FileView.");
 
   output->resize(output->size() + n);
 #else

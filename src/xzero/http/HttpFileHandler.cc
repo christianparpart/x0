@@ -287,7 +287,7 @@ bool HttpFileHandler::handleRangeRequest(const File& transferFile, int fd,
                         "multipart/byteranges; boundary=" + boundary);
 
     // populate body
-    for (int i = 0; i != numRanges; ++i) {
+    for (size_t i = 0; i != numRanges; ++i) {
       const std::pair<size_t, size_t> offsets(
           makeOffsets(range[i], transferFile.size()));
 
