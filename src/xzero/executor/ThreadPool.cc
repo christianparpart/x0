@@ -115,6 +115,13 @@ size_t ThreadPool::processorCount() {
 #endif
 }
 
+std::string ThreadPool::getThreadName(const void* tid) {
+  char name[16];
+  name[0] = '\0';
+  pthread_getname_np(*(const pthread_t*)tid, name, sizeof(name));
+  return name;
+}
+
 void ThreadPool::work(int workerId) {
   TRACE("$0 worker[$1] enter", (void*) this, workerId);
 

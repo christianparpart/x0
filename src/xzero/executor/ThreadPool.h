@@ -51,6 +51,8 @@ class ThreadPool : public Executor {
 
   static size_t processorCount();
 
+  static std::string getThreadName(const void* id);
+
   /**
    * Retrieves the number of pending tasks.
    */

@@ -6,6 +6,7 @@
 // the License at: http://opensource.org/licenses/MIT
 
 #include <xzero/executor/ThreadedExecutor.h>
+#include <xzero/executor/ThreadPool.h>
 #include <xzero/RuntimeError.h>
 #include <xzero/sysconfig.h>
 #include <memory>
@@ -36,13 +37,6 @@ ThreadedExecutor::~ThreadedExecutor() {
   joinAll();
 }
 
-static std::string getThreadName(pthread_t tid) {
-  char name[16];
-  name[0] = '\0';
-  pthread_getname_np(tid, name, sizeof(name));
-  return name;
-}
-
 void ThreadedExecutor::joinAll() {
   for (;;) {
     pthread_t tid = 0;
@@ -55,7 +49,7 @@ void ThreadedExecutor::joinAll() {
       tid = threads_.front();
       threads_.pop_front();
     }
-    TRACE("joinAll: join($0) $1", tid, getThreadName(tid));
+    TRACE("joinAll: join($0) $1", tid, ThreadPool::getThreadName(&tid));
     pthread_join(tid, nullptr);
   }
   TRACE("joinAll: done");
@@ -93,7 +87,7 @@ void ThreadedExecutor::execute(Task task) {
     pthread_t tid = pthread_self();
     safeCall(task);
     {
-      TRACE("task $0 finished. getting lock for cleanup", getThreadName(tid));
+      TRACE("task $0 finished. getting lock for cleanup", ThreadPool::getThreadName(&tid));
       std::lock_guard<std::mutex> lock(mutex_);
       pthread_detach(tid);
       auto i = std::find(threads_.begin(), threads_.end(), tid);
