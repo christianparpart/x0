@@ -551,7 +551,6 @@ xzero_test_SOURCES = \
 	src/xzero/http/http2/Generator-test.cc \
 	src/xzero/http/http2/Parser-test.cc \
 	src/xzero/http/http2/Stream-test.cc \
-	src/xzero/http/router/PathRouter-test.cc \
 	src/xzero/io/DataChain-test.cc \
 	src/xzero/io/MemoryFile-test.cc \
 	src/xzero/io/MemoryMap-test.cc \
