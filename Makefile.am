@@ -20,7 +20,6 @@ AM_CXXFLAGS = \
 	-Wall -Wextra -std=c++11 \
 	-Wno-unused-variable \
 	-Wno-unused-parameter \
-	-pthread \
 	-DXZERO_CLUSTERDIR="\"$(XZERO_CLUSTERDIR)\"" \
 	$(PLATFORM_CXXFLAGS) \
 	$(LIBPCRE_CFLAGS) \
@@ -30,10 +29,12 @@ AM_CXXFLAGS = \
 
 AM_LDFLAGS = \
 	$(PLATFORM_LDFLAGS) \
+	$(OPENSSL_LDADD) \
 	$(LIBPCRE_LIBS) \
 	$(OPENSSL_LIBS) \
 	$(ZLIB_LIBS) \
-	$(BZLIB_LIBS)
+	$(BZLIB_LIBS) \
+	-lpthread -ldl
 
 ####### libXzeroTesting_main.a ################################################
 
@@ -560,8 +561,6 @@ xzero_test_SOURCES = \
 	src/xzero/thread/Queue-test.cc
 
 xzero_test_LDADD = \
-	$(OPENSSL_LDADD) \
-	$(PAM_LDFLAGS) \
 	libXzeroTesting_main.a \
 	libXzeroFlow.a \
 	libXzero.a
@@ -577,13 +576,14 @@ x0d_CXXFLAGS = \
 	-DX0D_PIDFILE="\"$(X0D_PIDFILE)\""
 
 x0d_LDADD = \
-	libXzero.a \
 	libXzeroFlow.a \
-	-lpthread -ldl \
-	$(OPENSSL_LDADD) \
+	libXzero.a
+
+x0d_LDFLAGS = \
+	$(AM_LDFLAGS) \
 	$(PAM_LDFLAGS)
 
-# x0d_LDFLAGS = -static -static-libgcc -static-libstdc++
+# x0d_LDFLAGS += -static -static-libgcc -static-libstdc++
 
 x0d_SOURCES = \
 	$(x0d_types) \

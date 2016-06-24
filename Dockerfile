@@ -39,9 +39,6 @@ RUN apt-get purge -y \
         make automake autoconf libtool \
         clang++-3.5 libssl-dev zlib1g-dev libbz2-dev pkg-config \
         libpcre3-dev libfcgi-dev libgoogle-perftools-dev libpam-dev && \
-    apt-get purge -y perl && \
-    echo 'Yes, do as I say!' | apt-get remove -y --force-yes \
-        initscripts util-linux e2fsprogs systemd-sysv && \
     apt-get autoremove -y && \
     rm -rvf /var/lib/apt/lists/* && \
     rm -rf /usr/src
