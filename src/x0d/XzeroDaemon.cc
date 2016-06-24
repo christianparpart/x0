@@ -283,7 +283,7 @@ void XzeroDaemon::reloadConfiguration() {
   }
 
   // reset to config
-  config_ = std::move(createDefaultConfig());
+  config_ = createDefaultConfig();
 
   try {
     // run setup gracefully
