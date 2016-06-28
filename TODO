@@ -1,8 +1,6 @@
 for a long-term todo list, see ticket system at https://github.com/xzero/x0/issues/
 
-- debian: fix packaging to new scheme
-- ssl: test plugin to run safely at least in single-threaded mode
-- ssl: consider porting to OpenSSL
+- x0d-flow: `env.getenv()` must transform into the actual result.
 - director:
   - FIXME: hanging connection in read state without idle timer for over 1day already
     - hanging in reading-request (header-value)
