@@ -1,4 +1,4 @@
-dnl AC_PREREQ([2.69])
+AC_PREREQ([2.69])
 AC_INIT(x0, 0.11.0-dev, trapni@gmail.com)
 dnl AC_CONFIG_AUX_DIR([build-aux])
 AC_CONFIG_SRCDIR([configure.ac])
