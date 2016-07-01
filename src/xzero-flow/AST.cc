@@ -23,6 +23,15 @@ std::string StringUtil::toString(flow::SymbolTable* st) {
   return StringUtil::format("SymbolTable:$0", st->name());
 }
 
+template<>
+std::string StringUtil::toString(flow::Symbol* sym) {
+  if (sym != nullptr) {
+    return StringUtil::format("Symbol:$0", sym->name());
+  } else {
+    return "NULL";
+  }
+}
+
 namespace flow {
 
 // {{{ SymbolTable

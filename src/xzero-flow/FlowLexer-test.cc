@@ -50,3 +50,51 @@ TEST(FlowLexer, composed) {
 
   ASSERT_EQ(FlowToken::Eof, lexer.nextToken());
 }
+
+TEST(FlowLexer, interpolatedString) {
+  FlowLexer lexer;
+  lexer.openString("\"head${middle}tail\"");
+
+  ASSERT_EQ(FlowToken::InterpolatedStringFragment, lexer.token());
+  ASSERT_EQ("head", lexer.stringValue());
+
+  lexer.nextToken();
+  ASSERT_EQ(FlowToken::Ident, lexer.token());
+  ASSERT_EQ("middle", lexer.stringValue());
+
+  lexer.nextToken();
+  ASSERT_EQ(FlowToken::InterpolatedStringEnd, lexer.token());
+  ASSERT_EQ("tail", lexer.stringValue());
+}
+
+TEST(FlowLexer, interpolatedString_withoutHead) {
+  FlowLexer lexer;
+  lexer.openString("\"${middle}tail\"");
+
+  ASSERT_EQ(FlowToken::InterpolatedStringFragment, lexer.token());
+  ASSERT_EQ("", lexer.stringValue());
+
+  lexer.nextToken();
+  ASSERT_EQ(FlowToken::Ident, lexer.token());
+  ASSERT_EQ("middle", lexer.stringValue());
+
+  lexer.nextToken();
+  ASSERT_EQ(FlowToken::InterpolatedStringEnd, lexer.token());
+  ASSERT_EQ("tail", lexer.stringValue());
+}
+
+TEST(FlowLexer, interpolatedString_withoutTail) {
+  FlowLexer lexer;
+  lexer.openString("\"head${middle}\"");
+
+  ASSERT_EQ(FlowToken::InterpolatedStringFragment, lexer.token());
+  ASSERT_EQ("head", lexer.stringValue());
+
+  lexer.nextToken();
+  ASSERT_EQ(FlowToken::Ident, lexer.token());
+  ASSERT_EQ("middle", lexer.stringValue());
+
+  lexer.nextToken();
+  ASSERT_EQ(FlowToken::InterpolatedStringEnd, lexer.token());
+  ASSERT_EQ("", lexer.stringValue());
+}

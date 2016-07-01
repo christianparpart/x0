@@ -19,9 +19,27 @@ TEST(FlowParser, handlerDecl) {
 
   auto h = unit->findHandler("main");
   ASSERT_TRUE(h != nullptr);
+
+  CompoundStmt* body = dynamic_cast<CompoundStmt*>(h->body());
+  ASSERT_TRUE(body != nullptr);
+  EXPECT_TRUE(body->empty());
 }
 
-// TEST(FlowParser, varDecl) {} // TODO
+TEST(FlowParser, varDecl) {
+  auto parser = std::make_shared<FlowParser>(nullptr, nullptr, nullptr);
+  parser->openString("handler main { var i = 42; }");
+  std::unique_ptr<Unit> unit = parser->parse();
+
+  auto h = unit->findHandler("main");
+  ASSERT_TRUE(h != nullptr);
+
+  ASSERT_NE(nullptr, h->scope()->lookup("i", Lookup::Self));
+  Symbol* var = h->scope()->lookup("i", Lookup::Self);
+
+  ASSERT_TRUE(var != nullptr);
+  EXPECT_EQ("i", var->name());
+}
+
 // TEST(FlowParser, logicExpr) {} // TODO
 // TEST(FlowParser, notExpr) {} // TODO
 // TEST(FlowParser, relExpr) {} // TODO

@@ -40,7 +40,7 @@ namespace flow {
 
 using vm::Opcode;
 
-//#define FLOW_DEBUG_PARSER 1
+#define FLOW_DEBUG_PARSER 1
 
 #if defined(FLOW_DEBUG_PARSER)
 // {{{ trace
