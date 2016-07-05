@@ -785,9 +785,9 @@ void HttpCluster::serviceUnavailable(HttpClusterRequest* cr, HttpStatus status) 
   }
 
   if (retryAfter() != Duration::Zero) {
-    char value[64];
-    int vs = snprintf(value, sizeof(value), "%llu", retryAfter().seconds());
-    cr->onMessageHeader(BufferRef("Retry-After"), BufferRef(value, vs));
+    cr->onMessageHeader(
+        BufferRef("Retry-After"),
+        BufferRef(StringUtil::toString(retryAfter().seconds())));
   }
 
   cr->onMessageHeaderEnd();
