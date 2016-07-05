@@ -44,6 +44,9 @@ AC_CHECK_HEADERS([syslog.h])
 AC_CHECK_HEADERS([unistd.h])
 AC_CHECK_HEADERS([zlib.h])
 
+AC_CHECK_DECLS([pthread_setname_np], [], [], [[#include <pthread.h>]])
+AC_CHECK_DECLS([pthread_setaffinity_np], [], [], [[#include <pthread.h>]])
+
 AC_CHECK_FUNCS([inotify_init1])
 AC_CHECK_FUNCS([chroot])
 AC_CHECK_FUNCS([pathconf])
@@ -59,8 +62,6 @@ AC_CHECK_FUNCS([dup2])
 AC_CHECK_FUNCS([fork])
 AC_CHECK_FUNCS([backtrace])
 AC_CHECK_FUNCS([clock_gettime])
-AC_CHECK_FUNCS([pthread_setname_np])
-AC_CHECK_FUNCS([pthread_setaffinity_np])
 AC_CHECK_FUNCS([mkostemps])
 AC_CHECK_FUNCS([backtrace])
 

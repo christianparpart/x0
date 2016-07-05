@@ -21,6 +21,7 @@
 #include "modules/webdav.h"
 #include "modules/proxy.h"
 
+#include <xzero/sysconfig.h>
 #include <xzero/http/HttpRequest.h>
 #include <xzero/http/HttpResponse.h>
 #include <xzero/http/HttpFileHandler.h>
@@ -469,7 +470,7 @@ void XzeroDaemon::runOneThread(size_t index) {
 }
 
 void XzeroDaemon::setThreadAffinity(int cpu, int workerId) {
-#ifdef HAVE_PTHREAD_SETAFFINITY_NP
+#ifdef HAVE_DECL_PTHREAD_SETAFFINITY_NP
   cpu_set_t set;
 
   CPU_ZERO(&set);
