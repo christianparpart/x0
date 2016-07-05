@@ -487,7 +487,7 @@ void XzeroDaemon::setThreadAffinity(int cpu, int workerId) {
              cpu, workerId, strerror(errno));
   }
 #else
-  logError("x0d",
+  logWarning("x0d",
            "setting event-loop affinity on CPU $0 failed for worker $1. $2",
            cpu, workerId, strerror(ENOTSUP));
 #endif
