@@ -9,6 +9,7 @@
 
 #include <x0d/XzeroModule.h>
 #include <xzero/MimeTypes.h>
+#include <xzero/Random.h>
 #include <xzero/logging.h>
 #include <xzero/io/LocalFileRepository.h>
 #include <xzero-flow/AST.h>
@@ -29,6 +30,8 @@ class CoreModule : public XzeroModule {
   static size_t cpuCount();
 
  private:
+  xzero::Random rng_;
+
   // helper
   bool redirectOnIncompletePath(XzeroContext* cx);
   unsigned long long setrlimit(int resource, unsigned long long value);
@@ -88,6 +91,8 @@ class CoreModule : public XzeroModule {
   void log_diag(XzeroContext* cx, Params& args);
   void log_debug(XzeroContext* cx, Params& args);
   void sleep(XzeroContext* cx, Params& args);
+  void rand(XzeroContext* cx, Params& args);
+  void randAB(XzeroContext* cx, Params& args);
 
   void file_exists(XzeroContext* cx, Params& args);
   void file_is_reg(XzeroContext* cx, Params& args);

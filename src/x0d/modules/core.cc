@@ -16,6 +16,7 @@
 #include <xzero/RuntimeError.h>
 #include <xzero/Tokenizer.h>
 #include <sstream>
+#include <cmath>
 
 #include <sys/resource.h>
 #include <sys/types.h>
@@ -113,7 +114,8 @@ size_t CoreModule::cpuCount() {
 }
 
 CoreModule::CoreModule(XzeroDaemon* d)
-    : XzeroModule(d, "core") {
+    : XzeroModule(d, "core"),
+      rng_() {
 
   // setup functions
   setupFunction("listen", &CoreModule::listen)
@@ -204,6 +206,10 @@ CoreModule::CoreModule(XzeroDaemon* d)
   sharedFunction("log.info", &CoreModule::log_info, FlowType::String);
   sharedFunction("log.debug", &CoreModule::log_debug, FlowType::String);
   sharedFunction("sleep", &CoreModule::sleep, FlowType::Number);
+  sharedFunction("rand", &CoreModule::rand)
+      .returnType(FlowType::Number);
+  sharedFunction("rand", &CoreModule::randAB, FlowType::Number, FlowType::Number)
+      .returnType(FlowType::Number);
 
   // main: read-only attributes
   mainFunction("req.method", &CoreModule::req_method)
@@ -586,6 +592,18 @@ void CoreModule::log_info(XzeroContext* cx, Params& args) {
 
 void CoreModule::log_debug(XzeroContext* cx, Params& args) {
   logDebug("x0d", "$0", args.getString(1).str());
+}
+
+void CoreModule::rand(XzeroContext* cx, Params& args) {
+  args.setResult(rng_.random64());
+}
+
+void CoreModule::randAB(XzeroContext* cx, Params& args) {
+  FlowNumber a = args.getInt(1);
+  FlowNumber b = std::max(args.getInt(2), a);
+  FlowNumber y = a + (rng_.random64() % (1 + b - a));
+
+  args.setResult(y);
 }
 
 void CoreModule::sleep(XzeroContext* cx, Params& args) {
