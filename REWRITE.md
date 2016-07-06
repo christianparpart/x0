@@ -1,7 +1,6 @@
 ### Intermediate Tasks
 
 - [ ] http: HttpListener, check if HugeBuffer for body passing does make sense (http2 prep)
-- [ ] http: HttpListener to use std::string instead BufferRef
 - [ ] http1: move connection-headers into http1::Channel
       (removed from request headers)
 - [ ] http1: provide a better (more generic) protocol-upgrade API
