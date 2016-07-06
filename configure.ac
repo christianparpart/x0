@@ -1,5 +1,5 @@
 AC_PREREQ([2.69])
-AC_INIT(x0, 0.11.0-dev, trapni@gmail.com)
+AC_INIT([x0], [0.11.0-dev], [trapni@gmail.com], [], [https://github.com/christianparpart/x0])
 dnl AC_CONFIG_AUX_DIR([build-aux])
 AC_CONFIG_SRCDIR([configure.ac])
 dnl AC_CONFIG_MACRO_DIRS([m4])

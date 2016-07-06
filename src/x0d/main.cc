@@ -21,16 +21,22 @@
 using namespace xzero;
 using namespace xzero::http;
 
-void printHelp(const CLI& cli) {
+void printVersion() {
   std::cout
     << "x0d: Xzero HTTP Web Server " PACKAGE_VERSION
         << " [" PACKAGE_URL "]" << std::endl
-    << "Copyright (c) 2009-2015 by Christian Parpart <trapni@gmail.com>" << std::endl
+    << "Copyright (c) 2009-2015 by Christian Parpart <trapni@gmail.com>" << std::endl;
+}
+
+void printHelp(const CLI& cli) {
+  printVersion();
+  std::cout
     << std::endl
     << "Usage: x0d [options ...]" << std::endl
     << std::endl
     << "Options:" << std::endl
-    << cli.helpText() << std::endl;
+    << cli.helpText()
+    << std::endl;
 }
 
 class PidFile { // {{{
@@ -60,7 +66,8 @@ int main(int argc, const char* argv[]) {
     Application::init();
 
     CLI cli;
-    cli.defineBool("help", 'h', "Prints this help and terminates.")
+    cli.defineBool("help", 'h', "Prints this help and exits.")
+       .defineBool("version", 'v', "Prints software version and exits.")
        .defineString("config", 'c', "PATH", "Specify a custom configuration file.", X0D_CONFIGFILE, nullptr)
        .defineString("user", 'u', "NAME", "User privileges to drop down to.", Application::userName())
        .defineString("group", 'g', "NAME", "Group privileges to drop down to.", Application::groupName())
@@ -83,6 +90,11 @@ int main(int argc, const char* argv[]) {
 
     if (flags.getBool("help")) {
       printHelp(cli);
+      return 0;
+    }
+
+    if (flags.getBool("version")) {
+      printVersion();
       return 0;
     }
 
