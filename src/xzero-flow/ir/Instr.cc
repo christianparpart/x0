@@ -107,6 +107,12 @@ void Instr::clearOperands() {
   operands_.clear();
 }
 
+void Instr::replace(Instr* newInstr) {
+  if (parent_) {
+    parent_->replace(this, newInstr);
+  }
+}
+
 void Instr::dumpOne(const char* mnemonic) {
   if (type() != FlowType::Void) {
     printf("\t%%%s = %s", name().c_str() ?: "?", mnemonic);

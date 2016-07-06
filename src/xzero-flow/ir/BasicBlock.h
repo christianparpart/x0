@@ -76,6 +76,13 @@ class XZERO_FLOW_API BasicBlock : public Value {
   Instr* remove(Instr* childInstr);
 
   /**
+   * Replaces given @p oldInstr with @p newInstr.
+   *
+   * @return returns given @p oldInstr.
+   */
+  Instr* replace(Instr* oldInstr, Instr* newInstr);
+
+  /**
    * Merges given basic block's instructions into this ones end.
    *
    * The passed basic block's instructions will not be touched.

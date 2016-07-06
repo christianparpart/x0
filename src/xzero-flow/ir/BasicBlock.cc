@@ -68,6 +68,29 @@ Instr* BasicBlock::remove(Instr* instr) {
   return instr;
 }
 
+Instr* BasicBlock::replace(Instr* oldInstr, Instr* newInstr) {
+  assert(oldInstr->parent() == this);
+  assert(newInstr->parent() == nullptr);
+
+  oldInstr->replaceAllUsesWith(newInstr);
+
+  if (oldInstr == getTerminator()) {
+    remove(oldInstr);
+    push_back(newInstr);
+    return oldInstr;
+  }
+
+  assert(dynamic_cast<TerminateInstr*>(newInstr) == nullptr && "Most not be a terminator instruction.");
+  auto i = std::find(code_.begin(), code_.end(), oldInstr);
+  assert(i != code_.end());
+
+  oldInstr->setParent(nullptr);
+  newInstr->setParent(this);
+  *i = newInstr;
+
+  return oldInstr;
+}
+
 void BasicBlock::push_back(Instr* instr) {
   assert(instr != nullptr);
   assert(instr->parent() == nullptr);

@@ -98,6 +98,11 @@ class XZERO_FLOW_API Instr : public Value {
   void clearOperands();
 
   /**
+   * Replaces this instruction with the given @p newInstr.
+   */
+  void replace(Instr* newInstr);
+
+  /**
    * Clones given instruction.
    *
    * This will not clone any of its operands but reference them.
