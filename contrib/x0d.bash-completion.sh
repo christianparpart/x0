@@ -22,7 +22,7 @@ _x0d_param() {
 	_x0d_log "x0d_param via: cmd:'${cmd}' val:'${val}' prefix:'${prefix}'"
 
 	case "${cmd}" in
-		-f|--config|-p|--pid-file|-l|--log-file)
+		-c|--config|--pid-file|-l|--log-file)
 			local files=( $(compgen -o filenames -f "${val}" ) )
 			for file in "${files[@]}"; do
 				if [[ -d ${file} ]]; then
@@ -44,13 +44,14 @@ _x0d_param() {
 			done
 			return 0
 			;;
-		-o|--log-target)
+		--log-target)
 			COMPREPLY=( $(compgen -P "${prefix}" -W "file console syslog systemd" -- "${val}" ) )
 			COMPREPLY=( "${COMPREPLY[@]/%/ }" )
 			return 0
 			;;
-		-s|--log-severity)
-			COMPREPLY=( $(compgen -P "${prefix}" -W "emerg alert crit error warning notice info diag debug debug1 debug2 debug3" -- "${val}" ) )
+		-L|--log-level)
+			COMPREPLY=( $(compgen -P "${prefix}" -W "none alert critical error warning
+            notice info debug trace" -- "${val}" ) )
 			COMPREPLY=( "${COMPREPLY[@]/%/ }" )
 			return 0
 			;;
@@ -98,12 +99,11 @@ _x0d() {
 	esac
 
 	if [[ "${cur}" == -* ]] || [[ "${cur}" == "" ]]; then
-		local replies=( $(compgen -W "-h -f -O -X -P -u -g -o -l -s -i -k -v -y -V \
-					--help --config= --optimization-level= --no-fork --systemd \
+		local replies=( $(compgen -W "-h -v -c -u -g -L -l -i -O -d \
+					--help --config= --optimization-level= --daemonize  \
 					--pid-file= --user= --group= --log-target= --log-file= \
-					--log-severity= --instant= --crash-handler= --version \
-                    --dump-ast --dump-ir --dump-tc \
-					--copyright --splash --info" -- "${cur}") )
+					--log-level= --instant= --version \
+          --dump-ast --dump-ir --dump-tc " -- "${cur}") )
 		for reply in "${replies[@]}"; do
 			if [[ "${reply}" != *= ]]; then
 				COMPREPLY=( "${COMPREPLY[@]}" "${reply} " )
