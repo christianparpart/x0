@@ -529,9 +529,7 @@ void CoreModule::sys_cpu_count(XzeroContext* cx, Params& args) {
 }
 
 bool CoreModule::preproc_sys_env(xzero::flow::Instr* call, xzero::flow::IRBuilder* builder) {
-  printf("preproc_sys_env:\n");
   if (auto arg = dynamic_cast<ConstantString*>(call->operand(1))) {
-    printf("preproc_sys_env: with constant string: \"%s\"\n", arg->get().c_str());
     if (arg->get().empty()) {
       logError("x0d", "sys.env: Empty environment variable name is not allowed.");
       return false;
