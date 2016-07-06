@@ -76,6 +76,7 @@ class CoreModule : public XzeroModule {
 
   // shared properties
   void sys_cpu_count(XzeroContext* cx, Params& args);
+  bool preproc_sys_env(xzero::flow::Instr* call, xzero::flow::IRBuilder* builder);
   void sys_env(XzeroContext* cx, Params& args);
   void sys_cwd(XzeroContext* cx, Params& args);
   void sys_pid(XzeroContext* cx, Params& args);
