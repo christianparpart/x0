@@ -193,7 +193,7 @@ std::shared_ptr<flow::vm::Program> XzeroDaemon::loadConfigStream(
     pm.run(programIR.get());
   }
 
-  verify(programIR.get());
+  verify(programIR.get(), &irgen);
 
   std::shared_ptr<flow::vm::Program> program =
       flow::TargetCodeGenerator().generate(programIR.get());

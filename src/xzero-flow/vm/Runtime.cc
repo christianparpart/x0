@@ -57,7 +57,7 @@ void Runtime::unregisterNative(const std::string& name) {
   }
 }
 
-bool Runtime::verify(IRProgram* program) {
+bool Runtime::verify(IRProgram* program, IRBuilder* builder) {
   std::list<std::pair<Instr*, NativeCallback*>> calls;
 
   for (IRHandler* handler : program->handlers()) {
@@ -77,7 +77,7 @@ bool Runtime::verify(IRProgram* program) {
   }
 
   for (auto call : calls) {
-    if (!call.second->verify(call.first)) {
+    if (!call.second->verify(call.first, builder)) {
       return false;
     }
   }

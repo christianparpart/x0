@@ -645,7 +645,7 @@ void CoreModule::file_is_exe(XzeroContext* cx, Params& args) {
     args.setResult(false);
 }
 
-bool CoreModule::verify_docroot(xzero::flow::Instr* call) {
+bool CoreModule::verify_docroot(xzero::flow::Instr* call, xzero::flow::IRBuilder* builder) {
   if (auto arg = dynamic_cast<ConstantString*>(call->operand(1))) {
     if (arg->get().empty()) {
       logError("x0d", "Setting empty document root is not allowed.");
@@ -1150,7 +1150,7 @@ void CoreModule::req_accept_language(XzeroContext* cx, Params& args) {
   args.setResult(supportedLanguages[0]);
 }
 
-bool CoreModule::verify_req_accept_language(xzero::flow::Instr* call) {
+bool CoreModule::verify_req_accept_language(xzero::flow::Instr* call, xzero::flow::IRBuilder* builder) {
   auto arg = dynamic_cast<ConstantArray*>(call->operand(1));
   assert(arg != nullptr);
 

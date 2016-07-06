@@ -21,6 +21,7 @@ namespace xzero {
 namespace flow {
 
 class Instr;
+class IRBuilder;
 
 namespace vm {
 
@@ -33,7 +34,7 @@ class Runtime;
 class XZERO_FLOW_API NativeCallback {
  public:
   typedef std::function<void(Params& args)> Functor;
-  typedef std::function<bool(Instr*)> Verifier;
+  typedef std::function<bool(Instr*, IRBuilder*)> Verifier;
 
  private:
   Runtime* runtime_;
@@ -76,10 +77,10 @@ class XZERO_FLOW_API NativeCallback {
   // semantic verifier
   NativeCallback& verifier(const Verifier& vf);
   template <typename Class>
-  NativeCallback& verifier(bool (Class::*method)(Instr*), Class* obj);
+  NativeCallback& verifier(bool (Class::*method)(Instr*, IRBuilder*), Class* obj);
   template <typename Class>
-  NativeCallback& verifier(bool (Class::*method)(Instr*));
-  bool verify(Instr* call);
+  NativeCallback& verifier(bool (Class::*method)(Instr*, IRBuilder*));
+  bool verify(Instr* call, IRBuilder* irBuilder);
 
   // bind callback
   NativeCallback& bind(const Functor& cb);
@@ -289,23 +290,27 @@ inline NativeCallback& NativeCallback::verifier(const Verifier& vf) {
 }
 
 template <typename Class>
-inline NativeCallback& NativeCallback::verifier(bool (Class::*method)(Instr*),
-                                                Class* obj) {
-  verifier_ = std::bind(method, obj, std::placeholders::_1);
+inline NativeCallback& NativeCallback::verifier(
+    bool (Class::*method)(Instr*, IRBuilder*),
+    Class* obj) {
+  verifier_ = std::bind(method, obj, std::placeholders::_1,
+                                     std::placeholders::_2);
   return *this;
 }
 
 template <typename Class>
-inline NativeCallback& NativeCallback::verifier(bool (Class::*method)(Instr*)) {
+inline NativeCallback& NativeCallback::verifier(bool (Class::*method)(Instr*, IRBuilder*)) {
   verifier_ =
-      std::bind(method, static_cast<Class*>(runtime_), std::placeholders::_1);
+      std::bind(method, static_cast<Class*>(runtime_), std::placeholders::_1,
+                                                       std::placeholders::_2);
   return *this;
 }
 
-inline bool NativeCallback::verify(Instr* call) {
-  if (!verifier_) return true;
+inline bool NativeCallback::verify(Instr* call, IRBuilder* irBuilder) {
+  if (!verifier_)
+    return true;
 
-  return verifier_(call);
+  return verifier_(call, irBuilder);
 }
 
 inline NativeCallback& NativeCallback::bind(const Functor& cb) {
@@ -323,7 +328,8 @@ inline NativeCallback& NativeCallback::bind(void (Class::*method)(Params&),
 template <typename Class>
 inline NativeCallback& NativeCallback::bind(void (Class::*method)(Params&)) {
   function_ =
-      std::bind(method, static_cast<Class*>(runtime_), std::placeholders::_1);
+      std::bind(method, static_cast<Class*>(runtime_), std::placeholders::_1,
+                                                       std::placeholders::_2);
   return *this;
 }
 

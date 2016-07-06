@@ -19,6 +19,9 @@
 #include <list>
 
 namespace xzero {
+  namespace flow {
+    class IRBuilder;
+  }
   namespace http {
     class HttpRequestInfo;
     class HttpResponseInfo;
@@ -57,14 +60,14 @@ class ProxyModule : public XzeroModule,
   // main handlers
   xzero::http::client::HttpCluster* findLocalCluster(const std::string& host);
   bool proxy_cluster_auto(XzeroContext* cx, xzero::flow::vm::Params& args);
-  bool verify_proxy_cluster(xzero::flow::Instr* call);
+  bool verify_proxy_cluster(xzero::flow::Instr* call, xzero::flow::IRBuilder* builder);
   bool proxy_cluster(XzeroContext* cx, Params& args);
   bool proxy_api(XzeroContext* cx, xzero::flow::vm::Params& args);
   bool proxy_fcgi(XzeroContext* cx, xzero::flow::vm::Params& args);
   bool proxy_http(XzeroContext* cx, xzero::flow::vm::Params& args);
   bool proxy_haproxy_monitor(XzeroContext* cx, xzero::flow::vm::Params& args);
   bool proxy_haproxy_stats(XzeroContext* cx, xzero::flow::vm::Params& args);
-  bool proxy_roadwarrior_verify(xzero::flow::Instr* instr);
+  bool proxy_roadwarrior_verify(xzero::flow::Instr* instr, xzero::flow::IRBuilder* builder);
   void proxy_cache_enabled(XzeroContext* cx, xzero::flow::vm::Params& args);
   void proxy_cache_key(XzeroContext* cx, xzero::flow::vm::Params& args);
   void proxy_cache_ttl(XzeroContext* cx, xzero::flow::vm::Params& args);

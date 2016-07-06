@@ -19,6 +19,7 @@ namespace xzero {
 namespace flow {
 
 class IRProgram;
+class IRBuilder;
 
 namespace vm {
 
@@ -48,7 +49,7 @@ class XZERO_FLOW_API Runtime {
   /**
    * Verifies all call instructions.
    */
-  bool verify(IRProgram* program);
+  bool verify(IRProgram* program, IRBuilder* builder);
 
  private:
   std::vector<NativeCallback*> builtins_;

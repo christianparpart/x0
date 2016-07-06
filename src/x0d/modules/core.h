@@ -17,6 +17,7 @@
 #include <xzero-flow/ir/BasicBlock.h>
 #include <xzero-flow/ir/IRHandler.h>
 #include <xzero-flow/ir/IRProgram.h>
+#include <xzero-flow/ir/IRBuilder.h>
 #include <xzero-flow/ir/ConstantValue.h>
 #include <xzero-flow/ir/ConstantArray.h>
 
@@ -100,7 +101,7 @@ class CoreModule : public XzeroModule {
   void file_is_exe(XzeroContext* cx, Params& args);
 
   // main handlers
-  bool verify_docroot(xzero::flow::Instr* call);
+  bool verify_docroot(xzero::flow::Instr* call, xzero::flow::IRBuilder* builder);
   bool docroot(XzeroContext* cx, Params& args);
   bool alias(XzeroContext* cx, Params& args);
   bool redirect_with_to(XzeroContext* cx, Params& args);
@@ -149,7 +150,7 @@ class CoreModule : public XzeroModule {
   void phys_mimetype(XzeroContext* cx, Params& args);
   void regex_group(XzeroContext* cx, Params& args);
   void req_accept_language(XzeroContext* cx, Params& args);
-  bool verify_req_accept_language(xzero::flow::Instr* call);
+  bool verify_req_accept_language(xzero::flow::Instr* call, xzero::flow::IRBuilder* builder);
 };
 
 } // namespace x0d

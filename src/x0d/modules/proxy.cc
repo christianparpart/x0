@@ -143,7 +143,7 @@ void ProxyModule::proxy_pseudonym(xzero::flow::vm::Params& args) {
   pseudonym_ = value;
 }
 
-bool ProxyModule::verify_proxy_cluster(xzero::flow::Instr* call) {
+bool ProxyModule::verify_proxy_cluster(xzero::flow::Instr* call, xzero::flow::IRBuilder* builder) {
   auto program = call->parent()->parent()->parent();
 
   auto nameArg = dynamic_cast<ConstantString*>(call->operand(1));
@@ -458,7 +458,7 @@ bool ProxyModule::proxy_haproxy_stats(XzeroContext* cx, xzero::flow::vm::Params&
   return false; // TODO
 }
 
-bool ProxyModule::proxy_roadwarrior_verify(xzero::flow::Instr* instr) {
+bool ProxyModule::proxy_roadwarrior_verify(xzero::flow::Instr* instr, xzero::flow::IRBuilder* builder) {
   return true; // TODO
 }
 
