@@ -178,6 +178,9 @@ CoreModule::CoreModule(XzeroDaemon* d)
   sharedFunction("sys.env", &CoreModule::sys_env, FlowType::String)
       .returnType(FlowType::String)
       .verifier(&CoreModule::preproc_sys_env, this);
+  sharedFunction("sys.env", &CoreModule::sys_env2, FlowType::String, FlowType::String)
+      .returnType(FlowType::String)
+      .verifier(&CoreModule::preproc_sys_env2, this);
   sharedFunction("sys.cwd", &CoreModule::sys_cwd)
       .returnType(FlowType::String);
   sharedFunction("sys.pid", &CoreModule::sys_pid)
@@ -553,6 +556,36 @@ void CoreModule::sys_env(XzeroContext* cx, Params& args) {
     args.setResult(value);
   } else {
     args.setResult("");
+  }
+}
+
+bool CoreModule::preproc_sys_env2(xzero::flow::Instr* call, xzero::flow::IRBuilder* builder) {
+  if (auto arg = dynamic_cast<ConstantString*>(call->operand(1))) {
+    if (auto val = dynamic_cast<ConstantString*>(call->operand(2))) {
+      if (arg->get().empty()) {
+        logError("x0d", "sys.env: Empty environment variable name is not allowed.");
+        return false;
+      }
+
+      auto program = call->parent()->parent()->parent();  // instr -> BB ->
+                                                          // handler -> program
+
+      const char* cval = getenv(arg->get().c_str());
+      ConstantString* str = program->get((cval && *cval) ? cval : val->get());
+      std::string name = builder->makeName(StringUtil::format("sys.env.$0", arg->get()));
+
+      call->replace(new LoadInstr(str, name));
+      delete call;
+    }
+  }
+  return true;
+}
+
+void CoreModule::sys_env2(XzeroContext* cx, Params& args) {
+  if (const char* value = getenv(args.getString(1).str().c_str())) {
+    args.setResult(value);
+  } else {
+    args.setResult(args.getString(2).str());
   }
 }
 

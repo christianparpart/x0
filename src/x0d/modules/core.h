@@ -78,6 +78,8 @@ class CoreModule : public XzeroModule {
   void sys_cpu_count(XzeroContext* cx, Params& args);
   bool preproc_sys_env(xzero::flow::Instr* call, xzero::flow::IRBuilder* builder);
   void sys_env(XzeroContext* cx, Params& args);
+  bool preproc_sys_env2(xzero::flow::Instr* call, xzero::flow::IRBuilder* builder);
+  void sys_env2(XzeroContext* cx, Params& args);
   void sys_cwd(XzeroContext* cx, Params& args);
   void sys_pid(XzeroContext* cx, Params& args);
   void sys_now(XzeroContext* cx, Params& args);
