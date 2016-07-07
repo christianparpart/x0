@@ -39,4 +39,8 @@ export CC=$(findexe clang-3.5 clang)
 echo CXX = $CXX
 echo CC = $CC
 
-$ROOT/configure --prefix="$HOME/local"
+$ROOT/configure --prefix="/usr" \
+                --sysconfdir="/etc/x0d" \
+                --runstatedir="/var/run/x0d" \
+                --with-pidfile="/var/run/x0d/x0d.pid" \
+                --with-logdir="/var/log/x0d"
