@@ -8,10 +8,10 @@
       And update year to ..2016 in all
 
 - [ ] (make thread safe) File::lastModified()
-- [ ] (flow:bug) `"Blah #{call}blah#{call}"` doesn't work
+- [x] (flow:bug) `"Blah #{call}blah#{call}"` doesn't work
       unless I specify it as `"Blah #{call()}blah#{call}"`
 - [ ] (flow:bug) `listen(port: "80")` MUST raise a signature mismatch error
-- [ ] (flow) `var x = call1 + '.' + call2;` not working. fix me.
+- [x] (flow) `var x = call1 + '.' + call2;` not working. fix me.
 - [ ] (flow) tag flow handlers to never return (aka. always handle),
       thus, enabling the compiler to give a warning on dead code after
       this handler.
