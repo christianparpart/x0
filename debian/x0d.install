@@ -1,8 +1,7 @@
-debian/tmp/etc/xzero/*
-debian/tmp/usr/sbin/x0d
-debian/tmp/usr/lib/xzero/*
+debian/tmp/etc/x0d/*
+debian/tmp/usr/bin/x0d
 debian/tmp/usr/share/man/*
-debian/tmp/var/log/xzero
+debian/tmp/var/log/x0d
 debian/tmp/etc/init/x0d.conf
 debian/tmp/etc/default/x0d
 debian/tmp/etc/bash_completion.d/x0d
