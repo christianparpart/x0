@@ -15,23 +15,26 @@ RUN echo "force-unsafe-io" > /etc/dpkg/dpkg.cfg.d/02apt-speedup && \
     apt-get install -y libssl1.0.0 zlib1g libbz2-1.0 libpcre3 \
         libpam0g
 
-#ADD . /usr/src/x0
-ADD 3rdparty          /usr/src/x0/3rdparty
-ADD mimetypes2cc.sh   /usr/src/x0/mimetypes2cc.sh
-ADD Makefile.am       /usr/src/x0/Makefile.am
-ADD configure.ac      /usr/src/x0/configure.ac
-ADD docker-x0d.conf   /usr/src/x0/docker-x0d.conf
-ADD src               /usr/src/x0/src
+COPY 3rdparty          /usr/src/x0/3rdparty
+COPY src               /usr/src/x0/src
+COPY mimetypes2cc.sh   /usr/src/x0/mimetypes2cc.sh
+COPY Makefile.am       /usr/src/x0/Makefile.am
+COPY configure.ac      /usr/src/x0/configure.ac
+COPY docker-x0d.conf   /usr/src/x0/docker-x0d.conf
 
-RUN cd /usr/src/x0 && autoreconf --verbose --force --install
-RUN cd /usr/src/x0 && \
+ARG CFLAGS=""
+ARG CXXFLAGS=""
+RUN cd /usr/src/x0 && autoreconf --verbose --force --install && \
     CC="/usr/bin/clang-3.5" \
     CXX="/usr/bin/clang++-3.5" \
+    CFLAGS="$CFLAGS" \
+    CXXFLAGS="$CXXFLAGS" \
       ./configure && \
     make && \
     make check && \
     mkdir -p /etc/x0d /var/log/x0d /var/lib/x0d /var/www && \
     ./xzero_test && \
+    strip x0d && \
     cp -v xzero_test /usr/bin/xzero_test && \
     cp -v x0d /usr/bin/x0d
 
