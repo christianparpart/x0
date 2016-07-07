@@ -3,7 +3,7 @@
 /3rdparty/gtest-1.7.0
 /sandbox/
 /build-aux/
-/x0d.conf
+/test.conf
 
 /*.patch
 
