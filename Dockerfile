@@ -16,11 +16,13 @@ RUN echo "force-unsafe-io" > /etc/dpkg/dpkg.cfg.d/02apt-speedup && \
         libpam0g
 
 COPY 3rdparty          /usr/src/x0/3rdparty
+COPY docs              /usr/src/x0/docs
 COPY src               /usr/src/x0/src
 COPY mimetypes2cc.sh   /usr/src/x0/mimetypes2cc.sh
 COPY Makefile.am       /usr/src/x0/Makefile.am
 COPY configure.ac      /usr/src/x0/configure.ac
 COPY docker-x0d.conf   /usr/src/x0/docker-x0d.conf
+COPY x0d.conf          /usr/src/x0/x0d.conf
 
 ARG CFLAGS=""
 ARG CXXFLAGS=""
