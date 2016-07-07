@@ -639,7 +639,9 @@ flow.7: docs/flow.7.pod
 		--center "Flow Language Specification" \
 		$< >$@
 
-dist_pkgdata_DATA = x0d.conf
+####### dist ##################################################################
+
+dist_sysconf_DATA = x0d.conf
 
 # vim:ts=8
 # EOF
