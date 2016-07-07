@@ -618,5 +618,28 @@ dist_noinst_DATA = $(x0d_types)
 %.mt.cc: %.types
 	$(abs_top_srcdir)/mimetypes2cc.sh $^ $@ mimetypes2cc
 
+####### man ###################################################################
+
+man_MANS = x0d.8 x0d.conf.5 flow.7
+
+man: x0d.8 x0d.conf.5 flow.7
+
+x0d.8: docs/x0d.8.pod
+	pod2man --name=x0d --section 8 --release --utf8 --stderr \
+		--center "x0d - high performance HTTP web server" \
+		$< >$@
+
+x0d.conf.5: docs/x0d.conf.5.pod
+	pod2man --name=x0d --section 5 --release --utf8 --stderr \
+		--center "x0d - high performance HTTP web server configuration" \
+		$< >$@
+
+flow.7: docs/flow.7.pod
+	pod2man --name=x0d --section 7 --release --utf8 --stderr \
+		--center "Flow Language Specification" \
+		$< >$@
+
+dist_pkgdata_DATA = x0d.conf
+
 # vim:ts=8
 # EOF
