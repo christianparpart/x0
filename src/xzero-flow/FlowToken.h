@@ -31,7 +31,7 @@ struct XZERO_FLOW_API FlowToken {
     IP,
     Cidr,
     NamedParam,
-    InterpolatedStringFragment,  // "hello ${" or "} world ${"
+    InterpolatedStringFragment,  // "hello #{" or "} world #{"
     InterpolatedStringEnd,       // "} end"
 
     // symbols

@@ -571,13 +571,13 @@ FlowToken FlowLexer::parseInterpolationFragment(bool start) {
           stringValue_ += static_cast<char>(currentChar());
           break;
       }
-    } else if (currentChar() == '$') {
+    } else if (currentChar() == '#') {
       nextChar();
       if (currentChar() == '{') {
         nextChar();
         return token_ = FlowToken::InterpolatedStringFragment;
       } else {
-        stringValue_ += '$';
+        stringValue_ += '#';
       }
       stringValue_ += static_cast<char>(currentChar());
     } else {

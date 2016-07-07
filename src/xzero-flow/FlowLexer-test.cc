@@ -53,7 +53,7 @@ TEST(FlowLexer, composed) {
 
 TEST(FlowLexer, interpolatedString) {
   FlowLexer lexer;
-  lexer.openString("\"head${middle}tail\"");
+  lexer.openString("\"head#{middle}tail\"");
 
   ASSERT_EQ(FlowToken::InterpolatedStringFragment, lexer.token());
   ASSERT_EQ("head", lexer.stringValue());
@@ -69,7 +69,7 @@ TEST(FlowLexer, interpolatedString) {
 
 TEST(FlowLexer, interpolatedString_withoutHead) {
   FlowLexer lexer;
-  lexer.openString("\"${middle}tail\"");
+  lexer.openString("\"#{middle}tail\"");
 
   ASSERT_EQ(FlowToken::InterpolatedStringFragment, lexer.token());
   ASSERT_EQ("", lexer.stringValue());
@@ -85,7 +85,7 @@ TEST(FlowLexer, interpolatedString_withoutHead) {
 
 TEST(FlowLexer, interpolatedString_withoutTail) {
   FlowLexer lexer;
-  lexer.openString("\"head${middle}\"");
+  lexer.openString("\"head#{middle}\"");
 
   ASSERT_EQ(FlowToken::InterpolatedStringFragment, lexer.token());
   ASSERT_EQ("head", lexer.stringValue());
