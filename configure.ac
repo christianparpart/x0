@@ -95,7 +95,7 @@ AS_IF([test "x$with_logdir" = "x"],
       [X0D_LOGDIR="$with_logdir"])
 AC_SUBST([X0D_LOGDIR])
 
-AC_ARG_WITH([pidfile], AS_HELP_STRING([--pidfile], [x0d log dir]))
+AC_ARG_WITH([pidfile], AS_HELP_STRING([--pidfile], [Path to x0d.pid file]))
 AS_IF([test "x$with_pidfile" = "x"],
       [X0D_PIDFILE="$localstatedir/run/x0d.pid"],
       [X0D_PIDFILE="$with_pidfile"])
