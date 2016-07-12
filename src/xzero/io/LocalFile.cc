@@ -109,8 +109,8 @@ std::unique_ptr<InputStream> LocalFile::createInputChannel() {
   return std::unique_ptr<InputStream>(new FileInputStream(path()));
 }
 
-std::unique_ptr<OutputStream> LocalFile::createOutputChannel(int mode) {
-  return std::unique_ptr<OutputStream>(new FileOutputStream(path(), mode));
+std::unique_ptr<OutputStream> LocalFile::createOutputChannel(OpenFlags flags, int mode) {
+  return std::unique_ptr<OutputStream>(new FileOutputStream(path(), flags, mode));
 }
 
 std::unique_ptr<MemoryMap> LocalFile::createMemoryMap(bool rw) {

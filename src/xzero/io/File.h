@@ -85,9 +85,12 @@ class XZERO_BASE_API File {
   /**
    * Creates an output stream for given file.
    *
-   * @param mode create mode.
+   * @param flags open-flags
+   * @param mode create mode
    */
-  virtual std::unique_ptr<OutputStream> createOutputChannel(int mode = 0666) = 0;
+  virtual std::unique_ptr<OutputStream> createOutputChannel(
+      OpenFlags flags = static_cast<OpenFlags>(File::Write | File::Create),
+      int mode = 0666) = 0;
 
   /** Creates a memory-map for a given file.
    *

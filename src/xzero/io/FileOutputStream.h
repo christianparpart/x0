@@ -8,12 +8,13 @@
 #pragma once
 
 #include <xzero/io/OutputStream.h>
+#include <xzero/io/File.h>
 
 namespace xzero {
 
 class FileOutputStream : public OutputStream {
  public:
-  FileOutputStream(const std::string& path, int mode);
+  FileOutputStream(const std::string& path, File::OpenFlags flags, int mode);
 
   FileOutputStream(int handle, bool closeOnDestroy)
       : handle_(handle), closeOnDestroy_(closeOnDestroy) {}
