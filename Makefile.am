@@ -328,6 +328,8 @@ libXzero_a_SOURCES = \
 	src/xzero/logging.h \
 	src/xzero/logging/ConsoleLogTarget.cc \
 	src/xzero/logging/ConsoleLogTarget.h \
+	src/xzero/logging/FileLogTarget.cc \
+	src/xzero/logging/FileLogTarget.h \
 	src/xzero/logging/LogLevel.cc \
 	src/xzero/logging/LogLevel.h \
 	src/xzero/logging/LogTarget.cc \
