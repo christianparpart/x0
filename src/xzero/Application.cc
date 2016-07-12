@@ -6,6 +6,10 @@
 // the License at: http://opensource.org/licenses/MIT
 
 #include <xzero/Application.h>
+#include <xzero/Buffer.h>
+#include <xzero/io/FileUtil.h>
+#include <xzero/io/SystemPipe.h>
+#include <xzero/executor/Executor.h>
 #include <xzero/thread/SignalHandler.h>
 #include <xzero/logging/ConsoleLogTarget.h>
 #include <xzero/logging/LogLevel.h>
@@ -16,6 +20,7 @@
 #include <pwd.h>
 #include <grp.h>
 #include <unistd.h>
+#include <fcntl.h>
 
 namespace xzero {
 
@@ -32,6 +37,32 @@ void Application::init() {
 void Application::logToStderr(LogLevel loglevel) {
   Logger::get()->setMinimumLogLevel(loglevel);
   Logger::get()->addTarget(ConsoleLogTarget::get());
+}
+
+void Application::redirectStdOutToLogger(Executor* executor) {
+  static SystemPipe pipe;
+
+  int ec = dup2(pipe.writerFd(), STDOUT_FILENO);
+  if (ec < 0)
+    RAISE_ERRNO(errno);
+
+  int fd = pipe.readerFd();
+  fcntl(fd, F_SETFL, O_NONBLOCK);
+
+  executor->executeOnReadable(fd, [fd]() {
+    fprintf(stderr, "[stdout]: received message\n");
+    Buffer buf(4096);
+    FileUtil::read(fd, &buf);
+    if (buf.size() > 0) {
+      fprintf(stderr, "[stdout] %s\n", buf.c_str());
+      logInfo("stdout", "$0", buf.str());
+      buf.clear();
+    }
+    fflush(stderr);
+  });
+}
+
+void Application::redirectStdErrToLogger(Executor* executor) {
 }
 
 static void globalEH() {

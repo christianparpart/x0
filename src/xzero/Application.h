@@ -10,11 +10,16 @@
 
 namespace xzero {
 
+class Executor;
+
 class XZERO_BASE_API Application {
  public:
   static void init();
 
   static void logToStderr(LogLevel loglevel = LogLevel::Info);
+
+  static void redirectStdOutToLogger(Executor* executor);
+  static void redirectStdErrToLogger(Executor* executor);
 
   static void installGlobalExceptionHandler();
 

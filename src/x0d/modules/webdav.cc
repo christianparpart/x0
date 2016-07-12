@@ -122,7 +122,8 @@ bool WebdavModule::webdav_put(XzeroContext* cx, Params& args) {
 
   //bool didNotExistBefore = !cx->file()->exists();
   int mode = args.getInt(1);
-  std::unique_ptr<OutputStream> output = cx->file()->createOutputChannel(mode);
+  File::OpenFlags flags = File::Write | File::Create | File::Truncate;
+  std::unique_ptr<OutputStream> output = cx->file()->createOutputChannel(flags, mode);
 
   // if (!output->tryAllocate(content.size())) {
   //   if (didNotExistBefore)

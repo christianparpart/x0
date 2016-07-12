@@ -83,6 +83,7 @@ XzeroDaemon::XzeroDaemon()
       http1_(),
       configFilePath_(),
       config_(createDefaultConfig()) {
+
   loadModule<AccessModule>();
   loadModule<AccesslogModule>();
   loadModule<AuthModule>();

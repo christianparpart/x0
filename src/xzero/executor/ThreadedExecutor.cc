@@ -6,6 +6,7 @@
 // the License at: http://opensource.org/licenses/MIT
 
 #include <xzero/executor/ThreadedExecutor.h>
+#include <xzero/executor/PosixScheduler.h>
 #include <xzero/executor/ThreadPool.h>
 #include <xzero/RuntimeError.h>
 #include <xzero/sysconfig.h>
@@ -98,7 +99,11 @@ void ThreadedExecutor::execute(Task task) {
 }
 
 Executor::HandleRef ThreadedExecutor::executeOnReadable(int fd, Task task, Duration timeout, Task onTimeout) {
-  RAISE(NotImplementedError); // TODO
+  PosixScheduler::waitForReadable(fd, timeout);
+  // TODO if (timedout) { onTimeout(); return; }
+  task();
+
+  return Executor::HandleRef(); // TODO
 }
 
 Executor::HandleRef ThreadedExecutor::executeOnWritable(int fd, Task task, Duration timeout, Task onTimeout) {

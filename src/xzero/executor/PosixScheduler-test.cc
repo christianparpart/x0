@@ -6,6 +6,7 @@
 // the License at: http://opensource.org/licenses/MIT
 
 #include <xzero/executor/PosixScheduler.h>
+#include <xzero/io/SystemPipe.h>
 #include <xzero/MonotonicTime.h>
 #include <xzero/MonotonicClock.h>
 #include <xzero/Application.h>
@@ -18,43 +19,6 @@
 #include <unistd.h>
 
 using namespace xzero;
-
-class SystemPipe { // {{{
- public:
-  SystemPipe(int reader, int writer) {
-    fds_[0] = reader;
-    fds_[1] = writer;
-  }
-
-  SystemPipe() : SystemPipe(-1, -1) {
-    if (pipe(fds_) < 0) {
-      perror("pipe");
-    }
-  }
-
-  ~SystemPipe() {
-    closeEndPoint(0);
-    closeEndPoint(1);
-  }
-
-  bool isValid() const noexcept { return fds_[0] != -1; }
-  int readerFd() const noexcept { return fds_[0]; }
-  int writerFd() const noexcept { return fds_[1]; }
-
-  int write(const std::string& msg) {
-    return ::write(writerFd(), msg.data(), msg.size());
-  }
-
- private:
-  inline void closeEndPoint(int i) {
-    if (fds_[i] != -1) {
-      ::close(fds_[i]);
-    }
-  }
-
- private:
-  int fds_[2];
-}; // }}}
 
 /* test case:
  * 1.) insert interest A with timeout 10s

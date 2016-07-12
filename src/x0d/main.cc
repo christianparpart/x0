@@ -9,13 +9,16 @@
 #include <x0d/XzeroDaemon.h>
 
 #include <xzero/sysconfig.h>
+#include <xzero/io/OutputStream.h>
 #include <xzero/logging/ConsoleLogTarget.h>
+#include <xzero/logging/FileLogTarget.h>
 #include <xzero/logging.h>
 #include <xzero/io/FileUtil.h>
 #include <xzero/cli/CLI.h>
 #include <xzero/cli/Flags.h>
 #include <xzero/Application.h>
 #include <iostream>
+#include <memory>
 #include <unistd.h>
 
 using namespace xzero;
@@ -62,6 +65,7 @@ PidFile::~PidFile() {
 // }}}
 
 int main(int argc, const char* argv[]) {
+  std::unique_ptr<FileLogTarget> fileLogTarget;
   try {
     Application::init();
 
@@ -98,6 +102,8 @@ int main(int argc, const char* argv[]) {
       return 0;
     }
 
+    x0d::XzeroDaemon x0d;
+
     // {{{ setup logging
     Logger::get()->setMinimumLogLevel(make_loglevel(flags.getString("log-level")));
 
@@ -107,7 +113,12 @@ int main(int argc, const char* argv[]) {
     } else if (logTarget == "console") {
       Logger::get()->addTarget(ConsoleLogTarget::get());
     } else if (logTarget == "file") {
-      ; // TODO
+      std::string filename = flags.getString("log-file");
+      std::shared_ptr<File> file = x0d.vfs().getFile(filename);
+      File::OpenFlags openFlags = File::Write | File::Create | File::Append;
+      std::unique_ptr<OutputStream> out = file->createOutputChannel(openFlags);
+      fileLogTarget.reset(new FileLogTarget(std::move(out)));
+      Logger::get()->addTarget(fileLogTarget.get());
     } else if (logTarget == "syslog") {
       ; // TODO Logger::get()->addTarget(SyslogTarget::get());
     } else if (logTarget == "systemd") {
@@ -117,8 +128,6 @@ int main(int argc, const char* argv[]) {
       return 1;
     }
     // }}}
-
-    x0d::XzeroDaemon x0d;
 
     x0d.setOptimizationLevel(flags.getNumber("optimization-level"));
 

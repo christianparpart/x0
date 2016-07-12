@@ -325,6 +325,8 @@ libXzero_a_SOURCES = \
 	src/xzero/io/StringInputStream.h \
 	src/xzero/io/StringOutputStream.cc \
 	src/xzero/io/StringOutputStream.h \
+	src/xzero/io/SystemPipe.cc \
+	src/xzero/io/SystemPipe.h \
 	src/xzero/logging.h \
 	src/xzero/logging/ConsoleLogTarget.cc \
 	src/xzero/logging/ConsoleLogTarget.h \
