@@ -35,7 +35,6 @@ enum class HttpChannelState {
   READING,  //!< currently reading request info
   HANDLING, //!< currently handling the request (that is generating response)
   SENDING,  //!< currently sending data
-  DONE,     //!< handling request done
 };
 
 XZERO_HTTP_API std::string to_string(HttpChannelState state);

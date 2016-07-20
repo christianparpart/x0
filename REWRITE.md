@@ -20,8 +20,6 @@
 
 - [ ] (test) ensure http1 keep-alive is working on the transport-level
 - [ ] (test) ensure http1 pipelined processing
-- [ ] (quality) HttpChannelState::DONE is questionable as we're switching
-      back to SENDING after DONE, then to HANDLING again.
 
 ### Smallish Features
 

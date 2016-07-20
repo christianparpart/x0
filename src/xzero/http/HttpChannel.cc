@@ -36,7 +36,6 @@ std::string to_string(HttpChannelState state) {
     case HttpChannelState::READING: return "READING";
     case HttpChannelState::HANDLING: return "HANDLING";
     case HttpChannelState::SENDING: return "SENDING";
-    case HttpChannelState::DONE: return "DONE";
     default: {
       char buf[128];
       int n = snprintf(buf, sizeof(buf), "<%d>", static_cast<int>(state));
@@ -365,8 +364,6 @@ void HttpChannel::completed() {
     HttpResponseInfo& info = commitInline();
     transport_->send(info, BufferRef(), nullptr);
   }
-
-  setState(HttpChannelState::DONE);
 
   TRACE("$0 completed: pass on to transport layer", this);
   transport_->completed();
