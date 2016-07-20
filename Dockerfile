@@ -1,4 +1,4 @@
-FROM ubuntu:14.04
+FROM ubuntu:16.04
 MAINTAINER Christian Parpart <trapni@gmail.com>
 
 ENV DEBIAN_FRONTEND="noninteractive" \
@@ -26,12 +26,18 @@ COPY x0d.conf          /usr/src/x0/x0d.conf
 
 ARG CFLAGS=""
 ARG CXXFLAGS=""
+ARG LDFLAGS=""
 RUN cd /usr/src/x0 && autoreconf --verbose --force --install && \
     CC="/usr/bin/clang-3.5" \
     CXX="/usr/bin/clang++-3.5" \
     CFLAGS="$CFLAGS" \
     CXXFLAGS="$CXXFLAGS" \
-      ./configure && \
+    LDFLAGS="$LDFLAGS" \
+      ./configure --prefix="/usr" \
+                  --sysconfdir="/etc/x0d" \
+                  --runstatedir="/var/run" \
+                  --with-pidfile="/var/run/x0d.pid" \
+                  --with-logdir="/var/log" && \
     make && \
     make check && \
     mkdir -p /etc/x0d /var/log/x0d /var/lib/x0d /var/www && \
