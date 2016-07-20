@@ -15,13 +15,13 @@ using xzero::None;
 TEST(Option, ctor0) {
   Option<int> x;
 
-  ASSERT_TRUE(x.isNone());
+  EXPECT_TRUE(x.isNone());
 }
 
 TEST(Option, ctorNone) {
   Option<int> x = None(); // invokes the ctor Option(const None&)
 
-  ASSERT_TRUE(x.isNone());
+  EXPECT_TRUE(x.isNone());
 }
 
 struct Movable {
@@ -40,9 +40,9 @@ TEST(Option, ctorMoveValue) {
   Movable i = 42;
   Option<Movable> x = std::move(i);
 
-  ASSERT_TRUE(x.isSome());
-  ASSERT_EQ(42, x->value);
-  ASSERT_EQ(-1, i.value);
+  EXPECT_TRUE(x.isSome());
+  EXPECT_EQ(42, x->value);
+  EXPECT_EQ(-1, i.value);
 }
 
 TEST(Option, moveAssign) {
@@ -51,43 +51,43 @@ TEST(Option, moveAssign) {
 
   a = std::move(b);
 
-  ASSERT_EQ(13, a.get().value);
-  ASSERT_TRUE(b == None());
+  EXPECT_EQ(13, a.get().value);
+  EXPECT_TRUE(b == None());
 }
 
 TEST(Option, isNone) {
   Option<int> x = None();
 
-  ASSERT_TRUE(x.isNone());
+  EXPECT_TRUE(x.isNone());
 }
 
 TEST(Option, isSome) {
   Option<int> x = 42;
-  ASSERT_FALSE(x.isNone());
-  ASSERT_TRUE(x.isSome());
+  EXPECT_FALSE(x.isNone());
+  EXPECT_TRUE(x.isSome());
 }
 
 TEST(Option, operatorBool) {
   Option<int> x = 42;
-  ASSERT_FALSE(!x);
-  ASSERT_TRUE(x);
+  EXPECT_FALSE(!x);
+  EXPECT_TRUE(x);
 }
 
 TEST(Option, operatorEqu) {
-  ASSERT_TRUE(Some(42) == Some(42));
-  ASSERT_FALSE(Some(13) == Some(42));
-  ASSERT_FALSE(Some(13) == None());
+  EXPECT_TRUE(Some(42) == Some(42));
+  EXPECT_FALSE(Some(13) == Some(42));
+  EXPECT_FALSE(Some(13) == None());
 }
 
 TEST(Option, operatorNe) {
-  ASSERT_TRUE(Some(13) != Some(42));
-  ASSERT_FALSE(Some(42) != Some(42));
-  ASSERT_TRUE(Some(13) != None());
+  EXPECT_TRUE(Some(13) != Some(42));
+  EXPECT_FALSE(Some(42) != Some(42));
+  EXPECT_TRUE(Some(13) != None());
 }
 
 TEST(Option, getSome) {
   Option<int> x = 42;
-  ASSERT_EQ(42, x.get());
+  EXPECT_EQ(42, x.get());
 }
 
 TEST(Option, getNone) {
@@ -102,7 +102,7 @@ TEST(Option, clear) {
 
   x.clear();
 
-  ASSERT_TRUE(x.isNone());
+  EXPECT_TRUE(x.isNone());
 }
 
 TEST(Option, onSome) {
@@ -114,7 +114,7 @@ TEST(Option, onSome) {
     retrievedValue = -1;
   });
 
-  ASSERT_EQ(42, retrievedValue);
+  EXPECT_EQ(42, retrievedValue);
 }
 
 TEST(Option, onNone) {
@@ -126,5 +126,5 @@ TEST(Option, onNone) {
     retrievedValue = -1;
   });
 
-  ASSERT_EQ(-1, retrievedValue);
+  EXPECT_EQ(-1, retrievedValue);
 }
