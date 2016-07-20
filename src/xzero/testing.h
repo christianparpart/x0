@@ -164,7 +164,7 @@ namespace testing {
     if (failed) {                                                             \
       ::xzero::testing::UnitTest::instance()->reportBinary(                   \
           __FILE__, __LINE__, fatal, #expected, #actual,                      \
-          ::xzero::StringUtil::toString(actual), "");                         \
+          ::xzero::StringUtil::toString(actualEvaluated), "");                \
     } \
   } while (0)
 
