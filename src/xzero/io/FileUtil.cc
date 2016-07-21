@@ -171,7 +171,7 @@ void FileUtil::seek(int fd, off_t offset) {
     RAISE_ERRNO(errno);
 }
 
-void FileUtil::read(int fd, Buffer* output) {
+size_t FileUtil::read(int fd, Buffer* output) {
   struct stat st;
   if (fstat(fd, &st) < 0)
     RAISE_ERRNO(errno);
@@ -185,39 +185,43 @@ void FileUtil::read(int fd, Buffer* output) {
 
     output->data()[beg + nread] = '\0';
     output->resize(beg + nread);
-  } else {
-    // XXX some files do not yield informations via stat, such as files in /proc.
-    // So fallback to standard read() until EOF is reached.
-    output->reserve(output->size() + 4096);
-    for (;;) {
-      ssize_t nread = ::read(fd, output->end(), output->capacity() - output->size());
-      if (nread > 0) {
-        output->resize(output->size() + nread);
-      } else if (nread == 0) {
-        break;
-      } else if (errno == EINTR) {
-        continue;
-      } else {
-        RAISE_ERRNO(errno);
-      }
+    return nread;
+  }
+
+  // XXX some files do not yield informations via stat, such as files in /proc.
+  // So fallback to standard read() until EOF is reached.
+  output->reserve(output->size() + 4096);
+  ssize_t nread = 0;
+  for (;;) {
+    ssize_t rv = ::read(fd, output->end(), output->capacity() - output->size());
+    if (rv > 0) {
+      output->resize(output->size() + rv);
+      nread += rv;
+    } else if (rv == 0) {
+      break;
+    } else if (errno == EINTR) {
+      continue;
+    } else {
+      RAISE_ERRNO(errno);
     }
   }
+  return nread;
 }
 
-void FileUtil::read(File& file, Buffer* output) {
+size_t FileUtil::read(File& file, Buffer* output) {
   FileDescriptor fd = file.createPosixChannel(File::Read);
-  read(fd, output);
+  return read(fd, output);
 }
 
-void FileUtil::read(const std::string& path, Buffer* output) {
+size_t FileUtil::read(const std::string& path, Buffer* output) {
   FileDescriptor fd = open(path.c_str(), O_RDONLY);
   if (fd < 0)
     RAISE_ERRNO(errno);
 
-  read(fd, output);
+  return read(fd, output);
 }
 
-void FileUtil::read(const FileView& file, Buffer* output) {
+size_t FileUtil::read(const FileView& file, Buffer* output) {
   output->reserve(file.size() + 1);
   size_t nread = 0;
 
@@ -242,6 +246,8 @@ void FileUtil::read(const FileView& file, Buffer* output) {
 
   output->data()[nread] = '\0';
   output->resize(nread);
+
+  return nread;
 }
 
 Buffer FileUtil::read(int fd) {
