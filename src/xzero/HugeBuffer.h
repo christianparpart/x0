@@ -43,9 +43,10 @@ class HugeBuffer {
   const BufferRef& getBuffer() const;
   std::unique_ptr<InputStream> getInputStream();
 
-  void tryDisplaceBufferToFile();
-
   void reset();
+
+ private:
+  void tryDisplaceBufferToFile();
 
  private:
   size_t maxBufferSize_;
