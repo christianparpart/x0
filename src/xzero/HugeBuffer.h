@@ -18,6 +18,13 @@ class InputStream;
 
 /**
  * A huge buffer API that can contain more data than your RAM.
+ *
+ * It first attempts to store the data in memory, with
+ * up to @c n bytes, as specified in the constructor.
+ *
+ * Once this threshold is being exceeded, the buffer is
+ * swapped onto a temporary disk location and further bytes
+ * will be written to disk, too.
  */
 class HugeBuffer {
  public:
