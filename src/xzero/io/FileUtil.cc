@@ -240,7 +240,7 @@ void FileUtil::read(const FileView& file, Buffer* output) {
     }
   } while (nread < file.size());
 
-  (*output)[nread] = '\0';
+  output->data()[nread] = '\0';
   output->resize(nread);
 }
 
