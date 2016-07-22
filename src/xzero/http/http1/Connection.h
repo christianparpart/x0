@@ -86,7 +86,7 @@ class XZERO_HTTP_API Connection : public ::xzero::Connection,
   void onResponseComplete(bool succeed);
 
   // Connection overrides
-  void onOpen() override;
+  void onOpen(bool dataReady) override;
   void onClose() override;
   void setInputBufferSize(size_t size) override;
   void onFillable() override;

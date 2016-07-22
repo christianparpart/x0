@@ -373,7 +373,7 @@ void SslEndPoint::onHandshake() {
     }
     factory->create(connector_, this);
 
-    connection()->onOpen();
+    connection()->onOpen(false);
   }
 }
 

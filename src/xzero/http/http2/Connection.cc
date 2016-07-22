@@ -148,9 +148,9 @@ void Connection::getAllDependentStreams(StreamID parentStreamID,
 }
 
 // {{{ net::Connection overrides
-void Connection::onOpen() {
+void Connection::onOpen(bool dataReady) {
   TRACE("onOpen");
-  ::xzero::Connection::onOpen();
+  ::xzero::Connection::onOpen(dataReady);
 
   // send initial server connection preface
   generator_.generateSettings({}); // leave settings at defaults

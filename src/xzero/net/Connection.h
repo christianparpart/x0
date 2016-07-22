@@ -33,8 +33,11 @@ class XZERO_BASE_API Connection {
 
   /**
    * Callback, invoked when connection was opened.
+   *
+   * @param dataReady true if there is already data available
+   *                  for read without blocking, false otherwise.
    */
-  virtual void onOpen();
+  virtual void onOpen(bool dataReady);
 
   /**
    * Callback, invoked when connection is closed.
@@ -141,7 +144,7 @@ class XZERO_BASE_API ConnectionListener {
  public:
   virtual ~ConnectionListener();
 
-  /** Invoked via Conection::onOpen(). */
+  /** Invoked via Conection::onOpen(bool). */
   virtual void onOpened(Connection* connection);
 
   /** Invoked via Conection::onClose(). */

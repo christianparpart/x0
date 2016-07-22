@@ -71,19 +71,14 @@ Connection::~Connection() {
   TRACE("$0 dtor", this);
 }
 
-void Connection::onOpen() {
+void Connection::onOpen(bool dataReady) {
   TRACE("$0 onOpen", this);
-  ::xzero::Connection::onOpen();
+  ::xzero::Connection::onOpen(dataReady);
 
-  // TODO support TCP_DEFER_ACCEPT here
-#if 0
-  if (connector()->deferAccept())
+  if (dataReady)
     onFillable();
   else
     wantFill();
-#else
-  wantFill();
-#endif
 }
 
 void Connection::onClose() {
@@ -147,7 +142,7 @@ void Connection::onResponseComplete(bool succeed) {
     TRACE("upgrade complete");
 
     if (ep->connection())
-      ep->connection()->onOpen();
+      ep->connection()->onOpen(false);
     else
       ep->close();
 

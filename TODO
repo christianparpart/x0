@@ -1,5 +1,11 @@
 for a long-term todo list, see ticket system at https://github.com/xzero/x0/issues/
 
+- write a test case for TCP_DEFER_ACCEPT support, for:
+  - InetConnector, generically
+  - http1 (must be able to fully process requests)
+  - fastcgi (must be able to fully process requests)
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 - x0d-flow: add overload `sys.env(name, defaultValue)`
 - director:
   - FIXME: hanging connection in read state without idle timer for over 1day already

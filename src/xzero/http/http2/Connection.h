@@ -90,7 +90,7 @@ class Connection
   void parseFragment();
 
   // Connection overrides
-  void onOpen() override;
+  void onOpen(bool dataReady) override;
   void onClose() override;
   void setInputBufferSize(size_t size) override;
   void onFillable() override;

@@ -240,19 +240,14 @@ Connection::~Connection() {
   TRACE_CONN("$0 dtor", this);
 }
 
-void Connection::onOpen() {
+void Connection::onOpen(bool dataReady) {
   TRACE_CONN("$0 onOpen", this);
-  xzero::Connection::onOpen();
+  xzero::Connection::onOpen(dataReady);
 
-  // TODO support TCP_DEFER_ACCEPT here
-#if 0
-  if (connector()->deferAccept())
+  if (dataReady)
     onFillable();
   else
     wantFill();
-#else
-  wantFill();
-#endif
 }
 
 void Connection::onClose() {

@@ -22,7 +22,7 @@ Connection::Connection(EndPoint* endpoint,
 Connection::~Connection() {
 }
 
-void Connection::onOpen() {
+void Connection::onOpen(bool dataReady) {
   for (ConnectionListener* listener : listeners_) {
     listener->onOpened(this);
   }

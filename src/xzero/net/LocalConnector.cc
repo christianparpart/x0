@@ -94,7 +94,7 @@ bool LocalConnector::acceptOne() {
   connectedEndPoints_.push_back(endpoint);
 
   auto connection = defaultConnectionFactory()->create(this, endpoint.get());
-  connection->onOpen();
+  connection->onOpen(false);
 
   return true;
 }

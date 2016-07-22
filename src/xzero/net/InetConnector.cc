@@ -494,7 +494,7 @@ void InetConnector::onEndPointCreated(const RefPtr<EndPoint>& endpoint) {
   // create Connection object for given endpoint
   defaultConnectionFactory()->create(this, endpoint.get());
 
-  endpoint->connection()->onOpen();
+  endpoint->connection()->onOpen(deferAccept());
 }
 
 std::list<RefPtr<EndPoint>> InetConnector::connectedEndPoints() {
