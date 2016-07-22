@@ -25,15 +25,13 @@ using namespace xzero;
 using namespace xzero::http;
 using namespace xzero::http::http1;
 
-// TODO use the HttpParser to parse the responses into high level abstracts
-//      for better testing.
-//
 // FIXME HTTP/1.1 with keep-alive) SEGV's on LocalEndPoint.
 //
 // TODO test that userapp cannot add invalid headers
 //      (e.g. connection level headers, such as Connection, TE,
 //      Transfer-Encoding, Keep-Alive)
-
+//      - this is actually a semantic check,
+//        http1::Channel should prohibit such things
 
 class ResponseParser : public HttpListener { // {{{
  public:
@@ -101,7 +99,6 @@ void ResponseParser::onProtocolError(HttpStatus code, const std::string& message
   // TODO promise_->failure(Status::ForeignError);
 }
 // }}}
-
 class ScopedLogger { // {{{
  public:
   ScopedLogger() {
