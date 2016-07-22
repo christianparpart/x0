@@ -278,7 +278,7 @@ void Connection::patchResponseInfo(HttpResponseInfo& responseInfo) {
       responseInfo.headers().push_back("Keep-Alive", keepAlive);
     } else {
       channel_->setPersistent(false);
-      responseInfo.headers().append("Connection", "closed", ", ");
+      responseInfo.headers().append("Connection", "close", ", ");
     }
   }
 }
