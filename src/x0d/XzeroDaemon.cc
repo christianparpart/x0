@@ -373,7 +373,7 @@ void XzeroDaemon::postConfig() {
       logNotice("x0d", "Starting HTTPS listener on $0:$1", l.bindAddress, l.port);
       setupConnector<SslConnector>(
           l.bindAddress, l.port, l.backlog,
-          l.multiAcceptCount, l.reuseAddr, l.reusePort,
+          l.multiAcceptCount, l.reuseAddr, l.deferAccept, l.reusePort,
           [this](SslConnector* connector) {
             for (const SslContext& cx: config_->sslContexts) {
               // TODO: include trustfile & priorities
@@ -385,7 +385,7 @@ void XzeroDaemon::postConfig() {
       logNotice("x0d", "Starting HTTP listener on $0:$1", l.bindAddress, l.port);
       setupConnector<InetConnector>(
           l.bindAddress, l.port, l.backlog,
-          l.multiAcceptCount, l.reuseAddr, l.reusePort,
+          l.multiAcceptCount, l.reuseAddr, l.deferAccept, l.reusePort,
           nullptr);
     }
   }
@@ -516,7 +516,7 @@ Executor* XzeroDaemon::selectClientExecutor() {
 template<typename T>
 void XzeroDaemon::setupConnector(
     const xzero::IPAddress& bindAddress, int port, int backlog,
-    int multiAcceptCount, bool reuseAddr, bool reusePort,
+    int multiAcceptCount, bool reuseAddr, bool deferAccept, bool reusePort,
     std::function<void(T*)> connectorVisitor) {
 
   if (reusePort && !InetConnector::isReusePortSupported()) {
@@ -532,7 +532,7 @@ void XzeroDaemon::setupConnector(
           loop,
           [loop]() -> Executor* { return loop; },
           bindAddress, port, backlog,
-          multiAcceptCount, reuseAddr, reusePort);
+          multiAcceptCount, reuseAddr, deferAccept, reusePort);
       if (connectorVisitor) {
         connectorVisitor(connector);
       }
@@ -542,7 +542,7 @@ void XzeroDaemon::setupConnector(
         eventLoops_[0].get(),
         std::bind(&XzeroDaemon::selectClientExecutor, this),
         bindAddress, port, backlog,
-        multiAcceptCount, reuseAddr, reusePort);
+        multiAcceptCount, reuseAddr, deferAccept, reusePort);
     if (connectorVisitor) {
       connectorVisitor(connector);
     }
@@ -553,8 +553,8 @@ template<typename T>
 T* XzeroDaemon::doSetupConnector(
     xzero::Executor* executor,
     xzero::InetConnector::ExecutorSelector clientExecutorSelector,
-    const xzero::IPAddress& ipaddr, int port,
-    int backlog, int multiAccept, bool reuseAddr, bool reusePort) {
+    const xzero::IPAddress& ipaddr, int port, int backlog,
+    int multiAccept, bool reuseAddr, bool deferAccept, bool reusePort) {
 
   auto inet = server_->addConnector<T>(
       "inet",
@@ -570,6 +570,7 @@ T* XzeroDaemon::doSetupConnector(
       reusePort
   );
 
+  inet->setDeferAccept(deferAccept);
   inet->setMultiAcceptCount(multiAccept);
   inet->addConnectionFactory(http1_);
 

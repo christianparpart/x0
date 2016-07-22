@@ -123,6 +123,7 @@ CoreModule::CoreModule(XzeroDaemon* d)
       .param<int>("port")
       .param<int>("backlog", 0) // <= 0 means, it'll default to system-default
       .param<int>("multi_accept", 1)
+      .param<bool>("defer_accept", false)
       .param<bool>("reuse_port", false);
 
   setupFunction("ssl.listen", &CoreModule::ssl_listen)
@@ -130,6 +131,7 @@ CoreModule::CoreModule(XzeroDaemon* d)
       .param<int>("port")
       .param<int>("backlog", 0) // <= 0 means, it'll default to system-default
       .param<int>("multi_accept", 1)
+      .param<bool>("defer_accept", false)
       .param<bool>("reuse_port", false);
 
   setupFunction("ssl.context", &CoreModule::ssl_context)
@@ -453,11 +455,12 @@ void CoreModule::listen(Params& args) {
   int backlog = args.getInt(3);
   int multiAcceptCount = args.getInt(4);
   bool reuseAddr = true;
-  bool reusePort = args.getBool(5);
+  bool deferAccept = args.getBool(5);
+  bool reusePort = args.getBool(6);
   bool ssl = false;
 
   daemon().config_->listeners.emplace_back(ListenerConfig{
-      bind, port, backlog, multiAcceptCount, reuseAddr, reusePort, ssl});
+      bind, port, backlog, multiAcceptCount, reuseAddr, deferAccept, reusePort, ssl});
 }
 
 void CoreModule::ssl_listen(Params& args) {
@@ -466,11 +469,12 @@ void CoreModule::ssl_listen(Params& args) {
   int backlog = args.getInt(3);
   int multiAcceptCount = args.getInt(4);
   bool reuseAddr = true;
-  bool reusePort = args.getBool(5);
+  bool deferAccept = args.getBool(5);
+  bool reusePort = args.getBool(6);
   bool ssl = true;
 
   daemon().config_->listeners.emplace_back(ListenerConfig{
-      bind, port, backlog, multiAcceptCount, reuseAddr, reusePort, ssl});
+      bind, port, backlog, multiAcceptCount, reuseAddr, deferAccept, reusePort, ssl});
 }
 
 void CoreModule::ssl_priorities(Params& args) {

@@ -22,7 +22,8 @@ struct ListenerConfig {
   int backlog;
   int multiAcceptCount;
   int reuseAddr;
-  int reusePort;
+  bool deferAccept;
+  bool reusePort;
   bool ssl;
 };
 

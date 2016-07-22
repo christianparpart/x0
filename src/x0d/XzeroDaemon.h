@@ -91,7 +91,7 @@ class XzeroDaemon : public xzero::flow::vm::Runtime {
   template<typename T>
   void setupConnector(const xzero::IPAddress& ipaddr, int port,
                       int backlog, int multiAccept,
-                      bool reuseAddr, bool reusePort,
+                      bool reuseAddr, bool deferAccept, bool reusePort,
                       std::function<void(T*)> connectorVisitor);
 
   template<typename T>
@@ -99,7 +99,7 @@ class XzeroDaemon : public xzero::flow::vm::Runtime {
                       xzero::InetConnector::ExecutorSelector clientExecutorSelector,
                       const xzero::IPAddress& ipaddr, int port,
                       int backlog, int multiAccept,
-                      bool reuseAddr, bool reusePort);
+                      bool reuseAddr, bool deferAccept, bool reusePort);
 
   template <typename... ArgTypes>
   xzero::flow::vm::NativeCallback& setupFunction(
