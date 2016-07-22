@@ -141,58 +141,82 @@ static const Duration maxKeepAlive = 30_seconds;
   });                                                                           \
   server.start();
 
-TEST(http_http1_Connection, ConnectionClosed_1_1) {
-  MOCK_HTTP1_SERVER(server, connector, executor);
-
-  xzero::RefPtr<LocalEndPoint> ep;
-  executor.execute([&] {
-    ep = connector->createClient("GET / HTTP/1.1\r\n"
-                                 "Connection: close\r\n"
-                                 "\r\n");
-  });
-  ASSERT_TRUE(ep->output().contains("Connection: close"));
-}
-
-TEST(http_http1_Connection, ConnectionClosed_1_0) {
-  MOCK_HTTP1_SERVER(server, connector, executor);
-
-  xzero::RefPtr<LocalEndPoint> ep;
-  executor.execute([&] {
-    ep = connector->createClient("GET / HTTP/1.0\r\n"
-                                 "\r\n");
-  });
-  ASSERT_TRUE(ep->output().contains("Connection: close"));
-}
-
-// sends one single request
-TEST(http_http1_Connection, DISABLED_ConnectionKeepAlive_1_0) {
-  MOCK_HTTP1_SERVER(server, connector, executor);
-
-  xzero::RefPtr<LocalEndPoint> ep;
-  executor.execute([&] {
-    ep = connector->createClient("GET / HTTP/1.0\r\n"
-                                 "Connection: Keep-Alive\r\n"
-                                 "\r\n");
-  });
-  // FIXME: SEGV
-  ASSERT_TRUE(ep->output().contains("\r\nKeep-Alive:"));
-}
-
-#if 0
-// sends one single request
-TEST(http_http1_Connection, ConnectionKeepAlive_1_1) {
+TEST(http_http1_Connection, ConnectionClose_1_1) {
   MOCK_HTTP1_SERVER(server, connector, executor);
 
   xzero::RefPtr<LocalEndPoint> ep;
   executor.execute([&] {
     ep = connector->createClient("GET / HTTP/1.1\r\n"
                                  "Host: test\r\n"
+                                 "Connection: close\r\n"
+                                 "\r\n");
+  });
+
+  Buffer output = ep->output();
+  ResponseParser resp;
+  resp.parse(output);
+  EXPECT_EQ(HttpVersion::VERSION_1_1, resp.responseInfo().version());
+  EXPECT_EQ(HttpStatus::Ok, resp.responseInfo().status());
+  EXPECT_EQ("close", resp.responseInfo().getHeader("Connection"));
+}
+
+TEST(http_http1_Connection, ConnectionClose_1_0) {
+  MOCK_HTTP1_SERVER(server, connector, executor);
+
+  xzero::RefPtr<LocalEndPoint> ep;
+  executor.execute([&] {
+    ep = connector->createClient("GET / HTTP/1.0\r\n"
+                                 "\r\n");
+  });
+
+  Buffer output = ep->output();
+  ResponseParser resp;
+  resp.parse(output);
+  EXPECT_EQ(HttpVersion::VERSION_1_0, resp.responseInfo().version());
+  EXPECT_EQ(HttpStatus::Ok, resp.responseInfo().status());
+  EXPECT_EQ("close", resp.responseInfo().getHeader("Connection"));
+}
+
+// sends one single request
+TEST(http_http1_Connection, ConnectionKeepAlive_1_0) {
+  MOCK_HTTP1_SERVER(server, connector, executor);
+
+  xzero::RefPtr<LocalEndPoint> ep;
+  executor.execute([&] {
+    ep = connector->createClient("GET /hello HTTP/1.0\r\n"
+                                 "Connection: Keep-Alive\r\n"
+                                 "\r\n");
+  });
+
+  Buffer output = ep->output();
+  ResponseParser resp;
+  size_t n = resp.parse(output);
+  EXPECT_EQ(HttpVersion::VERSION_1_0, resp.responseInfo().version());
+  EXPECT_EQ(HttpStatus::Ok, resp.responseInfo().status());
+  EXPECT_EQ("Keep-Alive", resp.responseInfo().getHeader("Connection"));
+  EXPECT_EQ("/hello\n", resp.responseBody().getBuffer());
+}
+
+// sends one single request
+TEST(http_http1_Connection, ConnectionKeepAlive_1_1) {
+  MOCK_HTTP1_SERVER(server, connector, executor);
+
+  xzero::RefPtr<LocalEndPoint> ep;
+  executor.execute([&] {
+    ep = connector->createClient("GET /hello HTTP/1.1\r\n"
+                                 "Host: test\r\n"
                                  "\r\n");
     //printf("%s\n", ep->output().str().c_str());
   });
-  ASSERT_TRUE(ep->output().contains("\r\nKeep-Alive:"));
+
+  Buffer output = ep->output();
+  ResponseParser resp;
+  size_t n = resp.parse(output);
+  EXPECT_EQ(HttpVersion::VERSION_1_1, resp.responseInfo().version());
+  EXPECT_EQ(HttpStatus::Ok, resp.responseInfo().status());
+  EXPECT_EQ("Keep-Alive", resp.responseInfo().getHeader("Connection"));
+  EXPECT_EQ("/hello\n", resp.responseBody().getBuffer());
 }
-#endif
 
 // sends single request, gets response, sends another one on the same line.
 // TEST(http_http1_Connection, ConnectionKeepAlive2) { TODO
@@ -213,16 +237,19 @@ TEST(http_http1_Connection, ConnectionKeepAlive3_pipelined) {
 
   ResponseParser resp;
   size_t n = resp.parse(output);
+  EXPECT_EQ(HttpVersion::VERSION_1_1, resp.responseInfo().version());
   EXPECT_EQ(HttpStatus::Ok, resp.responseInfo().status());
   EXPECT_EQ("Keep-Alive", resp.responseInfo().getHeader("Connection"));
   EXPECT_EQ("/one\n", resp.responseBody().getBuffer());
 
   n += resp.parse(output.ref(n));
+  EXPECT_EQ(HttpVersion::VERSION_1_1, resp.responseInfo().version());
   EXPECT_EQ(HttpStatus::Ok, resp.responseInfo().status());
   EXPECT_EQ("Keep-Alive", resp.responseInfo().getHeader("Connection"));
   EXPECT_EQ("/two\n", resp.responseBody().getBuffer());
 
   n += resp.parse(output.ref(n));
+  EXPECT_EQ(HttpVersion::VERSION_1_1, resp.responseInfo().version());
   EXPECT_EQ(HttpStatus::Ok, resp.responseInfo().status());
   EXPECT_EQ("Keep-Alive", resp.responseInfo().getHeader("Connection"));
   EXPECT_EQ("/three\n", resp.responseBody().getBuffer());
@@ -240,6 +267,10 @@ TEST(http_http1_Connection, protocolErrorShouldRaise400) {
     // FIXME HTTP/1.1 (due to keep-alive) SEGV's on LocalEndPoint.
     ep = connector->createClient("GET\r\n\r\n");
   });
-  xzero::Buffer output = ep->output();
-  ASSERT_TRUE(output.contains("400 Bad Request"));
+
+  Buffer output = ep->output();
+  ResponseParser resp;
+  resp.parse(output);
+  EXPECT_EQ(HttpVersion::VERSION_0_9, resp.responseInfo().version());
+  EXPECT_EQ(HttpStatus::BadRequest, resp.responseInfo().status());
 }
