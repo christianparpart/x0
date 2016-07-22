@@ -66,7 +66,7 @@ InetConnector::InetConnector(const std::string& name,
       blocking_(true),
       backlog_(128),
       multiAcceptCount_(1),
-      deferAccept_(false),
+      deferAccept_(true),
       readTimeout_(readTimeout),
       writeTimeout_(writeTimeout),
       tcpFinTimeout_(tcpFinTimeout),
@@ -387,6 +387,10 @@ void InetConnector::start() {
   listen(backlog_);
 
   isStarted_ = true;
+
+  if (deferAccept_) {
+    setDeferAccept(true);
+  }
 
   notifyOnEvent();
 }
