@@ -17,6 +17,10 @@
 #include <xzero/Buffer.h>
 #include <xzero/testing.h>
 
+#include <xzero/http/http1/Parser.h>
+#include <xzero/http/HttpListener.h>
+#include <xzero/HugeBuffer.h>
+
 using namespace xzero;
 using namespace xzero::http;
 using namespace xzero::http::http1;
@@ -29,6 +33,74 @@ using namespace xzero::http::http1;
 // TODO test that userapp cannot add invalid headers
 //      (e.g. connection level headers, such as Connection, TE,
 //      Transfer-Encoding, Keep-Alive)
+
+
+class ResponseParser : public HttpListener { // {{{
+ public:
+  ResponseParser();
+  size_t parse(const BufferRef& response);
+
+  const HttpResponseInfo& responseInfo() const { return responseInfo_; };
+  const HugeBuffer& responseBody() const { return responseBody_; }
+
+ private:
+  void onMessageBegin(HttpVersion version, HttpStatus code,
+                      const BufferRef& text) override;
+  void onMessageHeader(const BufferRef& name, const BufferRef& value) override;
+  void onMessageHeaderEnd() override;
+  void onMessageContent(const BufferRef& chunk) override;
+  void onMessageContent(FileView&& chunk) override;
+  void onMessageEnd() override;
+  void onProtocolError(HttpStatus code, const std::string& message) override;
+
+ private:
+  HttpResponseInfo responseInfo_;
+  HugeBuffer responseBody_;
+};
+
+ResponseParser::ResponseParser()
+  : responseInfo_(),
+    responseBody_(1024) {
+}
+
+size_t ResponseParser::parse(const BufferRef& response) {
+  http1::Parser parser(Parser::RESPONSE, this);
+  responseInfo_.reset();
+  responseBody_.reset();
+  return parser.parseFragment(response);
+}
+
+void ResponseParser::onMessageBegin(HttpVersion version, HttpStatus code,
+                    const BufferRef& text) {
+  responseInfo_.setVersion(version);
+  responseInfo_.setStatus(code);
+  responseInfo_.setReason(text.str());
+}
+
+void ResponseParser::onMessageHeader(const BufferRef& name, const BufferRef& value) {
+  responseInfo_.headers().push_back(name.str(), value.str());
+}
+
+void ResponseParser::onMessageHeaderEnd() {
+}
+
+void ResponseParser::onMessageContent(const BufferRef& chunk) {
+  responseBody_.write(chunk);
+}
+
+void ResponseParser::onMessageContent(FileView&& chunk) {
+  responseBody_.write(std::move(chunk));
+}
+
+void ResponseParser::onMessageEnd() {
+  responseInfo_.setContentLength(responseBody_.size());
+  // promise_->success(this);
+}
+
+void ResponseParser::onProtocolError(HttpStatus code, const std::string& message) {
+  // TODO promise_->failure(Status::ForeignError);
+}
+// }}}
 
 class ScopedLogger { // {{{
  public:
@@ -127,7 +199,7 @@ TEST(http_http1_Connection, ConnectionKeepAlive_1_1) {
 // }
 
 // sends 3 requests pipelined all at once. receives responses in order
-TEST(http_http1_Connection, DISABLED_ConnectionKeepAlive3_pipelined) {
+TEST(http_http1_Connection, ConnectionKeepAlive3_pipelined) {
   //SCOPED_LOGGER();
   MOCK_HTTP1_SERVER(server, connector, executor);
   xzero::RefPtr<LocalEndPoint> ep;
@@ -137,37 +209,26 @@ TEST(http_http1_Connection, DISABLED_ConnectionKeepAlive3_pipelined) {
                                  "GET /three HTTP/1.1\r\nHost: test\r\n\r\n");
   });
 
-  // TODO: disable date generator in server cration, so we don't fail here in string compare
+  Buffer output = ep->output();
 
-  // XXX assume keep-alive timeout 30
-  // XXX assume max-request-count 5
-  printf("%s\n", ep->output().str().c_str());
-  ASSERT_EQ(
-    "HTTP/1.1 200 Ok\r\n"
-    "Content-Type: text/plain\r\n"
-    "Server: xzero/0.11.0-dev\r\n"
-    "Connection: Keep-Alive\r\n"
-    "Keep-Alive: timeout=30, max=4\r\n"
-    "Content-Length: 5\r\n"
-    "\r\n"
-    "/one\n"
-    "HTTP/1.1 200 Ok\r\n"
-    "Content-Type: text/plain\r\n"
-    "Server: xzero/0.11.0-dev\r\n"
-    "Connection: Keep-Alive\r\n"
-    "Keep-Alive: timeout=30, max=3\r\n"
-    "Content-Length: 5\r\n"
-    "\r\n"
-    "/two\n"
-    "HTTP/1.1 200 Ok\r\n"
-    "Content-Type: text/plain\r\n"
-    "Server: xzero/0.11.0-dev\r\n"
-    "Connection: Keep-Alive\r\n"
-    "Keep-Alive: timeout=30, max=2\r\n"
-    "Content-Length: 7\r\n"
-    "\r\n"
-    "/three\n",
-    ep->output().str());
+  ResponseParser resp;
+  size_t n = resp.parse(output);
+  EXPECT_EQ(HttpStatus::Ok, resp.responseInfo().status());
+  EXPECT_EQ("Keep-Alive", resp.responseInfo().getHeader("Connection"));
+  EXPECT_EQ("/one\n", resp.responseBody().getBuffer());
+
+  n += resp.parse(output.ref(n));
+  EXPECT_EQ(HttpStatus::Ok, resp.responseInfo().status());
+  EXPECT_EQ("Keep-Alive", resp.responseInfo().getHeader("Connection"));
+  EXPECT_EQ("/two\n", resp.responseBody().getBuffer());
+
+  n += resp.parse(output.ref(n));
+  EXPECT_EQ(HttpStatus::Ok, resp.responseInfo().status());
+  EXPECT_EQ("Keep-Alive", resp.responseInfo().getHeader("Connection"));
+  EXPECT_EQ("/three\n", resp.responseBody().getBuffer());
+
+  // no garbage should have been generated at the end
+  ASSERT_EQ(n, output.size());
 }
 
 // ensure proper error code on bad request line
