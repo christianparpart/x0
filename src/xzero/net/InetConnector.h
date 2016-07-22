@@ -303,6 +303,7 @@ class XZERO_BASE_API InetConnector : public Connector {
   bool blocking_;
   size_t backlog_;
   size_t multiAcceptCount_;
+  bool deferAccept_;
   Duration readTimeout_;
   Duration writeTimeout_;
   Duration tcpFinTimeout_;

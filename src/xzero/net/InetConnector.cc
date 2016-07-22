@@ -66,6 +66,7 @@ InetConnector::InetConnector(const std::string& name,
       blocking_(true),
       backlog_(128),
       multiAcceptCount_(1),
+      deferAccept_(false),
       readTimeout_(readTimeout),
       writeTimeout_(writeTimeout),
       tcpFinTimeout_(tcpFinTimeout),
@@ -258,15 +259,7 @@ void InetConnector::setCloseOnExec(bool enable) {
 }
 
 bool InetConnector::deferAccept() const {
-#if defined(TCP_DEFER_ACCEPT)
-  int optval = 1;
-  socklen_t optlen = sizeof(optval);
-  return ::getsockopt(socket_, SOL_TCP, TCP_DEFER_ACCEPT, &optval, &optlen) == 0
-             ? optval != 0
-             : false;
-#else
-  return false;
-#endif
+  return deferAccept_;
 }
 
 void InetConnector::setDeferAccept(bool enable) {
@@ -275,6 +268,7 @@ void InetConnector::setDeferAccept(bool enable) {
   if (::setsockopt(socket_, SOL_TCP, TCP_DEFER_ACCEPT, &rc, sizeof(rc)) < 0) {
     RAISE_ERRNO(errno);
   }
+  deferAccept_ = enable;
 #elif defined(SO_ACCEPTFILTER)
   // XXX this compiles on FreeBSD but not on OSX (why don't they support it?)
   accept_filter_arg afa;
@@ -284,10 +278,13 @@ void InetConnector::setDeferAccept(bool enable) {
   if (setsockopt(serverfd, SOL_SOCKET, SO_ACCEPTFILTER, &afa, sizeof(afa)) < 0) {
     RAISE_ERRNO(errno);
   }
+  deferAccept_ = enable;
 #else
   if (enable) {
     logWarning("InetConnector",
                "Ignoring setting TCP_DEFER_ACCEPT. Not supported.");
+  } else {
+    deferAccept_ = enable;
   }
 #endif
 }
