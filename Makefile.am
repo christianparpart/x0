@@ -339,6 +339,8 @@ libXzero_a_SOURCES = \
 	src/xzero/logging/Logger.cc \
 	src/xzero/logging/Logger.h \
 	src/xzero/logging/Logger_impl.h \
+	src/xzero/logging/SyslogTarget.cc \
+	src/xzero/logging/SyslogTarget.h \
 	src/xzero/net/ByteArrayEndPoint.cc \
 	src/xzero/net/ByteArrayEndPoint.h \
 	src/xzero/net/Cidr.cc \
