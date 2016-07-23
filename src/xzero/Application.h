@@ -24,6 +24,12 @@ class XZERO_BASE_API Application {
   static void installGlobalExceptionHandler();
 
   /**
+   * Retrieves the application name, as determined by inspecting the system
+   * environment.
+   */
+  static std::string appName();
+
+  /**
    * Retrieves the user-name this application is running under.
    */
   static std::string userName();

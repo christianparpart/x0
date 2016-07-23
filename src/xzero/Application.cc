@@ -7,6 +7,7 @@
 
 #include <xzero/Application.h>
 #include <xzero/Buffer.h>
+#include <xzero/StringUtil.h>
 #include <xzero/io/FileUtil.h>
 #include <xzero/io/SystemPipe.h>
 #include <xzero/executor/Executor.h>
@@ -32,6 +33,12 @@ void Application::init() {
   // well, when you detach from the terminal, you're garanteed to not get one.
   // unless someone sends it explicitely (so why ignoring then)?
   thread::SignalHandler::ignore(SIGHUP);
+}
+
+std::string Application::appName() {
+  return StringUtil::split(
+      FileUtil::read(StringUtil::format("/proc/$0/cmdline", getpid())).str(),
+      " ")[0];
 }
 
 void Application::logToStderr(LogLevel loglevel) {
