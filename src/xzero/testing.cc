@@ -8,6 +8,7 @@
 #include <xzero/testing.h>
 #include <xzero/cli/CLI.h>
 #include <xzero/cli/Flags.h>
+#include <xzero/logging/Logger.h>
 #include <xzero/Application.h>
 #include <xzero/AnsiColor.h>
 #include <xzero/StringUtil.h>
@@ -134,6 +135,7 @@ int UnitTest::main(int argc, const char* argv[]) {
 
   CLI cli;
   cli.defineBool("help", 'h', "Prints this help and terminates.")
+     .defineBool("verbose", 'v', "Prints to console in debug log level.")
      .defineString("log-level", 'L', "ENUM", "Defines the minimum log level.", "info", nullptr)
      .defineString("log-target", 0, "ENUM", "Specifies logging target. One of syslog, file, systemd, console.", "console", nullptr)
      .defineString("filter", 'f', "GLOB", "Filters tests by given glob.", "*")
@@ -148,6 +150,20 @@ int UnitTest::main(int argc, const char* argv[]) {
   if (flags.getBool("help")) {
     printf("%s\n", cli.helpText().c_str());
     return 0;
+  }
+
+  if (flags.getBool("verbose")) {
+    Application::logToStderr(LogLevel::Debug);
+  }
+
+  std::string logLevelStr = flags.getString("log-level");
+  if (!logLevelStr.empty()) {
+    Logger::get()->setMinimumLogLevel(make_loglevel(logLevelStr));
+  }
+
+  std::string logTargetStr = flags.getString("log-target");
+  if (!logTargetStr.empty()) {
+    // TODO: log-target
   }
 
   filter_ = flags.getString("filter");
