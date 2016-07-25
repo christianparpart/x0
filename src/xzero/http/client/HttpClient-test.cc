@@ -8,7 +8,6 @@
 #include <xzero/http/client/HttpClient.h>
 #include <xzero/executor/NativeScheduler.h>
 #include <xzero/net/ByteArrayEndPoint.h>
-#include <xzero/Application.h>
 #include <xzero/logging.h>
 #include <xzero/stdtypes.h>
 #include <xzero/testing.h>
@@ -30,8 +29,6 @@ RefPtr<ByteArrayEndPoint> createEndPoint() {
 };
 
 TEST(HttpClient, DISABLED_test_http1_default) {
-  Application::logToStderr(LogLevel::Trace);
-
   NativeScheduler sched(std::unique_ptr<xzero::ExceptionHandler>(
       new CatchAndLogExceptionHandler("unittest")));
 

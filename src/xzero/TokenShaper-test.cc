@@ -11,8 +11,6 @@
 #include <xzero/MonotonicClock.h>
 #include <xzero/MonotonicTime.h>
 #include <xzero/executor/PosixScheduler.h>
-#include <xzero/logging/Logger.h>
-#include <xzero/logging/ConsoleLogTarget.h>
 #include <xzero/StringUtil.h>
 
 using namespace xzero;
@@ -52,9 +50,6 @@ void TokenShaperTest::onTimeout(int* i) {
 }
 
 void TokenShaperTest::SetUp() {
-  // Logger::get()->setMinimumLogLevel(LogLevel::Info);
-  // Logger::get()->addTarget(ConsoleLogTarget::get());
-
   loop.reset(new PosixScheduler());
 
   shaper.reset(new Shaper(loop.get(), 10,

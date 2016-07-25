@@ -226,14 +226,14 @@ TEST(PosixSchedulerTest, executeOnWritable) {
   EXPECT_EQ(0, timeoutCount);
 }
 
-// TEST(PosixSchedulerTest, waitForReadable, [] () { // TODO
-// });
+// TEST(PosixSchedulerTest, waitForReadable) {
+// };
 // 
-// TEST(PosixSchedulerTest, waitForWritable, [] () { // TODO
-// });
+// TEST(PosixSchedulerTest, waitForWritable) {
+// };
 // 
-// TEST(PosixSchedulerTest, waitForReadable_timed, [] () { // TODO
-// });
+// TEST(PosixSchedulerTest, waitForReadable_timed) {
+// };
 // 
-// TEST(PosixSchedulerTest, waitForWritable_timed, [] () { // TODO
-// });
+// TEST(PosixSchedulerTest, waitForWritable_timed) {
+// };

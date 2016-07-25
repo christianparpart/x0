@@ -8,7 +8,6 @@
 #include <xzero/http/hpack/Parser.h>
 #include <xzero/http/HeaderFieldList.h>
 #include <xzero/Option.h>
-#include <xzero/Application.h>
 #include <xzero/testing.h>
 
 using namespace xzero;
@@ -16,8 +15,6 @@ using namespace xzero::http;
 using namespace xzero::http::hpack;
 
 TEST(hpack_Parser, decodeInt) {
-  Application::logToStderr(LogLevel::Trace);
-
   DynamicTable dt(4096);
   Parser parser(&dt, 4096, nullptr);
   uint8_t helloInt[4] = {0};
