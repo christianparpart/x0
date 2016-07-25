@@ -53,7 +53,7 @@ void XzeroEventHandler::onUpgradeBinary(const UnixSignalInfo& info) {
             "Upgrading binary requested by pid $0 uid $1",
             info.pid.get(), info.uid.get());
 
-  /* TODO
+  /* TODO [x0d] binary upgrade
    * 1. suspend the world
    * 2. save state into temporary file with an inheriting file descriptor
    * 3. exec into new binary
@@ -70,8 +70,7 @@ void XzeroEventHandler::onQuickShutdown() {
 void XzeroEventHandler::onGracefulShutdown() {
   logNotice("x0d", "Initiating graceful shutdown.");
 
-  /* TODO
-   * 1. stop all listeners
+  /* 1. stop all listeners
    * 2. wait until all requests have been handled.
    * 3. orderly shutdown
    */
