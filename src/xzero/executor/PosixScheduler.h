@@ -11,7 +11,6 @@
 #include <xzero/MonotonicTime.h>
 #include <xzero/executor/EventLoop.h>
 #include <sys/select.h>
-#include <set>
 #include <vector>
 #include <list>
 #include <mutex>
@@ -37,6 +36,7 @@ class PosixScheduler : public EventLoop {
 
   MonotonicTime now() const;
 
+ public:
   using EventLoop::executeOnReadable;
   using EventLoop::executeOnWritable;
 
