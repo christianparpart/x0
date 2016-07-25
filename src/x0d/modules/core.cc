@@ -366,15 +366,15 @@ void CoreModule::etag_inode(Params& args) {
 }
 
 void CoreModule::fileinfo_cache_ttl(Params& args) {
-  // TODO
+  // TODO [x0d] fileinfo.cache.ttl
 }
 
 void CoreModule::server_advertise(Params& args) {
-  // TODO
+  // TODO [x0d] server.advertise
 }
 
 void CoreModule::server_tags(Params& args) {
-  // TODO
+  // TODO [x0d] server.tags
 }
 
 void CoreModule::max_read_idle(Params& args) {
