@@ -24,6 +24,7 @@
 #include <xzero/http/Cookies.h>
 #include <xzero/net/IPAddress.h>
 #include <xzero/io/FileDescriptor.h>
+#include <xzero/logging/SyslogTarget.h>
 #include <xzero/logging.h>
 
 #include <sys/types.h>
@@ -243,20 +244,34 @@ struct RequestLogger : public CustomData { // {{{
   XzeroContext* context_;
 
   std::list<std::pair<FlowString /*format*/, LogFile* /*log*/>> targets_;
+  std::list<std::pair<FlowString /*format*/, LogTarget* /*target*/>> logTargets_;
+
+  explicit RequestLogger(XzeroContext* cx)
+      : context_(cx), targets_() {
+  }
 
   RequestLogger(XzeroContext* cx, const FlowString& format, LogFile* log)
-      : context_(cx), targets_() {
+      : RequestLogger(cx) {
     addTarget(format, log);
   }
 
   void addTarget(const FlowString& format, LogFile* log) {
-    targets_.push_back(std::make_pair(format, log));
+    targets_.emplace_back(std::make_pair(format, log));
+  }
+
+  void addLogTarget(const FlowString& format, LogTarget* logTarget) {
+    logTargets_.emplace_back(std::make_pair(format, logTarget));
   }
 
   ~RequestLogger() {
     for (const auto& target: targets_) {
       Buffer line = formatLog(context_, target.first);
       target.second->write(std::move(line));
+    }
+
+    for (const auto& target: logTargets_) {
+      Buffer line = formatLog(context_, target.first);
+      target.second->log(LogLevel::Info, "accesslog", line.str());
     }
   }
 };  // }}}
@@ -278,6 +293,9 @@ AccesslogModule::AccesslogModule(XzeroDaemon* d)
 
   mainFunction("accesslog", &AccesslogModule::accesslog_file)
       .param<FlowString>("file")
+      .param<FlowString>("format", "main");
+
+  mainFunction("accesslog.syslog", &AccesslogModule::accesslog_syslog)
       .param<FlowString>("format", "main");
 
   onCycleLogs(std::bind(&AccesslogModule::onCycle, this));
@@ -306,6 +324,28 @@ Option<FlowString> AccesslogModule::lookupFormat(const FlowString& id) const {
   }
 
   return None(); //Error("accesslog format not found.");
+}
+
+void AccesslogModule::accesslog_syslog(XzeroContext* cx, Params& args) {
+  // TODO: accesslog.syslog()
+
+  FlowString id = args.getString(1);
+  Option<FlowString> format = lookupFormat(id);
+  if (format.isNone()) {
+    logError("x0d",
+             "Could not write to accesslog.syslog with format id '%*s'. %s",
+             id.size(),
+             id.data(),
+             "Accesslog format not found.");
+    return;
+  }
+
+  if (auto rl = cx->customData<RequestLogger>(this)) {
+    rl->addLogTarget(format.get(), SyslogTarget::get());
+  } else {
+    cx->setCustomData<RequestLogger>(this, cx);
+    rl->addLogTarget(format.get(), SyslogTarget::get());
+  }
 }
 
 // accesslog(filename, format = "main");
