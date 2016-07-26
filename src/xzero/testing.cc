@@ -13,6 +13,7 @@
 #include <xzero/AnsiColor.h>
 #include <xzero/StringUtil.h>
 #include <xzero/Buffer.h>
+#include <xzero/logging.h>
 #include <algorithm>
 #include <random>
 #include <chrono>
@@ -53,6 +54,10 @@ void Test::SetUp() {
 }
 
 void Test::TearDown() {
+}
+
+void Test::log(const std::string& message) {
+  UnitTest::instance()->log(message);
 }
 
 // ############################################################################
@@ -419,6 +424,13 @@ TestInfo* UnitTest::addTest(const char* testCaseName,
   activeTests_.emplace_back(activeTests_.size());
 
   return testCases_.back().get();
+}
+
+void UnitTest::log(const std::string& message) {
+  std::string component = StringUtil::format("$0.$1",
+      currentTestCase_->testCaseName(),
+      currentTestCase_->testName());
+  logDebug(component, "$0", message);
 }
 
 } // namespace testing

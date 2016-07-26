@@ -233,6 +233,11 @@ class Test {
   virtual void SetUp();
   virtual void TestBody() = 0;
   virtual void TearDown();
+
+  void log(const std::string& message);
+
+  template<typename... Args>
+  void logf(const char* fmt, Args... args);
 };
 
 /**
@@ -312,6 +317,13 @@ class UnitTest {
 
   void reportMessage(const std::string& message, bool fatal);
 
+  void log(const std::string& message);
+
+  template<typename ... Args>
+  void logf(const char* format, Args... args) {
+    log(StringUtil::format(format, args...));
+  }
+
  private:
   void randomizeTestOrder();
   void sortTestsAlphabetically();
@@ -341,6 +353,11 @@ class UnitTest {
   int failCount_;
   std::vector<std::string> failures_;
 };
+
+template<typename... Args>
+inline void Test::logf(const char* fmt, Args... args) {
+  UnitTest::instance()->logf(fmt, args...);
+}
 
 } // namespace testing
 } // namespace xzero
