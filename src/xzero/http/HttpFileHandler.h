@@ -46,7 +46,7 @@ class XZERO_HTTP_API HttpFileHandler {
   ~HttpFileHandler();
 
   /**
-   * Handles given @p request if a local file (based on @p docroot) exists.
+   * Handles given @p request if a local file @p transferFile exists.
    *
    * Iff the given request was successfully handled, the response is
    * being also marked as completed, and thus, any future call to
@@ -63,13 +63,20 @@ class XZERO_HTTP_API HttpFileHandler {
    * Evaluates conditional requests to local file.
    *
    * @param transferFile the targeted file that is meant to be transferred.
-   * @param fd open file descriptor in case of a GET request.
    * @param request HTTP request handle.
    * @param response HTTP response handle.
    *
    * @retval true request was fully handled, e.g.
    *              HttpResponse::completed() was invoked.
    * @retval false Could not handle request.
+   *
+   * This method tests whether the @p request is conditional.
+   * It checks for the presense of request header fields, such as
+   * "If-Match", "If-None-Match", "If-Modified-Since", "If-Unmodified-Since",
+   * and if found and evaluated to be true, the request will
+   * be served directly with a "Not Modified" or "Precondition Failed".
+   *
+   * If the conditionas fail then no operations has been made to the @p response.
    */
   bool handleClientCache(const File& transferFile, HttpRequest* request,
                          HttpResponse* response);
@@ -86,7 +93,7 @@ class XZERO_HTTP_API HttpFileHandler {
    *              HttpResponse:::completed() was invoked.
    * @retval false this is no ranged request.
    *
-   * @note if this is no ranged request. nothing is done on it.
+   * @note if this is no ranged request then nothing is done on it.
    */
   bool handleRangeRequest(const File& transferFile, int fd,
                           HttpRequest* request, HttpResponse* response);
