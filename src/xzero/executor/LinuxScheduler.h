@@ -17,14 +17,15 @@
 #include <list>
 #include <memory>
 #include <mutex>
+#include <unordered_map>
 
 namespace xzero {
 
 /**
- * Implements Scheduler Executor API via native Linux features,
- * such as @c epoll, @c timerfd, @c eventfd, etc.
+ * Implements EventLoop API via native Linux features,
+ * such as @c epoll, @c eventfd, @c timerfd, @p signalfd, etc.
  */
-class XZERO_BASE_API LinuxScheduler : public EventLoop {
+class LinuxScheduler : public EventLoop {
  public:
   LinuxScheduler(
       std::unique_ptr<ExceptionHandler> eh,
@@ -57,11 +58,80 @@ class XZERO_BASE_API LinuxScheduler : public EventLoop {
   void breakLoop() override;
 
  private:
-  // helper
+  enum class Mode { READABLE, WRITABLE };
+
+  struct Watcher : public Executor::Handle {
+    Watcher();
+    Watcher(const Watcher&);
+    Watcher(int fd, Mode mode, Task onIO,
+            MonotonicTime timeout, Task onTimeout);
+
+    void clear();
+    void reset(int fd, Mode mode, Task onIO,
+               MonotonicTime timeout, Task onTimeout);
+
+    int fd;
+    Mode mode;
+    MonotonicTime timeout;
+    Task onTimeout;
+
+    Watcher* prev;
+    Watcher* next;
+  };
+
+  /**
+   * Wakes up loop if currently waiting for events without breaking out.
+   */
+  void wakeupLoop();
+
+ private:
+  /**
+   * Registers an I/O interest.
+   *
+   * @note requires the caller to lock the object mutex.
+   */
+  HandleRef createWatcher(Mode mode, int fd, Task task, Duration tmo, Task tcb);
+
+  /**
+   * Searches for the natural predecessor of given Watcher @p p.
+   *
+   * @param p watcher to naturally order into the already existing linked list.
+   *
+   * @returns @c nullptr if it must be put in front, or pointer to the Watcher
+   *          element that would directly lead to Watcher @p w.
+   */
+  Watcher* findPrecedingWatcher(Watcher* w);
+
+  /**
+   * Inserts watcher between @p pred and @p pred's successor.
+   *
+   * @param w     Watcher to inject into the linked list of watchers.
+   * @param pred  Predecessor. The watdher @p w will be placed right next to it.
+   *              With @p pred being @c nullptr the @p w will be put in front
+   *              of all watchers.
+   * @return the linked Watcher @p w.
+   *
+   * @note requires the caller to lock the object mutex.
+   */
+  Watcher* linkWatcher(Watcher* w, Watcher* pred);
+
+  /**
+   * Removes given watcher from ordered list of watchers.
+   *
+   * @return watcher next to the given watcher, ascending ordered by time.
+   * @note requires the caller to lock the object mutex.
+   */
+  Watcher* unlinkWatcher(Watcher* watcher);
 
  private:
   Task onPreInvokePending_;  //!< callback to be invoked before any other hot CB
   Task onPostInvokePending_; //!< callback to be invoked after any other hot CB
+
+  std::mutex lock_; //!< mutex, to protect access to tasks, timers
+
+  std::unordered_map<int, Watcher> watchers_;  //!< I/O watchers
+  Watcher* firstWatcher_;                      //!< I/O watcher with the smallest timeout
+  Watcher* lastWatcher_;                       //!< I/O watcher with the largest timeout
 
   FileDescriptor epollfd_;
   FileDescriptor eventfd_;
@@ -71,6 +141,16 @@ class XZERO_BASE_API LinuxScheduler : public EventLoop {
   std::atomic<size_t> readerCount_;
   std::atomic<size_t> writerCount_;
 };
+
+LinuxScheduler::Watcher::Watcher(int _fd, Mode _mode, Task _onIO,
+                                 MonotonicTime _timeout, Task _onTimeout)
+  : fd(_fd),
+    mode(_mode),
+    timeout(_timeout),
+    onTimeout(_onTimeout),
+    prev(nullptr),
+    next(nullptr) {
+}
 
 // std::string inspect(LinuxScheduler::Mode mode);
 // std::string inspect(const LinuxScheduler::Watcher& w);

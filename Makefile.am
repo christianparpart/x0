@@ -420,11 +420,11 @@ libXzero_a_SOURCES = \
 	src/xzero/util/SimpleRateLimit.h
 
 # TODO: finalize
-# if PLATFORM_LINUX
-# libXzero_a_SOURCES += \
-# 	src/xzero/executor/LinuxScheduler.cc \
-# 	src/xzero/executor/LinuxScheduler.h
-# endif
+if PLATFORM_LINUX
+libXzero_a_SOURCES += \
+	src/xzero/executor/LinuxScheduler.cc \
+	src/xzero/executor/LinuxScheduler.h
+endif
 
 if PLATFORM_DARWIN
 # XXX some stuff here, if any
