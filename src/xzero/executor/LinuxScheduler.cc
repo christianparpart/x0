@@ -6,9 +6,12 @@
 // the License at: http://opensource.org/licenses/MIT
 
 #include <xzero/executor/LinuxScheduler.h>
+#include <xzero/thread/Wakeup.h>
 #include <xzero/MonotonicTime.h>
 #include <xzero/MonotonicClock.h>
 #include <xzero/WallClock.h>
+#include <algorithm>
+#include <vector>
 
 #include <sys/epoll.h>
 #include <sys/timerfd.h>
@@ -17,19 +20,23 @@
 
 namespace xzero {
 
+#define EPOLL_MAX_USER_WATCHES_FILE "/proc/sys/fs/epoll/max_user_watches"
+
 LinuxScheduler::LinuxScheduler(
     std::unique_ptr<xzero::ExceptionHandler> eh,
     std::function<void()> preInvoke,
     std::function<void()> postInvoke)
-    : EventLoop(std::move(eh)), 
+    : EventLoop(std::move(eh)),
       onPreInvokePending_(preInvoke),
       onPostInvokePending_(postInvoke),
       epollfd_(epoll_create1(EPOLL_CLOEXEC)),
       eventfd_(),
       timerfd_(),
       signalfd_(),
+      activeEvents_(1024),
       readerCount_(0),
-      writerCount_(0)
+      writerCount_(0),
+      breakLoopCounter_(0)
 {
 }
 
@@ -50,6 +57,12 @@ MonotonicTime LinuxScheduler::now() const {
 }
 
 void LinuxScheduler::execute(Task task) {
+  {
+    std::lock_guard<std::mutex> lk(lock_);
+    tasks_.emplace_back(std::move(task));
+    ref();
+  }
+  wakeupLoop();
 }
 
 std::string LinuxScheduler::toString() const {
@@ -57,11 +70,11 @@ std::string LinuxScheduler::toString() const {
 }
 
 Executor::HandleRef LinuxScheduler::executeAfter(Duration delay, Task task) {
-  return nullptr;
+  return insertIntoTimersList(now() + delay, task);
 }
 
-Executor::HandleRef LinuxScheduler::executeAt(UnixTime dt, Task task) {
-  return nullptr;
+Executor::HandleRef LinuxScheduler::executeAt(UnixTime when, Task task) {
+  return insertIntoTimersList(now() + (when - WallClock::now()), task);
 }
 
 Executor::HandleRef LinuxScheduler::executeOnReadable(int fd, Task task,
@@ -74,6 +87,15 @@ Executor::HandleRef LinuxScheduler::executeOnWritable(int fd, Task task,
                                                       Duration tmo, Task tcb) {
   std::lock_guard<std::mutex> lk(lock_);
   return createWatcher(Mode::WRITABLE, fd, task, tmo, tcb);
+}
+
+int LinuxScheduler::makeEvent(Mode mode) {
+  switch (mode) {
+    case Mode::READABLE:
+      return EPOLLIN;
+    case Mode::WRITABLE:
+      return EPOLLOUT;
+  }
 }
 
 Executor::HandleRef LinuxScheduler::createWatcher(
@@ -92,6 +114,16 @@ Executor::HandleRef LinuxScheduler::createWatcher(
     std::lock_guard<std::mutex> _l(lock_);
     unlinkWatcher(interest);
   });
+
+  epoll_event event;
+  memset(&event, 0, sizeof(event));
+  event.data.ptr = interest;
+  event.events = makeEvent(mode);
+
+  int rv = epoll_ctl(epollfd_, EPOLL_CTL_ADD, fd, &event);
+  if (rv < 0) {
+    RAISE_ERRNO(errno);
+  }
 
   switch (mode) {
     case Mode::READABLE:
@@ -175,19 +207,158 @@ LinuxScheduler::Watcher* LinuxScheduler::unlinkWatcher(Watcher* w) {
   return succ;
 }
 
-void LinuxScheduler::cancelFD(int fd) {
+Duration LinuxScheduler::nextTimeout() const {
+  if (!tasks_.empty())
+    return Duration::Zero;
+
+  const Duration a = !timers_.empty()
+                 ? timers_.front()->when - now()
+                 : 60_seconds;
+
+  const Duration b = firstWatcher_ != nullptr
+                 ? firstWatcher_->timeout - now()
+                 : 61_seconds;
+
+  return std::min(a, b);
+}
+
+void LinuxScheduler::cancelFD(int fd) { // TODO
 }
 
 void LinuxScheduler::executeOnWakeup(Task task, Wakeup* wakeup, long generation) {
+  wakeup->onWakeup(generation, std::bind(&LinuxScheduler::execute, this, task));
 }
 
 void LinuxScheduler::runLoop() {
+  breakLoopCounter_.store(0);
+
+  while (referenceCount() > 0 && breakLoopCounter_.load() == 0) {
+    runLoopOnce();
+  }
 }
 
 void LinuxScheduler::runLoopOnce() {
+  int rv;
+
+  do rv = epoll_wait(epollfd_, &activeEvents_[0], activeEvents_.size(),
+                     nextTimeout().milliseconds());
+  while (rv < 0 && errno == EINTR);
+
+  if (rv < 0)
+    RAISE_ERRNO(errno);
+
+  std::list<Task> activeTasks;
+  {
+    std::lock_guard<std::mutex> lk(lock_);
+
+    unref(tasks_.size());
+    activeTasks = std::move(tasks_);
+
+    collectActiveHandles(static_cast<size_t>(rv), &activeTasks);
+    collectTimeouts(&activeTasks);
+  }
+
+  safeCall(onPreInvokePending_);
+  safeCallEach(activeTasks);
+  safeCall(onPostInvokePending_);
 }
 
 void LinuxScheduler::breakLoop() {
+}
+
+EventLoop::HandleRef LinuxScheduler::insertIntoTimersList(MonotonicTime dt,
+                                                          Task task) {
+  RefPtr<Timer> t(new Timer(dt, task));
+
+  auto onCancel = [this, t]() {
+    std::lock_guard<std::mutex> _l(lock_);
+
+    auto i = timers_.end();
+    auto e = timers_.begin();
+
+    while (i != e) {
+      i--;
+      if (i->get() == t.get()) {
+        timers_.erase(i);
+        unref();
+        break;
+      }
+    }
+  };
+  t->setCancelHandler(onCancel);
+
+  std::lock_guard<std::mutex> lk(lock_);
+
+  ref();
+
+  auto i = timers_.end();
+  auto e = timers_.begin();
+
+  while (i != e) {
+    i--;
+    const RefPtr<Timer>& current = *i;
+    if (t->when >= current->when) {
+      i++;
+      i = timers_.insert(i, t);
+      return t.as<Handle>();
+    }
+  }
+
+  timers_.push_front(t);
+  i = timers_.begin();
+  return t.as<Handle>();
+
+  // return std::make_shared<Handle>([this, i]() {
+  //   std::lock_guard<std::mutex> lk(lock_);
+  //   timers_.erase(i);
+  // });
+}
+
+void LinuxScheduler::collectActiveHandles(size_t count,
+                                          std::list<Task>* result) {
+  for (size_t i = 0; i < count; ++i) {
+    epoll_event& event = activeEvents_[i];
+    Watcher* w = static_cast<Watcher*>(event.data.ptr);
+
+    if (event.events & EPOLLIN) {
+      readerCount_--;
+      result->push_back(w->onIO);
+      unlinkWatcher(w);
+    } else if (event.events & EPOLLOUT) {
+      writerCount_--;
+      result->push_back(w->onIO);
+      unlinkWatcher(w);
+    }
+  }
+}
+
+void LinuxScheduler::collectTimeouts(std::list<Task>* result) {
+  const auto nextTimedout = [this]() -> Watcher* {
+    return firstWatcher_ && firstWatcher_->timeout <= now()
+        ? firstWatcher_
+        : nullptr;
+  };
+
+  while (Watcher* w = nextTimedout()) {
+    result->push_back([w] { w->fire(w->onTimeout); });
+    switch (w->mode) {
+      case Mode::READABLE: readerCount_--; break;
+      case Mode::WRITABLE: writerCount_--; break;
+    }
+    w = unlinkWatcher(w);
+  }
+
+  const auto nextTimer = [this]() -> RefPtr<Timer> {
+    return !timers_.empty() && timers_.front()->when <= now()
+        ? timers_.front()
+        : nullptr;
+  };
+
+  while (RefPtr<Timer> job = nextTimer()) {
+    result->push_back([job] { job->fire(job->action); });
+    timers_.pop_front();
+    unref();
+  }
 }
 
 } // namespace xzero

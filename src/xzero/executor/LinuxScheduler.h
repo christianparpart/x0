@@ -18,6 +18,7 @@
 #include <memory>
 #include <mutex>
 #include <unordered_map>
+#include <sys/epoll.h>
 
 namespace xzero {
 
@@ -57,10 +58,13 @@ class LinuxScheduler : public EventLoop {
   void runLoopOnce() override;
   void breakLoop() override;
 
+  // Executor API
+  //TODO(signalfd) HandleRef executeOnSignal(int signo, SignalHandler task) override;
+
  private:
   enum class Mode { READABLE, WRITABLE };
 
-  struct Watcher : public Executor::Handle {
+  struct Watcher : public Handle { // {{{
     Watcher();
     Watcher(const Watcher&);
     Watcher(int fd, Mode mode, Task onIO,
@@ -72,19 +76,32 @@ class LinuxScheduler : public EventLoop {
 
     int fd;
     Mode mode;
+    Task onIO;
     MonotonicTime timeout;
     Task onTimeout;
 
     Watcher* prev;
     Watcher* next;
-  };
+  }; // }}}
+  struct Timer : public Handle { // {{{
+    MonotonicTime when;
+    Task action;
+
+    Timer() : Handle(), when(), action() {}
+    Timer(MonotonicTime dt, Task t) : Handle(), when(dt), action(t) {}
+    Timer(MonotonicTime dt, Task t, Task c) : Handle(c), when(dt), action(t) {}
+    Timer(const Timer&) = default;
+    Timer& operator=(const Timer&) = default;
+  }; // }}}
+
+ private:
+  inline static int makeEvent(Mode mode);
 
   /**
    * Wakes up loop if currently waiting for events without breaking out.
    */
   void wakeupLoop();
 
- private:
   /**
    * Registers an I/O interest.
    *
@@ -123,6 +140,19 @@ class LinuxScheduler : public EventLoop {
    */
   Watcher* unlinkWatcher(Watcher* watcher);
 
+  /**
+   * Computes the timespan the event loop should wait the most.
+   *
+   * @note requires the caller to lock the object mutex.
+   */
+  Duration nextTimeout() const;
+
+  void collectActiveHandles(size_t count, std::list<Task>* result);
+
+  HandleRef insertIntoTimersList(MonotonicTime dt, Task task);
+
+  void collectTimeouts(std::list<Task>* result);
+
  private:
   Task onPreInvokePending_;  //!< callback to be invoked before any other hot CB
   Task onPostInvokePending_; //!< callback to be invoked after any other hot CB
@@ -133,13 +163,19 @@ class LinuxScheduler : public EventLoop {
   Watcher* firstWatcher_;                      //!< I/O watcher with the smallest timeout
   Watcher* lastWatcher_;                       //!< I/O watcher with the largest timeout
 
+  std::list<Task> tasks_;                       //!< list of pending tasks
+  std::list<RefPtr<Timer>> timers_;             //!< ASC-sorted list of timers
+
   FileDescriptor epollfd_;
   FileDescriptor eventfd_;
   FileDescriptor timerfd_;
   FileDescriptor signalfd_;
 
+  std::vector<epoll_event> activeEvents_;
+
   std::atomic<size_t> readerCount_;
   std::atomic<size_t> writerCount_;
+  std::atomic<size_t> breakLoopCounter_;
 };
 
 LinuxScheduler::Watcher::Watcher(int _fd, Mode _mode, Task _onIO,
