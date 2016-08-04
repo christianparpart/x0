@@ -19,6 +19,10 @@ inline constexpr MonotonicTime::MonotonicTime(uint64_t nanosecs)
     : nanosecs_(nanosecs) {
 }
 
+inline constexpr MonotonicTime::MonotonicTime(ZeroType zero)
+    : nanosecs_(0) {
+}
+
 inline constexpr uint64_t MonotonicTime::seconds() const {
   return nanosecs_ / 1000000000;
 }

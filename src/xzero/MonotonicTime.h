@@ -18,6 +18,9 @@ public:
   constexpr MonotonicTime(const MonotonicTime& other);
   constexpr explicit MonotonicTime(uint64_t nanosecs);
 
+  enum ZeroType { Zero };
+  constexpr MonotonicTime(ZeroType zero);
+
   constexpr uint64_t seconds() const;
   constexpr uint64_t milliseconds() const;
   constexpr uint64_t microseconds() const;
@@ -34,7 +37,7 @@ public:
   constexpr bool operator>(const MonotonicTime& other) const;
 
   constexpr bool operator!() const;
-  
+
 private:
   uint64_t nanosecs_;
 };
