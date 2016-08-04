@@ -61,7 +61,6 @@ class LinuxScheduler : public EventLoop {
   // Executor API
   //TODO(signalfd) HandleRef executeOnSignal(int signo, SignalHandler task) override;
 
- private:
   enum class Mode { READABLE, WRITABLE };
 
   struct Watcher : public Handle { // {{{
@@ -178,18 +177,10 @@ class LinuxScheduler : public EventLoop {
   std::atomic<size_t> breakLoopCounter_;
 };
 
-LinuxScheduler::Watcher::Watcher(int _fd, Mode _mode, Task _onIO,
-                                 MonotonicTime _timeout, Task _onTimeout)
-  : fd(_fd),
-    mode(_mode),
-    timeout(_timeout),
-    onTimeout(_onTimeout),
-    prev(nullptr),
-    next(nullptr) {
-}
-
-// std::string inspect(LinuxScheduler::Mode mode);
+std::string inspect(LinuxScheduler::Mode mode);
 // std::string inspect(const LinuxScheduler::Watcher& w);
 // std::string inspect(const LinuxScheduler& s);
 
 } // namespace xzero
+
+#include <xzero/executor/LinuxScheduler-inl.h>

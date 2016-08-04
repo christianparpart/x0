@@ -10,6 +10,10 @@
 #include <xzero/MonotonicTime.h>
 #include <xzero/MonotonicClock.h>
 #include <xzero/WallClock.h>
+#include <xzero/StringUtil.h>
+#include <xzero/ExceptionHandler.h>
+#include <xzero/logging.h>
+#include <xzero/sysconfig.h>
 #include <algorithm>
 #include <vector>
 
@@ -17,10 +21,17 @@
 #include <sys/timerfd.h>
 #include <sys/eventfd.h>
 #include <sys/signalfd.h>
+#include <unistd.h>
 
 namespace xzero {
 
 #define EPOLL_MAX_USER_WATCHES_FILE "/proc/sys/fs/epoll/max_user_watches"
+
+#if !defined(NDEBUG)
+#define TRACE(msg...) logTrace("LinuxScheduler", msg)
+#else
+#define TRACE(msg...) do {} while (0)
+#endif
 
 LinuxScheduler::LinuxScheduler(
     std::unique_ptr<xzero::ExceptionHandler> eh,
@@ -29,7 +40,13 @@ LinuxScheduler::LinuxScheduler(
     : EventLoop(std::move(eh)),
       onPreInvokePending_(preInvoke),
       onPostInvokePending_(postInvoke),
-      epollfd_(epoll_create1(EPOLL_CLOEXEC)),
+      lock_(),
+      watchers_(),
+      firstWatcher_(nullptr),
+      lastWatcher_(nullptr),
+      tasks_(),
+      timers_(),
+      epollfd_(),
       eventfd_(),
       timerfd_(),
       signalfd_(),
@@ -38,6 +55,17 @@ LinuxScheduler::LinuxScheduler(
       writerCount_(0),
       breakLoopCounter_(0)
 {
+  TRACE("LinuxScheduler()");
+  epollfd_ = epoll_create1(EPOLL_CLOEXEC);
+
+  eventfd_ = eventfd(0, EFD_CLOEXEC | EFD_NONBLOCK);
+  epoll_event event;
+  memset(&event, 0, sizeof(event));
+  event.events = EPOLLIN;
+  epoll_ctl(epollfd_, EPOLL_CTL_ADD, eventfd_, &event);
+
+  //TODO timerfd_ = ..;
+  //TODO signalfd_ = ...;
 }
 
 LinuxScheduler::LinuxScheduler(
@@ -70,6 +98,7 @@ std::string LinuxScheduler::toString() const {
 }
 
 Executor::HandleRef LinuxScheduler::executeAfter(Duration delay, Task task) {
+  TRACE("executeAfter: $0", delay);
   return insertIntoTimersList(now() + delay, task);
 }
 
@@ -98,8 +127,14 @@ int LinuxScheduler::makeEvent(Mode mode) {
   }
 }
 
+void LinuxScheduler::wakeupLoop() {
+  int dummy = 1;
+  ::write(eventfd_, &dummy, sizeof(dummy));
+}
+
 Executor::HandleRef LinuxScheduler::createWatcher(
     Mode mode, int fd, Task task, Duration tmo, Task tcb) {
+  TRACE("createWatcher(fd: $0, mode: $1, timeout: $2)", fd, mode, tmo);
 
   MonotonicTime timeout = now() + tmo;
 
@@ -109,6 +144,8 @@ Executor::HandleRef LinuxScheduler::createWatcher(
   }
 
   Watcher* interest = &watchers_[fd];
+
+  interest->reset(fd, mode, task, now() + tmo, tcb);
 
   interest->setCancelHandler([this, interest] () {
     std::lock_guard<std::mutex> _l(lock_);
@@ -138,6 +175,7 @@ Executor::HandleRef LinuxScheduler::createWatcher(
 }
 
 LinuxScheduler::Watcher* LinuxScheduler::findPrecedingWatcher(Watcher* interest) {
+  TRACE("findPrecedingWatcher for $0", interest);
   if (firstWatcher_ == nullptr)
     // put it in front (linked list empty currently anyway)
     return nullptr;
@@ -165,6 +203,7 @@ LinuxScheduler::Watcher* LinuxScheduler::findPrecedingWatcher(Watcher* interest)
 }
 
 LinuxScheduler::Watcher* LinuxScheduler::linkWatcher(Watcher* w, Watcher* pred) {
+  TRACE("linkWatcher: w: $0, pred: $1", w, pred);
   Watcher* succ = pred ? pred->next : firstWatcher_;
 
   w->prev = pred;
@@ -232,6 +271,7 @@ void LinuxScheduler::executeOnWakeup(Task task, Wakeup* wakeup, long generation)
 void LinuxScheduler::runLoop() {
   breakLoopCounter_.store(0);
 
+  TRACE("runLoop: referenceCount=$0", referenceCount());
   while (referenceCount() > 0 && breakLoopCounter_.load() == 0) {
     runLoopOnce();
   }
@@ -243,6 +283,8 @@ void LinuxScheduler::runLoopOnce() {
   do rv = epoll_wait(epollfd_, &activeEvents_[0], activeEvents_.size(),
                      nextTimeout().milliseconds());
   while (rv < 0 && errno == EINTR);
+
+  TRACE("runLoopOnce: epoll_wait returned $0", rv);
 
   if (rv < 0)
     RAISE_ERRNO(errno);
@@ -264,13 +306,17 @@ void LinuxScheduler::runLoopOnce() {
 }
 
 void LinuxScheduler::breakLoop() {
+  TRACE("breakLoop()");
+  breakLoopCounter_++;
+  wakeupLoop();
 }
 
 EventLoop::HandleRef LinuxScheduler::insertIntoTimersList(MonotonicTime dt,
                                                           Task task) {
+  TRACE("insertIntoTimersList() $0", dt);
   RefPtr<Timer> t(new Timer(dt, task));
 
-  auto onCancel = [this, t]() {
+  t->setCancelHandler([this, t]() {
     std::lock_guard<std::mutex> _l(lock_);
 
     auto i = timers_.end();
@@ -284,8 +330,7 @@ EventLoop::HandleRef LinuxScheduler::insertIntoTimersList(MonotonicTime dt,
         break;
       }
     }
-  };
-  t->setCancelHandler(onCancel);
+  });
 
   std::lock_guard<std::mutex> lk(lock_);
 
@@ -318,16 +363,20 @@ void LinuxScheduler::collectActiveHandles(size_t count,
                                           std::list<Task>* result) {
   for (size_t i = 0; i < count; ++i) {
     epoll_event& event = activeEvents_[i];
-    Watcher* w = static_cast<Watcher*>(event.data.ptr);
-
-    if (event.events & EPOLLIN) {
-      readerCount_--;
-      result->push_back(w->onIO);
-      unlinkWatcher(w);
-    } else if (event.events & EPOLLOUT) {
-      writerCount_--;
-      result->push_back(w->onIO);
-      unlinkWatcher(w);
+    if (Watcher* w = static_cast<Watcher*>(event.data.ptr)) {
+      if (event.events & EPOLLIN) {
+        readerCount_--;
+        result->push_back(w->onIO);
+        unlinkWatcher(w);
+      } else if (event.events & EPOLLOUT) {
+        writerCount_--;
+        result->push_back(w->onIO);
+        unlinkWatcher(w);
+      }
+    } else {
+      // event.data.ptr is NULL, ie. that's our eventfd notification.
+      uint64_t counter = 0;
+      ::read(eventfd_, &counter, sizeof(counter));
     }
   }
 }
@@ -359,6 +408,37 @@ void LinuxScheduler::collectTimeouts(std::list<Task>* result) {
     timers_.pop_front();
     unref();
   }
+}
+
+void LinuxScheduler::Watcher::clear() {
+  fd = -1;
+  // Mode mode;
+  // Task onIO;
+  // MonotonicTime timeout;
+  // Task onTimeout;
+  prev = nullptr;
+  next = nullptr;
+}
+
+template<>
+std::string StringUtil::toString<>(LinuxScheduler::Mode mode) {
+  switch (mode) {
+    case LinuxScheduler::Mode::READABLE:
+      return "READABLE";
+    case LinuxScheduler::Mode::WRITABLE:
+      return "WRITABLE";
+    default:
+      return StringUtil::format("Mode<$0>", int(mode));
+  }
+}
+
+template<>
+std::string StringUtil::toString<>(LinuxScheduler::Watcher* w) {
+  if (w != nullptr)
+    return StringUtil::format("{fd: $0/$1, timeout: $2}",
+                              w->fd, w->mode, w->timeout);
+  else
+    return "null";
 }
 
 } // namespace xzero

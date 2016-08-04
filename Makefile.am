@@ -566,6 +566,11 @@ xzero_test_SOURCES = \
 	src/xzero/thread/Future-test.cc \
 	src/xzero/thread/Queue-test.cc
 
+if PLATFORM_LINUX
+xzero_test_SOURCES += \
+	src/xzero/executor/LinuxScheduler-test.cc
+endif
+
 xzero_test_LDADD = \
 	libXzeroTesting_main.a \
 	libXzeroFlow.a \
