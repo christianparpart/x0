@@ -88,7 +88,7 @@ class PosixScheduler : public EventLoop {
     Watcher* next; //!< successor by timeout ASC
 
     Watcher()
-        : Watcher(-1, Mode::READABLE, nullptr, MonotonicTime(0), nullptr) {}
+        : Watcher(-1, Mode::READABLE, nullptr, MonotonicTime::Zero, nullptr) {}
 
     Watcher(const Watcher& w)
         : Watcher(w.fd, w.mode, w.onIO, w.timeout, w.onTimeout) {}
@@ -120,7 +120,7 @@ class PosixScheduler : public EventLoop {
 
     void clear() {
       fd = -1;
-      timeout = MonotonicTime(0);
+      timeout = MonotonicTime::Zero;
       prev = nullptr;
       next = nullptr;
     }
