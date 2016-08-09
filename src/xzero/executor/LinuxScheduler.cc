@@ -98,12 +98,15 @@ std::string LinuxScheduler::toString() const {
 }
 
 Executor::HandleRef LinuxScheduler::executeAfter(Duration delay, Task task) {
-  TRACE("executeAfter: $0", delay);
-  return insertIntoTimersList(now() + delay, task);
+  MonotonicTime time = now() + delay;
+  TRACE("executeAfter: $0", time);
+  return insertIntoTimersList(time, task);
 }
 
 Executor::HandleRef LinuxScheduler::executeAt(UnixTime when, Task task) {
-  return insertIntoTimersList(now() + (when - WallClock::now()), task);
+  MonotonicTime time = now() + (when - WallClock::now());
+  TRACE("executeAt: $0", time);
+  return insertIntoTimersList(time, task);
 }
 
 Executor::HandleRef LinuxScheduler::executeOnReadable(int fd, Task task,
@@ -133,19 +136,15 @@ void LinuxScheduler::wakeupLoop() {
 }
 
 Executor::HandleRef LinuxScheduler::createWatcher(
-    Mode mode, int fd, Task task, Duration tmo, Task tcb) {
-  TRACE("createWatcher(fd: $0, mode: $1, timeout: $2)", fd, mode, tmo);
+    Mode mode, int fd, Task task, Duration timeout, Task tcb) {
+  TRACE("createWatcher(fd: $0, mode: $1, timeout: $2)", fd, mode, timeout);
 
-  MonotonicTime timeout = now() + tmo;
-
-  std::unordered_map<int, Watcher>::iterator wi = watchers_.find(fd);
-  if (wi != watchers_.end() && wi->second.fd >= 0) {
+  if (watchers_.find(fd) != watchers_.end()) {
     RAISE(AlreadyWatchingOnResource, "Already watching on resource");
   }
 
-  Watcher* interest = &watchers_[fd];
-
-  interest->reset(fd, mode, task, now() + tmo, tcb);
+  Watcher* interest = &watchers_[fd]; // TODO: watchers_.emplace(...)
+  interest->reset(fd, mode, task, now() + timeout, tcb);
 
   interest->setCancelHandler([this, interest] () {
     std::lock_guard<std::mutex> _l(lock_);
@@ -155,7 +154,7 @@ Executor::HandleRef LinuxScheduler::createWatcher(
   epoll_event event;
   memset(&event, 0, sizeof(event));
   event.data.ptr = interest;
-  event.events = makeEvent(mode);
+  event.events = makeEvent(mode) | EPOLLONESHOT;
 
   int rv = epoll_ctl(epollfd_, EPOLL_CTL_ADD, fd, &event);
   if (rv < 0) {
@@ -230,6 +229,8 @@ LinuxScheduler::Watcher* LinuxScheduler::unlinkWatcher(Watcher* w) {
   Watcher* pred = w->prev;
   Watcher* succ = w->next;
 
+  watchers_.erase(watchers_.find(w->fd));
+
   if (pred)
     pred->next = succ;
   else
@@ -280,11 +281,15 @@ void LinuxScheduler::runLoop() {
 void LinuxScheduler::runLoopOnce() {
   int rv;
 
+  uint64_t timeoutMillis = nextTimeout().milliseconds();
+
   do rv = epoll_wait(epollfd_, &activeEvents_[0], activeEvents_.size(),
-                     nextTimeout().milliseconds());
+                     timeoutMillis);
   while (rv < 0 && errno == EINTR);
 
-  TRACE("runLoopOnce: epoll_wait returned $0", rv);
+  TRACE("runLoopOnce: epoll_wait(fd=$0, count=$1, timeout=$2) = $3 $4",
+        epollfd_.get(), activeEvents_.size(), timeoutMillis, rv,
+        rv < 0 ? strerror(rv) : "");
 
   if (rv < 0)
     RAISE_ERRNO(errno);
@@ -365,10 +370,12 @@ void LinuxScheduler::collectActiveHandles(size_t count,
     epoll_event& event = activeEvents_[i];
     if (Watcher* w = static_cast<Watcher*>(event.data.ptr)) {
       if (event.events & EPOLLIN) {
+        TRACE("collectActiveHandles: $0 READABLE", w->fd);
         readerCount_--;
         result->push_back(w->onIO);
         unlinkWatcher(w);
       } else if (event.events & EPOLLOUT) {
+        TRACE("collectActiveHandles: $0 WRITABLE", w->fd);
         writerCount_--;
         result->push_back(w->onIO);
         unlinkWatcher(w);
@@ -377,6 +384,7 @@ void LinuxScheduler::collectActiveHandles(size_t count,
       // event.data.ptr is NULL, ie. that's our eventfd notification.
       uint64_t counter = 0;
       ::read(eventfd_, &counter, sizeof(counter));
+      TRACE("collectActiveHandles: eventfd consumed ($0)", counter);
     }
   }
 }
