@@ -65,7 +65,7 @@ std::string UnixTime::toString(const char* fmt) const {
 }
 
 Option<UnixTime> UnixTime::parseString(
-    const String& str,
+    const std::string& str,
     const char* fmt /* = "%Y-%m-%d %H:%M:%S" */) {
   return UnixTime::parseString(str.data(), str.size(), fmt);
 }

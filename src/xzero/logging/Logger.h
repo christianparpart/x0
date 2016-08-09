@@ -9,7 +9,6 @@
 #define _libxzero_UTIL_LOGGER_H
 #include <atomic>
 #include <xzero/UnixTime.h>
-#include <xzero/stdtypes.h>
 #include <xzero/logging/LogLevel.h>
 #include <xzero/logging/LogTarget.h>
 
@@ -26,28 +25,28 @@ public:
 
   void log(
       LogLevel log_level,
-      const String& component,
-      const String& message);
+      const std::string& component,
+      const std::string& message);
 
   template <typename... T>
   void log(
       LogLevel log_level,
-      const String& component,
-      const String& message,
+      const std::string& component,
+      const std::string& message,
       T... args);
 
   void logException(
       LogLevel log_level,
-      const String& component,
+      const std::string& component,
       const std::exception& exception,
-      const String& message);
+      const std::string& message);
 
   template <typename... T>
   void logException(
       LogLevel log_level,
-      const String& component,
+      const std::string& component,
       const std::exception& exception,
-      const String& message,
+      const std::string& message,
       T... args);
 
   void addTarget(LogTarget* target);

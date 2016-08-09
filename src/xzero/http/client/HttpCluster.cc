@@ -577,7 +577,7 @@ bool HttpCluster::setScheduler(const std::string& value) {
   }
 }
 
-void HttpCluster::setScheduler(UniquePtr<HttpClusterScheduler> scheduler) {
+void HttpCluster::setScheduler(std::unique_ptr<HttpClusterScheduler> scheduler) {
   scheduler_ = std::move(scheduler);
 }
 

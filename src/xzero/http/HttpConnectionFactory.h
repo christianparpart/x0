@@ -13,7 +13,6 @@
 #include <xzero/http/HttpHandler.h>
 #include <xzero/http/HttpDateGenerator.h>
 #include <xzero/http/HttpOutputCompressor.h>
-#include <xzero/stdtypes.h>
 #include <memory>
 
 namespace xzero {

@@ -10,6 +10,7 @@
 #include <xzero/sysconfig.h>
 #include <xzero/ExceptionHandler.h>
 
+#include <memory>
 #include <exception>
 #include <deque>
 #include <functional>

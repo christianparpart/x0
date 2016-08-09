@@ -22,8 +22,8 @@ FileLogTarget::FileLogTarget(std::unique_ptr<OutputStream>&& output)
 
 // TODO is a mutex required for concurrent printf()'s ?
 void FileLogTarget::log(LogLevel level,
-                           const String& component,
-                           const String& message) {
+                           const std::string& component,
+                           const std::string& message) {
   std::string logline = StringUtil::format(
       "$0[$1] [$2] $3\n",
       createTimestamp(),

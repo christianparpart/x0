@@ -28,9 +28,9 @@ Logger::Logger() :
 
 void Logger::logException(
     LogLevel log_level,
-    const String& component,
+    const std::string& component,
     const std::exception& exception,
-    const String& message) {
+    const std::string& message) {
   if (log_level < min_level_) {
     return;
   }
@@ -66,8 +66,8 @@ void Logger::logException(
 
 void Logger::log(
       LogLevel log_level,
-      const String& component,
-      const String& message) {
+      const std::string& component,
+      const std::string& message) {
   if (log_level < min_level_) {
     return;
   }

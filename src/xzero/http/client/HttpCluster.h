@@ -20,7 +20,6 @@
 #include <xzero/Duration.h>
 #include <xzero/Counter.h>
 #include <xzero/Uri.h>
-#include <xzero/stdtypes.h>
 #include <utility>
 #include <istream>
 #include <vector>
@@ -151,7 +150,7 @@ class HttpCluster : public HttpClusterMember::EventListener {
   RequestShaper* shaper() { return &shaper_; }
 
   bool setScheduler(const std::string& scheduler);
-  void setScheduler(UniquePtr<HttpClusterScheduler> scheduler);
+  void setScheduler(std::unique_ptr<HttpClusterScheduler> scheduler);
   HttpClusterScheduler* scheduler() const { return scheduler_.get(); }
 
   /**
@@ -340,7 +339,7 @@ class HttpCluster : public HttpClusterMember::EventListener {
   std::vector<HttpStatus> healthCheckSuccessCodes_;
 
   // member scheduler
-  UniquePtr<HttpClusterScheduler> scheduler_;
+  std::unique_ptr<HttpClusterScheduler> scheduler_;
 
   // statistical counter for accumulated cluster load (all members)
   Counter load_;

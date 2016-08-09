@@ -12,8 +12,8 @@
 #include <stdint.h>
 #include <string>
 #include <vector>
+#include <set>
 #include <locale>
-#include <xzero/stdtypes.h>
 
 namespace xzero {
 
@@ -55,7 +55,7 @@ public:
    * @param str the string to remove chars from
    * @return the stripped string
    */
-  static String stripShell(const std::string& str);
+  static std::string stripShell(const std::string& str);
 
   /**
    * Check if the provided string begins with the provided prefix
@@ -105,7 +105,7 @@ public:
    *
    * @param chr the char to check
    */
-  static bool isAlphanumeric(const String& string);
+  static bool isAlphanumeric(const std::string& string);
 
   /**
    * Check if the provided char is one of 0-9a-zA-Z
@@ -119,7 +119,7 @@ public:
    *
    * @param chr the char to check
    */
-  static bool isShellSafe(const String& string);
+  static bool isShellSafe(const std::string& string);
 
   /**
    * Check if the provided char is one of 0-9a-zA-Z-_.
@@ -168,8 +168,8 @@ public:
   /**
    * Join the provided string array with the provided join string
    */
-  static String join(const Vector<String>& list, const String& join);
-  static String join(const Set<String>& list, const String& join);
+  static std::string join(const std::vector<std::string>& list, const std::string& join);
+  static std::string join(const std::set<std::string>& list, const std::string& join);
 
   /**
    * Converts the provided string to all lowercase

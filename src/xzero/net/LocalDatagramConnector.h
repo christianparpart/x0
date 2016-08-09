@@ -12,6 +12,7 @@
 #include <xzero/net/LocalDatagramEndPoint.h>
 #include <xzero/net/IPAddress.h>
 #include <functional>
+#include <deque>
 
 namespace xzero {
 

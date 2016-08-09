@@ -10,11 +10,14 @@
 #include <xzero/sysconfig.h>
 #include <xzero/executor/PosixScheduler.h>
 
+#if defined(__linux__)
+#include <xzero/executor/LinuxScheduler.h>
+#endif
+
 namespace xzero {
 
 #if defined(__linux__)
-// TODO using NativeScheduler = LinuxScheduler;
-using NativeScheduler = PosixScheduler;
+using NativeScheduler = LinuxScheduler;
 #else
 using NativeScheduler = PosixScheduler;
 #endif

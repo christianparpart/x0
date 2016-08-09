@@ -14,8 +14,8 @@ namespace xzero {
 template <typename... T>
 void Logger::log(
     LogLevel log_level,
-    const String& component,
-    const String& message,
+    const std::string& component,
+    const std::string& message,
     T... args) {
   if (log_level >= min_level_) {
     log(log_level, component, StringUtil::format(message, args...));
@@ -25,9 +25,9 @@ void Logger::log(
 template <typename... T>
 void Logger::logException(
     LogLevel log_level,
-    const String& component,
+    const std::string& component,
     const std::exception& exception,
-    const String& message,
+    const std::string& message,
     T... args) {
   if (log_level >= min_level_) {
     logException(

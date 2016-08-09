@@ -9,7 +9,6 @@
 #include <xzero/executor/NativeScheduler.h>
 #include <xzero/net/ByteArrayEndPoint.h>
 #include <xzero/logging.h>
-#include <xzero/stdtypes.h>
 #include <xzero/testing.h>
 
 using namespace xzero;

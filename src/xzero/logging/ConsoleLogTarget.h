@@ -16,8 +16,8 @@ public:
   ConsoleLogTarget();
 
   void log(LogLevel level,
-           const String& component,
-           const String& message) override;
+           const std::string& component,
+           const std::string& message) override;
 
   void setTimestampEnabled(bool value) { timestampEnabled_ = value; }
   bool isTimestampEnabled() const noexcept { return timestampEnabled_; }

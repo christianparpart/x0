@@ -41,7 +41,7 @@ bool parseTimeOffset(
   }
 
   try {
-    int hour = std::stoi(String(hour_begin, hour_end));
+    int hour = std::stoi(std::string(hour_begin, hour_end));
     if (hour >= 0 && hour <= 24) {
       offset_sec += hour * kSecondsPerHour;
     } else {
@@ -61,7 +61,7 @@ bool parseTimeOffset(
   }
 
   try {
-    int minute = std::stoi(String(minute_begin, minute_end));
+    int minute = std::stoi(std::string(minute_begin, minute_end));
     if (minute >= 0 && minute <= 59) {
       offset_sec += minute * kSecondsPerMinute;
     } else {
@@ -94,7 +94,7 @@ bool parseSecondFrac(
   }
 
   try {
-    auto millis = std::stoul(String(frac_begin, frac_begin + frac_len));
+    auto millis = std::stoul(std::string(frac_begin, frac_begin + frac_len));
     millis *= pow(10, 3 - frac_len);
     date->setMillisecond(millis);
   } catch (const std::exception&) {
@@ -115,7 +115,7 @@ bool parseSecond(const char* begin, const char* end, CivilTime* date) {
   }
 
   try {
-    int second = std::stoi(String(second_begin, second_end));
+    int second = std::stoi(std::string(second_begin, second_end));
     if (second >= 0 && second <= 59) {
       date->setSecond(second);
     } else {
@@ -141,7 +141,7 @@ bool parseMinute(const char* begin, const char* end, CivilTime* date) {
   }
 
   try {
-    int minute = std::stoi(String(minute_begin, minute_end));
+    int minute = std::stoi(std::string(minute_begin, minute_end));
     if (minute >= 0 && minute <= 59) {
       date->setMinute(minute);
     } else {
@@ -166,7 +166,7 @@ bool parseHour(const char* begin, const char* end, CivilTime* date) {
   }
 
   try {
-    int hour = std::stoi(String(hour_begin, hour_end));
+    int hour = std::stoi(std::string(hour_begin, hour_end));
     if (hour >= 0 && hour <= 24) {
       date->setHour(hour);
     } else {
@@ -186,12 +186,12 @@ bool parseDay(const char* begin, const char* end, CivilTime* date) {
 
   if (day_begin > end ||
       *begin != '-' ||
-      !StringUtil::isDigitString(String(day_begin, day_end))) {
+      !StringUtil::isDigitString(std::string(day_begin, day_end))) {
         return false;
   }
 
   try {
-    int day = std::stoi(String(day_begin, day_end));
+    int day = std::stoi(std::string(day_begin, day_end));
     //fixme better check
     if (day > 0 && day <= ISO8601::daysInMonth(date->year(), day)) {
       date->setDay(day);
@@ -215,12 +215,12 @@ bool parseMonth(const char* begin, const char* end, CivilTime* date) {
 
   if (month_end > end ||
       *begin != '-' ||
-      !StringUtil::isDigitString(String(month_begin, month_end))) {
+      !StringUtil::isDigitString(std::string(month_begin, month_end))) {
         return false;
   }
 
   try {
-    int month = std::stoi(String(month_begin, month_end));
+    int month = std::stoi(std::string(month_begin, month_end));
     if (month > 0 && month < 13) {
       date->setMonth(month);
     } else {
@@ -242,13 +242,13 @@ static bool parseYear(const char* begin, const char* end, CivilTime* date) {
   auto year_end = begin + 4;
 
   if (year_end > end ||
-      !StringUtil::isDigitString(String(year_begin, year_end))) {
+      !StringUtil::isDigitString(std::string(year_begin, year_end))) {
     return false;
   }
 
 
   try {
-    date->setYear(std::stoi(String(year_begin, year_end)));
+    date->setYear(std::stoi(std::string(year_begin, year_end)));
   } catch (const std::exception&) {
     return false;
   }
@@ -264,7 +264,7 @@ static bool parseYear(const char* begin, const char* end, CivilTime* date) {
 
 namespace xzero {
 
-Option<CivilTime> ISO8601::parse(const String& str) {
+Option<CivilTime> ISO8601::parse(const std::string& str) {
   CivilTime date(nullptr);
 
   if (!parseYear(str.c_str(), str.c_str() + str.size(), &date)) {

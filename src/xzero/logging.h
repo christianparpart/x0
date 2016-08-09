@@ -17,15 +17,15 @@ namespace xzero {
  * EMERGENCY: Something very bad happened
  */
 template <typename... T>
-void logEmergency(const String& component, const String& msg, T... args) {
+void logEmergency(const std::string& component, const std::string& msg, T... args) {
   Logger::get()->log(LogLevel::kEmergency, component, msg, args...);
 }
 
 template <typename... T>
 void logEmergency(
-    const String& component,
+    const std::string& component,
     const std::exception& e,
-    const String& msg,
+    const std::string& msg,
     T... args) {
   Logger::get()->logException(LogLevel::kEmergency, component, e, msg, args...);
 }
@@ -34,15 +34,15 @@ void logEmergency(
  * ALERT: Action must be taken immediately
  */
 template <typename... T>
-void logAlert(const String& component, const String& msg, T... args) {
+void logAlert(const std::string& component, const std::string& msg, T... args) {
   Logger::get()->log(LogLevel::kAlert, component, msg, args...);
 }
 
 template <typename... T>
 void logAlert(
-    const String& component,
+    const std::string& component,
     const std::exception& e,
-    const String& msg,
+    const std::string& msg,
     T... args) {
   Logger::get()->logException(LogLevel::kAlert, component, e, msg, args...);
 }
@@ -51,15 +51,15 @@ void logAlert(
  * CRITICAL: Action should be taken as soon as possible
  */
 template <typename... T>
-void logCritical(const String& component, const String& msg, T... args) {
+void logCritical(const std::string& component, const std::string& msg, T... args) {
   Logger::get()->log(LogLevel::kCritical, component, msg, args...);
 }
 
 template <typename... T>
 void logCritical(
-    const String& component,
+    const std::string& component,
     const std::exception& e,
-    const String& msg,
+    const std::string& msg,
     T... args) {
   Logger::get()->logException(LogLevel::kCritical, component, e, msg, args...);
 }
@@ -68,15 +68,15 @@ void logCritical(
  * ERROR: User-visible Runtime Errors
  */
 template <typename... T>
-void logError(const String& component, const String& msg, T... args) {
+void logError(const std::string& component, const std::string& msg, T... args) {
   Logger::get()->log(LogLevel::kError, component, msg, args...);
 }
 
 template <typename... T>
 void logError(
-    const String& component,
+    const std::string& component,
     const std::exception& e,
-    const String& msg,
+    const std::string& msg,
     T... args) {
   Logger::get()->logException(LogLevel::kError, component, e, msg, args...);
 }
@@ -85,15 +85,15 @@ void logError(
  * WARNING: Something unexpected happened that should not have happened
  */
 template <typename... T>
-void logWarning(const String& component, const String& msg, T... args) {
+void logWarning(const std::string& component, const std::string& msg, T... args) {
   Logger::get()->log(LogLevel::kWarning, component, msg, args...);
 }
 
 template <typename... T>
 void logWarning(
-    const String& component,
+    const std::string& component,
     const std::exception& e,
-    const String& msg,
+    const std::string& msg,
     T... args) {
   Logger::get()->logException(LogLevel::kWarning, component, e, msg, args...);
 }
@@ -102,15 +102,15 @@ void logWarning(
  * NOTICE: Normal but significant condition.
  */
 template <typename... T>
-void logNotice(const String& component, const String& msg, T... args) {
+void logNotice(const std::string& component, const std::string& msg, T... args) {
   Logger::get()->log(LogLevel::kNotice, component, msg, args...);
 }
 
 template <typename... T>
 void logNotice(
-    const String& component,
+    const std::string& component,
     const std::exception& e,
-    const String& msg,
+    const std::string& msg,
     T... args) {
   Logger::get()->logException(LogLevel::kNotice, component, e, msg, args...);
 }
@@ -119,15 +119,15 @@ void logNotice(
  * INFO: Informational messages
  */
 template <typename... T>
-void logInfo(const String& component, const String& msg, T... args) {
+void logInfo(const std::string& component, const std::string& msg, T... args) {
   Logger::get()->log(LogLevel::kInfo, component, msg, args...);
 }
 
 template <typename... T>
 void logInfo(
-    const String& component,
+    const std::string& component,
     const std::exception& e,
-    const String& msg,
+    const std::string& msg,
     T... args) {
   Logger::get()->logException(LogLevel::kInfo, component, e, msg, args...);
 }
@@ -136,15 +136,15 @@ void logInfo(
  * DEBUG: Debug messages
  */
 template <typename... T>
-void logDebug(const String& component, const String& msg, T... args) {
+void logDebug(const std::string& component, const std::string& msg, T... args) {
   Logger::get()->log(LogLevel::kDebug, component, msg, args...);
 }
 
 template <typename... T>
 void logDebug(
-    const String& component,
+    const std::string& component,
     const std::exception& e,
-    const String& msg,
+    const std::string& msg,
     T... args) {
   Logger::get()->logException(LogLevel::kDebug, component, e, msg, args...);
 }
@@ -153,15 +153,15 @@ void logDebug(
  * TRACE: Trace messages
  */
 template <typename... T>
-void logTrace(const String& component, const String& msg, T... args) {
+void logTrace(const std::string& component, const std::string& msg, T... args) {
   Logger::get()->log(LogLevel::kTrace, component, msg, args...);
 }
 
 template <typename... T>
 void logTrace(
-    const String& component,
+    const std::string& component,
     const std::exception& e,
-    const String& msg,
+    const std::string& msg,
     T... args) {
   Logger::get()->logException(LogLevel::kTrace, component, e, msg, args...);
 }

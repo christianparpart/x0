@@ -14,7 +14,6 @@
 #include <xzero/executor/Executor.h>
 #include <xzero/CompletionHandler.h>
 #include <xzero/Duration.h>
-#include <xzero/stdtypes.h>
 #include <utility>
 #include <vector>
 

@@ -15,7 +15,6 @@
 #include <xzero/executor/Executor.h> // for Executor::HandleRef
 #include <xzero/Duration.h>
 #include <xzero/RefPtr.h>
-#include <xzero/stdtypes.h>
 #include <list>
 #include <deque>
 #include <mutex>

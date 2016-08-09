@@ -18,7 +18,7 @@
 namespace xzero {
 
 CatchAndLogExceptionHandler::CatchAndLogExceptionHandler(
-    const String& component) :
+    const std::string& component) :
     component_(component) {
 }
 

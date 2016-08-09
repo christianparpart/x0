@@ -19,7 +19,6 @@
 #include <xzero/http/HttpResponseInfo.h>
 #include <xzero/http/HttpListener.h>
 #include <xzero/thread/Future.h>
-#include <xzero/stdtypes.h>
 #include <vector>
 #include <utility>
 #include <memory>

@@ -18,7 +18,6 @@
 #include <xzero/Duration.h>
 #include <xzero/Counter.h>
 #include <xzero/Uri.h>
-#include <xzero/stdtypes.h>
 #include <mutex>
 #include <utility>
 
@@ -106,7 +105,7 @@ private:
   std::unique_ptr<HttpHealthMonitor> healthMonitor_;
   std::mutex lock_;
 
-  std::list<UniquePtr<HttpClient>> clients_;
+  std::list<std::unique_ptr<HttpClient>> clients_;
 };
 
 class HttpClusterMember::EventListener {

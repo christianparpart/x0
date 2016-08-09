@@ -7,8 +7,8 @@
 
 #ifndef _libxzero_UTIL_EXCEPTIONHANDLER_H
 #define _libxzero_UTIL_EXCEPTIONHANDLER_H
+
 #include <mutex>
-#include <xzero/stdtypes.h>
 
 namespace xzero {
 
@@ -22,10 +22,10 @@ public:
 
 class CatchAndLogExceptionHandler : public ExceptionHandler {
 public:
-  CatchAndLogExceptionHandler(const String& component);
+  CatchAndLogExceptionHandler(const std::string& component);
   void onException(const std::exception& error) const override;
 protected:
-  String component_;
+  std::string component_;
 };
 
 class CatchAndAbortExceptionHandler : public ExceptionHandler {

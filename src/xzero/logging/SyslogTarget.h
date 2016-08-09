@@ -17,8 +17,8 @@ class SyslogTarget : public LogTarget {
   ~SyslogTarget();
 
   void log(LogLevel level,
-           const String& component,
-           const String& message) override;
+           const std::string& component,
+           const std::string& message) override;
 
   static SyslogTarget* get();
 };

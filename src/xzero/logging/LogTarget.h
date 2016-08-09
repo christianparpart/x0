@@ -17,8 +17,8 @@ public:
 
   virtual void log(
       LogLevel level,
-      const String& component,
-      const String& message) = 0;
+      const std::string& component,
+      const std::string& message) = 0;
 };
 
 }

@@ -26,8 +26,8 @@ ConsoleLogTarget* ConsoleLogTarget::get() {
 
 // TODO is a mutex required for concurrent printf()'s ?
 void ConsoleLogTarget::log(LogLevel level,
-                           const String& component,
-                           const String& message) {
+                           const std::string& component,
+                           const std::string& message) {
   if (isatty(STDERR_FILENO)) {
     static constexpr AnsiColor::Type componentColor = AnsiColor::Cyan;
     static const auto logColor = [](LogLevel ll) -> AnsiColor::Type {

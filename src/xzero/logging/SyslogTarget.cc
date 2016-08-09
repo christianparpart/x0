@@ -38,8 +38,8 @@ int makeSyslogPriority(LogLevel level) {
 }
 
 void SyslogTarget::log(LogLevel level,
-                       const String& component,
-                       const String& message) {
+                       const std::string& component,
+                       const std::string& message) {
 
   syslog(makeSyslogPriority(level), "%s", message.c_str());
 }

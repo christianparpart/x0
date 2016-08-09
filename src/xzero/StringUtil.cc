@@ -102,7 +102,7 @@ std::string StringUtil::toString(float value) {
     buf[len--] = 0;
   }
 
-  return String(buf, len);
+  return std::string(buf, len);
 }
 
 template <>
@@ -119,7 +119,7 @@ std::string StringUtil::toString(double value) {
     buf[len--] = 0;
   }
 
-  return String(buf, len);
+  return std::string(buf, len);
 }
 
 template <>
@@ -179,8 +179,8 @@ std::vector<std::string> StringUtil::split(
   return parts;
 }
 
-String StringUtil::join(const Vector<String>& list, const String& join) {
-  String out;
+std::string StringUtil::join(const std::vector<std::string>& list, const std::string& join) {
+  std::string out;
 
   for (size_t i = 0; i < list.size(); ++i) {
     if (i > 0) {
@@ -193,8 +193,8 @@ String StringUtil::join(const Vector<String>& list, const String& join) {
   return out;
 }
 
-String StringUtil::join(const Set<String>& list, const String& join) {
-  String out;
+std::string StringUtil::join(const std::set<std::string>& list, const std::string& join) {
+  std::string out;
 
   size_t i = 0;
   for (const auto& item : list) {
@@ -431,7 +431,7 @@ std::string StringUtil::formatv(
 }
 
 std::wstring StringUtil::convertUTF8To16(const std::string& str) {
-  WString out;
+  std::wstring out;
 
   const char* cur = str.data();
   const char* end = cur + str.length();
@@ -444,7 +444,7 @@ std::wstring StringUtil::convertUTF8To16(const std::string& str) {
 }
 
 std::string StringUtil::convertUTF16To8(const std::wstring& str) {
-  String out;
+  std::string out;
 
   for (const auto& c : str) {
     UTF8::encodeCodepoint(c, &out);
@@ -453,8 +453,8 @@ std::string StringUtil::convertUTF16To8(const std::wstring& str) {
   return out;
 }
 
-String StringUtil::stripShell(const std::string& str) {
-  String out;
+std::string StringUtil::stripShell(const std::string& str) {
+  std::string out;
 
   for (const auto& c : str) {
     if (isAlphanumeric(c) || c == '_' || c == '-' || c == '.') {

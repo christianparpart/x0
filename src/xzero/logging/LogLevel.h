@@ -8,7 +8,7 @@
 #ifndef _libxzero_UTIL_LOGLEVEL_H
 #define _libxzero_UTIL_LOGLEVEL_H
 
-#include <xzero/stdtypes.h>
+#include <string>
 
 namespace xzero {
 

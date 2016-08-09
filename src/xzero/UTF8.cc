@@ -95,7 +95,7 @@ char32_t UTF8::nextCodepoint(const char** cur, const char* end_) {
   RAISE(EncodingError, "invalid UTF8 encoding");
 }
 
-bool UTF8::isValidUTF8(const String& str) {
+bool UTF8::isValidUTF8(const std::string& str) {
   return UTF8::isValidUTF8(str.data(), str.size());
 }
 
@@ -157,7 +157,7 @@ bool UTF8::isValidUTF8(const char* str, size_t size) {
   return true;
 }
 
-void UTF8::encodeCodepoint(char32_t codepoint, String* target) {
+void UTF8::encodeCodepoint(char32_t codepoint, std::string* target) {
   if (codepoint < 0b10000000) {
     *target += (char) codepoint;
     return;

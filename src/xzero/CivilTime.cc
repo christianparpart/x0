@@ -12,7 +12,7 @@
 namespace xzero {
 
 Option<CivilTime> CivilTime::parseString(
-    const String& str,
+    const std::string& str,
     const char* fmt /* = "%Y-%m-%d %H:%M:%S" */) {
   return CivilTime::parseString(str.data(), str.size(), fmt);
 }

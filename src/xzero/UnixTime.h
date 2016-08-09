@@ -46,7 +46,7 @@ public:
    * @param fmt the strftime format string (optional)
    */
   static Option<UnixTime> parseString(
-      const String& str,
+      const std::string& str,
       const char* fmt = "%Y-%m-%d %H:%M:%S");
 
   /**
