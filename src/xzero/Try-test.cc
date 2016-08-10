@@ -24,11 +24,12 @@ TEST(Try, Success) {
 }
 
 TEST(Try, MoveSuccess) {
-  Try<int> t = Success(42);
+  Try<std::string> t = Success(std::string("Hello"));
 
-  Try<int> u = std::move(t);
+  Try<std::string> u = std::move(t);
 
   ASSERT_TRUE(u.isSuccess());
   ASSERT_FALSE(u.isFailure());
-  ASSERT_EQ(*u, 42);
+  ASSERT_EQ(*u, "Hello");
+  ASSERT_EQ(*t, "");
 }
