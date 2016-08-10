@@ -14,6 +14,26 @@ struct _FailureMessage {
   std::string message;
 };
 
+/**
+ * @brief Try<T> gives you the opportunity to either return some value or an error.
+ *
+ * @code{.cpp}
+ *  void main() {
+ *    Try<int> uid = getUserID();
+ *    if (uid.isFailure()) {
+ *      fail("Could not retrieve userID. $0", uid.failure());
+ *    } else {
+ *      info("User ID is $0", *uid);
+ *    }
+ *  }
+ *  Try<int> getUserID() {
+ *    if (getuid() == 0)
+ *      return Failure("Sorry, I'm not talking to root.");
+ *    else
+ *      return Success(getuid());
+ *  }
+ * @endcode
+ */
 template<typename T>
 class Try {
  public:
@@ -45,12 +65,21 @@ class Try {
   std::string message_;
 };
 
+/**
+ * Generates Try<T> object that represents a successful item of value @p value.
+ */
 template<typename T>
 Try<T> Success(const T& value);
 
+/**
+ * Generates Try<T> object that represents a successful item of value @p value.
+ */
 template<typename T>
 Try<T> Success(T&& value);
 
+/**
+ * Generates Try<T> helper object that represents a failure with given @p message.
+ */
 _FailureMessage Failure(const std::string& message);
 
 #include <xzero/Try-inl.h>
