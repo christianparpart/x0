@@ -531,6 +531,7 @@ xzero_test_SOURCES = \
 	src/xzero/StringUtil-test.cc \
 	src/xzero/TokenShaper-test.cc \
 	src/xzero/Tokenizer-test.cc \
+	src/xzero/Try-test.cc \
 	src/xzero/Uri-test.cc \
 	src/xzero/cli/CLI-test.cc \
 	src/xzero/executor/PosixScheduler-test.cc \
