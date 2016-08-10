@@ -28,6 +28,17 @@ inline Try<T>::Try(_FailureMessage&& failure)
 }
 
 template<typename T>
+Try<T>::Try(Try&& other)
+    : success_(other.success_),
+      message_(std::move(other.message_)) {
+  if (success_) {
+    new (storage_) T(std::move(*other.get()));
+    other.get()->~T();
+  }
+}
+
+
+template<typename T>
 inline Try<T>::~Try() {
   if (success_) {
     ((T*) &storage_)->~T();

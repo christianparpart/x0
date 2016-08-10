@@ -20,6 +20,7 @@ class Try {
   Try(const T& value);
   Try(T&& value);
   Try(_FailureMessage&& message);
+  Try(Try&& other);
   ~Try();
 
   operator bool () const noexcept;
