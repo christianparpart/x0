@@ -36,7 +36,7 @@ class HttpClusterApiHandler : public CustomData {
       HttpClusterApi* api,
       HttpRequest* request,
       HttpResponse* response,
-      const BufferRef& prefix);
+      const std::string& prefix);
   ~HttpClusterApiHandler();
 
   bool run();
@@ -97,7 +97,7 @@ class HttpClusterApiHandler : public CustomData {
   HttpRequest* request_;
   HttpResponse* response_;
   unsigned errorCount_;
-  BufferRef prefix_;
+  std::string prefix_;
   std::vector<std::string> tokens_;
   std::unordered_map<std::string, std::string> params_;
 };

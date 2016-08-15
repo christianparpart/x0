@@ -12,7 +12,6 @@
 #include <xzero/Application.h>
 #include <xzero/AnsiColor.h>
 #include <xzero/StringUtil.h>
-#include <xzero/Buffer.h>
 #include <xzero/logging.h>
 #include <algorithm>
 #include <random>
@@ -416,8 +415,8 @@ TestInfo* UnitTest::addTest(const char* testCaseName,
       new TestInfo(
           testCaseName,
           testName,
-          !BufferRef(testCaseName).begins("DISABLED_")
-              && !BufferRef(testName).begins("DISABLED_"),
+          !StringUtil::beginsWith(testCaseName, "DISABLED_")
+              && !StringUtil::beginsWith(testName, "DISABLED_"),
           std::move(testFactory)));
 
   activeTests_.emplace_back(activeTests_.size());

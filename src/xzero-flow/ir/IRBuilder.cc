@@ -10,6 +10,7 @@
 #include <xzero-flow/ir/BasicBlock.h>
 #include <xzero-flow/ir/ConstantValue.h>
 #include <xzero-flow/ir/Instructions.h>
+#include <xzero/StringUtil.h>
 #include <assert.h>
 #include <inttypes.h>
 #include <math.h>
@@ -519,7 +520,7 @@ Value* IRBuilder::createSCmpEB(Value* lhs, Value* rhs,
                                const std::string& name) {
   if (auto a = dynamic_cast<ConstantString*>(lhs))
     if (auto b = dynamic_cast<ConstantString*>(rhs))
-      return get(BufferRef(a->get()).begins(b->get()));
+      return get(StringUtil::beginsWith(a->get(), b->get()));
 
   return insert(new SCmpBegInstr(lhs, rhs, makeName(name)));
 }
@@ -537,7 +538,7 @@ Value* IRBuilder::createSCmpEE(Value* lhs, Value* rhs,
                                const std::string& name) {
   if (auto a = dynamic_cast<ConstantString*>(lhs))
     if (auto b = dynamic_cast<ConstantString*>(rhs))
-      return get(BufferRef(a->get()).ends(b->get()));
+      return get(StringUtil::endsWith(a->get(), b->get()));
 
   return insert(new SCmpEndInstr(lhs, rhs, makeName(name)));
 }

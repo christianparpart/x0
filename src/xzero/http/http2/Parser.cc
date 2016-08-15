@@ -10,6 +10,7 @@
 #include <xzero/http/http2/FrameListener.h>
 #include <xzero/http/HttpRequestInfo.h>
 #include <xzero/StringUtil.h>
+#include <xzero/BufferUtil.h>
 #include <xzero/Buffer.h>
 
 #define HTTP2_STRICT 1
@@ -90,7 +91,7 @@ size_t Parser::parseFragment(const BufferRef& chunk) {
 
   if (state_ == State::ConnectionPreface) {
     printf("http2.Parser: state in preface\n");
-    if (chunk.begins(ConnectionPreface)) {
+    if (BufferUtil::beginsWith(chunk, ConnectionPreface)) {
       printf("http2.Parser: preface found, skipping %zu bytes\n", ConnectionPreface.size());
       setState(State::Framing);
       offset += ConnectionPreface.size();

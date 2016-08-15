@@ -12,6 +12,7 @@
 #include <xzero/http/HttpRequest.h>
 #include <xzero/http/HttpResponse.h>
 #include <xzero/JsonWriter.h>
+#include <xzero/StringUtil.h>
 #include <xzero/io/FileUtil.h>
 #include <xzero/net/IPAddress.h>
 #include <xzero/Uri.h>
@@ -92,7 +93,7 @@ namespace client {
 HttpClusterApiHandler::HttpClusterApiHandler(HttpClusterApi* api,
                                              HttpRequest* request,
                                              HttpResponse* response,
-                                             const BufferRef& prefix)
+                                             const std::string& prefix)
     : api_(api),
       request_(request),
       response_(response),
@@ -106,7 +107,7 @@ HttpClusterApiHandler::~HttpClusterApiHandler() {
 }
 
 bool HttpClusterApiHandler::run() {
-  if (!BufferRef(request_->path()).ibegins(prefix_))
+  if (!StringUtil::beginsWith(request_->path(), prefix_))
     return false;
 
   Uri::ParamList params;

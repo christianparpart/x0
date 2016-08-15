@@ -12,6 +12,7 @@
 #include <xzero-flow/vm/Program.h>
 #include <xzero-flow/vm/Match.h>
 #include <xzero-flow/vm/Instruction.h>
+#include <xzero/BufferUtil.h>
 #include <xzero/logging.h>
 #include <xzero/sysconfig.h>
 #include <vector>
@@ -564,14 +565,14 @@ bool Runner::loop() {
   instr(SCMPBEG) {
     const auto& b = toString(B);
     const auto& c = toString(C);
-    data_[A] = b.begins(c);
+    data_[A] = BufferUtil::beginsWith(b, c);
     next;
   }
 
   instr(SCMPEND) {
     const auto& b = toString(B);
     const auto& c = toString(C);
-    data_[A] = b.ends(c);
+    data_[A] = BufferUtil::endsWith(b, c);
     next;
   }
 
