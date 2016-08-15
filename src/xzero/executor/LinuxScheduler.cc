@@ -143,8 +143,8 @@ Executor::HandleRef LinuxScheduler::createWatcher(
     RAISE(AlreadyWatchingOnResource, "Already watching on resource");
   }
 
-  Watcher* interest = &watchers_[fd]; // TODO: watchers_.emplace(...)
-  interest->reset(fd, mode, task, now() + timeout, tcb);
+  Watcher* interest = new Watcher(fd, mode, task, now() + timeout, tcb);
+  watchers_[fd] = RefPtr<Watcher>(interest);
 
   interest->setCancelHandler([this, interest] () {
     std::lock_guard<std::mutex> _l(lock_);
@@ -235,7 +235,9 @@ LinuxScheduler::Watcher* LinuxScheduler::unlinkWatcher(Watcher* w) {
   Watcher* pred = w->prev;
   Watcher* succ = w->next;
 
-  watchers_.erase(watchers_.find(w->fd));
+  TRACE("unlinkWatcher: $0", w);
+
+  epoll_ctl(epollfd_, EPOLL_CTL_DEL, w->fd, nullptr);
 
   if (pred)
     pred->next = succ;
@@ -247,7 +249,8 @@ LinuxScheduler::Watcher* LinuxScheduler::unlinkWatcher(Watcher* w) {
   else
     lastWatcher_ = pred;
 
-  w->clear();
+  watchers_.erase(watchers_.find(w->fd));
+
   unref();
 
   return succ;
@@ -328,7 +331,8 @@ void LinuxScheduler::breakLoop() {
 EventLoop::HandleRef LinuxScheduler::insertIntoTimersList(MonotonicTime dt,
                                                           Task task) {
   TRACE("insertIntoTimersList() $0", dt);
-  RefPtr<Timer> t(new Timer(dt, task));
+  RefPtr<Timer> tref(new Timer(dt, task));
+  Timer* t = tref.get();
 
   t->setCancelHandler([this, t]() {
     std::lock_guard<std::mutex> _l(lock_);
@@ -338,7 +342,7 @@ EventLoop::HandleRef LinuxScheduler::insertIntoTimersList(MonotonicTime dt,
 
     while (i != e) {
       i--;
-      if (i->get() == t.get()) {
+      if (i->get() == t) {
         timers_.erase(i);
         unref();
         break;
@@ -358,14 +362,14 @@ EventLoop::HandleRef LinuxScheduler::insertIntoTimersList(MonotonicTime dt,
     const RefPtr<Timer>& current = *i;
     if (t->when >= current->when) {
       i++;
-      i = timers_.insert(i, t);
-      return t.as<Handle>();
+      i = timers_.insert(i, tref);
+      return tref.as<Handle>();
     }
   }
 
-  timers_.push_front(t);
+  timers_.push_front(tref);
   i = timers_.begin();
-  return t.as<Handle>();
+  return tref.as<Handle>();
 
   // return std::make_shared<Handle>([this, i]() {
   //   std::lock_guard<std::mutex> lk(lock_);
@@ -378,16 +382,17 @@ void LinuxScheduler::collectActiveHandles(size_t count,
   for (size_t i = 0; i < count; ++i) {
     epoll_event& event = activeEvents_[i];
     if (Watcher* w = static_cast<Watcher*>(event.data.ptr)) {
-      epoll_ctl(epollfd_, EPOLL_CTL_DEL, w->fd, nullptr);
       if (event.events & EPOLLIN) {
         TRACE("collectActiveHandles: $0 READABLE", w->fd);
         readerCount_--;
-        result->push_back(w->onIO);
+        w->ref();
+        result->push_back([w] { w->fire(w->onIO); w->unref(); });
         unlinkWatcher(w);
       } else if (event.events & EPOLLOUT) {
         TRACE("collectActiveHandles: $0 WRITABLE", w->fd);
         writerCount_--;
-        result->push_back(w->onIO);
+        w->ref();
+        result->push_back([w] { w->fire(w->onIO); w->unref(); });
         unlinkWatcher(w);
       } else {
         TRACE("collectActiveHandles: unknown event fd $0", w->fd);
@@ -409,23 +414,25 @@ void LinuxScheduler::collectTimeouts(std::list<Task>* result) {
   };
 
   while (Watcher* w = nextTimedout()) {
-    result->push_back([w] { w->fire(w->onTimeout); });
     switch (w->mode) {
       case Mode::READABLE: readerCount_--; break;
       case Mode::WRITABLE: writerCount_--; break;
     }
+    w->ref();
+    result->push_back([w] { w->fire(w->onTimeout); w->unref(); });
     w = unlinkWatcher(w);
   }
 
-  const auto nextTimer = [this]() -> RefPtr<Timer> {
+  const auto nextTimer = [this]() -> Timer* {
     return !timers_.empty() && timers_.front()->when <= now()
-        ? timers_.front()
+        ? timers_.front().get()
         : nullptr;
   };
 
-  while (RefPtr<Timer> job = nextTimer()) {
+  while (Timer* job = nextTimer()) {
     TRACE("collectTimeouts: job $0", job->when);
-    result->push_back([job] { job->fire(job->action); });
+    job->ref();
+    result->push_back([job] { job->fire(job->action); job->unref(); });
     timers_.pop_front();
     unref();
   }

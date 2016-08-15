@@ -139,9 +139,9 @@ TEST(LinuxSchedulerTest, executeOnReadable) {
 
   auto handle = sched.executeOnReadable(
       pipe.readerFd(),
-      [&] { fireCount++; },
+      [&] { log("onReadable.fire!"); fireCount++; },
       Duration::Zero,
-      [&] { timeoutCount++; } );
+      [&] { log("onReadable.timeout!"); timeoutCount++; } );
 
   EXPECT_EQ(0, fireCount);
   EXPECT_EQ(0, timeoutCount);

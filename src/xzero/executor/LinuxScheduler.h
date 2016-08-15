@@ -158,7 +158,7 @@ class LinuxScheduler : public EventLoop {
 
   std::mutex lock_; //!< mutex, to protect access to tasks, timers
 
-  std::unordered_map<int, Watcher> watchers_;  //!< I/O watchers
+  std::unordered_map<int, RefPtr<Watcher>> watchers_;  //!< I/O watchers
   Watcher* firstWatcher_;                      //!< I/O watcher with the smallest timeout
   Watcher* lastWatcher_;                       //!< I/O watcher with the largest timeout
 

@@ -15,14 +15,11 @@ inline LinuxScheduler::Watcher::Watcher(int _fd, Mode _mode, Task _onIO,
                                  MonotonicTime _timeout, Task _onTimeout)
   : fd(_fd),
     mode(_mode),
+    onIO(_onIO),
     timeout(_timeout),
     onTimeout(_onTimeout),
     prev(nullptr),
     next(nullptr) {
-  // Manually ref because we're not holding it in a
-  // RefPtr<Watcher> vector in PosixScheduler.
-  // - Though, no need to manually unref() either.
-  ref();
 }
 
 inline void LinuxScheduler::Watcher::reset(int fd, Mode mode, Task onIO,
