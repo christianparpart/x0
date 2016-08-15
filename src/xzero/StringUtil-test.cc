@@ -46,6 +46,14 @@ TEST(StringUtilTest, TestBeginsWith) {
   EXPECT_FALSE(StringUtil::beginsWith("fnord", "fnordbar"));
 }
 
+TEST(StringUtilTest, beginsWithIgnoreCase) {
+  EXPECT_TRUE(StringUtil::beginsWithIgnoreCase("fnord", "fN"));
+  EXPECT_TRUE(StringUtil::beginsWithIgnoreCase("fnahrad", "Fn"));
+  EXPECT_FALSE(StringUtil::beginsWithIgnoreCase("ford", "fN"));
+  EXPECT_TRUE(StringUtil::beginsWithIgnoreCase("fnord", "fnORd"));
+  EXPECT_FALSE(StringUtil::beginsWithIgnoreCase("fnord", "fnORdbaR"));
+}
+
 TEST(StringUtilTest, TestEndsWith) {
   EXPECT_TRUE(StringUtil::endsWith("fnord", "ord"));
   EXPECT_TRUE(StringUtil::endsWith("ford", "ord"));
@@ -53,6 +61,15 @@ TEST(StringUtilTest, TestEndsWith) {
   EXPECT_FALSE(StringUtil::endsWith("ford", "fnord"));
   EXPECT_TRUE(StringUtil::endsWith("fnord", "fnord"));
   EXPECT_FALSE(StringUtil::endsWith("fnord", "fnordbar"));
+}
+
+TEST(StringUtilTest, endsWithIgnoreCase) {
+  EXPECT_TRUE(StringUtil::endsWithIgnoreCase("fnord", "ORd"));
+  EXPECT_TRUE(StringUtil::endsWithIgnoreCase("ford", "ORD"));
+  EXPECT_FALSE(StringUtil::endsWithIgnoreCase("ford", "x"));
+  EXPECT_FALSE(StringUtil::endsWithIgnoreCase("ford", "fnorD"));
+  EXPECT_TRUE(StringUtil::endsWithIgnoreCase("fnord", "fnorD"));
+  EXPECT_FALSE(StringUtil::endsWithIgnoreCase("fnord", "fnordbaR"));
 }
 
 TEST(StringUtilTest, TestHexPrint) {

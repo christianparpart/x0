@@ -219,6 +219,15 @@ bool StringUtil::beginsWith(const std::string& str, const std::string& prefix) {
       prefix) == 0;
 }
 
+bool StringUtil::beginsWithIgnoreCase(const std::string& str, const std::string& prefix) {
+  if (str.length() < prefix.length()) {
+    return false;
+  }
+
+  return strncasecmp(str.data(),
+                     prefix.data(),
+                     prefix.size()) == 0;
+}
 
 bool StringUtil::endsWith(const std::string& str, const std::string& suffix) {
   if (str.length() < suffix.length()) {
@@ -229,6 +238,16 @@ bool StringUtil::endsWith(const std::string& str, const std::string& suffix) {
       str.length() - suffix.length(),
       suffix.length(),
       suffix) == 0;
+}
+
+bool StringUtil::endsWithIgnoreCase(const std::string& str, const std::string& suffix) {
+  if (str.length() < suffix.length()) {
+    return false;
+  }
+
+  return strncasecmp(str.data() + str.length() - suffix.length(),
+                     suffix.data(),
+                     suffix.length()) == 0;
 }
 
 int StringUtil::compare(

@@ -69,6 +69,17 @@ public:
       const std::string& prefix);
 
   /**
+   * Check if the provided string begins with the provided prefix
+   *
+   * @param str the string to check
+   * @param prefix the prefix to check for
+   * @return true if the string begins with the provided prefix, false otherwise
+   */
+  static bool beginsWithIgnoreCase(
+      const std::string& str,
+      const std::string& prefix);
+
+  /**
    * Check if the provided string ends with the provided suffix
    *
    * @param str the string to check
@@ -76,6 +87,17 @@ public:
    * @return true if the string ends with the provided suffix, false otherwise
    */
   static bool endsWith(
+      const std::string& str,
+      const std::string& suffix);
+
+  /**
+   * Check if the provided string ends with the provided suffix
+   *
+   * @param str the string to check
+   * @param suffix the suffix to check for
+   * @return true if the string ends with the provided suffix, false otherwise
+   */
+  static bool endsWithIgnoreCase(
       const std::string& str,
       const std::string& suffix);
 
