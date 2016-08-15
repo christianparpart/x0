@@ -7,6 +7,7 @@
 
 #include <xzero/BufferUtil.h>
 #include <xzero/inspect.h>
+#include <strings.h>
 
 namespace xzero {
 
@@ -51,6 +52,40 @@ std::string BufferUtil::hexPrint(
   }
 
   return str;
+}
+
+bool BufferUtil::beginsWith(const BufferRef& data, const BufferRef& prefix) {
+  if (data.size() < prefix.size())
+    return false;
+
+  return data.ref(0, prefix.size()) == prefix;
+}
+
+bool BufferUtil::beginsWithIgnoreCase(const BufferRef& str, const BufferRef& prefix) {
+  if (str.size() < prefix.size()) {
+    return false;
+  }
+
+  return strncasecmp(str.data(),
+                     prefix.data(),
+                     prefix.size()) == 0;
+}
+
+bool BufferUtil::endsWith(const BufferRef& data, const BufferRef& suffix) {
+  if (data.size() < suffix.size())
+    return false;
+
+  return data.ref(data.size() - suffix.size()) == suffix;
+}
+
+bool BufferUtil::endsWithIgnoreCase(const BufferRef& str, const BufferRef& suffix) {
+  if (str.size() < suffix.size()) {
+    return false;
+  }
+
+  return strncasecmp(str.data() + str.size() - suffix.size(),
+                     suffix.data(),
+                     suffix.size()) == 0;
 }
 
 } // namespace xzero

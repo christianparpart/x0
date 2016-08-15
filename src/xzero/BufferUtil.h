@@ -50,6 +50,10 @@ public:
       bool separate_bytes = true,
       bool reverse_byte_order = false);
 
+  static bool beginsWith(const BufferRef& data, const BufferRef& prefix);
+  static bool beginsWithIgnoreCase(const BufferRef& str, const BufferRef& prefix);
+  static bool endsWith(const BufferRef& data, const BufferRef& suffix);
+  static bool endsWithIgnoreCase(const BufferRef& data, const BufferRef& suffix);
 };
 
 } // namespace xzero
