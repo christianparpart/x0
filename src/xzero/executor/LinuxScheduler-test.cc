@@ -99,18 +99,24 @@ TEST(LinuxSchedulerTest, executeAfter_cancel_beforeRun2) {
   int fire1Count = 0;
   int fire2Count = 0;
 
+  log("creating handle1");
   auto handle1 = scheduler.executeAfter(1_seconds, [&](){
+    log("handle1 fired");
     fire1Count++;
   });
 
+  log("creating handle2");
   auto handle2 = scheduler.executeAfter(10_milliseconds, [&](){
+    log("handle2 fired");
     fire2Count++;
   });
 
+  log("cancel handle1");
   EXPECT_EQ(2, scheduler.referenceCount());
   handle1->cancel();
   EXPECT_EQ(1, scheduler.referenceCount());
 
+  log("runLoopOnce");
   scheduler.runLoopOnce();
 
   EXPECT_EQ(0, fire1Count);
@@ -188,7 +194,7 @@ TEST(LinuxSchedulerTest, executeOnReadable_timeout_on_cancelled) {
 //   AlreadyWatchingOnResource()
 //       : RuntimeError("Already watching on resource") {}
 // };
-// 
+
 TEST(LinuxSchedulerTest, executeOnReadable_twice_on_same_fd) {
   LinuxScheduler sched;
   SystemPipe pipe;

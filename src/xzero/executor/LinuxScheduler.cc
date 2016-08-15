@@ -131,7 +131,7 @@ int LinuxScheduler::makeEvent(Mode mode) {
 }
 
 void LinuxScheduler::wakeupLoop() {
-  int dummy = 1;
+  uint64_t dummy = 1;
   ::write(eventfd_, &dummy, sizeof(dummy));
 }
 
@@ -158,6 +158,7 @@ Executor::HandleRef LinuxScheduler::createWatcher(
 
   int rv = epoll_ctl(epollfd_, EPOLL_CTL_ADD, fd, &event);
   if (rv < 0) {
+    TRACE("epoll_ctl for fd $0 failed #1. $1", fd, strerror(errno));
     RAISE_ERRNO(errno);
   }
 
@@ -175,6 +176,11 @@ Executor::HandleRef LinuxScheduler::createWatcher(
 
 LinuxScheduler::Watcher* LinuxScheduler::findPrecedingWatcher(Watcher* interest) {
   TRACE("findPrecedingWatcher for $0", interest);
+
+  for (Watcher* w = firstWatcher_; w != nullptr; w = w->next) {
+    TRACE(" - $0", w);
+  }
+
   if (firstWatcher_ == nullptr)
     // put it in front (linked list empty currently anyway)
     return nullptr;
@@ -291,8 +297,11 @@ void LinuxScheduler::runLoopOnce() {
         epollfd_.get(), activeEvents_.size(), timeoutMillis, rv,
         rv < 0 ? strerror(rv) : "");
 
-  if (rv < 0)
+  if (rv < 0) {
     RAISE_ERRNO(errno);
+  } else if (rv == 0 && timeoutMillis > 0) {
+    usleep(Duration::fromMilliseconds(timeoutMillis).microseconds());
+  }
 
   std::list<Task> activeTasks;
   {
@@ -369,6 +378,7 @@ void LinuxScheduler::collectActiveHandles(size_t count,
   for (size_t i = 0; i < count; ++i) {
     epoll_event& event = activeEvents_[i];
     if (Watcher* w = static_cast<Watcher*>(event.data.ptr)) {
+      epoll_ctl(epollfd_, EPOLL_CTL_DEL, w->fd, nullptr);
       if (event.events & EPOLLIN) {
         TRACE("collectActiveHandles: $0 READABLE", w->fd);
         readerCount_--;
@@ -379,6 +389,8 @@ void LinuxScheduler::collectActiveHandles(size_t count,
         writerCount_--;
         result->push_back(w->onIO);
         unlinkWatcher(w);
+      } else {
+        TRACE("collectActiveHandles: unknown event fd $0", w->fd);
       }
     } else {
       // event.data.ptr is NULL, ie. that's our eventfd notification.
@@ -412,6 +424,7 @@ void LinuxScheduler::collectTimeouts(std::list<Task>* result) {
   };
 
   while (RefPtr<Timer> job = nextTimer()) {
+    TRACE("collectTimeouts: job $0", job->when);
     result->push_back([job] { job->fire(job->action); });
     timers_.pop_front();
     unref();
