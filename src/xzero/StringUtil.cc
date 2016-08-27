@@ -158,6 +158,33 @@ void StringUtil::replaceAll(
   }
 }
 
+std::vector<std::string> StringUtil::splitByAny(
+      const std::string& str,
+      const std::string& pattern) {
+  std::vector<std::string> parts;
+
+  auto i = str.begin();
+  auto e = str.end();
+
+  do {
+    // consume delimiters
+    while (i != e && StringUtil::find(pattern, *i) != std::string::npos) {
+      i++;
+    }
+
+    // consume token
+    if (i != e) {
+      auto begin = i;
+      while (i != e && StringUtil::find(pattern, *i) == std::string::npos) {
+        i++;
+      }
+      parts.emplace_back(begin, i);
+    }
+  } while (i != e);
+
+  return parts;
+}
+
 std::vector<std::string> StringUtil::split(
       const std::string& str,
       const std::string& pattern) {

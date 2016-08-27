@@ -187,6 +187,10 @@ public:
       const std::string& str,
       const std::string& pattern);
 
+  static std::vector<std::string> splitByAny(
+      const std::string& str,
+      const std::string& pattern);
+
   /**
    * Join the provided string array with the provided join string
    */

@@ -124,6 +124,30 @@ TEST(StringUtilTest, TestFormat) {
   EXPECT_EQ(str4, "NaNaNaNaNa Batman");
 }
 
+TEST(StringUtilTest, splitByAny_empty) {
+  auto parts = StringUtil::splitByAny("", ", \t");
+  EXPECT_EQ(0, parts.size());
+
+  parts = StringUtil::splitByAny(", \t", ", \t");
+  EXPECT_EQ(0, parts.size());
+}
+
+TEST(StringUtilTest, splitByAny) {
+  auto parts = StringUtil::splitByAny("\tone, two , three four\t", ", \t");
+
+  int i = 0;
+  for (const auto& part: parts) {
+    logf("part[$0]: '$1'", i, part);
+    i++;
+  }
+
+  ASSERT_EQ(4, parts.size());
+  EXPECT_EQ("one", parts[0]);
+  EXPECT_EQ("two", parts[1]);
+  EXPECT_EQ("three", parts[2]);
+  EXPECT_EQ("four", parts[3]);
+}
+
 TEST(StringUtilTest, TestSplit) {
   auto parts1 = StringUtil::split("one,two,three", ",");
   EXPECT_EQ(parts1.size(), 3);
