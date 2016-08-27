@@ -526,6 +526,7 @@ xzero_test_SOURCES = \
 	src/xzero/Buffer-test.cc \
 	src/xzero/Callback-test.cc \
 	src/xzero/HugeBuffer-test.cc \
+	src/xzero/MimeTypes-test.cc \
 	src/xzero/Option-test.cc \
 	src/xzero/RefPtr-test.cc \
 	src/xzero/StringUtil-test.cc \
