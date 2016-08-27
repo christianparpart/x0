@@ -30,6 +30,7 @@
 #include <xzero/WallClock.h>
 #include <xzero/StringUtil.h>
 #include <xzero/RuntimeError.h>
+#include <xzero/BufferUtil.h>
 #include <xzero/logging.h>
 #include <xzero-flow/AST.h>
 #include <xzero-flow/ir/Instr.h>
@@ -330,9 +331,9 @@ bool ProxyModule::proxy_cluster(XzeroContext* cx, Params& args) {
 }
 
 bool ProxyModule::proxy_api(XzeroContext* cx, xzero::flow::vm::Params& args) {
-  FlowString prefix = args.getString(1);
+  std::string prefix = args.getString(1).str();
 
-  if (!BufferRef(cx->request()->path()).ibegins(prefix))
+  if (!StringUtil::beginsWithIgnoreCase(cx->request()->path(), prefix))
     return false;
 
   HttpClusterApiHandler* handler = cx->setCustomData<HttpClusterApiHandler>(
