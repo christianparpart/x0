@@ -167,35 +167,11 @@ class XZERO_BASE_API BufferBase {
   std::pair<BufferRef, BufferRef> split(char delimiter) const;
   std::pair<BufferRef, BufferRef> split(const value_type* delimiter) const;
 
-  // begins / ibegins
-  bool begins(const BufferRef& value) const;
-  bool begins(const value_type* value) const;
-  bool begins(const std::string& value) const;
-  bool begins(value_type value) const;
-
-  bool ibegins(const BufferRef& value) const;
-  bool ibegins(const value_type* value) const;
-  bool ibegins(const std::string& value) const;
-  bool ibegins(value_type value) const;
-
-  // ends / iends
-  bool ends(const BufferRef& value) const;
-  bool ends(const value_type* value) const;
-  bool ends(const std::string& value) const;
-  bool ends(value_type value) const;
-
-  bool iends(const BufferRef& value) const;
-  bool iends(const value_type* value) const;
-  bool iends(const std::string& value) const;
-  bool iends(value_type value) const;
-
   // sub
   BufferRef ref(size_t offset = 0) const;
   BufferRef ref(size_t offset, size_t size) const;
 
   // mutation
-  BufferRef chomp() const;
-  BufferRef trim() const;
   Buffer replaceAll(char src, char dst) const;
   Buffer replaceAll(const char* src, const char* dst) const;
 
@@ -781,90 +757,6 @@ std::pair<BufferRef, BufferRef> BufferBase<T>::split(
     return std::make_pair(ref(0, i), ref(i + strlen(delimiter), npos));
 }
 
-template <typename T>
-inline bool BufferBase<T>::begins(const BufferRef& value) const {
-  return value.size() <= size() &&
-         std::memcmp(data(), value.data(), value.size()) == 0;
-}
-
-template <typename T>
-inline bool BufferBase<T>::begins(const value_type* value) const {
-  if (!value) return true;
-
-  size_t len = std::strlen(value);
-  return len <= size() && std::memcmp(data(), value, len) == 0;
-}
-
-template <typename T>
-inline bool BufferBase<T>::begins(const std::string& value) const {
-  if (value.empty()) return true;
-
-  return value.size() <= size() &&
-         std::memcmp(data(), value.data(), value.size()) == 0;
-}
-
-template <typename T>
-inline bool BufferBase<T>::begins(value_type value) const {
-  return size() >= 1 && data()[0] == value;
-}
-
-template <typename T>
-inline bool BufferBase<T>::ibegins(const value_type* value) const {
-  if (!value) return true;
-
-  size_t len = std::strlen(value);
-  return len <= size() && strncasecmp(data(), value, len) == 0;
-}
-
-template <typename T>
-inline bool BufferBase<T>::ibegins(const BufferRef& value) const {
-  if (value.empty())
-    return true;
-
-  size_t len = value.size();
-  return len <= size() && strncasecmp(data(), value.data(), len) == 0;
-}
-
-template <typename T>
-inline bool BufferBase<T>::ends(const BufferRef& value) const {
-  if (value.empty()) return true;
-
-  size_t valueLength = value.size();
-
-  if (size() < valueLength) return false;
-
-  return std::memcmp(data() + size() - valueLength, value.data(),
-                     valueLength) == 0;
-}
-
-template <typename T>
-inline bool BufferBase<T>::ends(const std::string& value) const {
-  if (value.empty()) return true;
-
-  size_t valueLength = value.size();
-
-  if (size() < valueLength) return false;
-
-  return std::memcmp(data() + size() - valueLength, value.data(),
-                     valueLength) == 0;
-}
-
-template <typename T>
-inline bool BufferBase<T>::ends(value_type value) const {
-  return size() >= 1 && data()[size() - 1] == value;
-}
-
-template <typename T>
-inline bool BufferBase<T>::ends(const value_type* value) const {
-  if (!value) return true;
-
-  size_t valueLength = std::strlen(value);
-
-  if (size() < valueLength) return false;
-
-  return std::memcmp(data() + size() - valueLength, value, valueLength) == 0;
-}
-
 template <>
 inline BufferRef BufferBase<char*>::ref(size_t offset) const {
   assert(offset <= size());
@@ -894,22 +786,6 @@ inline BufferRef BufferBase<Buffer>::ref(size_t offset, size_t count) const {
 
   return count != npos ? BufferRef(data() + offset, count)
                        : BufferRef(data() + offset, size() - offset);
-}
-
-template <typename T>
-inline BufferRef BufferBase<T>::chomp() const {
-  return ends('\n') ? ref(0, size_ - 1) : ref(0, size_);
-}
-
-template <typename T>
-inline BufferRef BufferBase<T>::trim() const {
-  std::size_t left = 0;
-  while (left < size() && std::isspace(at(left))) ++left;
-
-  std::size_t right = size() - 1;
-  while (right > 0 && std::isspace(at(right))) --right;
-
-  return ref(left, 1 + right - left);
 }
 
 template <typename T>

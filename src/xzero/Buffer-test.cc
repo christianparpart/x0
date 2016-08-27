@@ -26,28 +26,6 @@ TEST(BufferBase, ctor0) {
   ASSERT_TRUE(!static_cast<bool>(a));
 }
 
-TEST(BufferBase, begins) {
-  BufferRef b("hello");
-  BufferRef v(b.ref());
-
-  ASSERT_TRUE(v.begins(nullptr));
-  ASSERT_TRUE(v.begins(""));
-  ASSERT_TRUE(v.begins("hello"));
-}
-
-TEST(BufferBase, ibegins) {
-  BufferRef b("hello");
-  BufferRef v(b.ref());
-
-  ASSERT_TRUE(v.ibegins(nullptr));
-  ASSERT_TRUE(v.ibegins(""));
-  ASSERT_TRUE(v.ibegins("hello"));
-  ASSERT_TRUE(v.ibegins("HELLO"));
-  ASSERT_TRUE(v.ibegins("HeLlO"));
-
-  ASSERT_FALSE(v.ibegins("Hello World"));
-}
-
 TEST(BufferBase, find_char) {
   BufferRef buf("012345");
 
