@@ -35,12 +35,15 @@ findexe() {
 
 export CXX=$(findexe clang++-3.5 clang++)
 export CC=$(findexe clang-3.5 clang)
+export CXXFLAGS="-O0 -ggdb3"
 
 echo CXX = $CXX
 echo CC = $CC
+echo CXXFLAGS = $CXXFLAGS
 
 $ROOT/configure --prefix="/usr" \
-                --sysconfdir="/etc/x0d" \
-                --runstatedir="/var/run/x0d" \
-                --with-pidfile="/var/run/x0d/x0d.pid" \
-                --with-logdir="/var/log/x0d"
+                --sysconfdir="$HOME/projects/x0" \
+                --runstatedir="$HOME/projects/x0/build" \
+                --with-pidfile="$HOME/projects/x0/build/x0d.pid" \
+                --with-logdir="$HOME/projects/x0/x0d"
+
