@@ -21,6 +21,9 @@ class XZERO_BASE_API MimeTypes {
   /** Loads the mimetype map from given local file at @p path. */
   void loadFromLocal(const std::string& path);
 
+  /** Loads the mimetype map from given string with format from a mime.types file. */
+  void loadFromString(const std::string& value);
+
   /** Retrieves the default mimetype. */
   const std::string& defaultMimeType() const XZERO_NOEXCEPT;
 

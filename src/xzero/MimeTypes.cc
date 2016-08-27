@@ -7,7 +7,7 @@
 
 #include <xzero/MimeTypes.h>
 #include <xzero/io/FileUtil.h>
-#include <xzero/Tokenizer.h>
+#include <xzero/StringUtil.h>
 #include <xzero/Buffer.h>
 
 namespace xzero {
@@ -26,23 +26,25 @@ MimeTypes::MimeTypes(const std::string& path,
   }
 }
 
-/** Loads the mimetype map from given local file at @p path. */
 void MimeTypes::loadFromLocal(const std::string& path) {
-  Buffer input = FileUtil::read(path);
+  std::string input = FileUtil::read(path).str();
+  loadFromString(input);
+}
 
+void MimeTypes::loadFromString(const std::string& input) {
   mimetypes_.clear();
-  auto lines = Tokenizer<BufferRef, Buffer>::tokenize(input, "\n");
+  auto lines = StringUtil::split(input, "\n");
 
   for (auto line : lines) {
-    line = line.trim();
-    auto columns = Tokenizer<BufferRef, BufferRef>::tokenize(line, " \t");
+    line = StringUtil::trim(line);
+    auto columns = StringUtil::splitByAny(line, " \t");
 
     auto ci = columns.begin(), ce = columns.end();
-    BufferRef mime = ci != ce ? *ci++ : BufferRef();
+    std::string mime = ci != ce ? *ci++ : std::string();
 
     if (!mime.empty() && mime[0] != '#') {
       for (; ci != ce; ++ci) {
-        mimetypes_[ci->str()] = mime.str();
+        mimetypes_[*ci] = mime;
       }
     }
   }
