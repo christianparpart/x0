@@ -213,7 +213,7 @@ bool FlowLexer::consumeSpace() {
           location_.filename, line(), column(), currentChar() & 0xFF);
   }
 
-  if (eof()) return true;
+  if (eof()) return false;
 
   if (currentChar() == '#') {
     bool maybeCommand = scope()->currPos.column == 1;
