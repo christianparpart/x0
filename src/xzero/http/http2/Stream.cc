@@ -92,6 +92,7 @@ void Stream::reparent(Stream* newParent, bool exclusive) {
       break;
     }
   }
+
   parentStream_ = newParent;
 
   if (exclusive) {
@@ -108,6 +109,9 @@ void Stream::reparent(Stream* newParent, bool exclusive) {
       Stream* root = parentStream_;
       while (root->parentStream_ != nullptr)
         root = root->parentStream_;
+    }
+  } else {
+    if (parentStream_) {
     }
   }
 }
