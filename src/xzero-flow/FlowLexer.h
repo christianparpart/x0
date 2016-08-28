@@ -77,8 +77,8 @@ class XZERO_FLOW_API FlowLexer {
   void processCommand(const std::string& line);
 
   FlowToken parseNumber(int base);
-  FlowToken parseString(bool raw);
-  FlowToken parseString(char delimiter, FlowToken result);
+  FlowToken parseRawString();
+  FlowToken parseString(FlowToken result);
   FlowToken parseInterpolationFragment(bool start);
   FlowToken parseIdent();
 

@@ -470,7 +470,7 @@ FlowToken FlowLexer::nextToken() {
           return token_ = FlowToken::Not;
       }
     case '\'':
-      return token_ = parseString(true);
+      return token_ = parseRawString();
     case '"':
       ++interpolationDepth_;
       return token_ = parseInterpolationFragment(true);
@@ -500,15 +500,16 @@ FlowToken FlowLexer::nextToken() {
   return token_;
 }
 
-FlowToken FlowLexer::parseString(bool raw) {
-  FlowToken result = parseString(raw ? '\'' : '"', FlowToken::String);
+FlowToken FlowLexer::parseRawString() {
+  FlowToken result = parseString(FlowToken::String);
 
-  if (result == FlowToken::String && raw) stringValue_ = unescape(stringValue_);
+  if (result == FlowToken::String)
+    stringValue_ = unescape(stringValue_);
 
   return result;
 }
 
-FlowToken FlowLexer::parseString(char delimiter, FlowToken result) {
+FlowToken FlowLexer::parseString(FlowToken result) {
   int delim = currentChar();
   int last = -1;
 
