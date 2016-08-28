@@ -572,6 +572,32 @@ class XZERO_FLOW_API MatchStmt : public Stmt {
   CaseList cases_;
   std::unique_ptr<Stmt> elseStmt_;
 };
+
+class ForStmt : public Stmt {
+ public:
+  ForStmt(const FlowLocation& loc,
+          std::unique_ptr<SymbolTable>&& scope,
+          std::unique_ptr<Variable>&& index,
+          std::unique_ptr<Variable>&& value,
+          std::unique_ptr<Expr>&& range,
+          std::unique_ptr<Stmt>&& body);
+
+  void visit(ASTVisitor&) override;
+
+  SymbolTable* scope() const { return scope_.get(); }
+  Symbol* indexSymbol() const { return index_; }
+  Symbol* valueSymbol() const { return value_; }
+
+  Expr* range() const { return range_.get(); }
+  Stmt* body() const { return body_.get(); }
+
+ private:
+  std::unique_ptr<SymbolTable> scope_;
+  Variable* index_;
+  Variable* value_;
+  std::unique_ptr<Expr> range_;
+  std::unique_ptr<Stmt> body_;
+};
 // }}}
 
 //!@}

@@ -113,6 +113,11 @@ void FlowCallVisitor::accept(MatchStmt& stmt) {
   visit(stmt.elseStmt());
 }
 
+void FlowCallVisitor::accept(ForStmt& stmt) {
+  visit(stmt.range());
+  visit(stmt.body());
+}
+
 void FlowCallVisitor::accept(AssignStmt& assignStmt) {
   visit(assignStmt.expression());
 }

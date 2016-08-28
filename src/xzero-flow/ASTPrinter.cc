@@ -229,6 +229,14 @@ void ASTPrinter::accept(MatchStmt& match) {
   print("else", match.elseStmt());
 }
 
+void ASTPrinter::accept(ForStmt& forStmt) {
+  printf("for %s, %s in\n",
+      forStmt.indexSymbol()->name().c_str(),
+      forStmt.valueSymbol()->name().c_str());
+  print("range", forStmt.range());
+  print("body", forStmt.body());
+}
+
 void ASTPrinter::accept(AssignStmt& assign) {
   printf("AssignStmt\n");
   enter();

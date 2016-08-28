@@ -679,6 +679,7 @@ FlowToken FlowLexer::parseIdent() {
                   {"var", FlowToken::Var},
                   {"match", FlowToken::Match},
                   {"on", FlowToken::On},
+                  {"for", FlowToken::For},
                   {"do", FlowToken::Do},
                   {"if", FlowToken::If},
                   {"then", FlowToken::Then},

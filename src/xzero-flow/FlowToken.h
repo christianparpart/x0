@@ -90,6 +90,7 @@ struct XZERO_FLOW_API FlowToken {
     Unless,
     Match,
     On,
+    For,
     Import,
     From,
 

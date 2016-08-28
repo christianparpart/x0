@@ -18,6 +18,7 @@ bool FlowTokenTraits::isKeyword(FlowToken t) {
   switch (t) {
     case FlowToken::Var:
     case FlowToken::On:
+    case FlowToken::For:
     case FlowToken::Do:
     case FlowToken::If:
     case FlowToken::Match:
@@ -260,6 +261,8 @@ const char *FlowToken::c_str() const throw() {
       return "match";
     case FlowToken::On:
       return "on";
+    case FlowToken::For:
+      return "for";
     case FlowToken::Import:
       return "import";
     case FlowToken::From:
