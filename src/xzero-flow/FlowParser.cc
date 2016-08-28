@@ -1443,6 +1443,66 @@ std::unique_ptr<Stmt> FlowParser::matchStmt() {
                                      std::move(cases), std::move(elseStmt));
 }
 
+// forStmt ::= 'for' 'var' NAME, [',' NAME] 'in' expr stmt
+std::unique_ptr<Stmt> FlowParser::forStmt() {
+  FNTRACE();
+
+  FlowLocation sloc(location());
+  nextToken(); // 'for'
+  if (!consume(FlowToken::Var))
+    return nullptr;
+
+  if (!consume(FlowToken::Ident))
+    return nullptr;
+
+  std::string indexName;
+  std::string valueName = stringValue();
+
+  if (token() == FlowToken::Comma) {
+    nextToken(); // ','
+
+    if (!consume(FlowToken::Ident))
+      return nullptr;
+
+    indexName = valueName;
+    valueName = stringValue();
+  } else {
+    indexName = "$$";
+  }
+
+  if (!consume(FlowToken::In))
+    return nullptr;
+
+  std::unique_ptr<Expr> range = expr();
+  if (!range)
+    return nullptr;
+
+  std::unique_ptr<SymbolTable> st = enterScope("for-" + valueName);
+  std::unique_ptr<Stmt> body = stmt();
+  leaveScope();
+  if (!body)
+    return nullptr;
+
+  std::unique_ptr<Expr> indexInitializer = std::make_unique<NumberExpr>(0);
+  std::unique_ptr<Variable> index = std::make_unique<Variable>(
+      indexName,
+      std::move(indexInitializer),
+      sloc);
+
+  std::unique_ptr<Expr> valueInitializer;// TODO: must be type of range's elem
+  std::unique_ptr<Variable> value = std::make_unique<Variable>(
+      valueName,
+      std::move(valueInitializer),
+      sloc);
+
+  return std::make_unique<ForStmt>(sloc,
+                                   std::move(st),
+                                   std::move(index),
+                                   std::move(value),
+                                   std::move(range),
+                                   std::move(body));
+}
+
 // compoundStmt ::= '{' varDecl* stmt* '}'
 std::unique_ptr<Stmt> FlowParser::compoundStmt() {
   FNTRACE();

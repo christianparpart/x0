@@ -162,6 +162,7 @@ class XZERO_FLOW_API FlowParser {
   std::unique_ptr<Stmt> stmt();
   std::unique_ptr<Stmt> ifStmt();
   std::unique_ptr<Stmt> matchStmt();
+  std::unique_ptr<Stmt> forStmt();
   std::unique_ptr<Stmt> compoundStmt();
   std::unique_ptr<Stmt> identStmt();
   std::unique_ptr<CallExpr> callStmt(const std::list<Symbol*>& callables);
