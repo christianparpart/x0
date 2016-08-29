@@ -41,5 +41,39 @@ std::string tos(FlowType type) {
   }
 }
 
+bool isArrayType(FlowType type) {
+  switch (type) {
+    case FlowType::IntArray:
+    case FlowType::StringArray:
+    case FlowType::IPAddrArray:
+    case FlowType::CidrArray:
+      return true;
+    default:
+      return false;
+  }
+}
+
+FlowType elementTypeOf(FlowType type) {
+  switch (type) {
+    case FlowType::Void:
+    case FlowType::Boolean:
+    case FlowType::Number:
+    case FlowType::String:
+    case FlowType::IPAddress:
+    case FlowType::Cidr:
+    case FlowType::RegExp:
+    case FlowType::Handler:
+      return type;
+    case FlowType::IntArray:
+      return FlowType::Number;
+    case FlowType::StringArray:
+      return FlowType::String;
+    case FlowType::IPAddrArray:
+      return FlowType::IPAddress;
+    case FlowType::CidrArray:
+      return FlowType::Cidr;
+  }
+}
+
 }  // namespace flow
 }  // namespace xzero

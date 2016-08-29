@@ -45,6 +45,9 @@ typedef BufferRef FlowString;
 
 std::string tos(FlowType type);
 
+bool isArrayType(FlowType type);
+FlowType elementTypeOf(FlowType type);
+
 // {{{ array types
 class XZERO_FLOW_API FlowArray {
  public:
