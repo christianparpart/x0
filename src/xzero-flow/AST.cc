@@ -585,18 +585,16 @@ void MatchStmt::visit(ASTVisitor& v) { v.accept(*this); }
 
 ForStmt::ForStmt(const FlowLocation& loc,
                  std::unique_ptr<SymbolTable>&& scope,
-                 std::unique_ptr<Variable>&& index,
-                 std::unique_ptr<Variable>&& value,
+                 Variable* index,
+                 Variable* value,
                  std::unique_ptr<Expr>&& range,
                  std::unique_ptr<Stmt>&& body)
   : Stmt(loc),
     scope_(std::move(scope)),
-    index_(index.get()),
-    value_(value.get()),
+    index_(index),
+    value_(value),
     range_(std::move(range)),
     body_(std::move(body)) {
-  scope_->appendSymbol(std::move(index));
-  scope_->appendSymbol(std::move(value));
 }
 
 void ForStmt::visit(ASTVisitor& v) {
