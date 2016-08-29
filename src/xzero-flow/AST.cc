@@ -461,6 +461,29 @@ FlowLocation ParamList::location() const {
 }
 // }}}
 
+std::unique_ptr<Expr> Expr::createDefaultInitializer(FlowType type) {
+  switch (type) {
+    case FlowType::Boolean:
+      return std::make_unique<BoolExpr>(false);
+    case FlowType::Number:
+      return std::make_unique<NumberExpr>(0);
+    case FlowType::String:
+      return std::make_unique<StringExpr>("");
+    case FlowType::IPAddress:
+      return std::make_unique<IPAddressExpr>();
+    case FlowType::Cidr:
+    case FlowType::RegExp:
+    case FlowType::Handler:
+    case FlowType::IntArray:
+    case FlowType::StringArray:
+    case FlowType::IPAddrArray:
+    case FlowType::CidrArray:
+    default:
+      // TODO not implemented
+      return nullptr;
+  }
+}
+
 void Variable::visit(ASTVisitor& v) { v.accept(*this); }
 
 Handler* Unit::findHandler(const std::string& name) {

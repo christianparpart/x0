@@ -281,6 +281,8 @@ class XZERO_FLOW_API Expr : public ASTNode {
   explicit Expr(const FlowLocation& loc) : ASTNode(loc) {}
 
  public:
+  static std::unique_ptr<Expr> createDefaultInitializer(FlowType elementType);
+
   virtual FlowType getType() const = 0;
 };
 
