@@ -1291,6 +1291,8 @@ std::unique_ptr<Stmt> FlowParser::stmt() {
       return ifStmt();
     case FlowToken::Match:
       return matchStmt();
+    case FlowToken::For:
+      return forStmt();
     case FlowToken::Begin:
       return compoundStmt();
     case FlowToken::Ident:
