@@ -51,6 +51,7 @@ public:
 
   void addTarget(LogTarget* target);
   void setMinimumLogLevel(LogLevel min_level);
+  LogLevel getMinimumLogLevel() { return min_level_.load(); }
 
 protected:
   std::atomic<LogLevel> min_level_;
