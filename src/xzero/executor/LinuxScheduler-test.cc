@@ -232,6 +232,14 @@ TEST(LinuxSchedulerTest, executeOnWritable) {
   EXPECT_EQ(0, timeoutCount);
 }
 
+TEST(LinuxSchedulerTest, cancelFD) {
+  TheScheduler sched;
+  SystemPipe pipe;
+  auto handle = sched.executeOnReadable(pipe.readerFd(), [](){});
+  sched.cancelFD(pipe.readerFd());
+  EXPECT_TRUE(handle->isCancelled());
+}
+
 // TEST(LinuxSchedulerTest, waitForReadable) {
 // };
 // 

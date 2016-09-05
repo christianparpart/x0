@@ -187,6 +187,12 @@ class PosixScheduler : public EventLoop {
   Watcher* unlinkWatcher(Watcher* w);
 
   /**
+   * Searches handle for given file descriptor @p fd.
+   * @return either the reference to the handle or @c nullptr.
+   */
+  HandleRef findWatcher(int fd);
+
+  /**
    * Computes the timespan the event loop should wait the most.
    *
    * @note requires the caller to lock the object mutex.

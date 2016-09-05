@@ -309,6 +309,17 @@ PosixScheduler::Watcher* PosixScheduler::unlinkWatcher(Watcher* w) {
   return succ;
 }
 
+Executor::HandleRef PosixScheduler::findWatcher(int fd) {
+  std::lock_guard<std::mutex> lk(lock_);
+
+  if (static_cast<size_t>(fd) < watchers_.size()) {
+    Watcher* w = &watchers_[fd];
+    return HandleRef(w);
+  } else {
+    return nullptr;
+  }
+}
+
 EventLoop::HandleRef PosixScheduler::executeOnReadable(int fd, Task task, Duration tmo, Task tcb) {
   readerCount_++;
   std::lock_guard<std::mutex> lk(lock_);
@@ -322,12 +333,9 @@ EventLoop::HandleRef PosixScheduler::executeOnWritable(int fd, Task task, Durati
 }
 
 void PosixScheduler::cancelFD(int fd) {
-  if (fd >= 0) {
-    std::lock_guard<std::mutex> lk(lock_);
-    if (static_cast<size_t>(fd) < watchers_.size()) {
-      Watcher* w = &watchers_[fd];
-      w->cancel();
-    }
+  HandleRef ref = findWatcher(fd);
+  if (ref != nullptr) {
+    ref->cancel();
   }
 }
 

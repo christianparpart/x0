@@ -226,6 +226,14 @@ TEST(PosixSchedulerTest, executeOnWritable) {
   EXPECT_EQ(0, timeoutCount);
 }
 
+TEST(PosixSchedulerTest, cancelFD) {
+  TheScheduler sched;
+  SystemPipe pipe;
+  auto handle = sched.executeOnReadable(pipe.readerFd(), [](){});
+  sched.cancelFD(pipe.readerFd());
+  EXPECT_TRUE(handle->isCancelled());
+}
+
 // TEST(PosixSchedulerTest, waitForReadable) {
 // };
 // 

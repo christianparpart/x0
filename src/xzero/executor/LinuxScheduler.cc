@@ -256,6 +256,17 @@ LinuxScheduler::Watcher* LinuxScheduler::unlinkWatcher(Watcher* w) {
   return succ;
 }
 
+Executor::HandleRef LinuxScheduler::findWatcher(int fd) {
+  std::lock_guard<std::mutex> lk(lock_);
+
+  auto wi = watchers_.find(fd);
+  if (wi != watchers_.end()) {
+    return wi->second.as<Handle>();
+  } else {
+    return nullptr;
+  }
+}
+
 Duration LinuxScheduler::nextTimeout() const {
   if (!tasks_.empty())
     return Duration::Zero;
@@ -271,7 +282,11 @@ Duration LinuxScheduler::nextTimeout() const {
   return std::min(a, b);
 }
 
-void LinuxScheduler::cancelFD(int fd) { // TODO
+void LinuxScheduler::cancelFD(int fd) {
+  HandleRef ref = findWatcher(fd);
+  if (ref != nullptr) {
+    ref->cancel();
+  }
 }
 
 void LinuxScheduler::executeOnWakeup(Task task, Wakeup* wakeup, long generation) {
