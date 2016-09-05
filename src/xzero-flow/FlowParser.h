@@ -45,6 +45,8 @@ class XZERO_FLOW_API FlowParser {
   ErrorHandler errorHandler;
   ImportHandler importHandler;
 
+  FlowParser() : FlowParser(nullptr, nullptr, nullptr) {}
+
   explicit FlowParser(
       vm::Runtime* runtime,
       ImportHandler importHandler = nullptr,
