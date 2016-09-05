@@ -20,6 +20,8 @@
 
 using namespace xzero;
 
+using TheScheduler = PosixScheduler;
+
 /* test case:
  * 1.) insert interest A with timeout 10s
  * 2.) after 5 seconds, insert interest B with timeout 2
@@ -27,7 +29,7 @@ using namespace xzero;
  * 4.) the interest A should now be fired after 3 seconds
  */
 TEST(PosixSchedulerTest, timeoutBreak) {
-  PosixScheduler scheduler;
+  TheScheduler scheduler;
   SystemPipe a;
   SystemPipe b;
   MonotonicTime start = MonotonicClock::now();
@@ -58,7 +60,7 @@ TEST(PosixSchedulerTest, timeoutBreak) {
 }
 
 TEST(PosixSchedulerTest, executeAfter_without_handle) {
-  PosixScheduler scheduler;
+  TheScheduler scheduler;
   MonotonicTime start;
   MonotonicTime firedAt;
   int fireCount = 0;
@@ -80,7 +82,7 @@ TEST(PosixSchedulerTest, executeAfter_without_handle) {
 }
 
 TEST(PosixSchedulerTest, executeAfter_cancel_beforeRun) {
-  PosixScheduler scheduler;
+  TheScheduler scheduler;
   int fireCount = 0;
 
   auto handle = scheduler.executeAfter(1_seconds, [&](){
@@ -95,7 +97,7 @@ TEST(PosixSchedulerTest, executeAfter_cancel_beforeRun) {
 }
 
 TEST(PosixSchedulerTest, executeAfter_cancel_beforeRun2) {
-  PosixScheduler scheduler;
+  TheScheduler scheduler;
   int fire1Count = 0;
   int fire2Count = 0;
 
@@ -123,7 +125,7 @@ TEST(PosixSchedulerTest, executeOnReadable) {
   // executeOnReadable: test timeout
   // executeOnReadable: test fire at the time of the timeout
 
-  PosixScheduler sched;
+  TheScheduler sched;
 
   SystemPipe pipe;
   int fireCount = 0;
@@ -147,7 +149,7 @@ TEST(PosixSchedulerTest, executeOnReadable) {
 }
 
 TEST(PosixSchedulerTest, executeOnReadable_timeout) {
-  PosixScheduler sched;
+  TheScheduler sched;
   SystemPipe pipe;
 
   int fireCount = 0;
@@ -163,7 +165,7 @@ TEST(PosixSchedulerTest, executeOnReadable_timeout) {
 }
 
 TEST(PosixSchedulerTest, executeOnReadable_timeout_on_cancelled) {
-  PosixScheduler sched;
+  TheScheduler sched;
   SystemPipe pipe;
 
   int fireCount = 0;
@@ -190,23 +192,21 @@ TEST(PosixSchedulerTest, executeOnReadable_timeout_on_cancelled) {
 // };
 // 
 TEST(PosixSchedulerTest, executeOnReadable_twice_on_same_fd) {
-  PosixScheduler sched;
+  TheScheduler sched;
   SystemPipe pipe;
 
   sched.executeOnReadable(pipe.readerFd(), [] () {});
 
-  // FIXME
-  // EXPECT_EXCEPTION("Already watching on resource", [&]() {
-  //   sched.executeOnReadable(pipe.readerFd(), [] () {});
-  // });
+  EXPECT_THROW_STATUS(AlreadyWatchingOnResource,
+                      sched.executeOnReadable(pipe.readerFd(), [] () {}));
 
-  // FIXME
-  // EXPECT_THROW_STATUS(AlreadyWatchingOnResource,
-  //     [&]() { sched.executeOnReadable(pipe.readerFd(), [] () {}); });
+  // same fd, different mode
+  EXPECT_THROW_STATUS(AlreadyWatchingOnResource,
+                      sched.executeOnWritable(pipe.readerFd(), [] () {}));
 }
 
 TEST(PosixSchedulerTest, executeOnWritable) {
-  PosixScheduler sched;
+  TheScheduler sched;
 
   SystemPipe pipe;
   int fireCount = 0;

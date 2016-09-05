@@ -20,6 +20,8 @@
 
 using namespace xzero;
 
+using TheScheduler = LinuxScheduler;
+
 /* test case:
  * 1.) insert interest A with timeout 10s
  * 2.) after 5 seconds, insert interest B with timeout 2
@@ -27,7 +29,7 @@ using namespace xzero;
  * 4.) the interest A should now be fired after 3 seconds
  */
 TEST(LinuxSchedulerTest, timeoutBreak) {
-  LinuxScheduler scheduler;
+  TheScheduler scheduler;
   SystemPipe a;
   SystemPipe b;
   MonotonicTime start = MonotonicClock::now();
@@ -58,7 +60,7 @@ TEST(LinuxSchedulerTest, timeoutBreak) {
 }
 
 TEST(LinuxSchedulerTest, executeAfter_without_handle) {
-  LinuxScheduler scheduler;
+  TheScheduler scheduler;
   MonotonicTime start;
   MonotonicTime firedAt;
   int fireCount = 0;
@@ -80,7 +82,7 @@ TEST(LinuxSchedulerTest, executeAfter_without_handle) {
 }
 
 TEST(LinuxSchedulerTest, executeAfter_cancel_beforeRun) {
-  LinuxScheduler scheduler;
+  TheScheduler scheduler;
   int fireCount = 0;
 
   auto handle = scheduler.executeAfter(1_seconds, [&](){
@@ -95,7 +97,7 @@ TEST(LinuxSchedulerTest, executeAfter_cancel_beforeRun) {
 }
 
 TEST(LinuxSchedulerTest, executeAfter_cancel_beforeRun2) {
-  LinuxScheduler scheduler;
+  TheScheduler scheduler;
   int fire1Count = 0;
   int fire2Count = 0;
 
@@ -129,7 +131,7 @@ TEST(LinuxSchedulerTest, executeOnReadable) {
   // executeOnReadable: test timeout
   // executeOnReadable: test fire at the time of the timeout
 
-  LinuxScheduler sched;
+  TheScheduler sched;
 
   SystemPipe pipe;
   int fireCount = 0;
@@ -153,7 +155,7 @@ TEST(LinuxSchedulerTest, executeOnReadable) {
 }
 
 TEST(LinuxSchedulerTest, executeOnReadable_timeout) {
-  LinuxScheduler sched;
+  TheScheduler sched;
   SystemPipe pipe;
 
   int fireCount = 0;
@@ -169,7 +171,7 @@ TEST(LinuxSchedulerTest, executeOnReadable_timeout) {
 }
 
 TEST(LinuxSchedulerTest, executeOnReadable_timeout_on_cancelled) {
-  LinuxScheduler sched;
+  TheScheduler sched;
   SystemPipe pipe;
 
   int fireCount = 0;
@@ -196,23 +198,21 @@ TEST(LinuxSchedulerTest, executeOnReadable_timeout_on_cancelled) {
 // };
 
 TEST(LinuxSchedulerTest, executeOnReadable_twice_on_same_fd) {
-  LinuxScheduler sched;
+  TheScheduler sched;
   SystemPipe pipe;
 
   sched.executeOnReadable(pipe.readerFd(), [] () {});
 
-  // FIXME
-  // EXPECT_EXCEPTION("Already watching on resource", [&]() {
-  //   sched.executeOnReadable(pipe.readerFd(), [] () {});
-  // });
+  EXPECT_THROW_STATUS(AlreadyWatchingOnResource,
+                      sched.executeOnReadable(pipe.readerFd(), [] () {}));
 
-  // FIXME
-  // EXPECT_THROW_STATUS(AlreadyWatchingOnResource,
-  //     [&]() { sched.executeOnReadable(pipe.readerFd(), [] () {}); });
+  // same fd, different mode
+  EXPECT_THROW_STATUS(AlreadyWatchingOnResource,
+                      sched.executeOnWritable(pipe.readerFd(), [] () {}));
 }
 
 TEST(LinuxSchedulerTest, executeOnWritable) {
-  LinuxScheduler sched;
+  TheScheduler sched;
 
   SystemPipe pipe;
   int fireCount = 0;
