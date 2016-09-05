@@ -281,6 +281,8 @@ class XZERO_FLOW_API Expr : public ASTNode {
   explicit Expr(const FlowLocation& loc) : ASTNode(loc) {}
 
  public:
+  static std::unique_ptr<Expr> createDefaultInitializer(FlowType elementType);
+
   virtual FlowType getType() const = 0;
 };
 
@@ -341,7 +343,10 @@ class XZERO_FLOW_API LiteralExpr : public Expr {
   T value_;
 
  public:
-  explicit LiteralExpr(const T& value) : Expr(FlowLocation()), value_(value) {}
+  LiteralExpr() : LiteralExpr(T(), FlowLocation()) {}
+
+  explicit LiteralExpr(const T& value)
+      : LiteralExpr(value, FlowLocation()) {}
 
   LiteralExpr(const T& value, const FlowLocation& loc)
       : Expr(loc), value_(value) {}
@@ -575,18 +580,28 @@ class XZERO_FLOW_API MatchStmt : public Stmt {
 
 class ForStmt : public Stmt {
  public:
+  /**
+   * Initializes the for-statement.
+   *
+   * @param loc source code location range of given for statement.
+   * @param scope the entailing scope that is being created for this statement.
+   * @param index symbol to index-iterator
+   * @param value symbol to value-iterator
+   * @param range range-typed expression that is to be iterated through.
+   * @param body the statement to execute for each element in @p range.
+   */
   ForStmt(const FlowLocation& loc,
           std::unique_ptr<SymbolTable>&& scope,
-          std::unique_ptr<Variable>&& index,
-          std::unique_ptr<Variable>&& value,
+          Variable* index,
+          Variable* value,
           std::unique_ptr<Expr>&& range,
           std::unique_ptr<Stmt>&& body);
 
   void visit(ASTVisitor&) override;
 
   SymbolTable* scope() const { return scope_.get(); }
-  Symbol* indexSymbol() const { return index_; }
-  Symbol* valueSymbol() const { return value_; }
+  Variable* indexSymbol() const { return index_; }
+  Variable* valueSymbol() const { return value_; }
 
   Expr* range() const { return range_.get(); }
   Stmt* body() const { return body_.get(); }

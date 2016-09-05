@@ -529,10 +529,10 @@ xzero_test_SOURCES = \
 	src/xzero/MimeTypes-test.cc \
 	src/xzero/Option-test.cc \
 	src/xzero/RefPtr-test.cc \
+	src/xzero/Result-test.cc \
 	src/xzero/StringUtil-test.cc \
 	src/xzero/TokenShaper-test.cc \
 	src/xzero/Tokenizer-test.cc \
-	src/xzero/Try-test.cc \
 	src/xzero/Uri-test.cc \
 	src/xzero/cli/CLI-test.cc \
 	src/xzero/executor/PosixScheduler-test.cc \

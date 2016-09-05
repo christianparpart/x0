@@ -1454,20 +1454,18 @@ std::unique_ptr<Stmt> FlowParser::forStmt() {
   if (!consume(FlowToken::Var))
     return nullptr;
 
-  if (!consume(FlowToken::Ident))
-    return nullptr;
-
   std::string indexName;
   std::string valueName = stringValue();
 
-  if (token() == FlowToken::Comma) {
-    nextToken(); // ','
+  if (!consume(FlowToken::Ident))
+    return nullptr;
 
-    if (!consume(FlowToken::Ident))
-      return nullptr;
-
+  if (consumeIf(FlowToken::Comma)) {
     indexName = valueName;
     valueName = stringValue();
+    if (!consume(FlowToken::Ident)) {
+      return nullptr;
+    }
   } else {
     indexName = "$$";
   }
@@ -1479,28 +1477,35 @@ std::unique_ptr<Stmt> FlowParser::forStmt() {
   if (!range)
     return nullptr;
 
+  if (!isArrayType(range->getType())) {
+    reportError("Unexpected type in for statement's range expression. "
+                    "Expects an array type but received %s.",
+                tos(range->getType()).c_str());
+    return nullptr;
+  }
+
   std::unique_ptr<SymbolTable> st = enterScope("for-" + valueName);
+
+  Variable* index = static_cast<Variable*>(st->appendSymbol(
+      std::make_unique<Variable>(indexName,
+                                 std::make_unique<NumberExpr>(0),
+                                 sloc)));
+
+  Variable* value = static_cast<Variable*>(st->appendSymbol(std::make_unique<Variable>(
+      valueName,
+      Expr::createDefaultInitializer(elementTypeOf(range->getType())),
+      sloc)));
+
   std::unique_ptr<Stmt> body = stmt();
   leaveScope();
+
   if (!body)
     return nullptr;
 
-  std::unique_ptr<Expr> indexInitializer = std::make_unique<NumberExpr>(0);
-  std::unique_ptr<Variable> index = std::make_unique<Variable>(
-      indexName,
-      std::move(indexInitializer),
-      sloc);
-
-  std::unique_ptr<Expr> valueInitializer;// TODO: must be type of range's elem
-  std::unique_ptr<Variable> value = std::make_unique<Variable>(
-      valueName,
-      std::move(valueInitializer),
-      sloc);
-
-  return std::make_unique<ForStmt>(sloc,
+  return std::make_unique<ForStmt>(sloc.update(end()),
                                    std::move(st),
-                                   std::move(index),
-                                   std::move(value),
+                                   index,
+                                   value,
                                    std::move(range),
                                    std::move(body));
 }

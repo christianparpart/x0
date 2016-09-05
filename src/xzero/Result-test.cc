@@ -6,27 +6,27 @@
 // the License at: http://opensource.org/licenses/MIT
 
 #include <xzero/testing.h>
-#include <xzero/Try.h>
+#include <xzero/Result.h>
 
-TEST(Try, Failure) {
-  Try<int> t = Failure("fnord");
+TEST(Result, Failure) {
+  Result<int> t = Failure("fnord");
 
   ASSERT_FALSE(t.isSuccess());
   ASSERT_TRUE(t.isFailure());
 }
 
-TEST(Try, Success) {
-  Try<int> t = Success(42);
+TEST(Result, Success) {
+  Result<int> t = Success(42);
 
   ASSERT_TRUE(t.isSuccess());
   ASSERT_FALSE(t.isFailure());
   ASSERT_EQ(*t, 42);
 }
 
-TEST(Try, MoveSuccess) {
-  Try<std::string> t = Success(std::string("Hello"));
+TEST(Result, MoveSuccess) {
+  Result<std::string> t = Success(std::string("Hello"));
 
-  Try<std::string> u = std::move(t);
+  Result<std::string> u = std::move(t);
 
   ASSERT_TRUE(u.isSuccess());
   ASSERT_FALSE(u.isFailure());

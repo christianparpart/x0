@@ -8,27 +8,27 @@
 #include <xzero/RuntimeError.h>
 
 template<typename T>
-inline Try<T>::Try(const T& value)
+inline Result<T>::Result(const T& value)
   : success_(true),
     message_() {
   new (storage_) T(value);
 }
 
 template<typename T>
-inline Try<T>::Try(T&& value)
+inline Result<T>::Result(T&& value)
   : success_(true),
     message_() {
   new (storage_) T(std::move(value));
 }
 
 template<typename T>
-inline Try<T>::Try(_FailureMessage&& failure)
+inline Result<T>::Result(_FailureMessage&& failure)
   : success_(false),
     message_(std::move(failure.message)) {
 }
 
 template<typename T>
-Try<T>::Try(Try&& other)
+Result<T>::Result(Result&& other)
     : success_(other.success_),
       message_(std::move(other.message_)) {
   if (success_) {
@@ -39,66 +39,66 @@ Try<T>::Try(Try&& other)
 
 
 template<typename T>
-inline Try<T>::~Try() {
+inline Result<T>::~Result() {
   if (success_) {
     ((T*) &storage_)->~T();
   }
 }
 
 template<typename T>
-inline Try<T>::operator bool () const noexcept {
+inline Result<T>::operator bool () const noexcept {
   return success_;
 }
 
 template<typename T>
-inline bool Try<T>::isSuccess() const noexcept {
+inline bool Result<T>::isSuccess() const noexcept {
   return success_;
 }
 
 template<typename T>
-inline bool Try<T>::isFailure() const noexcept {
+inline bool Result<T>::isFailure() const noexcept {
   return !success_;
 }
 
 template<typename T>
-inline const std::string& Try<T>::message() const noexcept {
+inline const std::string& Result<T>::message() const noexcept {
   return message_;
 }
 
 template<typename T>
-inline T* Try<T>::get() {
+inline T* Result<T>::get() {
   require();
   return ((T*) &storage_);
 }
 
 template<typename T>
-inline const T* Try<T>::get() const {
+inline const T* Result<T>::get() const {
   require();
   return ((T*) &storage_);
 }
 
 template<typename T>
-inline T* Try<T>::operator->() {
+inline T* Result<T>::operator->() {
   return get();
 }
 
 template<typename T>
-inline const T* Try<T>::operator->() const {
+inline const T* Result<T>::operator->() const {
   return get();
 }
 
 template<typename T>
-inline T& Try<T>::operator*() {
+inline T& Result<T>::operator*() {
   return *get();
 }
 
 template<typename T>
-inline const T& Try<T>::operator*() const {
+inline const T& Result<T>::operator*() const {
   return *get();
 }
 
 template<typename T>
-inline void Try<T>::require() const {
+inline void Result<T>::require() const {
   using xzero::Status;
   using xzero::RuntimeError;
 
@@ -111,11 +111,11 @@ inline _FailureMessage Failure(const std::string& message) {
 }
 
 template<typename T>
-inline Try<T> Success(const T& value) {
-  return Try<T>(value);
+inline Result<T> Success(const T& value) {
+  return Result<T>(value);
 }
 
 template<typename T>
-inline Try<T> Success(T&& value) {
-  return Try<T>(std::move(value));
+inline Result<T> Success(T&& value) {
+  return Result<T>(std::move(value));
 }

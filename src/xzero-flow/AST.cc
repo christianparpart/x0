@@ -461,6 +461,29 @@ FlowLocation ParamList::location() const {
 }
 // }}}
 
+std::unique_ptr<Expr> Expr::createDefaultInitializer(FlowType type) {
+  switch (type) {
+    case FlowType::Boolean:
+      return std::make_unique<BoolExpr>(false);
+    case FlowType::Number:
+      return std::make_unique<NumberExpr>(0);
+    case FlowType::String:
+      return std::make_unique<StringExpr>("");
+    case FlowType::IPAddress:
+      return std::make_unique<IPAddressExpr>();
+    case FlowType::Cidr:
+    case FlowType::RegExp:
+    case FlowType::Handler:
+    case FlowType::IntArray:
+    case FlowType::StringArray:
+    case FlowType::IPAddrArray:
+    case FlowType::CidrArray:
+    default:
+      // TODO not implemented
+      return nullptr;
+  }
+}
+
 void Variable::visit(ASTVisitor& v) { v.accept(*this); }
 
 Handler* Unit::findHandler(const std::string& name) {
@@ -562,18 +585,16 @@ void MatchStmt::visit(ASTVisitor& v) { v.accept(*this); }
 
 ForStmt::ForStmt(const FlowLocation& loc,
                  std::unique_ptr<SymbolTable>&& scope,
-                 std::unique_ptr<Variable>&& index,
-                 std::unique_ptr<Variable>&& value,
+                 Variable* index,
+                 Variable* value,
                  std::unique_ptr<Expr>&& range,
                  std::unique_ptr<Stmt>&& body)
   : Stmt(loc),
     scope_(std::move(scope)),
-    index_(index.get()),
-    value_(value.get()),
+    index_(index),
+    value_(value),
     range_(std::move(range)),
     body_(std::move(body)) {
-  scope_->appendSymbol(std::move(index));
-  scope_->appendSymbol(std::move(value));
 }
 
 void ForStmt::visit(ASTVisitor& v) {
