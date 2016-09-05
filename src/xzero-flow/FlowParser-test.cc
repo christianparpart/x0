@@ -6,6 +6,9 @@
 // the License at: http://opensource.org/licenses/MIT
 
 #include <xzero-flow/FlowParser.h>
+#include <xzero-flow/ASTPrinter.h>
+#include <xzero/logging/Logger.h>
+#include <xzero/logging/LogLevel.h>
 #include <xzero/testing.h>
 #include <memory>
 
@@ -52,6 +55,20 @@ TEST(FlowParser, varDecl) {
 // TEST(FlowParser, castExpr) {} // TODO
 // TEST(FlowParser, ifStmt) {} // TODO
 // TEST(FlowParser, matchStmt) {} // TODO
+
+TEST(FlowParser, forStmt_range2) {
+  FlowParser parser;
+  parser.openString("handler main { for var i, k in ['hello', 'world'] {} }");
+  std::unique_ptr<Unit> unit = parser.parse();
+
+  auto main = unit->findHandler("main");
+  ASSERT_TRUE(main != nullptr);
+
+  if (Logger::get()->getMinimumLogLevel() >= LogLevel::Debug) {
+    ASTPrinter::print(main);
+  }
+}
+
 // TEST(FlowParser, compoundStmt) {} // TODO
 // TEST(FlowParser, callStmt) {} // TODO
 // TEST(FlowParser, postscriptStmt) {} // TODO
