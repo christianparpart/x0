@@ -88,6 +88,10 @@ bool RuntimeError::operator==(Status status) const {
       && static_cast<int>(status) == code().value();
 }
 
+bool RuntimeError::operator!=(Status status) const {
+  return !(*this == status);
+}
+
 void RuntimeError::debugPrint(std::ostream* os) const {
   if (os == nullptr) {
     os = &std::cerr;
