@@ -6,31 +6,32 @@
 // the License at: http://opensource.org/licenses/MIT
 
 #include <xzero/RuntimeError.h>
+#include <xzero/StringUtil.h>
 
 template<typename T>
 inline Result<T>::Result(const T& value)
   : success_(true),
-    message_() {
+    failureMessage_() {
   new (storage_) T(value);
 }
 
 template<typename T>
 inline Result<T>::Result(T&& value)
   : success_(true),
-    message_() {
+    failureMessage_() {
   new (storage_) T(std::move(value));
 }
 
 template<typename T>
 inline Result<T>::Result(_FailureMessage&& failure)
   : success_(false),
-    message_(std::move(failure.message)) {
+    failureMessage_(std::move(failure.message)) {
 }
 
 template<typename T>
 Result<T>::Result(Result&& other)
     : success_(other.success_),
-      message_(std::move(other.message_)) {
+      failureMessage_(std::move(other.failureMessage_)) {
   if (success_) {
     new (storage_) T(std::move(*other.get()));
     other.get()->~T();
@@ -61,8 +62,8 @@ inline bool Result<T>::isFailure() const noexcept {
 }
 
 template<typename T>
-inline const std::string& Result<T>::message() const noexcept {
-  return message_;
+inline const std::string& Result<T>::failureMessage() const noexcept {
+  return failureMessage_;
 }
 
 template<typename T>
@@ -107,6 +108,12 @@ inline void Result<T>::require() const {
 }
 
 inline _FailureMessage Failure(const std::string& message) {
+  return _FailureMessage(std::move(message));
+}
+
+template<typename... Args>
+inline _FailureMessage Failuref(const std::string& fmt, Args... args) {
+  std::string message = ::xzero::StringUtil::format(fmt, args...);
   return _FailureMessage(std::move(message));
 }
 

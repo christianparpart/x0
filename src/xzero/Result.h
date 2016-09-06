@@ -21,7 +21,7 @@ struct _FailureMessage {
  *  void main() {
  *    Result<int> uid = getUserID();
  *    if (uid.isFailure()) {
- *      fail("Could not retrieve userID. $0", uid.failure());
+ *      fail("Could not retrieve userID. $0", uid.failureMessage());
  *    } else {
  *      info("User ID is $0", *uid);
  *    }
@@ -46,7 +46,7 @@ class Result {
   operator bool () const noexcept;
   bool isSuccess() const noexcept;
   bool isFailure() const noexcept;
-  const std::string& message() const noexcept;
+  const std::string& failureMessage() const noexcept;
 
   T* get();
   const T* get() const;
@@ -62,7 +62,7 @@ class Result {
  private:
   bool success_;
   unsigned char storage_[sizeof(T)];
-  std::string message_;
+  std::string failureMessage_;
 };
 
 /**
@@ -81,5 +81,8 @@ Result<T> Success(T&& value);
  * Generates Result<T> helper object that represents a failure with given @p message.
  */
 _FailureMessage Failure(const std::string& message);
+
+template<typename... Args>
+_FailureMessage Failuref(const std::string& fmt, Args... args);
 
 #include <xzero/Result-inl.h>
