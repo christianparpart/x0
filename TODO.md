@@ -11,7 +11,7 @@
 
 ### Milestone 1
 
-* [ ] LinuxSchduler (`epoll`, `timerfd`, `eventfd`, ...)
+* [x] LinuxSchduler (`epoll`, `signalfd`, `eventfd`)
 - [x] FCGI transport
 - [x] SSL: basic `SslConnector` & `SslEndPoint`
 - [x] SSL: finish SNI support
