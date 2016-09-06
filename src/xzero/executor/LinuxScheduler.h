@@ -24,7 +24,7 @@ namespace xzero {
 
 /**
  * Implements EventLoop API via native Linux features,
- * such as @c epoll, @c eventfd, @c timerfd, @p signalfd, etc.
+ * such as @c epoll, @c eventfd, @p signalfd, etc.
  */
 class LinuxScheduler : public EventLoop {
  public:
@@ -173,7 +173,6 @@ class LinuxScheduler : public EventLoop {
 
   FileDescriptor epollfd_;
   FileDescriptor eventfd_;
-  FileDescriptor timerfd_;
   FileDescriptor signalfd_;
 
   std::vector<epoll_event> activeEvents_;

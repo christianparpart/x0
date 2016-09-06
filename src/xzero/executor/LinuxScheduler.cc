@@ -18,7 +18,6 @@
 #include <vector>
 
 #include <sys/epoll.h>
-#include <sys/timerfd.h>
 #include <sys/eventfd.h>
 #include <sys/signalfd.h>
 #include <unistd.h>
@@ -48,7 +47,6 @@ LinuxScheduler::LinuxScheduler(
       timers_(),
       epollfd_(),
       eventfd_(),
-      timerfd_(),
       signalfd_(),
       activeEvents_(1024),
       readerCount_(0),
@@ -64,7 +62,6 @@ LinuxScheduler::LinuxScheduler(
   event.events = EPOLLIN;
   epoll_ctl(epollfd_, EPOLL_CTL_ADD, eventfd_, &event);
 
-  //TODO timerfd_ = ..;
   //TODO signalfd_ = ...;
 }
 
