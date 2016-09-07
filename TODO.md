@@ -36,6 +36,13 @@
 - [ ] test: call completed() before contentLength is satisfied in non-chunked mode (shall be transport generic)
 - [ ] test: attempt to write more data than contentLength in non-chunked mode (shall be transport generic)
 
+### General
+
+- [ ] SSL: support different session cache stores (memory, memcached, ...)
+- [ ] SSL: support enabling/disabling SSL renegotiation - http://www.thc.org/thc-ssl-dos/
+- [ ] SSL: ensure we can reconfigure cipher priorities to counter BEAST attack - http://www.g-loaded.eu/2011/09/27/mod_gnutls-rc4-cipher-beast/
+- [ ] http: ensure `TCP_CORK` / `TCP_NOPUSH` is set/cleared implicitely in plaintext vs interactive http responses
+
 ### HTTP load balancer
 
 - [ ] raise 504 (gateway timeout) if backend page load takes too long and no result has been sent to the client yet (close connection directly otherwise).
@@ -47,6 +54,7 @@
 
 ### x0d
 
-- [ ] x0d: stdout/stderr to point to log stream/handler directly,
+- [ ] stdout/stderr to point to log stream/handler directly,
 - [ ] add `x0d --dump-du` (dump flow's def-use chain)
+- [ ] resource management (at least for `max_core_size`) must be evaluated *after* privilege dropping, in case there is some, or they're lost.
 
