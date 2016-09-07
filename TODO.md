@@ -11,7 +11,7 @@
 
 ### Milestone 1
 
-* [x] LinuxSchduler (`epoll`, `signalfd`, `eventfd`)
+* [x] LinuxScheduler (`epoll`, `signalfd`, `eventfd`)
 - [x] FCGI transport
 - [x] SSL: basic `SslConnector` & `SslEndPoint`
 - [x] SSL: finish SNI support
@@ -25,9 +25,8 @@
 ### Milestone 2
 
 - [ ] SSL: ability to setup a certificate password challenge callback
-- [ ] Process
+- [ ] Process (QA: prefer `posix_spawn()` over `vfork()` to exec child processes)
 - [ ] write full tests for HttpFileHandler using MockTransport
-- [ ] LinuxScheduler (using epoll, timerfd, eventfd)
 - [ ] net: improved EndPoint timeout handling
       (distinguish between read/write/keepalive timeouts)
 - [ ] `HttpTransport::onInterestFailure()` => `(factory || connector)->report(this, error);`
@@ -37,10 +36,17 @@
 - [ ] test: call completed() before contentLength is satisfied in non-chunked mode (shall be transport generic)
 - [ ] test: attempt to write more data than contentLength in non-chunked mode (shall be transport generic)
 
-### Usage Ideas
+### HTTP load balancer
 
-- FnordMetric/2
-- port x0d to use this library instead
-  - write a dedicated haproxy-like load balancer
-- http2-to-http1 proxy
-x
+- [ ] raise 504 (gateway timeout) if backend page load takes too long and no result has been sent to the client yet (close connection directly otherwise).
+
+### Flow
+- [ ] SSA: mem2reg propagation (pass manager stage: before, one-time)
+- [ ] SSA: reg2mem propagation (pass manager stage: after, one-time)
+- [ ] SSA: constant propagation (pass manager stage: main)
+
+### x0d
+
+- [ ] x0d: stdout/stderr to point to log stream/handler directly,
+- [ ] add `x0d --dump-du` (dump flow's def-use chain)
+
