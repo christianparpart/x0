@@ -10,6 +10,7 @@
 #include <xzero/MonotonicTime.h>
 #include <xzero/MonotonicClock.h>
 #include <xzero/Application.h>
+#include <xzero/io/FileUtil.h>
 #include <xzero/RuntimeError.h>
 #include <xzero/logging.h>
 #include <memory>
@@ -229,6 +230,69 @@ TEST(LinuxSchedulerTest, executeOnWritable) {
   sched.runLoopOnce();
 
   EXPECT_EQ(1, fireCount);
+  EXPECT_EQ(0, timeoutCount);
+}
+
+TEST(LinuxSchedulerTest, executeOnWritable_timeout) {
+  TheScheduler sched;
+  SystemPipe pipe;
+
+  // fill pipe first
+  FileUtil::setBlocking(pipe.writerFd(), false);
+  for (unsigned long long n = 0;;) {
+    static const char buf[1024] = {0};
+    int rv = ::write(pipe.writerFd(), buf, sizeof(buf));
+    if (rv > 0) {
+      n += rv;
+    } else {
+      logf("Filled pipe with $0 bytes", n);
+      break;
+    }
+  }
+
+  int fireCount = 0;
+  int timeoutCount = 0;
+  auto onFire = [&] { fireCount++; };
+  auto onTimeout = [&] { timeoutCount++; };
+
+  sched.executeOnWritable(pipe.writerFd(), onFire, 500_milliseconds, onTimeout);
+  sched.runLoop();
+
+  EXPECT_EQ(0, fireCount);
+  EXPECT_EQ(1, timeoutCount);
+}
+
+TEST(LinuxSchedulerTest, executeOnWritable_timeout_on_cancelled) {
+  TheScheduler sched;
+  SystemPipe pipe;
+
+  // fill pipe first
+  FileUtil::setBlocking(pipe.writerFd(), false);
+  for (unsigned long long n = 0;;) {
+    static const char buf[1024] = {0};
+    int rv = ::write(pipe.writerFd(), buf, sizeof(buf));
+    if (rv > 0) {
+      n += rv;
+    } else {
+      logf("Filled pipe with $0 bytes", n);
+      break;
+    }
+  }
+
+  int fireCount = 0;
+  int timeoutCount = 0;
+  auto onFire = [&] { fireCount++; };
+  auto onTimeout = [&] {
+    printf("onTimeout!\n");
+    timeoutCount++; };
+
+  auto handle = sched.executeOnWritable(
+      pipe.writerFd(), onFire, 500_milliseconds, onTimeout);
+
+  handle->cancel();
+  sched.runLoopOnce();
+
+  EXPECT_EQ(0, fireCount);
   EXPECT_EQ(0, timeoutCount);
 }
 
