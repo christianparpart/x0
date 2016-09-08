@@ -560,4 +560,17 @@ void FileUtil::close(int fd) {
   }
 }
 
+bool FileUtil::isBlocking(int fd) {
+  return !(fcntl(fd, F_GETFL) & O_NONBLOCK);
+}
+
+void FileUtil::setBlocking(int fd, bool enable) {
+  unsigned flags = enable ? fcntl(fd, F_GETFL) & ~O_NONBLOCK
+                          : fcntl(fd, F_GETFL) | O_NONBLOCK;
+
+  if (fcntl(fd, F_SETFL, flags) < 0) {
+    RAISE_ERRNO(errno);
+  }
+}
+
 }  // namespace xzero
