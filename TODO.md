@@ -19,8 +19,7 @@
 - [x] SSL: ALPN support
 - [x] SSL: SslConnector to select ConnectionFactory based on NPN/ALPN
 - [x] UdpConnector
-- [ ] improve timeout management (ideally testable)
-- [ ] improve (debug) logging facility
+- [x] improve timeout management (ideally testable)
 
 ### Milestone 2
 
@@ -35,6 +34,7 @@
 - [ ] doxygen: how to document a group of functions all at once (or, how to copydoc)
 - [ ] test: call completed() before contentLength is satisfied in non-chunked mode (shall be transport generic)
 - [ ] test: attempt to write more data than contentLength in non-chunked mode (shall be transport generic)
+- [ ] improve (debug) logging facility
 
 ### General
 
