@@ -8,7 +8,6 @@
 #ifndef _libxzero_UTIL_LOGGER_H
 #define _libxzero_UTIL_LOGGER_H
 #include <atomic>
-#include <xzero/UnixTime.h>
 #include <xzero/logging/LogLevel.h>
 #include <xzero/logging/LogTarget.h>
 
