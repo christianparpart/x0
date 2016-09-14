@@ -90,6 +90,8 @@ libXzero_a_SOURCES = \
 	src/xzero/Option-inl.h \
 	src/xzero/Option.h \
 	src/xzero/PrefixTree.h \
+	src/xzero/RaftServer.cc \
+	src/xzero/RaftServer.h \
 	src/xzero/Random.cc \
 	src/xzero/Random.h \
 	src/xzero/RefCounted.h \
@@ -528,6 +530,7 @@ xzero_test_SOURCES = \
 	src/xzero/HugeBuffer-test.cc \
 	src/xzero/MimeTypes-test.cc \
 	src/xzero/Option-test.cc \
+	src/xzero/RaftServer-test.cc \
 	src/xzero/RefPtr-test.cc \
 	src/xzero/Result-test.cc \
 	src/xzero/StringUtil-test.cc \
