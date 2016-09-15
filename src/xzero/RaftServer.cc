@@ -1,7 +1,41 @@
 #include <xzero/RaftServer.h>
+#include <xzero/StringUtil.h>
+#include <system_error>
 
 namespace xzero {
 
+// {{{ RaftCategory
+class RaftCategory : public std::error_category {
+ public:
+  static RaftCategory& get();
+
+  const char* name() const noexcept override;
+  std::string message(int ec) const override;
+};
+
+RaftCategory& RaftCategory::get() {
+  static RaftCategory cat;
+  return cat;
+}
+
+const char* RaftCategory::name() const noexcept {
+  return "Raft";
+};
+
+std::string RaftCategory::message(int ec) const {
+  switch (static_cast<RaftError>(ec)) {
+    case RaftError::Success:
+      return "Success";
+    case RaftError::MismatchingServerId:
+      return "Mismatching server ID";
+    case RaftError::NotLeading:
+      return "Not leading the cluster";
+    default:
+      return StringUtil::format("RaftError<$0>", ec);
+  }
+}
+
+// }}}
 // {{{ proto
 
 // invoked by candidates to gather votes
@@ -77,16 +111,29 @@ RaftServer::RaftServer(Id id,
       heartbeatTimeout_(heartbeatTimeout),
       electionTimeout_(electionTimeout),
       commitTimeout_(commitTimeout),
-      currentTerm_(0),
+      currentTerm_(storage_->loadTerm()),
       votedFor_(),
       commitIndex_(0),
       lastApplied_(0),
       nextIndex_(),
-      matchIndex_()
-  {
+      matchIndex_() {
+
+
+  if (!storage_->isInitialized()) {
+    storage_->initialize(id_, currentTerm_);
+  } else {
+    Id storedId = storage_->loadServerId();
+    if (storedId != id_) {
+      RAISE_CATEGORY(RaftError::MismatchingServerId, RaftCategory());
+    }
+  }
 }
 
 RaftServer::~RaftServer() {
+}
+
+bool RaftServer::verifyLeader(std::function<void(bool)> result) {
+  return state_ == LEADER; // TODO
 }
 
 // {{{ RaftServer: receiver API (invoked by Transport on receiving messages)
@@ -172,7 +219,8 @@ void RaftServer::LocalTransport::send(Id target, const InstallSnapshotResponse& 
 // }}}
 // {{{ RaftServer::MemoryStore
 RaftServer::MemoryStore::MemoryStore()
-    : id_(),
+    : isInitialized_(false),
+      id_(),
       currentTerm_(),
       log_(),
       snapshottedTerm_(),
@@ -183,13 +231,24 @@ RaftServer::MemoryStore::MemoryStore()
   log_.push_back(LogEntry());
 }
 
-bool RaftServer::MemoryStore::saveCandidateId(const Id& id) {
-  id_ = id;
-  return true;
+bool RaftServer::MemoryStore::isInitialized() const {
+  return isInitialized_;
 }
 
-void RaftServer::MemoryStore::loadCandidateId(Id* id) {
-  *id = id_;
+void RaftServer::MemoryStore::initialize(Id id, Term term) {
+  isInitialized_ = true;
+
+  id_ = id;
+  currentTerm_ = term;
+  log_.clear();
+
+  snapshottedTerm_ = 0;
+  snapshottedIndex_ = 0;
+  snapshotData_.clear();
+}
+
+RaftServer::Id RaftServer::MemoryStore::loadServerId() {
+  return id_;
 }
 
 bool RaftServer::MemoryStore::saveTerm(Term currentTerm) {
@@ -197,8 +256,8 @@ bool RaftServer::MemoryStore::saveTerm(Term currentTerm) {
   return true;
 }
 
-void RaftServer::MemoryStore::loadTerm(Term* currentTerm) {
-  *currentTerm = currentTerm_;
+RaftServer::Term RaftServer::MemoryStore::loadTerm() {
+  return currentTerm_;
 }
 
 bool RaftServer::MemoryStore::appendLogEntry(const LogEntry& log) {

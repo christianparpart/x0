@@ -14,6 +14,15 @@ namespace xzero {
 class EndPoint;
 class Connector;
 
+enum class RaftError {
+  //! No error has occurred.
+  Success = 0,
+  //! The underlying storage engine reports a different server ID than supplied.
+  MismatchingServerId,
+  //! This RaftServer is currently not the leader.
+  NotLeading,
+};
+
 /**
  * Provides a replicated state machine mechanism.
  */
@@ -58,11 +67,14 @@ class RaftServer {
    public:
     virtual ~Transport() {}
 
+    // leader
     virtual void send(Id target, const VoteRequest& message) = 0;
-    virtual void send(Id target, const VoteResponse& message) = 0;
     virtual void send(Id target, const AppendEntriesRequest& message) = 0;
-    virtual void send(Id target, const AppendEntriesResponse& message) = 0;
     virtual void send(Id target, const InstallSnapshotRequest& message) = 0;
+
+    // follower / candidate
+    virtual void send(Id target, const AppendEntriesResponse& message) = 0;
+    virtual void send(Id target, const VoteResponse& message) = 0;
     virtual void send(Id target, const InstallSnapshotResponse& message) = 0;
   };
   class LocalTransport;
@@ -94,12 +106,13 @@ class RaftServer {
    * A single log entry in the log.
    */
   class LogEntry {
+   private:
+    LogEntry(Term term, Index index, LogType type, Command&& cmd);
    public:
-    LogEntry();
-    LogEntry(Term term, Index index);
     LogEntry(Term term, Index index, Command&& cmd);
     LogEntry(Term term, Index index, LogType type);
-    LogEntry(Term term, Index index, LogType type, Command&& cmd);
+    LogEntry(Term term, Index index);
+    LogEntry();
 
     Term term() const noexcept { return term_; }
     Index index() const noexcept { return index_; }
@@ -123,11 +136,16 @@ class RaftServer {
    public:
     virtual ~Storage() {}
 
-    virtual bool saveCandidateId(const Id& id) = 0;
-    virtual void loadCandidateId(Id* id) = 0;
+    //! Checks whether the underlying storage has been initialized already.
+    virtual bool isInitialized() const = 0;
+
+    //! Initializes the underlying storage (or resets it)
+    virtual void initialize(Id id, Term term) = 0;
+
+    virtual Id loadServerId() = 0;
 
     virtual bool saveTerm(Term currentTerm) = 0;
-    virtual void loadTerm(Term* currentTerm) = 0;
+    virtual Term loadTerm() = 0;
 
     //! saves given LogEntry @p log.
     virtual bool appendLogEntry(const LogEntry& log) = 0;
@@ -205,13 +223,29 @@ class RaftServer {
   State state() const noexcept { return state_; }
   LogEntry operator[](Index index);
 
+  /**
+   * Verifies whether or not this RaftServer is (still) a @c LEADER.
+   *
+   * @param result Future callback to be invoked as soon as leadership has been
+   *               verified.
+   *
+   * @note If a leadership has been already verified within past
+   *       electionTimeout, then the future callback will be invoked directly.
+   */
+  bool verifyLeader(std::function<void(bool)> result);
+
   // {{{ receiver API (invoked by Transport on receiving messages)
+  // leader
+  void receive(Id from, const AppendEntriesResponse& message);
+  void receive(Id from, const InstallSnapshotResponse& message);
+
+  // candidate
   void receive(Id from, const VoteRequest& message);
   void receive(Id from, const VoteResponse& message);
+
+  // follower
   void receive(Id from, const AppendEntriesRequest& message);
-  void receive(Id from, const AppendEntriesResponse& message);
   void receive(Id from, const InstallSnapshotRequest& message);
-  void receive(Id from, const InstallSnapshotResponse& message);
   // }}}
 
  private:
@@ -299,6 +333,7 @@ class RaftServer::DnsDiscovery : public Discovery {
  */
 class RaftServer::MemoryStore : public Storage {
  private:
+  bool isInitialized_;
   Id id_;
   Term currentTerm_;
   std::vector<LogEntry> log_;
@@ -310,11 +345,13 @@ class RaftServer::MemoryStore : public Storage {
  public:
   MemoryStore();
 
-  bool saveCandidateId(const Id& id) override;
-  void loadCandidateId(Id* id) override;
+  bool isInitialized() const override;
+  void initialize(Id id, Term term) override;
+
+  Id loadServerId() override;
 
   bool saveTerm(Term currentTerm) override;
-  void loadTerm(Term* currentTerm) override;
+  Term loadTerm() override;
 
   bool appendLogEntry(const LogEntry& log) override;
   void loadLogEntry(Index index, LogEntry* log) override;
