@@ -9,6 +9,7 @@
 #define _libxzero_UTIL_EXCEPTIONHANDLER_H
 
 #include <mutex>
+#include <string>
 
 namespace xzero {
 
