@@ -1,3 +1,10 @@
+// This file is part of the "x0" project, http://github.com/christianparpart/x0>
+//   (c) 2009-2016 Christian Parpart <trapni@gmail.com>
+//
+// Licensed under the MIT License (the "License"); you may not use this
+// file except in compliance with the License. You may obtain a copy of
+// the License at: http://opensource.org/licenses/MIT
+
 #include <xzero/RaftServer.h>
 #include <xzero/executor/LocalExecutor.h>
 #include <xzero/testing.h>
@@ -9,7 +16,9 @@ using namespace xzero;
 
 class TestSystem : public RaftServer::StateMachine { // {{{
  public:
-  TestSystem(RaftServer::Id id, RaftServer::Discovery* discovery);
+  TestSystem(RaftServer::Id id,
+             RaftServer::Discovery* discovery,
+             Executor* executor);
 
   void loadSnapshotBegin() override;
   void loadSnapshotChunk(const std::vector<uint8_t>& chunk) override;
@@ -30,10 +39,12 @@ class TestSystem : public RaftServer::StateMachine { // {{{
   std::unordered_map<int, int> tuples_;
 };
 
-TestSystem::TestSystem(RaftServer::Id id, RaftServer::Discovery* discovery)
+TestSystem::TestSystem(RaftServer::Id id,
+                       RaftServer::Discovery* discovery,
+                       Executor* executor)
     : transport_(id),
       storage_(),
-      raftServer_(id, &storage_, discovery, &transport_, this),
+      raftServer_(executor, id, &storage_, discovery, &transport_, this),
       tuples_() {
 }
 
@@ -66,11 +77,11 @@ TEST(RaftServer, five_node_test) {
 
   RaftServer::StaticDiscovery sd = {"s1", "s2", "s3", "s4", "s5"};
 
-  TestSystem s1("s1", &sd);
-  TestSystem s2("s2", &sd);
-  TestSystem s3("s3", &sd);
-  TestSystem s4("s4", &sd);
-  TestSystem s5("s5", &sd);
+  TestSystem s1("s1", &sd, &executor);
+  TestSystem s2("s2", &sd, &executor);
+  TestSystem s3("s3", &sd, &executor);
+  TestSystem s4("s4", &sd, &executor);
+  TestSystem s5("s5", &sd, &executor);
 }
 
 TEST(RaftServer, join) {

@@ -1,100 +1,31 @@
+// This file is part of the "x0" project, http://github.com/christianparpart/x0>
+//   (c) 2009-2016 Christian Parpart <trapni@gmail.com>
+//
+// Licensed under the MIT License (the "License"); you may not use this
+// file except in compliance with the License. You may obtain a copy of
+// the License at: http://opensource.org/licenses/MIT
+
 #include <xzero/RaftServer.h>
 #include <xzero/StringUtil.h>
+#include <xzero/MonotonicClock.h>
 #include <system_error>
 
 namespace xzero {
 
-// {{{ RaftCategory
-class RaftCategory : public std::error_category {
- public:
-  static RaftCategory& get();
-
-  const char* name() const noexcept override;
-  std::string message(int ec) const override;
-};
-
-RaftCategory& RaftCategory::get() {
-  static RaftCategory cat;
-  return cat;
-}
-
-const char* RaftCategory::name() const noexcept {
-  return "Raft";
-};
-
-std::string RaftCategory::message(int ec) const {
-  switch (static_cast<RaftError>(ec)) {
-    case RaftError::Success:
-      return "Success";
-    case RaftError::MismatchingServerId:
-      return "Mismatching server ID";
-    case RaftError::NotLeading:
-      return "Not leading the cluster";
-    default:
-      return StringUtil::format("RaftError<$0>", ec);
-  }
-}
-
-// }}}
-// {{{ proto
-
-// invoked by candidates to gather votes
-struct RaftServer::VoteRequest {
-  Term term;                // candidate's term
-  Id candidateId;           // candidate requesting vode
-  Index lastLogIndex;       // index of candidate's last log entry
-  Term lastLogTerm;         // term of candidate's last log entry
-};
-
-struct RaftServer::VoteResponse {
-  Term term;
-  bool voteGranted;
-};
-
-// invoked by leader to replicate log entries; also used as heartbeat
-struct RaftServer::AppendEntriesRequest {
-  Term term;                     // leader's term
-  Id leaderId;                   // so follower can redirect clients
-  Index prevLogIndex;            // index of log entry immediately proceding new ones
-  Term prevLogTerm;              // term of prevLogIndex entry
-  std::vector<LogEntry> entries; // log entries to store (empty for heartbeat; may send more than one for efficiency)
-  Index leaderCommit;            // leader's commitIndex
-};
-
-struct RaftServer::AppendEntriesResponse {
-  Term term;
-  bool success;
-};
-
-// Invoked by leader to send chunks of a snapshot to a follower.
-// Leaders always send chunks in order.
-struct RaftServer::InstallSnapshotRequest {
-  Term term;
-  Id leaderId;
-  Index lastIncludedIndex;
-  Term lastIncludedTerm;
-  size_t offset;
-  std::vector<uint8_t> data;
-  bool done;
-};
-
-struct RaftServer::InstallSnapshotResponse {
-  Term term;
-};
-// }}} proto
-
-RaftServer::RaftServer(Id id,
+RaftServer::RaftServer(Executor* executor,
+                       Id id,
                        Storage* storage,
                        Discovery* discovery,
                        Transport* transport,
                        StateMachine* sm)
-      : RaftServer(id, storage, discovery, transport, sm,
+      : RaftServer(executor, id, storage, discovery, transport, sm,
                    500_milliseconds,
                    300_milliseconds,
                    500_milliseconds) {
 }
 
-RaftServer::RaftServer(Id id,
+RaftServer::RaftServer(Executor* executor,
+                       Id id,
                        Storage* storage,
                        Discovery* discovery,
                        Transport* transport,
@@ -102,12 +33,15 @@ RaftServer::RaftServer(Id id,
                        Duration heartbeatTimeout,
                        Duration electionTimeout,
                        Duration commitTimeout)
-    : id_(id),
+    : executor_(executor),
+      id_(id),
       storage_(storage),
       discovery_(discovery),
       transport_(transport),
       stateMachine_(sm),
       state_(FOLLOWER),
+      rng_(),
+      nextHeartbeat_(MonotonicClock::now()),
       heartbeatTimeout_(heartbeatTimeout),
       electionTimeout_(electionTimeout),
       commitTimeout_(commitTimeout),
@@ -117,8 +51,12 @@ RaftServer::RaftServer(Id id,
       lastApplied_(0),
       nextIndex_(),
       matchIndex_() {
+}
 
+RaftServer::~RaftServer() {
+}
 
+void RaftServer::start() {
   if (!storage_->isInitialized()) {
     storage_->initialize(id_, currentTerm_);
   } else {
@@ -127,13 +65,29 @@ RaftServer::RaftServer(Id id,
       RAISE_CATEGORY(RaftError::MismatchingServerId, RaftCategory());
     }
   }
+  // TODO: add timeout triggers: varyingElectionTimeout
 }
 
-RaftServer::~RaftServer() {
+void RaftServer::stop() {
+  // TODO
 }
 
-bool RaftServer::verifyLeader(std::function<void(bool)> result) {
-  return state_ == LEADER; // TODO
+void RaftServer::verifyLeader(std::function<void(bool)> callback) {
+  if (state_ != LEADER) {
+    callback(false);
+  } else if (nextHeartbeat_ < MonotonicClock::now()) {
+    callback(true);
+  } else {
+    verifyLeaderCallbacks_.emplace_back(callback);
+  }
+}
+
+Duration RaftServer::varyingElectionTimeout() {
+  auto emin = electionTimeout_.milliseconds() / 2;
+  auto emax = electionTimeout_.milliseconds();
+  auto e = emin + rng_.random64() % (emax - emin);
+
+  return Duration::fromMilliseconds(e);
 }
 
 // {{{ RaftServer: receiver API (invoked by Transport on receiving messages)

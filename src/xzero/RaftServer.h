@@ -1,51 +1,36 @@
+// This file is part of the "x0" project, http://github.com/christianparpart/x0>
+//   (c) 2009-2016 Christian Parpart <trapni@gmail.com>
+//
+// Licensed under the MIT License (the "License"); you may not use this
+// file except in compliance with the License. You may obtain a copy of
+// the License at: http://opensource.org/licenses/MIT
+
 #pragma once
 
+#include <xzero/raft/rpc.h>
+#include <xzero/raft/Listener.h>
 #include <xzero/Option.h>
 #include <xzero/Duration.h>
+#include <xzero/Random.h>
+#include <xzero/MonotonicTime.h>
 #include <xzero/executor/Executor.h>
 #include <xzero/net/Server.h>
 #include <initializer_list>
 #include <unordered_map>
 #include <atomic>
 #include <memory>
+#include <list>
 
 namespace xzero {
 
 class EndPoint;
 class Connector;
 
-enum class RaftError {
-  //! No error has occurred.
-  Success = 0,
-  //! The underlying storage engine reports a different server ID than supplied.
-  MismatchingServerId,
-  //! This RaftServer is currently not the leader.
-  NotLeading,
-};
-
 /**
  * Provides a replicated state machine mechanism.
  */
-class RaftServer {
+class RaftServer : public RaftListener {
  public:
-  typedef std::string Id; // must not be 0
-  typedef uint64_t Term;
-  typedef size_t Index;
-
-  struct VoteRequest;
-  struct VoteResponse;
-  struct AppendEntriesRequest;
-  struct AppendEntriesResponse;
-  struct InstallSnapshotRequest;
-  struct InstallSnapshotResponse;
-
-  /**
-   * The interface to the command that can modify the systems finite state machine.
-   *
-   * @see StateMachine
-   */
-  typedef std::vector<uint8_t> Command;
-
   /**
    * Abstracts the systems state machine.
    */
@@ -181,7 +166,8 @@ class RaftServer {
    * @param stateMachine The finite state machine to apply the replication log's
    *                     commands onto.
    */
-  RaftServer(Id id,
+  RaftServer(Executor* executor,
+             Id id,
              Storage* storage,
              Discovery* discovery,
              Transport* transport,
@@ -206,7 +192,8 @@ class RaftServer {
    * @param commitTimeout Time frame until when a commit into the StateMachine
    *                      must be be completed.
    */
-  RaftServer(Id id,
+  RaftServer(Executor* executor,
+             Id id,
              Storage* storage,
              Discovery* discovery,
              Transport* transport,
@@ -224,6 +211,16 @@ class RaftServer {
   LogEntry operator[](Index index);
 
   /**
+   * Starts the RaftServer.
+   */
+  void start();
+
+  /**
+   * Stops the server.
+   */
+  void stop();
+
+  /**
    * Verifies whether or not this RaftServer is (still) a @c LEADER.
    *
    * @param result Future callback to be invoked as soon as leadership has been
@@ -232,7 +229,7 @@ class RaftServer {
    * @note If a leadership has been already verified within past
    *       electionTimeout, then the future callback will be invoked directly.
    */
-  bool verifyLeader(std::function<void(bool)> result);
+  void verifyLeader(std::function<void(bool)> callback);
 
   // {{{ receiver API (invoked by Transport on receiving messages)
   // leader
@@ -243,18 +240,27 @@ class RaftServer {
   void receive(Id from, const VoteRequest& message);
   void receive(Id from, const VoteResponse& message);
 
-  // follower
+  // candidate / follower
   void receive(Id from, const AppendEntriesRequest& message);
+
+  // follower
   void receive(Id from, const InstallSnapshotRequest& message);
   // }}}
 
  private:
+  Duration varyingElectionTimeout();
+
+ private:
+  Executor* executor_;
   Id id_;
   Storage* storage_;
   Discovery* discovery_;
   Transport* transport_;
   StateMachine* stateMachine_;
   State state_;
+  Random rng_;
+  MonotonicTime nextHeartbeat_;
+  std::list<std::function<void(bool)>> verifyLeaderCallbacks_;
 
   // ------------------- configuration ----------------------------------------
   Duration heartbeatTimeout_;
