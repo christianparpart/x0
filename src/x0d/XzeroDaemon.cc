@@ -471,7 +471,7 @@ void XzeroDaemon::runOneThread(size_t index) {
 }
 
 void XzeroDaemon::setThreadAffinity(int cpu, int workerId) {
-#ifdef HAVE_DECL_PTHREAD_SETAFFINITY_NP
+#if defined(HAVE_DECL_PTHREAD_SETAFFINITY_NP) && HAVE_DECL_PTHREAD_SETAFFINITY_NP
   cpu_set_t set;
 
   CPU_ZERO(&set);
