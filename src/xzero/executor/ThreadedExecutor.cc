@@ -68,7 +68,11 @@ void ThreadedExecutor::execute(const std::string& name, Task task) {
   pthread_t tid;
   auto runner = [this, name, task]() {
 #if defined(HAVE_DECL_PTHREAD_SETNAME_NP)
+# if XZERO_OS_DARWIN
+    pthread_setname_np(name.c_str());
+# else
     pthread_setname_np(pthread_self(), name.c_str());
+# endif
 #endif
     safeCall(task);
   };
