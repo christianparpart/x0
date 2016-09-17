@@ -43,7 +43,6 @@ echo CXXFLAGS = $CXXFLAGS
 
 $ROOT/configure --prefix="/usr" \
                 --sysconfdir="$HOME/projects/x0" \
-                --runstatedir="$HOME/projects/x0/build" \
                 --with-pidfile="$HOME/projects/x0/build/x0d.pid" \
                 --with-logdir="$HOME/projects/x0/x0d"
 

@@ -35,7 +35,6 @@ RUN cd /usr/src/x0 && autoreconf --verbose --force --install && \
     LDFLAGS="$LDFLAGS" \
       ./configure --prefix="/usr" \
                   --sysconfdir="/etc/x0d" \
-                  --runstatedir="/var/run" \
                   --with-pidfile="/var/run/x0d.pid" \
                   --with-logdir="/var/log" && \
     make && \

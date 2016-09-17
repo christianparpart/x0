@@ -13,7 +13,6 @@ configure-stamp:
 	autoreconf --verbose --force --install .
 	CXX=$(CXX) CC=$(CC) ./configure --prefix=/usr \
 								--sysconfdir="/etc/x0d" \
-								--runstatedir="/var/run/x0d" \
 								--with-logdir="/var/log/x0d" \
 								--with-pidfile="/var/run/x0d.pid"
 	touch $@
