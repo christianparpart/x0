@@ -35,7 +35,7 @@ class Listener;
 
 class InetTransport : public Transport {
  public:
-  explicit InetTransport(Listener* receiver);
+  explicit InetTransport(Id myId, Listener* receiver);
   ~InetTransport();
 
   void send(Id target, const VoteRequest& message) override;
@@ -46,6 +46,7 @@ class InetTransport : public Transport {
   void send(Id target, const InstallSnapshotResponse& message) override;
 
  private:
+  Id myId_;
   Listener* receiver_;
   std::unique_ptr<Connector> connector_;
   std::unordered_map<Id, EndPoint*> endpoints_;
@@ -53,7 +54,7 @@ class InetTransport : public Transport {
 
 class LocalTransport : public Transport {
  public:
-  explicit LocalTransport(Id localId);
+  explicit LocalTransport(Id localId, Listener* receiver);
 
   void send(Id target, const VoteRequest& message) override;
   void send(Id target, const VoteResponse& message) override;
