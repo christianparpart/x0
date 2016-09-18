@@ -6,6 +6,7 @@
 // the License at: http://opensource.org/licenses/MIT
 
 #include <xzero/raft/Storage.h>
+#include <stdlib.h>
 
 namespace xzero {
 namespace raft {
@@ -40,7 +41,7 @@ void MemoryStore::initialize(Id id, Term term) {
   snapshotData_.clear();
 }
 
-Id RaftServer::MemoryStore::loadServerId() {
+Id MemoryStore::loadServerId() {
   return id_;
 }
 
@@ -49,7 +50,7 @@ bool MemoryStore::saveTerm(Term currentTerm) {
   return true;
 }
 
-Term RaftServer::MemoryStore::loadTerm() {
+Term MemoryStore::loadTerm() {
   return currentTerm_;
 }
 

@@ -5,7 +5,11 @@
 // file except in compliance with the License. You may obtain a copy of
 // the License at: http://opensource.org/licenses/MIT
 
-#include <xzero/RaftServer.h>
+#include <xzero/raft/Server.h>
+#include <xzero/raft/StateMachine.h>
+#include <xzero/raft/Discovery.h>
+#include <xzero/raft/Transport.h>
+#include <xzero/raft/Storage.h>
 #include <xzero/executor/LocalExecutor.h>
 #include <xzero/testing.h>
 #include <initializer_list>
@@ -14,16 +18,16 @@
 
 using namespace xzero;
 
-class TestSystem : public RaftServer::StateMachine { // {{{
+class TestSystem : public raft::StateMachine { // {{{
  public:
-  TestSystem(RaftServer::Id id,
-             RaftServer::Discovery* discovery,
+  TestSystem(raft::Id id,
+             raft::Discovery* discovery,
              Executor* executor);
 
   void loadSnapshotBegin() override;
   void loadSnapshotChunk(const std::vector<uint8_t>& chunk) override;
   void loadSnapshotEnd() override;
-  void applyCommand(const RaftServer::Command& serializedCmd) override;
+  void applyCommand(const raft::Command& serializedCmd) override;
 
   int get(int a) {
     if (tuples_.find(a) != tuples_.end())
@@ -32,18 +36,22 @@ class TestSystem : public RaftServer::StateMachine { // {{{
       return -1;
   }
 
+  raft::LocalTransport& transport() { return transport_; }
+  raft::Storage& storage() { return storage_; }
+  raft::Server& server() { return raftServer_; }
+
  private:
-  RaftServer::LocalTransport transport_;
-  RaftServer::MemoryStore storage_;
-  RaftServer raftServer_;
+  raft::MemoryStore storage_;
+  raft::LocalTransport transport_;
+  raft::Server raftServer_;
   std::unordered_map<int, int> tuples_;
 };
 
-TestSystem::TestSystem(RaftServer::Id id,
-                       RaftServer::Discovery* discovery,
+TestSystem::TestSystem(raft::Id id,
+                       raft::Discovery* discovery,
                        Executor* executor)
-    : transport_(id),
-      storage_(),
+    : storage_(),
+      transport_(id),
       raftServer_(executor, id, &storage_, discovery, &transport_, this),
       tuples_() {
 }
@@ -65,24 +73,37 @@ void TestSystem::loadSnapshotEnd() {
   // no-op
 }
 
-void TestSystem::applyCommand(const RaftServer::Command& command) {
+void TestSystem::applyCommand(const raft::Command& command) {
   int a = static_cast<int>(command[0]);
   int b = static_cast<int>(command[1]);
   tuples_[a] = b;
 }
 // }}}
 
-TEST(RaftServer, five_node_test) {
+TEST(raft_Server, testx3) {
   LocalExecutor executor;
+  raft::StaticDiscovery sd;
 
-  RaftServer::StaticDiscovery sd = {"s1", "s2", "s3", "s4", "s5"};
+  std::vector<TestSystem> servers = {
+    {1, &sd, &executor},
+    {2, &sd, &executor},
+    {3, &sd, &executor},
+  };
 
-  TestSystem s1("s1", &sd, &executor);
-  TestSystem s2("s2", &sd, &executor);
-  TestSystem s3("s3", &sd, &executor);
-  TestSystem s4("s4", &sd, &executor);
-  TestSystem s5("s5", &sd, &executor);
+  for (TestSystem& s: servers) {
+    // register this server to Service Discovery
+    sd.add(s.server().id());
+
+    // register (id,peer) tuples of server peers to this server
+    for (TestSystem& t: servers) {
+      s.transport().setPeer(s.server().id(), &t.server());
+    }
+  }
+
+  for (TestSystem& s: servers) {
+    s.server().start();
+  }
 }
 
-TEST(RaftServer, join) {
+TEST(raft_Server, join) {
 }

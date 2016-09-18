@@ -389,6 +389,7 @@ libXzero_a_SOURCES = \
 	src/xzero/net/UdpConnector.h \
 	src/xzero/net/UdpEndPoint.cc \
 	src/xzero/net/UdpEndPoint.h \
+	src/xzero/raft/Discovery.cc \
 	src/xzero/raft/Discovery.h \
 	src/xzero/raft/Error.cc \
 	src/xzero/raft/Error.h \
@@ -402,7 +403,9 @@ libXzero_a_SOURCES = \
 	src/xzero/raft/Server.cc \
 	src/xzero/raft/Server.h \
 	src/xzero/raft/StateMachine.h \
+	src/xzero/raft/Storage.cc \
 	src/xzero/raft/Storage.h \
+	src/xzero/raft/Transport.cc \
 	src/xzero/raft/Transport.h \
 	src/xzero/reflect.h \
 	src/xzero/reflect/indexsequence.h \
@@ -543,7 +546,7 @@ xzero_test_SOURCES = \
 	src/xzero/HugeBuffer-test.cc \
 	src/xzero/MimeTypes-test.cc \
 	src/xzero/Option-test.cc \
-	src/xzero/RaftServer-test.cc \
+	src/xzero/raft/Server-test.cc \
 	src/xzero/RefPtr-test.cc \
 	src/xzero/Result-test.cc \
 	src/xzero/StringUtil-test.cc \

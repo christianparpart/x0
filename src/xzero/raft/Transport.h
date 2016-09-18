@@ -7,10 +7,16 @@
 #pragma once
 
 #include <xzero/raft/rpc.h>
+#include <xzero/net/Connector.h>
 #include <memory>
+#include <vector>
 #include <unordered_map>
 
 namespace xzero {
+
+class Connector;
+class EndPoint;
+
 namespace raft {
 
 /**
@@ -18,7 +24,7 @@ namespace raft {
  */
 class Transport {
  public:
-  virtual ~Transport() {}
+  virtual ~Transport();
 
   // leader
   virtual void send(Id target, const VoteRequest& message) = 0;
@@ -54,7 +60,7 @@ class InetTransport : public Transport {
 
 class LocalTransport : public Transport {
  public:
-  explicit LocalTransport(Id localId, Listener* receiver);
+  explicit LocalTransport(Id myId);
 
   void send(Id target, const VoteRequest& message) override;
   void send(Id target, const VoteResponse& message) override;
@@ -63,9 +69,11 @@ class LocalTransport : public Transport {
   void send(Id target, const InstallSnapshotRequest& message) override;
   void send(Id target, const InstallSnapshotResponse& message) override;
 
+  void setPeer(Id id, Listener* listener);
+
  private:
-  Id localId_;
-  std::unordered_map<Id, Server*> peers_;
+  Id myId_;
+  std::unordered_map<Id, Listener*> peers_;
 };
 
 } // namespace raft

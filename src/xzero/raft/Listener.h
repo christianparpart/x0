@@ -5,6 +5,11 @@
 namespace xzero {
 namespace raft {
 
+/**
+ * API for receiving Raft messages.
+ *
+ * @see Server
+ */
 class Listener {
  public:
   virtual ~Listener() {}
