@@ -1,7 +1,7 @@
 
-# RaftServer
+# raft::Server
 
-RaftServer allows you to implement replicated finite state machine.
+raft::Server allows you to implement replicated finite state machine.
 
 ## Design
 
@@ -35,9 +35,9 @@ The core of this little library is the Raft algorithm.
 
 ## Implementation
 
-In your distributed application, you need to instanciate `RaftServer` and
+In your distributed application, you need to instanciate `raft::Server` and
 pass it your customized behaviors (storage, discovery, ...) as well as your
-finite state machine that this `RaftServer` has to apply the commands on.
+finite state machine that this `raft::Server` has to apply the commands on.
 
 ...
 

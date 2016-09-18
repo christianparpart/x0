@@ -4,7 +4,7 @@
 // Licensed under the MIT License (the "License"); you may not use this
 // file except in compliance with the License. You may obtain a copy of
 // the License at: http://opensource.org/licenses/MIT
-#pragma ocne
+#pragma once
 
 #include <xzero/raft/rpc.h>
 
@@ -32,7 +32,7 @@ class Generator {
   void generateInstallSnapshotResponse(const InstallSnapshotResponse& msg);
 
  private:
-  enum MessageType {
+  enum class MessageType {
     VoteRequest,
     VoteResponse,
     AppendEntriesRequest,
@@ -40,10 +40,11 @@ class Generator {
     InstallSnapshotRequest,
     InstallSnapshotResponse,
   };
+
   void generateFrameHeader(MessageType id, size_t payloadSize);
   void writeTerm(Term term);
   void writeIndex(Index index);
-  void writeId(const Id& id);
+  void writeId(Id id);
   void writeFlag(bool flag);
 };
 

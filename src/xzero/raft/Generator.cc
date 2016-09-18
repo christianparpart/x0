@@ -4,9 +4,8 @@
 // Licensed under the MIT License (the "License"); you may not use this
 // file except in compliance with the License. You may obtain a copy of
 // the License at: http://opensource.org/licenses/MIT
-#pragma ocne
-
 #include <xzero/raft/rpc.h>
+#include <xzero/raft/Generator.h>
 #include <xzero/net/EndPointWriter.h>
 
 namespace xzero {
@@ -42,7 +41,7 @@ void Generator::generateAppendEntriesRequest(const AppendEntriesRequest& msg) {
                       sizeof(msg.leaderId) +
                       sizeof(msg.prevLogIndex) +
                       sizeof(msg.prevLogTerm) +
-                      logEntriesSize,
+                      logEntriesSize +
                       sizeof(msg.leaderCommit));
 }
 

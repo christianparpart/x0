@@ -7,12 +7,13 @@
 #pragma once
 
 #include <string>
+#include <vector>
 #include <cstdint>
 
 namespace xzero {
 namespace raft {
 
-typedef std::string Id; // must not be 0
+typedef uint32_t Id;   // must not be 0
 typedef uint64_t Term;
 typedef size_t Index;
 
@@ -22,6 +23,39 @@ typedef size_t Index;
  * @see StateMachine
  */
 typedef std::vector<uint8_t> Command;
+
+enum LogType {
+  LOG_COMMAND,
+  LOG_PEER_ADD,
+  LOG_PEER_REMOVE,
+};
+
+/**
+ * A single log entry in the log.
+ */
+class LogEntry {
+ private:
+  LogEntry(Term term, Index index, LogType type, Command&& cmd);
+
+ public:
+  LogEntry(Term term, Index index, Command&& cmd);
+  LogEntry(Term term, Index index, LogType type);
+  LogEntry(Term term, Index index);
+  LogEntry();
+
+  Term term() const noexcept { return term_; }
+  Index index() const noexcept { return index_; }
+  LogType type() const noexcept { return type_; }
+
+  const Command& command() const { return command_; }
+  Command& command() { return command_; }
+
+ private:
+  Term term_;
+  Index index_;
+  LogType type_;
+  Command command_;
+};
 
 // invoked by candidates to gather votes
 struct VoteRequest {

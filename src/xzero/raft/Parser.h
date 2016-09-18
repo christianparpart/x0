@@ -6,12 +6,17 @@
 // the License at: http://opensource.org/licenses/MIT
 #pragma once
 
+#include <xzero/raft/rpc.h>
+#include <cstdint>
+
 namespace xzero {
 namespace raft {
 
+class Listener;
+
 class Parser {
  public:
-  Parser(Listener* messageListener);
+  explicit Parser(Listener* messageListener);
 
   /**
    * Parses a byte chunk into messages.
@@ -34,6 +39,7 @@ class Parser {
 
  private:
   Listener* listener_;
+  State state_;
 };
 
 } // namespace raft

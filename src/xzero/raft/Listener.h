@@ -7,7 +7,7 @@ namespace raft {
 
 class Listener {
  public:
-  vitual ~Listener() {}
+  virtual ~Listener() {}
 
   virtual void receive(Id from, const VoteRequest& message) = 0;
   virtual void receive(Id from, const VoteResponse& message) = 0;

@@ -90,8 +90,6 @@ libXzero_a_SOURCES = \
 	src/xzero/Option-inl.h \
 	src/xzero/Option.h \
 	src/xzero/PrefixTree.h \
-	src/xzero/RaftServer.cc \
-	src/xzero/RaftServer.h \
 	src/xzero/Random.cc \
 	src/xzero/Random.h \
 	src/xzero/RefCounted.h \
@@ -391,6 +389,21 @@ libXzero_a_SOURCES = \
 	src/xzero/net/UdpConnector.h \
 	src/xzero/net/UdpEndPoint.cc \
 	src/xzero/net/UdpEndPoint.h \
+	src/xzero/raft/Discovery.h \
+	src/xzero/raft/Error.cc \
+	src/xzero/raft/Error.h \
+	src/xzero/raft/Generator.cc \
+	src/xzero/raft/Generator.h \
+	src/xzero/raft/Listener.h \
+	src/xzero/raft/Parser.cc \
+	src/xzero/raft/Parser.h \
+	src/xzero/raft/rpc.cc \
+	src/xzero/raft/rpc.h \
+	src/xzero/raft/Server.cc \
+	src/xzero/raft/Server.h \
+	src/xzero/raft/StateMachine.h \
+	src/xzero/raft/Storage.h \
+	src/xzero/raft/Transport.h \
 	src/xzero/reflect.h \
 	src/xzero/reflect/indexsequence.h \
 	src/xzero/reflect/metaclass.h \

@@ -8,6 +8,7 @@
 
 #include <string>
 #include <cstdint>
+#include <system_error>
 
 namespace xzero {
 namespace raft {

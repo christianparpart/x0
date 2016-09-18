@@ -6,6 +6,7 @@
 // the License at: http://opensource.org/licenses/MIT
 
 #include <xzero/raft/Error.h>
+#include <xzero/StringUtil.h>
 
 namespace xzero {
 namespace raft {
