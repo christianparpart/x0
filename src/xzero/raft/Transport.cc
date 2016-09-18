@@ -8,6 +8,7 @@
 #include <xzero/raft/Transport.h>
 #include <xzero/raft/Listener.h>
 #include <xzero/raft/Server.h>
+#include <xzero/logging.h>
 
 namespace xzero {
 namespace raft {
@@ -28,6 +29,9 @@ void LocalTransport::send(Id target, const VoteRequest& message) {
   auto i = peers_.find(target);
   if (i != peers_.end()) {
     i->second->receive(myId_, message);
+    logDebug("raft::LocalTransport", "send to $0: $1", target, message);
+  } else {
+    logDebug("raft::LocalTransport", "failed to send to $0: $1", target, message);
   }
 }
 

@@ -13,6 +13,7 @@
 #include <xzero/raft/Transport.h>
 #include <xzero/StringUtil.h>
 #include <xzero/MonotonicClock.h>
+#include <xzero/logging.h>
 #include <system_error>
 
 namespace xzero {
@@ -71,7 +72,10 @@ void Server::start() {
       RAISE_CATEGORY(RaftError::MismatchingServerId, RaftCategory());
     }
   }
-  // TODO: add timeout triggers: varyingElectionTimeout
+
+  electionTimeoutHandler_ = executor_->executeAfter(
+      varyingElectionTimeout(),
+      std::bind(&Server::onElectionTimeout, this));
 }
 
 void Server::stop() {
@@ -96,31 +100,76 @@ Duration Server::varyingElectionTimeout() {
   return Duration::fromMilliseconds(e);
 }
 
+void Server::onElectionTimeout() {
+  setState(ServerState::Candidate);
+
+  currentTerm_++;
+
+  VoteRequest voteRequest;
+  voteRequest.term = currentTerm_;
+  voteRequest.candidateId = id_;
+  voteRequest.lastLogIndex = lastApplied_;
+  voteRequest.lastLogTerm = currentTerm_;
+
+  for (Id peerId: discovery_->listMembers()) {
+    if (peerId != id_) {
+      logDebug("raft::Server", "send from $0 to $1: $2", id_, peerId, voteRequest);
+      transport_->send(peerId, voteRequest);
+    }
+  }
+}
+
+void Server::setState(ServerState newState) {
+  logDebug("raft::Server", "Server $0: Switching state from $1 to $2",
+      id_,
+      state_,
+      newState);
+}
+
 // {{{ Server: receiver API (invoked by Transport on receiving messages)
 void Server::receive(Id from, const VoteRequest& message) {
+  logDebug("raft::Server", "receive from $0 $1", from, message);
   // TODO
 }
 
 void Server::receive(Id from, const VoteResponse& message) {
+  logDebug("raft::Server", "receive from $0 $1", from, message);
   // TODO
 }
 
 void Server::receive(Id from, const AppendEntriesRequest& message) {
+  logDebug("raft::Server", "receive from $0 $1", from, message);
   // TODO
 }
 
 void Server::receive(Id from, const AppendEntriesResponse& message) {
+  logDebug("raft::Server", "receive from $0 $1", from, message);
   // TODO
 }
 
 void Server::receive(Id from, const InstallSnapshotRequest& message) {
+  logDebug("raft::Server", "receive from $0 $1", from, message);
   // TODO
 }
 
 void Server::receive(Id from, const InstallSnapshotResponse& message) {
+  logDebug("raft::Server", "receive from $0 $1", from, message);
   // TODO
 }
 // }}}
 
 } // namespace raft
+
+template<>
+std::string StringUtil::toString(raft::ServerState s) {
+  switch (s) {
+    case raft::ServerState::Follower:
+      return "Follower";
+    case raft::ServerState::Candidate:
+      return "Candidate";
+    case raft::ServerState::Leader:
+      return "Leader";
+  }
+}
+
 } // namespace xzero

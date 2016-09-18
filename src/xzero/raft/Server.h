@@ -12,6 +12,7 @@
 #include <xzero/Duration.h>
 #include <xzero/Random.h>
 #include <xzero/MonotonicTime.h>
+#include <xzero/executor/Executor.h>
 #include <xzero/net/Server.h>
 #include <initializer_list>
 #include <unordered_map>
@@ -137,6 +138,8 @@ class Server : public Listener {
 
  private:
   Duration varyingElectionTimeout();
+  void onElectionTimeout();
+  void setState(ServerState newState);
 
  private:
   Executor* executor_;
@@ -149,6 +152,7 @@ class Server : public Listener {
   Random rng_;
   MonotonicTime nextHeartbeat_;
   std::list<std::function<void(bool)>> verifyLeaderCallbacks_;
+  Executor::HandleRef electionTimeoutHandler_;
 
   // ------------------- configuration ----------------------------------------
   Duration heartbeatTimeout_;
