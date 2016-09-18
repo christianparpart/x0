@@ -18,10 +18,23 @@ Transport::~Transport() {
 
 // {{{ LocalTransport
 LocalTransport::LocalTransport(Id myId)
-    : myId_(myId) {
+    : myId_(myId),
+      peers_() {
+}
+
+LocalTransport::LocalTransport(LocalTransport&& m)
+    : myId_(m.myId_),
+      peers_(std::move(m.peers_)) {
+}
+
+LocalTransport& LocalTransport::operator=(LocalTransport&& m) {
+  myId_ = std::move(m.myId_);
+  peers_ = std::move(m.peers_);
+  return *this;
 }
 
 void LocalTransport::setPeer(Id peerId, Listener* target) {
+  logDebug("raft.LocalTransport", "add peer for $0: $1", myId_, peerId);
   peers_[peerId] = target;
 }
 
@@ -29,9 +42,12 @@ void LocalTransport::send(Id target, const VoteRequest& message) {
   auto i = peers_.find(target);
   if (i != peers_.end()) {
     i->second->receive(myId_, message);
-    logDebug("raft::LocalTransport", "send to $0: $1", target, message);
+    logDebug("raft.LocalTransport", "$0 send to $1: $2", myId_, target, message);
   } else {
-    logDebug("raft::LocalTransport", "failed to send to $0: $1", target, message);
+    logDebug("raft.LocalTransport", "$0 failed to send to $1: $2 ($3)", myId_, target, message, peers_.size());
+    for (const auto& p: peers_) {
+      logDebug("raft.LocalTransport", " - have $0", p.first);
+    }
   }
 }
 

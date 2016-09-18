@@ -36,9 +36,9 @@ class TestSystem : public raft::StateMachine { // {{{
       return -1;
   }
 
-  raft::LocalTransport& transport() { return transport_; }
-  raft::Storage& storage() { return storage_; }
-  raft::Server& server() { return raftServer_; }
+  raft::LocalTransport* transport() { return &transport_; }
+  raft::Storage* storage() { return &storage_; }
+  raft::Server* server() { return &raftServer_; }
 
  private:
   raft::MemoryStore storage_;
@@ -84,24 +84,23 @@ TEST(raft_Server, testx3) {
   PosixScheduler executor;
   raft::StaticDiscovery sd;
 
-  std::vector<TestSystem> servers = {
-    {1, &sd, &executor},
-    {2, &sd, &executor},
-    {3, &sd, &executor},
-  };
+  std::vector<std::unique_ptr<TestSystem>> servers;
+  servers.emplace_back(new TestSystem(1, &sd, &executor));
+  servers.emplace_back(new TestSystem(2, &sd, &executor));
+  servers.emplace_back(new TestSystem(3, &sd, &executor));
 
-  for (TestSystem& s: servers) {
+  for (auto& s: servers) {
     // register this server to Service Discovery
-    sd.add(s.server().id());
+    sd.add(s->server()->id());
 
     // register (id,peer) tuples of server peers to this server
-    for (TestSystem& t: servers) {
-      s.transport().setPeer(s.server().id(), &t.server());
+    for (auto& t: servers) {
+      s->transport()->setPeer(t->server()->id(), t->server());
     }
   }
 
-  for (TestSystem& s: servers) {
-    s.server().start();
+  for (auto& s: servers) {
+    s->server()->start();
   }
 
   executor.runLoop();

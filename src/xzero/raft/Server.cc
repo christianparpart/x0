@@ -17,6 +17,19 @@
 #include <system_error>
 
 namespace xzero {
+
+template<>
+std::string StringUtil::toString(raft::ServerState s) {
+  switch (s) {
+    case raft::ServerState::Follower:
+      return "Follower";
+    case raft::ServerState::Candidate:
+      return "Candidate";
+    case raft::ServerState::Leader:
+      return "Leader";
+  }
+}
+
 namespace raft {
 
 Server::Server(Executor* executor,
@@ -74,8 +87,8 @@ void Server::start() {
   }
 
   electionTimeoutHandler_ = executor_->executeAfter(
-      varyingElectionTimeout(),
-      std::bind(&Server::onElectionTimeout, this));
+      electionTimeout_,
+      std::bind(&Server::onFollowerTimeout, this));
 }
 
 void Server::stop() {
@@ -100,9 +113,14 @@ Duration Server::varyingElectionTimeout() {
   return Duration::fromMilliseconds(e);
 }
 
-void Server::onElectionTimeout() {
+void Server::onFollowerTimeout() {
+  logDebug("raft.Server", "onFollowerTimeout: $0", id_);
   setState(ServerState::Candidate);
 
+  sendVoteRequest();
+}
+
+void Server::sendVoteRequest() {
   currentTerm_++;
 
   VoteRequest voteRequest;
@@ -113,63 +131,67 @@ void Server::onElectionTimeout() {
 
   for (Id peerId: discovery_->listMembers()) {
     if (peerId != id_) {
-      logDebug("raft::Server", "send from $0 to $1: $2", id_, peerId, voteRequest);
+      logDebug("raft.Server", "send from $0 to $1: $2", id_, peerId, voteRequest);
       transport_->send(peerId, voteRequest);
     }
   }
+
+  // if (electionTimeoutHandler_) {
+  //   electionTimeoutHandler_->cancel();
+  // }
+  electionTimeoutHandler_ = executor_->executeAfter(
+      varyingElectionTimeout(),
+      std::bind(&Server::onElectionTimeout, this));
+}
+
+void Server::onElectionTimeout() {
+  logDebug("raft.Server", "onElectionTimeout: $0", id_);
+
+  sendVoteRequest();
 }
 
 void Server::setState(ServerState newState) {
-  logDebug("raft::Server", "Server $0: Switching state from $1 to $2",
+  logDebug(
+      "raft.Server", "Server $0: Switching state from $1 to $2",
       id_,
       state_,
       newState);
+
+  state_ = newState;
 }
 
 // {{{ Server: receiver API (invoked by Transport on receiving messages)
 void Server::receive(Id from, const VoteRequest& message) {
-  logDebug("raft::Server", "receive from $0 $1", from, message);
+  logDebug("raft.Server", "receive from $0 $1", from, message);
+  electionTimeoutHandler_->cancel();
   // TODO
 }
 
 void Server::receive(Id from, const VoteResponse& message) {
-  logDebug("raft::Server", "receive from $0 $1", from, message);
+  logDebug("raft.Server", "receive from $0 $1", from, message);
   // TODO
 }
 
 void Server::receive(Id from, const AppendEntriesRequest& message) {
-  logDebug("raft::Server", "receive from $0 $1", from, message);
+  logDebug("raft.Server", "receive from $0 $1", from, message);
   // TODO
 }
 
 void Server::receive(Id from, const AppendEntriesResponse& message) {
-  logDebug("raft::Server", "receive from $0 $1", from, message);
+  logDebug("raft.Server", "receive from $0 $1", from, message);
   // TODO
 }
 
 void Server::receive(Id from, const InstallSnapshotRequest& message) {
-  logDebug("raft::Server", "receive from $0 $1", from, message);
+  logDebug("raft.Server", "receive from $0 $1", from, message);
   // TODO
 }
 
 void Server::receive(Id from, const InstallSnapshotResponse& message) {
-  logDebug("raft::Server", "receive from $0 $1", from, message);
+  logDebug("raft.Server", "receive from $0 $1", from, message);
   // TODO
 }
 // }}}
 
 } // namespace raft
-
-template<>
-std::string StringUtil::toString(raft::ServerState s) {
-  switch (s) {
-    case raft::ServerState::Follower:
-      return "Follower";
-    case raft::ServerState::Candidate:
-      return "Candidate";
-    case raft::ServerState::Leader:
-      return "Leader";
-  }
-}
-
 } // namespace xzero

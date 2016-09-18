@@ -138,6 +138,8 @@ class Server : public Listener {
 
  private:
   Duration varyingElectionTimeout();
+  void onFollowerTimeout();
+  void sendVoteRequest();
   void onElectionTimeout();
   void setState(ServerState newState);
 

@@ -62,14 +62,20 @@ class LocalTransport : public Transport {
  public:
   explicit LocalTransport(Id myId);
 
+  LocalTransport(const LocalTransport&) = delete;
+  LocalTransport& operator=(const LocalTransport&) = delete;
+
+  LocalTransport(LocalTransport&&);
+  LocalTransport& operator=(LocalTransport&&);
+
+  void setPeer(Id id, Listener* listener);
+
   void send(Id target, const VoteRequest& message) override;
   void send(Id target, const VoteResponse& message) override;
   void send(Id target, const AppendEntriesRequest& message) override;
   void send(Id target, const AppendEntriesResponse& message) override;
   void send(Id target, const InstallSnapshotRequest& message) override;
   void send(Id target, const InstallSnapshotResponse& message) override;
-
-  void setPeer(Id id, Listener* listener);
 
  private:
   Id myId_;

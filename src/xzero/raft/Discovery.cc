@@ -6,11 +6,13 @@
 // the License at: http://opensource.org/licenses/MIT
 
 #include <xzero/raft/Discovery.h>
+#include <xzero/logging.h>
 
 namespace xzero {
 namespace raft {
 
 void StaticDiscovery::add(Id id) {
+  logDebug("raft.StaticDiscovery", "adds server $0", id);
   members_.emplace_back(id);
 }
 
