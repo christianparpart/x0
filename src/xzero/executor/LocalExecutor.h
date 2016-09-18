@@ -45,6 +45,8 @@ class LocalExecutor : public Executor {
   /** Retrieves number of deferred tasks. */
   size_t backlog() const { return deferred_.size(); }
 
+  void executeDeferredTasks();
+
  private:
   bool recursive_;
   int running_;

@@ -10,7 +10,7 @@
 #include <xzero/raft/Discovery.h>
 #include <xzero/raft/Transport.h>
 #include <xzero/raft/Storage.h>
-#include <xzero/executor/LocalExecutor.h>
+#include <xzero/executor/PosixScheduler.h>
 #include <xzero/testing.h>
 #include <initializer_list>
 #include <unordered_map>
@@ -81,7 +81,7 @@ void TestSystem::applyCommand(const raft::Command& command) {
 // }}}
 
 TEST(raft_Server, testx3) {
-  LocalExecutor executor;
+  PosixScheduler executor;
   raft::StaticDiscovery sd;
 
   std::vector<TestSystem> servers = {
@@ -103,7 +103,6 @@ TEST(raft_Server, testx3) {
   for (TestSystem& s: servers) {
     s.server().start();
   }
-}
 
-TEST(raft_Server, join) {
+  executor.runLoop();
 }

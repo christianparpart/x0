@@ -36,17 +36,18 @@ void LocalExecutor::execute(Task task) {
   }
 
   running_++;
-
   TRACE("$0 execute: run top-level task", this);
   safeCall(task);
+  executeDeferredTasks();
+  running_--;
+}
 
+void LocalExecutor::executeDeferredTasks() {
   while (!deferred_.empty()) {
     TRACE("$0 execute: run deferred task (-$1)", this, deferred_.size());
     safeCall(deferred_.front());
     deferred_.pop_front();
   }
-
-  running_--;
 }
 
 Executor::HandleRef LocalExecutor::executeOnReadable(int fd, Task task, Duration timeout, Task onTimeout) {
