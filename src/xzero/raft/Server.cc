@@ -114,6 +114,7 @@ Duration Server::varyingElectionTimeout() {
 }
 
 void Server::onFollowerTimeout() {
+  assert(state_ == ServerState::Follower);
   logDebug("raft.Server", "onFollowerTimeout: $0", id_);
   setState(ServerState::Candidate);
 
@@ -121,6 +122,8 @@ void Server::onFollowerTimeout() {
 }
 
 void Server::sendVoteRequest() {
+  assert(state_ == ServerState::Candidate);
+  logDebug("raft.Server", "sendVoteRequest: $0", id_);
   currentTerm_++;
 
   VoteRequest voteRequest;
@@ -136,18 +139,16 @@ void Server::sendVoteRequest() {
     }
   }
 
-  // if (electionTimeoutHandler_) {
-  //   electionTimeoutHandler_->cancel();
-  // }
   electionTimeoutHandler_ = executor_->executeAfter(
       varyingElectionTimeout(),
       std::bind(&Server::onElectionTimeout, this));
 }
 
 void Server::onElectionTimeout() {
+  assert(state_ == ServerState::Candidate);
   logDebug("raft.Server", "onElectionTimeout: $0", id_);
 
-  sendVoteRequest();
+  //sendVoteRequest();
 }
 
 void Server::setState(ServerState newState) {
@@ -162,33 +163,49 @@ void Server::setState(ServerState newState) {
 
 // {{{ Server: receiver API (invoked by Transport on receiving messages)
 void Server::receive(Id from, const VoteRequest& message) {
-  logDebug("raft.Server", "receive from $0 $1", from, message);
-  electionTimeoutHandler_->cancel();
+  logDebug("raft.Server", "$0 received from $1 $2", id_, from, message);
+
+  VoteResponse voteResponse;
+  voteResponse.term = currentTerm_;
+  voteResponse.voteGranted = true;
+
+  transport_->send(from, voteResponse);
+
   // TODO
 }
 
 void Server::receive(Id from, const VoteResponse& message) {
-  logDebug("raft.Server", "receive from $0 $1", from, message);
-  // TODO
+  logDebug("raft.Server", "$0 received from $1 $2", id_, from, message);
+  assert(state_ == ServerState::Candidate);
+  electionTimeoutHandler_->cancel();
+
+  if (message.voteGranted) {
+    logDebug("raft.Server", "$0 received granted vote from $1", id_, from);
+    // if (majorityAcceptedVote()) {
+    //   setState(ServerState::Leader);
+    // }
+  } else {
+    //sendVoteRequest();
+  }
 }
 
 void Server::receive(Id from, const AppendEntriesRequest& message) {
-  logDebug("raft.Server", "receive from $0 $1", from, message);
+  logDebug("raft.Server", "$0 received from $1 $2", id_, from, message);
   // TODO
 }
 
 void Server::receive(Id from, const AppendEntriesResponse& message) {
-  logDebug("raft.Server", "receive from $0 $1", from, message);
+  logDebug("raft.Server", "$0 received from $1 $2", id_, from, message);
   // TODO
 }
 
 void Server::receive(Id from, const InstallSnapshotRequest& message) {
-  logDebug("raft.Server", "receive from $0 $1", from, message);
+  logDebug("raft.Server", "$0 received from $1 $2", id_, from, message);
   // TODO
 }
 
 void Server::receive(Id from, const InstallSnapshotResponse& message) {
-  logDebug("raft.Server", "receive from $0 $1", from, message);
+  logDebug("raft.Server", "$0 received from $1 $2", id_, from, message);
   // TODO
 }
 // }}}

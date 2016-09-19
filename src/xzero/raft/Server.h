@@ -21,11 +21,6 @@
 #include <list>
 
 namespace xzero {
-
-class Executor;
-class EndPoint;
-class Connector;
-
 namespace raft {
 
 enum class ServerState {

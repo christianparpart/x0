@@ -54,6 +54,7 @@ void LocalTransport::send(Id target, const VoteRequest& message) {
 void LocalTransport::send(Id target, const VoteResponse& message) {
   auto i = peers_.find(target);
   if (i != peers_.end()) {
+    logDebug("raft.LocalTransport", "$0 send to $1: $2", myId_, target, message);
     i->second->receive(myId_, message);
   }
 }
