@@ -48,7 +48,6 @@ void Server::stop() {
 }
 
 void Server::implAddConnector(Connector* connector) {
-  connector->setServer(this);
   connectors_.push_back(connector);
 }
 

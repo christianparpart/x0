@@ -17,7 +17,6 @@
 
 namespace xzero {
 
-class Server;
 class Executor;
 class WallClock;
 class EndPoint;
@@ -39,16 +38,6 @@ class XZERO_BASE_API Connector {
   Connector(const std::string& name, Executor* executor);
 
   virtual ~Connector();
-
-  /**
-   * Assigns a @p server to this connector.
-   */
-  void setServer(Server* server);
-
-  /**
-   * Retrieves the corresponding Server object.
-   */
-  Server* server() const;
 
   /**
    * Retrieves the describing name for this connector.
@@ -133,7 +122,6 @@ class XZERO_BASE_API Connector {
 
  private:
   std::string name_;
-  Server* server_;
   Executor* executor_;
 
   std::unordered_map<std::string, std::shared_ptr<ConnectionFactory>>

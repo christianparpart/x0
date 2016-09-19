@@ -16,7 +16,6 @@ namespace xzero {
 
 Connector::Connector(const std::string& name, Executor* executor)
   : name_(name),
-    server_(nullptr),
     executor_(executor),
     connectionFactories_(),
     defaultConnectionFactory_(),
@@ -24,15 +23,6 @@ Connector::Connector(const std::string& name, Executor* executor)
 }
 
 Connector::~Connector() {
-}
-
-void Connector::setServer(Server* server) {
-  assert(server_ == nullptr);
-  server_ = server;
-}
-
-Server* Connector::server() const {
-  return server_;
 }
 
 const std::string& Connector::name() const {
