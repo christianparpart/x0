@@ -65,7 +65,7 @@ Server::Server(Executor* executor,
       heartbeatTimeout_(heartbeatTimeout),
       electionTimeout_(electionTimeout),
       commitTimeout_(commitTimeout),
-      currentTerm_(storage_->loadTerm()),
+      currentTerm_(1),
       votedFor_(),
       commitIndex_(0),
       lastApplied_(0),
@@ -85,6 +85,10 @@ void Server::start() {
       RAISE_CATEGORY(RaftError::MismatchingServerId, RaftCategory());
     }
   }
+
+  logDebug("raft.Server",
+           "Server $0 starts with term $1 and index $2",
+           id_, currentTerm_, commitIndex_);
 
   electionTimeoutHandler_ = executor_->executeAfter(
       electionTimeout_,
@@ -130,7 +134,7 @@ void Server::sendVoteRequest() {
   voteRequest.term = currentTerm_;
   voteRequest.candidateId = id_;
   voteRequest.lastLogIndex = lastApplied_;
-  voteRequest.lastLogTerm = currentTerm_;
+  voteRequest.lastLogTerm = 0; // TODO storage_->lastLogTerm();
 
   for (Id peerId: discovery_->listMembers()) {
     if (peerId != id_) {
