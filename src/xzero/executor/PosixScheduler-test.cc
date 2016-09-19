@@ -82,6 +82,19 @@ TEST(PosixSchedulerTest, executeAfter_without_handle) {
   EXPECT_NEAR(50, diff.milliseconds(), 10);
 }
 
+TEST(PosixSchedulerTest, executeAfter_cancel_insideRun) {
+  TheScheduler scheduler;
+
+  Executor::HandleRef handle = scheduler.executeAfter(1_seconds, [&]() {
+    log("Cancelling inside run.");
+    handle->cancel();
+  });
+
+  scheduler.runLoopOnce();
+
+  EXPECT_TRUE(handle->isCancelled());
+}
+
 TEST(PosixSchedulerTest, executeAfter_cancel_beforeRun) {
   TheScheduler scheduler;
   int fireCount = 0;

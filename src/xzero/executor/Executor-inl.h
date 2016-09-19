@@ -46,9 +46,10 @@ inline void Executor::Handle::cancel() {
 }
 
 inline void Executor::Handle::fire(Task task) {
-  std::lock_guard<std::mutex> lk(mutex_);
+  std::unique_lock<std::mutex> lk(mutex_);
 
   if (!isCancelled_.load()) {
+    lk.unlock();
     task();
   }
 }
