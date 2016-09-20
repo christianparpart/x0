@@ -17,8 +17,9 @@ Transport::~Transport() {
 }
 
 // {{{ LocalTransport
-LocalTransport::LocalTransport(Id myId)
+LocalTransport::LocalTransport(Id myId, Executor* executor)
     : myId_(myId),
+      executor_(executor),
       peers_() {
 }
 
@@ -41,49 +42,56 @@ void LocalTransport::setPeer(Id peerId, Listener* target) {
 void LocalTransport::send(Id target, const VoteRequest& message) {
   auto i = peers_.find(target);
   if (i != peers_.end()) {
-    i->second->receive(myId_, message);
-    logDebug("raft.LocalTransport", "$0 send to $1: $2", myId_, target, message);
-  } else {
-    logDebug("raft.LocalTransport", "$0 failed to send to $1: $2 ($3)", myId_, target, message, peers_.size());
-    for (const auto& p: peers_) {
-      logDebug("raft.LocalTransport", " - have $0", p.first);
-    }
+    executor_->execute([=]() {
+      i->second->receive(myId_, message);
+    });
+    //logDebug("raft.LocalTransport", "$0 send to $1: $2", myId_, target, message);
   }
 }
 
 void LocalTransport::send(Id target, const VoteResponse& message) {
   auto i = peers_.find(target);
   if (i != peers_.end()) {
-    logDebug("raft.LocalTransport", "$0 send to $1: $2", myId_, target, message);
-    i->second->receive(myId_, message);
+    //logDebug("raft.LocalTransport", "$0 send to $1: $2", myId_, target, message);
+    executor_->execute([=]() {
+      i->second->receive(myId_, message);
+    });
   }
 }
 
 void LocalTransport::send(Id target, const AppendEntriesRequest& message) {
   auto i = peers_.find(target);
   if (i != peers_.end()) {
-    i->second->receive(myId_, message);
+    executor_->execute([=]() {
+      i->second->receive(myId_, message);
+    });
   }
 }
 
 void LocalTransport::send(Id target, const AppendEntriesResponse& message) {
   auto i = peers_.find(target);
   if (i != peers_.end()) {
-    i->second->receive(myId_, message);
+    executor_->execute([=]() {
+      i->second->receive(myId_, message);
+    });
   }
 }
 
 void LocalTransport::send(Id target, const InstallSnapshotRequest& message) {
   auto i = peers_.find(target);
   if (i != peers_.end()) {
-    i->second->receive(myId_, message);
+    executor_->execute([=]() {
+      i->second->receive(myId_, message);
+    });
   }
 }
 
 void LocalTransport::send(Id target, const InstallSnapshotResponse& message) {
   auto i = peers_.find(target);
   if (i != peers_.end()) {
-    i->second->receive(myId_, message);
+    executor_->execute([=]() {
+      i->second->receive(myId_, message);
+    });
   }
 }
 // }}}

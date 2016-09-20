@@ -24,6 +24,11 @@ class Discovery {
    * Retrieves a list of all candidates in a cluster by their Id.
    */
   virtual std::vector<Id> listMembers() = 0;
+
+  /**
+   * Retrieves total member count.
+   */
+  virtual size_t totalMemberCount() = 0;
 };
 
 /**
@@ -37,6 +42,8 @@ class StaticDiscovery : public Discovery {
   void add(Id id);
 
   std::vector<Id> listMembers() override;
+
+  size_t totalMemberCount() override;
 
  private:
   std::vector<Id> members_;
@@ -52,6 +59,8 @@ class DnsDiscovery : public Discovery {
   ~DnsDiscovery();
 
   std::vector<Id> listMembers() override;
+
+  size_t totalMemberCount() override;
 };
 
 } // namespace raft

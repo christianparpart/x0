@@ -94,6 +94,8 @@ class Server : public Listener {
   ServerState state() const noexcept { return state_; }
   LogEntry operator[](Index index);
 
+  size_t quorumSize() const;
+
   /**
    * Starts the Server.
    */
@@ -137,6 +139,7 @@ class Server : public Listener {
   void sendVoteRequest();
   void onElectionTimeout();
   void setState(ServerState newState);
+  void sendHeartbeat();
 
  private:
   Executor* executor_;
@@ -163,7 +166,7 @@ class Server : public Listener {
   Term currentTerm_;
 
   //! candidate's Id that received vote in current term (or null if none)
-  Option<Id> votedFor_;
+  Option<std::pair<Id, Term>> votedFor_;
 
   //! log entries; each entry contains command for state machine,
   //! and term when entry was received by leader (first index is 1)
@@ -178,6 +181,9 @@ class Server : public Listener {
   //! index of highest log entry applied to state machine (initialized to 0,
   //! increases monotonically)
   Index lastApplied_;
+
+  // ------------------- volatile state on candidates -------------------------
+  size_t votesGranted_;
 
   // ------------------- volatile state on leaders ----------------------------
 

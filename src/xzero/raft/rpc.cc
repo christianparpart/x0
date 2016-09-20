@@ -42,6 +42,13 @@ LogEntry::LogEntry(Term term,
       type_(type),
       command_(cmd) {
 }
+
+LogEntry::LogEntry(const LogEntry& v)
+    : term_(v.term_),
+      index_(v.index_),
+      type_(v.type_),
+      command_(v.command_) {
+}
 // }}}
 
 } // namespace raft

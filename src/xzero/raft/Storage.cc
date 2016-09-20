@@ -7,6 +7,7 @@
 
 #include <xzero/raft/Storage.h>
 #include <stdlib.h>
+#include <assert.h>
 
 namespace xzero {
 namespace raft {
@@ -22,7 +23,7 @@ MemoryStore::MemoryStore()
       snapshotData_() {
 
   // log with index 0 is invalid. logs start with index 1
-  log_.push_back(LogEntry());
+  log_.push_back(nullptr);
 }
 
 bool MemoryStore::isInitialized() const {
@@ -55,15 +56,14 @@ Term MemoryStore::loadTerm() {
 }
 
 bool MemoryStore::appendLogEntry(const LogEntry& log) {
-  if (log_.size() != log.index()) {
-    abort();
-  }
-  log_.push_back(log);
+  assert(log_.size() == log.index());
+
+  log_.push_back(std::shared_ptr<LogEntry>(new LogEntry(log)));
   return true;
 }
 
-void MemoryStore::loadLogEntry(Index index, LogEntry* log) {
-  *log = log_[index];
+std::shared_ptr<LogEntry> MemoryStore::getLogEntry(Index index) {
+  return log_[index];
 }
 
 bool MemoryStore::saveSnapshotBegin(Term currentTerm, Index lastIndex) {

@@ -20,5 +20,9 @@ std::vector<Id> StaticDiscovery::listMembers() {
   return members_;
 }
 
+size_t StaticDiscovery::totalMemberCount() {
+  return members_.size();
+}
+
 } // namespace raft
 } // namespace xzero

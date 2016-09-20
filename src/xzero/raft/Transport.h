@@ -14,6 +14,7 @@
 
 namespace xzero {
 
+class Executor;
 class Connector;
 class EndPoint;
 
@@ -60,7 +61,7 @@ class InetTransport : public Transport {
 
 class LocalTransport : public Transport {
  public:
-  explicit LocalTransport(Id myId);
+  LocalTransport(Id myId, Executor* executor);
 
   LocalTransport(const LocalTransport&) = delete;
   LocalTransport& operator=(const LocalTransport&) = delete;
@@ -79,6 +80,7 @@ class LocalTransport : public Transport {
 
  private:
   Id myId_;
+  Executor* executor_;
   std::unordered_map<Id, Listener*> peers_;
 };
 

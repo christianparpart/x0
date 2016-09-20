@@ -9,6 +9,7 @@
 #include <xzero/raft/rpc.h>
 #include <cstdint>
 #include <vector>
+#include <memory>
 
 namespace xzero {
 namespace raft {
@@ -36,7 +37,7 @@ class Storage {
   virtual bool appendLogEntry(const LogEntry& log) = 0;
 
   //! loads the LogEntry from given @p index and stores it in @p log.
-  virtual void loadLogEntry(Index index, LogEntry* log) = 0;
+  virtual std::shared_ptr<LogEntry> getLogEntry(Index index) = 0;
 
   virtual bool saveSnapshotBegin(Term currentTerm, Index lastIndex) = 0;
   virtual bool saveSnapshotChunk(const uint8_t* data, size_t length) = 0;
@@ -57,7 +58,7 @@ class MemoryStore : public Storage {
   bool isInitialized_;
   Id id_;
   Term currentTerm_;
-  std::vector<LogEntry> log_;
+  std::vector<std::shared_ptr<LogEntry>> log_;
 
   Term snapshottedTerm_;
   Index snapshottedIndex_;
@@ -75,7 +76,7 @@ class MemoryStore : public Storage {
   Term loadTerm() override;
 
   bool appendLogEntry(const LogEntry& log) override;
-  void loadLogEntry(Index index, LogEntry* log) override;
+  std::shared_ptr<LogEntry> getLogEntry(Index index) override;
 
   bool saveSnapshotBegin(Term currentTerm, Index lastIndex) override;
   bool saveSnapshotChunk(const uint8_t* data, size_t length) override;

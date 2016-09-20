@@ -51,7 +51,7 @@ TestSystem::TestSystem(raft::Id id,
                        raft::Discovery* discovery,
                        Executor* executor)
     : storage_(),
-      transport_(id),
+      transport_(id, executor),
       raftServer_(executor, id, &storage_, discovery, &transport_, this),
       tuples_() {
 }

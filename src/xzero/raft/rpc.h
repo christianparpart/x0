@@ -41,6 +41,7 @@ class LogEntry {
   LogEntry(Term term, Index index, Command&& cmd);
   LogEntry(Term term, Index index, LogType type);
   LogEntry(Term term, Index index);
+  LogEntry(const LogEntry& v);
   LogEntry();
 
   Term term() const noexcept { return term_; }

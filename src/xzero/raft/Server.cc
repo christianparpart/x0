@@ -76,6 +76,10 @@ Server::Server(Executor* executor,
 Server::~Server() {
 }
 
+size_t Server::quorumSize() const {
+  return discovery_->totalMemberCount() / 2 + 1;
+}
+
 void Server::start() {
   if (!storage_->isInitialized()) {
     storage_->initialize(id_, currentTerm_);
@@ -119,22 +123,26 @@ Duration Server::varyingElectionTimeout() {
 
 void Server::onFollowerTimeout() {
   assert(state_ == ServerState::Follower);
-  logDebug("raft.Server", "onFollowerTimeout: $0", id_);
+  logDebug("raft.Server", "$0 onFollowerTimeout", id_);
   setState(ServerState::Candidate);
 
   sendVoteRequest();
 }
 
 void Server::sendVoteRequest() {
+  logDebug("raft.Server", "$0 sendVoteRequest", id_);
   assert(state_ == ServerState::Candidate);
-  logDebug("raft.Server", "sendVoteRequest: $0", id_);
-  currentTerm_++;
 
-  VoteRequest voteRequest;
-  voteRequest.term = currentTerm_;
-  voteRequest.candidateId = id_;
-  voteRequest.lastLogIndex = lastApplied_;
-  voteRequest.lastLogTerm = 0; // TODO storage_->lastLogTerm();
+  votesGranted_ = 0;
+  currentTerm_++;
+  votedFor_ = Some(std::make_pair(id_, currentTerm_));
+
+  VoteRequest voteRequest{
+    .term         = currentTerm_,
+    .candidateId  = id_,
+    .lastLogIndex = lastApplied_,
+    .lastLogTerm  = lastApplied_ ? storage_->getLogEntry(lastApplied_)->term() : 0,
+  };
 
   for (Id peerId: discovery_->listMembers()) {
     if (peerId != id_) {
@@ -146,13 +154,16 @@ void Server::sendVoteRequest() {
   electionTimeoutHandler_ = executor_->executeAfter(
       varyingElectionTimeout(),
       std::bind(&Server::onElectionTimeout, this));
+  printf("%d: %p %p\n", id_, this, &electionTimeoutHandler_);
 }
 
 void Server::onElectionTimeout() {
+  logDebug("raft.Server", "$0 onElectionTimeout: $1", id_, state_);
+  logDebug("raft.Server", "handle cancelled? $0", electionTimeoutHandler_->isCancelled());
+  printf("%d: %p %p\n", id_, this, &electionTimeoutHandler_);
   assert(state_ == ServerState::Candidate);
-  logDebug("raft.Server", "onElectionTimeout: $0", id_);
 
-  //sendVoteRequest();
+  sendVoteRequest();
 }
 
 void Server::setState(ServerState newState) {
@@ -169,32 +180,71 @@ void Server::setState(ServerState newState) {
 void Server::receive(Id from, const VoteRequest& message) {
   logDebug("raft.Server", "$0 received from $1 $2", id_, from, message);
 
-  VoteResponse voteResponse;
-  voteResponse.term = currentTerm_;
-  voteResponse.voteGranted = true;
+  VoteResponse response;
+  response.term = currentTerm_;
 
-  transport_->send(from, voteResponse);
+  if (message.term < currentTerm_) {
+    response.voteGranted = false;
+  } else if (votedFor_.isNone()) {
+    response.voteGranted = true;
+  } else if (message.candidateId == votedFor_->first
+          && message.lastLogTerm >= votedFor_->second) {
+    response.voteGranted = true;
+  } else {
+    response.voteGranted = false;
+  }
 
-  // TODO
+  transport_->send(from, response);
 }
 
 void Server::receive(Id from, const VoteResponse& message) {
-  logDebug("raft.Server", "$0 received from $1 $2", id_, from, message);
+  logDebug("raft.Server", "$0/$1 received from $2 $3", id_, state_, from, message);
   assert(state_ == ServerState::Candidate);
-  electionTimeoutHandler_->cancel();
 
   if (message.voteGranted) {
     logDebug("raft.Server", "$0 received granted vote from $1", id_, from);
-    // if (majorityAcceptedVote()) {
-    //   setState(ServerState::Leader);
-    // }
-  } else {
-    //sendVoteRequest();
+    votesGranted_++;
+    if (votesGranted_ >= quorumSize()) {
+      electionTimeoutHandler_->cancel();
+      setState(ServerState::Leader);
+      sendHeartbeat();
+    }
+  }
+}
+
+void Server::sendHeartbeat() {
+  AppendEntriesRequest heartbeat {
+    .term         = currentTerm_,
+    .leaderId     = id_,
+    .prevLogIndex = lastApplied_,
+    .prevLogTerm  = lastApplied_ ? storage_->getLogEntry(lastApplied_)->term() : 0,
+    .entries      = {},
+    .leaderCommit = commitIndex_,
+  };
+
+  for (Id peerId: discovery_->listMembers()) {
+    if (peerId != id_) {
+      logDebug("raft.Server", "$0 sendHeartbeat $1", id_, peerId);
+      transport_->send(peerId, heartbeat);
+    }
   }
 }
 
 void Server::receive(Id from, const AppendEntriesRequest& message) {
-  logDebug("raft.Server", "$0 received from $1 $2", id_, from, message);
+  logDebug("raft.Server", "$0 received from $1 my term $2/$3, $4", id_, from, currentTerm_, state_, message);
+
+  electionTimeoutHandler_->cancel();
+
+  if (message.term > currentTerm_) { // new leader detected
+    logDebug("raft.Server", "$0 new leader $1 detected with term $2",
+        id_, message.leaderId, message.term);
+    currentTerm_ = message.term;
+
+    if (state_ != ServerState::Follower) {
+      setState(ServerState::Follower);
+    }
+  }
+
   // TODO
 }
 
