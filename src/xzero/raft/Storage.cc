@@ -35,7 +35,9 @@ void MemoryStore::initialize(Id id, Term term) {
 
   id_ = id;
   currentTerm_ = term;
+
   log_.clear();
+  log_.push_back(nullptr);
 
   snapshottedTerm_ = 0;
   snapshottedIndex_ = 0;
@@ -53,6 +55,13 @@ bool MemoryStore::saveTerm(Term currentTerm) {
 
 Term MemoryStore::loadTerm() {
   return currentTerm_;
+}
+
+Option<Index> MemoryStore::latestIndex() {
+  if (log_.size() != 1)
+    return Some(log_.size() - 1); // XXX minus 1, because log_[0] is illegal.
+  else
+    return None();
 }
 
 bool MemoryStore::appendLogEntry(const LogEntry& log) {

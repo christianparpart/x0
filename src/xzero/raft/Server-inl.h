@@ -8,5 +8,9 @@
 namespace xzero {
 namespace raft {
 
+inline Term Server::currentTerm() const {
+  return currentTerm_;
+}
+
 } // namespace raft
 } // namespace xzero

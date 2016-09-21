@@ -9,8 +9,8 @@
 #include <xzero/raft/rpc.h>
 #include <xzero/raft/Listener.h>
 #include <xzero/Option.h>
+#include <xzero/IdleTimeout.h>
 #include <xzero/Duration.h>
-#include <xzero/Random.h>
 #include <xzero/MonotonicTime.h>
 #include <xzero/executor/Executor.h>
 #include <xzero/net/Server.h>
@@ -96,6 +96,8 @@ class Server : public Listener {
 
   size_t quorumSize() const;
 
+  Term currentTerm() const;
+
   /**
    * Starts the Server.
    */
@@ -134,10 +136,10 @@ class Server : public Listener {
   // }}}
 
  private:
-  Duration varyingElectionTimeout();
   void onFollowerTimeout();
-  void sendVoteRequest();
   void onElectionTimeout();
+  void sendVoteRequest();
+  void setCurrentTerm(Term newTerm);
   void setState(ServerState newState);
   void sendHeartbeat();
 
@@ -149,10 +151,10 @@ class Server : public Listener {
   Transport* transport_;
   StateMachine* stateMachine_;
   ServerState state_;
-  Random rng_;
   MonotonicTime nextHeartbeat_;
+  IdleTimeout timer_;
+
   std::list<std::function<void(bool)>> verifyLeaderCallbacks_;
-  Executor::HandleRef electionTimeoutHandler_;
 
   // ------------------- configuration ----------------------------------------
   Duration heartbeatTimeout_;

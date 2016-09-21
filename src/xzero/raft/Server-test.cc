@@ -104,4 +104,7 @@ TEST(raft_Server, testx3) {
   }
 
   executor.runLoop();
+
+  // now, leader election must have been taken place
+  // 1 leader and 2 followers must exist
 }
