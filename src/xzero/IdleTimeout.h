@@ -20,13 +20,14 @@ namespace xzero {
  */
 class XZERO_BASE_API IdleTimeout {
  public:
-  IdleTimeout(Executor* executor);
+  IdleTimeout(Executor* executor, Duration timeout, Executor::Task cb);
+  explicit IdleTimeout(Executor* executor);
   ~IdleTimeout();
 
   void setTimeout(Duration value);
   Duration timeout() const;
 
-  void setCallback(std::function<void()>&& cb);
+  void setCallback(std::function<void()> cb);
   void clearCallback();
 
   void activate();

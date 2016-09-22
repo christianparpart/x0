@@ -21,12 +21,18 @@ namespace xzero {
 #define TRACE(msg...) do {} while (0)
 #endif
 
-IdleTimeout::IdleTimeout(Executor* executor) :
-  executor_(executor),
-  timeout_(Duration::Zero),
-  fired_(),
-  active_(false),
-  onTimeout_() {
+IdleTimeout::IdleTimeout(Executor* executor,
+                         Duration timeout,
+                         Executor::Task cb)
+    : executor_(executor),
+      timeout_(timeout),
+      fired_(),
+      active_(false),
+      onTimeout_(cb) {
+}
+
+IdleTimeout::IdleTimeout(Executor* executor) 
+    : IdleTimeout(executor, Duration::Zero, nullptr) {
 }
 
 IdleTimeout::~IdleTimeout() {
@@ -40,8 +46,8 @@ Duration IdleTimeout::timeout() const {
   return timeout_;
 }
 
-void IdleTimeout::setCallback(std::function<void()>&& cb) {
-  onTimeout_ = std::move(cb);
+void IdleTimeout::setCallback(std::function<void()> cb) {
+  onTimeout_ = cb;
 }
 
 void IdleTimeout::clearCallback() {
