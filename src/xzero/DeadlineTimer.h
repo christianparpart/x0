@@ -20,7 +20,8 @@ namespace xzero {
  */
 class XZERO_BASE_API DeadlineTimer {
  public:
-  DeadlineTimer(Executor* executor, Duration timeout, Executor::Task cb);
+  DeadlineTimer(Executor* executor, Executor::Task cb, Duration timeout);
+  DeadlineTimer(Executor* executor, Executor::Task cb);
   explicit DeadlineTimer(Executor* executor);
   ~DeadlineTimer();
 
@@ -30,9 +31,9 @@ class XZERO_BASE_API DeadlineTimer {
   void setCallback(std::function<void()> cb);
   void clearCallback();
 
-  void activate();
-  void activate(Duration timeout);
-  void deactivate();
+  void start();
+  void start(Duration timeout);
+  void cancel();
   bool isActive() const;
 
   /**
@@ -63,9 +64,9 @@ class XZERO_BASE_API DeadlineTimer {
   Executor::HandleRef handle_;
 };
 
-inline void DeadlineTimer::activate(Duration timeout) {
+inline void DeadlineTimer::start(Duration timeout) {
   setTimeout(timeout);
-  activate();
+  start();
 }
 
 } // namespace xzero

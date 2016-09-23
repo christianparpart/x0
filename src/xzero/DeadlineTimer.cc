@@ -22,8 +22,8 @@ namespace xzero {
 #endif
 
 DeadlineTimer::DeadlineTimer(Executor* executor,
-                         Duration timeout,
-                         Executor::Task cb)
+                         Executor::Task cb,
+                         Duration timeout)
     : executor_(executor),
       timeout_(timeout),
       fired_(),
@@ -31,8 +31,13 @@ DeadlineTimer::DeadlineTimer(Executor* executor,
       onTimeout_(cb) {
 }
 
+DeadlineTimer::DeadlineTimer(Executor* executor,
+                         Executor::Task cb)
+    : DeadlineTimer(executor, cb, Duration::Zero) {
+}
+
 DeadlineTimer::DeadlineTimer(Executor* executor) 
-    : DeadlineTimer(executor, Duration::Zero, nullptr) {
+    : DeadlineTimer(executor, nullptr, Duration::Zero) {
 }
 
 DeadlineTimer::~DeadlineTimer() {
@@ -60,7 +65,7 @@ void DeadlineTimer::touch() {
   }
 }
 
-void DeadlineTimer::activate() {
+void DeadlineTimer::start() {
   assert(onTimeout_ && "No timeout callback defined");
   if (!active_) {
     active_ = true;
@@ -68,7 +73,7 @@ void DeadlineTimer::activate() {
   }
 }
 
-void DeadlineTimer::deactivate() {
+void DeadlineTimer::cancel() {
   active_ = false;
 }
 

@@ -24,7 +24,7 @@ TEST(DeadlineTimer, simple1) {
   DeadlineTimer t(&executor);
   t.setTimeout(500_milliseconds);
   t.setCallback([&]() { fired++; });
-  t.activate();
+  t.start();
   EXPECT_TRUE(t.isActive());
 
   executor.runLoop();
