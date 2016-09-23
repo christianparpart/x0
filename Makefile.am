@@ -64,6 +64,8 @@ libXzero_a_SOURCES = \
 	src/xzero/Counter.cc \
 	src/xzero/Counter.h \
 	src/xzero/CustomDataMgr.h \
+	src/xzero/DeadlineTimer.cc \
+	src/xzero/DeadlineTimer.h \
 	src/xzero/Duration.cc \
 	src/xzero/Duration.h \
 	src/xzero/Duration_impl.h \
@@ -75,8 +77,6 @@ libXzero_a_SOURCES = \
 	src/xzero/IEEE754.h \
 	src/xzero/ISO8601.cc \
 	src/xzero/ISO8601.h \
-	src/xzero/IdleTimeout.cc \
-	src/xzero/IdleTimeout.h \
 	src/xzero/JsonWriter.cc \
 	src/xzero/JsonWriter.h \
 	src/xzero/LinkedCounter.h \
@@ -543,8 +543,8 @@ xzero_test_SOURCES = \
 	src/xzero/Base64-test.cc \
 	src/xzero/Buffer-test.cc \
 	src/xzero/Callback-test.cc \
+	src/xzero/DeadlineTimer-test.cc \
 	src/xzero/HugeBuffer-test.cc \
-	src/xzero/IdleTimeout-test.cc \
 	src/xzero/MimeTypes-test.cc \
 	src/xzero/Option-test.cc \
 	src/xzero/raft/Server-test.cc \

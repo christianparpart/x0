@@ -18,11 +18,11 @@ namespace xzero {
 /**
  * Manages a single idle timeout.
  */
-class XZERO_BASE_API IdleTimeout {
+class XZERO_BASE_API DeadlineTimer {
  public:
-  IdleTimeout(Executor* executor, Duration timeout, Executor::Task cb);
-  explicit IdleTimeout(Executor* executor);
-  ~IdleTimeout();
+  DeadlineTimer(Executor* executor, Duration timeout, Executor::Task cb);
+  explicit DeadlineTimer(Executor* executor);
+  ~DeadlineTimer();
 
   void setTimeout(Duration value);
   Duration timeout() const;
@@ -63,7 +63,7 @@ class XZERO_BASE_API IdleTimeout {
   Executor::HandleRef handle_;
 };
 
-inline void IdleTimeout::activate(Duration timeout) {
+inline void DeadlineTimer::activate(Duration timeout) {
   setTimeout(timeout);
   activate();
 }

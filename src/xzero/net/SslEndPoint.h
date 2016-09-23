@@ -9,7 +9,7 @@
 
 #include <xzero/Api.h>
 #include <xzero/net/EndPoint.h>
-#include <xzero/IdleTimeout.h>
+#include <xzero/DeadlineTimer.h>
 #include <openssl/ssl.h>
 
 namespace xzero {
@@ -110,7 +110,7 @@ class XZERO_BASE_API SslEndPoint : public EndPoint {
   Executor::HandleRef io_;
   Duration readTimeout_;
   Duration writeTimeout_;
-  IdleTimeout idleTimeout_;
+  DeadlineTimer idleTimeout_;
 };
 
 } // namespace xzero

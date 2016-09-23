@@ -6,22 +6,22 @@
 // the License at: http://opensource.org/licenses/MIT
 
 #include <xzero/testing.h>
-#include <xzero/IdleTimeout.h>
+#include <xzero/DeadlineTimer.h>
 #include <xzero/executor/PosixScheduler.h>
 
 using namespace xzero;
 
-TEST(IdleTimeout, empty) {
+TEST(DeadlineTimer, empty) {
   PosixScheduler executor;
-  IdleTimeout t(&executor);
+  DeadlineTimer t(&executor);
 
   EXPECT_FALSE(t.isActive());
 }
 
-TEST(IdleTimeout, simple1) {
+TEST(DeadlineTimer, simple1) {
   int fired = 0;
   PosixScheduler executor;
-  IdleTimeout t(&executor);
+  DeadlineTimer t(&executor);
   t.setTimeout(500_milliseconds);
   t.setCallback([&]() { fired++; });
   t.activate();
