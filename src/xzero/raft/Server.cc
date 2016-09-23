@@ -18,7 +18,6 @@
 #include <system_error>
 
 /* TODO:
- * [ ] ensure IdleTimeout is working properly (unit test)
  * [ ] improve election timeout handling (candidate)
  * [ ] improve heartbeat timeout handling (follower / leader)
  */
@@ -77,7 +76,7 @@ Server::Server(Executor* executor,
       stateMachine_(sm),
       state_(ServerState::Follower),
       nextHeartbeat_(MonotonicClock::now()),
-      timer_(executor),
+      timer_(executor, std::bind(&Server::onTimeout, this)),
       heartbeatTimeout_(heartbeatTimeout),
       electionTimeout_(electionTimeout),
       commitTimeout_(commitTimeout),
@@ -110,9 +109,8 @@ void Server::start() {
            "Server $0 starts with term $1 and index $2",
            id_, currentTerm(), commitIndex_);
 
-  timer_.setCallback(std::bind(&Server::onFollowerTimeout, this));
   timer_.setTimeout(heartbeatTimeout_);
-  timer_.activate();
+  timer_.start();
 }
 
 void Server::stop() {
@@ -127,14 +125,6 @@ void Server::verifyLeader(std::function<void(bool)> callback) {
   } else {
     verifyLeaderCallbacks_.emplace_back(callback);
   }
-}
-
-void Server::onFollowerTimeout() {
-  assert(state_ == ServerState::Follower);
-  logDebug("raft.Server", "$0 onFollowerTimeout", id_);
-  setState(ServerState::Candidate);
-
-  sendVoteRequest();
 }
 
 void Server::sendVoteRequest() {
@@ -155,8 +145,7 @@ void Server::sendVoteRequest() {
   };
 
   timer_.setTimeout(cumulativeDuration(electionTimeout_));
-  timer_.setCallback(std::bind(&Server::onElectionTimeout, this));
-  timer_.activate();
+  timer_.start();
 
   for (Id peerId: discovery_->listMembers()) {
     if (peerId != id_) {
@@ -166,11 +155,19 @@ void Server::sendVoteRequest() {
   }
 }
 
-void Server::onElectionTimeout() {
-  logDebug("raft.Server", "$0 onElectionTimeout: $1", id_, state_);
-  assert(state_ == ServerState::Candidate);
-
-  sendVoteRequest();
+void Server::onTimeout() {
+  logDebug("raft.Server", "$0 timeout reached in state $1", id_, state_);
+  switch (state_) {
+    case ServerState::Follower:
+      setState(ServerState::Candidate);
+      sendVoteRequest();
+      break;
+    case ServerState::Candidate:
+      sendVoteRequest();
+      break;
+    case ServerState::Leader:
+      break;
+  }
 }
 
 void Server::setState(ServerState newState) {
@@ -204,7 +201,6 @@ void Server::receive(Id from, const VoteRequest& req) {
     setCurrentTerm(req.term);
     setState(ServerState::Follower);
     votedFor_ = None();
-    timer_.setCallback(std::bind(&Server::onFollowerTimeout, this));
     timer_.setTimeout(heartbeatTimeout_);
   }
 
@@ -238,7 +234,7 @@ void Server::receive(Id from, const VoteResponse& resp) {
     logDebug("raft.Server", "$0/$1 received granted vote from $2", id_, state_, from);
     votesGranted_++;
     if (votesGranted_ >= quorumSize() && state_ == ServerState::Candidate) {
-      timer_.deactivate();
+      timer_.cancel();
       setState(ServerState::Leader);
       sendHeartbeat();
     }

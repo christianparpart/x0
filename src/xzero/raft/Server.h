@@ -9,7 +9,7 @@
 #include <xzero/raft/rpc.h>
 #include <xzero/raft/Listener.h>
 #include <xzero/Option.h>
-#include <xzero/IdleTimeout.h>
+#include <xzero/DeadlineTimer.h>
 #include <xzero/Duration.h>
 #include <xzero/MonotonicTime.h>
 #include <xzero/executor/Executor.h>
@@ -136,8 +136,7 @@ class Server : public Listener {
   // }}}
 
  private:
-  void onFollowerTimeout();
-  void onElectionTimeout();
+  void onTimeout();
   void sendVoteRequest();
   void setCurrentTerm(Term newTerm);
   void setState(ServerState newState);
@@ -152,7 +151,7 @@ class Server : public Listener {
   StateMachine* stateMachine_;
   ServerState state_;
   MonotonicTime nextHeartbeat_;
-  IdleTimeout timer_;
+  DeadlineTimer timer_;
 
   std::list<std::function<void(bool)>> verifyLeaderCallbacks_;
 
@@ -192,12 +191,12 @@ class Server : public Listener {
   //! for each server, index of the next log entry
   //! to send to that server (initialized to leader
   //! last log index + 1)
-  std::vector<Index> nextIndex_;
+  std::unordered_map<Id, Index> nextIndex_;
 
   //! for each server, index of highest log entry
   //! known to be replicated on server
   //! (initialized to 0, increases monotonically)
-  std::vector<Index> matchIndex_;
+  std::unordered_map<Id, Index> matchIndex_;
 };
 
 } // namespace raft
