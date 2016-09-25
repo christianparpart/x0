@@ -74,6 +74,10 @@ void DeadlineTimer::start() {
 }
 
 void DeadlineTimer::cancel() {
+  if (handle_) {
+    handle_->cancel();
+  }
+
   active_ = false;
 }
 
