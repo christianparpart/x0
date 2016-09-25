@@ -98,6 +98,14 @@ inline constexpr Duration Duration::operator-(const Duration& other) const {
       : Duration(other.micros_ - micros_);
 }
 
+inline constexpr Duration Duration::operator*(int factor) const {
+  return Duration(micros_ * factor);
+}
+
+inline constexpr Duration Duration::operator/(int divisor) const {
+  return Duration(micros_ / divisor);
+}
+
 inline constexpr uint64_t Duration::minutes() const noexcept {
   return seconds() / kSecondsPerMinute;
 }

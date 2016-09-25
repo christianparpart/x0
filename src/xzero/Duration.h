@@ -62,6 +62,8 @@ public:
 
   constexpr Duration operator+(const Duration& other) const;
   constexpr Duration operator-(const Duration& other) const;
+  constexpr Duration operator*(int factor) const;
+  constexpr Duration operator/(int divisor) const;
 
   constexpr operator struct timeval() const;
   constexpr operator struct timespec() const;
