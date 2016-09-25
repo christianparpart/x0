@@ -73,6 +73,14 @@ void DeadlineTimer::start() {
   }
 }
 
+void DeadlineTimer::rewind() {
+  assert(onTimeout_ && "No timeout callback defined");
+  if (!active_) {
+    active_ = true;
+  }
+  schedule();
+}
+
 void DeadlineTimer::cancel() {
   if (handle_) {
     handle_->cancel();

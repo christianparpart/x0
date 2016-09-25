@@ -46,6 +46,11 @@ class XZERO_BASE_API DeadlineTimer {
   void touch();
 
   /**
+   * Resets timer and starts it if not done so.
+   */
+  void rewind();
+
+  /**
    * Retrieves the timespan elapsed since idle timer started or 0 if inactive.
    */
   Duration elapsed() const;
