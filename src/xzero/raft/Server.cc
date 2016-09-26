@@ -18,11 +18,6 @@
 #include <system_error>
 #include <algorithm>
 
-/* TODO:
- * [ ] improve election timeout handling (candidate)
- * [ ] improve heartbeat timeout handling (follower / leader)
- */
-
 namespace xzero {
 
 template<>
