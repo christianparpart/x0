@@ -4,24 +4,24 @@
 // Licensed under the MIT License (the "License"); you may not use this
 // file except in compliance with the License. You may obtain a copy of
 // the License at: http://opensource.org/licenses/MIT
+#pragma once
 
-#include <xzero/raft/Discovery.h>
-#include <xzero/logging.h>
+#include <xzero/raft/Server.h>
+#include <xzero/raft/rpc.h>
+#include <xzero/Duration.h>
 
 namespace xzero {
 namespace raft {
 
-void StaticDiscovery::add(Id id) {
-  members_.emplace_back(id);
-}
+class ServerUtil {
+ public:
+  /**
+   * Computes the index that the majority of the given input @p set contains.
+   */
+  static Index majorityIndexOf(const ServerIndexMap& set);
 
-std::vector<Id> StaticDiscovery::listMembers() {
-  return members_;
-}
-
-size_t StaticDiscovery::totalMemberCount() {
-  return members_.size();
-}
+  static Duration cumulativeDuration(Duration base);
+};
 
 } // namespace raft
 } // namespace xzero

@@ -35,7 +35,6 @@ LocalTransport& LocalTransport::operator=(LocalTransport&& m) {
 }
 
 void LocalTransport::setPeer(Id peerId, Listener* target) {
-  logDebug("raft.LocalTransport", "add peer for $0: $1", myId_, peerId);
   peers_[peerId] = target;
 }
 

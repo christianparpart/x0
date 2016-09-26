@@ -15,6 +15,7 @@
 #include <initializer_list>
 #include <unordered_map>
 #include <vector>
+#include <algorithm>
 
 using namespace xzero;
 
@@ -80,7 +81,7 @@ void TestSystem::applyCommand(const raft::Command& command) {
 }
 // }}}
 
-TEST(raft_Server, testx3) {
+TEST(raft_Server, leaderElection) {
   PosixScheduler executor;
   raft::StaticDiscovery sd;
 
@@ -101,10 +102,14 @@ TEST(raft_Server, testx3) {
 
   for (auto& s: servers) {
     s->server()->start();
-  }
+  };
 
   executor.runLoop();
 
   // now, leader election must have been taken place
   // 1 leader and 2 followers must exist
+
+  // TODO: stop leader as soon as leader is elected.
+  // TODO: wait for 2nd leader election
+  // TODO: stop 2nd leader and remaining follower
 }

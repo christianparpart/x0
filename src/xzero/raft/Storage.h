@@ -7,6 +7,7 @@
 #pragma once
 
 #include <xzero/raft/rpc.h>
+#include <xzero/Result.h>
 #include <xzero/Option.h>
 #include <cstdint>
 #include <vector>
@@ -37,11 +38,17 @@ class Storage {
   //! Returns the index of the last LogEntry or None if nothing written yet.
   virtual Option<Index> latestIndex() = 0;
 
+  //! Retrieves the LogInfo of the last stored item.
+  virtual LogInfo lastLogInfo() = 0;
+
   //! saves given LogEntry @p log.
   virtual bool appendLogEntry(const LogEntry& log) = 0;
 
   //! loads the LogEntry from given @p index and stores it in @p log.
   virtual std::shared_ptr<LogEntry> getLogEntry(Index index) = 0;
+
+  //! Deletes any log entry starting after @p last index.
+  virtual void truncateLog(Index last) = 0;
 
   virtual bool saveSnapshotBegin(Term currentTerm, Index lastIndex) = 0;
   virtual bool saveSnapshotChunk(const uint8_t* data, size_t length) = 0;
@@ -85,8 +92,10 @@ class MemoryStore : public Storage {
   Term loadTerm() override;
 
   Option<Index> latestIndex() override;
+  LogInfo lastLogInfo() override;
   bool appendLogEntry(const LogEntry& log) override;
   std::shared_ptr<LogEntry> getLogEntry(Index index) override;
+  void truncateLog(Index last) override;
 
   bool saveSnapshotBegin(Term currentTerm, Index lastIndex) override;
   bool saveSnapshotChunk(const uint8_t* data, size_t length) override;

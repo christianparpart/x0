@@ -3,6 +3,7 @@
 
 ### Intermediate 0
 
+- BUG: testing: EXPECTxx failures do also increment success count?
 - extend FCGI connector to tweak maxKeepAlive (just like in HTTP/1)
   - make sure the keepalive-timeout is fired correctly
     - test cancellation (due to io) and fire (due to timeout).

@@ -13,7 +13,7 @@ namespace xzero {
 namespace raft {
 
 // {{{ AbstractStorage
-std::shared_ptr<LogEntry> AbstractStora::getLogTail() {
+std::shared_ptr<LogEntry> AbstractStorage::getLogTail() {
   if (Option<Index> index = latestIndex()) {
     return getLogEntry(*index);
   } else {
@@ -32,7 +32,7 @@ MemoryStore::MemoryStore()
       snapshotData_() {
 
   // log with index 0 is invalid. logs start with index 1
-  log_.push_back(nullptr);
+  log_.push_back(std::make_shared<LogEntry>());
 }
 
 bool MemoryStore::isInitialized() const {
@@ -46,7 +46,7 @@ void MemoryStore::initialize(Id id, Term term) {
   currentTerm_ = term;
 
   log_.clear();
-  log_.push_back(nullptr);
+  log_.push_back(std::make_shared<LogEntry>());
 
   snapshottedTerm_ = 0;
   snapshottedIndex_ = 0;
@@ -73,6 +73,13 @@ Option<Index> MemoryStore::latestIndex() {
     return None();
 }
 
+LogInfo MemoryStore::lastLogInfo() {
+  return LogInfo{
+    .term = log_.back()->term(),
+    .index = log_.size()
+  };
+}
+
 bool MemoryStore::appendLogEntry(const LogEntry& log) {
   assert(log_.size() == log.index());
 
@@ -82,6 +89,11 @@ bool MemoryStore::appendLogEntry(const LogEntry& log) {
 
 std::shared_ptr<LogEntry> MemoryStore::getLogEntry(Index index) {
   return log_[index];
+}
+
+void MemoryStore::truncateLog(Index last) {
+  assert(last <= log_.size() && "Can only shrink the log array.");
+  log_.resize(last);
 }
 
 bool MemoryStore::saveSnapshotBegin(Term currentTerm, Index lastIndex) {

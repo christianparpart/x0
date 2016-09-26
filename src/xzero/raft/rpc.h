@@ -30,6 +30,12 @@ enum LogType {
   LOG_PEER_REMOVE,
 };
 
+struct LogInfo {
+  Term term;
+  Index index;
+};
+bool operator<(const LogInfo& a, const LogInfo& b);
+
 /**
  * A single log entry in the log.
  */
@@ -82,8 +88,8 @@ struct AppendEntriesRequest {
 };
 
 struct AppendEntriesResponse {
-  Term term;
-  bool success;
+  Term term;    // currentTerm, for the leader to update itself
+  bool success; // true if follower contained entry matching prevLogIndex and prevLogTerm
 };
 
 // Invoked by leader to send chunks of a snapshot to a follower.

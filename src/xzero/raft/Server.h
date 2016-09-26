@@ -8,6 +8,7 @@
 
 #include <xzero/raft/rpc.h>
 #include <xzero/raft/Listener.h>
+#include <xzero/raft/Error.h>
 #include <xzero/Option.h>
 #include <xzero/DeadlineTimer.h>
 #include <xzero/Duration.h>
@@ -28,6 +29,8 @@ enum class ServerState {
   Candidate,
   Leader,
 };
+
+typedef std::unordered_map<Id, Index> ServerIndexMap;
 
 class Storage;
 class Discovery;
@@ -94,9 +97,11 @@ class Server : public Listener {
   ServerState state() const noexcept { return state_; }
   LogEntry operator[](Index index);
 
-  size_t quorumSize() const;
+  size_t quorum() const;
 
   Term currentTerm() const;
+
+  Id currentLeaderId() const;
 
   /**
    * Starts the Server.
@@ -109,7 +114,20 @@ class Server : public Listener {
   void stop();
 
   /**
+   * Sends given @p command to the Raft cluster.
+   */
+  RaftError sendCommand(const Command& command);
+
+  /**
    * Verifies whether or not this Server is (still) a @c LEADER.
+   *
+   * This works by sending a heartbeat to all peers and count the replies.
+   *
+   * If the replies reach quorum, then pass @c true to the callback.
+   *
+   * If the leader just received a response from enough peers within
+   * the last heartbeat time, we'll pass @c true right away, otherwise
+   * @c false will be the passed result.
    *
    * @param result Future callback to be invoked as soon as leadership has been
    *               verified.
@@ -145,6 +163,7 @@ class Server : public Listener {
  private:
   Executor* executor_;
   Id id_;
+  Id currentLeaderId_;
   Storage* storage_;
   Discovery* discovery_;
   Transport* transport_;
@@ -187,16 +206,15 @@ class Server : public Listener {
   size_t votesGranted_;
 
   // ------------------- volatile state on leaders ----------------------------
-
   //! for each server, index of the next log entry
   //! to send to that server (initialized to leader
   //! last log index + 1)
-  std::unordered_map<Id, Index> nextIndex_;
+  ServerIndexMap nextIndex_;
 
   //! for each server, index of highest log entry
   //! known to be replicated on server
   //! (initialized to 0, increases monotonically)
-  std::unordered_map<Id, Index> matchIndex_;
+  ServerIndexMap matchIndex_;
 };
 
 } // namespace raft

@@ -17,7 +17,7 @@ AM_CXXFLAGS = \
 	-DXOPEN_SOURCE=600 -D_FILE_OFFSET_BITS=64 \
 	-D_GNU_SOURCE \
 	-D_LARGEFILE_SOURCE -D_LARGE_FILES \
-	-Wall -Wextra -std=c++11 \
+	-Wall -Wextra -std=c++14 \
 	-Wno-unused-variable \
 	-Wno-unused-parameter \
 	-DXZERO_CLUSTERDIR="\"$(XZERO_CLUSTERDIR)\"" \
@@ -402,6 +402,8 @@ libXzero_a_SOURCES = \
 	src/xzero/raft/rpc.h \
 	src/xzero/raft/Server.cc \
 	src/xzero/raft/Server.h \
+	src/xzero/raft/ServerUtil.cc \
+	src/xzero/raft/ServerUtil.h \
 	src/xzero/raft/StateMachine.h \
 	src/xzero/raft/Storage.cc \
 	src/xzero/raft/Storage.h \
@@ -548,6 +550,7 @@ xzero_test_SOURCES = \
 	src/xzero/MimeTypes-test.cc \
 	src/xzero/Option-test.cc \
 	src/xzero/raft/Server-test.cc \
+	src/xzero/raft/ServerUtil-test.cc \
 	src/xzero/RefPtr-test.cc \
 	src/xzero/Result-test.cc \
 	src/xzero/StringUtil-test.cc \

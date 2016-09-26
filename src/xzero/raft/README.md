@@ -39,6 +39,12 @@ In your distributed application, you need to instanciate `raft::Server` and
 pass it your customized behaviors (storage, discovery, ...) as well as your
 finite state machine that this `raft::Server` has to apply the commands on.
 
+## Unit Test Cases
+
+* [ ] If one server’s current term is smaller than the other’s, then it updates its current term to the larger value
+* [ ] If a candidate or leader discovers that its term is out of date, it immediately reverts to follower state.
+* [ ] If a server receives a request with a stale term number, it rejects the request.
+
 ...
 
 ## NOTES

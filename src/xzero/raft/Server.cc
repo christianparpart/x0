@@ -6,6 +6,7 @@
 // the License at: http://opensource.org/licenses/MIT
 
 #include <xzero/raft/Server.h>
+#include <xzero/raft/ServerUtil.h>
 #include <xzero/raft/Discovery.h>
 #include <xzero/raft/Error.h>
 #include <xzero/raft/StateMachine.h>
@@ -13,9 +14,9 @@
 #include <xzero/raft/Transport.h>
 #include <xzero/MonotonicClock.h>
 #include <xzero/StringUtil.h>
-#include <xzero/Random.h>
 #include <xzero/logging.h>
 #include <system_error>
+#include <algorithm>
 
 /* TODO:
  * [ ] improve election timeout handling (candidate)
@@ -38,15 +39,6 @@ std::string StringUtil::toString(raft::ServerState s) {
 
 namespace raft {
 
-static Duration cumulativeDuration(Duration base) {
-  static Random rng_;
-  auto emin = base.milliseconds();
-  auto emax = base.milliseconds() * 2;
-  auto e = emin + rng_.random64() % (emax - emin);
-
-  return Duration::fromMilliseconds(e);
-}
-
 Server::Server(Executor* executor,
                Id id,
                Storage* storage,
@@ -54,8 +46,8 @@ Server::Server(Executor* executor,
                Transport* transport,
                StateMachine* sm)
       : Server(executor, id, storage, discovery, transport, sm,
-               3500_milliseconds,
-               3300_milliseconds,
+               100_milliseconds,
+               1000_milliseconds,
                500_milliseconds) {
 }
 
@@ -70,6 +62,7 @@ Server::Server(Executor* executor,
                Duration commitTimeout)
     : executor_(executor),
       id_(id),
+      currentLeaderId_(0),
       storage_(storage),
       discovery_(discovery),
       transport_(transport),
@@ -91,7 +84,7 @@ Server::Server(Executor* executor,
 Server::~Server() {
 }
 
-size_t Server::quorumSize() const {
+size_t Server::quorum() const {
   return discovery_->totalMemberCount() / 2 + 1;
 }
 
@@ -135,13 +128,12 @@ void Server::sendVoteRequest() {
   setCurrentTerm(currentTerm() + 1);
   votedFor_ = Some(std::make_pair(id_, currentTerm()));
 
-  Option<Index> latestIndex = storage_->latestIndex();
-
+  LogInfo lastLogInfo = storage_->lastLogInfo();
   VoteRequest voteRequest{
     .term         = currentTerm(),
     .candidateId  = id_,
-    .lastLogIndex = latestIndex ? *latestIndex : 0,
-    .lastLogTerm  = latestIndex ? storage_->getLogEntry(*latestIndex)->term() : 0,
+    .lastLogIndex = lastLogInfo.index,
+    .lastLogTerm  = lastLogInfo.term,
   };
 
   timer_.rewind();
@@ -156,41 +148,42 @@ void Server::sendVoteRequest() {
 void Server::onTimeout() {
   switch (state_) {
     case ServerState::Follower:
-      logWarning("raft.Server", "$0: Timed out waiting for heartbeat from leader.", id_);
+      // logWarning("raft.Server", "$0: Timed out waiting for heartbeat from leader.", id_);
       setState(ServerState::Candidate);
       sendVoteRequest();
       break;
     case ServerState::Candidate:
-      logInfo("raft.Server", "$0: Split vote. Reelecting.", id_);
+      // logInfo("raft.Server", "$0: Split vote. Reelecting.", id_);
       sendVoteRequest();
       break;
     case ServerState::Leader:
+      // logDebug("raft.Server", "$0: Maintaining leadership.", id_);
       sendHeartbeat();
       break;
   }
 }
 
 void Server::setState(ServerState newState) {
-  logInfo("raft.Server", "$0 is now in $1 state.", id_, newState);
+  logInfo("raft.Server", "$0: Entering $1 state.", id_, newState);
 
   state_ = newState;
 
   switch (newState) {
     case ServerState::Follower:
-      timer_.setTimeout(electionTimeout_ * 2);
+      timer_.setTimeout(ServerUtil::cumulativeDuration(heartbeatTimeout_));
       break;
     case ServerState::Candidate:
-      timer_.setTimeout(cumulativeDuration(electionTimeout_));
+      timer_.setTimeout(ServerUtil::cumulativeDuration(electionTimeout_));
       break;
     case ServerState::Leader:
-      timer_.setTimeout(electionTimeout_ / 2);
+      timer_.setTimeout(heartbeatTimeout_);
       break;
   }
 }
 
 void Server::setCurrentTerm(Term newTerm) {
   currentTerm_ = newTerm;
-  // TODO: store current term in persistent storage
+  storage_->saveTerm(newTerm);
 }
 
 // {{{ Server: receiver API (invoked by Transport on receiving messages)
@@ -205,7 +198,6 @@ void Server::receive(Id peerId, const VoteRequest& req) {
     setCurrentTerm(req.term);
     setState(ServerState::Follower);
     votedFor_ = None();
-    timer_.setTimeout(heartbeatTimeout_);
   }
 
   if (votedFor_.isNone()) {
@@ -232,20 +224,21 @@ void Server::receive(Id peerId, const VoteResponse& resp) {
 
   if (resp.voteGranted) {
     votesGranted_++;
-    if (votesGranted_ >= quorumSize() && state_ == ServerState::Candidate) {
+    if (votesGranted_ >= quorum() && state_ == ServerState::Candidate) {
       setState(ServerState::Leader);
+      currentLeaderId_ = id_;
       sendHeartbeat();
     }
   }
 }
 
 void Server::sendHeartbeat() {
-  Option<Index> latestIndex = storage_->latestIndex();
+  LogInfo lastLogInfo = storage_->lastLogInfo();
   AppendEntriesRequest heartbeat {
     .term         = currentTerm(),
     .leaderId     = id_,
-    .prevLogIndex = latestIndex ? *latestIndex : 0,
-    .prevLogTerm  = latestIndex ? storage_->getLogEntry(*latestIndex)->term() : 0,
+    .prevLogIndex = lastLogInfo.index,
+    .prevLogTerm  = lastLogInfo.term,
     .entries      = {},
     .leaderCommit = commitIndex_,
   };
@@ -267,17 +260,26 @@ void Server::receive(Id peerId, const AppendEntriesRequest& req) {
     return;
   }
 
-  std::shared_ptr<LogEntry> prevLog = storage_->getLogEntry(req.prevLogIndex);
+  LogInfo localPos = storage_->lastLogInfo();
+  LogInfo peerPos = LogInfo{
+    .term   = req.prevLogTerm,
+    .index  = req.prevLogIndex,
+  };
 
-  if (req.prevLogTerm > currentTerm()
-      || (latestIndex req.prevLogTerm == && req.prevLogIndex > *latestIndex)) {
+  if (localPos < peerPos) {
+    // locally persisted logs are a way too old compared to peer's last log pos
     transport_->send(peerId, AppendEntriesResponse{currentTerm(), false});
     return;
   }
 
+  // delete any entry after peer's position
+  storage_->truncateLog(req.prevLogIndex);
+
   if (req.term > currentTerm()) { // new leader detected
     logDebug("raft.Server", "$0: new leader $1 detected with term $2",
         id_, req.leaderId, req.term);
+
+    currentLeaderId_ = req.leaderId;
     setCurrentTerm(req.term);
 
     if (state_ != ServerState::Follower) {
@@ -292,14 +294,20 @@ void Server::receive(Id peerId, const AppendEntriesRequest& req) {
   // std::vector<LogEntry> entries; // log entries to store (empty for heartbeat; may send more than one for efficiency)
   // Index leaderCommit;            // leader's commitIndex
 
-  if (latestIndex) {
-  }
-
   for (const LogEntry& entry: req.entries) {
     storage_->appendLogEntry(entry);
   }
 
-  while (commitIndex() < req.leaderCommit)
+  // while (commitIndex() < req.leaderCommit)
+  //   ;
+
+  // If commitIndex > lastApplied: increment lastApplied, apply
+  // log[lastApplied] to state machine (§5.3)
+  while (commitIndex_ > lastApplied_) {
+    lastApplied_++;
+    std::shared_ptr<LogEntry> logEntry = storage_->getLogEntry(lastApplied_);
+    stateMachine_->applyCommand(logEntry->command());
+  }
 
   transport_->send(peerId, AppendEntriesResponse{currentTerm(), true});
 }
@@ -307,7 +315,7 @@ void Server::receive(Id peerId, const AppendEntriesRequest& req) {
 void Server::receive(Id peerId, const AppendEntriesResponse& resp) {
   timer_.rewind();
 
-  logDebug("raft.Server", "$0: received from $1: $2", id_, peerId, resp);
+  //logDebug("raft.Server", "$0: received from $1: $2", id_, peerId, resp);
   // TODO
 }
 
