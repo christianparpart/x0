@@ -38,9 +38,6 @@ class Storage {
   //! Returns the index of the last LogEntry or None if nothing written yet.
   virtual Option<Index> latestIndex() = 0;
 
-  //! Retrieves the LogInfo of the last stored item.
-  virtual LogInfo lastLogInfo() = 0;
-
   //! saves given LogEntry @p log.
   virtual bool appendLogEntry(const LogEntry& log) = 0;
 
@@ -92,7 +89,6 @@ class MemoryStore : public Storage {
   Term loadTerm() override;
 
   Option<Index> latestIndex() override;
-  LogInfo lastLogInfo() override;
   bool appendLogEntry(const LogEntry& log) override;
   std::shared_ptr<LogEntry> getLogEntry(Index index) override;
   void truncateLog(Index last) override;

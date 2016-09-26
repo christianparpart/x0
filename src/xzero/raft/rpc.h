@@ -30,12 +30,6 @@ enum LogType {
   LOG_PEER_REMOVE,
 };
 
-struct LogInfo {
-  Term term;
-  Index index;
-};
-bool operator<(const LogInfo& a, const LogInfo& b);
-
 /**
  * A single log entry in the log.
  */
@@ -83,7 +77,7 @@ struct AppendEntriesRequest {
   Id leaderId;                   // so follower can redirect clients
   Index prevLogIndex;            // index of log entry immediately proceding new ones
   Term prevLogTerm;              // term of prevLogIndex entry
-  std::vector<LogEntry> entries; // log entries to store (empty for heartbeat; may send more than one for efficiency)
+  std::vector<std::shared_ptr<LogEntry>> entries; // log entries to store (empty for heartbeat; may send more than one for efficiency)
   Index leaderCommit;            // leader's commitIndex
 };
 

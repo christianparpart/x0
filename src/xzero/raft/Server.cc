@@ -46,7 +46,7 @@ Server::Server(Executor* executor,
                Transport* transport,
                StateMachine* sm)
       : Server(executor, id, storage, discovery, transport, sm,
-               100_milliseconds,
+               500_milliseconds,
                1000_milliseconds,
                500_milliseconds) {
 }
@@ -124,19 +124,18 @@ void Server::verifyLeader(std::function<void(bool)> callback) {
 void Server::sendVoteRequest() {
   assert(state_ == ServerState::Candidate && "Must be in CANDIDATE state to vote.");
 
+  timer_.rewind();
+
   votesGranted_ = 0;
   setCurrentTerm(currentTerm() + 1);
   votedFor_ = Some(std::make_pair(id_, currentTerm()));
 
-  LogInfo lastLogInfo = storage_->lastLogInfo();
   VoteRequest voteRequest{
     .term         = currentTerm(),
     .candidateId  = id_,
-    .lastLogIndex = lastLogInfo.index,
-    .lastLogTerm  = lastLogInfo.term,
+    .lastLogIndex = latestIndex(),
+    .lastLogTerm  = getLogTerm(latestIndex()),
   };
-
-  timer_.rewind();
 
   for (Id peerId: discovery_->listMembers()) {
     if (peerId != id_) {
@@ -193,8 +192,9 @@ void Server::receive(Id peerId, const VoteRequest& req) {
     return;
   }
 
+  // If RPC request or response contains term T > currentTerm:
+  // set currentTerm = T, convert to follower (§5.1)
   if (req.term > currentTerm()) {
-    // Found a newer term than our current. Adapting.
     setCurrentTerm(req.term);
     setState(ServerState::Follower);
     votedFor_ = None();
@@ -225,29 +225,7 @@ void Server::receive(Id peerId, const VoteResponse& resp) {
   if (resp.voteGranted) {
     votesGranted_++;
     if (votesGranted_ >= quorum() && state_ == ServerState::Candidate) {
-      setState(ServerState::Leader);
-      currentLeaderId_ = id_;
-      sendHeartbeat();
-    }
-  }
-}
-
-void Server::sendHeartbeat() {
-  LogInfo lastLogInfo = storage_->lastLogInfo();
-  AppendEntriesRequest heartbeat {
-    .term         = currentTerm(),
-    .leaderId     = id_,
-    .prevLogIndex = lastLogInfo.index,
-    .prevLogTerm  = lastLogInfo.term,
-    .entries      = {},
-    .leaderCommit = commitIndex_,
-  };
-
-  timer_.rewind();
-
-  for (Id peerId: discovery_->listMembers()) {
-    if (peerId != id_) {
-      transport_->send(peerId, heartbeat);
+      setupLeader();
     }
   }
 }
@@ -255,27 +233,22 @@ void Server::sendHeartbeat() {
 void Server::receive(Id peerId, const AppendEntriesRequest& req) {
   timer_.rewind();
 
+  // 1. Reply false if term < currentTerm (§5.1)
   if (req.term < currentTerm()) {
     transport_->send(peerId, AppendEntriesResponse{currentTerm(), false});
     return;
   }
 
-  LogInfo localPos = storage_->lastLogInfo();
-  LogInfo peerPos = LogInfo{
-    .term   = req.prevLogTerm,
-    .index  = req.prevLogIndex,
-  };
-
-  if (localPos < peerPos) {
-    // locally persisted logs are a way too old compared to peer's last log pos
+  // 2. Reply false if log doesn’t contain an entry at prevLogIndex
+  //    whose term matches prevLogTerm (§5.3)
+  if (getLogTerm(req.prevLogIndex) != req.prevLogTerm) {
     transport_->send(peerId, AppendEntriesResponse{currentTerm(), false});
     return;
   }
 
-  // delete any entry after peer's position
-  storage_->truncateLog(req.prevLogIndex);
-
-  if (req.term > currentTerm()) { // new leader detected
+  // If RPC request or response contains term T > currentTerm:
+  // set currentTerm = T, convert to follower (§5.1)
+  if (req.term > currentTerm()) {
     logDebug("raft.Server", "$0: new leader $1 detected with term $2",
         id_, req.leaderId, req.term);
 
@@ -287,36 +260,48 @@ void Server::receive(Id peerId, const AppendEntriesRequest& req) {
     }
   }
 
-  // Term term;                     // leader's term
-  // Id leaderId;                   // so follower can redirect clients
-  // Index prevLogIndex;            // index of log entry immediately proceding new ones
-  // Term prevLogTerm;              // term of prevLogIndex entry
-  // std::vector<LogEntry> entries; // log entries to store (empty for heartbeat; may send more than one for efficiency)
-  // Index leaderCommit;            // leader's commitIndex
-
-  for (const LogEntry& entry: req.entries) {
-    storage_->appendLogEntry(entry);
+  // 3. If an existing entry conflicts with a new one (same index
+  //    but different terms), delete the existing entry and all that
+  //    follow it (§5.3)
+  for (const std::shared_ptr<LogEntry>& entry: req.entries) {
+    if (entry->term() != getLogTerm(entry->index())) {
+      storage_->truncateLog(entry->index());
+      break;
+    }
   }
 
-  // while (commitIndex() < req.leaderCommit)
-  //   ;
-
-  // If commitIndex > lastApplied: increment lastApplied, apply
-  // log[lastApplied] to state machine (§5.3)
-  while (commitIndex_ > lastApplied_) {
-    lastApplied_++;
-    std::shared_ptr<LogEntry> logEntry = storage_->getLogEntry(lastApplied_);
-    stateMachine_->applyCommand(logEntry->command());
+  // 4. Append any new entries not already in the log
+  for (const std::shared_ptr<LogEntry>& entry: req.entries) {
+    storage_->appendLogEntry(*entry);
   }
+
+  // 5. If leaderCommit > commitIndex, set commitIndex =
+  //    min(leaderCommit, index of last new entry)
+  if (req.leaderCommit > commitIndex_) {
+    commitIndex_ = std::min(req.leaderCommit, req.entries.back()->index());
+  }
+
+  applyLogs();
 
   transport_->send(peerId, AppendEntriesResponse{currentTerm(), true});
 }
 
 void Server::receive(Id peerId, const AppendEntriesResponse& resp) {
+  // logDebug("raft.Server", "$0: ($1) received from $2: $3", id_, state_, peerId, resp);
+  assert(state_ == ServerState::Leader);
+
   timer_.rewind();
 
-  //logDebug("raft.Server", "$0: received from $1: $2", id_, peerId, resp);
-  // TODO
+  if (resp.success) {
+    // If successful: update nextIndex and matchIndex for follower (§5.3)
+    // TODO nextIndex_[peerId] = 
+    // TODO matchIndex_[peerId] = 
+  } else {
+    // If AppendEntries fails because of log inconsistency:
+    //  decrement nextIndex and retry (§5.3)
+    nextIndex_[peerId]--;
+    replicateLogsTo(peerId);
+  }
 }
 
 void Server::receive(Id peerId, const InstallSnapshotRequest& req) {
@@ -331,6 +316,95 @@ void Server::receive(Id peerId, const InstallSnapshotResponse& resp) {
 
   logDebug("raft.Server", "$0: received from $1: $2", id_, peerId, resp);
   // TODO
+}
+// }}}
+// {{{ receiver helper
+void Server::setupLeader() {
+  const Index theNextIndex = latestIndex() + 1;
+  for (Id peerId: discovery_->listMembers()) {
+    if (peerId != id_) {
+      nextIndex_[peerId] = theNextIndex;
+      matchIndex_[peerId] = 0;
+    }
+  }
+
+  setState(ServerState::Leader);
+  currentLeaderId_ = id_;
+  sendHeartbeat();
+}
+
+void Server::sendHeartbeat() {
+  timer_.rewind();
+
+  AppendEntriesRequest heartbeat {
+    .term         = currentTerm(),
+    .leaderId     = id_,
+    .prevLogIndex = latestIndex(),
+    .prevLogTerm  = getLogTerm(latestIndex()),
+    .entries      = {},
+    .leaderCommit = commitIndex_,
+  };
+
+  for (Id peerId: discovery_->listMembers()) {
+    if (peerId != id_) {
+      transport_->send(peerId, heartbeat);
+    }
+  }
+}
+
+Index Server::latestIndex() {
+  return storage_->latestIndex();
+}
+
+Term Server::getLogTerm(Index index) {
+  auto log = storage_->getLogEntry(index);
+  if (log) {
+    return log->term();
+  } else {
+    return 0;
+  }
+}
+
+void Server::replicateLogs() {
+  for (Id peerId: discovery_->listMembers()) {
+    if (peerId != id_) {
+      replicateLogsTo(peerId);
+    }
+  }
+}
+
+void Server::replicateLogsTo(Id peerId) {
+  // If last log index ≥ nextIndex for a follower: send
+  // AppendEntries RPC with log entries starting at nextIndex
+  Index nextIndex = nextIndex_[peerId];
+  if (latestIndex() >= nextIndex) {
+    std::vector<std::shared_ptr<LogEntry>> entries;
+    for (int i = 0; nextIndex + i <= latestIndex(); ++i) {
+      entries.emplace_back(storage_->getLogEntry(nextIndex + i));
+    }
+
+    transport_->send(peerId, AppendEntriesRequest{
+        .term = currentTerm(),
+        .leaderId = id_,
+        .prevLogIndex = nextIndex,
+        .prevLogTerm = getLogTerm(nextIndex),
+        .entries = entries,
+        .leaderCommit = commitIndex_,
+    });
+
+    matchIndex_[peerId] = latestIndex();
+    nextIndex_[peerId] = latestIndex() + 1;
+  }
+}
+
+void Server::applyLogs() {
+  // If commitIndex > lastApplied: increment lastApplied, apply
+  // log[lastApplied] to state machine (§5.3)
+  while (commitIndex_ > lastApplied_) {
+    lastApplied_++;
+    std::shared_ptr<LogEntry> logEntry = storage_->getLogEntry(lastApplied_);
+    stateMachine_->applyCommand(logEntry->command());
+  }
 }
 // }}}
 

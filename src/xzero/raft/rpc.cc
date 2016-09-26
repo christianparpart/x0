@@ -11,11 +11,6 @@
 namespace xzero {
 namespace raft {
 
-bool operator<(const LogInfo& a, const LogInfo& b) {
-  return a.term < b.term ||
-        (a.term == b.term && a.index < b.index);
-}
-
 // {{{ LogEntry
 LogEntry::LogEntry()
     : LogEntry(0, 0) {

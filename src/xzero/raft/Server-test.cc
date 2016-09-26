@@ -16,6 +16,7 @@
 #include <unordered_map>
 #include <vector>
 #include <algorithm>
+#include <limits>
 
 using namespace xzero;
 

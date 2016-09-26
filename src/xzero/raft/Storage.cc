@@ -73,13 +73,6 @@ Option<Index> MemoryStore::latestIndex() {
     return None();
 }
 
-LogInfo MemoryStore::lastLogInfo() {
-  return LogInfo{
-    .term = log_.back()->term(),
-    .index = log_.size()
-  };
-}
-
 bool MemoryStore::appendLogEntry(const LogEntry& log) {
   assert(log_.size() == log.index());
 

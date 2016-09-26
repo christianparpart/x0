@@ -158,7 +158,13 @@ class Server : public Listener {
   void sendVoteRequest();
   void setCurrentTerm(Term newTerm);
   void setState(ServerState newState);
+  void setupLeader();
   void sendHeartbeat();
+  Index latestIndex();
+  Term getLogTerm(Index index);
+  void replicateLogs();
+  void replicateLogsTo(Id peerId);
+  void applyLogs();
 
  private:
   Executor* executor_;
