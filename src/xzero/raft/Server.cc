@@ -105,15 +105,16 @@ void Server::start() {
     }
   }
 
-  logDebug("raft.Server",
-           "Server $0 starts with term $1 and index $2",
-           id_, currentTerm(), commitIndex_);
+  // logDebug("raft.Server",
+  //          "Server $0 starts with term $1 and index $2",
+  //          id_, currentTerm(), commitIndex_);
 
   timer_.setTimeout(heartbeatTimeout_);
   timer_.start();
 }
 
 void Server::stop() {
+  timer_.cancel();
   // TODO
 }
 
@@ -128,7 +129,6 @@ void Server::verifyLeader(std::function<void(bool)> callback) {
 }
 
 void Server::sendVoteRequest() {
-  logDebug("raft.Server", "$0: sendVoteRequest", id_);
   assert(state_ == ServerState::Candidate && "Must be in CANDIDATE state to vote.");
 
   votesGranted_ = 0;
@@ -144,8 +144,7 @@ void Server::sendVoteRequest() {
     .lastLogTerm  = latestIndex ? storage_->getLogEntry(*latestIndex)->term() : 0,
   };
 
-  timer_.setTimeout(cumulativeDuration(electionTimeout_));
-  timer_.start();
+  timer_.rewind();
 
   for (Id peerId: discovery_->listMembers()) {
     if (peerId != id_) {
@@ -166,38 +165,43 @@ void Server::onTimeout() {
       sendVoteRequest();
       break;
     case ServerState::Leader:
+      sendHeartbeat();
       break;
   }
 }
 
 void Server::setState(ServerState newState) {
-  logDebug(
-      "raft.Server", "Server $0: Switching state from $1 to $2",
-      id_,
-      state_,
-      newState);
+  logInfo("raft.Server", "$0 is now in $1 state.", id_, newState);
 
   state_ = newState;
+
+  switch (newState) {
+    case ServerState::Follower:
+      timer_.setTimeout(electionTimeout_ * 2);
+      break;
+    case ServerState::Candidate:
+      timer_.setTimeout(cumulativeDuration(electionTimeout_));
+      break;
+    case ServerState::Leader:
+      timer_.setTimeout(electionTimeout_ / 2);
+      break;
+  }
 }
 
 void Server::setCurrentTerm(Term newTerm) {
-  logDebug("raft.Server", "$0: Set term to $1 (from $2)", id_, newTerm, currentTerm_);
   currentTerm_ = newTerm;
+  // TODO: store current term in persistent storage
 }
 
 // {{{ Server: receiver API (invoked by Transport on receiving messages)
-void Server::receive(Id from, const VoteRequest& req) {
-  logDebug("raft.Server", "$0: received from $1 $2", id_, from, req);
-
+void Server::receive(Id peerId, const VoteRequest& req) {
   if (req.term < currentTerm()) {
-    logInfo("raft.Server", "$0: declined vote for $1. Smaller voting term.",
-            id_, req.candidateId, req.term);
-    transport_->send(from, VoteResponse{currentTerm(), false});
+    transport_->send(peerId, VoteResponse{currentTerm(), false});
     return;
   }
 
   if (req.term > currentTerm()) {
-    logDebug("raft.Server", "$0: found a newer term in remote VoteRequest. Adapting.", id_);
+    // Found a newer term than our current. Adapting.
     setCurrentTerm(req.term);
     setState(ServerState::Follower);
     votedFor_ = None();
@@ -205,40 +209,33 @@ void Server::receive(Id from, const VoteRequest& req) {
   }
 
   if (votedFor_.isNone()) {
-    logInfo("raft.Server", "$0: accepted vote for $1. I did not vote in this term yet.",
-            id_, req.candidateId);
-    timer_.touch();
+    // Accept vote, as we didn't vote in this term yet.
+    timer_.rewind();
     votedFor_ = Some(std::make_pair(req.candidateId, req.lastLogTerm));
-    transport_->send(from, VoteResponse{currentTerm(), true});
+    transport_->send(peerId, VoteResponse{currentTerm(), true});
     return;
   }
 
   if (req.candidateId == votedFor_->first && req.lastLogTerm > votedFor_->second) {
-    logInfo("raft.Server", "$0: accepted vote for $1. Same candidate & bigger term ($2 > $3).",
-            id_, req.candidateId, req.term, currentTerm());
-    timer_.touch();
+    // Accept vote. Same vote-candidate and bigger term
+    timer_.rewind();
     votedFor_ = Some(std::make_pair(req.candidateId, req.lastLogTerm));
-    transport_->send(from, VoteResponse{currentTerm(), true});
+    transport_->send(peerId, VoteResponse{currentTerm(), true});
     return;
   }
 
-  logInfo("raft.Server", "$0: declined vote for $1.", id_, req.candidateId);
-  transport_->send(from, VoteResponse{currentTerm(), false});
+  transport_->send(peerId, VoteResponse{currentTerm(), false});
 }
 
-void Server::receive(Id from, const VoteResponse& resp) {
+void Server::receive(Id peerId, const VoteResponse& resp) {
   assert(state_ == ServerState::Candidate || state_ == ServerState::Leader);
 
   if (resp.voteGranted) {
-    logDebug("raft.Server", "$0: received granted vote from $1", id_, from);
     votesGranted_++;
     if (votesGranted_ >= quorumSize() && state_ == ServerState::Candidate) {
-      timer_.cancel();
       setState(ServerState::Leader);
       sendHeartbeat();
     }
-  } else {
-    logDebug("raft.Server", "$0: in $1 received rejected vote $2", id_, from);
   }
 }
 
@@ -253,19 +250,30 @@ void Server::sendHeartbeat() {
     .leaderCommit = commitIndex_,
   };
 
+  timer_.rewind();
+
   for (Id peerId: discovery_->listMembers()) {
     if (peerId != id_) {
-      logDebug("raft.Server", "$0: sendHeartbeat $1", id_, peerId);
       transport_->send(peerId, heartbeat);
     }
   }
 }
 
-void Server::receive(Id from, const AppendEntriesRequest& req) {
-  logDebug("raft.Server", "$0: received from $1 my term $2/$3, $4 (deadline: $5)",
-            id_, from, currentTerm(), state_, req, timer_.isActive());
+void Server::receive(Id peerId, const AppendEntriesRequest& req) {
+  timer_.rewind();
 
-  timer_.touch();
+  if (req.term < currentTerm()) {
+    transport_->send(peerId, AppendEntriesResponse{currentTerm(), false});
+    return;
+  }
+
+  std::shared_ptr<LogEntry> prevLog = storage_->getLogEntry(req.prevLogIndex);
+
+  if (req.prevLogTerm > currentTerm()
+      || (latestIndex req.prevLogTerm == && req.prevLogIndex > *latestIndex)) {
+    transport_->send(peerId, AppendEntriesResponse{currentTerm(), false});
+    return;
+  }
 
   if (req.term > currentTerm()) { // new leader detected
     logDebug("raft.Server", "$0: new leader $1 detected with term $2",
@@ -276,20 +284,44 @@ void Server::receive(Id from, const AppendEntriesRequest& req) {
       setState(ServerState::Follower);
     }
   }
+
+  // Term term;                     // leader's term
+  // Id leaderId;                   // so follower can redirect clients
+  // Index prevLogIndex;            // index of log entry immediately proceding new ones
+  // Term prevLogTerm;              // term of prevLogIndex entry
+  // std::vector<LogEntry> entries; // log entries to store (empty for heartbeat; may send more than one for efficiency)
+  // Index leaderCommit;            // leader's commitIndex
+
+  if (latestIndex) {
+  }
+
+  for (const LogEntry& entry: req.entries) {
+    storage_->appendLogEntry(entry);
+  }
+
+  while (commitIndex() < req.leaderCommit)
+
+  transport_->send(peerId, AppendEntriesResponse{currentTerm(), true});
 }
 
-void Server::receive(Id from, const AppendEntriesResponse& resp) {
-  logDebug("raft.Server", "$0: received from $1 $2", id_, from, resp);
+void Server::receive(Id peerId, const AppendEntriesResponse& resp) {
+  timer_.rewind();
+
+  logDebug("raft.Server", "$0: received from $1: $2", id_, peerId, resp);
   // TODO
 }
 
-void Server::receive(Id from, const InstallSnapshotRequest& req) {
-  logDebug("raft.Server", "$0: received from $1 $2", id_, from, req);
+void Server::receive(Id peerId, const InstallSnapshotRequest& req) {
+  timer_.rewind();
+
+  logDebug("raft.Server", "$0: received from $1: $2", id_, peerId, req);
   // TODO
 }
 
-void Server::receive(Id from, const InstallSnapshotResponse& resp) {
-  logDebug("raft.Server", "$0: received from $1 $2", id_, from, resp);
+void Server::receive(Id peerId, const InstallSnapshotResponse& resp) {
+  timer_.rewind();
+
+  logDebug("raft.Server", "$0: received from $1: $2", id_, peerId, resp);
   // TODO
 }
 // }}}

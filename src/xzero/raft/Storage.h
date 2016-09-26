@@ -51,6 +51,11 @@ class Storage {
   virtual bool loadSnapshotChunk(std::vector<uint8_t>* chunk) = 0;
 };
 
+class AbstractStorage : public Storage {
+ public:
+  std::shared_ptr<LogEntry> getLogTail();
+};
+
 /**
  * An in-memory based storage engine (use it only for testing!).
  *

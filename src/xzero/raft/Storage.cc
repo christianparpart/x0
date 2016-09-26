@@ -12,6 +12,15 @@
 namespace xzero {
 namespace raft {
 
+// {{{ AbstractStorage
+std::shared_ptr<LogEntry> AbstractStora::getLogTail() {
+  if (Option<Index> index = latestIndex()) {
+    return getLogEntry(*index);
+  } else {
+    return nullptr;
+  }
+}
+// }}}
 // {{{ MemoryStore
 MemoryStore::MemoryStore()
     : isInitialized_(false),
