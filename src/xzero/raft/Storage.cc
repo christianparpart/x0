@@ -14,8 +14,8 @@ namespace raft {
 
 // {{{ AbstractStorage
 std::shared_ptr<LogEntry> AbstractStorage::getLogTail() {
-  if (Option<Index> index = latestIndex()) {
-    return getLogEntry(*index);
+  if (Index index = latestIndex()) {
+    return getLogEntry(index);
   } else {
     return nullptr;
   }
@@ -45,8 +45,7 @@ void MemoryStore::initialize(Id id, Term term) {
   id_ = id;
   currentTerm_ = term;
 
-  log_.clear();
-  log_.push_back(std::make_shared<LogEntry>());
+  log_.resize(1);
 
   snapshottedTerm_ = 0;
   snapshottedIndex_ = 0;
@@ -66,21 +65,19 @@ Term MemoryStore::loadTerm() {
   return currentTerm_;
 }
 
-Option<Index> MemoryStore::latestIndex() {
-  if (log_.size() != 1)
-    return Some(log_.size() - 1); // XXX minus 1, because log_[0] is illegal.
-  else
-    return None();
+Index MemoryStore::latestIndex() {
+  return log_.size() - 1;
 }
 
 bool MemoryStore::appendLogEntry(const LogEntry& log) {
-  assert(log_.size() == log.index());
-
   log_.push_back(std::shared_ptr<LogEntry>(new LogEntry(log)));
   return true;
 }
 
 std::shared_ptr<LogEntry> MemoryStore::getLogEntry(Index index) {
+  // XXX we also support returning log[0] as this has a term of 0 and no command.
+  // assert(index >= 1 && index <= latestIndex());
+
   return log_[index];
 }
 

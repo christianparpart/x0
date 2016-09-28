@@ -123,7 +123,7 @@ RaftError Server::sendCommand(Command&& command) {
     return RaftError::NotLeading;
 
   std::vector<std::shared_ptr<LogEntry>> entries;
-  entries.emplace_back(new LogEntry(currentTerm(), latestIndex() + 1, std::move(command)));
+  entries.emplace_back(new LogEntry(currentTerm(), std::move(command)));
 
   for (auto& entry: entries)
     storage_->appendLogEntry(*entry);
@@ -288,22 +288,31 @@ void Server::receive(Id peerId, const AppendEntriesRequest& req) {
   // 3. If an existing entry conflicts with a new one (same index
   //    but different terms), delete the existing entry and all that
   //    follow it (§5.3)
-  for (const std::shared_ptr<LogEntry>& entry: req.entries) {
-    if (entry->term() != getLogTerm(entry->index())) {
-      storage_->truncateLog(entry->index());
-      break;
+  Index index = req.prevLogIndex + 1;
+  if (!req.entries.empty() && getLogTerm(req.prevLogIndex + req.entries.size()) != req.entries.back()->term()) {
+    for (const std::shared_ptr<LogEntry>& entry: req.entries) {
+      if (entry->term() != getLogTerm(index)) {
+        logDebug("raft.Server",
+                 "AppendEntriesRequest: truncating at index %llu, local term %llu, leader term %llu\n",
+                 getLogTerm(index), entry->term());
+        storage_->truncateLog(index);
+        break;
+      }
+      index++;
     }
   }
 
   // 4. Append any new entries not already in the log
-  for (const std::shared_ptr<LogEntry>& entry: req.entries) {
-    storage_->appendLogEntry(*entry);
+  Index lastIndex = req.prevLogIndex + req.entries.size();
+  while (index <= lastIndex) {
+    storage_->appendLogEntry(*req.entries[index]);
+    index++;
   }
 
   // 5. If leaderCommit > commitIndex, set commitIndex =
   //    min(leaderCommit, index of last new entry)
   if (req.leaderCommit > commitIndex_) {
-    commitIndex_ = std::min(req.leaderCommit, req.entries.back()->index());
+    commitIndex_ = std::min(req.leaderCommit, req.prevLogIndex + req.entries.size());
   }
 
   // Once a follower learns that a log entry is committed,
@@ -388,12 +397,7 @@ Index Server::latestIndex() {
 }
 
 Term Server::getLogTerm(Index index) {
-  auto log = storage_->getLogEntry(index);
-  if (log) {
-    return log->term();
-  } else {
-    return 0;
-  }
+  return storage_->getLogEntry(index)->term();
 }
 
 void Server::replicateLogs() {

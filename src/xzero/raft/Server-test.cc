@@ -99,7 +99,7 @@ TEST(raft_Server, leaderElection) {
   size_t followerCount = 0;
 
   auto onCandidateUpdate = [&]() {
-    logf("onCandidateUpdate: $0, followers: $1", leaderCount, followerCount);
+    logf("onCandidateUpdate: leaders: $0, followers: $1", leaderCount, followerCount);
     if (leaderCount + followerCount == sd.totalMemberCount()) {
       executor.breakLoop(); // quick shutdown
     }

@@ -13,39 +13,34 @@ namespace raft {
 
 // {{{ LogEntry
 LogEntry::LogEntry()
-    : LogEntry(0, 0) {
+    : LogEntry(0) {
 }
 
-LogEntry::LogEntry(Term term, Index index)
-    : LogEntry(term, index, Command()) {
+LogEntry::LogEntry(Term term)
+    : LogEntry(term, Command()) {
 }
 
 LogEntry::LogEntry(Term term,
-                   Index index,
                    Command&& cmd)
-    : LogEntry(term, index, LOG_COMMAND, std::move(cmd)) {
+    : LogEntry(term, LOG_COMMAND, std::move(cmd)) {
 }
 
 LogEntry::LogEntry(Term term,
-                   Index index,
                    LogType type)
-    : LogEntry(term, index, type, Command()) {
+    : LogEntry(term, type, Command()) {
 }
 
 
 LogEntry::LogEntry(Term term,
-                   Index index,
                    LogType type,
                    Command&& cmd)
     : term_(term),
-      index_(index),
       type_(type),
       command_(cmd) {
 }
 
 LogEntry::LogEntry(const LogEntry& v)
     : term_(v.term_),
-      index_(v.index_),
       type_(v.type_),
       command_(v.command_) {
 }

@@ -7,8 +7,6 @@
 #pragma once
 
 #include <xzero/raft/rpc.h>
-#include <xzero/Result.h>
-#include <xzero/Option.h>
 #include <cstdint>
 #include <vector>
 #include <memory>
@@ -35,8 +33,8 @@ class Storage {
   virtual bool saveTerm(Term currentTerm) = 0;
   virtual Term loadTerm() = 0;
 
-  //! Returns the index of the last LogEntry or None if nothing written yet.
-  virtual Option<Index> latestIndex() = 0;
+  //! Returns the index of the last LogEntry or 0 if nothing written yet.
+  virtual Index latestIndex() = 0;
 
   //! saves given LogEntry @p log.
   virtual bool appendLogEntry(const LogEntry& log) = 0;
@@ -88,7 +86,7 @@ class MemoryStore : public Storage {
   bool saveTerm(Term currentTerm) override;
   Term loadTerm() override;
 
-  Option<Index> latestIndex() override;
+  Index latestIndex() override;
   bool appendLogEntry(const LogEntry& log) override;
   std::shared_ptr<LogEntry> getLogEntry(Index index) override;
   void truncateLog(Index last) override;

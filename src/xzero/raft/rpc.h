@@ -15,7 +15,7 @@ namespace raft {
 
 typedef uint32_t Id;   // must not be 0
 typedef uint64_t Term;
-typedef size_t Index;
+typedef uint64_t Index;
 
 /**
  * The interface to the command that can modify the systems finite state machine.
@@ -31,29 +31,25 @@ enum LogType {
 };
 
 /**
- * A single log entry in the log.
+ * A single immutable log entry in the log.
  */
 class LogEntry {
  private:
-  LogEntry(Term term, Index index, LogType type, Command&& cmd);
+  LogEntry(Term term, LogType type, Command&& cmd);
 
  public:
-  LogEntry(Term term, Index index, Command&& cmd);
-  LogEntry(Term term, Index index, LogType type);
-  LogEntry(Term term, Index index);
+  LogEntry(Term term, Command&& cmd);
+  LogEntry(Term term, LogType type);
+  LogEntry(Term term);
   LogEntry(const LogEntry& v);
   LogEntry();
 
   Term term() const noexcept { return term_; }
-  Index index() const noexcept { return index_; }
   LogType type() const noexcept { return type_; }
-
   const Command& command() const { return command_; }
-  Command& command() { return command_; }
 
  private:
   Term term_;
-  Index index_;
   LogType type_;
   Command command_;
 };
