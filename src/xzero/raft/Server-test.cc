@@ -27,8 +27,8 @@ class TestSystem : public raft::StateMachine { // {{{
              raft::Discovery* discovery,
              Executor* executor);
 
-  void saveSnapshot(std::unique_ptr<std::ostream>&& output) override;
-  void loadSnapshot(std::unique_ptr<std::istream>&& input) override;
+  bool saveSnapshot(std::unique_ptr<std::ostream>&& output) override;
+  bool loadSnapshot(std::unique_ptr<std::istream>&& input) override;
 
   void applyCommand(const raft::Command& serializedCmd) override;
 
@@ -55,14 +55,15 @@ TestSystem::TestSystem(raft::Id id,
       tuples_() {
 }
 
-void TestSystem::saveSnapshot(std::unique_ptr<std::ostream>&& output) {
+bool TestSystem::saveSnapshot(std::unique_ptr<std::ostream>&& output) {
   for (const auto& pair: tuples_) {
     output->put(static_cast<char>(pair.first));
     output->put(static_cast<char>(pair.second));
   }
+  return true;
 }
 
-void TestSystem::loadSnapshot(std::unique_ptr<std::istream>&& input) {
+bool TestSystem::loadSnapshot(std::unique_ptr<std::istream>&& input) {
   tuples_.clear();
   for (;;) {
     int a = input->get();
@@ -72,6 +73,7 @@ void TestSystem::loadSnapshot(std::unique_ptr<std::istream>&& input) {
     }
     tuples_[a] = b;
   }
+  return true;
 }
 
 void TestSystem::applyCommand(const raft::Command& command) {
