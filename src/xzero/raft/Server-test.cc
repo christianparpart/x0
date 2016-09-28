@@ -16,6 +16,7 @@
 #include <unordered_map>
 #include <vector>
 #include <algorithm>
+#include <iostream>
 #include <limits>
 
 using namespace xzero;
@@ -26,15 +27,13 @@ class TestSystem : public raft::StateMachine { // {{{
              raft::Discovery* discovery,
              Executor* executor);
 
-  void loadSnapshot(std::unique_ptr<std::istream>&& data) override;
+  void saveSnapshot(std::unique_ptr<std::ostream>&& output) override;
+  void loadSnapshot(std::unique_ptr<std::istream>&& input) override;
+
   void applyCommand(const raft::Command& serializedCmd) override;
 
-  int get(int a) {
-    if (tuples_.find(a) != tuples_.end())
-      return tuples_[a];
-    else
-      return -1;
-  }
+  int get(int a);
+  raft::RaftError set(int key, int value);
 
   raft::LocalTransport* transport() { return &transport_; }
   raft::Storage* storage() { return &storage_; }
@@ -56,20 +55,43 @@ TestSystem::TestSystem(raft::Id id,
       tuples_() {
 }
 
-void TestSystem::loadSnapshot(std::unique_ptr<std::istream>&& data) {
+void TestSystem::saveSnapshot(std::unique_ptr<std::ostream>&& output) {
+  for (const auto& pair: tuples_) {
+    output->put(static_cast<char>(pair.first));
+    output->put(static_cast<char>(pair.second));
+  }
+}
+
+void TestSystem::loadSnapshot(std::unique_ptr<std::istream>&& input) {
   tuples_.clear();
-  // TODO:
-  // for (size_t i = 0; i < data.size(); i += 2) {
-  //   int a = (int) data[i];
-  //   int b = (int) data[i + 1];
-  //   tuples_[a] = b;
-  // }
+  for (;;) {
+    int a = input->get();
+    int b = input->get();
+    if (a < 0 || b < 0) {
+      break;
+    }
+    tuples_[a] = b;
+  }
 }
 
 void TestSystem::applyCommand(const raft::Command& command) {
   int a = static_cast<int>(command[0]);
   int b = static_cast<int>(command[1]);
   tuples_[a] = b;
+}
+
+int TestSystem::get(int a) {
+  if (tuples_.find(a) != tuples_.end())
+    return tuples_[a];
+  else
+    return -1;
+}
+
+raft::RaftError TestSystem::set(int key, int value) {
+  raft::Command cmd;
+  cmd.push_back(key);
+  cmd.push_back(value);
+  return server()->sendCommand(std::move(cmd));
 }
 // }}}
 

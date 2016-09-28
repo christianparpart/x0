@@ -23,7 +23,12 @@ class StateMachine {
   /**
    * Loads a snapshot of a full FSM state into this instance.
    */
-  virtual void loadSnapshot(std::unique_ptr<std::istream>&& data) = 0;
+  virtual void loadSnapshot(std::unique_ptr<std::istream>&& input) = 0;
+
+  /**
+   * Retrieves a full snapshot of this FSM.
+   */
+  virtual void saveSnapshot(std::unique_ptr<std::ostream>&& output) = 0;
 
   /**
    * Applies given @p command to this state machine.
