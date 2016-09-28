@@ -125,18 +125,10 @@ RaftError Server::sendCommand(Command&& command) {
   std::vector<std::shared_ptr<LogEntry>> entries;
   entries.emplace_back(new LogEntry(currentTerm(), latestIndex() + 1, std::move(command)));
 
-  for (Id peerId: discovery_->listMembers()) {
-    if (peerId != id_) {
-      transport_->send(peerId, AppendEntriesRequest{
-          .term = currentTerm(),
-          .leaderId = id(),
-          .prevLogIndex = nextIndex_[peerId] - 1,
-          .prevLogTerm = getLogTerm(nextIndex_[peerId] - 1),
-          .entries = entries,
-          .leaderCommit = commitIndex(),
-      });
-    }
-  }
+  for (auto& entry: entries)
+    storage_->appendLogEntry(*entry);
+
+  replicateLogs();
 
   return RaftError::Success;
 }
