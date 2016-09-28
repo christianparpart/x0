@@ -8,6 +8,7 @@
 
 #include <xzero/raft/rpc.h>
 #include <vector>
+#include <iosfwd>
 
 namespace xzero {
 namespace raft {
@@ -19,9 +20,10 @@ class StateMachine {
  public:
   virtual ~StateMachine() {}
 
-  virtual void loadSnapshotBegin() = 0;
-  virtual void loadSnapshotChunk(const std::vector<uint8_t>& chunk) = 0;
-  virtual void loadSnapshotEnd() = 0;
+  /**
+   * Loads a snapshot of a full FSM state into this instance.
+   */
+  virtual void loadSnapshot(std::unique_ptr<std::istream>&& data) = 0;
 
   /**
    * Applies given @p command to this state machine.

@@ -26,9 +26,7 @@ class TestSystem : public raft::StateMachine { // {{{
              raft::Discovery* discovery,
              Executor* executor);
 
-  void loadSnapshotBegin() override;
-  void loadSnapshotChunk(const std::vector<uint8_t>& chunk) override;
-  void loadSnapshotEnd() override;
+  void loadSnapshot(std::unique_ptr<std::istream>&& data) override;
   void applyCommand(const raft::Command& serializedCmd) override;
 
   int get(int a) {
@@ -58,21 +56,14 @@ TestSystem::TestSystem(raft::Id id,
       tuples_() {
 }
 
-void TestSystem::loadSnapshotBegin() {
+void TestSystem::loadSnapshot(std::unique_ptr<std::istream>&& data) {
   tuples_.clear();
-}
-
-void TestSystem::loadSnapshotChunk(const std::vector<uint8_t>& chunk) {
-  // TODO: make me better
-  for (size_t i = 0; i < chunk.size(); i += 2) {
-    int a = (int) chunk[i];
-    int b = (int) chunk[i + 1];
-    tuples_[a] = b;
-  }
-}
-
-void TestSystem::loadSnapshotEnd() {
-  // no-op
+  // TODO:
+  // for (size_t i = 0; i < data.size(); i += 2) {
+  //   int a = (int) data[i];
+  //   int b = (int) data[i + 1];
+  //   tuples_[a] = b;
+  // }
 }
 
 void TestSystem::applyCommand(const raft::Command& command) {
