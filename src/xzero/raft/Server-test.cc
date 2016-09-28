@@ -84,21 +84,35 @@ void TestSystem::applyCommand(const raft::Command& command) {
 
 TEST(raft_Server, leaderElection) {
   PosixScheduler executor;
-  raft::StaticDiscovery sd;
+  raft::StaticDiscovery sd = {
+    { 1, "127.0.0.1:1042" },
+    { 2, "127.0.0.1:1042" },
+    { 3, "127.0.0.1:1042" },
+  };
 
   std::vector<std::unique_ptr<TestSystem>> servers;
-  servers.emplace_back(new TestSystem(1, &sd, &executor));
-  servers.emplace_back(new TestSystem(2, &sd, &executor));
-  servers.emplace_back(new TestSystem(3, &sd, &executor));
+  for (raft::Id id: sd.listMembers()) {
+    servers.emplace_back(new TestSystem(id, &sd, &executor));
+  }
+
+  size_t leaderCount = 0;
+  size_t followerCount = 0;
+
+  auto onCandidateUpdate = [&]() {
+    logf("onCandidateUpdate: $0, followers: $1", leaderCount, followerCount);
+    if (leaderCount + followerCount == sd.totalMemberCount()) {
+      executor.breakLoop(); // quick shutdown
+    }
+  };
 
   for (auto& s: servers) {
-    // register this server to Service Discovery
-    sd.add(s->server()->id());
-
     // register (id,peer) tuples of server peers to this server
     for (auto& t: servers) {
       s->transport()->setPeer(t->server()->id(), t->server());
     }
+
+    s->server()->onLeader = [&]() { leaderCount++; onCandidateUpdate(); };
+    s->server()->onFollower = [&]() { followerCount++; onCandidateUpdate(); };
   }
 
   for (auto& s: servers) {
@@ -110,7 +124,7 @@ TEST(raft_Server, leaderElection) {
   // now, leader election must have been taken place
   // 1 leader and 2 followers must exist
 
-  // TODO: stop leader as soon as leader is elected.
-  // TODO: wait for 2nd leader election
-  // TODO: stop 2nd leader and remaining follower
+  logf("leaders: $0, followers: $1", leaderCount, followerCount);
+  EXPECT_EQ(1, leaderCount);
+  EXPECT_EQ(2, followerCount);
 }

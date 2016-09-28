@@ -11,16 +11,30 @@
 namespace xzero {
 namespace raft {
 
-void StaticDiscovery::add(Id id) {
-  members_.emplace_back(id);
+void StaticDiscovery::add(Id id, const std::string& addr) {
+  members_[id] = addr;
 }
 
 std::vector<Id> StaticDiscovery::listMembers() {
-  return members_;
+  std::vector<Id> result;
+
+  for (const auto& i: members_)
+    result.push_back(i.first);
+
+  return result;
 }
 
 size_t StaticDiscovery::totalMemberCount() {
   return members_.size();
+}
+
+Result<std::string> StaticDiscovery::getAddress(Id serverId) {
+  auto i = members_.find(serverId);
+  if (i != members_.end()) {
+    return Result<std::string>(i->second);
+  }
+
+  return Failuref("No server found with Id $0.", serverId);
 }
 
 } // namespace raft

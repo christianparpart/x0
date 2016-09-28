@@ -7,8 +7,11 @@
 #pragma once
 
 #include <xzero/raft/rpc.h>
+#include <xzero/Result.h>
 #include <initializer_list>
+#include <unordered_map>
 #include <vector>
+#include <string>
 
 namespace xzero {
 namespace raft {
@@ -29,6 +32,13 @@ class Discovery {
    * Retrieves total member count.
    */
   virtual size_t totalMemberCount() = 0;
+
+  /**
+   * Maps a server ID to an address that can be used on the transport layer.
+   *
+   * The address can be an ip:port pair or a unix domain path or similar.
+   */
+  virtual Result<std::string> getAddress(Id serverId) = 0;
 };
 
 /**
@@ -37,17 +47,24 @@ class Discovery {
 class StaticDiscovery : public Discovery {
  public:
   StaticDiscovery() : members_() {}
-  StaticDiscovery(std::initializer_list<Id>&& list) : members_(list) {}
+  StaticDiscovery(std::initializer_list<std::pair<Id, std::string>>&& list);
 
-  void add(Id id);
+  void add(Id id, const std::string& addr);
 
   std::vector<Id> listMembers() override;
-
   size_t totalMemberCount() override;
+  Result<std::string> getAddress(Id serverId) override;
 
  private:
-  std::vector<Id> members_;
+  std::unordered_map<Id, std::string> members_;
 };
+
+inline StaticDiscovery::StaticDiscovery(
+    std::initializer_list<std::pair<Id, std::string>>&& list) {
+  for (auto& m: list) {
+    members_[m.first] = m.second;
+  }
+}
 
 /**
  * Implements DNS based service discovery that honors SRV records,
@@ -59,8 +76,8 @@ class DnsDiscovery : public Discovery {
   ~DnsDiscovery();
 
   std::vector<Id> listMembers() override;
-
   size_t totalMemberCount() override;
+  Result<std::string> getAddress(Id serverId) override;
 };
 
 } // namespace raft

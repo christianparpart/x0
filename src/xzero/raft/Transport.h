@@ -40,6 +40,9 @@ class Transport {
 
 class Listener;
 
+/**
+ * Implements Raft over TCP/IP.
+ */
 class InetTransport : public Transport {
  public:
   explicit InetTransport(Id myId, Listener* receiver);

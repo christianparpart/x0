@@ -34,6 +34,18 @@ std::string StringUtil::toString(raft::ServerState s) {
 
 namespace raft {
 
+struct Follower {
+  //! for each server, index of the next log entry
+  //! to send to that server (initialized to leader
+  //! last log index + 1)
+  Index nextIndex;
+
+  //! for each server, index of highest log entry
+  //! known to be replicated on server
+  //! (initialized to 0, increases monotonically)
+  Index matchIndex;
+};
+
 Server::Server(Executor* executor,
                Id id,
                Storage* storage,
@@ -41,8 +53,8 @@ Server::Server(Executor* executor,
                Transport* transport,
                StateMachine* sm)
       : Server(executor, id, storage, discovery, transport, sm,
+               250_milliseconds,
                500_milliseconds,
-               1000_milliseconds,
                500_milliseconds) {
 }
 
@@ -106,6 +118,29 @@ void Server::stop() {
   // TODO
 }
 
+RaftError Server::sendCommand(Command&& command) {
+  if (state_ != ServerState::Leader)
+    return RaftError::NotLeading;
+
+  std::vector<std::shared_ptr<LogEntry>> entries;
+  entries.emplace_back(new LogEntry(currentTerm(), latestIndex() + 1, std::move(command)));
+
+  for (Id peerId: discovery_->listMembers()) {
+    if (peerId != id_) {
+      transport_->send(peerId, AppendEntriesRequest{
+          .term = currentTerm(),
+          .leaderId = id(),
+          .prevLogIndex = nextIndex_[peerId] - 1,
+          .prevLogTerm = getLogTerm(nextIndex_[peerId] - 1),
+          .entries = entries,
+          .leaderCommit = commitIndex(),
+      });
+    }
+  }
+
+  return RaftError::Success;
+}
+
 void Server::verifyLeader(std::function<void(bool)> callback) {
   if (state_ != ServerState::Leader) {
     callback(false);
@@ -165,12 +200,15 @@ void Server::setState(ServerState newState) {
   switch (newState) {
     case ServerState::Follower:
       timer_.setTimeout(ServerUtil::cumulativeDuration(heartbeatTimeout_));
+      executor_->execute(onFollower);
       break;
     case ServerState::Candidate:
       timer_.setTimeout(ServerUtil::cumulativeDuration(electionTimeout_));
+      executor_->execute(onCandidate);
       break;
     case ServerState::Leader:
       timer_.setTimeout(heartbeatTimeout_);
+      executor_->execute(onLeader);
       break;
   }
 }
@@ -276,27 +314,33 @@ void Server::receive(Id peerId, const AppendEntriesRequest& req) {
     commitIndex_ = std::min(req.leaderCommit, req.entries.back()->index());
   }
 
+  // Once a follower learns that a log entry is committed,
+  // it applies the entry to its local state machine (in log order)
   applyLogs();
 
   transport_->send(peerId, AppendEntriesResponse{currentTerm(), true});
 }
 
 void Server::receive(Id peerId, const AppendEntriesResponse& resp) {
-  // logDebug("raft.Server", "$0: ($1) received from $2: $3", id_, state_, peerId, resp);
+  logTrace("raft.Server", "$0: ($1) received from $2: $3", id_, state_, peerId, resp);
   assert(state_ == ServerState::Leader);
 
   timer_.rewind();
 
   if (resp.success) {
     // If successful: update nextIndex and matchIndex for follower (§5.3)
-    // TODO nextIndex_[peerId] = 
-    // TODO matchIndex_[peerId] = 
+    matchIndex_[peerId] = nextIndex_[peerId] - 1;
+    nextIndex_[peerId]++; // XXX we currently replicate only 1 log entry at a time
   } else {
     // If AppendEntries fails because of log inconsistency:
     //  decrement nextIndex and retry (§5.3)
     nextIndex_[peerId]--;
-    replicateLogsTo(peerId);
+    assert(matchIndex_[peerId] == 0 && "should not be set yet.");;
   }
+
+  commitIndex_ = ServerUtil::majorityIndexOf(matchIndex_);
+
+  replicateLogsTo(peerId);
 }
 
 void Server::receive(Id peerId, const InstallSnapshotRequest& req) {

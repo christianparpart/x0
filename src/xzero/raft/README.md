@@ -39,6 +39,12 @@ In your distributed application, you need to instanciate `raft::Server` and
 pass it your customized behaviors (storage, discovery, ...) as well as your
 finite state machine that this `raft::Server` has to apply the commands on.
 
+### Log Replication
+
+- A log entry is "committed" when it is on stable storage on the majority of servers.
+- Leader propagates committed entries to be applied to the cluster's FSMs
+  by pushing its own commitIndex to the peers.
+
 ## Unit Test Cases
 
 * [ ] If one server’s current term is smaller than the other’s, then it updates its current term to the larger value
@@ -46,30 +52,3 @@ finite state machine that this `raft::Server` has to apply the commands on.
 * [ ] If a server receives a request with a stale term number, it rejects the request.
 
 ...
-
-## NOTES
-
-```
-s1.send(VoteRequest)            -- sends request to each peer
-  for (Peer& peer: peers())
-    peer.send(VoteRequest);
-
-peer.received(VoteRequest)
-  remote.send(VoteResponse)
-
-s1.send(VoteRequest)
-  s2.receive(VoteRequest)
-    s2.send(VoteResponse)
-      s1.receive(VoteResponse)
-  s3.receive(VoteRequest)
-    s3.send(VoteResponse)
-      s1.receive(VoteResponse)
-  s4.receive(VoteRequest)
-    s4.send(VoteResponse)
-      s1.receive(VoteResponse)
-  s5.receive(VoteRequest)
-    s5.send(VoteResponse)
-      s1.receive(VoteResponse)
-
-
-```

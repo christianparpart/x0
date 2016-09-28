@@ -95,7 +95,6 @@ class Server : public Listener {
   Index commitIndex() const noexcept { return commitIndex_; }
   Index lastApplied() const noexcept { return lastApplied_; }
   ServerState state() const noexcept { return state_; }
-  LogEntry operator[](Index index);
 
   size_t quorum() const;
 
@@ -109,17 +108,21 @@ class Server : public Listener {
   void start();
 
   /**
-   * Stops the server.
+   * Gracefully stops the server.
+   *
+   * If this server is a leader, it stops accepting new commands from clients,
+   * ensure any pending commands have been replicated to the majority of
+   * the cluster, and then steps back as leader.
    */
   void stop();
 
   /**
    * Sends given @p command to the Raft cluster.
    */
-  RaftError sendCommand(const Command& command);
+  RaftError sendCommand(Command&& command);
 
   /**
-   * Verifies whether or not this Server is (still) a @c LEADER.
+   * Verifies whether or not this Server is (still) a #ServerState::Leader.
    *
    * This works by sending a heartbeat to all peers and count the replies.
    *
@@ -221,6 +224,11 @@ class Server : public Listener {
   //! known to be replicated on server
   //! (initialized to 0, increases monotonically)
   ServerIndexMap matchIndex_;
+
+ public:
+  std::function<void()> onFollower;
+  std::function<void()> onCandidate;
+  std::function<void()> onLeader;
 };
 
 } // namespace raft
