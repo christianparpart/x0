@@ -10,6 +10,7 @@
 #include <tuple>
 #include <memory>
 
+#if defined(XZERO_INJECT_MAKE_UNIQUE) && XZERO_INJECT_MAKE_UNIQUE
 namespace std {
 /**
  * Creates a std::unqiue_ptr<>.
@@ -45,6 +46,7 @@ std::unique_ptr<T> make_unique(Args&&... args) {
   return make_unique_helper<T>(std::is_array<T>(), std::forward<Args>(args)...);
 }
 }
+#endif
 
 // meta programming / template utilities
 
