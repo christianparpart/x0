@@ -4,10 +4,19 @@
 namespace xzero {
 namespace raft {
 
+Duration ServerUtil::alleviatedDuration(Duration base) {
+  static Random rng_;
+  auto emin = base.milliseconds() / 2;
+  auto emax = base.milliseconds();
+  auto e = emin + rng_.random64() % (emax - emin);
+
+  return Duration::fromMilliseconds(e);
+}
+
 Duration ServerUtil::cumulativeDuration(Duration base) {
   static Random rng_;
   auto emin = base.milliseconds();
-  auto emax = base.milliseconds() * 2;
+  auto emax = base.milliseconds() / 2 + emin;
   auto e = emin + rng_.random64() % (emax - emin);
 
   return Duration::fromMilliseconds(e);

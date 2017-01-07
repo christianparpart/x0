@@ -20,6 +20,8 @@ class ServerUtil {
    */
   static Index majorityIndexOf(const ServerIndexMap& set);
 
+  static Duration alleviatedDuration(Duration base);
+
   static Duration cumulativeDuration(Duration base);
 };
 
