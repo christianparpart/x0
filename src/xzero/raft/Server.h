@@ -58,7 +58,7 @@ class Server : public Listener {
   Server(Executor* executor,
          Id id,
          Storage* storage,
-         Discovery* discovery,
+         const Discovery* discovery,
          Transport* transport,
          StateMachine* sm);
 
@@ -84,7 +84,7 @@ class Server : public Listener {
   Server(Executor* executor,
          Id id,
          Storage* storage,
-         Discovery* discovery,
+         const Discovery* discovery,
          Transport* transport,
          StateMachine* stateMachine,
          Duration heartbeatTimeout,
@@ -99,7 +99,7 @@ class Server : public Listener {
   ServerState state() const noexcept { return state_; }
 
   Storage* storage() const noexcept { return storage_; }
-  Discovery* discovery() const noexcept { return discovery_; }
+  const Discovery* discovery() const noexcept { return discovery_; }
   Transport* transport() const noexcept { return transport_; }
 
   size_t quorum() const;
@@ -190,7 +190,7 @@ class Server : public Listener {
   Id id_;
   Id currentLeaderId_;
   Storage* storage_;
-  Discovery* discovery_;
+  const Discovery* discovery_;
   Transport* transport_;
   StateMachine* stateMachine_;
   ServerState state_;

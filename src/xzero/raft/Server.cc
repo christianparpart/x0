@@ -49,19 +49,19 @@ struct Follower {
 Server::Server(Executor* executor,
                Id id,
                Storage* storage,
-               Discovery* discovery,
+               const Discovery* discovery,
                Transport* transport,
                StateMachine* sm)
       : Server(executor, id, storage, discovery, transport, sm,
                250_milliseconds,
-               500_milliseconds,
+               100_milliseconds,
                500_milliseconds) {
 }
 
 Server::Server(Executor* executor,
                Id id,
                Storage* storage,
-               Discovery* discovery,
+               const Discovery* discovery,
                Transport* transport,
                StateMachine* sm,
                Duration heartbeatTimeout,
@@ -115,13 +115,22 @@ std::error_code Server::startWithLeader(Id leaderId) {
   if (ec)
     return ec;
 
-  logDebug("raft.Server",
-           "Server $0 starts with term $1 and index $2",
-           id(), currentTerm(), commitIndex_);
-
   if (leaderId == id_) {
+    logDebug("raft.Server",
+             "Server $0 starts with term $1 and index $2 (as leader)",
+             id(), currentTerm(), commitIndex_, leaderId);
+
     setupLeader();
+  } else {
+    logDebug("raft.Server",
+             "Server $0 starts with term $1 and index $2 (as follower)",
+             id(), currentTerm(), commitIndex_, leaderId);
+
+    currentLeaderId_ = id_;
+    timer_.setTimeout(ServerUtil::cumulativeDuration(heartbeatTimeout_));
+    timer_.start();
   }
+
 
   return ec;
 }
@@ -164,6 +173,7 @@ void Server::sendVoteRequest() {
   votesGranted_ = 0;
   setCurrentTerm(currentTerm() + 1);
   votedFor_ = Some(std::make_pair(id_, currentTerm()));
+  // TODO: persist votedFor_
 
   VoteRequest voteRequest{
     .term         = currentTerm(),
@@ -182,16 +192,20 @@ void Server::sendVoteRequest() {
 void Server::onTimeout() {
   switch (state_) {
     case ServerState::Follower:
-      // logWarning("raft.Server", "$0: Timed out waiting for heartbeat from leader.", id_);
+      logWarning("raft.Server", "$0: Timed out waiting for heartbeat from leader. [$1]", id_, timer_.timeout());
       setState(ServerState::Candidate);
       sendVoteRequest();
       break;
-    case ServerState::Candidate:
-      // logInfo("raft.Server", "$0: Split vote. Reelecting.", id_);
+    case ServerState::Candidate: {
+      const Duration oldTimeout = timer_.timeout();
+      const Duration newTimeout = ServerUtil::alleviatedDuration(electionTimeout_);
+      logDebug("raft.Server", "$0: Split vote. Reelecting [$1 ~> $2].", id_, oldTimeout, newTimeout);
+      timer_.setTimeout(newTimeout);
       sendVoteRequest();
       break;
+    }
     case ServerState::Leader:
-      // logDebug("raft.Server", "$0: Maintaining leadership.", id_);
+      logDebug("raft.Server", "$0: Maintaining leadership.", id_);
       sendHeartbeat();
       break;
   }
@@ -208,7 +222,7 @@ void Server::setState(ServerState newState) {
       executor_->execute(onFollower);
       break;
     case ServerState::Candidate:
-      timer_.setTimeout(ServerUtil::cumulativeDuration(electionTimeout_));
+      timer_.setTimeout(electionTimeout_);
       executor_->execute(onCandidate);
       break;
     case ServerState::Leader:
@@ -225,7 +239,10 @@ void Server::setCurrentTerm(Term newTerm) {
 
 // {{{ Server: receiver API (invoked by Transport on receiving messages)
 void Server::receive(Id peerId, const VoteRequest& req) {
+  timer_.rewind();
+
   if (req.term < currentTerm()) {
+    // decline request as peer's term is older than our currentTerm
     transport_->send(peerId, VoteResponse{currentTerm(), false});
     return;
   }
@@ -233,6 +250,8 @@ void Server::receive(Id peerId, const VoteRequest& req) {
   // If RPC request or response contains term T > currentTerm:
   // set currentTerm = T, convert to follower (§5.1)
   if (req.term > currentTerm()) {
+    logDebug("raft.Server", "$0 received term ($1) > currentTerm ($2) from $3. Converting to follower.",
+        id_, req.term, currentTerm(), req.candidateId);
     setCurrentTerm(req.term);
     setState(ServerState::Follower);
     votedFor_ = None();
@@ -240,7 +259,6 @@ void Server::receive(Id peerId, const VoteRequest& req) {
 
   if (votedFor_.isNone()) {
     // Accept vote, as we didn't vote in this term yet.
-    timer_.rewind();
     votedFor_ = Some(std::make_pair(req.candidateId, req.lastLogTerm));
     transport_->send(peerId, VoteResponse{currentTerm(), true});
     return;
@@ -248,7 +266,6 @@ void Server::receive(Id peerId, const VoteRequest& req) {
 
   if (req.candidateId == votedFor_->first && req.lastLogTerm > votedFor_->second) {
     // Accept vote. Same vote-candidate and bigger term
-    timer_.rewind();
     votedFor_ = Some(std::make_pair(req.candidateId, req.lastLogTerm));
     transport_->send(peerId, VoteResponse{currentTerm(), true});
     return;
@@ -295,6 +312,8 @@ void Server::receive(Id peerId, const AppendEntriesRequest& req) {
 
     if (state_ != ServerState::Follower) {
       setState(ServerState::Follower);
+    } else {
+      // XXX a new leader was detected while I am still a follower
     }
   }
 

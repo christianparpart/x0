@@ -113,8 +113,8 @@ TEST(raft_Server, leaderElection) {
   size_t leaderCount = 0;
   size_t followerCount = 0;
 
-  auto onCandidateUpdate = [&]() {
-    logf("onCandidateUpdate: leaders: $0, followers: $1", leaderCount, followerCount);
+  auto onCandidateUpdate = [&](raft::Server& s) {
+    logf("onCandidateUpdate($0 is $1): leaders: $2, followers: $3", s.id(), s.state(), leaderCount, followerCount);
     if (leaderCount + followerCount == sd.totalMemberCount()) {
       executor.breakLoop(); // quick shutdown
     }
@@ -126,8 +126,8 @@ TEST(raft_Server, leaderElection) {
       s->transport()->setPeer(t->server()->id(), t->server());
     }
 
-    s->server()->onLeader = [&]() { leaderCount++; onCandidateUpdate(); };
-    s->server()->onFollower = [&]() { followerCount++; onCandidateUpdate(); };
+    s->server()->onLeader = [&]() { leaderCount++; onCandidateUpdate(*s->server()); };
+    s->server()->onFollower = [&]() { followerCount++; onCandidateUpdate(*s->server()); };
   }
 
   for (auto& s: servers) {
@@ -152,6 +152,7 @@ TEST(raft_Server, startWithLeader) {
     { 2, "127.0.0.1:4202" },
     { 3, "127.0.0.1:4203" },
   };
+  const raft::Id initialLeaderId = 3;
 
   // create servers
   std::vector<std::unique_ptr<TestSystem>> servers;
@@ -161,13 +162,18 @@ TEST(raft_Server, startWithLeader) {
 
   // register (id,peer) tuples of server peers to this server
   for (auto& s: servers) {
+    s->server()->onFollower = [&]() { logf("onFollower: $0", s->server()->id()); };
+    s->server()->onCandidate = [&]() { logf("onCandidate: $0", s->server()->id()); };
+    s->server()->onLeader = [&]() { logf("onLeader: $0", s->server()->id()); };
+
     for (auto& t: servers) {
       s->transport()->setPeer(t->server()->id(), t->server());
     }
   }
 
   for (auto& s: servers) {
-    std::error_code ec = s->server()->startWithLeader(3); // XXX any (1, 2, 3) should work
+    // XXX any (1, 2, 3) should work
+    std::error_code ec = s->server()->startWithLeader(initialLeaderId);
     ASSERT_TRUE(!ec);
   };
 
