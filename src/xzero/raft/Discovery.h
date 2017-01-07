@@ -26,19 +26,19 @@ class Discovery {
   /**
    * Retrieves a list of all candidates in a cluster by their Id.
    */
-  virtual std::vector<Id> listMembers() = 0;
+  virtual std::vector<Id> listMembers() const = 0;
 
   /**
    * Retrieves total member count.
    */
-  virtual size_t totalMemberCount() = 0;
+  virtual size_t totalMemberCount() const = 0;
 
   /**
    * Maps a server ID to an address that can be used on the transport layer.
    *
    * The address can be an ip:port pair or a unix domain path or similar.
    */
-  virtual Result<std::string> getAddress(Id serverId) = 0;
+  virtual Result<std::string> getAddress(Id serverId) const = 0;
 };
 
 /**
@@ -51,9 +51,9 @@ class StaticDiscovery : public Discovery {
 
   void add(Id id, const std::string& addr);
 
-  std::vector<Id> listMembers() override;
-  size_t totalMemberCount() override;
-  Result<std::string> getAddress(Id serverId) override;
+  std::vector<Id> listMembers() const override;
+  size_t totalMemberCount() const override;
+  Result<std::string> getAddress(Id serverId) const override;
 
  private:
   std::unordered_map<Id, std::string> members_;
@@ -75,9 +75,9 @@ class DnsDiscovery : public Discovery {
   DnsDiscovery(const std::string& fqdn);
   ~DnsDiscovery();
 
-  std::vector<Id> listMembers() override;
-  size_t totalMemberCount() override;
-  Result<std::string> getAddress(Id serverId) override;
+  std::vector<Id> listMembers() const override;
+  size_t totalMemberCount() const override;
+  Result<std::string> getAddress(Id serverId) const override;
 };
 
 } // namespace raft

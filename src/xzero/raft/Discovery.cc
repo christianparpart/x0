@@ -15,7 +15,7 @@ void StaticDiscovery::add(Id id, const std::string& addr) {
   members_[id] = addr;
 }
 
-std::vector<Id> StaticDiscovery::listMembers() {
+std::vector<Id> StaticDiscovery::listMembers() const {
   std::vector<Id> result;
 
   for (const auto& i: members_)
@@ -24,11 +24,11 @@ std::vector<Id> StaticDiscovery::listMembers() {
   return result;
 }
 
-size_t StaticDiscovery::totalMemberCount() {
+size_t StaticDiscovery::totalMemberCount() const {
   return members_.size();
 }
 
-Result<std::string> StaticDiscovery::getAddress(Id serverId) {
+Result<std::string> StaticDiscovery::getAddress(Id serverId) const {
   auto i = members_.find(serverId);
   if (i != members_.end()) {
     return Result<std::string>(i->second);

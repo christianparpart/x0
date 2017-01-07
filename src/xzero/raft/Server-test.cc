@@ -24,7 +24,7 @@ using namespace xzero;
 class TestSystem : public raft::StateMachine { // {{{
  public:
   TestSystem(raft::Id id,
-             raft::Discovery* discovery,
+             const raft::Discovery* discovery,
              Executor* executor);
 
   bool saveSnapshot(std::unique_ptr<std::ostream>&& output) override;
@@ -47,7 +47,7 @@ class TestSystem : public raft::StateMachine { // {{{
 };
 
 TestSystem::TestSystem(raft::Id id,
-                       raft::Discovery* discovery,
+                       const raft::Discovery* discovery,
                        Executor* executor)
     : storage_(),
       transport_(id, executor),
@@ -99,7 +99,7 @@ raft::RaftError TestSystem::set(int key, int value) {
 
 TEST(raft_Server, leaderElection) {
   PosixScheduler executor;
-  raft::StaticDiscovery sd = {
+  const raft::StaticDiscovery sd = {
     { 1, "127.0.0.1:1042" },
     { 2, "127.0.0.1:1042" },
     { 3, "127.0.0.1:1042" },
@@ -147,7 +147,7 @@ TEST(raft_Server, leaderElection) {
 
 TEST(raft_Server, startWithLeader) {
   PosixScheduler executor;
-  raft::StaticDiscovery sd = {
+  const raft::StaticDiscovery sd = {
     { 1, "127.0.0.1:4201" },
     { 2, "127.0.0.1:4202" },
     { 3, "127.0.0.1:4203" },
