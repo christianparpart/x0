@@ -255,9 +255,8 @@ class Server : public Listener {
   std::unordered_map<Id, std::unique_ptr<FollowerChannel>> followerChannels_;
 
  public:
-  std::function<void()> onFollower;
-  std::function<void()> onCandidate;
-  std::function<void()> onLeader;
+  std::function<void(Server* self, ServerState oldState)> onStateChanged;
+  std::function<void(Id oldLeader)> onLeaderChanged;
 };
 
 /**

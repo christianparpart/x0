@@ -97,6 +97,27 @@ raft::RaftError TestSystem::set(int key, int value) {
 }
 // }}}
 
+template<typename ServerList>
+bool isConsensusReached(const ServerList& servers) {
+  size_t leaderCount = 0;
+  size_t followerCount = 0;
+
+  for (const auto& s: servers) {
+    switch (s->server()->state()) {
+      case raft::ServerState::Leader:
+        leaderCount++;
+        break;
+      case raft::ServerState::Follower:
+        followerCount++;
+        break;
+      case raft::ServerState::Candidate:
+        break;
+    }
+  }
+
+  return leaderCount + followerCount == servers.size();
+}
+
 TEST(raft_Server, leaderElection) {
   PosixScheduler executor;
   const raft::StaticDiscovery sd = {
@@ -110,24 +131,18 @@ TEST(raft_Server, leaderElection) {
     servers.emplace_back(new TestSystem(id, &sd, &executor));
   }
 
-  size_t leaderCount = 0;
-  size_t followerCount = 0;
-
-  auto onCandidateUpdate = [&](raft::Server& s) {
-    logf("onCandidateUpdate($0 is $1): leaders: $2, followers: $3", s.id(), s.state(), leaderCount, followerCount);
-    if (leaderCount + followerCount == sd.totalMemberCount()) {
-      executor.breakLoop(); // quick shutdown
-    }
-  };
-
   for (auto& s: servers) {
+    s->server()->onStateChanged = [&](raft::Server* s, raft::ServerState oldState) {
+      logf("onStateChanged[$0]: $1 ~> $2", s->id(), oldState, s->state());
+      if (isConsensusReached(servers)) {
+        executor.breakLoop();
+      }
+    };
+
     // register (id,peer) tuples of server peers to this server
     for (auto& t: servers) {
       s->transport()->setPeer(t->server()->id(), t->server());
     }
-
-    s->server()->onLeader = [&]() { leaderCount++; onCandidateUpdate(*s->server()); };
-    s->server()->onFollower = [&]() { followerCount++; onCandidateUpdate(*s->server()); };
   }
 
   for (auto& s: servers) {
@@ -140,9 +155,7 @@ TEST(raft_Server, leaderElection) {
   // now, leader election must have been taken place
   // 1 leader and 2 followers must exist
 
-  logf("leaders: $0, followers: $1", leaderCount, followerCount);
-  EXPECT_EQ(1, leaderCount);
-  EXPECT_EQ(2, followerCount);
+  EXPECT_TRUE(isConsensusReached(servers));
 }
 
 TEST(raft_Server, startWithLeader) {
@@ -162,9 +175,12 @@ TEST(raft_Server, startWithLeader) {
 
   // register (id,peer) tuples of server peers to this server
   for (auto& s: servers) {
-    s->server()->onFollower = [&]() { logf("onFollower: $0", s->server()->id()); };
-    s->server()->onCandidate = [&]() { logf("onCandidate: $0", s->server()->id()); };
-    s->server()->onLeader = [&]() { logf("onLeader: $0", s->server()->id()); };
+    s->server()->onStateChanged = [&](raft::Server* s, raft::ServerState oldState) {
+      logf("onStateChanged[$0]: $1 ~> $2", s->id(), oldState, s->state());
+      if (isConsensusReached(servers)) {
+        executor.breakLoop();
+      }
+    };
 
     for (auto& t: servers) {
       s->transport()->setPeer(t->server()->id(), t->server());

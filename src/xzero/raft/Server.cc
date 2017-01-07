@@ -214,22 +214,24 @@ void Server::onTimeout() {
 void Server::setState(ServerState newState) {
   logInfo("raft.Server", "$0: Entering $1 state.", id_, newState);
 
+  ServerState oldState = state_;
   state_ = newState;
 
   switch (newState) {
     case ServerState::Follower:
       timer_.setTimeout(ServerUtil::cumulativeDuration(heartbeatTimeout_));
-      executor_->execute(onFollower);
       break;
     case ServerState::Candidate:
       timer_.setTimeout(electionTimeout_);
-      executor_->execute(onCandidate);
       break;
     case ServerState::Leader:
       timer_.setTimeout(heartbeatTimeout_);
-      executor_->execute(onLeader);
       break;
   }
+
+  executor_->execute([this, oldState]() {
+    onStateChanged(this, oldState);
+  });
 }
 
 void Server::setCurrentTerm(Term newTerm) {
@@ -307,13 +309,15 @@ void Server::receive(Id peerId, const AppendEntriesRequest& req) {
     logDebug("raft.Server", "$0: new leader $1 detected with term $2",
         id_, req.leaderId, req.term);
 
+    Id oldLeaderId = currentLeaderId_;
     currentLeaderId_ = req.leaderId;
     setCurrentTerm(req.term);
 
     if (state_ != ServerState::Follower) {
       setState(ServerState::Follower);
     } else {
-      // XXX a new leader was detected while I am still a follower
+      // a new leader was detected while I am still a follower
+      onLeaderChanged(oldLeaderId);
     }
   }
 
