@@ -20,6 +20,8 @@ enum class RaftError {
   MismatchingServerId,
   //! This RaftServer is currently not the leader.
   NotLeading,
+  //! Timed out committing the command.
+  CommitTimeout,
 };
 
 class RaftCategory : public std::error_category {

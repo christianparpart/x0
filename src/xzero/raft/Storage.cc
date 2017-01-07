@@ -23,9 +23,7 @@ std::shared_ptr<LogEntry> AbstractStorage::getLogTail() {
 // }}}
 // {{{ MemoryStore
 MemoryStore::MemoryStore()
-    : isInitialized_(false),
-      id_(),
-      currentTerm_(),
+    : currentTerm_(),
       log_(),
       snapshottedTerm_(),
       snapshottedIndex_(),
@@ -35,34 +33,20 @@ MemoryStore::MemoryStore()
   log_.push_back(std::make_shared<LogEntry>());
 }
 
-bool MemoryStore::isInitialized() const {
-  return isInitialized_;
-}
-
-void MemoryStore::initialize(Id id, Term term) {
-  isInitialized_ = true;
-
-  id_ = id;
-  currentTerm_ = term;
-
+std::error_code MemoryStore::initialize(Id* id, Term* term) {
+  *term = currentTerm_;
   log_.resize(1);
 
   snapshottedTerm_ = 0;
   snapshottedIndex_ = 0;
   snapshotData_.clear();
+
+  return std::error_code();
 }
 
-Id MemoryStore::loadServerId() {
-  return id_;
-}
-
-bool MemoryStore::saveTerm(Term currentTerm) {
+std::error_code MemoryStore::saveTerm(Term currentTerm) {
   currentTerm_ = currentTerm;
-  return true;
-}
-
-Term MemoryStore::loadTerm() {
-  return currentTerm_;
+  return std::error_code();
 }
 
 Index MemoryStore::latestIndex() {
@@ -86,29 +70,11 @@ void MemoryStore::truncateLog(Index last) {
   log_.resize(last);
 }
 
-bool MemoryStore::saveSnapshotBegin(Term currentTerm, Index lastIndex) {
-  snapshottedTerm_ = currentTerm;
-  snapshottedIndex_ = lastIndex;
-  return true;
-}
-
-bool MemoryStore::saveSnapshotChunk(const uint8_t* data, size_t length) {
-  // most ugly art to append a data block to another
-  for (size_t i = 0; i < length; ++i) {
-    snapshotData_.push_back(data[i]);
-  }
-  return true;
-}
-
-bool MemoryStore::saveSnapshotEnd() {
-  return true;
-}
-
-bool MemoryStore::loadSnapshotBegin(Term* currentTerm, Index* lastIndex) {
+bool MemoryStore::saveSnapshot(std::unique_ptr<std::istream>&& state, Term term, Index lastIndex) {
   return false;
 }
 
-bool MemoryStore::loadSnapshotChunk(std::vector<uint8_t>* chunk) {
+bool MemoryStore::loadSnapshot(std::unique_ptr<std::ostream>&& state, Term* term, Index* lastIndex) {
   return false;
 }
 // }}}

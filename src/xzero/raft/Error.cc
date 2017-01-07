@@ -28,6 +28,8 @@ std::string RaftCategory::message(int ec) const {
       return "Mismatching server ID";
     case RaftError::NotLeading:
       return "Not leading the cluster";
+    case RaftError::CommitTimeout:
+      return "Commit timeout";
     default:
       return StringUtil::format("RaftError<$0>", ec);
   }

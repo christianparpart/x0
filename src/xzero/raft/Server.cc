@@ -95,27 +95,40 @@ size_t Server::quorum() const {
   return discovery_->totalMemberCount() / 2 + 1;
 }
 
-void Server::start() {
-  if (!storage_->isInitialized()) {
-    storage_->initialize(id_, currentTerm());
-  } else {
-    Id storedId = storage_->loadServerId();
-    if (storedId != id_) {
-      RAISE_CATEGORY(RaftError::MismatchingServerId, RaftCategory());
-    }
-  }
+std::error_code Server::start() {
+  std::error_code ec = storage_->initialize(&id_, &currentTerm_);
+  if (ec)
+    return ec;
 
-  // logDebug("raft.Server",
-  //          "Server $0 starts with term $1 and index $2",
-  //          id_, currentTerm(), commitIndex_);
+  logDebug("raft.Server",
+           "Server $0 starts with term $1 and index $2",
+           id(), currentTerm(), commitIndex_);
 
   timer_.setTimeout(heartbeatTimeout_);
   timer_.start();
+
+  return ec;
+}
+
+std::error_code Server::startWithLeader(Id leaderId) {
+  std::error_code ec = storage_->initialize(&id_, &currentTerm_);
+  if (ec)
+    return ec;
+
+  logDebug("raft.Server",
+           "Server $0 starts with term $1 and index $2",
+           id(), currentTerm(), commitIndex_);
+
+  if (leaderId == id_) {
+    setupLeader();
+  }
+
+  return ec;
 }
 
 void Server::stop() {
   timer_.cancel();
-  // TODO
+  // TODO: be more intelligent, maybe telling the others why I go.
 }
 
 RaftError Server::sendCommand(Command&& command) {
@@ -330,35 +343,44 @@ void Server::receive(Id peerId, const AppendEntriesResponse& resp) {
 
   if (resp.success) {
     // If successful: update nextIndex and matchIndex for follower (§5.3)
-    matchIndex_[peerId] = nextIndex_[peerId] - 1;
-    nextIndex_[peerId]++; // XXX we currently replicate only 1 log entry at a time
+    // XXX we currently replicate only 1 log entry at a time
+    matchIndex_[peerId] = nextIndex_[peerId];
+    nextIndex_[peerId]++;
   } else {
     // If AppendEntries fails because of log inconsistency:
     //  decrement nextIndex and retry (§5.3)
     nextIndex_[peerId]--;
-    assert(matchIndex_[peerId] == 0 && "should not be set yet.");;
+    if (matchIndex_[peerId] != 0) {
+      logWarning("raft.Server",
+                 "$0: matchIndex[$1] should be 0 (actual $2). Fixing.",
+                 id_, peerId, matchIndex_[peerId]);
+      matchIndex_[peerId] = 0;
+    }
   }
 
+  // update commitIndex to the latest matchIndex the majority of servers provides
   commitIndex_ = ServerUtil::majorityIndexOf(matchIndex_);
 
-  replicateLogsTo(peerId);
+  // trigger replication feed for peerId
+//  heartbeat_->wakeup();
+  // replicateLogsTo(peerId); // FIXME
 }
 
 void Server::receive(Id peerId, const InstallSnapshotRequest& req) {
   timer_.rewind();
 
   logDebug("raft.Server", "$0: received from $1: $2", id_, peerId, req);
-  // TODO
+  RAISE(NotImplementedError); // TODO
 }
 
 void Server::receive(Id peerId, const InstallSnapshotResponse& resp) {
   timer_.rewind();
 
   logDebug("raft.Server", "$0: received from $1: $2", id_, peerId, resp);
-  // TODO
+  RAISE(NotImplementedError); // TODO
 }
 // }}}
-// {{{ receiver helper
+// {{{ Server: receiver helper
 void Server::setupLeader() {
   const Index theNextIndex = latestIndex() + 1;
   for (Id peerId: discovery_->listMembers()) {
@@ -439,6 +461,61 @@ void Server::applyLogs() {
     lastApplied_++;
     std::shared_ptr<LogEntry> logEntry = storage_->getLogEntry(lastApplied_);
     stateMachine_->applyCommand(logEntry->command());
+  }
+}
+// }}}
+// // {{{ Server::LeaderState
+// Server::LeaderState::LeaderState()
+//     : peers() {
+// }
+//
+// MonotonicTime Server::LeaderState::nextHeartbeat() const {
+//   assert(!peers.empty());
+//
+//   const auto lessFn = [](std::pair<Id, MonotonicTime> a, std::pair<Id, MonotonicTime> b) {
+//     return a.second < b.second;
+//   };
+//
+//   const MonotonicTime low = std::min_element(
+//       peers.begin(),
+//       peers.end(),
+//       [](auto a, auto b) { return a.second.nextHeartbeat < b.second.nextHeartbeat; })->second.nextHeartbeat;
+//
+//   return low;
+// }
+// // }}}
+// {{{ Server::FollowerChannel
+Server::FollowerChannel::FollowerChannel(Id peerId, Server* server, Executor* e)
+    : peerId_(peerId),
+      server_(server),
+      executor_(e),
+      nextIndex_(0),
+      matchIndex_(0),
+      wakeup_(),
+      nextHeartbeat_(0) {
+}
+
+void Server::FollowerChannel::run() {
+  for (;;) {
+    wakeup_.waitForNextWakeup();
+
+    sendPendingMessages();
+  }
+}
+
+void Server::FollowerChannel::wakeup() {
+  wakeup_.wakeup();
+}
+
+void Server::FollowerChannel::sendPendingMessages() {
+  const Index lastIndex = nextIndex_;
+  std::vector<std::shared_ptr<LogEntry>> entries;
+
+  for (Index i = nextIndex_; i <= lastIndex; i++) {
+    std::shared_ptr<LogEntry> entry = server_->storage()->getLogEntry(nextIndex_);
+    if (!entry) {
+      return;
+    }
   }
 }
 // }}}

@@ -39,6 +39,8 @@ void LocalTransport::setPeer(Id peerId, Listener* target) {
 }
 
 void LocalTransport::send(Id target, const VoteRequest& message) {
+  // sends a VoteRequest message to the given target.
+  // XXX emulate async/delayed behaviour by deferring receival via executor API.
   auto i = peers_.find(target);
   if (i != peers_.end()) {
     executor_->execute([=]() {

@@ -131,7 +131,8 @@ TEST(raft_Server, leaderElection) {
   }
 
   for (auto& s: servers) {
-    s->server()->start();
+    std::error_code ec = s->server()->start();
+    ASSERT_TRUE(!ec);
   };
 
   executor.runLoop();
@@ -142,4 +143,33 @@ TEST(raft_Server, leaderElection) {
   logf("leaders: $0, followers: $1", leaderCount, followerCount);
   EXPECT_EQ(1, leaderCount);
   EXPECT_EQ(2, followerCount);
+}
+
+TEST(raft_Server, startWithLeader) {
+  PosixScheduler executor;
+  raft::StaticDiscovery sd = {
+    { 1, "127.0.0.1:4201" },
+    { 2, "127.0.0.1:4202" },
+    { 3, "127.0.0.1:4203" },
+  };
+
+  // create servers
+  std::vector<std::unique_ptr<TestSystem>> servers;
+  for (raft::Id id: sd.listMembers()) {
+    servers.emplace_back(new TestSystem(id, &sd, &executor));
+  }
+
+  // register (id,peer) tuples of server peers to this server
+  for (auto& s: servers) {
+    for (auto& t: servers) {
+      s->transport()->setPeer(t->server()->id(), t->server());
+    }
+  }
+
+  for (auto& s: servers) {
+    std::error_code ec = s->server()->startWithLeader(3); // XXX any (1, 2, 3) should work
+    ASSERT_TRUE(!ec);
+  };
+
+  executor.runLoop();
 }

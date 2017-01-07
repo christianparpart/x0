@@ -15,9 +15,11 @@
 #include <xzero/MonotonicTime.h>
 #include <xzero/executor/Executor.h>
 #include <xzero/net/Server.h>
+#include <xzero/thread/Wakeup.h>
 #include <initializer_list>
 #include <unordered_map>
 #include <atomic>
+#include <system_error>
 #include <memory>
 #include <list>
 
@@ -96,6 +98,10 @@ class Server : public Listener {
   Index lastApplied() const noexcept { return lastApplied_; }
   ServerState state() const noexcept { return state_; }
 
+  Storage* storage() const noexcept { return storage_; }
+  Discovery* discovery() const noexcept { return discovery_; }
+  Transport* transport() const noexcept { return transport_; }
+
   size_t quorum() const;
 
   Term currentTerm() const;
@@ -104,8 +110,17 @@ class Server : public Listener {
 
   /**
    * Starts the Server.
+   *
+   * This starts the server initially in @c ServerState::Follower mode,
+   * potentially timing out waiting for messages from the leader and then
+   * triggering the leader election in @c ServerState::Candidate mode.
    */
-  void start();
+  std::error_code start();
+
+  /**
+   * Starts the Server and assumes that @p leaderId is the current cluster leader.
+   */
+  std::error_code startWithLeader(Id leaderId);
 
   /**
    * Gracefully stops the server.
@@ -168,6 +183,7 @@ class Server : public Listener {
   void replicateLogs();
   void replicateLogsTo(Id peerId);
   void applyLogs();
+  MonotonicTime nextHeartbeat() const;
 
  private:
   Executor* executor_;
@@ -187,6 +203,8 @@ class Server : public Listener {
   Duration heartbeatTimeout_;
   Duration electionTimeout_;
   Duration commitTimeout_;
+  unsigned maxCommandsPerMessage_; //!< number of commands to batch in an AppendEntriesRequest
+  size_t maxMessageSize_;
 
   // ------------------- persistet state --------------------------------------
 
@@ -225,10 +243,52 @@ class Server : public Listener {
   //! (initialized to 0, increases monotonically)
   ServerIndexMap matchIndex_;
 
+  /*!
+   * Timestamp of next heartbeat for each peer.
+   */
+  std::unordered_map<Id, MonotonicTime> nextHeartbeats_;
+
+  // struct LeaderState;
+  // std::unique_ptr<LeaderState> leaderState_;
+
+  class FollowerChannel;
+  std::unordered_map<Id, std::unique_ptr<FollowerChannel>> followerChannels_;
+
  public:
   std::function<void()> onFollower;
   std::function<void()> onCandidate;
   std::function<void()> onLeader;
+};
+
+/**
+ * Ensures Leader-to-Follower communication for a single follower.
+ *
+ * The instance is also responsible for heartbeat maintenance.
+ */
+class Server::FollowerChannel {
+ public:
+  /**
+   * Initializes this FollowerChannel.
+   *
+   * @param peerId Peer's server ID.
+   * @param server Leader's server instance that owns this FollowerChannel.
+   * @param executor Executor used for executing actual work related to #this.
+   */
+  FollowerChannel(Id peerId, Server* server, Executor* executor);
+
+  void run();
+  void wakeup();
+
+  void sendPendingMessages();
+
+ private:
+  Id peerId_;                     //!< peer's server ID
+  Server *server_;                //!< parent's server instance (assumed to be Leader)
+  Executor* executor_;            //!< Executor used for running this object.
+  Index nextIndex_;               //!< peer's index for next AppendEntries RPC
+  Index matchIndex_;              //!< peer's known index to be persisted to stable storage.
+  Wakeup wakeup_;
+  MonotonicTime nextHeartbeat_;   //!< timestamp for next heartbeat to send
 };
 
 } // namespace raft

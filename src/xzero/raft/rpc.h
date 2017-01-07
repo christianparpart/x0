@@ -17,6 +17,16 @@ typedef uint32_t Id;   // must not be 0
 typedef uint64_t Term;
 typedef uint64_t Index;
 
+enum class MessageType {
+  RequestVote,
+  AppendEntries,
+  InstallSnapshot,
+};
+
+struct Request {
+  MessageType requestType;
+};
+
 /**
  * The interface to the command that can modify the systems finite state machine.
  *

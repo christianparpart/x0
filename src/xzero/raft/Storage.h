@@ -10,6 +10,7 @@
 #include <cstdint>
 #include <vector>
 #include <memory>
+#include <system_error>
 
 namespace xzero {
 namespace raft {
@@ -22,22 +23,28 @@ class Storage {
  public:
   virtual ~Storage() {}
 
-  //! Checks whether the underlying storage has been initialized already.
-  virtual bool isInitialized() const = 0;
+  /**
+   * Initializes the underlying (persistend) storage.
+   *
+   * @param id the server's ID is stored at that address.
+   * @param term the server's last term is stored at that address.
+   *
+   * @returns success if there was no error or an appropriate error code.
+   */
+  virtual std::error_code initialize(Id* id, Term* term) = 0;
 
-  //! Initializes the underlying storage (or resets it)
-  virtual void initialize(Id id, Term term) = 0;
-
-  virtual Id loadServerId() = 0;
-
-  virtual bool saveTerm(Term currentTerm) = 0;
-  virtual Term loadTerm() = 0;
+  /**
+   * Saves the given term as currentTerm to stable storage.
+   *
+   * @returns success if there was no error or an appropriate error code.
+   */
+  virtual std::error_code saveTerm(Term currentTerm) = 0;
 
   //! Returns the index of the last LogEntry or 0 if nothing written yet.
   virtual Index latestIndex() = 0;
 
-  //! saves given LogEntry @p log.
-  virtual bool appendLogEntry(const LogEntry& log) = 0;
+  //! saves given LogEntry @p entry at the end of the current log.
+  virtual bool appendLogEntry(const LogEntry& entry) = 0;
 
   //! loads the LogEntry from given @p index and stores it in @p log.
   virtual std::shared_ptr<LogEntry> getLogEntry(Index index) = 0;
@@ -45,12 +52,19 @@ class Storage {
   //! Deletes any log entry starting after @p last index.
   virtual void truncateLog(Index last) = 0;
 
-  virtual bool saveSnapshotBegin(Term currentTerm, Index lastIndex) = 0;
-  virtual bool saveSnapshotChunk(const uint8_t* data, size_t length) = 0;
-  virtual bool saveSnapshotEnd() = 0;
+  /**
+   * Saves the snapshot @p state along with its latest @p term and @p lastIndex.
+   */
+  virtual bool saveSnapshot(std::unique_ptr<std::istream>&& state, Term term, Index lastIndex) = 0;
 
-  virtual bool loadSnapshotBegin(Term* currentTerm, Index* lastIndex) = 0;
-  virtual bool loadSnapshotChunk(std::vector<uint8_t>* chunk) = 0;
+  /**
+   * Loads a snapshot into @p state along with its latest @p term and @p lastIndex.
+   *
+   * @param state
+   * @param term
+   * @param lastIndex
+   */
+  virtual bool loadSnapshot(std::unique_ptr<std::ostream>&& state, Term* term, Index* lastIndex) = 0;
 };
 
 class AbstractStorage : public Storage {
@@ -65,38 +79,27 @@ class AbstractStorage : public Storage {
  * implementation is very useful for testing.
  */
 class MemoryStore : public Storage {
- private:
-  bool isInitialized_;
-  Id id_;
-  Term currentTerm_;
-  std::vector<std::shared_ptr<LogEntry>> log_;
-
-  Term snapshottedTerm_;
-  Index snapshottedIndex_;
-  std::vector<uint8_t> snapshotData_;
-
  public:
   MemoryStore();
 
-  bool isInitialized() const override;
-  void initialize(Id id, Term term) override;
-
-  Id loadServerId() override;
-
-  bool saveTerm(Term currentTerm) override;
-  Term loadTerm() override;
+  std::error_code initialize(Id* id, Term* term) override;
+  std::error_code saveTerm(Term currentTerm) override;
 
   Index latestIndex() override;
   bool appendLogEntry(const LogEntry& log) override;
   std::shared_ptr<LogEntry> getLogEntry(Index index) override;
   void truncateLog(Index last) override;
 
-  bool saveSnapshotBegin(Term currentTerm, Index lastIndex) override;
-  bool saveSnapshotChunk(const uint8_t* data, size_t length) override;
-  bool saveSnapshotEnd() override;
+  bool saveSnapshot(std::unique_ptr<std::istream>&& state, Term term, Index lastIndex) override;
+  bool loadSnapshot(std::unique_ptr<std::ostream>&& state, Term* term, Index* lastIndex) override;
 
-  bool loadSnapshotBegin(Term* currentTerm, Index* lastIndex) override;
-  bool loadSnapshotChunk(std::vector<uint8_t>* chunk) override;
+ private:
+  Term currentTerm_;
+  std::vector<std::shared_ptr<LogEntry>> log_;
+
+  Term snapshottedTerm_;
+  Index snapshottedIndex_;
+  std::vector<uint8_t> snapshotData_;
 };
 
 class FileStore : public Storage {

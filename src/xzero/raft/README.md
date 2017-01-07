@@ -52,3 +52,33 @@ finite state machine that this `raft::Server` has to apply the commands on.
 * [ ] If a server receives a request with a stale term number, it rejects the request.
 
 ...
+
+## Leader-to-Follower I/O
+
+- detect timeouts in message writes/reads
+- constantly send AppendEntries RPC, and empty heartbeats in idle times
+- until we're not leader anymore.
+- on success: update `Server.followers[id].lastActivity` timestamp
+- `Leader::Peer`
+
+### Leader
+- keeps leader-state and maintain follower communication
+
+### Leader::Peer
+
+```
+LeaderReplicationThread::run() {
+  while (server->isLeader()) {
+    replicate();
+  }
+}
+
+LeaderReplicationThread::replicate() {
+  waitForEvents(); // commands or heartbeat timeout
+  replicateOne();
+}
+
+LeaderReplicationThread::replicateOne() {
+  transport_->send(peerId_, appendMessagesReq);
+}
+```
