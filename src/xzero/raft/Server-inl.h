@@ -12,5 +12,9 @@ inline Term Server::currentTerm() const {
   return currentTerm_;
 }
 
+inline Id Server::currentLeaderId() const {
+  return currentLeaderId_;
+}
+
 } // namespace raft
 } // namespace xzero
