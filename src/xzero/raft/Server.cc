@@ -257,6 +257,10 @@ void Server::receive(Id peerId, const VoteRequest& req) {
     setCurrentTerm(req.term);
     setState(ServerState::Follower);
     votedFor_ = None();
+
+    Id oldLeaderId = currentLeaderId_;
+    currentLeaderId_ = req.candidateId;
+    onLeaderChanged(oldLeaderId);
   }
 
   if (votedFor_.isNone()) {
@@ -309,16 +313,16 @@ void Server::receive(Id peerId, const AppendEntriesRequest& req) {
     logDebug("raft.Server", "$0: new leader $1 detected with term $2",
         id_, req.leaderId, req.term);
 
+    setCurrentTerm(req.term);
+
     Id oldLeaderId = currentLeaderId_;
     currentLeaderId_ = req.leaderId;
-    setCurrentTerm(req.term);
 
     if (state_ != ServerState::Follower) {
       setState(ServerState::Follower);
-    } else {
-      // a new leader was detected while I am still a follower
-      onLeaderChanged(oldLeaderId);
     }
+
+    onLeaderChanged(oldLeaderId);
   }
 
   // 3. If an existing entry conflicts with a new one (same index

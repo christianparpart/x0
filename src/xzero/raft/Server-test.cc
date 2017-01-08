@@ -138,6 +138,10 @@ TEST(raft_Server, leaderElection) {
         executor.breakLoop();
       }
     };
+    s->server()->onLeaderChanged = [&](raft::Id oldLeaderId) {
+      logf("onLeaderChanged[$0]: $1 ~> $2", s->server()->id(), oldLeaderId,
+          s->server()->currentLeaderId());
+    };
 
     // register (id,peer) tuples of server peers to this server
     for (auto& t: servers) {
