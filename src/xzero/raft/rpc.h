@@ -35,9 +35,9 @@ struct Request {
 typedef std::vector<uint8_t> Command;
 
 enum LogType {
-  LOG_COMMAND,
-  LOG_PEER_ADD,
-  LOG_PEER_REMOVE,
+  LOG_COMMAND = 1,
+  LOG_PEER_ADD = 2,
+  LOG_PEER_REMOVE = 3,
 };
 
 /**

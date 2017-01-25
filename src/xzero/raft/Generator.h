@@ -7,6 +7,7 @@
 #pragma once
 
 #include <xzero/raft/rpc.h>
+#include <xzero/Buffer.h>
 
 namespace xzero {
 
@@ -19,6 +20,7 @@ namespace raft {
  */
 class Generator {
  private:
+  Buffer buffer_;
   EndPointWriter* output_;
 
  public:
@@ -32,13 +34,13 @@ class Generator {
   void generateInstallSnapshotResponse(const InstallSnapshotResponse& msg);
 
  private:
-  enum class MessageType {
-    VoteRequest,
-    VoteResponse,
-    AppendEntriesRequest,
-    AppendEntriesResponse,
-    InstallSnapshotRequest,
-    InstallSnapshotResponse,
+  enum class MessageType : uint8_t {
+    VoteRequest = 1,
+    VoteResponse = 2,
+    AppendEntriesRequest = 3,
+    AppendEntriesResponse = 4,
+    InstallSnapshotRequest = 5,
+    InstallSnapshotResponse = 6,
   };
 
   void generateFrameHeader(MessageType id, size_t payloadSize);
@@ -46,6 +48,13 @@ class Generator {
   void writeIndex(Index index);
   void writeId(Id id);
   void writeFlag(bool flag);
+  void writeSize(size_t value);
+  void writeByteArray(const std::vector<uint8_t>& data);
+  void write64(uint64_t value);
+  void write32(uint64_t value);
+  void write8(uint8_t value);
+  void writeVarInt(uint64_t value);
+  void flushBuffer();
 };
 
 } // namespace raft

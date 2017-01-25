@@ -1,0 +1,33 @@
+
+      Raft Binary Message Protocol
+
+
+RaftFrame   ::= VoteRequest
+              | VoteResponse
+              | AppendEntriesRequest
+              | AppendEntriesResponse
+              | InstallSnapshotRequest
+              | InstallSnapshotResponse
+
+VoteRequest             ::= Header(1) Term Id Index Term
+VoteResponse            ::= Header(2) Term Bool
+AppendEntriesRequest    ::= Header(3) Term Id Index Term Index LogEntries
+AppendEntriesResponse   ::= Header(4) Term Bool
+InstallSnapshotRequest  ::= Header(5) Term Id Index Term Offset Bool Data
+Data                    ::= ByteArray
+InstallSnapshotResponse ::= Header(6) Term
+
+LogEntries              ::= Count LogEntry*
+LogEntry                ::= Term TermType Command
+TermType                ::= uint8
+Command                 ::= ByteArray
+
+ByteArray               ::= Count uint8*
+
+Header                  ::= uint32
+Term                    ::= uint32
+Id                      ::= uint64
+Index                   ::= uint64
+Bool                    ::= uint8
+Count                   ::= uint64
+
