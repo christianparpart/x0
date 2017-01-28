@@ -88,4 +88,24 @@ bool BufferUtil::endsWithIgnoreCase(const BufferRef& str, const BufferRef& suffi
                      suffix.size()) == 0;
 }
 
+std::string BufferUtil::binPrint(const BufferRef& data, bool spacing) {
+  std::string s;
+
+  for (size_t i = 0; i < data.size(); ++i) {
+    if (spacing && i != 0)
+      s += ' ';
+
+    uint8_t byte = data[i];
+    for (size_t k = 0; k < 8; ++k) {
+      if (byte & (1 << (7 - k))) {
+        s += '1';
+      } else {
+        s += '0';
+      }
+    }
+  }
+
+  return s;
+}
+
 } // namespace xzero

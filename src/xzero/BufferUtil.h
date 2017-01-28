@@ -50,6 +50,8 @@ public:
       bool separate_bytes = true,
       bool reverse_byte_order = false);
 
+  static std::string binPrint(const BufferRef& data, bool spacing = false);
+
   static bool beginsWith(const BufferRef& data, const BufferRef& prefix);
   static bool beginsWithIgnoreCase(const BufferRef& str, const BufferRef& prefix);
   static bool endsWith(const BufferRef& data, const BufferRef& suffix);
