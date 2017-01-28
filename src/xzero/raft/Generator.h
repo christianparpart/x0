@@ -45,7 +45,6 @@ class Generator {
     InstallSnapshotResponse = 6,
   };
 
-  void writeByteArray(const std::vector<uint8_t>& data);
   void flushBuffer();
 };
 

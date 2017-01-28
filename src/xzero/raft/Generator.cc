@@ -72,5 +72,9 @@ void Generator::generateInstallSnapshotResponse(const InstallSnapshotResponse& m
   wire_.generateVarUInt(msg.term);
 }
 
+void Generator::flushBuffer() {
+  output_->write(std::move(buffer_));
+}
+
 } // namespace raft
 } // namespace xzero
