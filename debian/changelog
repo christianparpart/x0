@@ -2,80 +2,80 @@ x0 (0.10.0-3release4-ubuntu-trusty) trusty; urgency=medium
 
   * release, tmpdir path fixed, #2
 
- -- Christian Parpart <trapni@gmail.com>  Wed, 03 Jun 2014 11:41:00 -0100
+ -- Christian Parpart <christian@parpart.family>  Wed, 03 Jun 2014 11:41:00 -0100
 
 x0 (0.10.0-3release3-ubuntu-trusty) trusty; urgency=medium
 
   * release, tmpdir path fixed
 
- -- Christian Parpart <trapni@gmail.com>  Wed, 03 Jun 2014 10:41:00 -0100
+ -- Christian Parpart <christian@parpart.family>  Wed, 03 Jun 2014 10:41:00 -0100
 
 x0 (0.10.0-3release2-ubuntu-trusty) trusty; urgency=medium
 
   * release, version fixed
 
- -- Christian Parpart <trapni@gmail.com>  Wed, 03 Jun 2014 09:41:00 -0100
+ -- Christian Parpart <christian@parpart.family>  Wed, 03 Jun 2014 09:41:00 -0100
 
 x0 (0.10.0-3release1-ubuntu-trusty) trusty; urgency=medium
 
   * release
 
- -- Christian Parpart <trapni@gmail.com>  Wed, 03 Jun 2014 09:41:00 -0100
+ -- Christian Parpart <christian@parpart.family>  Wed, 03 Jun 2014 09:41:00 -0100
 
 x0 (0.10.0-2snapshot-ubuntu-trusty) trusty; urgency=medium
 
   * snapshot update
 
- -- Christian Parpart <trapni@gmail.com>  Wed, 02 Jun 2014 09:41:00 -0100
+ -- Christian Parpart <christian@parpart.family>  Wed, 02 Jun 2014 09:41:00 -0100
 
 x0 (0.10.0-1snapshot-ubuntu-trusty) trusty; urgency=medium
 
   * snapshot update
 
- -- Christian Parpart <trapni@gmail.com>  Mon, 05 May 2014 09:41:00 -0100
+ -- Christian Parpart <christian@parpart.family>  Mon, 05 May 2014 09:41:00 -0100
 
 x0 (0.10.0-0snapshot-ubuntu-trusty) trusty; urgency=medium
 
   * snapshot
 
- -- Christian Parpart <trapni@gmail.com>  Thu, 1 May 2014 09:41:00 -0100
+ -- Christian Parpart <christian@parpart.family>  Thu, 1 May 2014 09:41:00 -0100
 
 x0 (0.9.0-0ubuntu-precise6) precise; urgency=medium
 
   * initial version for precise.
 
- -- Christian Parpart <trapni@gmail.com>  Sun, 13 Apr 2014 21:45:53 -0100
+ -- Christian Parpart <christian@parpart.family>  Sun, 13 Apr 2014 21:45:53 -0100
 
 x0 (0.9.0-1) trusty; urgency=medium
 
   * package version bump
   * adds x0d bash completion to x0d .deb
 
- -- Christian Parpart <trapni@gmail.com>  Sun, 13 Apr 2014 21:45:53 -0100
+ -- Christian Parpart <christian@parpart.family>  Sun, 13 Apr 2014 21:45:53 -0100
 
 x0 (0.8.0-8) trusty; urgency=medium
 
   * contain latest fixes in 0.8-branch
 
- -- Christian Parpart <trapni@gmail.com>  Mon, 24 Mar 2014 10:15:54 -0100
+ -- Christian Parpart <christian@parpart.family>  Mon, 24 Mar 2014 10:15:54 -0100
 
 x0 (0.8.0-7) trusty; urgency=medium
 
   * source archive cleanup
 
- -- Christian Parpart <trapni@gmail.com>  Sat, 22 Mar 2014 13:30:00 -0100
+ -- Christian Parpart <christian@parpart.family>  Sat, 22 Mar 2014 13:30:00 -0100
 
 x0 (0.8.0-6) trusty; urgency=medium
 
   * i386 arch build fix
 
- -- Christian Parpart <trapni@gmail.com>  Sat, 22 Mar 2014 12:30:00 -0100
+ -- Christian Parpart <christian@parpart.family>  Sat, 22 Mar 2014 12:30:00 -0100
 
 x0 (0.8.0-5) trusty; urgency=medium
 
   * adds /etc/default/x0d file with reasonable defaults for the x0d upstart script
 
- -- Christian Parpart <trapni@gmail.com>  Sat, 22 Mar 2014 11:30:00 -0100
+ -- Christian Parpart <christian@parpart.family>  Sat, 22 Mar 2014 11:30:00 -0100
 
 x0 (0.8.0-4) trusty; urgency=medium
 
@@ -83,25 +83,25 @@ x0 (0.8.0-4) trusty; urgency=medium
   * improved x0d.conf manual page
   * exports `log.diag(string)` shared function to config API
 
- -- Christian Parpart <trapni@gmail.com>  Sat, 22 Mar 2014 10:30:00 -0100
+ -- Christian Parpart <christian@parpart.family>  Sat, 22 Mar 2014 10:30:00 -0100
 
 x0 (0.8.0-3) trusty; urgency=medium
 
   * fixes empty package x0d-plugins
 
- -- Christian Parpart <trapni@gmail.com>  Sat, 22 Mar 2014 09:30:00 -0100
+ -- Christian Parpart <christian@parpart.family>  Sat, 22 Mar 2014 09:30:00 -0100
 
 x0 (0.8.0-2) trusty; urgency=medium
 
   * dependency fixes
 
- -- Christian Parpart <trapni@gmail.com>  Sat, 22 Mar 2014 09:30:00 -0100
+ -- Christian Parpart <christian@parpart.family>  Sat, 22 Mar 2014 09:30:00 -0100
 
 x0 (0.8.0-1) trusty; urgency=low
 
   * version bump
 
- -- Christian Parpart <trapni@gmail.com>  Fri, 21 Mar 2014 09:30:00 -0100
+ -- Christian Parpart <christian@parpart.family>  Fri, 21 Mar 2014 09:30:00 -0100
 
 x0 (0.7.0) unstable; urgency=low
 

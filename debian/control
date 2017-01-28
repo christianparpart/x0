@@ -1,7 +1,7 @@
 Source: x0
 Section: httpd
 Priority: optional
-Maintainer: Christian Parpart <trapni@gmail.com>
+Maintainer: Christian Parpart <christian@parpart.family>
 Build-Depends:
   debhelper (>= 9),
   automake,

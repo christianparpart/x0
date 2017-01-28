@@ -482,7 +482,7 @@ The case label that matches the first will be the selected branch of execution.
 
 =head1 AUTHOR
 
-The B<Flow> language is designed and implemented by Christian Parpart <trapni@gmail.com> for
+The B<Flow> language is designed and implemented by Christian Parpart <christian@parpart.family> for
 the x0 (Xzero) HTTP web server project to provide a very flexible and runtime-efficient
 configuration syntax.
 

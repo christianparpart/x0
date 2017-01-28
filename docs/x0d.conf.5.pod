@@ -1436,7 +1436,7 @@ still considered B<experimental>. Please provide feedback.
 
 =head1 AUTHOR
 
-B<x0d> (daemon, core framework, and plugins) is written by Christian Parpart <trapni@gmail.com>
+B<x0d> (daemon, core framework, and plugins) is written by Christian Parpart <christian@parpart.family>
 
 =head1 SEE ALSO
 

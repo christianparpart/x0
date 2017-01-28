@@ -133,7 +133,7 @@ LICENSE
 -------
 
 ```
-Copyright (c) 2009-2014 Christian Parpart <trapni@gmail.com>
+Copyright (c) 2009-2014 Christian Parpart <christian@parpart.family>
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal

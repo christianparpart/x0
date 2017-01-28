@@ -32,7 +32,7 @@ branches:
     - master
 notifications:
   recipients:
-    - trapni@gmail.com
+    - christian@parpart.family
   email:
     on_success: change
     on_failure: always

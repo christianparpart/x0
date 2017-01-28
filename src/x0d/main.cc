@@ -1,5 +1,5 @@
 // This file is part of the "x0" project, http://github.com/christianparpart/x0>
-//   (c) 2009-2016 Christian Parpart <trapni@gmail.com>
+//   (c) 2009-2016 Christian Parpart <christian@parpart.family>
 //
 // Licensed under the MIT License (the "License"); you may not use this
 // file except in compliance with the License. You may obtain a copy of
@@ -28,7 +28,7 @@ void printVersion() {
   std::cout
     << "x0d: Xzero HTTP Web Server " PACKAGE_VERSION
         << " [" PACKAGE_URL "]" << std::endl
-    << "Copyright (c) 2009-2015 by Christian Parpart <trapni@gmail.com>" << std::endl;
+    << "Copyright (c) 2009-2015 by Christian Parpart <christian@parpart.family>" << std::endl;
 }
 
 void printHelp(const CLI& cli) {

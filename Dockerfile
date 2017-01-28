@@ -1,5 +1,5 @@
 FROM ubuntu:16.04
-MAINTAINER Christian Parpart <trapni@gmail.com>
+MAINTAINER Christian Parpart <christian@parpart.family>
 
 ENV DEBIAN_FRONTEND="noninteractive" \
     DOCROOT="/var/www" \

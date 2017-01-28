@@ -1,5 +1,5 @@
 // This file is part of the "x0" project, http://github.com/christianparpart/x0>
-//   (c) 2009-2016 Christian Parpart <trapni@gmail.com>
+//   (c) 2009-2016 Christian Parpart <christian@parpart.family>
 //
 // Licensed under the MIT License (the "License"); you may not use this
 // file except in compliance with the License. You may obtain a copy of
@@ -130,7 +130,7 @@ int XUrl::run(int argc, const char* argv[]) {
     std::cerr
       << "xurl: Xzero HTTP Client" PACKAGE_VERSION
           << " [" PACKAGE_HOMEPAGE_URL "]" << std::endl
-      << "Copyright (c) 2009-2015 by Christian Parpart <trapni@gmail.com>" << std::endl
+      << "Copyright (c) 2009-2015 by Christian Parpart <christian@parpart.family>" << std::endl
       << std::endl
       << "Usage: xurl [options ...]" << std::endl
       << std::endl
