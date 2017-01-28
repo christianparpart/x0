@@ -8,6 +8,8 @@
 #pragma once
 // Inspired by Mesos' libprocess Result<>
 
+#include <string>
+
 struct _FailureMessage {
   explicit _FailureMessage(const std::string& msg) : message(msg) {}
   explicit _FailureMessage(std::string&& msg) : message(std::move(msg)) {}
