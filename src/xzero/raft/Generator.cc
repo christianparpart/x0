@@ -11,135 +11,65 @@
 namespace xzero {
 namespace raft {
 
-const size_t SizeTerm = sizeof(uint32_t);
-//...
+protobuf::WireGenerator::ChunkWriter BufferWriter(Buffer* output) {
+  return [output](const uint8_t* data, size_t len) {
+    output->push_back(data, len);
+  };
+}
 
-Generator::Generator(EndPointWriter* output) : output_(output) {
+Generator::Generator(EndPointWriter* output)
+  : buffer_(),
+    wire_(BufferWriter(&buffer_)),
+    output_(output) {
 }
 
 void Generator::generateVoteRequest(const VoteRequest& msg) {
-  generateFrameHeader(MessageType::VoteRequest,
-                      sizeof(msg.term) +
-                      sizeof(msg.candidateId) +
-                      sizeof(msg.lastLogIndex) +
-                      sizeof(msg.lastLogTerm));
-  writeTerm(msg.term);
-  writeId(msg.candidateId);
-  writeIndex(msg.lastLogIndex);
-  writeTerm(msg.lastLogTerm);
+  wire_.generateVarUInt((unsigned) MessageType::VoteRequest);
+  wire_.generateVarUInt(msg.term);
+  wire_.generateVarUInt(msg.candidateId);
+  wire_.generateVarUInt(msg.lastLogIndex);
+  wire_.generateVarUInt(msg.lastLogTerm);
 }
 
 void Generator::generateVoteResponse(const VoteResponse& msg) {
-  generateFrameHeader(MessageType::VoteResponse,
-                      sizeof(msg.term) +
-                      sizeof(msg.voteGranted));
-  writeTerm(msg.term);
-  writeFlag(msg.voteGranted);
-}
-
-size_t sizeOfLogEntries(const std::vector<std::shared_ptr<LogEntry>>& entries) {
-  size_t total = 0;
-
-  for (const auto& entry: entries) {
-    total += sizeof(uint64_t) + // term
-             sizeof(uint8_t) +  // log type
-             sizeof(uint64_t) + // command size encoded
-             entry->command().size();
-  }
-
-  return total;
+  wire_.generateVarUInt((unsigned) MessageType::VoteResponse);
+  wire_.generateVarUInt(msg.term);
+  wire_.generateVarUInt(msg.voteGranted);
 }
 
 void Generator::generateAppendEntriesRequest(const AppendEntriesRequest& msg) {
-  generateFrameHeader(MessageType::AppendEntriesRequest,
-                      sizeof(msg.term) +
-                      sizeof(msg.leaderId) +
-                      sizeof(msg.prevLogIndex) +
-                      sizeof(msg.prevLogTerm) +
-                      sizeOfLogEntries(msg.entries) +
-                      sizeof(msg.leaderCommit));
+  wire_.generateVarUInt((unsigned) MessageType::AppendEntriesRequest);
+  wire_.generateVarUInt(msg.entries.size());
+
   for (const auto& entry: msg.entries) {
-    writeTerm(entry->term());
-    write8(entry->type());
-    writeByteArray(entry->command());
+    wire_.generateVarUInt(entry->term());
+    wire_.generateVarUInt(entry->type());
+    wire_.generateLengthDelimited(entry->command().data(),
+                                  entry->command().size());
   }
 }
 
 void Generator::generateAppendEntriesResponse(const AppendEntriesResponse& msg) {
-  generateFrameHeader(MessageType::AppendEntriesResponse, 8 + 1);
-  writeTerm(msg.term);
-  writeFlag(msg.success);
+  wire_.generateVarUInt((unsigned) MessageType::AppendEntriesResponse);
+  wire_.generateVarUInt(msg.term);
+  wire_.generateVarUInt(msg.success);
 }
 
 void Generator::generateInstallSnapshotRequest(const InstallSnapshotRequest& msg) {
-  generateFrameHeader(MessageType::InstallSnapshotRequest,
-                      8 + 4 + 8 + 8 + 8 + 8 + msg.data.size() + 1);
+  wire_.generateVarUInt((unsigned) MessageType::InstallSnapshotRequest);
 
-  writeTerm(msg.term);                // 8
-  writeId(msg.leaderId);              // 4
-  writeIndex(msg.lastIncludedIndex);  // 8
-  writeTerm(msg.lastIncludedTerm);    // 8
-  writeSize(msg.offset);              // 8
-  writeByteArray(msg.data);           // 8 + len(data)
-  writeFlag(msg.done);                // 1
+  wire_.generateVarUInt(msg.term);
+  wire_.generateVarUInt(msg.leaderId);
+  wire_.generateVarUInt(msg.lastIncludedIndex);
+  wire_.generateVarUInt(msg.lastIncludedTerm);
+  wire_.generateVarUInt(msg.offset);
+  wire_.generateLengthDelimited(msg.data.data(), msg.data.size());
+  wire_.generateVarUInt(msg.done);
 }
 
 void Generator::generateInstallSnapshotResponse(const InstallSnapshotResponse& msg) {
-  generateFrameHeader(MessageType::InstallSnapshotResponse, 8);
-  writeTerm(msg.term);
-}
-
-void Generator::generateFrameHeader(MessageType id, size_t payloadSize) {
-  write8(static_cast<uint8_t>(id));
-  write64(payloadSize);
-}
-
-void Generator::writeTerm(Term term) {
-  write64(term);
-}
-
-void Generator::writeIndex(Index index) {
-  write64(index);
-}
-
-void Generator::writeId(Id id) {
-  write32(id);
-}
-
-void Generator::writeFlag(bool value) {
-  write8(value ? 1 : 0);
-}
-
-void Generator::writeSize(size_t value) {
-  write64(value);
-}
-
-void Generator::write64(uint64_t value) {
-  write8((value >> 56) & 0xFF);
-  write8((value >> 48) & 0xFF);
-  write8((value >> 40) & 0xFF);
-  write8((value >> 32) & 0xFF);
-
-  write8((value >> 24) & 0xFF);
-  write8((value >> 16) & 0xFF);
-  write8((value >> 8) & 0xFF);
-  write8((value >> 0) & 0xFF);
-}
-
-void Generator::write32(uint64_t value) {
-  write8((value >> 24) & 0xFF);
-  write8((value >> 16) & 0xFF);
-  write8((value >> 8) & 0xFF);
-  write8((value >> 0) & 0xFF);
-}
-
-void Generator::write8(uint8_t value) {
-  buffer_.push_back(&value, sizeof(value));
-}
-
-void Generator::writeByteArray(const std::vector<uint8_t>& data) {
-  write64(data.size());
-  buffer_.push_back(data.data(), data.size());
+  wire_.generateVarUInt((unsigned) MessageType::InstallSnapshotResponse);
+  wire_.generateVarUInt(msg.term);
 }
 
 } // namespace raft

@@ -7,6 +7,7 @@
 #pragma once
 
 #include <xzero/raft/rpc.h>
+#include <xzero/protobuf/WireGenerator.h>
 #include <xzero/Buffer.h>
 
 namespace xzero {
@@ -21,6 +22,7 @@ namespace raft {
 class Generator {
  private:
   Buffer buffer_;
+  protobuf::WireGenerator wire_;
   EndPointWriter* output_;
 
  public:
@@ -43,17 +45,7 @@ class Generator {
     InstallSnapshotResponse = 6,
   };
 
-  void generateFrameHeader(MessageType id, size_t payloadSize);
-  void writeTerm(Term term);
-  void writeIndex(Index index);
-  void writeId(Id id);
-  void writeFlag(bool flag);
-  void writeSize(size_t value);
   void writeByteArray(const std::vector<uint8_t>& data);
-  void write64(uint64_t value);
-  void write32(uint64_t value);
-  void write8(uint8_t value);
-  void writeVarInt(uint64_t value);
   void flushBuffer();
 };
 
