@@ -435,6 +435,8 @@ libXzero_a_SOURCES = \
 	src/xzero/thread/Wakeup.h \
 	src/xzero/time_constants.h \
 	src/xzero/traits.h \
+	src/xzero/util/BinaryReader.cc \
+	src/xzero/util/BinaryWriter.cc \
 	src/xzero/util/BinaryMessageReader.cc \
 	src/xzero/util/BinaryMessageReader.h \
 	src/xzero/util/BinaryMessageWriter.cc \
@@ -595,7 +597,9 @@ xzero_test_SOURCES = \
 	src/xzero/net/ByteArrayEndPoint-test.cc \
 	src/xzero/net/Cidr-test.cc \
 	src/xzero/thread/Future-test.cc \
-	src/xzero/thread/Queue-test.cc
+	src/xzero/thread/Queue-test.cc \
+	src/xzero/util/BinaryReader-test.cc \
+	src/xzero/util/BinaryWriter-test.cc
 
 if PLATFORM_LINUX
 xzero_test_SOURCES += \
