@@ -11,6 +11,7 @@
 #include <stdlib.h>
 #include <stdint.h>
 #include <xzero/Buffer.h>
+#include <functional>
 
 namespace xzero {
 
@@ -56,6 +57,8 @@ public:
   static bool beginsWithIgnoreCase(const BufferRef& str, const BufferRef& prefix);
   static bool endsWith(const BufferRef& data, const BufferRef& suffix);
   static bool endsWithIgnoreCase(const BufferRef& data, const BufferRef& suffix);
+
+  static std::function<void(const uint8_t*, size_t)> writer(Buffer* output);
 };
 
 } // namespace xzero

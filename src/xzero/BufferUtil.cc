@@ -108,4 +108,10 @@ std::string BufferUtil::binPrint(const BufferRef& data, bool spacing) {
   return s;
 }
 
+std::function<void(const uint8_t*, size_t)> BufferUtil::writer(Buffer* output) {
+  return [output](const uint8_t* data, size_t len) {
+    output->push_back(data, len);
+  };
+}
+
 } // namespace xzero
