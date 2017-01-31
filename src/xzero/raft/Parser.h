@@ -53,7 +53,7 @@ class Parser {
   size_t inputOffset_;
   BinaryReader reader_;
 
-  Id fromId_;
+  Id myId_;
   Listener* listener_;
 };
 
