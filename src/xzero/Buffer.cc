@@ -195,30 +195,30 @@ std::string BufferRef::hexdumpPrettyAscii(const void* bytes, size_t length) {
 }
 
 template<> std::string StringUtil::toString(BufferRef value) {
-  return value.str();
+  return StringUtil::sanitizedStr(value);
 }
 
 template<> std::string StringUtil::toString(const BufferRef& value) {
-  return value.str();
+  return StringUtil::sanitizedStr(value);
 }
 
 template<> std::string StringUtil::toString(const Buffer& value) {
-  return value.str();
+  return StringUtil::sanitizedStr(value);
 }
 
 template <>
 std::string StringUtil::toString(const FixedBuffer& value) {
-  return value.str();
+  return StringUtil::sanitizedStr(value);
 }
 
 template <>
 std::string StringUtil::toString(FixedBuffer value) {
-  return value.str();
+  return StringUtil::sanitizedStr(value);
 }
 
 template <>
 std::string StringUtil::toString(Buffer value) {
-  return value.str();
+  return StringUtil::sanitizedStr(value);
 }
 
 }  // namespace xzero
