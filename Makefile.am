@@ -396,6 +396,8 @@ libXzero_a_SOURCES = \
 	src/xzero/raft/Generator.cc \
 	src/xzero/raft/Generator.h \
 	src/xzero/raft/Listener.h \
+	src/xzero/raft/MessageType.cc \
+	src/xzero/raft/MessageType.h \
 	src/xzero/raft/Parser.cc \
 	src/xzero/raft/Parser.h \
 	src/xzero/raft/rpc.cc \
