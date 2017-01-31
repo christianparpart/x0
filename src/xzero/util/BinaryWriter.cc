@@ -13,7 +13,7 @@ BinaryWriter::BinaryWriter(ChunkWriter w)
   : writer_(w) {
 }
 
-void BinaryWriter::generateVarUInt(uint64_t value) {
+void BinaryWriter::writeVarUInt(uint64_t value) {
   uint8_t buf[10];
   size_t n = 0;
 
@@ -29,44 +29,39 @@ void BinaryWriter::generateVarUInt(uint64_t value) {
   writer_(buf, n);
 }
 
-void BinaryWriter::generateVarSInt64(int64_t n) {
-  generateVarUInt((n << 1) ^ (n >> 63));
+void BinaryWriter::writeVarSInt64(int64_t n) {
+  writeVarUInt((n << 1) ^ (n >> 63));
 }
 
-void BinaryWriter::generateVarSInt32(int32_t n) {
-  generateVarUInt((n << 1) ^ (n >> 31));
+void BinaryWriter::writeVarSInt32(int32_t n) {
+  writeVarUInt((n << 1) ^ (n >> 31));
 }
 
-void BinaryWriter::generateFixed64(uint64_t value) {
-  uint32_t n[2] = {
-    htonl(value >> 32),
-    htonl(value & 0xFFFFFFFFu),
-  };
-  writer_((const uint8_t*) &n, 8);
+void BinaryWriter::writeFixed64(uint64_t value) {
+  writer_((const uint8_t*) &value, sizeof(value));
 }
 
-void BinaryWriter::generateFixed32(uint32_t value) {
-  uint32_t n = htonl(value);
-  writer_((const uint8_t*) &n, sizeof(n));
+void BinaryWriter::writeFixed32(uint32_t value) {
+  writer_((const uint8_t*) &value, sizeof(value));
 }
 
-void BinaryWriter::generateDouble(double value) {
+void BinaryWriter::writeDouble(double value) {
   static_assert(sizeof(value) == 8, "sizeof(double) must be 8");
   writer_((const uint8_t*) &value, sizeof(value));
 }
 
-void BinaryWriter::generateFloat(float value) {
+void BinaryWriter::writeFloat(float value) {
   static_assert(sizeof(value) == 4, "sizeof(float) must be 4");
   writer_((const uint8_t*) &value, sizeof(value));
 }
 
-void BinaryWriter::generateLengthDelimited(const uint8_t* data, size_t length) {
-  generateVarUInt(length);
+void BinaryWriter::writeLengthDelimited(const uint8_t* data, size_t length) {
+  writeVarUInt(length);
   writer_(data, length);
 }
 
-void BinaryWriter::generateString(const std::string& str) {
-  generateLengthDelimited((const uint8_t*) str.data(), str.size());
+void BinaryWriter::writeString(const std::string& str) {
+  writeLengthDelimited((const uint8_t*) str.data(), str.size());
 }
 
 } // namespace xzero

@@ -6,8 +6,6 @@
 // the License at: http://opensource.org/licenses/MIT
 #pragma once
 
-#include <xzero/protobuf/WireType.h>
-
 #include <functional>
 #include <string>
 #include <cstdint>
@@ -23,17 +21,20 @@ class BinaryWriter {
 
   explicit BinaryWriter(ChunkWriter writer);
 
-  void generateVarUInt(uint64_t value);
-  void generateVarSInt64(int64_t value);
-  void generateVarSInt32(int32_t value);
-  void generateFixed64(uint64_t value);
-  void generateFixed32(uint32_t value);
-  void generateDouble(double value);
-  void generateFloat(float value);
-  void generateLengthDelimited(const uint8_t* data, size_t length);
+  void writeVarUInt(uint64_t value);
+  void writeVarSInt64(int64_t value);
+  void writeVarSInt32(int32_t value);
+
+  void writeFixed64(uint64_t value);
+  void writeFixed32(uint32_t value);
+
+  void writeDouble(double value);
+  void writeFloat(float value);
+
+  void writeLengthDelimited(const uint8_t* data, size_t length);
 
   // helper
-  void generateString(const std::string& str);
+  void writeString(const std::string& str);
 
  private:
   ChunkWriter writer_;

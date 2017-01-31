@@ -16,28 +16,25 @@ using namespace xzero;
 TEST(util_BinaryReader, parseVarUInt) {
   const uint8_t encoded[] = { 0xAC, 0x02 };
   BinaryReader parser(std::begin(encoded), std::end(encoded));
-  uint64_t val;
-  bool success = parser.parseVarUInt(&val);
-  ASSERT_TRUE(success);
-  ASSERT_EQ(300, val);
+  uint64_t val = parser.parseVarUInt();
+  EXPECT_EQ(300, val);
+  EXPECT_TRUE(parser.eof());
 }
 
 TEST(util_BinaryReader, parseVarSInt32) {
   const uint8_t encoded[] = { 0xd7, 0x04 };
   BinaryReader parser(std::begin(encoded), std::end(encoded));
-  int32_t val;
-  bool success = parser.parseVarSInt32(&val);
-  ASSERT_TRUE(success);
+  int32_t val = parser.parseVarSInt32();
   EXPECT_EQ(-300, val);
+  EXPECT_TRUE(parser.eof());
 }
 
 TEST(util_BinaryReader, parseVarSInt64) {
   const uint8_t encoded[] = { 0xff, 0x88, 0x0f };
   BinaryReader parser(std::begin(encoded), std::end(encoded));
-  int64_t val;
-  bool success = parser.parseVarSInt64(&val);
-  ASSERT_TRUE(success);
+  int64_t val = parser.parseVarSInt64();
   EXPECT_EQ(-123456, val);
+  EXPECT_TRUE(parser.eof());
 }
 
 TEST(util_BinaryReader, parseLengthDelimited) {
@@ -45,19 +42,28 @@ TEST(util_BinaryReader, parseLengthDelimited) {
     0x07, 0x74, 0x65, 0x73, 0x74, 0x69, 0x6e, 0x67
   };
   BinaryReader parser(std::begin(encoded), std::end(encoded));
-  BufferRef val;
-  bool success = parser.parseLengthDelimited(&val);
-  ASSERT_TRUE(success);
+  BufferRef val = parser.parseLengthDelimited();
   logf("parsed value: $0", val);
   EXPECT_EQ("testing", val);
+  EXPECT_TRUE(parser.eof());
 }
 
 TEST(util_BinaryReader, parseFixed64) {
-  // TODO
+  const uint8_t encoded[] = { 0x08, 0x07, 0x06, 0x05, 0x04, 0x03, 0x02, 0x01 };
+  BinaryReader parser(std::begin(encoded), std::end(encoded));
+  uint64_t val = parser.parseFixed64();
+  logf("parsed value: $0", val);
+  EXPECT_EQ(0x0102030405060708llu, val);
+  EXPECT_TRUE(parser.eof());
 }
 
 TEST(util_BinaryReader, parseFixed32) {
-  // TODO
+  const uint8_t encoded[] = { 0x04, 0x03, 0x02, 0x01 };
+  BinaryReader parser(std::begin(encoded), std::end(encoded));
+  uint32_t val = parser.parseFixed32();
+  logf("parsed value: $0", val);
+  EXPECT_EQ(0x01020304lu, val);
+  EXPECT_TRUE(parser.eof());
 }
 
 TEST(util_BinaryReader, parseDouble) {
@@ -65,10 +71,9 @@ TEST(util_BinaryReader, parseDouble) {
     0x1f, 0x85, 0xeb, 0x51, 0xb8, 0x1e, 0x09, 0x40
   };
   BinaryReader parser(std::begin(encoded), std::end(encoded));
-  double val;
-  bool success = parser.parseDouble(&val);
-  ASSERT_TRUE(success);
+  double val = parser.parseDouble();
   EXPECT_EQ(3.14, val);
+  EXPECT_TRUE(parser.eof());
 }
 
 TEST(util_BinaryReader, parseFloat) {
@@ -76,10 +81,9 @@ TEST(util_BinaryReader, parseFloat) {
     0xc3, 0xf5, 0x48, 0x40
   };
   BinaryReader parser(std::begin(encoded), std::end(encoded));
-  float val;
-  bool success = parser.parseFloat(&val);
-  ASSERT_TRUE(success);
+  float val = parser.parseFloat();
   EXPECT_EQ(3.14f, val);
+  EXPECT_TRUE(parser.eof());
 }
 
 TEST(util_BinaryReader, parseString) {
@@ -87,8 +91,7 @@ TEST(util_BinaryReader, parseString) {
     0x07, 0x74, 0x65, 0x73, 0x74, 0x69, 0x6e, 0x67
   };
   BinaryReader parser(std::begin(encoded), std::end(encoded));
-  std::string val;
-  bool success = parser.parseString(&val);
-  ASSERT_TRUE(success);
+  std::string val = parser.parseString();
   ASSERT_EQ("testing", val);
+  EXPECT_TRUE(parser.eof());
 }

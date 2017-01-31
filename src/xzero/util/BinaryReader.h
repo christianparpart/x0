@@ -6,8 +6,8 @@
 // the License at: http://opensource.org/licenses/MIT
 #pragma once
 
-#include <xzero/Result.h>
 #include <xzero/Buffer.h>
+#include <xzero/Option.h>
 
 #include <string>
 #include <cstdint>
@@ -19,22 +19,28 @@ namespace xzero {
  */
 class BinaryReader {
  public:
-  BinaryReader(const uint8_t* begin, const uint8_t* end); 
+  BinaryReader();
+  BinaryReader(const uint8_t* begin, const uint8_t* end);
   BinaryReader(const uint8_t* data, size_t length);
+  BinaryReader(const BufferRef& data);
 
-  bool parseVarUInt(uint64_t* output);
-  bool parseVarSInt64(int64_t* output);
-  bool parseVarSInt32(int32_t* output);
-  bool parseLengthDelimited(BufferRef* output);
-  bool parseFixed64(uint64_t* output);
-  bool parseFixed32(uint32_t* output);
-  bool parseDouble(double* output);
-  bool parseFloat(float* output);
+  void reset(const BufferRef& data);
+
+  Option<uint64_t> tryParseVarUInt();
+  uint64_t parseVarUInt();
+  int64_t parseVarSInt64();
+  int32_t parseVarSInt32();
+  BufferRef parseLengthDelimited();
+  uint64_t parseFixed64();
+  uint32_t parseFixed32();
+  double parseDouble();
+  float parseFloat();
 
   // helper
-  bool parseString(std::string* output);
+  std::string parseString();
 
   bool eof() const noexcept;
+  size_t pending() const noexcept;
 
  private:
   const uint8_t* begin_;
@@ -42,12 +48,25 @@ class BinaryReader {
 };
 
 // inlines
+inline BinaryReader::BinaryReader() :
+  BinaryReader(nullptr, nullptr) {
+}
+
 inline BinaryReader::BinaryReader(const uint8_t* data, size_t length) :
   BinaryReader(data, data + length) {
 }
 
+inline void BinaryReader::reset(const BufferRef& data) {
+  begin_ = (const uint8_t*) data.begin();
+  end_ = (const uint8_t*) data.end();
+}
+
 inline bool BinaryReader::eof() const noexcept {
   return begin_ == end_;
+}
+
+inline size_t BinaryReader::pending() const noexcept {
+  return end_ - begin_;
 }
 
 } // namespace xzero
