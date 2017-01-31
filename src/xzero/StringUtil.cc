@@ -6,6 +6,8 @@
 // the License at: http://opensource.org/licenses/MIT
 
 #include <string>
+#include <sstream>
+#include <iomanip>
 #include <xzero/RuntimeError.h>
 #include <xzero/BufferUtil.h>
 #include <xzero/StringUtil.h>
@@ -509,6 +511,46 @@ std::string StringUtil::stripShell(const std::string& str) {
   }
 
   return out;
+}
+
+std::string StringUtil::sanitizedStr(const std::string& str) {
+  return sanitizedStr(str.data(), str.data() + str.size());
+}
+
+std::string StringUtil::sanitizedStr(const BufferRef& buffer) {
+  return sanitizedStr(buffer.begin(), buffer.end());
+}
+
+std::string StringUtil::sanitizedStr(const char* begin, const char* end) {
+  std::stringstream sstr;
+
+  while (begin != end) {
+    unsigned char ch = (unsigned char) *begin;
+    ++begin;
+
+    if (!std::isprint(ch)) {
+      char buf[5];
+      snprintf(buf, sizeof(buf), "\\x%02x", (unsigned) ch);
+      sstr << buf;
+    } else {
+      switch (ch) {
+        case '\t':
+          sstr << "\\t";
+          break;
+        case '\r':
+          sstr << "\\r";
+          break;
+        case '\n':
+          sstr << "\\n";
+          break;
+        default:
+          sstr << ch;
+          break;
+      }
+    }
+  }
+
+  return sstr.str();
 }
 
 } // namespace xzero

@@ -8,6 +8,8 @@
 #ifndef _XZERO_BASE_STRINGUTIL_H_
 #define _XZERO_BASE_STRINGUTIL_H_
 
+#include <xzero/Buffer.h>
+
 #include <stdlib.h>
 #include <stdint.h>
 #include <string>
@@ -380,6 +382,10 @@ public:
 
   static std::wstring convertUTF8To16(const std::string& str);
   static std::string convertUTF16To8(const std::wstring& str);
+
+  static std::string sanitizedStr(const std::string& str);
+  static std::string sanitizedStr(const BufferRef& buffer);
+  static std::string sanitizedStr(const char* begin, const char* end);
 
 protected:
 
