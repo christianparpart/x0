@@ -7,6 +7,7 @@
 #pragma once
 
 #include <xzero/raft/rpc.h>
+#include <xzero/Result.h>
 #include <cstdint>
 #include <vector>
 #include <memory>
@@ -47,7 +48,7 @@ class Storage {
   virtual bool appendLogEntry(const LogEntry& entry) = 0;
 
   //! loads the LogEntry from given @p index and stores it in @p log.
-  virtual std::shared_ptr<LogEntry> getLogEntry(Index index) = 0;
+  virtual Result<LogEntry> getLogEntry(Index index) = 0;
 
   //! Deletes any log entry starting after @p last index.
   virtual void truncateLog(Index last) = 0;
@@ -67,11 +68,6 @@ class Storage {
   virtual bool loadSnapshot(std::unique_ptr<std::ostream>&& state, Term* term, Index* lastIndex) = 0;
 };
 
-class AbstractStorage : public Storage {
- public:
-  std::shared_ptr<LogEntry> getLogTail();
-};
-
 /**
  * An in-memory based storage engine (use it only for testing!).
  *
@@ -87,7 +83,7 @@ class MemoryStore : public Storage {
 
   Index latestIndex() override;
   bool appendLogEntry(const LogEntry& log) override;
-  std::shared_ptr<LogEntry> getLogEntry(Index index) override;
+  Result<LogEntry> getLogEntry(Index index) override;
   void truncateLog(Index last) override;
 
   bool saveSnapshot(std::unique_ptr<std::istream>&& state, Term term, Index lastIndex) override;
@@ -95,7 +91,7 @@ class MemoryStore : public Storage {
 
  private:
   Term currentTerm_;
-  std::vector<std::shared_ptr<LogEntry>> log_;
+  std::vector<LogEntry> log_;
 
   Term snapshottedTerm_;
   Index snapshottedIndex_;

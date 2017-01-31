@@ -12,15 +12,6 @@
 namespace xzero {
 namespace raft {
 
-// {{{ AbstractStorage
-std::shared_ptr<LogEntry> AbstractStorage::getLogTail() {
-  if (Index index = latestIndex()) {
-    return getLogEntry(index);
-  } else {
-    return nullptr;
-  }
-}
-// }}}
 // {{{ MemoryStore
 MemoryStore::MemoryStore()
     : currentTerm_(),
@@ -30,7 +21,7 @@ MemoryStore::MemoryStore()
       snapshotData_() {
 
   // log with index 0 is invalid. logs start with index 1
-  log_.push_back(std::make_shared<LogEntry>());
+  log_.push_back(LogEntry());
 }
 
 std::error_code MemoryStore::initialize(Id* id, Term* term) {
@@ -54,15 +45,15 @@ Index MemoryStore::latestIndex() {
 }
 
 bool MemoryStore::appendLogEntry(const LogEntry& log) {
-  log_.push_back(std::shared_ptr<LogEntry>(new LogEntry(log)));
+  log_.emplace_back(log);
   return true;
 }
 
-std::shared_ptr<LogEntry> MemoryStore::getLogEntry(Index index) {
+Result<LogEntry> MemoryStore::getLogEntry(Index index) {
   // XXX we also support returning log[0] as this has a term of 0 and no command.
   // assert(index >= 1 && index <= latestIndex());
 
-  return log_[index];
+  return Result<LogEntry>(log_[index]);
 }
 
 void MemoryStore::truncateLog(Index last) {

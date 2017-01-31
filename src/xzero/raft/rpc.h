@@ -17,16 +17,6 @@ typedef uint32_t Id;   // must not be 0
 typedef uint64_t Term;
 typedef uint64_t Index;
 
-enum class MessageType {
-  RequestVote,
-  AppendEntries,
-  InstallSnapshot,
-};
-
-struct Request {
-  MessageType requestType;
-};
-
 /**
  * The interface to the command that can modify the systems finite state machine.
  *
@@ -44,10 +34,8 @@ enum LogType {
  * A single immutable log entry in the log.
  */
 class LogEntry {
- private:
-  LogEntry(Term term, LogType type, Command&& cmd);
-
  public:
+  LogEntry(Term term, LogType type, Command&& cmd);
   LogEntry(Term term, Command&& cmd);
   LogEntry(Term term, LogType type);
   LogEntry(Term term);
@@ -83,8 +71,8 @@ struct AppendEntriesRequest {
   Id leaderId;                   // so follower can redirect clients
   Index prevLogIndex;            // index of log entry immediately proceding new ones
   Term prevLogTerm;              // term of prevLogIndex entry
-  std::vector<std::shared_ptr<LogEntry>> entries; // log entries to store (empty for heartbeat; may send more than one for efficiency)
   Index leaderCommit;            // leader's commitIndex
+  std::vector<LogEntry> entries; // log entries to store (empty for heartbeat; may send more than one for efficiency)
 };
 
 struct AppendEntriesResponse {

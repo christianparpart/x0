@@ -329,12 +329,12 @@ void Server::receive(Id peerId, const AppendEntriesRequest& req) {
   //    but different terms), delete the existing entry and all that
   //    follow it (§5.3)
   Index index = req.prevLogIndex + 1;
-  if (!req.entries.empty() && getLogTerm(req.prevLogIndex + req.entries.size()) != req.entries.back()->term()) {
-    for (const std::shared_ptr<LogEntry>& entry: req.entries) {
-      if (entry->term() != getLogTerm(index)) {
+  if (!req.entries.empty() && getLogTerm(req.prevLogIndex + req.entries.size()) != req.entries.back().term()) {
+    for (const LogEntry& entry: req.entries) {
+      if (entry.term() != getLogTerm(index)) {
         logDebug("raft.Server",
                  "AppendEntriesRequest: truncating at index %llu, local term %llu, leader term %llu\n",
-                 getLogTerm(index), entry->term());
+                 getLogTerm(index), entry.term());
         storage_->truncateLog(index);
         break;
       }
@@ -345,7 +345,7 @@ void Server::receive(Id peerId, const AppendEntriesRequest& req) {
   // 4. Append any new entries not already in the log
   Index lastIndex = req.prevLogIndex + req.entries.size();
   while (index <= lastIndex) {
-    storage_->appendLogEntry(*req.entries[index]);
+    storage_->appendLogEntry(req.entries[index]);
     index++;
   }
 
@@ -462,9 +462,9 @@ void Server::replicateLogsTo(Id peerId) {
   // AppendEntries RPC with log entries starting at nextIndex
   Index nextIndex = nextIndex_[peerId];
   if (latestIndex() >= nextIndex) {
-    std::vector<std::shared_ptr<LogEntry>> entries;
+    std::vector<LogEntry> entries;
     for (int i = 0; nextIndex + i <= latestIndex(); ++i) {
-      entries.emplace_back(storage_->getLogEntry(nextIndex + i));
+      entries.emplace_back(*storage_->getLogEntry(nextIndex + i));
     }
 
     transport_->send(peerId, AppendEntriesRequest{
@@ -486,7 +486,8 @@ void Server::applyLogs() {
   // log[lastApplied] to state machine (§5.3)
   while (commitIndex_ > lastApplied_) {
     lastApplied_++;
-    std::shared_ptr<LogEntry> logEntry = storage_->getLogEntry(lastApplied_);
+    Result<LogEntry> logEntry = storage_->getLogEntry(lastApplied_);
+    // TODO: check for logEntry.isFailure()
     stateMachine_->applyCommand(logEntry->command());
   }
 }
@@ -536,10 +537,10 @@ void Server::FollowerChannel::wakeup() {
 
 void Server::FollowerChannel::sendPendingMessages() {
   const Index lastIndex = nextIndex_;
-  std::vector<std::shared_ptr<LogEntry>> entries;
+  std::vector<LogEntry> entries;
 
   for (Index i = nextIndex_; i <= lastIndex; i++) {
-    std::shared_ptr<LogEntry> entry = server_->storage()->getLogEntry(nextIndex_);
+    Result<LogEntry> entry = server_->storage()->getLogEntry(nextIndex_);
     if (!entry) {
       return;
     }

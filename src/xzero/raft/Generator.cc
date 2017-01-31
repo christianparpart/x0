@@ -6,74 +6,68 @@
 // the License at: http://opensource.org/licenses/MIT
 #include <xzero/raft/rpc.h>
 #include <xzero/raft/Generator.h>
+#include <xzero/raft/MessageType.h>
 #include <xzero/net/EndPointWriter.h>
 
 namespace xzero {
 namespace raft {
 
-protobuf::WireGenerator::ChunkWriter BufferWriter(Buffer* output) {
-  return [output](const uint8_t* data, size_t len) {
-    output->push_back(data, len);
-  };
-}
-
-Generator::Generator(EndPointWriter* output)
-  : buffer_(),
-    wire_(BufferWriter(&buffer_)),
-    output_(output) {
+Generator::Generator(ChunkWriter writer)
+  : wire_(writer) {
 }
 
 void Generator::generateVoteRequest(const VoteRequest& msg) {
-  wire_.generateVarUInt((unsigned) MessageType::VoteRequest);
-  wire_.generateVarUInt(msg.term);
-  wire_.generateVarUInt(msg.candidateId);
-  wire_.generateVarUInt(msg.lastLogIndex);
-  wire_.generateVarUInt(msg.lastLogTerm);
+  wire_.writeVarUInt((unsigned) MessageType::VoteRequest);
+  wire_.writeVarUInt(msg.term);
+  wire_.writeVarUInt(msg.candidateId);
+  wire_.writeVarUInt(msg.lastLogIndex);
+  wire_.writeVarUInt(msg.lastLogTerm);
 }
 
 void Generator::generateVoteResponse(const VoteResponse& msg) {
-  wire_.generateVarUInt((unsigned) MessageType::VoteResponse);
-  wire_.generateVarUInt(msg.term);
-  wire_.generateVarUInt(msg.voteGranted);
+  wire_.writeVarUInt((unsigned) MessageType::VoteResponse);
+  wire_.writeVarUInt(msg.term);
+  wire_.writeVarUInt(msg.voteGranted);
 }
 
 void Generator::generateAppendEntriesRequest(const AppendEntriesRequest& msg) {
-  wire_.generateVarUInt((unsigned) MessageType::AppendEntriesRequest);
-  wire_.generateVarUInt(msg.entries.size());
+  wire_.writeVarUInt((unsigned) MessageType::AppendEntriesRequest);
+  wire_.writeVarUInt(msg.term);
+  wire_.writeVarUInt(msg.leaderId);
+  wire_.writeVarUInt(msg.prevLogIndex);
+  wire_.writeVarUInt(msg.prevLogTerm);
+  wire_.writeVarUInt(msg.leaderCommit);
+  wire_.writeVarUInt(msg.entries.size());
 
   for (const auto& entry: msg.entries) {
-    wire_.generateVarUInt(entry->term());
-    wire_.generateVarUInt(entry->type());
-    wire_.generateLengthDelimited(entry->command().data(),
-                                  entry->command().size());
+    wire_.writeVarUInt(entry.term());
+    wire_.writeVarUInt(entry.type());
+    wire_.writeLengthDelimited(entry.command().data(),
+                               entry.command().size());
   }
 }
 
 void Generator::generateAppendEntriesResponse(const AppendEntriesResponse& msg) {
-  wire_.generateVarUInt((unsigned) MessageType::AppendEntriesResponse);
-  wire_.generateVarUInt(msg.term);
-  wire_.generateVarUInt(msg.success);
+  wire_.writeVarUInt((unsigned) MessageType::AppendEntriesResponse);
+  wire_.writeVarUInt(msg.term);
+  wire_.writeVarUInt(msg.success);
 }
 
 void Generator::generateInstallSnapshotRequest(const InstallSnapshotRequest& msg) {
-  wire_.generateVarUInt((unsigned) MessageType::InstallSnapshotRequest);
+  wire_.writeVarUInt((unsigned) MessageType::InstallSnapshotRequest);
 
-  wire_.generateVarUInt(msg.term);
-  wire_.generateVarUInt(msg.leaderId);
-  wire_.generateVarUInt(msg.lastIncludedIndex);
-  wire_.generateVarUInt(msg.lastIncludedTerm);
-  wire_.generateVarUInt(msg.offset);
-  wire_.generateLengthDelimited(msg.data.data(), msg.data.size());
-  wire_.generateVarUInt(msg.done);
+  wire_.writeVarUInt(msg.term);
+  wire_.writeVarUInt(msg.leaderId);
+  wire_.writeVarUInt(msg.lastIncludedIndex);
+  wire_.writeVarUInt(msg.lastIncludedTerm);
+  wire_.writeVarUInt(msg.offset);
+  wire_.writeLengthDelimited(msg.data.data(), msg.data.size());
+  wire_.writeVarUInt(msg.done);
 }
 
 void Generator::generateInstallSnapshotResponse(const InstallSnapshotResponse& msg) {
-  wire_.generateVarUInt((unsigned) MessageType::InstallSnapshotResponse);
-  wire_.generateVarUInt(msg.term);
-}
-
-void Generator::flushBuffer() {
-  output_->write(std::move(buffer_));
+  wire_.writeVarUInt((unsigned) MessageType::InstallSnapshotResponse);
+  wire_.writeVarUInt(msg.term);
 }
 
 } // namespace raft

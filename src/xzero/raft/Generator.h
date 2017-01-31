@@ -7,8 +7,9 @@
 #pragma once
 
 #include <xzero/raft/rpc.h>
-#include <xzero/protobuf/WireGenerator.h>
+#include <xzero/util/BinaryWriter.h>
 #include <xzero/Buffer.h>
+#include <cstdint>
 
 namespace xzero {
 
@@ -20,13 +21,11 @@ namespace raft {
  * @brief API for generating binary message frames for the Raft protocol.
  */
 class Generator {
- private:
-  Buffer buffer_;
-  protobuf::WireGenerator wire_;
-  EndPointWriter* output_;
+ public:
+  typedef std::function<void(const uint8_t*, size_t)> ChunkWriter;
 
  public:
-  explicit Generator(EndPointWriter* output);
+  explicit Generator(ChunkWriter writer);
 
   void generateVoteRequest(const VoteRequest& msg);
   void generateVoteResponse(const VoteResponse& msg);
@@ -36,16 +35,7 @@ class Generator {
   void generateInstallSnapshotResponse(const InstallSnapshotResponse& msg);
 
  private:
-  enum class MessageType : uint8_t {
-    VoteRequest = 1,
-    VoteResponse = 2,
-    AppendEntriesRequest = 3,
-    AppendEntriesResponse = 4,
-    InstallSnapshotRequest = 5,
-    InstallSnapshotResponse = 6,
-  };
-
-  void flushBuffer();
+  BinaryWriter wire_;
 };
 
 } // namespace raft
