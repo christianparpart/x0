@@ -554,6 +554,7 @@ xzero_test_SOURCES = \
 	src/xzero/MimeTypes-test.cc \
 	src/xzero/Option-test.cc \
 	src/xzero/raft/Generator-test.cc \
+	src/xzero/raft/Parser-test.cc \
 	src/xzero/raft/Server-test.cc \
 	src/xzero/raft/ServerUtil-test.cc \
 	src/xzero/RefPtr-test.cc \

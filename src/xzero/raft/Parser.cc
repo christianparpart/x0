@@ -28,15 +28,16 @@ unsigned Parser::parseFragment(const uint8_t* chunk, size_t size) {
   while (parseFrame())
     messageCount++;
 
-  inputOffset_ = inputBuffer_.size() - reader_.pending();
-
   return messageCount;
 }
 
 bool Parser::parseFrame() {
-  reader_.reset(availableBytes());
+  reader_.reset(inputBuffer_.ref(inputOffset_));
 
   Option<uint64_t> payloadLen = reader_.tryParseVarUInt();
+  if (payloadLen.isNone())
+    return false;
+
   if (reader_.pending() < *payloadLen)
     return false;
 
@@ -54,6 +55,7 @@ bool Parser::parseFrame() {
       break;
     case MessageType::AppendEntriesResponse:
       parseAppendEntriesResponse();
+      break;
     case MessageType::InstallSnapshotRequest:
       parseInstallSnapshotRequest();
       break;
@@ -63,6 +65,9 @@ bool Parser::parseFrame() {
     default:
       RAISE(ProtocolError, "Invalid message type.");
   }
+
+  inputOffset_ = inputBuffer_.size() - reader_.pending();
+
   return true;
 }
 
@@ -124,7 +129,7 @@ void Parser::parseInstallSnapshotRequest() {
   Index lastIncludedIndex = static_cast<Index>(reader_.parseVarUInt());
   Term lastIncludedTerm = static_cast<Term>(reader_.parseVarUInt());
   size_t offset = static_cast<size_t>(reader_.parseVarUInt());
-  std::vector<uint8_t> data = (std::vector<uint8_t>) reader_.parseLengthDelimited();
+  std::vector<uint8_t> data = reader_.parseLengthDelimited();
   bool done = static_cast<bool>(reader_.parseVarUInt());
 
   listener_->receive(myId_, InstallSnapshotRequest{

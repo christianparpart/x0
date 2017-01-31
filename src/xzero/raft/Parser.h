@@ -37,7 +37,7 @@ class Parser {
    */
   unsigned parseFragment(const uint8_t* chunk, size_t size);
 
-  BufferRef availableBytes() const;
+  unsigned parseFragment(const BufferRef& chunk);
 
  private:
   bool parseFrame();
@@ -57,8 +57,8 @@ class Parser {
   Listener* listener_;
 };
 
-inline BufferRef Parser::availableBytes() const {
-  return inputBuffer_.ref(inputOffset_);
+inline unsigned Parser::parseFragment(const BufferRef& chunk) {
+  return parseFragment((const uint8_t*) chunk.data(), chunk.size());
 }
 
 } // namespace raft
