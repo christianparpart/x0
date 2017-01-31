@@ -30,7 +30,7 @@ class BinaryReader {
   uint64_t parseVarUInt();
   int64_t parseVarSInt64();
   int32_t parseVarSInt32();
-  BufferRef parseLengthDelimited();
+  std::vector<uint8_t> parseLengthDelimited();
   uint64_t parseFixed64();
   uint32_t parseFixed32();
   double parseDouble();
@@ -54,6 +54,11 @@ inline BinaryReader::BinaryReader() :
 
 inline BinaryReader::BinaryReader(const uint8_t* data, size_t length) :
   BinaryReader(data, data + length) {
+}
+
+inline BinaryReader::BinaryReader(const BufferRef& data)
+  : BinaryReader((const uint8_t*) data.begin(),
+                 (const uint8_t*) data.end()) {
 }
 
 inline void BinaryReader::reset(const BufferRef& data) {

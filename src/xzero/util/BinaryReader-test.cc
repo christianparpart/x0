@@ -38,13 +38,14 @@ TEST(util_BinaryReader, parseVarSInt64) {
 }
 
 TEST(util_BinaryReader, parseLengthDelimited) {
-  const uint8_t encoded[] = {
-    0x07, 0x74, 0x65, 0x73, 0x74, 0x69, 0x6e, 0x67
-  };
+  const uint8_t encoded[] = { 4, 0, 1, 2, 3 };
   BinaryReader parser(std::begin(encoded), std::end(encoded));
-  BufferRef val = parser.parseLengthDelimited();
-  logf("parsed value: $0", val);
-  EXPECT_EQ("testing", val);
+  auto vec = parser.parseLengthDelimited();
+  EXPECT_EQ(4, vec.size());
+  EXPECT_EQ(0, vec[0]);
+  EXPECT_EQ(1, vec[1]);
+  EXPECT_EQ(2, vec[2]);
+  EXPECT_EQ(3, vec[3]);
   EXPECT_TRUE(parser.eof());
 }
 

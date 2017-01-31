@@ -53,7 +53,7 @@ int64_t BinaryReader::parseVarSInt64() {
   return (z >> 1) ^ -(z & 1);
 }
 
-BufferRef BinaryReader::parseLengthDelimited() {
+std::vector<uint8_t> BinaryReader::parseLengthDelimited() {
   auto savePos = begin_;
   uint64_t len = parseVarUInt();
 
@@ -62,7 +62,9 @@ BufferRef BinaryReader::parseLengthDelimited() {
     RAISE(IOError, "Not enough data.");
   }
 
-  BufferRef result((const char*) begin_, (size_t) len);
+  std::vector<uint8_t> result;
+  result.resize(len);
+  memcpy(result.data(), begin_, len);
   begin_ += len;
   return result;
 }
@@ -104,7 +106,8 @@ float BinaryReader::parseFloat() {
 }
 
 std::string BinaryReader::parseString() {
-  return parseLengthDelimited().str();
+  std::vector<uint8_t> vec = parseLengthDelimited();
+  return std::string((const char*) vec.data(), vec.size());
 }
 
 } // namespace xzero
