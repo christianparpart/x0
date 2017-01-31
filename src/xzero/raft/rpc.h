@@ -6,6 +6,7 @@
 // the License at: http://opensource.org/licenses/MIT
 #pragma once
 
+#include <xzero/Buffer.h>
 #include <string>
 #include <vector>
 #include <cstdint>
@@ -45,6 +46,8 @@ class LogEntry {
   Term term() const noexcept { return term_; }
   LogType type() const noexcept { return type_; }
   const Command& command() const { return command_; }
+
+  bool isCommand(const BufferRef& cmd) const;
 
  private:
   Term term_;

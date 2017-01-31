@@ -7,6 +7,7 @@
 
 #include <xzero/raft/rpc.h>
 #include <xzero/StringUtil.h>
+#include <string.h>
 
 namespace xzero {
 namespace raft {
@@ -44,6 +45,14 @@ LogEntry::LogEntry(const LogEntry& v)
       type_(v.type_),
       command_(v.command_) {
 }
+
+bool LogEntry::isCommand(const BufferRef& cmd) const {
+  if (command_.size() != cmd.size())
+    return false;
+
+  return memcmp(command_.data(), cmd.data(), cmd.size()) == 0;
+}
+
 // }}}
 
 } // namespace raft
