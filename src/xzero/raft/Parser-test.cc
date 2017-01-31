@@ -74,7 +74,28 @@ TEST(raft_Parser, VoteResponse) {
 }
 
 TEST(raft_Parser, AppendEntriesRequest) {
-  log("TODO");
+  MessagePod pod;
+  raft::Parser parser(42, &pod);
+  BufferRef binmsg = "\x15\x03\x11\x12\x13\x14\x15\x02\x11\x01\x04"
+                     "\x01\x02\x03\x04\x11\x01\x04\x05\x06\x07\x08";
+
+  unsigned parsedMessageCount = parser.parseFragment(binmsg);
+  EXPECT_EQ(1, parsedMessageCount);
+  ASSERT_EQ(1, pod.appendEntriesRequest.size());
+  EXPECT_EQ(0x11, pod.appendEntriesRequest[0].term);
+  EXPECT_EQ(0x12, pod.appendEntriesRequest[0].leaderId);
+  EXPECT_EQ(0x13, pod.appendEntriesRequest[0].prevLogIndex);
+  EXPECT_EQ(0x14, pod.appendEntriesRequest[0].prevLogTerm);
+  EXPECT_EQ(0x15, pod.appendEntriesRequest[0].leaderCommit);
+  ASSERT_EQ(2, pod.appendEntriesRequest[0].entries.size());
+
+  EXPECT_EQ(0x11, pod.appendEntriesRequest[0].entries[0].term());
+  EXPECT_TRUE(pod.appendEntriesRequest[0].entries[0].isCommand("\x01\x02\x03\x04"));
+  EXPECT_EQ((int)raft::LOG_COMMAND, (int)pod.appendEntriesRequest[0].entries[0].type());
+
+  EXPECT_EQ(0x11, pod.appendEntriesRequest[0].entries[1].term());
+  EXPECT_TRUE(pod.appendEntriesRequest[0].entries[1].isCommand("\x05\x06\x07\x08"));
+  EXPECT_EQ((int)raft::LOG_COMMAND, (int)pod.appendEntriesRequest[0].entries[1].type());
 }
 
 TEST(raft_Parser, AppendEntriesResponse) {
@@ -121,9 +142,27 @@ TEST(raft_Parser, InstallSnapshotResponse) {
 }
 
 TEST(raft_Parser, partial_read) {
-  log("TODO passing a message over multiple chunks to parseFragment.");
+  MessagePod pod;
+  raft::Parser parser(42, &pod);
+
+  ASSERT_EQ(0, parser.parseFragment("\x02"));
+  ASSERT_EQ(0, parser.parseFragment("\x06"));
+  ASSERT_EQ(1, parser.parseFragment("\x13"));
+
+  ASSERT_EQ(1, pod.installSnapshotResponse.size());
+  EXPECT_EQ(0x13, pod.installSnapshotResponse[0].term);
 }
 
 TEST(raft_Parser, multi_read) {
-  log("TODO reading multiple messages within a single parseFragment()");
+  MessagePod pod;
+  raft::Parser parser(42, &pod);
+
+  unsigned parsedMessageCount =
+      parser.parseFragment("\x02\x06\x13\x02\x06\x14\x02\x06\x15");
+
+  ASSERT_EQ(3, parsedMessageCount);
+  ASSERT_EQ(3, pod.installSnapshotResponse.size());
+  EXPECT_EQ(0x13, pod.installSnapshotResponse[0].term);
+  EXPECT_EQ(0x14, pod.installSnapshotResponse[1].term);
+  EXPECT_EQ(0x15, pod.installSnapshotResponse[2].term);
 }
