@@ -389,9 +389,6 @@ libXzero_a_SOURCES = \
 	src/xzero/net/UdpConnector.h \
 	src/xzero/net/UdpEndPoint.cc \
 	src/xzero/net/UdpEndPoint.h \
-	src/xzero/protobuf/WireGenerator.cc \
-	src/xzero/protobuf/WireParser.cc \
-	src/xzero/protobuf/WireType.cc \
 	src/xzero/raft/Discovery.cc \
 	src/xzero/raft/Discovery.h \
 	src/xzero/raft/Error.cc \
@@ -554,8 +551,6 @@ xzero_test_SOURCES = \
 	src/xzero/HugeBuffer-test.cc \
 	src/xzero/MimeTypes-test.cc \
 	src/xzero/Option-test.cc \
-	src/xzero/protobuf/WireGenerator-test.cc \
-	src/xzero/protobuf/WireParser-test.cc \
 	src/xzero/raft/Generator-test.cc \
 	src/xzero/raft/Server-test.cc \
 	src/xzero/raft/ServerUtil-test.cc \
