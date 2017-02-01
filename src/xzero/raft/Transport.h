@@ -8,6 +8,9 @@
 
 #include <xzero/raft/rpc.h>
 #include <xzero/net/Connector.h>
+#include <xzero/net/Connection.h>
+#include <xzero/net/ConnectionFactory.h>
+#include <xzero/net/EndPoint.h>
 #include <memory>
 #include <vector>
 #include <unordered_map>
@@ -15,13 +18,11 @@
 namespace xzero {
 
 class Executor;
-class Connector;
-class EndPoint;
 
 namespace raft {
 
 /**
- * Abstracts communication between Server instances.
+ * Abstracts peer-to-peer communication between Server instances.
  */
 class Transport {
  public:
@@ -39,13 +40,19 @@ class Transport {
 };
 
 class Listener;
+class Discovery;
 
 /**
- * Implements Raft over TCP/IP.
+ * Implements Raft peer-to-peer communication over TCP/IP.
  */
-class InetTransport : public Transport {
+class InetTransport : public Transport,
+                      public ConnectionFactory  {
  public:
-  explicit InetTransport(Id myId, Listener* receiver);
+  InetTransport(Id myId,
+                Listener* receiver,
+                Discovery* discovery,
+                std::unique_ptr<Connector> connector);
+
   ~InetTransport();
 
   void send(Id target, const VoteRequest& message) override;
@@ -55,11 +62,16 @@ class InetTransport : public Transport {
   void send(Id target, const InstallSnapshotRequest& message) override;
   void send(Id target, const InstallSnapshotResponse& message) override;
 
+  Connection* create(Connector* connector, EndPoint* endpoint) override;
+
+ private:
+  RefPtr<EndPoint> getEndPoint(Id target);
+
  private:
   Id myId_;
   Listener* receiver_;
+  Discovery* discovery_;
   std::unique_ptr<Connector> connector_;
-  std::unordered_map<Id, EndPoint*> endpoints_;
 };
 
 class LocalTransport : public Transport {
