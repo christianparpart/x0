@@ -39,6 +39,8 @@ class Parser {
 
   unsigned parseFragment(const BufferRef& chunk);
 
+  size_t pending() const;
+
  private:
   bool parseFrame();
   void parseVoteRequest();
@@ -59,6 +61,10 @@ class Parser {
 
 inline unsigned Parser::parseFragment(const BufferRef& chunk) {
   return parseFragment((const uint8_t*) chunk.data(), chunk.size());
+}
+
+inline size_t Parser::pending() const {
+  return inputBuffer_.size() - inputOffset_;
 }
 
 } // namespace raft

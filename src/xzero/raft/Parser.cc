@@ -15,7 +15,7 @@ namespace raft {
 
 Parser::Parser(Id myId, Listener* listener)
   : inputBuffer_(),
-    inputOffset_(),
+    inputOffset_(0),
     reader_(inputBuffer_),
     myId_(myId),
     listener_(listener) {
@@ -66,7 +66,12 @@ bool Parser::parseFrame() {
       RAISE(ProtocolError, "Invalid message type.");
   }
 
-  inputOffset_ = inputBuffer_.size() - reader_.pending();
+  if (reader_.pending() > 0) {
+    inputOffset_ = inputBuffer_.size() - reader_.pending();
+  } else {
+    inputBuffer_.clear();
+    inputOffset_ = 0;
+  }
 
   return true;
 }

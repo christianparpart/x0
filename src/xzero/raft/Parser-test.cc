@@ -141,19 +141,24 @@ TEST(raft_Parser, InstallSnapshotResponse) {
   EXPECT_EQ(0x13, pod.installSnapshotResponse[0].term);
 }
 
-TEST(raft_Parser, partial_read) {
+TEST(raft_Parser, read_partial) {
   MessagePod pod;
   raft::Parser parser(42, &pod);
 
   ASSERT_EQ(0, parser.parseFragment("\x02"));
+  ASSERT_EQ(1, parser.pending());
+
   ASSERT_EQ(0, parser.parseFragment("\x06"));
+  ASSERT_EQ(2, parser.pending());
+
   ASSERT_EQ(1, parser.parseFragment("\x13"));
+  ASSERT_EQ(0, parser.pending());
 
   ASSERT_EQ(1, pod.installSnapshotResponse.size());
   EXPECT_EQ(0x13, pod.installSnapshotResponse[0].term);
 }
 
-TEST(raft_Parser, multi_read) {
+TEST(raft_Parser, read_multi) {
   MessagePod pod;
   raft::Parser parser(42, &pod);
 
