@@ -240,12 +240,14 @@ void Server::setCurrentTerm(Term newTerm) {
 }
 
 // {{{ Server: receiver API (invoked by Transport on receiving messages)
-void Server::receive(Id peerId, const VoteRequest& req) {
+void Server::handleRequest(Id peerId,
+                           const VoteRequest& req,
+                           VoteResponse* out) {
   timer_.rewind();
 
   if (req.term < currentTerm()) {
     // decline request as peer's term is older than our currentTerm
-    transport_->send(peerId, VoteResponse{currentTerm(), false});
+    *out = VoteResponse{currentTerm(), false};
     return;
   }
 
@@ -266,21 +268,21 @@ void Server::receive(Id peerId, const VoteRequest& req) {
   if (votedFor_.isNone()) {
     // Accept vote, as we didn't vote in this term yet.
     votedFor_ = Some(std::make_pair(req.candidateId, req.lastLogTerm));
-    transport_->send(peerId, VoteResponse{currentTerm(), true});
+    *out = VoteResponse{currentTerm(), true};
     return;
   }
 
   if (req.candidateId == votedFor_->first && req.lastLogTerm > votedFor_->second) {
     // Accept vote. Same vote-candidate and bigger term
     votedFor_ = Some(std::make_pair(req.candidateId, req.lastLogTerm));
-    transport_->send(peerId, VoteResponse{currentTerm(), true});
+    *out = VoteResponse{currentTerm(), true};
     return;
   }
 
-  transport_->send(peerId, VoteResponse{currentTerm(), false});
+  *out = VoteResponse{currentTerm(), false};
 }
 
-void Server::receive(Id peerId, const VoteResponse& resp) {
+void Server::handleResponse(Id peerId, const VoteResponse& resp) {
   assert(state_ == ServerState::Candidate || state_ == ServerState::Leader);
 
   if (resp.voteGranted) {
@@ -291,19 +293,21 @@ void Server::receive(Id peerId, const VoteResponse& resp) {
   }
 }
 
-void Server::receive(Id peerId, const AppendEntriesRequest& req) {
+void Server::handleRequest(Id peerId,
+                           const AppendEntriesRequest& req,
+                           AppendEntriesResponse* res) {
   timer_.rewind();
 
   // 1. Reply false if term < currentTerm (§5.1)
   if (req.term < currentTerm()) {
-    transport_->send(peerId, AppendEntriesResponse{currentTerm(), false});
+    *res = AppendEntriesResponse{currentTerm(), false};
     return;
   }
 
   // 2. Reply false if log doesn’t contain an entry at prevLogIndex
   //    whose term matches prevLogTerm (§5.3)
   if (getLogTerm(req.prevLogIndex) != req.prevLogTerm) {
-    transport_->send(peerId, AppendEntriesResponse{currentTerm(), false});
+    *res = AppendEntriesResponse{currentTerm(), false};
     return;
   }
 
@@ -359,10 +363,10 @@ void Server::receive(Id peerId, const AppendEntriesRequest& req) {
   // it applies the entry to its local state machine (in log order)
   applyLogs();
 
-  transport_->send(peerId, AppendEntriesResponse{currentTerm(), true});
+  *res = AppendEntriesResponse{currentTerm(), true};
 }
 
-void Server::receive(Id peerId, const AppendEntriesResponse& resp) {
+void Server::handleResponse(Id peerId, const AppendEntriesResponse& resp) {
   logTrace("raft.Server", "$0: ($1) received from $2: $3", id_, state_, peerId, resp);
   assert(state_ == ServerState::Leader);
 
@@ -393,17 +397,19 @@ void Server::receive(Id peerId, const AppendEntriesResponse& resp) {
   // replicateLogsTo(peerId); // FIXME
 }
 
-void Server::receive(Id peerId, const InstallSnapshotRequest& req) {
+void Server::handleRequest(Id peerId,
+                           const InstallSnapshotRequest& req,
+                           InstallSnapshotResponse* res) {
   timer_.rewind();
 
   logDebug("raft.Server", "$0: received from $1: $2", id_, peerId, req);
   RAISE(NotImplementedError); // TODO
 }
 
-void Server::receive(Id peerId, const InstallSnapshotResponse& resp) {
+void Server::handleResponse(Id peerId, const InstallSnapshotResponse& res) {
   timer_.rewind();
 
-  logDebug("raft.Server", "$0: received from $1: $2", id_, peerId, resp);
+  logDebug("raft.Server", "$0: received from $1: $2", id_, peerId, res);
   RAISE(NotImplementedError); // TODO
 }
 // }}}

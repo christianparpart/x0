@@ -68,7 +68,7 @@ inline StaticDiscovery::StaticDiscovery(
 
 /**
  * Implements DNS based service discovery that honors SRV records,
- * and if none available, A records.
+ * and if none available, A records with standard TCP/IP port.
  */
 class DnsDiscovery : public Discovery {
  public:

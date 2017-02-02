@@ -6,6 +6,7 @@
 // the License at: http://opensource.org/licenses/MIT
 
 #include <xzero/raft/Transport.h>
+#include <xzero/raft/Handler.h>
 #include <xzero/raft/Listener.h>
 #include <xzero/raft/Discovery.h>
 #include <xzero/raft/Server.h>
@@ -23,30 +24,50 @@ namespace raft {
 Transport::~Transport() {
 }
 
+/*
+ * - the peer that wants to say something, initiates the connection
+ * - the connection may be reused (pooled) for future messages
+ * - an incoming connection MAY be reused to send the response, too
+ */
+
 // {{{ PeerConnection
-class PeerConnection : public Connection {
+class PeerConnection
+  : public Connection,
+    public Listener  {
  public:
   PeerConnection(Connector* connector,
                  EndPoint* endpoint,
                  Id peerId,
-                 Listener* listener);
+                 Handler* handler);
 
+  // connection-endpoint hooks
   void onOpen(bool dataReady) override;
   void onFillable() override;
   void onFlushable() override;
 
+  // parser hooks
+  void receive(Id from, const VoteRequest& message) override;
+  void receive(Id from, const VoteResponse& message) override;
+  void receive(Id from, const AppendEntriesRequest& message) override;
+  void receive(Id from, const AppendEntriesResponse& message) override;
+  void receive(Id from, const InstallSnapshotResponse& message) override;
+  void receive(Id from, const InstallSnapshotRequest& message) override;
+
  private:
   Buffer inputBuffer_;
+  Buffer outputBuffer_;
+  Handler* handler_;
   Parser parser_;
 };
 
 PeerConnection::PeerConnection(Connector* connector,
                                EndPoint* endpoint,
                                Id peerId,
-                               Listener* listener)
+                               Handler* handler)
   : Connection(endpoint, connector->executor()),
     inputBuffer_(4096),
-    parser_(peerId, listener) {
+    outputBuffer_(4096),
+    parser_(peerId, this) {
 }
 
 void PeerConnection::onOpen(bool dataReady) {
@@ -68,17 +89,51 @@ void PeerConnection::onFillable() {
 }
 
 void PeerConnection::onFlushable() {
+  endpoint()->flush(outputBuffer_);
+}
+
+void PeerConnection::receive(Id from, const VoteRequest& req) {
+  VoteResponse res;
+  handler_->handleRequest(from, req, &res);
+  Generator(BufferUtil::writer(&outputBuffer_)).generateVoteResponse(res);
+  endpoint()->wantFlush();
+}
+
+void PeerConnection::receive(Id from, const VoteResponse& res) {
+  handler_->handleResponse(from, res);
+}
+
+void PeerConnection::receive(Id from, const AppendEntriesRequest& req) {
+  AppendEntriesResponse res;
+  handler_->handleRequest(from, req, &res);
+  Generator(BufferUtil::writer(&outputBuffer_)).generateAppendEntriesResponse(res);
+  endpoint()->wantFlush();
+}
+
+void PeerConnection::receive(Id from, const AppendEntriesResponse& res) {
+  handler_->handleResponse(from, res);
+}
+
+void PeerConnection::receive(Id from, const InstallSnapshotRequest& req) {
+  InstallSnapshotResponse res;
+  handler_->handleRequest(from, req, &res);
+  Generator(BufferUtil::writer(&outputBuffer_)).generateInstallSnapshotResponse(res);
+  endpoint()->wantFlush();
+}
+
+void PeerConnection::receive(Id from, const InstallSnapshotResponse& res) {
+  handler_->handleResponse(from, res);
 }
 // }}}
 
 // {{{ InetTransport
 InetTransport::InetTransport(Id myId,
-                             Listener* receiver,
+                             Handler* handler,
                              Discovery* discovery,
                              std::unique_ptr<Connector> connector)
   : ConnectionFactory("raft"),
     myId_(myId),
-    receiver_(receiver),
+    handler_(handler),
     discovery_(discovery),
     connector_(std::move(connector)) {
   if (connector_.get() == nullptr) {
@@ -115,7 +170,7 @@ Connection* InetTransport::create(Connector* connector,
       endpoint->setConnection<PeerConnection>(connector,
                                               endpoint,
                                               peerId,
-                                              receiver_),
+                                              handler_),
       connector);
 }
 
@@ -148,14 +203,6 @@ void InetTransport::send(Id target, const VoteRequest& msg) {
   }
 }
 
-void InetTransport::send(Id target, const VoteResponse& msg) {
-  if (RefPtr<EndPoint> ep = getEndPoint(target)) {
-    Buffer buffer;
-    Generator(BufferUtil::writer(&buffer)).generateVoteResponse(msg);
-    ep->flush(buffer);
-  }
-}
-
 void InetTransport::send(Id target, const AppendEntriesRequest& msg) {
   if (RefPtr<EndPoint> ep = getEndPoint(target)) {
     Buffer buffer;
@@ -164,26 +211,10 @@ void InetTransport::send(Id target, const AppendEntriesRequest& msg) {
   }
 }
 
-void InetTransport::send(Id target, const AppendEntriesResponse& msg) {
-  if (RefPtr<EndPoint> ep = getEndPoint(target)) {
-    Buffer buffer;
-    Generator(BufferUtil::writer(&buffer)).generateAppendEntriesResponse(msg);
-    ep->flush(buffer);
-  }
-}
-
 void InetTransport::send(Id target, const InstallSnapshotRequest& msg) {
   if (RefPtr<EndPoint> ep = getEndPoint(target)) {
     Buffer buffer;
     Generator(BufferUtil::writer(&buffer)).generateInstallSnapshotRequest(msg);
-    ep->flush(buffer);
-  }
-}
-
-void InetTransport::send(Id target, const InstallSnapshotResponse& msg) {
-  if (RefPtr<EndPoint> ep = getEndPoint(target)) {
-    Buffer buffer;
-    Generator(BufferUtil::writer(&buffer)).generateInstallSnapshotResponse(msg);
     ep->flush(buffer);
   }
 }
@@ -207,74 +238,58 @@ LocalTransport& LocalTransport::operator=(LocalTransport&& m) {
   return *this;
 }
 
-void LocalTransport::setPeer(Id peerId, Listener* target) {
+void LocalTransport::setPeer(Id peerId, Handler* target) {
   peers_[peerId] = target;
 }
 
+Handler* LocalTransport::getPeer(Id id) {
+  auto i = peers_.find(id);
+  if (i != peers_.end()) {
+    return i->second;
+  } else {
+    return nullptr;
+  }
+}
+
 void LocalTransport::send(Id target, const VoteRequest& msg) {
-  assert(myId_ == msg.candidateId);
+  assert(msg.candidateId == myId_);
 
   // sends a VoteRequest msg to the given target.
   // XXX emulate async/delayed behaviour by deferring receival via executor API.
-  auto i = peers_.find(target);
-  if (i != peers_.end()) {
+  executor_->execute([=]() {
+    VoteResponse result;
+    getPeer(target)->handleRequest(myId_, msg, &result);
     executor_->execute([=]() {
-      i->second->receive(myId_, msg);
+      getPeer(myId_)->handleResponse(target, result);
     });
-    //logDebug("raft.LocalTransport", "$0 send to $1: $2", myId_, target, msg);
-  }
+  });
+  //logDebug("raft.LocalTransport", "$0 send to $1: $2", myId_, target, msg);
 }
 
-void LocalTransport::send(Id target, const VoteResponse& msg) {
-  auto i = peers_.find(target);
-  if (i != peers_.end()) {
-    //logDebug("raft.LocalTransport", "$0 send to $1: $2", myId_, target, msg);
-    executor_->execute([=]() {
-      i->second->receive(myId_, msg);
-    });
-  }
-}
 
 void LocalTransport::send(Id target, const AppendEntriesRequest& msg) {
-  assert(myId_ == msg.leaderId);
+  assert(msg.leaderId == myId_);
 
-  auto i = peers_.find(target);
-  if (i != peers_.end()) {
+  executor_->execute([=]() {
+    logDebug("raft.LocalTransport", "AppendEntriesRequest from $0 to $1: $2", myId_, target, msg);
+    AppendEntriesResponse result;
+    getPeer(target)->handleRequest(myId_, msg, &result);
     executor_->execute([=]() {
-      logDebug("raft.LocalTransport", "AppendEntriesRequest from $0 to $1: $2", myId_, i->first, msg);
-      i->second->receive(myId_, msg);
+      getPeer(myId_)->handleResponse(target, result);
     });
-  }
-}
-
-void LocalTransport::send(Id target, const AppendEntriesResponse& msg) {
-  auto i = peers_.find(target);
-  if (i != peers_.end()) {
-    executor_->execute([=]() {
-      logDebug("raft.LocalTransport", "AppendEntriesResponse from $0 to $1: $2", myId_, i->first, msg);
-      i->second->receive(myId_, msg);
-    });
-  }
+  });
 }
 
 void LocalTransport::send(Id target, const InstallSnapshotRequest& msg) {
-  assert(myId_ == msg.leaderId);
+  assert(msg.leaderId == myId_);
 
-  auto i = peers_.find(target);
-  if (i != peers_.end()) {
+  executor_->execute([=]() {
+    InstallSnapshotResponse result;
+    getPeer(target)->handleRequest(myId_, msg, &result);
     executor_->execute([=]() {
-      i->second->receive(myId_, msg);
+      getPeer(myId_)->handleResponse(target, result);
     });
-  }
-}
-
-void LocalTransport::send(Id target, const InstallSnapshotResponse& msg) {
-  auto i = peers_.find(target);
-  if (i != peers_.end()) {
-    executor_->execute([=]() {
-      i->second->receive(myId_, msg);
-    });
-  }
+  });
 }
 // }}}
 

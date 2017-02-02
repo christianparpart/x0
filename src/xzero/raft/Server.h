@@ -7,7 +7,7 @@
 #pragma once
 
 #include <xzero/raft/rpc.h>
-#include <xzero/raft/Listener.h>
+#include <xzero/raft/Handler.h>
 #include <xzero/raft/Error.h>
 #include <xzero/Option.h>
 #include <xzero/DeadlineTimer.h>
@@ -42,7 +42,7 @@ class StateMachine;
 /**
  * Provides a replicated state machine mechanism.
  */
-class Server : public Listener {
+class Server : public Handler {
  public:
   /**
    * its underlying storage engine @p storage and state machine,
@@ -156,19 +156,26 @@ class Server : public Listener {
   void verifyLeader(std::function<void(bool)> callback);
 
   // {{{ receiver API (invoked by Transport on receiving messages)
-  // leader
-  void receive(Id from, const AppendEntriesResponse& message);
-  void receive(Id from, const InstallSnapshotResponse& message);
+  void handleRequest(Id from,
+                     const VoteRequest& request,
+                     VoteResponse* response) override;
 
-  // candidate
-  void receive(Id from, const VoteRequest& message);
-  void receive(Id from, const VoteResponse& message);
+  void handleResponse(Id from,
+                      const VoteResponse& response) override;
 
-  // candidate / follower
-  void receive(Id from, const AppendEntriesRequest& message);
+  void handleRequest(Id from,
+                     const AppendEntriesRequest& request,
+                     AppendEntriesResponse* response) override;
 
-  // follower
-  void receive(Id from, const InstallSnapshotRequest& message);
+  void handleResponse(Id from,
+                      const AppendEntriesResponse& response) override;
+
+  void handleRequest(Id from,
+                     const InstallSnapshotRequest& request,
+                     InstallSnapshotResponse* response) override;
+
+  void handleResponse(Id from,
+                      const InstallSnapshotResponse& response) override;
   // }}}
 
  private:

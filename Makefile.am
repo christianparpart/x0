@@ -557,6 +557,7 @@ xzero_test_SOURCES = \
 	src/xzero/raft/Parser-test.cc \
 	src/xzero/raft/Server-test.cc \
 	src/xzero/raft/ServerUtil-test.cc \
+	src/xzero/raft/Transport-test.cc \
 	src/xzero/RefPtr-test.cc \
 	src/xzero/Result-test.cc \
 	src/xzero/StringUtil-test.cc \

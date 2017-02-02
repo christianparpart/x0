@@ -32,36 +32,33 @@ class Transport {
   virtual void send(Id target, const VoteRequest& message) = 0;
   virtual void send(Id target, const AppendEntriesRequest& message) = 0;
   virtual void send(Id target, const InstallSnapshotRequest& message) = 0;
-
-  // follower / candidate
-  virtual void send(Id target, const AppendEntriesResponse& message) = 0;
-  virtual void send(Id target, const VoteResponse& message) = 0;
-  virtual void send(Id target, const InstallSnapshotResponse& message) = 0;
 };
 
-class Listener;
+class Handler;
 class Discovery;
 
 /**
- * Implements Raft peer-to-peer communication over TCP/IP.
+ * Implements Raft peer-to-peer communication over streaming sockets.
+ *
+ * I/O is implemented non-blocking, and thus, all handler tasks MUST
+ * be invoked within a seperate threaded worker executor.
  */
 class InetTransport : public Transport,
                       public ConnectionFactory  {
  public:
   InetTransport(Id myId,
-                Listener* receiver,
+                Handler* handler,
                 Discovery* discovery,
                 std::unique_ptr<Connector> connector);
 
   ~InetTransport();
 
+  // Transport overrides
   void send(Id target, const VoteRequest& message) override;
-  void send(Id target, const VoteResponse& message) override;
   void send(Id target, const AppendEntriesRequest& message) override;
-  void send(Id target, const AppendEntriesResponse& message) override;
   void send(Id target, const InstallSnapshotRequest& message) override;
-  void send(Id target, const InstallSnapshotResponse& message) override;
 
+  // ConnectionFactory overrides
   Connection* create(Connector* connector, EndPoint* endpoint) override;
 
  private:
@@ -69,11 +66,14 @@ class InetTransport : public Transport,
 
  private:
   Id myId_;
-  Listener* receiver_;
+  Handler* handler_;
   Discovery* discovery_;
   std::unique_ptr<Connector> connector_;
 };
 
+/**
+ * An in-memory peer-to-peer transport layer (for debugging / unit testing purposes only).
+ */
 class LocalTransport : public Transport {
  public:
   LocalTransport(Id myId, Executor* executor);
@@ -84,19 +84,17 @@ class LocalTransport : public Transport {
   LocalTransport(LocalTransport&&);
   LocalTransport& operator=(LocalTransport&&);
 
-  void setPeer(Id id, Listener* listener);
+  void setPeer(Id id, Handler* handler);
+  Handler* getPeer(Id id);
 
   void send(Id target, const VoteRequest& message) override;
-  void send(Id target, const VoteResponse& message) override;
   void send(Id target, const AppendEntriesRequest& message) override;
-  void send(Id target, const AppendEntriesResponse& message) override;
   void send(Id target, const InstallSnapshotRequest& message) override;
-  void send(Id target, const InstallSnapshotResponse& message) override;
 
  private:
   Id myId_;
   Executor* executor_;
-  std::unordered_map<Id, Listener*> peers_;
+  std::unordered_map<Id, Handler*> peers_;
 };
 
 } // namespace raft

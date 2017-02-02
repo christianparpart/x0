@@ -20,8 +20,8 @@ class Listener {
   virtual void receive(Id from, const AppendEntriesRequest& message) = 0;
   virtual void receive(Id from, const AppendEntriesResponse& message) = 0;
 
-  virtual void receive(Id from, const InstallSnapshotResponse& message) = 0;
   virtual void receive(Id from, const InstallSnapshotRequest& message) = 0;
+  virtual void receive(Id from, const InstallSnapshotResponse& message) = 0;
 };
 
 } // namespace raft
