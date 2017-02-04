@@ -25,9 +25,10 @@ void Generator::generateVoteRequest(const VoteRequest& msg) {
 }
 
 void Generator::generateVoteResponse(const VoteResponse& msg) {
+  printf("generateVoteResponse(term=%lu, granted=%d)!\n", msg.term, msg.voteGranted);
   wire_.writeVarUInt((unsigned) MessageType::VoteResponse);
   wire_.writeVarUInt(msg.term);
-  wire_.writeVarUInt(msg.voteGranted);
+  wire_.writeVarUInt(msg.voteGranted ? 1 : 0);
 }
 
 void Generator::generateAppendEntriesRequest(const AppendEntriesRequest& msg) {

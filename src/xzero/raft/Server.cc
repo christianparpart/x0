@@ -243,11 +243,14 @@ void Server::setCurrentTerm(Term newTerm) {
 void Server::handleRequest(Id peerId,
                            const VoteRequest& req,
                            VoteResponse* out) {
+  logDebug("raft.Server", "handleRequest: VoteRequest");
   timer_.rewind();
 
   if (req.term < currentTerm()) {
     // decline request as peer's term is older than our currentTerm
-    *out = VoteResponse{currentTerm(), false};
+    //*out = VoteResponse{currentTerm(), false};
+    out->term = currentTerm();
+    out->voteGranted = false;
     return;
   }
 
@@ -268,18 +271,24 @@ void Server::handleRequest(Id peerId,
   if (votedFor_.isNone()) {
     // Accept vote, as we didn't vote in this term yet.
     votedFor_ = Some(std::make_pair(req.candidateId, req.lastLogTerm));
-    *out = VoteResponse{currentTerm(), true};
+    // *out = VoteResponse{currentTerm(), true};
+    out->term = currentTerm();
+    out->voteGranted = true;
     return;
   }
 
   if (req.candidateId == votedFor_->first && req.lastLogTerm > votedFor_->second) {
     // Accept vote. Same vote-candidate and bigger term
     votedFor_ = Some(std::make_pair(req.candidateId, req.lastLogTerm));
-    *out = VoteResponse{currentTerm(), true};
+    // *out = VoteResponse{currentTerm(), true};
+    out->term = currentTerm();
+    out->voteGranted = true;
     return;
   }
 
-  *out = VoteResponse{currentTerm(), false};
+  // *out = VoteResponse{currentTerm(), false};
+  out->term = currentTerm();
+  out->voteGranted = false;
 }
 
 void Server::handleResponse(Id peerId, const VoteResponse& resp) {

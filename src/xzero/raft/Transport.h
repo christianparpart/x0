@@ -37,6 +37,20 @@ class Transport {
 class Handler;
 class Discovery;
 
+class AbstractTransport : public Transport {
+ public:
+  AbstractTransport(Id myId, Discovery* discovery, Handler* handler);
+
+  Id myId() const noexcept { return myId_; }
+  Discovery* discovery() const noexcept { return discovery_; }
+  Handler* handler() const noexcept { return handler_; }
+
+ protected:
+  Id myId_;
+  Discovery* discovery_;
+  Handler* handler_;
+};
+
 /**
  * Implements Raft peer-to-peer communication over streaming sockets.
  *
@@ -44,12 +58,13 @@ class Discovery;
  * be invoked within a seperate threaded worker executor.
  */
 class InetTransport : public Transport,
-                      public ConnectionFactory  {
+                      public ConnectionFactory {
  public:
   InetTransport(Id myId,
-                Handler* handler,
                 Discovery* discovery,
-                std::unique_ptr<Connector> connector);
+                Handler* handler,
+                Executor* handlerExecutor,
+                std::shared_ptr<Connector> connector);
 
   ~InetTransport();
 
@@ -61,14 +76,17 @@ class InetTransport : public Transport,
   // ConnectionFactory overrides
   Connection* create(Connector* connector, EndPoint* endpoint) override;
 
+  Connector* connector() const { return connector_.get(); }
+
  private:
   RefPtr<EndPoint> getEndPoint(Id target);
 
  private:
   Id myId_;
-  Handler* handler_;
   Discovery* discovery_;
-  std::unique_ptr<Connector> connector_;
+  Handler* handler_;
+  Executor* handlerExecutor_;
+  std::shared_ptr<Connector> connector_;
 };
 
 /**

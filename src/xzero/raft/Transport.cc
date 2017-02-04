@@ -56,6 +56,7 @@ class PeerConnection
  private:
   Buffer inputBuffer_;
   Buffer outputBuffer_;
+  size_t outputOffset_;
   Handler* handler_;
   Parser parser_;
 };
@@ -67,10 +68,13 @@ PeerConnection::PeerConnection(Connector* connector,
   : Connection(endpoint, connector->executor()),
     inputBuffer_(4096),
     outputBuffer_(4096),
+    outputOffset_(0),
+    handler_(handler),
     parser_(peerId, this) {
 }
 
 void PeerConnection::onOpen(bool dataReady) {
+  printf("PeerConnection.onOpen(dataReady=%s)\n", dataReady ? "yes" : "no");
   Connection::onOpen(dataReady);
 
   if (dataReady) {
@@ -81,22 +85,46 @@ void PeerConnection::onOpen(bool dataReady) {
 }
 
 void PeerConnection::onFillable() {
-  endpoint()->fill(&inputBuffer_);
-  parser_.parseFragment(inputBuffer_);
+  size_t n = endpoint()->fill(&inputBuffer_);
+  if (n == 0) {
+    printf("PeerConnection EOF\n");
+    close();
+    return; // EOF
+  }
+
+  printf("PeerConnection.onFillable (%zu / %zu)\n", inputBuffer_.size(), inputBuffer_.capacity());
+  n = parser_.parseFragment(inputBuffer_);
+  printf("PeerConnection.onFillable: parsed %zu messages\n", n);
   inputBuffer_.clear();
 
-  endpoint()->wantFill();
+  if (n == 0) {
+    // no message passed => need more input
+    wantFill();
+  }
 }
 
 void PeerConnection::onFlushable() {
-  endpoint()->flush(outputBuffer_);
+  size_t n = endpoint()->flush(outputBuffer_.ref(outputOffset_));
+  outputOffset_ += n;
+  if (outputOffset_ == outputBuffer_.size()) {
+    outputBuffer_.clear();
+    outputOffset_ = 0;
+    wantFill();
+  }
 }
 
 void PeerConnection::receive(Id from, const VoteRequest& req) {
-  VoteResponse res;
+  VoteResponse res{0, false};
+
+  printf("PeerConnection.receive(from=%u, %s): handler=%p\n", 
+      from, StringUtil::toString(req).c_str(), handler_);
+
   handler_->handleRequest(from, req, &res);
+  printf("PeerConnection: resp: \"%s\"\n", StringUtil::toString(res).c_str());
+
   Generator(BufferUtil::writer(&outputBuffer_)).generateVoteResponse(res);
-  endpoint()->wantFlush();
+  printf("PeerConnection: flush: \"%s\"\n", StringUtil::toString(outputBuffer_.ref(outputOffset_)).c_str());
+  wantFlush();
 }
 
 void PeerConnection::receive(Id from, const VoteResponse& res) {
@@ -107,7 +135,8 @@ void PeerConnection::receive(Id from, const AppendEntriesRequest& req) {
   AppendEntriesResponse res;
   handler_->handleRequest(from, req, &res);
   Generator(BufferUtil::writer(&outputBuffer_)).generateAppendEntriesResponse(res);
-  endpoint()->wantFlush();
+  printf("PeerConnection: flush: \"%s\"\n", StringUtil::toString(outputBuffer_.ref(outputOffset_)).c_str());
+  wantFlush();
 }
 
 void PeerConnection::receive(Id from, const AppendEntriesResponse& res) {
@@ -118,7 +147,8 @@ void PeerConnection::receive(Id from, const InstallSnapshotRequest& req) {
   InstallSnapshotResponse res;
   handler_->handleRequest(from, req, &res);
   Generator(BufferUtil::writer(&outputBuffer_)).generateInstallSnapshotResponse(res);
-  endpoint()->wantFlush();
+  printf("PeerConnection: flush: \"%s\"\n", StringUtil::toString(outputBuffer_.ref(outputOffset_)).c_str());
+  wantFlush();
 }
 
 void PeerConnection::receive(Id from, const InstallSnapshotResponse& res) {
@@ -128,36 +158,16 @@ void PeerConnection::receive(Id from, const InstallSnapshotResponse& res) {
 
 // {{{ InetTransport
 InetTransport::InetTransport(Id myId,
-                             Handler* handler,
                              Discovery* discovery,
-                             std::unique_ptr<Connector> connector)
+                             Handler* handler,
+                             Executor* handlerExecutor,
+                             std::shared_ptr<Connector> connector)
   : ConnectionFactory("raft"),
     myId_(myId),
-    handler_(handler),
     discovery_(discovery),
-    connector_(std::move(connector)) {
-  if (connector_.get() == nullptr) {
-    // TODO: move it all out
-    InetAddress myAddr(*discovery_->getAddress(myId_));
-
-    Executor* executor = nullptr; // TDOO
-
-    InetConnector::ExecutorSelector clientExecutorSelector = 
-        [executor]() -> Executor* { return executor; };
-
-    InetConnector* inet = new InetConnector("raft-tcp",
-                                            executor,
-                                            clientExecutorSelector,
-                                            5_seconds, // readTimeout,
-                                            5_seconds, // writeTimeout,
-                                            5_seconds, // tcpFinTimeout,
-                                            myAddr.ip(),
-                                            myAddr.port(),
-                                            128, // backlog,
-                                            true, // reuseAddr,
-                                            false // reusePort
-                                            );
-  }
+    handler_(handler),
+    handlerExecutor_(handlerExecutor),
+    connector_(connector) {
 }
 
 InetTransport::~InetTransport() {
@@ -165,7 +175,8 @@ InetTransport::~InetTransport() {
 
 Connection* InetTransport::create(Connector* connector,
                                   EndPoint* endpoint) {
-  Id peerId = 0; // TODO: detect peer ID
+  printf("InetTransport::create! with handler=%p\n", handler_);
+  Id peerId = 4242; // TODO: detect peer ID
   return configure(
       endpoint->setConnection<PeerConnection>(connector,
                                               endpoint,
