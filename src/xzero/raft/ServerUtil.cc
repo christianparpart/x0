@@ -1,5 +1,6 @@
 #include <xzero/raft/ServerUtil.h>
 #include <xzero/Random.h>
+#include <algorithm>
 
 namespace xzero {
 namespace raft {
