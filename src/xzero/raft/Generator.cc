@@ -8,12 +8,29 @@
 #include <xzero/raft/Generator.h>
 #include <xzero/raft/MessageType.h>
 #include <xzero/net/EndPointWriter.h>
+#include <xzero/BufferUtil.h>
 
 namespace xzero {
 namespace raft {
 
 Generator::Generator(ChunkWriter writer)
-  : wire_(writer) {
+  : chunkWriter_(writer),
+    buffer_(),
+    wire_(std::bind(&Generator::fill, this,
+                    std::placeholders::_1,
+                    std::placeholders::_2)) {
+}
+
+void Generator::fill(const uint8_t* data, size_t len) {
+  buffer_.push_back(data, len);
+}
+
+void Generator::flush() {
+  Buffer frame;
+  BinaryWriter(BufferUtil::writer(&frame)).writeVarUInt(buffer_.size());
+  chunkWriter_((const uint8_t*) frame.data(), frame.size());
+  chunkWriter_((const uint8_t*) buffer_.data(), buffer_.size());
+  buffer_.clear();
 }
 
 void Generator::generateVoteRequest(const VoteRequest& msg) {
@@ -22,12 +39,14 @@ void Generator::generateVoteRequest(const VoteRequest& msg) {
   wire_.writeVarUInt(msg.candidateId);
   wire_.writeVarUInt(msg.lastLogIndex);
   wire_.writeVarUInt(msg.lastLogTerm);
+  flush();
 }
 
 void Generator::generateVoteResponse(const VoteResponse& msg) {
   wire_.writeVarUInt((unsigned) MessageType::VoteResponse);
   wire_.writeVarUInt(msg.term);
   wire_.writeVarUInt(msg.voteGranted ? 1 : 0);
+  flush();
 }
 
 void Generator::generateAppendEntriesRequest(const AppendEntriesRequest& msg) {
@@ -45,12 +64,14 @@ void Generator::generateAppendEntriesRequest(const AppendEntriesRequest& msg) {
     wire_.writeLengthDelimited(entry.command().data(),
                                entry.command().size());
   }
+  flush();
 }
 
 void Generator::generateAppendEntriesResponse(const AppendEntriesResponse& msg) {
   wire_.writeVarUInt((unsigned) MessageType::AppendEntriesResponse);
   wire_.writeVarUInt(msg.term);
   wire_.writeVarUInt(msg.success);
+  flush();
 }
 
 void Generator::generateInstallSnapshotRequest(const InstallSnapshotRequest& msg) {
@@ -63,11 +84,13 @@ void Generator::generateInstallSnapshotRequest(const InstallSnapshotRequest& msg
   wire_.writeVarUInt(msg.offset);
   wire_.writeLengthDelimited(msg.data.data(), msg.data.size());
   wire_.writeVarUInt(msg.done);
+  flush();
 }
 
 void Generator::generateInstallSnapshotResponse(const InstallSnapshotResponse& msg) {
   wire_.writeVarUInt((unsigned) MessageType::InstallSnapshotResponse);
   wire_.writeVarUInt(msg.term);
+  flush();
 }
 
 } // namespace raft

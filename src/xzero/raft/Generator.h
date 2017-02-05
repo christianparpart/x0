@@ -35,6 +35,12 @@ class Generator {
   void generateInstallSnapshotResponse(const InstallSnapshotResponse& msg);
 
  private:
+  void fill(const uint8_t* data, size_t len);
+  void flush();
+
+ private:
+  ChunkWriter chunkWriter_;
+  Buffer buffer_;
   BinaryWriter wire_;
 };
 

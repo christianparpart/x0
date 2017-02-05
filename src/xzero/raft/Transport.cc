@@ -53,8 +53,6 @@ class PeerConnection
   void receive(Id from, const InstallSnapshotResponse& message) override;
   void receive(Id from, const InstallSnapshotRequest& message) override;
 
-  void flushFrame(const Buffer& msg);
-
  private:
   Buffer inputBuffer_;
   Buffer outputBuffer_;
@@ -114,9 +112,8 @@ void PeerConnection::onFlushable() {
 void PeerConnection::receive(Id from, const VoteRequest& req) {
   VoteResponse res = handler_->handleRequest(from, req);
 
-  Buffer msg;
-  Generator(BufferUtil::writer(&msg)).generateVoteResponse(res);
-  flushFrame(msg);
+  Generator(BufferUtil::writer(&outputBuffer_)).generateVoteResponse(res);
+  wantFlush();
 }
 
 void PeerConnection::receive(Id from, const VoteResponse& res) {
@@ -126,9 +123,8 @@ void PeerConnection::receive(Id from, const VoteResponse& res) {
 void PeerConnection::receive(Id from, const AppendEntriesRequest& req) {
   AppendEntriesResponse res = handler_->handleRequest(from, req);
 
-  Buffer msg;
-  Generator(BufferUtil::writer(&msg)).generateAppendEntriesResponse(res);
-  flushFrame(msg);
+  Generator(BufferUtil::writer(&outputBuffer_)).generateAppendEntriesResponse(res);
+  wantFlush();
 }
 
 void PeerConnection::receive(Id from, const AppendEntriesResponse& res) {
@@ -138,19 +134,12 @@ void PeerConnection::receive(Id from, const AppendEntriesResponse& res) {
 void PeerConnection::receive(Id from, const InstallSnapshotRequest& req) {
   InstallSnapshotResponse res = handler_->handleRequest(from, req);
 
-  Buffer msg;
-  Generator(BufferUtil::writer(&msg)).generateInstallSnapshotResponse(res);
-  flushFrame(msg);
+  Generator(BufferUtil::writer(&outputBuffer_)).generateInstallSnapshotResponse(res);
+  wantFlush();
 }
 
 void PeerConnection::receive(Id from, const InstallSnapshotResponse& res) {
   handler_->handleResponse(from, res);
-}
-
-void PeerConnection::flushFrame(const Buffer& msg) {
-  BinaryWriter(BufferUtil::writer(&outputBuffer_)).writeVarUInt(msg.size());
-  outputBuffer_.push_back(msg);
-  wantFlush();
 }
 // }}}
 

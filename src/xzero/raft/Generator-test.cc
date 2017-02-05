@@ -18,7 +18,7 @@ TEST(raft_Generator, VoteRequest) {
                                      .candidateId = 0x22,
                                      .lastLogIndex = 0x33,
                                      .lastLogTerm = 0x44 });
-  EXPECT_EQ("\x01\x11\x22\x33\x44", out);
+  EXPECT_EQ("\x05\x01\x11\x22\x33\x44", out);
 }
 
 TEST(raft_Generator, VoteResponse) {
@@ -26,7 +26,7 @@ TEST(raft_Generator, VoteResponse) {
   raft::Generator g(BufferUtil::writer(&out));
   g.generateVoteResponse(VoteResponse{ .term = 0x11,
                                        .voteGranted = true });
-  EXPECT_EQ("\x02\x11\x01", out);
+  EXPECT_EQ("\x03\x02\x11\x01", out);
 }
 
 TEST(raft_Generator, AppendEntriesRequest) {
@@ -40,7 +40,9 @@ TEST(raft_Generator, AppendEntriesRequest) {
       .leaderCommit = 0x15,
       .entries = { LogEntry{0x11, Command{1, 2, 3, 4}},
                    LogEntry{0x11, Command{5, 6, 7, 8}} }});
-  EXPECT_EQ("\x03\x11\x12\x13\x14\x15\x02\x11\x01\x04\x01\x02\x03\x04\x11\x01\x04\x05\x06\x07\x08", out);
+  EXPECT_EQ(
+      "\x15\x03\x11\x12\x13\x14\x15\x02\x11\x01\x04"
+      "\x01\x02\x03\x04\x11\x01\x04\x05\x06\x07\x08", out);
 }
 
 TEST(raft_Generator, AppendEntriesResponse) {
@@ -50,7 +52,7 @@ TEST(raft_Generator, AppendEntriesResponse) {
       .term = 2,
       .success = true });
 
-  EXPECT_EQ("\x04\x02\x01", out);
+  EXPECT_EQ("\x03\x04\x02\x01", out);
 }
 
 TEST(raft_Generator, InstallSnapshotRequest) {
@@ -65,7 +67,7 @@ TEST(raft_Generator, InstallSnapshotRequest) {
       .data = {0x42, 0x13, 0x37},
       .done = true });
 
-  EXPECT_EQ("\x05\x01\x02\x03\x04\x00\x03\x42\x13\x37\x01", out);
+  EXPECT_EQ("\x0b\x05\x01\x02\x03\x04\x00\x03\x42\x13\x37\x01", out);
 }
 
 TEST(raft_Generator, InstallSnapshotResponse) {
@@ -73,5 +75,5 @@ TEST(raft_Generator, InstallSnapshotResponse) {
   raft::Generator g(BufferUtil::writer(&out));
   g.generateInstallSnapshotResponse(InstallSnapshotResponse{ .term = 1 });
 
-  EXPECT_EQ("\x06\x01", out);
+  EXPECT_EQ("\x02\x06\x01", out);
 }
