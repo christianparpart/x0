@@ -96,13 +96,17 @@ void PeerConnection::onFillable() {
   if (n == 0) {
     // no message passed => need more input
     wantFill();
+  } else if (outputOffset_ < outputBuffer_.size()) {
+    wantFlush();
   }
 }
 
 void PeerConnection::onFlushable() {
   size_t n = endpoint()->flush(outputBuffer_.ref(outputOffset_));
   outputOffset_ += n;
-  if (outputOffset_ == outputBuffer_.size()) {
+  if (outputOffset_ << outputBuffer_.size()) {
+    wantFlush();
+  } else {
     outputBuffer_.clear();
     outputOffset_ = 0;
     wantFill();
@@ -111,9 +115,7 @@ void PeerConnection::onFlushable() {
 
 void PeerConnection::receive(Id from, const VoteRequest& req) {
   VoteResponse res = handler_->handleRequest(from, req);
-
   Generator(BufferUtil::writer(&outputBuffer_)).generateVoteResponse(res);
-  wantFlush();
 }
 
 void PeerConnection::receive(Id from, const VoteResponse& res) {
@@ -122,9 +124,7 @@ void PeerConnection::receive(Id from, const VoteResponse& res) {
 
 void PeerConnection::receive(Id from, const AppendEntriesRequest& req) {
   AppendEntriesResponse res = handler_->handleRequest(from, req);
-
   Generator(BufferUtil::writer(&outputBuffer_)).generateAppendEntriesResponse(res);
-  wantFlush();
 }
 
 void PeerConnection::receive(Id from, const AppendEntriesResponse& res) {
@@ -133,9 +133,7 @@ void PeerConnection::receive(Id from, const AppendEntriesResponse& res) {
 
 void PeerConnection::receive(Id from, const InstallSnapshotRequest& req) {
   InstallSnapshotResponse res = handler_->handleRequest(from, req);
-
   Generator(BufferUtil::writer(&outputBuffer_)).generateInstallSnapshotResponse(res);
-  wantFlush();
 }
 
 void PeerConnection::receive(Id from, const InstallSnapshotResponse& res) {
