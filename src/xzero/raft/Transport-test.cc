@@ -65,7 +65,7 @@ RaftTestHandler::RaftTestHandler() {
 VoteResponse RaftTestHandler::handleRequest(
     Id from,
     const VoteRequest& request) {
-  return VoteResponse{0, true};
+  return VoteResponse{0x13, true};
 }
 
 void RaftTestHandler::handleResponse(
@@ -96,15 +96,14 @@ void RaftTestHandler::handleResponse(
 }
 // }}}
 
-TEST(raft_Transport, init) {
+TEST(raft_Transport, receive_framed_response) {
   PosixScheduler executor;
-  Id myId = 1;
   StaticDiscovery discovery { {1, "127.0.0.1:1708"},
                               {2, "127.0.0.2:1708"} };
 
   std::shared_ptr<LocalConnector> connector(new LocalConnector(&executor));
   std::shared_ptr<InetTransport> transport(new InetTransport(
-      myId, &discovery, &executor, connector));
+      &discovery, &executor, connector));
   connector->addConnectionFactory(transport);
   connector->start();
 
@@ -116,5 +115,5 @@ TEST(raft_Transport, init) {
   //executor.runLoopOnce();
   executor.runLoop();
 
-  logf("response: $0", cli->output());
+  EXPECT_EQ("\x03\x02\x13\x01", cli->output());
 }

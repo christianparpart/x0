@@ -53,10 +53,7 @@ class PeerConnection
   void receive(Id from, const InstallSnapshotResponse& message) override;
   void receive(Id from, const InstallSnapshotRequest& message) override;
 
-  // Transport overrides
-  void send(Id target, const VoteResponse& message);
-  void send(Id target, const AppendEntriesResponse& message);
-  void send(Id target, const InstallSnapshotResponse& message);
+  void flushFrame(const Buffer& msg);
 
  private:
   Buffer inputBuffer_;
@@ -79,7 +76,6 @@ PeerConnection::PeerConnection(Connector* connector,
 }
 
 void PeerConnection::onOpen(bool dataReady) {
-  printf("PeerConnection.onOpen(dataReady=%s)\n", dataReady ? "yes" : "no");
   Connection::onOpen(dataReady);
 
   if (dataReady) {
@@ -92,14 +88,11 @@ void PeerConnection::onOpen(bool dataReady) {
 void PeerConnection::onFillable() {
   size_t n = endpoint()->fill(&inputBuffer_);
   if (n == 0) {
-    printf("PeerConnection EOF\n");
     close();
     return; // EOF
   }
 
-  printf("PeerConnection.onFillable (%zu / %zu)\n", inputBuffer_.size(), inputBuffer_.capacity());
   n = parser_.parseFragment(inputBuffer_);
-  printf("PeerConnection.onFillable: parsed %zu messages\n", n);
   inputBuffer_.clear();
 
   if (n == 0) {
@@ -119,15 +112,11 @@ void PeerConnection::onFlushable() {
 }
 
 void PeerConnection::receive(Id from, const VoteRequest& req) {
-  printf("PeerConnection.receive(from=%u, %s): handler=%p\n", 
-      from, StringUtil::toString(req).c_str(), handler_);
-
   VoteResponse res = handler_->handleRequest(from, req);
-  printf("PeerConnection: resp: \"%s\"\n", StringUtil::toString(res).c_str());
 
-  Generator(BufferUtil::writer(&outputBuffer_)).generateVoteResponse(res);
-  printf("PeerConnection: flush: \"%s\"\n", StringUtil::toString(outputBuffer_.ref(outputOffset_)).c_str());
-  wantFlush();
+  Buffer msg;
+  Generator(BufferUtil::writer(&msg)).generateVoteResponse(res);
+  flushFrame(msg);
 }
 
 void PeerConnection::receive(Id from, const VoteResponse& res) {
@@ -135,10 +124,11 @@ void PeerConnection::receive(Id from, const VoteResponse& res) {
 }
 
 void PeerConnection::receive(Id from, const AppendEntriesRequest& req) {
-  AppendEntriesResponse res =  handler_->handleRequest(from, req);
-  Generator(BufferUtil::writer(&outputBuffer_)).generateAppendEntriesResponse(res);
-  printf("PeerConnection: flush: \"%s\"\n", StringUtil::toString(outputBuffer_.ref(outputOffset_)).c_str());
-  wantFlush();
+  AppendEntriesResponse res = handler_->handleRequest(from, req);
+
+  Buffer msg;
+  Generator(BufferUtil::writer(&msg)).generateAppendEntriesResponse(res);
+  flushFrame(msg);
 }
 
 void PeerConnection::receive(Id from, const AppendEntriesResponse& res) {
@@ -147,38 +137,28 @@ void PeerConnection::receive(Id from, const AppendEntriesResponse& res) {
 
 void PeerConnection::receive(Id from, const InstallSnapshotRequest& req) {
   InstallSnapshotResponse res = handler_->handleRequest(from, req);
-  Generator(BufferUtil::writer(&outputBuffer_)).generateInstallSnapshotResponse(res);
-  printf("PeerConnection: flush: \"%s\"\n", StringUtil::toString(outputBuffer_.ref(outputOffset_)).c_str());
-  wantFlush();
+
+  Buffer msg;
+  Generator(BufferUtil::writer(&msg)).generateInstallSnapshotResponse(res);
+  flushFrame(msg);
 }
 
 void PeerConnection::receive(Id from, const InstallSnapshotResponse& res) {
   handler_->handleResponse(from, res);
 }
 
-void PeerConnection::send(Id target, const VoteResponse& message) {
-  Generator(BufferUtil::writer(&outputBuffer_)).generateVoteResponse(message);
-  wantFlush();
-}
-
-void PeerConnection::send(Id target, const AppendEntriesResponse& message) {
-  Generator(BufferUtil::writer(&outputBuffer_)).generateAppendEntriesResponse(message);
-  wantFlush();
-}
-
-void PeerConnection::send(Id target, const InstallSnapshotResponse& message) {
-  Generator(BufferUtil::writer(&outputBuffer_)).generateInstallSnapshotResponse(message);
+void PeerConnection::flushFrame(const Buffer& msg) {
+  BinaryWriter(BufferUtil::writer(&outputBuffer_)).writeVarUInt(msg.size());
+  outputBuffer_.push_back(msg);
   wantFlush();
 }
 // }}}
 
 // {{{ InetTransport
-InetTransport::InetTransport(Id myId,
-                             const Discovery* discovery,
+InetTransport::InetTransport(const Discovery* discovery,
                              Executor* handlerExecutor,
                              std::shared_ptr<Connector> connector)
   : ConnectionFactory("raft"),
-    myId_(myId),
     discovery_(discovery),
     handlerExecutor_(handlerExecutor),
     connector_(connector) {
@@ -193,7 +173,6 @@ void InetTransport::setHandler(Handler* handler) {
 
 Connection* InetTransport::create(Connector* connector,
                                   EndPoint* endpoint) {
-  printf("InetTransport::create! with handler=%p\n", handler_);
   Id peerId = 4242; // TODO: detect peer ID
   return configure(
       endpoint->setConnection<PeerConnection>(connector,

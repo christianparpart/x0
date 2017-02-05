@@ -48,8 +48,7 @@ class InetTransport
   : public Transport,
     public ConnectionFactory {
  public:
-  InetTransport(Id myId,
-                const Discovery* discovery,
+  InetTransport(const Discovery* discovery,
                 Executor* handlerExecutor,
                 std::shared_ptr<Connector> connector);
 
@@ -70,7 +69,6 @@ class InetTransport
   RefPtr<EndPoint> getEndPoint(Id target);
 
  private:
-  Id myId_;
   const Discovery* discovery_;
   Handler* handler_;
   Executor* handlerExecutor_;
