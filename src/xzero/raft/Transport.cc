@@ -149,6 +149,7 @@ InetTransport::InetTransport(const Discovery* discovery,
                              std::shared_ptr<Connector> connector)
   : ConnectionFactory("raft"),
     discovery_(discovery),
+    handler_(nullptr),
     handlerExecutor_(handlerExecutor),
     connector_(connector) {
 }
