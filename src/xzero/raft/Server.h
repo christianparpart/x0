@@ -155,26 +155,12 @@ class Server : public Handler {
   void verifyLeader(std::function<void(bool)> callback);
 
   // {{{ receiver API (invoked by Transport on receiving messages)
-  void handleRequest(Id from,
-                     const VoteRequest& request,
-                     VoteResponse* response) override;
-
-  void handleResponse(Id from,
-                      const VoteResponse& response) override;
-
-  void handleRequest(Id from,
-                     const AppendEntriesRequest& request,
-                     AppendEntriesResponse* response) override;
-
-  void handleResponse(Id from,
-                      const AppendEntriesResponse& response) override;
-
-  void handleRequest(Id from,
-                     const InstallSnapshotRequest& request,
-                     InstallSnapshotResponse* response) override;
-
-  void handleResponse(Id from,
-                      const InstallSnapshotResponse& response) override;
+  VoteResponse handleRequest(Id from, const VoteRequest& request) override;
+  void handleResponse(Id from, const VoteResponse& response) override;
+  AppendEntriesResponse handleRequest(Id from, const AppendEntriesRequest& request) override;
+  void handleResponse(Id from, const AppendEntriesResponse& response) override;
+  InstallSnapshotResponse handleRequest(Id from, const InstallSnapshotRequest& request) override;
+  void handleResponse(Id from, const InstallSnapshotResponse& response) override;
   // }}}
 
  private:

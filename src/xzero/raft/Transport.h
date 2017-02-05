@@ -33,7 +33,6 @@ class Transport {
 
   virtual void setHandler(Handler* handler) = 0;
 
-  // leader
   virtual void send(Id target, const VoteRequest& message) = 0;
   virtual void send(Id target, const AppendEntriesRequest& message) = 0;
   virtual void send(Id target, const InstallSnapshotRequest& message) = 0;

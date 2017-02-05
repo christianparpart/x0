@@ -40,23 +40,20 @@ class RaftTestHandler : public Handler { // {{{
   RaftTestHandler();
 
   // Handler override
-  void handleRequest(Id from,
-                     const VoteRequest& request,
-                     VoteResponse* response) override;
+  VoteResponse handleRequest(Id from,
+                     const VoteRequest& request) override;
 
   void handleResponse(Id from,
                       const VoteResponse& response) override;
 
-  void handleRequest(Id from,
-                     const AppendEntriesRequest& request,
-                     AppendEntriesResponse* response) override;
+  AppendEntriesResponse handleRequest(Id from,
+                     const AppendEntriesRequest& request) override;
 
   void handleResponse(Id from,
                       const AppendEntriesResponse& response) override;
 
-  void handleRequest(Id from,
-                     const InstallSnapshotRequest& request,
-                     InstallSnapshotResponse* response) override;
+  InstallSnapshotResponse handleRequest(Id from,
+                     const InstallSnapshotRequest& request) override;
 
   void handleResponse(Id from,
                       const InstallSnapshotResponse& response) override;
@@ -65,12 +62,10 @@ class RaftTestHandler : public Handler { // {{{
 RaftTestHandler::RaftTestHandler() {
 }
 
-void RaftTestHandler::handleRequest(
+VoteResponse RaftTestHandler::handleRequest(
     Id from,
-    const VoteRequest& request,
-    VoteResponse* response) {
-  response->term = 0;
-  response->voteGranted = true;
+    const VoteRequest& request) {
+  return VoteResponse{0, true};
 }
 
 void RaftTestHandler::handleResponse(
@@ -78,10 +73,10 @@ void RaftTestHandler::handleResponse(
     const VoteResponse& response) {
 }
 
-void RaftTestHandler::handleRequest(
+AppendEntriesResponse RaftTestHandler::handleRequest(
     Id from,
-    const AppendEntriesRequest& request,
-    AppendEntriesResponse* response) {
+    const AppendEntriesRequest& request) {
+  return AppendEntriesResponse{};
 }
 
 void RaftTestHandler::handleResponse(
@@ -89,10 +84,10 @@ void RaftTestHandler::handleResponse(
     const AppendEntriesResponse& response) {
 }
 
-void RaftTestHandler::handleRequest(
+InstallSnapshotResponse RaftTestHandler::handleRequest(
     Id from,
-    const InstallSnapshotRequest& request,
-    InstallSnapshotResponse* response) {
+    const InstallSnapshotRequest& request) {
+  return InstallSnapshotResponse{};
 }
 
 void RaftTestHandler::handleResponse(

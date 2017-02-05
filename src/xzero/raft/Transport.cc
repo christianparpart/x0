@@ -33,25 +33,30 @@ Transport::~Transport() {
 // {{{ PeerConnection
 class PeerConnection
   : public Connection,
-    public Listener  {
+    public Listener {
  public:
   PeerConnection(Connector* connector,
                  EndPoint* endpoint,
                  Id peerId,
                  Handler* handler);
 
-  // connection-endpoint hooks
+  // Connection override (connection-endpoint hooks)
   void onOpen(bool dataReady) override;
   void onFillable() override;
   void onFlushable() override;
 
-  // parser hooks
+  // Listener overrides (parser hooks)
   void receive(Id from, const VoteRequest& message) override;
   void receive(Id from, const VoteResponse& message) override;
   void receive(Id from, const AppendEntriesRequest& message) override;
   void receive(Id from, const AppendEntriesResponse& message) override;
   void receive(Id from, const InstallSnapshotResponse& message) override;
   void receive(Id from, const InstallSnapshotRequest& message) override;
+
+  // Transport overrides
+  void send(Id target, const VoteResponse& message);
+  void send(Id target, const AppendEntriesResponse& message);
+  void send(Id target, const InstallSnapshotResponse& message);
 
  private:
   Buffer inputBuffer_;
@@ -114,12 +119,10 @@ void PeerConnection::onFlushable() {
 }
 
 void PeerConnection::receive(Id from, const VoteRequest& req) {
-  VoteResponse res{0, false};
-
   printf("PeerConnection.receive(from=%u, %s): handler=%p\n", 
       from, StringUtil::toString(req).c_str(), handler_);
 
-  handler_->handleRequest(from, req, &res);
+  VoteResponse res = handler_->handleRequest(from, req);
   printf("PeerConnection: resp: \"%s\"\n", StringUtil::toString(res).c_str());
 
   Generator(BufferUtil::writer(&outputBuffer_)).generateVoteResponse(res);
@@ -132,8 +135,7 @@ void PeerConnection::receive(Id from, const VoteResponse& res) {
 }
 
 void PeerConnection::receive(Id from, const AppendEntriesRequest& req) {
-  AppendEntriesResponse res;
-  handler_->handleRequest(from, req, &res);
+  AppendEntriesResponse res =  handler_->handleRequest(from, req);
   Generator(BufferUtil::writer(&outputBuffer_)).generateAppendEntriesResponse(res);
   printf("PeerConnection: flush: \"%s\"\n", StringUtil::toString(outputBuffer_.ref(outputOffset_)).c_str());
   wantFlush();
@@ -144,8 +146,7 @@ void PeerConnection::receive(Id from, const AppendEntriesResponse& res) {
 }
 
 void PeerConnection::receive(Id from, const InstallSnapshotRequest& req) {
-  InstallSnapshotResponse res;
-  handler_->handleRequest(from, req, &res);
+  InstallSnapshotResponse res = handler_->handleRequest(from, req);
   Generator(BufferUtil::writer(&outputBuffer_)).generateInstallSnapshotResponse(res);
   printf("PeerConnection: flush: \"%s\"\n", StringUtil::toString(outputBuffer_.ref(outputOffset_)).c_str());
   wantFlush();
@@ -153,6 +154,21 @@ void PeerConnection::receive(Id from, const InstallSnapshotRequest& req) {
 
 void PeerConnection::receive(Id from, const InstallSnapshotResponse& res) {
   handler_->handleResponse(from, res);
+}
+
+void PeerConnection::send(Id target, const VoteResponse& message) {
+  Generator(BufferUtil::writer(&outputBuffer_)).generateVoteResponse(message);
+  wantFlush();
+}
+
+void PeerConnection::send(Id target, const AppendEntriesResponse& message) {
+  Generator(BufferUtil::writer(&outputBuffer_)).generateAppendEntriesResponse(message);
+  wantFlush();
+}
+
+void PeerConnection::send(Id target, const InstallSnapshotResponse& message) {
+  Generator(BufferUtil::writer(&outputBuffer_)).generateInstallSnapshotResponse(message);
+  wantFlush();
 }
 // }}}
 
@@ -279,8 +295,7 @@ void LocalTransport::send(Id target, const VoteRequest& msg) {
   // sends a VoteRequest msg to the given target.
   // XXX emulate async/delayed behaviour by deferring receival via executor API.
   executor_->execute([=]() {
-    VoteResponse result;
-    getPeer(target)->handleRequest(myId_, msg, &result);
+    VoteResponse result = getPeer(target)->handleRequest(myId_, msg);
     executor_->execute([=]() {
       getPeer(myId_)->handleResponse(target, result);
     });
@@ -294,8 +309,7 @@ void LocalTransport::send(Id target, const AppendEntriesRequest& msg) {
 
   executor_->execute([=]() {
     logDebug("raft.LocalTransport", "AppendEntriesRequest from $0 to $1: $2", myId_, target, msg);
-    AppendEntriesResponse result;
-    getPeer(target)->handleRequest(myId_, msg, &result);
+    AppendEntriesResponse result = getPeer(target)->handleRequest(myId_, msg);
     executor_->execute([=]() {
       getPeer(myId_)->handleResponse(target, result);
     });
@@ -306,8 +320,7 @@ void LocalTransport::send(Id target, const InstallSnapshotRequest& msg) {
   assert(msg.leaderId == myId_);
 
   executor_->execute([=]() {
-    InstallSnapshotResponse result;
-    getPeer(target)->handleRequest(myId_, msg, &result);
+    InstallSnapshotResponse result = getPeer(target)->handleRequest(myId_, msg);
     executor_->execute([=]() {
       getPeer(myId_)->handleResponse(target, result);
     });

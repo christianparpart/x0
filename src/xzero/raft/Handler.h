@@ -15,32 +15,12 @@ class Handler {
  public:
   virtual ~Handler() {}
 
-  virtual void handleRequest(
-      Id from,
-      const VoteRequest& request,
-      VoteResponse* response) = 0;
-
-  virtual void handleResponse(
-      Id from,
-      const VoteResponse& response) = 0;
-
-  virtual void handleRequest(
-      Id from,
-      const AppendEntriesRequest& request,
-      AppendEntriesResponse* response) = 0;
-
-  virtual void handleResponse(
-      Id from,
-      const AppendEntriesResponse& response) = 0;
-
-  virtual void handleRequest(
-      Id from,
-      const InstallSnapshotRequest& request,
-      InstallSnapshotResponse* response) = 0;
-
-  virtual void handleResponse(
-      Id from,
-      const InstallSnapshotResponse& response) = 0;
+  virtual VoteResponse handleRequest(Id from, const VoteRequest& request) = 0;
+  virtual void handleResponse(Id from, const VoteResponse& response) = 0;
+  virtual AppendEntriesResponse handleRequest(Id from, const AppendEntriesRequest& request) = 0;
+  virtual void handleResponse(Id from, const AppendEntriesResponse& response) = 0;
+  virtual InstallSnapshotResponse handleRequest(Id from, const InstallSnapshotRequest& request) = 0;
+  virtual void handleResponse(Id from, const InstallSnapshotResponse& response) = 0;
 };
 
 

@@ -241,16 +241,13 @@ void Server::setCurrentTerm(Term newTerm) {
 }
 
 // {{{ Server: receiver API (invoked by Transport on receiving messages)
-void Server::handleRequest(Id peerId,
-                           const VoteRequest& req,
-                           VoteResponse* out) {
+VoteResponse Server::handleRequest(Id peerId, const VoteRequest& req) {
   logDebug("raft.Server", "handleRequest: VoteRequest");
   timer_.rewind();
 
   if (req.term < currentTerm()) {
     // decline request as peer's term is older than our currentTerm
-    *out = VoteResponse{currentTerm(), false};
-    return;
+    return VoteResponse{currentTerm(), false};
   }
 
   // If RPC request or response contains term T > currentTerm:
@@ -270,18 +267,16 @@ void Server::handleRequest(Id peerId,
   if (votedFor_.isNone()) {
     // Accept vote, as we didn't vote in this term yet.
     votedFor_ = Some(std::make_pair(req.candidateId, req.lastLogTerm));
-    *out = VoteResponse{currentTerm(), true};
-    return;
+    return VoteResponse{currentTerm(), true};
   }
 
   if (req.candidateId == votedFor_->first && req.lastLogTerm > votedFor_->second) {
     // Accept vote. Same vote-candidate and bigger term
     votedFor_ = Some(std::make_pair(req.candidateId, req.lastLogTerm));
-    *out = VoteResponse{currentTerm(), true};
-    return;
+    return VoteResponse{currentTerm(), true};
   }
 
-  *out = VoteResponse{currentTerm(), false};
+  return VoteResponse{currentTerm(), false};
 }
 
 void Server::handleResponse(Id peerId, const VoteResponse& resp) {
@@ -295,22 +290,20 @@ void Server::handleResponse(Id peerId, const VoteResponse& resp) {
   }
 }
 
-void Server::handleRequest(Id peerId,
-                           const AppendEntriesRequest& req,
-                           AppendEntriesResponse* res) {
+AppendEntriesResponse Server::handleRequest(
+    Id peerId,
+    const AppendEntriesRequest& req) {
   timer_.rewind();
 
   // 1. Reply false if term < currentTerm (§5.1)
   if (req.term < currentTerm()) {
-    *res = AppendEntriesResponse{currentTerm(), false};
-    return;
+    return AppendEntriesResponse{currentTerm(), false};
   }
 
   // 2. Reply false if log doesn’t contain an entry at prevLogIndex
   //    whose term matches prevLogTerm (§5.3)
   if (getLogTerm(req.prevLogIndex) != req.prevLogTerm) {
-    *res = AppendEntriesResponse{currentTerm(), false};
-    return;
+    return AppendEntriesResponse{currentTerm(), false};
   }
 
   // If RPC request or response contains term T > currentTerm:
@@ -365,7 +358,7 @@ void Server::handleRequest(Id peerId,
   // it applies the entry to its local state machine (in log order)
   applyLogs();
 
-  *res = AppendEntriesResponse{currentTerm(), true};
+  return AppendEntriesResponse{currentTerm(), true};
 }
 
 void Server::handleResponse(Id peerId, const AppendEntriesResponse& resp) {
@@ -399,9 +392,9 @@ void Server::handleResponse(Id peerId, const AppendEntriesResponse& resp) {
   // replicateLogsTo(peerId); // FIXME
 }
 
-void Server::handleRequest(Id peerId,
-                           const InstallSnapshotRequest& req,
-                           InstallSnapshotResponse* res) {
+InstallSnapshotResponse Server::handleRequest(
+    Id peerId,
+    const InstallSnapshotRequest& req) {
   timer_.rewind();
 
   logDebug("raft.Server", "$0: received from $1: $2", id_, peerId, req);
