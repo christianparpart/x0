@@ -158,19 +158,21 @@ void PeerConnection::receive(Id from, const InstallSnapshotResponse& res) {
 
 // {{{ InetTransport
 InetTransport::InetTransport(Id myId,
-                             Discovery* discovery,
-                             Handler* handler,
+                             const Discovery* discovery,
                              Executor* handlerExecutor,
                              std::shared_ptr<Connector> connector)
   : ConnectionFactory("raft"),
     myId_(myId),
     discovery_(discovery),
-    handler_(handler),
     handlerExecutor_(handlerExecutor),
     connector_(connector) {
 }
 
 InetTransport::~InetTransport() {
+}
+
+void InetTransport::setHandler(Handler* handler) {
+  handler_ = handler;
 }
 
 Connection* InetTransport::create(Connector* connector,
@@ -234,17 +236,22 @@ void InetTransport::send(Id target, const InstallSnapshotRequest& msg) {
 // {{{ LocalTransport
 LocalTransport::LocalTransport(Id myId, Executor* executor)
     : myId_(myId),
+      myHandler_(nullptr),
       executor_(executor),
       peers_() {
 }
 
 LocalTransport::LocalTransport(LocalTransport&& m)
     : myId_(m.myId_),
+      myHandler_(m.myHandler_),
+      executor_(m.executor_),
       peers_(std::move(m.peers_)) {
 }
 
 LocalTransport& LocalTransport::operator=(LocalTransport&& m) {
   myId_ = std::move(m.myId_);
+  myHandler_ = std::move(m.myHandler_);
+  executor_ = std::move(m.executor_);
   peers_ = std::move(m.peers_);
   return *this;
 }
@@ -260,6 +267,10 @@ Handler* LocalTransport::getPeer(Id id) {
   } else {
     return nullptr;
   }
+}
+
+void LocalTransport::setHandler(Handler* handler) {
+  myHandler_ = handler;
 }
 
 void LocalTransport::send(Id target, const VoteRequest& msg) {

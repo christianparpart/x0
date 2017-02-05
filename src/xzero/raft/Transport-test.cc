@@ -4,16 +4,37 @@
 // Licensed under the MIT License (the "License"); you may not use this
 // file except in compliance with the License. You may obtain a copy of
 // the License at: http://opensource.org/licenses/MIT
-#include <xzero/executor/PosixScheduler.h>
+#include <xzero/testing.h>
 #include <xzero/raft/Discovery.h>
 #include <xzero/raft/Transport.h>
+#include <xzero/raft/StateMachine.h>
+#include <xzero/raft/Storage.h>
+#include <xzero/raft/Server.h>
 #include <xzero/raft/Handler.h>
+#include <xzero/executor/PosixScheduler.h>
 #include <xzero/net/LocalConnector.h>
-#include <xzero/testing.h>
 
 using namespace xzero;
 using namespace xzero::raft;
 
+class RaftTestFSM : public StateMachine { // {{{
+ public:
+  bool loadSnapshot(std::unique_ptr<std::istream>&& input) override;
+  bool saveSnapshot(std::unique_ptr<std::ostream>&& output) override;
+  void applyCommand(const Command& command) override;
+};
+
+bool RaftTestFSM::loadSnapshot(std::unique_ptr<std::istream>&& input) {
+  return false;
+}
+
+bool RaftTestFSM::saveSnapshot(std::unique_ptr<std::ostream>&& output) {
+  return false;
+}
+
+void RaftTestFSM::applyCommand(const Command& command) {
+}
+// }}}
 class RaftTestHandler : public Handler { // {{{
  public:
   RaftTestHandler();
@@ -48,6 +69,8 @@ void RaftTestHandler::handleRequest(
     Id from,
     const VoteRequest& request,
     VoteResponse* response) {
+  response->term = 0;
+  response->voteGranted = true;
 }
 
 void RaftTestHandler::handleResponse(
@@ -80,19 +103,18 @@ void RaftTestHandler::handleResponse(
 
 TEST(raft_Transport, init) {
   PosixScheduler executor;
-  RaftTestHandler handler;
   Id myId = 1;
-  StaticDiscovery discovery { {1, "127.0.0.1:5152"},
-                              {2, "127.0.0.2:5152"} };
+  StaticDiscovery discovery { {1, "127.0.0.1:1708"},
+                              {2, "127.0.0.2:1708"} };
 
   std::shared_ptr<LocalConnector> connector(new LocalConnector(&executor));
-
   std::shared_ptr<InetTransport> transport(new InetTransport(
-      myId, &discovery, &handler, &executor, connector));
-
+      myId, &discovery, &executor, connector));
   connector->addConnectionFactory(transport);
-
   connector->start();
+
+  RaftTestHandler handler;
+  transport->setHandler(&handler);
 
   RefPtr<LocalEndPoint> cli = connector->createClient("\x05\x01\x11\x22\x33\x44");
 

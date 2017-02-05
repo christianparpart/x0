@@ -86,6 +86,7 @@ Server::Server(Executor* executor,
       lastApplied_(0),
       nextIndex_(),
       matchIndex_() {
+  transport_->setHandler(this);
 }
 
 Server::~Server() {
@@ -248,9 +249,7 @@ void Server::handleRequest(Id peerId,
 
   if (req.term < currentTerm()) {
     // decline request as peer's term is older than our currentTerm
-    //*out = VoteResponse{currentTerm(), false};
-    out->term = currentTerm();
-    out->voteGranted = false;
+    *out = VoteResponse{currentTerm(), false};
     return;
   }
 
@@ -271,24 +270,18 @@ void Server::handleRequest(Id peerId,
   if (votedFor_.isNone()) {
     // Accept vote, as we didn't vote in this term yet.
     votedFor_ = Some(std::make_pair(req.candidateId, req.lastLogTerm));
-    // *out = VoteResponse{currentTerm(), true};
-    out->term = currentTerm();
-    out->voteGranted = true;
+    *out = VoteResponse{currentTerm(), true};
     return;
   }
 
   if (req.candidateId == votedFor_->first && req.lastLogTerm > votedFor_->second) {
     // Accept vote. Same vote-candidate and bigger term
     votedFor_ = Some(std::make_pair(req.candidateId, req.lastLogTerm));
-    // *out = VoteResponse{currentTerm(), true};
-    out->term = currentTerm();
-    out->voteGranted = true;
+    *out = VoteResponse{currentTerm(), true};
     return;
   }
 
-  // *out = VoteResponse{currentTerm(), false};
-  out->term = currentTerm();
-  out->voteGranted = false;
+  *out = VoteResponse{currentTerm(), false};
 }
 
 void Server::handleResponse(Id peerId, const VoteResponse& resp) {

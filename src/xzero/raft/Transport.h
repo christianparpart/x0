@@ -21,6 +21,9 @@ class Executor;
 
 namespace raft {
 
+class Handler;
+class Discovery;
+
 /**
  * Abstracts peer-to-peer communication between Server instances.
  */
@@ -28,27 +31,12 @@ class Transport {
  public:
   virtual ~Transport();
 
+  virtual void setHandler(Handler* handler) = 0;
+
   // leader
   virtual void send(Id target, const VoteRequest& message) = 0;
   virtual void send(Id target, const AppendEntriesRequest& message) = 0;
   virtual void send(Id target, const InstallSnapshotRequest& message) = 0;
-};
-
-class Handler;
-class Discovery;
-
-class AbstractTransport : public Transport {
- public:
-  AbstractTransport(Id myId, Discovery* discovery, Handler* handler);
-
-  Id myId() const noexcept { return myId_; }
-  Discovery* discovery() const noexcept { return discovery_; }
-  Handler* handler() const noexcept { return handler_; }
-
- protected:
-  Id myId_;
-  Discovery* discovery_;
-  Handler* handler_;
 };
 
 /**
@@ -57,18 +45,19 @@ class AbstractTransport : public Transport {
  * I/O is implemented non-blocking, and thus, all handler tasks MUST
  * be invoked within a seperate threaded worker executor.
  */
-class InetTransport : public Transport,
-                      public ConnectionFactory {
+class InetTransport
+  : public Transport,
+    public ConnectionFactory {
  public:
   InetTransport(Id myId,
-                Discovery* discovery,
-                Handler* handler,
+                const Discovery* discovery,
                 Executor* handlerExecutor,
                 std::shared_ptr<Connector> connector);
 
   ~InetTransport();
 
   // Transport overrides
+  void setHandler(Handler* handler) override;
   void send(Id target, const VoteRequest& message) override;
   void send(Id target, const AppendEntriesRequest& message) override;
   void send(Id target, const InstallSnapshotRequest& message) override;
@@ -83,7 +72,7 @@ class InetTransport : public Transport,
 
  private:
   Id myId_;
-  Discovery* discovery_;
+  const Discovery* discovery_;
   Handler* handler_;
   Executor* handlerExecutor_;
   std::shared_ptr<Connector> connector_;
@@ -105,12 +94,14 @@ class LocalTransport : public Transport {
   void setPeer(Id id, Handler* handler);
   Handler* getPeer(Id id);
 
+  void setHandler(Handler* handler) override;
   void send(Id target, const VoteRequest& message) override;
   void send(Id target, const AppendEntriesRequest& message) override;
   void send(Id target, const InstallSnapshotRequest& message) override;
 
  private:
   Id myId_;
+  Handler* myHandler_;
   Executor* executor_;
   std::unordered_map<Id, Handler*> peers_;
 };

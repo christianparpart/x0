@@ -8,13 +8,13 @@
 
 #include <xzero/raft/rpc.h>
 #include <xzero/raft/Handler.h>
+#include <xzero/raft/Transport.h>
 #include <xzero/raft/Error.h>
 #include <xzero/Option.h>
 #include <xzero/DeadlineTimer.h>
 #include <xzero/Duration.h>
 #include <xzero/MonotonicTime.h>
 #include <xzero/executor/Executor.h>
-#include <xzero/net/Server.h>
 #include <xzero/thread/Wakeup.h>
 #include <initializer_list>
 #include <unordered_map>
@@ -36,7 +36,6 @@ typedef std::unordered_map<Id, Index> ServerIndexMap;
 
 class Storage;
 class Discovery;
-class Transport;
 class StateMachine;
 
 /**
