@@ -161,7 +161,16 @@ void InetTransport::setHandler(Handler* handler) {
 
 Connection* InetTransport::create(Connector* connector,
                                   EndPoint* endpoint) {
-  Id peerId = discovery_->getId(StringUtil::toString(*endpoint->remoteAddress()));
+  Id peerId = 0;
+  Option<InetAddress> remoteAddress = endpoint->remoteAddress();
+  if (remoteAddress.isSome()) {
+    std::string remoteAddrStr = StringUtil::toString(*remoteAddress);
+    Result<Id> peerIdResult = discovery_->getId(remoteAddrStr);
+    if (peerIdResult.isSuccess()) {
+      peerId = *peerIdResult;
+    }
+  }
+
   return configure(
       endpoint->setConnection<PeerConnection>(connector,
                                               endpoint,
