@@ -21,7 +21,7 @@ class Listener;
  */
 class Parser {
  public:
-  Parser(Id fromId, Listener* messageListener);
+  explicit Parser(Listener* messageListener);
 
   /**
    * Parses a byte chunk into messages.
@@ -43,6 +43,8 @@ class Parser {
 
  private:
   bool parseFrame();
+  void parseHelloRequest();
+  void parseHelloResponse();
   void parseVoteRequest();
   void parseVoteResponse();
   void parseAppendEntriesRequest();
@@ -55,7 +57,6 @@ class Parser {
   size_t inputOffset_;
   BinaryReader reader_;
 
-  Id myId_;
   Listener* listener_;
 };
 

@@ -37,7 +37,6 @@ class PeerConnection
  public:
   PeerConnection(Connector* connector,
                  EndPoint* endpoint,
-                 Id peerId,
                  Handler* handler);
 
   // Connection override (connection-endpoint hooks)
@@ -46,14 +45,17 @@ class PeerConnection
   void onFlushable() override;
 
   // Listener overrides (parser hooks)
-  void receive(Id from, const VoteRequest& message) override;
-  void receive(Id from, const VoteResponse& message) override;
-  void receive(Id from, const AppendEntriesRequest& message) override;
-  void receive(Id from, const AppendEntriesResponse& message) override;
-  void receive(Id from, const InstallSnapshotResponse& message) override;
-  void receive(Id from, const InstallSnapshotRequest& message) override;
+  void receive(const HelloRequest& message) override;
+  void receive(const HelloResponse& message) override;
+  void receive(const VoteRequest& message) override;
+  void receive(const VoteResponse& message) override;
+  void receive(const AppendEntriesRequest& message) override;
+  void receive(const AppendEntriesResponse& message) override;
+  void receive(const InstallSnapshotResponse& message) override;
+  void receive(const InstallSnapshotRequest& message) override;
 
  private:
+  Id peerId_;
   Buffer inputBuffer_;
   Buffer outputBuffer_;
   size_t outputOffset_;
@@ -63,14 +65,14 @@ class PeerConnection
 
 PeerConnection::PeerConnection(Connector* connector,
                                EndPoint* endpoint,
-                               Id peerId,
                                Handler* handler)
   : Connection(endpoint, connector->executor()),
+    peerId_(0),
     inputBuffer_(4096),
     outputBuffer_(4096),
     outputOffset_(0),
     handler_(handler),
-    parser_(peerId, this) {
+    parser_(this) {
 }
 
 void PeerConnection::onOpen(bool dataReady) {
@@ -113,31 +115,61 @@ void PeerConnection::onFlushable() {
   }
 }
 
-void PeerConnection::receive(Id from, const VoteRequest& req) {
-  VoteResponse res = handler_->handleRequest(from, req);
+void PeerConnection::receive(const HelloRequest& req) {
+  HelloResponse res = handler_->handleRequest(req);
+  Generator(BufferUtil::writer(&outputBuffer_)).generateHelloResponse(res);
+
+  if (res.success) {
+    peerId_ = req.serverId;
+  }
+}
+
+void PeerConnection::receive(const HelloResponse& res) {
+}
+
+void PeerConnection::receive(const VoteRequest& req) {
+  if (peerId_ == 0)
+    return;
+
+  VoteResponse res = handler_->handleRequest(peerId_, req);
   Generator(BufferUtil::writer(&outputBuffer_)).generateVoteResponse(res);
 }
 
-void PeerConnection::receive(Id from, const VoteResponse& res) {
-  handler_->handleResponse(from, res);
+void PeerConnection::receive(const VoteResponse& res) {
+  if (peerId_ == 0)
+    return;
+
+  handler_->handleResponse(peerId_, res);
 }
 
-void PeerConnection::receive(Id from, const AppendEntriesRequest& req) {
-  AppendEntriesResponse res = handler_->handleRequest(from, req);
+void PeerConnection::receive(const AppendEntriesRequest& req) {
+  if (peerId_ == 0)
+    return;
+
+  AppendEntriesResponse res = handler_->handleRequest(peerId_, req);
   Generator(BufferUtil::writer(&outputBuffer_)).generateAppendEntriesResponse(res);
 }
 
-void PeerConnection::receive(Id from, const AppendEntriesResponse& res) {
-  handler_->handleResponse(from, res);
+void PeerConnection::receive(const AppendEntriesResponse& res) {
+  if (peerId_ == 0)
+    return;
+
+  handler_->handleResponse(peerId_, res);
 }
 
-void PeerConnection::receive(Id from, const InstallSnapshotRequest& req) {
-  InstallSnapshotResponse res = handler_->handleRequest(from, req);
+void PeerConnection::receive(const InstallSnapshotRequest& req) {
+  if (peerId_ == 0)
+    return;
+
+  InstallSnapshotResponse res = handler_->handleRequest(peerId_, req);
   Generator(BufferUtil::writer(&outputBuffer_)).generateInstallSnapshotResponse(res);
 }
 
-void PeerConnection::receive(Id from, const InstallSnapshotResponse& res) {
-  handler_->handleResponse(from, res);
+void PeerConnection::receive(const InstallSnapshotResponse& res) {
+  if (peerId_ == 0)
+    return;
+
+  handler_->handleResponse(peerId_, res);
 }
 // }}}
 
@@ -161,20 +193,9 @@ void InetTransport::setHandler(Handler* handler) {
 
 Connection* InetTransport::create(Connector* connector,
                                   EndPoint* endpoint) {
-  Id peerId = 0;
-  Option<InetAddress> remoteAddress = endpoint->remoteAddress();
-  if (remoteAddress.isSome()) {
-    std::string remoteAddrStr = StringUtil::toString(*remoteAddress);
-    Result<Id> peerIdResult = discovery_->getId(remoteAddrStr);
-    if (peerIdResult.isSuccess()) {
-      peerId = *peerIdResult;
-    }
-  }
-
   return configure(
       endpoint->setConnection<PeerConnection>(connector,
                                               endpoint,
-                                              peerId,
                                               handler_),
       connector);
 }

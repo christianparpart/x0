@@ -40,6 +40,9 @@ class RaftTestHandler : public Handler { // {{{
   RaftTestHandler();
 
   // Handler override
+  HelloResponse handleRequest(const HelloRequest& request) override;
+  void handleResponse(Id from, const HelloResponse& response) override;
+
   VoteResponse handleRequest(Id from,
                      const VoteRequest& request) override;
 
@@ -60,6 +63,13 @@ class RaftTestHandler : public Handler { // {{{
 };
 
 RaftTestHandler::RaftTestHandler() {
+}
+
+HelloResponse RaftTestHandler::handleRequest(const HelloRequest& request) {
+  return HelloResponse{true, request.psk};
+}
+
+void RaftTestHandler::handleResponse(Id from, const HelloResponse& response) {
 }
 
 VoteResponse RaftTestHandler::handleRequest(
@@ -110,10 +120,12 @@ TEST(raft_Transport, receive_framed_response) {
   RaftTestHandler handler;
   transport->setHandler(&handler);
 
-  RefPtr<LocalEndPoint> cli = connector->createClient("\x05\x01\x11\x22\x33\x44");
+  RefPtr<LocalEndPoint> cli = connector->createClient(
+      "\x06\x07\x42\x03psk"
+      "\x05\x01\x11\x22\x33\x44");
 
   //executor.runLoopOnce();
   executor.runLoop();
 
-  EXPECT_EQ("\x03\x02\x13\x01", cli->output());
+  EXPECT_EQ("\x06\x08\x01\x03psk\x03\x02\x13\x01", cli->output());
 }

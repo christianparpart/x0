@@ -27,6 +27,8 @@ class Generator {
  public:
   explicit Generator(ChunkWriter writer);
 
+  void generateHelloRequest(const HelloRequest& msg);
+  void generateHelloResponse(const HelloResponse& msg);
   void generateVoteRequest(const VoteRequest& msg);
   void generateVoteResponse(const VoteResponse& msg);
   void generateAppendEntriesRequest(const AppendEntriesRequest& msg);
@@ -36,7 +38,7 @@ class Generator {
 
  private:
   void fill(const uint8_t* data, size_t len);
-  void flush();
+  void flushFrame();
 
  private:
   ChunkWriter chunkWriter_;

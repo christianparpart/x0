@@ -11,6 +11,22 @@
 using namespace xzero;
 using namespace xzero::raft;
 
+TEST(raft_Generator, HelloRequest) {
+  Buffer out;
+  raft::Generator g(BufferUtil::writer(&out));
+  g.generateHelloRequest(HelloRequest{ .serverId = 0x42,
+                                       .psk = "psk" });
+  EXPECT_EQ("\x06\x07\x42\x03psk", out);
+}
+
+TEST(raft_Generator, HelloResponse) {
+  Buffer out;
+  raft::Generator g(BufferUtil::writer(&out));
+  g.generateHelloResponse(HelloResponse{ .success = true,
+                                         .message = "pqr" });
+  EXPECT_EQ("\x06\x08\x01\x03pqr", out);
+}
+
 TEST(raft_Generator, VoteRequest) {
   Buffer out;
   raft::Generator g(BufferUtil::writer(&out));

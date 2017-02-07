@@ -240,7 +240,19 @@ void Server::setCurrentTerm(Term newTerm) {
   storage_->saveTerm(newTerm);
 }
 
-// {{{ Server: receiver API (invoked by Transport on receiving messages)
+// {{{ Server: handler API (invoked by Transport on receiving messages)
+HelloResponse Server::handleRequest(const HelloRequest& req) {
+  logDebug("raft.Server", "handleRequest: HelloRequest<$0, \"$1\">",
+      req.serverId, req.psk);
+
+  return HelloResponse{true, ""};
+}
+
+void Server::handleResponse(Id from, const HelloResponse& res) {
+  logDebug("raft.Server", "handleResponse: VoteResponse<$0, \"$1\">", 
+      res.success ? "success" : "failed", res.message);
+}
+
 VoteResponse Server::handleRequest(Id peerId, const VoteRequest& req) {
   logDebug("raft.Server", "handleRequest: VoteRequest");
   timer_.rewind();

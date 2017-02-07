@@ -26,6 +26,10 @@ std::string StringUtil::toString<>(const MessageType type) {
       return "InstallSnapshotRequest";
     case MessageType::InstallSnapshotResponse:
       return "InstallSnapshotResponse";
+    case MessageType::HelloRequest:
+      return "HelloRequest";
+    case MessageType::HelloResponse:
+      return "HelloResponse";
   }
 }
 

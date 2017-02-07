@@ -14,6 +14,8 @@ using namespace xzero::raft;
 
 class MessagePod : public raft::Listener { // {{{
  public:
+  std::vector<HelloRequest> helloRequest;
+  std::vector<HelloResponse> helloResponse;
   std::vector<VoteRequest> voteRequest;
   std::vector<VoteResponse> voteResponse;
   std::vector<AppendEntriesRequest> appendEntriesRequest;
@@ -21,35 +23,67 @@ class MessagePod : public raft::Listener { // {{{
   std::vector<InstallSnapshotRequest> installSnapshotRequest;
   std::vector<InstallSnapshotResponse> installSnapshotResponse;
 
-  void receive(Id from, const VoteRequest& message) override {
+  void receive(const HelloRequest& message) override {
+    helloRequest.push_back(message);
+  }
+
+  void receive(const HelloResponse& message) override {
+    helloResponse.push_back(message);
+  }
+
+  void receive(const VoteRequest& message) override {
     voteRequest.push_back(message);
   }
 
-  void receive(Id from, const VoteResponse& message) override {
+  void receive(const VoteResponse& message) override {
     voteResponse.push_back(message);
   }
 
-  void receive(Id from, const AppendEntriesRequest& message) override {
+  void receive(const AppendEntriesRequest& message) override {
     appendEntriesRequest.push_back(message);
   }
 
-  void receive(Id from, const AppendEntriesResponse& message) override {
+  void receive(const AppendEntriesResponse& message) override {
     appendEntriesResponse.push_back(message);
   }
 
-  void receive(Id from, const InstallSnapshotRequest& message) override {
+  void receive(const InstallSnapshotRequest& message) override {
     installSnapshotRequest.push_back(message);
   }
 
-  void receive(Id from, const InstallSnapshotResponse& message) override {
+  void receive(const InstallSnapshotResponse& message) override {
     installSnapshotResponse.push_back(message);
   }
 };
 // }}}
 
+TEST(raft_Parser, HelloRequest) {
+  MessagePod pod;
+  raft::Parser parser(&pod);
+  BufferRef binmsg = "\x06\x07\x42\x03psk";
+
+  unsigned parsedMessageCount = parser.parseFragment(binmsg);
+  EXPECT_EQ(1, parsedMessageCount);
+  ASSERT_EQ(1, pod.helloRequest.size());
+  EXPECT_EQ(0x42, pod.helloRequest[0].serverId);
+  EXPECT_EQ("psk", pod.helloRequest[0].psk);
+}
+
+TEST(raft_Parser, HelloResponse) {
+  MessagePod pod;
+  raft::Parser parser(&pod);
+  BufferRef binmsg = "\x06\x08\x01\x03psk";
+
+  unsigned parsedMessageCount = parser.parseFragment(binmsg);
+  EXPECT_EQ(1, parsedMessageCount);
+  ASSERT_EQ(1, pod.helloResponse.size());
+  EXPECT_TRUE(pod.helloResponse[0].success);
+  EXPECT_EQ("psk", pod.helloResponse[0].message);
+}
+
 TEST(raft_Parser, VoteRequest) {
   MessagePod pod;
-  raft::Parser parser(42, &pod);
+  raft::Parser parser(&pod);
   BufferRef binmsg = "\x05\x01\x11\x22\x33\x44";
 
   unsigned parsedMessageCount = parser.parseFragment(binmsg);
@@ -63,7 +97,7 @@ TEST(raft_Parser, VoteRequest) {
 
 TEST(raft_Parser, VoteResponse) {
   MessagePod pod;
-  raft::Parser parser(42, &pod);
+  raft::Parser parser(&pod);
   BufferRef binmsg = "\x02\x02\x03\x01";
 
   unsigned parsedMessageCount = parser.parseFragment(binmsg);
@@ -75,7 +109,7 @@ TEST(raft_Parser, VoteResponse) {
 
 TEST(raft_Parser, AppendEntriesRequest) {
   MessagePod pod;
-  raft::Parser parser(42, &pod);
+  raft::Parser parser(&pod);
   BufferRef binmsg = "\x15\x03\x11\x12\x13\x14\x15\x02\x11\x01\x04"
                      "\x01\x02\x03\x04\x11\x01\x04\x05\x06\x07\x08";
 
@@ -100,7 +134,7 @@ TEST(raft_Parser, AppendEntriesRequest) {
 
 TEST(raft_Parser, AppendEntriesResponse) {
   MessagePod pod;
-  raft::Parser parser(42, &pod);
+  raft::Parser parser(&pod);
   BufferRef binmsg = "\x03\x04\x13\x01";
 
   unsigned parsedMessageCount = parser.parseFragment(binmsg);
@@ -112,7 +146,7 @@ TEST(raft_Parser, AppendEntriesResponse) {
 
 TEST(raft_Parser, InstallSnapshotRequest) {
   MessagePod pod;
-  raft::Parser parser(42, &pod);
+  raft::Parser parser(&pod);
   BufferRef binmsg = "\x0b\x05\x01\x02\x03\x04\x00\x03\x42\x13\x37\x01";
 
   unsigned parsedMessageCount = parser.parseFragment(binmsg);
@@ -132,7 +166,7 @@ TEST(raft_Parser, InstallSnapshotRequest) {
 
 TEST(raft_Parser, InstallSnapshotResponse) {
   MessagePod pod;
-  raft::Parser parser(42, &pod);
+  raft::Parser parser(&pod);
   BufferRef binmsg = "\x02\x06\x13";
 
   unsigned parsedMessageCount = parser.parseFragment(binmsg);
@@ -143,7 +177,7 @@ TEST(raft_Parser, InstallSnapshotResponse) {
 
 TEST(raft_Parser, read_partial) {
   MessagePod pod;
-  raft::Parser parser(42, &pod);
+  raft::Parser parser(&pod);
 
   ASSERT_EQ(0, parser.parseFragment("\x02"));
   ASSERT_EQ(1, parser.pending());
@@ -160,7 +194,7 @@ TEST(raft_Parser, read_partial) {
 
 TEST(raft_Parser, read_multi) {
   MessagePod pod;
-  raft::Parser parser(42, &pod);
+  raft::Parser parser(&pod);
 
   unsigned parsedMessageCount =
       parser.parseFragment("\x02\x06\x13\x02\x06\x14\x02\x06\x15");

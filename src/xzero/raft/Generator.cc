@@ -25,12 +25,26 @@ void Generator::fill(const uint8_t* data, size_t len) {
   buffer_.push_back(data, len);
 }
 
-void Generator::flush() {
+void Generator::flushFrame() {
   Buffer frame;
   BinaryWriter(BufferUtil::writer(&frame)).writeVarUInt(buffer_.size());
   chunkWriter_((const uint8_t*) frame.data(), frame.size());
   chunkWriter_((const uint8_t*) buffer_.data(), buffer_.size());
   buffer_.clear();
+}
+
+void Generator::generateHelloRequest(const HelloRequest& msg) {
+  wire_.writeVarUInt((unsigned) MessageType::HelloRequest);
+  wire_.writeVarUInt(msg.serverId);
+  wire_.writeString(msg.psk);
+  flushFrame();
+}
+
+void Generator::generateHelloResponse(const HelloResponse& msg) {
+  wire_.writeVarUInt((unsigned) MessageType::HelloResponse);
+  wire_.writeVarUInt(msg.success ? 1 : 0);
+  wire_.writeString(msg.message);
+  flushFrame();
 }
 
 void Generator::generateVoteRequest(const VoteRequest& msg) {
@@ -39,14 +53,14 @@ void Generator::generateVoteRequest(const VoteRequest& msg) {
   wire_.writeVarUInt(msg.candidateId);
   wire_.writeVarUInt(msg.lastLogIndex);
   wire_.writeVarUInt(msg.lastLogTerm);
-  flush();
+  flushFrame();
 }
 
 void Generator::generateVoteResponse(const VoteResponse& msg) {
   wire_.writeVarUInt((unsigned) MessageType::VoteResponse);
   wire_.writeVarUInt(msg.term);
   wire_.writeVarUInt(msg.voteGranted ? 1 : 0);
-  flush();
+  flushFrame();
 }
 
 void Generator::generateAppendEntriesRequest(const AppendEntriesRequest& msg) {
@@ -64,14 +78,14 @@ void Generator::generateAppendEntriesRequest(const AppendEntriesRequest& msg) {
     wire_.writeLengthDelimited(entry.command().data(),
                                entry.command().size());
   }
-  flush();
+  flushFrame();
 }
 
 void Generator::generateAppendEntriesResponse(const AppendEntriesResponse& msg) {
   wire_.writeVarUInt((unsigned) MessageType::AppendEntriesResponse);
   wire_.writeVarUInt(msg.term);
-  wire_.writeVarUInt(msg.success);
-  flush();
+  wire_.writeVarUInt(msg.success ? 1 : 0);
+  flushFrame();
 }
 
 void Generator::generateInstallSnapshotRequest(const InstallSnapshotRequest& msg) {
@@ -84,13 +98,13 @@ void Generator::generateInstallSnapshotRequest(const InstallSnapshotRequest& msg
   wire_.writeVarUInt(msg.offset);
   wire_.writeLengthDelimited(msg.data.data(), msg.data.size());
   wire_.writeVarUInt(msg.done);
-  flush();
+  flushFrame();
 }
 
 void Generator::generateInstallSnapshotResponse(const InstallSnapshotResponse& msg) {
   wire_.writeVarUInt((unsigned) MessageType::InstallSnapshotResponse);
   wire_.writeVarUInt(msg.term);
-  flush();
+  flushFrame();
 }
 
 } // namespace raft

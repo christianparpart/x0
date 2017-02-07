@@ -13,11 +13,10 @@
 namespace xzero {
 namespace raft {
 
-Parser::Parser(Id myId, Listener* listener)
+Parser::Parser(Listener* listener)
   : inputBuffer_(),
     inputOffset_(0),
     reader_(inputBuffer_),
-    myId_(myId),
     listener_(listener) {
 }
 
@@ -62,6 +61,12 @@ bool Parser::parseFrame() {
     case MessageType::InstallSnapshotResponse:
       parseInstallSnapshotResponse();
       break;
+    case MessageType::HelloRequest:
+      parseHelloRequest();
+      break;
+    case MessageType::HelloResponse:
+      parseHelloResponse();
+      break;
     default:
       RAISE(ProtocolError, "Invalid message type.");
   }
@@ -82,18 +87,18 @@ void Parser::parseVoteRequest() {
   Index lastLogIndex = static_cast<Index>(reader_.parseVarUInt());
   Term lastLogTerm = static_cast<Term>(reader_.parseVarUInt());
 
-  listener_->receive(myId_, VoteRequest{ .term = term,
-                                         .candidateId = candidateId,
-                                         .lastLogIndex = lastLogIndex,
-                                         .lastLogTerm = lastLogTerm });
+  listener_->receive(VoteRequest{ .term = term,
+                                  .candidateId = candidateId,
+                                  .lastLogIndex = lastLogIndex,
+                                  .lastLogTerm = lastLogTerm });
 }
 
 void Parser::parseVoteResponse() {
   Term term = static_cast<Term>(reader_.parseVarUInt());
   bool voteGranted = static_cast<bool>(reader_.parseVarUInt());
 
-  listener_->receive(myId_, VoteResponse{ .term = term,
-                                          .voteGranted = voteGranted });
+  listener_->receive(VoteResponse{ .term = term,
+                                   .voteGranted = voteGranted });
 }
 
 void Parser::parseAppendEntriesRequest() {
@@ -112,7 +117,7 @@ void Parser::parseAppendEntriesRequest() {
     entries.emplace_back(term, type, std::move(command));
   }
 
-  listener_->receive(myId_, AppendEntriesRequest{
+  listener_->receive(AppendEntriesRequest{
       term,
       leaderId,
       prevLogIndex,
@@ -125,7 +130,7 @@ void Parser::parseAppendEntriesResponse() {
   Term term = static_cast<Term>(reader_.parseVarUInt());
   bool success = static_cast<bool>(reader_.parseVarUInt());
 
-  listener_->receive(myId_, AppendEntriesResponse{term, success});
+  listener_->receive(AppendEntriesResponse{term, success});
 }
 
 void Parser::parseInstallSnapshotRequest() {
@@ -137,7 +142,7 @@ void Parser::parseInstallSnapshotRequest() {
   std::vector<uint8_t> data = reader_.parseLengthDelimited();
   bool done = static_cast<bool>(reader_.parseVarUInt());
 
-  listener_->receive(myId_, InstallSnapshotRequest{
+  listener_->receive(InstallSnapshotRequest{
       term,
       leaderId,
       lastIncludedIndex,
@@ -150,7 +155,21 @@ void Parser::parseInstallSnapshotRequest() {
 void Parser::parseInstallSnapshotResponse() {
   Term term = static_cast<Term>(reader_.parseVarUInt());
 
-  listener_->receive(myId_, InstallSnapshotResponse{term});
+  listener_->receive(InstallSnapshotResponse{term});
+}
+
+void Parser::parseHelloRequest() {
+  Id serverId = static_cast<Id>(reader_.parseVarUInt());
+  std::string psk = reader_.parseString();
+
+  listener_->receive(HelloRequest{serverId, psk});
+}
+
+void Parser::parseHelloResponse() {
+  bool success = static_cast<bool>(reader_.parseVarUInt());
+  std::string msg = reader_.parseString();
+
+  listener_->receive(HelloResponse{success, msg});
 }
 
 } // namespace raft

@@ -15,6 +15,9 @@ class Handler {
  public:
   virtual ~Handler() {}
 
+  virtual HelloResponse handleRequest(const HelloRequest& request) = 0;
+  virtual void handleResponse(Id from, const HelloResponse& response) = 0;
+
   virtual VoteResponse handleRequest(Id from, const VoteRequest& request) = 0;
   virtual void handleResponse(Id from, const VoteResponse& response) = 0;
   virtual AppendEntriesResponse handleRequest(Id from, const AppendEntriesRequest& request) = 0;

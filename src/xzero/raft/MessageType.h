@@ -18,6 +18,8 @@ enum class MessageType : uint8_t {
   AppendEntriesResponse = 4,
   InstallSnapshotRequest = 5,
   InstallSnapshotResponse = 6,
+  HelloRequest = 7,
+  HelloResponse = 8,
 };
 
 } // namespace raft

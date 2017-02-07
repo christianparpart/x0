@@ -55,6 +55,16 @@ class LogEntry {
   Command command_;
 };
 
+struct HelloRequest {
+  Id serverId;              // my Server ID
+  std::string psk;          // some pre-shared-key that must match across the cluster
+};
+
+struct HelloResponse {
+  bool success;             // wether or not the peer welcomes you
+  std::string message;      // a diagnostic message in case you're not welcome
+};
+
 // invoked by candidates to gather votes
 struct VoteRequest {
   Term term;                // candidate's term

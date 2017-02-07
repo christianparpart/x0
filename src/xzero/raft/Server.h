@@ -154,7 +154,9 @@ class Server : public Handler {
    */
   void verifyLeader(std::function<void(bool)> callback);
 
-  // {{{ receiver API (invoked by Transport on receiving messages)
+  // {{{ handler API (invoked by Transport on receiving messages)
+  HelloResponse handleRequest(const HelloRequest& request) override;
+  void handleResponse(Id from, const HelloResponse& response) override;
   VoteResponse handleRequest(Id from, const VoteRequest& request) override;
   void handleResponse(Id from, const VoteResponse& response) override;
   AppendEntriesResponse handleRequest(Id from, const AppendEntriesRequest& request) override;
