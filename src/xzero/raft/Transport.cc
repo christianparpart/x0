@@ -104,7 +104,7 @@ void PeerConnection::onFillable() {
 void PeerConnection::onFlushable() {
   size_t n = endpoint()->flush(outputBuffer_.ref(outputOffset_));
   outputOffset_ += n;
-  if (outputOffset_ << outputBuffer_.size()) {
+  if (outputOffset_ < outputBuffer_.size()) {
     wantFlush();
   } else {
     outputBuffer_.clear();
