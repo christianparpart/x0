@@ -39,6 +39,11 @@ class Discovery {
    * The address can be an ip:port pair or a unix domain path or similar.
    */
   virtual Result<std::string> getAddress(Id serverId) const = 0;
+
+  /**
+   * Reverse mapping, based on discovery address.
+   */
+  virtual Id getId(const std::string& address) const = 0;
 };
 
 /**

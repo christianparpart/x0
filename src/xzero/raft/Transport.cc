@@ -161,7 +161,7 @@ void InetTransport::setHandler(Handler* handler) {
 
 Connection* InetTransport::create(Connector* connector,
                                   EndPoint* endpoint) {
-  Id peerId = 4242; // TODO: detect peer ID
+  Id peerId = discovery_->getId(StringUtil::toString(*endpoint->remoteAddress()));
   return configure(
       endpoint->setConnection<PeerConnection>(connector,
                                               endpoint,
