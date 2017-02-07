@@ -11,6 +11,16 @@
 namespace xzero {
 namespace raft {
 
+StaticDiscovery::StaticDiscovery(
+    std::initializer_list<std::pair<Id, std::string>>&& list)
+  : members_(),
+    reverse_() {
+  for (auto& m: list) {
+    members_[m.first] = m.second;
+    reverse_[m.second] = m.first;
+  }
+}
+
 void StaticDiscovery::add(Id id, const std::string& addr) {
   members_[id] = addr;
 }
@@ -35,6 +45,14 @@ Result<std::string> StaticDiscovery::getAddress(Id serverId) const {
   }
 
   return Failuref("No server found with Id $0.", serverId);
+}
+
+Result<Id> StaticDiscovery::getId(const std::string& address) const {
+  auto i = reverse_.find(address);
+  if (i != reverse_.end()) {
+    return Result<Id>(i->second);
+  }
+  return Failuref("No server found with address $0.", address);
 }
 
 } // namespace raft

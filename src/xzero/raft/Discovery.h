@@ -43,7 +43,7 @@ class Discovery {
   /**
    * Reverse mapping, based on discovery address.
    */
-  virtual Id getId(const std::string& address) const = 0;
+  virtual Result<Id> getId(const std::string& address) const = 0;
 };
 
 /**
@@ -59,17 +59,12 @@ class StaticDiscovery : public Discovery {
   std::vector<Id> listMembers() const override;
   size_t totalMemberCount() const override;
   Result<std::string> getAddress(Id serverId) const override;
+  Result<Id> getId(const std::string& address) const override;
 
  private:
   std::unordered_map<Id, std::string> members_;
+  std::unordered_map<std::string, Id> reverse_;
 };
-
-inline StaticDiscovery::StaticDiscovery(
-    std::initializer_list<std::pair<Id, std::string>>&& list) {
-  for (auto& m: list) {
-    members_[m.first] = m.second;
-  }
-}
 
 /**
  * Implements DNS based service discovery that honors SRV records,
@@ -83,6 +78,7 @@ class DnsDiscovery : public Discovery {
   std::vector<Id> listMembers() const override;
   size_t totalMemberCount() const override;
   Result<std::string> getAddress(Id serverId) const override;
+  Result<Id> getId(const std::string& address) const override;
 };
 
 } // namespace raft
