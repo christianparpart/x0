@@ -53,7 +53,7 @@ const Buffer& ByteArrayEndPoint::output() const {
 void ByteArrayEndPoint::close() {
   TRACE("close()");
   // FIXME maybe we need closedInput | closedOutput distinction
-  //closed_ = true;
+  closed_ = true;
 }
 
 bool ByteArrayEndPoint::isOpen() const {
