@@ -30,6 +30,11 @@ std::string StringUtil::toString<>(const MessageType type) {
       return "HelloRequest";
     case MessageType::HelloResponse:
       return "HelloResponse";
+    default: {
+      char buf[5];
+      snprintf(buf, sizeof(buf), "0x%02x", (unsigned) type);
+      return std::string(buf);
+    }
   }
 }
 

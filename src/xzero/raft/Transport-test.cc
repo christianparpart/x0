@@ -106,6 +106,49 @@ void RaftTestHandler::handleResponse(
 }
 // }}}
 
+TEST(raft_Transport, handshake) {
+  PosixScheduler executor;
+  StaticDiscovery discovery { {1, "127.0.0.1:1708"},
+                              {2, "127.0.0.2:1708"} };
+
+  std::shared_ptr<LocalConnector> connector(new LocalConnector(&executor));
+  std::shared_ptr<InetTransport> transport(new InetTransport(
+      &discovery, &executor, connector));
+  connector->addConnectionFactory(transport);
+  connector->start();
+
+  RaftTestHandler handler;
+  transport->setHandler(&handler);
+
+  RefPtr<LocalEndPoint> cli = connector->createClient("\x06\x07\x42\x03psk");
+
+  executor.runLoop();
+
+  EXPECT_EQ("\x06\x08\x01\x03psk", cli->output());
+}
+
+TEST(raft_Transport, no_handshake) {
+  PosixScheduler executor;
+  StaticDiscovery discovery { {1, "127.0.0.1:1708"},
+                              {2, "127.0.0.2:1708"} };
+
+  std::shared_ptr<LocalConnector> connector(new LocalConnector(&executor));
+  std::shared_ptr<InetTransport> transport(new InetTransport(
+      &discovery, &executor, connector));
+  connector->addConnectionFactory(transport);
+  connector->start();
+
+  RaftTestHandler handler;
+  transport->setHandler(&handler);
+
+  RefPtr<LocalEndPoint> cli = connector->createClient("\x05\x01\x11\x22\x33\x44");
+
+  executor.runLoop();
+
+  EXPECT_TRUE(cli->isClosed());
+  EXPECT_EQ("", cli->output());
+}
+
 TEST(raft_Transport, receive_framed_response) {
   PosixScheduler executor;
   StaticDiscovery discovery { {1, "127.0.0.1:1708"},
@@ -124,8 +167,51 @@ TEST(raft_Transport, receive_framed_response) {
       "\x06\x07\x42\x03psk"
       "\x05\x01\x11\x22\x33\x44");
 
-  //executor.runLoopOnce();
   executor.runLoop();
 
   EXPECT_EQ("\x06\x08\x01\x03psk\x03\x02\x13\x01", cli->output());
+}
+
+TEST(raft_Transport, unknown_message) {
+  PosixScheduler executor;
+  StaticDiscovery discovery { {1, "127.0.0.1:1708"},
+                              {2, "127.0.0.2:1708"} };
+
+  std::shared_ptr<LocalConnector> connector(new LocalConnector(&executor));
+  std::shared_ptr<InetTransport> transport(new InetTransport(
+      &discovery, &executor, connector));
+  connector->addConnectionFactory(transport);
+  connector->start();
+
+  RaftTestHandler handler;
+  transport->setHandler(&handler);
+
+  RefPtr<LocalEndPoint> cli = connector->createClient("\x02\x19\xFF");
+
+  executor.runLoop();
+
+  EXPECT_TRUE(cli->isClosed());
+  EXPECT_EQ("", cli->output());
+}
+
+TEST(raft_Transport, zero_length_message) {
+  PosixScheduler executor;
+  StaticDiscovery discovery { {1, "127.0.0.1:1708"},
+                              {2, "127.0.0.2:1708"} };
+
+  std::shared_ptr<LocalConnector> connector(new LocalConnector(&executor));
+  std::shared_ptr<InetTransport> transport(new InetTransport(
+      &discovery, &executor, connector));
+  connector->addConnectionFactory(transport);
+  connector->start();
+
+  RaftTestHandler handler;
+  transport->setHandler(&handler);
+
+  RefPtr<LocalEndPoint> cli = connector->createClient("\x00\x01\x02");
+
+  executor.runLoop();
+
+  EXPECT_TRUE(cli->isClosed());
+  EXPECT_EQ("", cli->output());
 }

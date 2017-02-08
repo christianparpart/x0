@@ -9,6 +9,7 @@
 #include <xzero/raft/Listener.h>
 #include <xzero/raft/MessageType.h>
 #include <xzero/util/BinaryReader.h>
+#include <xzero/logging.h>
 
 namespace xzero {
 namespace raft {
@@ -68,6 +69,7 @@ bool Parser::parseFrame() {
       parseHelloResponse();
       break;
     default:
+      logDebug("raft", "Unknown message type $0", messageType);
       RAISE(ProtocolError, "Invalid message type.");
   }
 

@@ -128,48 +128,54 @@ void PeerConnection::receive(const HelloResponse& res) {
 }
 
 void PeerConnection::receive(const VoteRequest& req) {
-  if (peerId_ == 0)
-    return;
-
-  VoteResponse res = handler_->handleRequest(peerId_, req);
-  Generator(BufferUtil::writer(&outputBuffer_)).generateVoteResponse(res);
+  if (peerId_ == 0) {
+    close();
+  } else {
+    VoteResponse res = handler_->handleRequest(peerId_, req);
+    Generator(BufferUtil::writer(&outputBuffer_)).generateVoteResponse(res);
+  }
 }
 
 void PeerConnection::receive(const VoteResponse& res) {
-  if (peerId_ == 0)
-    return;
-
-  handler_->handleResponse(peerId_, res);
+  if (peerId_ == 0) {
+    close();
+  } else {
+    handler_->handleResponse(peerId_, res);
+  }
 }
 
 void PeerConnection::receive(const AppendEntriesRequest& req) {
-  if (peerId_ == 0)
-    return;
-
-  AppendEntriesResponse res = handler_->handleRequest(peerId_, req);
-  Generator(BufferUtil::writer(&outputBuffer_)).generateAppendEntriesResponse(res);
+  if (peerId_ == 0) {
+    close();
+  } else {
+    AppendEntriesResponse res = handler_->handleRequest(peerId_, req);
+    Generator(BufferUtil::writer(&outputBuffer_)).generateAppendEntriesResponse(res);
+  }
 }
 
 void PeerConnection::receive(const AppendEntriesResponse& res) {
-  if (peerId_ == 0)
-    return;
-
-  handler_->handleResponse(peerId_, res);
+  if (peerId_ == 0) {
+    close();
+  } else {
+    handler_->handleResponse(peerId_, res);
+  }
 }
 
 void PeerConnection::receive(const InstallSnapshotRequest& req) {
-  if (peerId_ == 0)
-    return;
-
-  InstallSnapshotResponse res = handler_->handleRequest(peerId_, req);
-  Generator(BufferUtil::writer(&outputBuffer_)).generateInstallSnapshotResponse(res);
+  if (peerId_ == 0) {
+    close();
+  } else {
+    InstallSnapshotResponse res = handler_->handleRequest(peerId_, req);
+    Generator(BufferUtil::writer(&outputBuffer_)).generateInstallSnapshotResponse(res);
+  }
 }
 
 void PeerConnection::receive(const InstallSnapshotResponse& res) {
-  if (peerId_ == 0)
-    return;
-
-  handler_->handleResponse(peerId_, res);
+  if (peerId_ == 0) {
+    close();
+  } else {
+    handler_->handleResponse(peerId_, res);
+  }
 }
 // }}}
 
