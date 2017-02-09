@@ -174,7 +174,6 @@ class Server : public Handler {
   void sendHeartbeat();
   Index latestIndex();
   Term getLogTerm(Index index);
-  void replicateLogs();
   void replicateLogsTo(Id peerId);
   void applyLogs();
   MonotonicTime nextHeartbeat() const;

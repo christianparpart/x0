@@ -21,41 +21,25 @@
 
 using namespace xzero;
 
-class TestSystem : public raft::StateMachine { // {{{
+class TestKeyValueStore : public raft::StateMachine { // {{{
  public:
-  TestSystem(raft::Id id,
-             const raft::Discovery* discovery,
-             Executor* executor);
+  TestKeyValueStore();
 
   bool saveSnapshot(std::unique_ptr<std::ostream>&& output) override;
   bool loadSnapshot(std::unique_ptr<std::istream>&& input) override;
-
   void applyCommand(const raft::Command& serializedCmd) override;
 
-  int get(int a);
-  raft::RaftError set(int key, int value);
-
-  raft::LocalTransport* transport() { return &transport_; }
-  raft::Storage* storage() { return &storage_; }
-  raft::Server* server() { return &raftServer_; }
+  int get(int key) const;
 
  private:
-  raft::MemoryStore storage_;
-  raft::LocalTransport transport_;
-  raft::Server raftServer_;
   std::unordered_map<int, int> tuples_;
 };
 
-TestSystem::TestSystem(raft::Id id,
-                       const raft::Discovery* discovery,
-                       Executor* executor)
-    : storage_(),
-      transport_(id, executor),
-      raftServer_(executor, id, &storage_, discovery, &transport_, this),
-      tuples_() {
+TestKeyValueStore::TestKeyValueStore()
+    : tuples_() {
 }
 
-bool TestSystem::saveSnapshot(std::unique_ptr<std::ostream>&& output) {
+bool TestKeyValueStore::saveSnapshot(std::unique_ptr<std::ostream>&& output) {
   for (const auto& pair: tuples_) {
     output->put(static_cast<char>(pair.first));
     output->put(static_cast<char>(pair.second));
@@ -63,7 +47,7 @@ bool TestSystem::saveSnapshot(std::unique_ptr<std::ostream>&& output) {
   return true;
 }
 
-bool TestSystem::loadSnapshot(std::unique_ptr<std::istream>&& input) {
+bool TestKeyValueStore::loadSnapshot(std::unique_ptr<std::istream>&& input) {
   tuples_.clear();
   for (;;) {
     int a = input->get();
@@ -76,24 +60,58 @@ bool TestSystem::loadSnapshot(std::unique_ptr<std::istream>&& input) {
   return true;
 }
 
-void TestSystem::applyCommand(const raft::Command& command) {
+void TestKeyValueStore::applyCommand(const raft::Command& command) {
   int a = static_cast<int>(command[0]);
   int b = static_cast<int>(command[1]);
   tuples_[a] = b;
 }
 
-int TestSystem::get(int a) {
-  if (tuples_.find(a) != tuples_.end())
-    return tuples_[a];
+int TestKeyValueStore::get(int a) const {
+  auto i = tuples_.find(a);
+  if (i != tuples_.end())
+    return i->second;
   else
     return -1;
 }
+// }}}
 
-raft::RaftError TestSystem::set(int key, int value) {
+class TestServer { // {{{
+ public:
+  TestServer(raft::Id id,
+             const raft::Discovery* discovery,
+             Executor* executor);
+
+  int get(int key) const;
+  raft::RaftError set(int key, int value);
+
+  raft::LocalTransport* transport() noexcept { return &transport_; }
+  raft::Server* server() noexcept { return &raftServer_; }
+
+ private:
+  TestKeyValueStore stateMachine_;
+  raft::MemoryStore storage_;
+  raft::LocalTransport transport_;
+  raft::Server raftServer_;
+};
+
+TestServer::TestServer(raft::Id id,
+                       const raft::Discovery* discovery,
+                       Executor* executor)
+  : stateMachine_(),
+    storage_(),
+    transport_(id, executor),
+    raftServer_(executor, id, &storage_, discovery, &transport_, &stateMachine_) {
+}
+
+int TestServer::get(int key) const {
+  return stateMachine_.get(key);
+}
+
+raft::RaftError TestServer::set(int key, int value) {
   raft::Command cmd;
   cmd.push_back(key);
   cmd.push_back(value);
-  return server()->sendCommand(std::move(cmd));
+  return raftServer_.sendCommand(std::move(cmd));
 }
 // }}}
 
@@ -126,9 +144,9 @@ TEST(raft_Server, leaderElection) {
     { 3, "127.0.0.1:1042" },
   };
 
-  std::vector<std::unique_ptr<TestSystem>> servers;
+  std::vector<std::unique_ptr<TestServer>> servers;
   for (raft::Id id: sd.listMembers()) {
-    servers.emplace_back(new TestSystem(id, &sd, &executor));
+    servers.emplace_back(new TestServer(id, &sd, &executor));
   }
 
   for (auto& s: servers) {
@@ -172,9 +190,9 @@ TEST(raft_Server, startWithLeader) {
   const raft::Id initialLeaderId = 3;
 
   // create servers
-  std::vector<std::unique_ptr<TestSystem>> servers;
+  std::vector<std::unique_ptr<TestServer>> servers;
   for (raft::Id id: sd.listMembers()) {
-    servers.emplace_back(new TestSystem(id, &sd, &executor));
+    servers.emplace_back(new TestServer(id, &sd, &executor));
   }
 
   // register (id,peer) tuples of server peers to this server
@@ -199,3 +217,7 @@ TEST(raft_Server, startWithLeader) {
 
   executor.runLoop();
 }
+
+TEST(raft_Server, AppendEntries) {
+}
+

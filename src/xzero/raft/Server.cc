@@ -151,7 +151,12 @@ RaftError Server::sendCommand(Command&& command) {
   for (auto& entry: entries)
     storage_->appendLogEntry(*entry);
 
-  replicateLogs();
+  // replicate logs to each follower
+  for (Id peerId: discovery_->listMembers()) {
+    if (peerId != id_) {
+      replicateLogsTo(peerId);
+    }
+  }
 
   return RaftError::Success;
 }
@@ -242,19 +247,18 @@ void Server::setCurrentTerm(Term newTerm) {
 
 // {{{ Server: handler API (invoked by Transport on receiving messages)
 HelloResponse Server::handleRequest(const HelloRequest& req) {
-  logDebug("raft.Server", "handleRequest: HelloRequest<$0, \"$1\">",
-      req.serverId, req.psk);
+  // logDebug("raft.Server", "handleRequest: HelloRequest<$0, \"$1\">",
+  //     req.serverId, req.psk);
 
   return HelloResponse{true, ""};
 }
 
 void Server::handleResponse(Id from, const HelloResponse& res) {
-  logDebug("raft.Server", "handleResponse: VoteResponse<$0, \"$1\">", 
-      res.success ? "success" : "failed", res.message);
+  // logDebug("raft.Server", "handleResponse: VoteResponse<$0, \"$1\">", 
+  //     res.success ? "success" : "failed", res.message);
 }
 
 VoteResponse Server::handleRequest(Id peerId, const VoteRequest& req) {
-  logDebug("raft.Server", "handleRequest: VoteRequest");
   timer_.rewind();
 
   if (req.term < currentTerm()) {
@@ -460,14 +464,6 @@ Index Server::latestIndex() {
 
 Term Server::getLogTerm(Index index) {
   return storage_->getLogEntry(index)->term();
-}
-
-void Server::replicateLogs() {
-  for (Id peerId: discovery_->listMembers()) {
-    if (peerId != id_) {
-      replicateLogsTo(peerId);
-    }
-  }
 }
 
 void Server::replicateLogsTo(Id peerId) {
