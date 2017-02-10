@@ -36,4 +36,10 @@ std::string RaftCategory::message(int ec) const {
 }
 
 } // namespace raft
+
+template<>
+std::string StringUtil::toString(raft::RaftError ec) {
+  return raft::RaftCategory::get().message((int)ec);
+}
+
 } // namespace xzero
