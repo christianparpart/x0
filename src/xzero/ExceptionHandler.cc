@@ -12,7 +12,7 @@
 #include <xzero/RuntimeError.h>
 #include <xzero/ExceptionHandler.h>
 #include <xzero/inspect.h>
-//#include <xzero/logging.h>
+#include <xzero/logging.h>
 #include <xzero/StackTrace.h>
 
 namespace xzero {
@@ -24,7 +24,7 @@ CatchAndLogExceptionHandler::CatchAndLogExceptionHandler(
 
 void CatchAndLogExceptionHandler::onException(
     const std::exception& error) const {
-  //logError(component_, error, "Uncaught exception");
+  logError(component_, error,  error.what());
 }
 
 CatchAndAbortExceptionHandler::CatchAndAbortExceptionHandler(
