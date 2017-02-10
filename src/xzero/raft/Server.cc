@@ -235,9 +235,9 @@ void Server::setState(ServerState newState) {
       break;
   }
 
-  executor_->execute([this, oldState]() {
-    onStateChanged(this, oldState);
-  });
+  if (onStateChanged) {
+    executor_->execute(std::bind(onStateChanged, this, oldState));
+  }
 }
 
 void Server::setCurrentTerm(Term newTerm) {
@@ -277,7 +277,9 @@ VoteResponse Server::handleRequest(Id peerId, const VoteRequest& req) {
 
     Id oldLeaderId = currentLeaderId_;
     currentLeaderId_ = req.candidateId;
-    onLeaderChanged(oldLeaderId);
+    if (onLeaderChanged) {
+      executor_->execute(std::bind(onLeaderChanged, oldLeaderId));
+    }
   }
 
   if (votedFor_.isNone()) {
@@ -337,7 +339,9 @@ AppendEntriesResponse Server::handleRequest(
       setState(ServerState::Follower);
     }
 
-    onLeaderChanged(oldLeaderId);
+    if (onLeaderChanged) {
+      executor_->execute(std::bind(onLeaderChanged, oldLeaderId));
+    }
   }
 
   // 3. If an existing entry conflicts with a new one (same index
