@@ -5,6 +5,8 @@
 // file except in compliance with the License. You may obtain a copy of
 // the License at: http://opensource.org/licenses/MIT
 
+#include <xzero/logging.h>
+#include <xzero/ExceptionHandler.h>
 #include <xzero/raft/Server.h>
 #include <xzero/raft/StateMachine.h>
 #include <xzero/raft/Discovery.h>
@@ -91,7 +93,6 @@ int TestKeyValueStore::get(int a) const {
     return -1;
 }
 // }}}
-
 class TestServer { // {{{
  public:
   TestServer(raft::Id id,
@@ -131,9 +132,59 @@ raft::RaftError TestServer::set(int key, int value) {
   return raftServer_.sendCommand(std::move(cmd));
 }
 // }}}
+struct TestServerPod { // {{{
+  PosixScheduler executor;
+  const raft::StaticDiscovery discovery;
+  std::vector<std::unique_ptr<TestServer>> servers;
 
-template<typename ServerList>
-bool isConsensusReached(const ServerList& servers) {
+  TestServerPod();
+
+  void enableBreakOnConsensus();
+  bool isConsensusReached() const;
+
+  void startWithLeader(raft::Id id);
+  void start();
+
+  TestServer* getInstance(raft::Id id);
+};
+
+TestServerPod::TestServerPod()
+  : executor(std::make_unique<CatchAndLogExceptionHandler>("TestServerPod")),
+    discovery{ { 1, "127.0.0.1:4201" },
+               { 2, "127.0.0.1:4202" },
+               { 3, "127.0.0.1:4203" } },
+    servers() {
+  // create servers
+  for (raft::Id id: discovery.listMembers()) {
+    servers.emplace_back(new TestServer(id, &discovery, &executor));
+  }
+
+  // register (id,peer) tuples of server peers to this server
+  for (auto& s: servers) {
+    for (auto& t: servers) {
+      s->transport()->setPeer(t->server()->id(), t->server());
+    }
+
+    s->server()->onLeaderChanged = [&](raft::Id oldLeaderId) {
+      logDebug("TestServerPod", "onLeaderChanged[$0]: $1 ~> $2",
+          s->server()->id(), oldLeaderId,
+          s->server()->currentLeaderId());
+    };
+  }
+}
+
+void TestServerPod::enableBreakOnConsensus() {
+  for (auto& s: servers) {
+    s->server()->onStateChanged = [&](raft::Server* s, raft::ServerState oldState) {
+      logDebug("TestServerPod", "onStateChanged[$0]: $1 ~> $2", s->id(), oldState, s->state());
+      if (isConsensusReached()) {
+        executor.breakLoop();
+      }
+    };
+  }
+}
+
+bool TestServerPod::isConsensusReached() const {
   size_t leaderCount = 0;
   size_t followerCount = 0;
 
@@ -153,88 +204,59 @@ bool isConsensusReached(const ServerList& servers) {
   return leaderCount + followerCount == servers.size();
 }
 
-TEST(raft_Server, leaderElection) {
-  PosixScheduler executor;
-  const raft::StaticDiscovery sd = {
-    { 1, "127.0.0.1:1042" },
-    { 2, "127.0.0.1:1042" },
-    { 3, "127.0.0.1:1042" },
-  };
-
-  std::vector<std::unique_ptr<TestServer>> servers;
-  for (raft::Id id: sd.listMembers()) {
-    servers.emplace_back(new TestServer(id, &sd, &executor));
-  }
-
+void TestServerPod::startWithLeader(raft::Id initialLeaderId) {
   for (auto& s: servers) {
-    s->server()->onStateChanged = [&](raft::Server* s, raft::ServerState oldState) {
-      logf("onStateChanged[$0]: $1 ~> $2", s->id(), oldState, s->state());
-      if (isConsensusReached(servers)) {
-        executor.breakLoop();
-      }
-    };
-    s->server()->onLeaderChanged = [&](raft::Id oldLeaderId) {
-      logf("onLeaderChanged[$0]: $1 ~> $2", s->server()->id(), oldLeaderId,
-          s->server()->currentLeaderId());
-    };
+    std::error_code ec = s->server()->startWithLeader(initialLeaderId);
+    ASSERT_TRUE(!ec);
+  };
+}
 
-    // register (id,peer) tuples of server peers to this server
-    for (auto& t: servers) {
-      s->transport()->setPeer(t->server()->id(), t->server());
-    }
-  }
-
+void TestServerPod::start() {
   for (auto& s: servers) {
     std::error_code ec = s->server()->start();
     ASSERT_TRUE(!ec);
   };
+}
 
-  executor.runLoop();
+TestServer* TestServerPod::getInstance(raft::Id id) {
+  for (auto& i: servers) {
+    if (i->server()->id() == id) {
+      return i.get();
+    }
+  }
+
+  return nullptr;
+}
+// }}}
+
+TEST(raft_Server, leaderElection) {
+  TestServerPod pod;
+  pod.enableBreakOnConsensus();
+  pod.start();
+  pod.executor.runLoop();
 
   // now, leader election must have been taken place
   // 1 leader and 2 followers must exist
 
-  EXPECT_TRUE(isConsensusReached(servers));
+  EXPECT_TRUE(pod.isConsensusReached());
 }
 
 TEST(raft_Server, startWithLeader) {
-  PosixScheduler executor;
-  const raft::StaticDiscovery sd = {
-    { 1, "127.0.0.1:4201" },
-    { 2, "127.0.0.1:4202" },
-    { 3, "127.0.0.1:4203" },
-  };
-  const raft::Id initialLeaderId = 3;
-
-  // create servers
-  std::vector<std::unique_ptr<TestServer>> servers;
-  for (raft::Id id: sd.listMembers()) {
-    servers.emplace_back(new TestServer(id, &sd, &executor));
-  }
-
-  // register (id,peer) tuples of server peers to this server
-  for (auto& s: servers) {
-    s->server()->onStateChanged = [&](raft::Server* s, raft::ServerState oldState) {
-      logf("onStateChanged[$0]: $1 ~> $2", s->id(), oldState, s->state());
-      if (isConsensusReached(servers)) {
-        executor.breakLoop();
-      }
-    };
-
-    for (auto& t: servers) {
-      s->transport()->setPeer(t->server()->id(), t->server());
-    }
-  }
-
-  for (auto& s: servers) {
-    // XXX any (1, 2, 3) should work
-    std::error_code ec = s->server()->startWithLeader(initialLeaderId);
-    ASSERT_TRUE(!ec);
-  };
-
-  executor.runLoop();
+  TestServerPod pod;
+  pod.enableBreakOnConsensus();
+  pod.startWithLeader(1);
+  pod.executor.runLoop();
+  ASSERT_TRUE(pod.isConsensusReached());
+  ASSERT_TRUE(pod.getInstance(1)->server()->isLeader());
 }
 
 TEST(raft_Server, AppendEntries) {
-}
+  TestServerPod pod;
+  pod.enableBreakOnConsensus();
+  //pod.startWithLeader(1);
+  pod.start();
+  pod.executor.runLoop();
+  ASSERT_TRUE(pod.isConsensusReached());
 
+  // TODO ...
+}
