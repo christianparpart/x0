@@ -95,7 +95,11 @@ class Server : public Handler {
   Id id() const noexcept { return id_; }
   Index commitIndex() const noexcept { return commitIndex_; }
   Index lastApplied() const noexcept { return lastApplied_; }
+
   ServerState state() const noexcept { return state_; }
+  bool isFollower() const noexcept { return state_ == ServerState::Follower; }
+  bool isCandidate() const noexcept { return state_ == ServerState::Candidate; }
+  bool isLeader() const noexcept { return state_ == ServerState::Leader; }
 
   Storage* storage() const noexcept { return storage_; }
   const Discovery* discovery() const noexcept { return discovery_; }
