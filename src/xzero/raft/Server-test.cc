@@ -79,9 +79,11 @@ bool TestKeyValueStore::loadSnapshot(std::unique_ptr<InputStream>&& input) {
 }
 
 void TestKeyValueStore::applyCommand(const raft::Command& command) {
+  logDebug("TestKeyValueStore", "applyCommand: $0", StringUtil::hexPrint(command.data(), command.size()));
   BinaryReader reader(command.data(), command.size());
   int a = reader.parseVarUInt();
   int b = reader.parseVarUInt();
+  logDebug("TestKeyValueStore", "-> applyCommand: $0 = $1", a, b);
   tuples_[a] = b;
 }
 
@@ -127,8 +129,20 @@ int TestServer::get(int key) const {
 
 raft::RaftError TestServer::set(int key, int value) {
   raft::Command cmd;
-  cmd.push_back(key);
-  cmd.push_back(value);
+
+  auto o = [&](const uint8_t* data, size_t len) {
+    for (size_t i = 0; i < len; ++i) {
+      cmd.push_back(data[i]);
+    }
+  };
+
+  BinaryWriter bw(o);
+  bw.writeVarUInt(key);
+  bw.writeVarUInt(value);
+
+  logDebug("TestServer", "set($0, $1): $2", key, value,
+      StringUtil::hexPrint(cmd.data(), cmd.size()));
+
   return raftServer_.sendCommand(std::move(cmd));
 }
 // }}}
@@ -253,10 +267,17 @@ TEST(raft_Server, startWithLeader) {
 TEST(raft_Server, AppendEntries) {
   TestServerPod pod;
   pod.enableBreakOnConsensus();
-  //pod.startWithLeader(1);
-  pod.start();
+  pod.startWithLeader(1);
   pod.executor.runLoop();
   ASSERT_TRUE(pod.isConsensusReached());
+  ASSERT_TRUE(pod.getInstance(1)->server()->isLeader());
 
-  // TODO ...
+  raft::RaftError err = pod.getInstance(1)->set(2, 4);
+  ASSERT_EQ(raft::RaftError::Success, err);
+
+  pod.executor.runLoopOnce();
+
+  // ASSERT_EQ(4, pod.getInstance(1)->get(2));
+  // ASSERT_EQ(4, pod.getInstance(2)->get(2));
+  // ASSERT_EQ(4, pod.getInstance(3)->get(2));
 }
