@@ -379,7 +379,6 @@ class UnitTest {
 
   std::string filter_;
   int repeats_;
-  bool randomize_;
   bool printProgress_;
   bool printSummaryDetails_;
 

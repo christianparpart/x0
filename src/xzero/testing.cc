@@ -84,7 +84,6 @@ UnitTest::UnitTest()
     activeTests_(),
     filter_("*"),
     repeats_(1),
-    randomize_(false),
     printProgress_(false),
     printSummaryDetails_(true),
     currentTestCase_(nullptr),
@@ -145,6 +144,7 @@ int UnitTest::main(int argc, const char* argv[]) {
      .defineString("filter", 'f', "GLOB", "Filters tests by given glob.", "*")
      .defineBool("list", 'l', "Prints all tests and exits.")
      .defineBool("randomize", 'R', "Randomizes test order.")
+     .defineBool("sort", 's', "Sorts tests alphabetically ascending.")
      .defineBool("no-progress", 0, "Avoids printing progress.")
      .defineNumber("repeat", 'r', "COUNT", "Repeat tests given number of times.", 1)
      ;
@@ -171,12 +171,11 @@ int UnitTest::main(int argc, const char* argv[]) {
 
   filter_ = flags.getString("filter");
   repeats_ = flags.getNumber("repeat");
-  randomize_ = flags.getBool("randomize");
   printProgress_ = !flags.getBool("no-progress");
 
-  if (randomize_)
+  if (flags.getBool("randomize"))
     randomizeTestOrder();
-  else
+  else if (flags.getBool("sort"))
     sortTestsAlphabetically();
 
   { // if (filter_ != "*") {
