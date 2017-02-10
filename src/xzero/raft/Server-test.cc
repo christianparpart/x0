@@ -10,6 +10,8 @@
 #include <xzero/raft/Discovery.h>
 #include <xzero/raft/Transport.h>
 #include <xzero/raft/Storage.h>
+#include <xzero/util/BinaryReader.h>
+#include <xzero/util/BinaryWriter.h>
 #include <xzero/executor/PosixScheduler.h>
 #include <xzero/testing.h>
 #include <initializer_list>
@@ -25,8 +27,8 @@ class TestKeyValueStore : public raft::StateMachine { // {{{
  public:
   TestKeyValueStore();
 
-  bool saveSnapshot(std::unique_ptr<std::ostream>&& output) override;
-  bool loadSnapshot(std::unique_ptr<std::istream>&& input) override;
+  bool saveSnapshot(std::unique_ptr<OutputStream>&& output) override;
+  bool loadSnapshot(std::unique_ptr<InputStream>&& input) override;
   void applyCommand(const raft::Command& serializedCmd) override;
 
   int get(int key) const;
@@ -39,19 +41,33 @@ TestKeyValueStore::TestKeyValueStore()
     : tuples_() {
 }
 
-bool TestKeyValueStore::saveSnapshot(std::unique_ptr<std::ostream>&& output) {
+bool TestKeyValueStore::saveSnapshot(std::unique_ptr<OutputStream>&& output) {
+  auto o = [&](const uint8_t* data, size_t len) {
+    output->write((const char*) data, len);
+  };
+  BinaryWriter bw(o);
   for (const auto& pair: tuples_) {
-    output->put(static_cast<char>(pair.first));
-    output->put(static_cast<char>(pair.second));
+    bw.writeVarUInt(pair.first);
+    bw.writeVarUInt(pair.second);
   }
   return true;
 }
 
-bool TestKeyValueStore::loadSnapshot(std::unique_ptr<std::istream>&& input) {
+bool TestKeyValueStore::loadSnapshot(std::unique_ptr<InputStream>&& input) {
   tuples_.clear();
+
+  Buffer buffer;
   for (;;) {
-    int a = input->get();
-    int b = input->get();
+    if (input->read(&buffer, 4096) <= 0) {
+      break;
+    }
+  }
+
+  BinaryReader reader((const uint8_t*) buffer.data(), buffer.size());
+
+  while (reader.pending() > 0) {
+    int a = reader.parseVarUInt();
+    int b = reader.parseVarUInt();
     if (a < 0 || b < 0) {
       break;
     }
@@ -61,8 +77,9 @@ bool TestKeyValueStore::loadSnapshot(std::unique_ptr<std::istream>&& input) {
 }
 
 void TestKeyValueStore::applyCommand(const raft::Command& command) {
-  int a = static_cast<int>(command[0]);
-  int b = static_cast<int>(command[1]);
+  BinaryReader reader(command.data(), command.size());
+  int a = reader.parseVarUInt();
+  int b = reader.parseVarUInt();
   tuples_[a] = b;
 }
 

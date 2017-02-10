@@ -7,6 +7,8 @@
 #pragma once
 
 #include <xzero/raft/rpc.h>
+#include <xzero/io/InputStream.h>
+#include <xzero/io/OutputStream.h>
 #include <xzero/Result.h>
 #include <cstdint>
 #include <vector>
@@ -56,7 +58,7 @@ class Storage {
   /**
    * Saves the snapshot @p state along with its latest @p term and @p lastIndex.
    */
-  virtual bool saveSnapshot(std::unique_ptr<std::istream>&& state, Term term, Index lastIndex) = 0;
+  virtual bool saveSnapshot(std::unique_ptr<InputStream>&& state, Term term, Index lastIndex) = 0;
 
   /**
    * Loads a snapshot into @p state along with its latest @p term and @p lastIndex.
@@ -65,7 +67,7 @@ class Storage {
    * @param term
    * @param lastIndex
    */
-  virtual bool loadSnapshot(std::unique_ptr<std::ostream>&& state, Term* term, Index* lastIndex) = 0;
+  virtual bool loadSnapshot(std::unique_ptr<OutputStream>&& state, Term* term, Index* lastIndex) = 0;
 };
 
 /**
@@ -86,8 +88,8 @@ class MemoryStore : public Storage {
   Result<LogEntry> getLogEntry(Index index) override;
   void truncateLog(Index last) override;
 
-  bool saveSnapshot(std::unique_ptr<std::istream>&& state, Term term, Index lastIndex) override;
-  bool loadSnapshot(std::unique_ptr<std::ostream>&& state, Term* term, Index* lastIndex) override;
+  bool saveSnapshot(std::unique_ptr<InputStream>&& state, Term term, Index lastIndex) override;
+  bool loadSnapshot(std::unique_ptr<OutputStream>&& state, Term* term, Index* lastIndex) override;
 
  private:
   Term currentTerm_;

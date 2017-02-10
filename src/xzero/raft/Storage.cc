@@ -61,11 +61,11 @@ void MemoryStore::truncateLog(Index last) {
   log_.resize(last);
 }
 
-bool MemoryStore::saveSnapshot(std::unique_ptr<std::istream>&& state, Term term, Index lastIndex) {
+bool MemoryStore::saveSnapshot(std::unique_ptr<InputStream>&& state, Term term, Index lastIndex) {
   return false;
 }
 
-bool MemoryStore::loadSnapshot(std::unique_ptr<std::ostream>&& state, Term* term, Index* lastIndex) {
+bool MemoryStore::loadSnapshot(std::unique_ptr<OutputStream>&& state, Term* term, Index* lastIndex) {
   return false;
 }
 // }}}

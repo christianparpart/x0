@@ -7,6 +7,8 @@
 #pragma once
 
 #include <xzero/raft/rpc.h>
+#include <xzero/io/InputStream.h>
+#include <xzero/io/OutputStream.h>
 #include <vector>
 #include <iosfwd>
 
@@ -23,12 +25,12 @@ class StateMachine {
   /**
    * Loads a snapshot of a full FSM state into this instance.
    */
-  virtual bool loadSnapshot(std::unique_ptr<std::istream>&& input) = 0;
+  virtual bool loadSnapshot(std::unique_ptr<InputStream>&& input) = 0;
 
   /**
    * Retrieves a full snapshot of this FSM.
    */
-  virtual bool saveSnapshot(std::unique_ptr<std::ostream>&& output) = 0;
+  virtual bool saveSnapshot(std::unique_ptr<OutputStream>&& output) = 0;
 
   /**
    * Applies given @p command to this state machine.

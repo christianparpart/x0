@@ -19,16 +19,16 @@ using namespace xzero::raft;
 
 class RaftTestFSM : public StateMachine { // {{{
  public:
-  bool loadSnapshot(std::unique_ptr<std::istream>&& input) override;
-  bool saveSnapshot(std::unique_ptr<std::ostream>&& output) override;
+  bool loadSnapshot(std::unique_ptr<InputStream>&& input) override;
+  bool saveSnapshot(std::unique_ptr<OutputStream>&& output) override;
   void applyCommand(const Command& command) override;
 };
 
-bool RaftTestFSM::loadSnapshot(std::unique_ptr<std::istream>&& input) {
+bool RaftTestFSM::loadSnapshot(std::unique_ptr<InputStream>&& input) {
   return false;
 }
 
-bool RaftTestFSM::saveSnapshot(std::unique_ptr<std::ostream>&& output) {
+bool RaftTestFSM::saveSnapshot(std::unique_ptr<OutputStream>&& output) {
   return false;
 }
 
