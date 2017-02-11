@@ -35,12 +35,15 @@ class TestKeyValueStore : public raft::StateMachine { // {{{
 
   int get(int key) const;
 
+  std::function<void(int, int)> onApplyCommand;
+
  private:
   std::unordered_map<int, int> tuples_;
 };
 
 TestKeyValueStore::TestKeyValueStore()
-    : tuples_() {
+    : onApplyCommand(),
+      tuples_() {
 }
 
 bool TestKeyValueStore::saveSnapshot(std::unique_ptr<OutputStream>&& output) {
@@ -85,6 +88,10 @@ void TestKeyValueStore::applyCommand(const raft::Command& command) {
   int b = reader.parseVarUInt();
   logDebug("TestKeyValueStore", "-> applyCommand: $0 = $1", a, b);
   tuples_[a] = b;
+
+  if (onApplyCommand) {
+    onApplyCommand(a, b);
+  }
 }
 
 int TestKeyValueStore::get(int a) const {
@@ -106,6 +113,7 @@ class TestServer { // {{{
 
   raft::LocalTransport* transport() noexcept { return &transport_; }
   raft::Server* server() noexcept { return &raftServer_; }
+  TestKeyValueStore* fsm() noexcept { return &stateMachine_; }
 
  private:
   TestKeyValueStore stateMachine_;
@@ -275,7 +283,18 @@ TEST(raft_Server, AppendEntries) {
   raft::RaftError err = pod.getInstance(1)->set(2, 4);
   ASSERT_EQ(raft::RaftError::Success, err);
 
-  pod.executor.runLoopOnce();
+  int applyCount = 0;
+  for (raft::Id id = 1; id <= 3; ++id) {
+    pod.getInstance(id)->fsm()->onApplyCommand = [&](int key, int value) {
+      logf("onApplyCommand for instance $0 = $1", key, value);
+      applyCount++;
+      if (applyCount == 3) {
+        pod.executor.breakLoop();
+      }
+    };
+  }
+
+  pod.executor.runLoop();
 
   // ASSERT_EQ(4, pod.getInstance(1)->get(2));
   // ASSERT_EQ(4, pod.getInstance(2)->get(2));

@@ -9,6 +9,7 @@
 #include <xzero/raft/rpc.h>
 #include <xzero/io/InputStream.h>
 #include <xzero/io/OutputStream.h>
+#include <xzero/Option.h>
 #include <xzero/Result.h>
 #include <cstdint>
 #include <vector>
@@ -30,18 +31,25 @@ class Storage {
    * Initializes the underlying (persistend) storage.
    *
    * @param id the server's ID is stored at that address.
-   * @param term the server's last term is stored at that address.
    *
    * @returns success if there was no error or an appropriate error code.
    */
-  virtual std::error_code initialize(Id* id, Term* term) = 0;
+  virtual std::error_code initialize(Id* id) = 0;
+
+  virtual std::error_code clearVotedFor() = 0;
+  virtual std::error_code setVotedFor(Id id, Term term) = 0;
+  virtual Option<std::pair<Id, Term>> votedFor() = 0;
 
   /**
    * Saves the given term as currentTerm to stable storage.
    *
    * @returns success if there was no error or an appropriate error code.
    */
-  virtual std::error_code saveTerm(Term currentTerm) = 0;
+  virtual std::error_code setCurrentTerm(Term currentTerm) = 0;
+
+  //! latest term server has seen (initialized to 0 on first boot,
+  //! increases monotonically)
+  virtual Term currentTerm() = 0;
 
   //! Returns the index of the last LogEntry or 0 if nothing written yet.
   virtual Index latestIndex() = 0;
@@ -49,7 +57,8 @@ class Storage {
   //! saves given LogEntry @p entry at the end of the current log.
   virtual bool appendLogEntry(const LogEntry& entry) = 0;
 
-  //! loads the LogEntry from given @p index and stores it in @p log.
+  //! Retrieves the LogEntry from given @p index and stores it in @p log.
+  //! retrieves log entry at given @p index.
   virtual Result<LogEntry> getLogEntry(Index index) = 0;
 
   //! Deletes any log entry starting after @p last index.
@@ -80,9 +89,19 @@ class MemoryStore : public Storage {
  public:
   MemoryStore();
 
-  std::error_code initialize(Id* id, Term* term) override;
-  std::error_code saveTerm(Term currentTerm) override;
+  std::error_code initialize(Id* id) override;
 
+  //! Candidate's Id that received vote in current term (or null if none).
+  Option<std::pair<Id, Term>> votedFor() override;
+
+  //! Clears the vote, iff any.
+  std::error_code clearVotedFor() override;
+
+  //! Persists the given vote.
+  std::error_code setVotedFor(Id id, Term term) override;
+
+  std::error_code setCurrentTerm(Term currentTerm) override;
+  Term currentTerm() override;
   Index latestIndex() override;
   bool appendLogEntry(const LogEntry& log) override;
   Result<LogEntry> getLogEntry(Index index) override;
@@ -92,6 +111,7 @@ class MemoryStore : public Storage {
   bool loadSnapshot(std::unique_ptr<OutputStream>&& state, Term* term, Index* lastIndex) override;
 
  private:
+  Option<std::pair<Id, Term>> votedFor_;
   Term currentTerm_;
   std::vector<LogEntry> log_;
 

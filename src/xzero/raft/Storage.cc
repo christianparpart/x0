@@ -6,6 +6,7 @@
 // the License at: http://opensource.org/licenses/MIT
 
 #include <xzero/raft/Storage.h>
+#include <xzero/logging.h>
 #include <stdlib.h>
 #include <assert.h>
 
@@ -14,7 +15,8 @@ namespace raft {
 
 // {{{ MemoryStore
 MemoryStore::MemoryStore()
-    : currentTerm_(),
+    : votedFor_(),
+      currentTerm_(),
       log_(),
       snapshottedTerm_(),
       snapshottedIndex_(),
@@ -24,8 +26,8 @@ MemoryStore::MemoryStore()
   log_.push_back(LogEntry());
 }
 
-std::error_code MemoryStore::initialize(Id* id, Term* term) {
-  *term = currentTerm_;
+std::error_code MemoryStore::initialize(Id* id) {
+  // *id = ...;
   log_.resize(1);
 
   snapshottedTerm_ = 0;
@@ -35,7 +37,25 @@ std::error_code MemoryStore::initialize(Id* id, Term* term) {
   return std::error_code();
 }
 
-std::error_code MemoryStore::saveTerm(Term currentTerm) {
+std::error_code MemoryStore::clearVotedFor() {
+  votedFor_ = None();
+  return std::error_code();
+}
+
+std::error_code MemoryStore::setVotedFor(Id id, Term term) {
+  votedFor_ = Some(std::make_pair(id, term));
+  return std::error_code();
+}
+
+Option<std::pair<Id, Term>> MemoryStore::votedFor() {
+  return votedFor_;
+}
+
+Term MemoryStore::currentTerm() {
+  return currentTerm_;
+}
+
+std::error_code MemoryStore::setCurrentTerm(Term currentTerm) {
   currentTerm_ = currentTerm;
   return std::error_code();
 }
@@ -45,13 +65,19 @@ Index MemoryStore::latestIndex() {
 }
 
 bool MemoryStore::appendLogEntry(const LogEntry& log) {
+  logDebug("MemoryStore", "appendLogEntry: at $0: $1", 
+      log_.size(), log);
   log_.emplace_back(log);
   return true;
 }
 
 Result<LogEntry> MemoryStore::getLogEntry(Index index) {
   // XXX we also support returning log[0] as this has a term of 0 and no command.
-  // assert(index >= 1 && index <= latestIndex());
+  //logDebug("MemoryStore", "getLogEntry: at $0/$1", index, latestIndex());
+  //assert(index >= 0 && index <= latestIndex());
+
+  if (index > latestIndex())
+    return Failuref("No LogEntry at index $0", index);
 
   return Result<LogEntry>(log_[index]);
 }

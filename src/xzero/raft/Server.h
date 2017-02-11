@@ -203,19 +203,6 @@ class Server : public Handler {
   unsigned maxCommandsPerMessage_; //!< number of commands to batch in an AppendEntriesRequest
   size_t maxMessageSize_;
 
-  // ------------------- persistet state --------------------------------------
-
-  //! latest term server has seen (initialized to 0 on first boot,
-  //! increases monotonically)
-  Term currentTerm_;
-
-  //! candidate's Id that received vote in current term (or null if none)
-  Option<std::pair<Id, Term>> votedFor_;
-
-  //! log entries; each entry contains command for state machine,
-  //! and term when entry was received by leader (first index is 1)
-  //std::vector<LogEntry> log_;
-
   // ------------------- volatile state ---------------------------------------
 
   //! index of highest log entry known to be committed (initialized to 0,
@@ -245,46 +232,9 @@ class Server : public Handler {
    */
   std::unordered_map<Id, MonotonicTime> nextHeartbeats_;
 
-  // struct LeaderState;
-  // std::unique_ptr<LeaderState> leaderState_;
-
-  class FollowerChannel;
-  std::unordered_map<Id, std::unique_ptr<FollowerChannel>> followerChannels_;
-
  public:
   std::function<void(Server* self, ServerState oldState)> onStateChanged;
   std::function<void(Id oldLeader)> onLeaderChanged;
-};
-
-/**
- * Ensures Leader-to-Follower communication for a single follower.
- *
- * The instance is also responsible for heartbeat maintenance.
- */
-class Server::FollowerChannel {
- public:
-  /**
-   * Initializes this FollowerChannel.
-   *
-   * @param peerId Peer's server ID.
-   * @param server Leader's server instance that owns this FollowerChannel.
-   * @param executor Executor used for executing actual work related to #this.
-   */
-  FollowerChannel(Id peerId, Server* server, Executor* executor);
-
-  void run();
-  void wakeup();
-
-  void sendPendingMessages();
-
- private:
-  Id peerId_;                     //!< peer's server ID
-  Server *server_;                //!< parent's server instance (assumed to be Leader)
-  Executor* executor_;            //!< Executor used for running this object.
-  Index nextIndex_;               //!< peer's index for next AppendEntries RPC
-  Index matchIndex_;              //!< peer's known index to be persisted to stable storage.
-  Wakeup wakeup_;
-  MonotonicTime nextHeartbeat_;   //!< timestamp for next heartbeat to send
 };
 
 } // namespace raft

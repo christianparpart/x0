@@ -90,6 +90,7 @@ struct AppendEntriesRequest {
 
 struct AppendEntriesResponse {
   Term term;    // currentTerm, for the leader to update itself
+  Index latestIndex; // follower's latest index
   bool success; // true if follower contained entry matching prevLogIndex and prevLogTerm
 };
 

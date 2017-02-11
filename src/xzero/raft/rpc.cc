@@ -58,6 +58,38 @@ bool LogEntry::isCommand(const BufferRef& cmd) const {
 } // namespace raft
 
 template<>
+std::string StringUtil::toString(raft::LogType value) {
+  switch (value) {
+    case raft::LOG_COMMAND:
+      return "LOG_COMMAND";
+    case raft::LOG_PEER_ADD:
+      return "LOG_PEER_ADD";
+    case raft::LOG_PEER_REMOVE:
+      return "LOG_PEER_REMOVE";
+    default: {
+      char buf[16];
+      int n = snprintf(buf, sizeof(buf), "<%u>", value);
+      return std::string(buf, n);
+    }
+  }
+}
+
+template<>
+std::string StringUtil::toString(raft::LogEntry msg) {
+  if (msg.type() == raft::LOG_COMMAND) {
+    return StringUtil::format(
+        "LogEntry<term:$0, command:$1>",
+        msg.term(),
+        StringUtil::hexPrint(msg.command().data(), msg.command().size()));
+  } else {
+    return StringUtil::format(
+        "LogEntry<term:$0, type:$1>",
+        msg.term(),
+        msg.type());
+  }
+}
+
+template<>
 std::string StringUtil::toString(raft::VoteRequest msg) {
   return StringUtil::format(
       "VoteRequest<term:$0, candidateId:$1, lastLogIndex:$2, lastLogTerm:$3>",
@@ -90,8 +122,9 @@ std::string StringUtil::toString(raft::AppendEntriesRequest msg) {
 template<>
 std::string StringUtil::toString(raft::AppendEntriesResponse msg) {
   return StringUtil::format(
-      "AppendEntriesResponse<term:$0, success:$1>",
+      "AppendEntriesResponse<term:$0, index: $1, success:$2>",
       msg.term,
+      msg.latestIndex,
       msg.success);
 }
 

@@ -80,8 +80,6 @@ Server::Server(Executor* executor,
       heartbeatTimeout_(heartbeatTimeout),
       electionTimeout_(electionTimeout),
       commitTimeout_(commitTimeout),
-      currentTerm_(1),
-      votedFor_(),
       commitIndex_(0),
       lastApplied_(0),
       nextIndex_(),
@@ -97,7 +95,7 @@ size_t Server::quorum() const {
 }
 
 std::error_code Server::start() {
-  std::error_code ec = storage_->initialize(&id_, &currentTerm_);
+  std::error_code ec = storage_->initialize(&id_);
   if (ec)
     return ec;
 
@@ -112,7 +110,7 @@ std::error_code Server::start() {
 }
 
 std::error_code Server::startWithLeader(Id leaderId) {
-  std::error_code ec = storage_->initialize(&id_, &currentTerm_);
+  std::error_code ec = storage_->initialize(&id_);
   if (ec)
     return ec;
 
@@ -178,8 +176,7 @@ void Server::sendVoteRequest() {
 
   votesGranted_ = 0;
   setCurrentTerm(currentTerm() + 1);
-  votedFor_ = Some(std::make_pair(id_, currentTerm()));
-  // TODO: persist votedFor_
+  storage_->setVotedFor(id_, currentTerm());
 
   VoteRequest voteRequest{
     .term         = currentTerm(),
@@ -241,8 +238,7 @@ void Server::setState(ServerState newState) {
 }
 
 void Server::setCurrentTerm(Term newTerm) {
-  currentTerm_ = newTerm;
-  storage_->saveTerm(newTerm);
+  storage_->setCurrentTerm(newTerm);
 }
 
 // {{{ Server: handler API (invoked by Transport on receiving messages)
@@ -273,7 +269,7 @@ VoteResponse Server::handleRequest(Id peerId, const VoteRequest& req) {
         id_, req.term, currentTerm(), req.candidateId);
     setCurrentTerm(req.term);
     setState(ServerState::Follower);
-    votedFor_ = None();
+    storage_->clearVotedFor();
 
     Id oldLeaderId = currentLeaderId_;
     currentLeaderId_ = req.candidateId;
@@ -282,15 +278,16 @@ VoteResponse Server::handleRequest(Id peerId, const VoteRequest& req) {
     }
   }
 
-  if (votedFor_.isNone()) {
+  const auto votedFor = storage_->votedFor();
+  if (votedFor.isNone()) {
     // Accept vote, as we didn't vote in this term yet.
-    votedFor_ = Some(std::make_pair(req.candidateId, req.lastLogTerm));
+    storage_->setVotedFor(req.candidateId, req.lastLogTerm);
     return VoteResponse{currentTerm(), true};
   }
 
-  if (req.candidateId == votedFor_->first && req.lastLogTerm > votedFor_->second) {
+  if (req.candidateId == votedFor->first && req.lastLogTerm > votedFor->second) {
     // Accept vote. Same vote-candidate and bigger term
-    votedFor_ = Some(std::make_pair(req.candidateId, req.lastLogTerm));
+    storage_->setVotedFor(req.candidateId, req.lastLogTerm);
     return VoteResponse{currentTerm(), true};
   }
 
@@ -315,13 +312,13 @@ AppendEntriesResponse Server::handleRequest(
 
   // 1. Reply false if term < currentTerm (§5.1)
   if (req.term < currentTerm()) {
-    return AppendEntriesResponse{currentTerm(), false};
+    return AppendEntriesResponse{currentTerm(), latestIndex(), false};
   }
 
   // 2. Reply false if log doesn’t contain an entry at prevLogIndex
   //    whose term matches prevLogTerm (§5.3)
   if (getLogTerm(req.prevLogIndex) != req.prevLogTerm) {
-    return AppendEntriesResponse{currentTerm(), false};
+    return AppendEntriesResponse{currentTerm(), latestIndex(), false};
   }
 
   // If RPC request or response contains term T > currentTerm:
@@ -347,8 +344,10 @@ AppendEntriesResponse Server::handleRequest(
   // 3. If an existing entry conflicts with a new one (same index
   //    but different terms), delete the existing entry and all that
   //    follow it (§5.3)
+  const Index lastIndex = req.prevLogIndex + req.entries.size();
   Index index = req.prevLogIndex + 1;
-  if (!req.entries.empty() && getLogTerm(req.prevLogIndex + req.entries.size()) != req.entries.back().term()) {
+  size_t i = 0;
+  if (!req.entries.empty() && getLogTerm(lastIndex) != req.entries.back().term()) {
     for (const LogEntry& entry: req.entries) {
       if (entry.term() != getLogTerm(index)) {
         logDebug("raft.Server",
@@ -357,32 +356,34 @@ AppendEntriesResponse Server::handleRequest(
         storage_->truncateLog(index);
         break;
       }
+      i++;
       index++;
     }
   }
 
   // 4. Append any new entries not already in the log
-  Index lastIndex = req.prevLogIndex + req.entries.size();
   while (index <= lastIndex) {
-    storage_->appendLogEntry(req.entries[index]);
+    storage_->appendLogEntry(req.entries[i]);
     index++;
+    i++;
   }
 
   // 5. If leaderCommit > commitIndex, set commitIndex =
   //    min(leaderCommit, index of last new entry)
   if (req.leaderCommit > commitIndex_) {
-    commitIndex_ = std::min(req.leaderCommit, req.prevLogIndex + req.entries.size());
+    commitIndex_ = std::min(req.leaderCommit, lastIndex);
+    logDebug("raft.Server", "$0 ($1) commitIndex = $2", id_, state_, commitIndex_);
   }
 
   // Once a follower learns that a log entry is committed,
   // it applies the entry to its local state machine (in log order)
   applyLogs();
 
-  return AppendEntriesResponse{currentTerm(), true};
+  return AppendEntriesResponse{currentTerm(), latestIndex(), true};
 }
 
 void Server::handleResponse(Id peerId, const AppendEntriesResponse& resp) {
-  logTrace("raft.Server", "$0: ($1) received from $2: $3", id_, state_, peerId, resp);
+  logDebug("raft.Server", "$0-to-$1 ($1) received: $3", peerId, id_, state_, resp);
   assert(state_ == ServerState::Leader);
 
   timer_.rewind();
@@ -390,12 +391,13 @@ void Server::handleResponse(Id peerId, const AppendEntriesResponse& resp) {
   if (resp.success) {
     // If successful: update nextIndex and matchIndex for follower (§5.3)
     // XXX we currently replicate only 1 log entry at a time
-    matchIndex_[peerId] = nextIndex_[peerId];
-    nextIndex_[peerId]++;
+
+    matchIndex_[peerId] = resp.latestIndex;
+    nextIndex_[peerId] = resp.latestIndex + 1;
   } else {
     // If AppendEntries fails because of log inconsistency:
-    //  decrement nextIndex and retry (§5.3)
-    nextIndex_[peerId]--;
+    //  decrement (adjust) nextIndex and retry (§5.3)
+    nextIndex_[peerId] = resp.latestIndex + 1;
     if (matchIndex_[peerId] != 0) {
       logWarning("raft.Server",
                  "$0: matchIndex[$1] should be 0 (actual $2). Fixing.",
@@ -407,9 +409,12 @@ void Server::handleResponse(Id peerId, const AppendEntriesResponse& resp) {
   // update commitIndex to the latest matchIndex the majority of servers provides
   commitIndex_ = ServerUtil::majorityIndexOf(matchIndex_);
 
+  logDebug("raft.Server", "$0 ($1) commitIndex = $2 (updated)", 
+      id_, state_, commitIndex_); 
+
   // trigger replication feed for peerId
 //  heartbeat_->wakeup();
-  // replicateLogsTo(peerId); // FIXME
+  replicateLogsTo(peerId); // FIXME
 }
 
 InstallSnapshotResponse Server::handleRequest(
@@ -467,6 +472,9 @@ Index Server::latestIndex() {
 }
 
 Term Server::getLogTerm(Index index) {
+  if (index > storage_->latestIndex())
+    return 0;
+
   return storage_->getLogEntry(index)->term();
 }
 
@@ -474,88 +482,49 @@ void Server::replicateLogsTo(Id peerId) {
   // If last log index ≥ nextIndex for a follower: send
   // AppendEntries RPC with log entries starting at nextIndex
   Index nextIndex = nextIndex_[peerId];
-  if (latestIndex() >= nextIndex) {
-    std::vector<LogEntry> entries;
-    for (int i = 0; nextIndex + i <= latestIndex(); ++i) {
-      entries.emplace_back(*storage_->getLogEntry(nextIndex + i));
-    }
-
-    transport_->send(peerId, AppendEntriesRequest{
-        .term = currentTerm(),
-        .leaderId = id_,
-        .prevLogIndex = nextIndex,
-        .prevLogTerm = getLogTerm(nextIndex),
-        .entries = entries,
-        .leaderCommit = commitIndex_,
-    });
-
-    matchIndex_[peerId] = latestIndex();
-    nextIndex_[peerId] = latestIndex() + 1;
+  if (nextIndex > latestIndex()) {
+    return;
   }
+
+  std::vector<LogEntry> entries;
+  for (int i = 0; nextIndex + i <= latestIndex(); ++i) {
+    entries.emplace_back(*storage_->getLogEntry(nextIndex + i));
+  }
+
+  transport_->send(peerId, AppendEntriesRequest{
+      .term = currentTerm(),
+      .leaderId = id_,
+      .prevLogIndex = nextIndex - 1,
+      .prevLogTerm = getLogTerm(nextIndex - 1),
+      .entries = entries,
+      .leaderCommit = commitIndex_,
+  });
+
+  nextIndex_[peerId] = latestIndex() + 1;
 }
 
 void Server::applyLogs() {
+  logDebug("raft.Server", "Applying logs (commitIndex:$0, lastApplied:$1)",
+            commitIndex_, lastApplied_);
   // If commitIndex > lastApplied: increment lastApplied, apply
   // log[lastApplied] to state machine (§5.3)
   while (commitIndex_ > lastApplied_) {
+    Result<LogEntry> logEntry = storage_->getLogEntry(lastApplied_ + 1);
+    if (logEntry.isFailure()) {
+      logError("raft.Server",
+               "Failed to apply log index $0. $1",
+               lastApplied_ + 1,
+               logEntry.failureMessage());
+      break;
+    }
+    logDebug("raft.Server", "applyCommand at index $0: $1",
+             lastApplied_, *logEntry);
     lastApplied_++;
-    Result<LogEntry> logEntry = storage_->getLogEntry(lastApplied_);
-    // TODO: check for logEntry.isFailure()
-    stateMachine_->applyCommand(logEntry->command());
-  }
-}
-// }}}
-// // {{{ Server::LeaderState
-// Server::LeaderState::LeaderState()
-//     : peers() {
-// }
-//
-// MonotonicTime Server::LeaderState::nextHeartbeat() const {
-//   assert(!peers.empty());
-//
-//   const auto lessFn = [](std::pair<Id, MonotonicTime> a, std::pair<Id, MonotonicTime> b) {
-//     return a.second < b.second;
-//   };
-//
-//   const MonotonicTime low = std::min_element(
-//       peers.begin(),
-//       peers.end(),
-//       [](auto a, auto b) { return a.second.nextHeartbeat < b.second.nextHeartbeat; })->second.nextHeartbeat;
-//
-//   return low;
-// }
-// // }}}
-// {{{ Server::FollowerChannel
-Server::FollowerChannel::FollowerChannel(Id peerId, Server* server, Executor* e)
-    : peerId_(peerId),
-      server_(server),
-      executor_(e),
-      nextIndex_(0),
-      matchIndex_(0),
-      wakeup_(),
-      nextHeartbeat_(0) {
-}
-
-void Server::FollowerChannel::run() {
-  for (;;) {
-    wakeup_.waitForNextWakeup();
-
-    sendPendingMessages();
-  }
-}
-
-void Server::FollowerChannel::wakeup() {
-  wakeup_.wakeup();
-}
-
-void Server::FollowerChannel::sendPendingMessages() {
-  const Index lastIndex = nextIndex_;
-  std::vector<LogEntry> entries;
-
-  for (Index i = nextIndex_; i <= lastIndex; i++) {
-    Result<LogEntry> entry = server_->storage()->getLogEntry(nextIndex_);
-    if (!entry) {
-      return;
+    if (logEntry->type() == LOG_COMMAND) {
+      stateMachine_->applyCommand(logEntry->command());
+    } else {
+      // TODO: LOG_PEER_ADD, LOG_PEER_REMOVE
+      RAISE(NotImplementedError);
     }
   }
 }
