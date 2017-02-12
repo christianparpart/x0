@@ -16,6 +16,7 @@ TESTS =
 
 AM_CXXFLAGS = \
 	$(BASE_CXXFLAGS) \
+	-DXZERO_CLUSTERDIR="\"$(XZERO_CLUSTERDIR)\"" \
 	-I$(top_builddir) \
 	-I$(top_srcdir)
 
