@@ -146,12 +146,18 @@ RaftError Server::sendCommand(Command&& command) {
   std::vector<std::shared_ptr<LogEntry>> entries;
   entries.emplace_back(new LogEntry(currentTerm(), std::move(command)));
 
-  for (auto& entry: entries)
+  // store commands locally first
+  for (auto& entry: entries) {
+    logDebug("raft.Server", "$0.sendCommand: store log locally first. $1",
+        id_, *entry);
     storage_->appendLogEntry(*entry);
+  }
+  logDebug("raft.Server", "$0.sendCommand: latestIndex = $1", id_, latestIndex());
 
   // replicate logs to each follower
   for (Id peerId: discovery_->listMembers()) {
     if (peerId != id_) {
+      logDebug("raft.Server", "$0.sendCommand: replicateLogsTo $1", id_, peerId);
       replicateLogsTo(peerId);
     }
   }
@@ -347,14 +353,22 @@ AppendEntriesResponse Server::handleRequest(
   const Index lastIndex = req.prevLogIndex + req.entries.size();
   Index index = req.prevLogIndex + 1;
   size_t i = 0;
-  if (!req.entries.empty() && getLogTerm(lastIndex) != req.entries.back().term()) {
+  if (!req.entries.empty()) {
     for (const LogEntry& entry: req.entries) {
+      if (index > latestIndex()) {
+        logDebug("raft.Server", "AppendEntriesRequest: index >= latestIndex, $0 >= $1",
+            index, latestIndex());
+        break;
+      }
       if (entry.term() != getLogTerm(index)) {
         logDebug("raft.Server",
-                 "AppendEntriesRequest: truncating at index %llu, local term %llu, leader term %llu\n",
-                 getLogTerm(index), entry.term());
+                 "AppendEntriesRequest: truncating at index $0, local term $1, leader term $2",
+                 getLogTerm(index), entry.term(), req.term);
         storage_->truncateLog(index);
         break;
+      } else {
+        logDebug("raft.Server", "found identical logEntry at [$0] $1: $2",
+            index, i, entry);
       }
       i++;
       index++;
@@ -363,10 +377,13 @@ AppendEntriesResponse Server::handleRequest(
 
   // 4. Append any new entries not already in the log
   while (index <= lastIndex) {
+    logDebug("raft.Server", "commit logEntry[$0] at index $1/$2, $3", i, index, lastIndex, latestIndex());
     storage_->appendLogEntry(req.entries[i]);
     index++;
     i++;
   }
+
+  assert(lastIndex == latestIndex());
 
   // 5. If leaderCommit > commitIndex, set commitIndex =
   //    min(leaderCommit, index of last new entry)
@@ -407,10 +424,12 @@ void Server::handleResponse(Id peerId, const AppendEntriesResponse& resp) {
   }
 
   // update commitIndex to the latest matchIndex the majority of servers provides
-  commitIndex_ = ServerUtil::majorityIndexOf(matchIndex_);
-
-  logDebug("raft.Server", "$0 ($1) commitIndex = $2 (updated)", 
-      id_, state_, commitIndex_); 
+  Index newCommitIndex = ServerUtil::majorityIndexOf(matchIndex_);
+  if (commitIndex_ != newCommitIndex) {
+    logDebug("raft.Server", "$0 ($1) updating commitIndex = $2 (was $3)", 
+        id_, state_, newCommitIndex, commitIndex_); 
+    commitIndex_ = newCommitIndex;
+  }
 
   // trigger replication feed for peerId
 //  heartbeat_->wakeup();
@@ -481,8 +500,10 @@ Term Server::getLogTerm(Index index) {
 void Server::replicateLogsTo(Id peerId) {
   // If last log index ≥ nextIndex for a follower: send
   // AppendEntries RPC with log entries starting at nextIndex
-  Index nextIndex = nextIndex_[peerId];
-  if (nextIndex > latestIndex()) {
+  const Index nextIndex = nextIndex_[peerId];
+  logDebug("raft.Server", "replicateLogsTo($0): nextIndex=$1, latestIndex=$2",
+      peerId, nextIndex_[peerId], latestIndex());
+  if (nextInde_[peerId]x > latestIndex()) {
     return;
   }
 
@@ -501,6 +522,11 @@ void Server::replicateLogsTo(Id peerId) {
   });
 
   nextIndex_[peerId] = latestIndex() + 1;
+
+  logDebug("raft.Server",
+      "replicateLogsTo($0): new nextIndex=$1",
+      peerId, 
+      nextIndex_[peerId]);
 }
 
 void Server::applyLogs() {
@@ -518,7 +544,7 @@ void Server::applyLogs() {
       break;
     }
     logDebug("raft.Server", "applyCommand at index $0: $1",
-             lastApplied_, *logEntry);
+             lastApplied_ + 1, *logEntry);
     lastApplied_++;
     if (logEntry->type() == LOG_COMMAND) {
       stateMachine_->applyCommand(logEntry->command());
