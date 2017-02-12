@@ -130,9 +130,10 @@ void Parser::parseAppendEntriesRequest() {
 
 void Parser::parseAppendEntriesResponse() {
   Term term = static_cast<Term>(reader_.parseVarUInt());
+  Index lastLogIndex = static_cast<Index>(reader_.parseVarUInt());
   bool success = static_cast<bool>(reader_.parseVarUInt());
 
-  listener_->receive(AppendEntriesResponse{term, success});
+  listener_->receive(AppendEntriesResponse{term, lastLogIndex, success});
 }
 
 void Parser::parseInstallSnapshotRequest() {

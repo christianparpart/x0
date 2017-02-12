@@ -66,9 +66,10 @@ TEST(raft_Generator, AppendEntriesResponse) {
   raft::Generator g(BufferUtil::writer(&out));
   g.generateAppendEntriesResponse(AppendEntriesResponse{
       .term = 2,
+      .lastLogIndex = 3,
       .success = true });
 
-  EXPECT_EQ("\x03\x04\x02\x01", out);
+  EXPECT_EQ("\x04\x04\x02\x3\x01", out);
 }
 
 TEST(raft_Generator, InstallSnapshotRequest) {

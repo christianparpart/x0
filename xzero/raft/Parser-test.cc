@@ -135,12 +135,13 @@ TEST(raft_Parser, AppendEntriesRequest) {
 TEST(raft_Parser, AppendEntriesResponse) {
   MessagePod pod;
   raft::Parser parser(&pod);
-  BufferRef binmsg = "\x03\x04\x13\x01";
+  BufferRef binmsg = "\x04\x04\x13\x17\x01";
 
   unsigned parsedMessageCount = parser.parseFragment(binmsg);
   EXPECT_EQ(1, parsedMessageCount);
   ASSERT_EQ(1, pod.appendEntriesResponse.size());
   EXPECT_EQ(0x13, pod.appendEntriesResponse[0].term);
+  EXPECT_EQ(0x17, pod.appendEntriesResponse[0].lastLogIndex);
   EXPECT_TRUE(pod.appendEntriesResponse[0].success);
 }
 

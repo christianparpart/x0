@@ -409,12 +409,12 @@ void Server::handleResponse(Id peerId, const AppendEntriesResponse& resp) {
     // If successful: update nextIndex and matchIndex for follower (§5.3)
     // XXX we currently replicate only 1 log entry at a time
 
-    matchIndex_[peerId] = resp.latestIndex;
-    nextIndex_[peerId] = resp.latestIndex + 1;
+    matchIndex_[peerId] = resp.lastLogIndex;
+    nextIndex_[peerId] = resp.lastLogIndex + 1;
   } else {
     // If AppendEntries fails because of log inconsistency:
     //  decrement (adjust) nextIndex and retry (§5.3)
-    nextIndex_[peerId] = resp.latestIndex + 1;
+    nextIndex_[peerId] = resp.lastLogIndex + 1;
     if (matchIndex_[peerId] != 0) {
       logWarning("raft.Server",
                  "$0: matchIndex[$1] should be 0 (actual $2). Fixing.",

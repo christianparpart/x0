@@ -84,6 +84,7 @@ void Generator::generateAppendEntriesRequest(const AppendEntriesRequest& msg) {
 void Generator::generateAppendEntriesResponse(const AppendEntriesResponse& msg) {
   wire_.writeVarUInt((unsigned) MessageType::AppendEntriesResponse);
   wire_.writeVarUInt(msg.term);
+  wire_.writeVarUInt(msg.lastLogIndex);
   wire_.writeVarUInt(msg.success ? 1 : 0);
   flushFrame();
 }

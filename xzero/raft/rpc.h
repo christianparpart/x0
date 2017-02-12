@@ -89,9 +89,9 @@ struct AppendEntriesRequest {
 };
 
 struct AppendEntriesResponse {
-  Term term;    // currentTerm, for the leader to update itself
-  Index latestIndex; // follower's latest index
-  bool success; // true if follower contained entry matching prevLogIndex and prevLogTerm
+  Term term;          // currentTerm, for the leader to update itself
+  Index lastLogIndex; // follower's latest index
+  bool success;       // true if follower contained entry matching prevLogIndex and prevLogTerm
 };
 
 // Invoked by leader to send chunks of a snapshot to a follower.

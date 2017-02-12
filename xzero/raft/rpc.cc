@@ -122,9 +122,9 @@ std::string StringUtil::toString(raft::AppendEntriesRequest msg) {
 template<>
 std::string StringUtil::toString(raft::AppendEntriesResponse msg) {
   return StringUtil::format(
-      "AppendEntriesResponse<term:$0, index: $1, success:$2>",
+      "AppendEntriesResponse<term:$0, lastLogIndex: $1, success:$2>",
       msg.term,
-      msg.latestIndex,
+      msg.lastLogIndex,
       msg.success);
 }
 
