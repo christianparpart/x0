@@ -1,0 +1,12 @@
+prefix=@prefix@
+exec_prefix=@exec_prefix@
+libdir=@libdir@
+includedir=@includedir@
+
+Name: XzeroFlow
+Description: libXzeroFlow library and headers
+Version: @PACKAGE_VERSION@
+Requires: XzeroBase
+# Conflicts: 
+Libs: -L${libdir} -lXzeroFlow
+Cflags: -I${includedir}

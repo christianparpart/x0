@@ -5,7 +5,7 @@
 // file except in compliance with the License. You may obtain a copy of
 // the License at: http://opensource.org/licenses/MIT
 
-#include <x0d/modules/compress.h>
+#include "compress.h"
 #include <x0d/XzeroModule.h>
 #include <x0d/XzeroContext.h>
 

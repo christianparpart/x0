@@ -11,7 +11,7 @@
  * - does not forward Expect request header to upstream
  */
 
-#include <x0d/modules/proxy.h>
+#include "proxy.h"
 #include <x0d/XzeroContext.h>
 #include <xzero/sysconfig.h>
 #include <xzero/http/client/HttpCluster.h>

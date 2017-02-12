@@ -5,7 +5,7 @@
 // file except in compliance with the License. You may obtain a copy of
 // the License at: http://opensource.org/licenses/MIT
 
-#include <x0d/modules/empty_gif.h>
+#include "empty_gif.h"
 #include <x0d/XzeroContext.h>
 #include <xzero/http/HttpRequest.h>
 #include <xzero/http/HttpResponse.h>

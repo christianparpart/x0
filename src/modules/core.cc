@@ -5,9 +5,9 @@
 // file except in compliance with the License. You may obtain a copy of
 // the License at: http://opensource.org/licenses/MIT
 
+#include "core.h"
 #include <x0d/XzeroModule.h>
 #include <x0d/XzeroContext.h>
-#include <x0d/modules/core.h>
 #include <xzero/http/HttpRequest.h>
 #include <xzero/http/HttpResponse.h>
 #include <xzero/io/FileUtil.h>

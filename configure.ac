@@ -182,6 +182,16 @@ AC_SUBST([PLATFORM_LDFLAGS])
 
 ####### OUTPUT ################################################################
 
-AC_CONFIG_HEADERS(src/xzero/sysconfig.h)
-AC_CONFIG_FILES(Makefile)
+BASE_CXXFLAGS="-DXOPEN_SOURCE=600 -D_FILE_OFFSET_BITS=64 -D_GNU_SOURCE \
+ -D_LARGEFILE_SOURCE -D_LARGE_FILES -Wall -Wextra -std=c++14 \
+ -Wno-unused-variable -Wno-unused-parameter \
+ $PLATFORM_CXXFLAGS $LIBPCRE_CFLAGS $OPENSSL_CFLAGS"
+AC_SUBST([BASE_CXXFLAGS])
+
+BASE_LIBS="$PLATFORM_LDFLAGS $OPENSSL_LDADD $LIBPCRE_LIBS $OPENSSL_LIBS \
+ $ZLIB_LIBS $BZLIB_LIBS"
+AC_SUBST([BASE_LIBS])
+
+AC_CONFIG_HEADERS(xzero/sysconfig.h)
+AC_CONFIG_FILES(Makefile XzeroBase.pc XzeroFlow.pc)
 AC_OUTPUT

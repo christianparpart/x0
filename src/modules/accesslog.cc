@@ -17,7 +17,7 @@
  *     void accesslog(string file, string format = "main");
  */
 
-#include <x0d/modules/accesslog.h>
+#include "accesslog.h"
 
 #include <xzero/http/HttpRequest.h>
 #include <xzero/http/HttpResponse.h>

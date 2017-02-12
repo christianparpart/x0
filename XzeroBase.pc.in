@@ -1,0 +1,12 @@
+prefix=@prefix@
+exec_prefix=@exec_prefix@
+libdir=@libdir@
+includedir=@includedir@
+
+Name: XzeroBase
+Description: libXzeroBase library and headers
+Version: @PACKAGE_VERSION@
+# Requires:
+# Conflicts: 
+Libs: -L${libdir} -lXzeroBase @BASE_LIBS@
+Cflags: -I${includedir} @BASE_CXXFLAGS@

@@ -11,8 +11,8 @@ FILES=(
   /install-sh
   /missing
   /depcomp
-  /src/xzero/sysconfig.h.in
-  /src/xzero-flow/sysconfig.h.in
+  /xzero/sysconfig.h.in
+  /xzero-flow/sysconfig.h.in
 )
 
 if test "$1" == "clean"; then
