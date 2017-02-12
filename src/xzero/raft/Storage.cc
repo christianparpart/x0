@@ -16,7 +16,7 @@ namespace raft {
 // {{{ MemoryStore
 MemoryStore::MemoryStore()
     : votedFor_(),
-      currentTerm_(),
+      currentTerm_(1),
       log_(),
       snapshottedTerm_(),
       snapshottedIndex_(),
