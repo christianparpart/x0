@@ -503,7 +503,7 @@ void Server::replicateLogsTo(Id peerId) {
   const Index nextIndex = nextIndex_[peerId];
   logDebug("raft.Server", "replicateLogsTo($0): nextIndex=$1, latestIndex=$2",
       peerId, nextIndex_[peerId], latestIndex());
-  if (nextInde_[peerId]x > latestIndex()) {
+  if (nextIndex_[peerId] > latestIndex()) {
     return;
   }
 
