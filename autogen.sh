@@ -41,8 +41,8 @@ echo CXX = $CXX
 echo CC = $CC
 echo CXXFLAGS = $CXXFLAGS
 
-$ROOT/configure --prefix="/usr" \
-                --sysconfdir="$HOME/projects/x0" \
+$ROOT/configure --prefix="$HOME/usr" \
+                --sysconfdir="$HOME/usr/etc" \
                 --with-pidfile="$HOME/projects/x0/build/x0d.pid" \
                 --with-logdir="$HOME/projects/x0/x0d"
 
