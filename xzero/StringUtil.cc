@@ -8,6 +8,7 @@
 #include <string>
 #include <sstream>
 #include <iomanip>
+#include <system_error>
 #include <xzero/RuntimeError.h>
 #include <xzero/BufferUtil.h>
 #include <xzero/StringUtil.h>
@@ -127,6 +128,11 @@ std::string StringUtil::toString(double value) {
 template <>
 std::string StringUtil::toString(bool value) {
   return value ? "true" : "false";
+}
+
+template<>
+std::string StringUtil::toString(std::error_code ec) {
+  return ec.message();
 }
 
 std::string StringUtil::trim(const std::string& value) {
