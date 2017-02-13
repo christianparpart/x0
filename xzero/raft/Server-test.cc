@@ -24,6 +24,7 @@
 #include <limits>
 
 using namespace xzero;
+using raft::RaftError;
 
 class TestKeyValueStore : public raft::StateMachine { // {{{
  public:
@@ -313,4 +314,22 @@ TEST(raft_Server, AppendEntries) {
   ASSERT_EQ(7, pod.getInstance(1)->get(4));
   ASSERT_EQ(7, pod.getInstance(2)->get(4));
   ASSERT_EQ(7, pod.getInstance(3)->get(4));
+}
+
+TEST(raft_Server, AppendEntries_not_leading_err) {
+  TestServerPod pod;
+  pod.enableBreakOnConsensus();
+  pod.startWithLeader(1);
+  pod.executor.runLoop();
+  ASSERT_TRUE(pod.isConsensusReached());
+  ASSERT_TRUE(pod.getInstance(1)->server()->isLeader());
+
+  std::error_code err = pod.getInstance(1)->set(2, 4);
+  EXPECT_EQ(std::error_code(), err);
+
+  err = pod.getInstance(2)->set(2, 4);
+  EXPECT_EQ(std::make_error_code(RaftError::NotLeading), err);
+
+  err = pod.getInstance(3)->set(2, 4);
+  EXPECT_EQ(std::make_error_code(RaftError::NotLeading), err);
 }
