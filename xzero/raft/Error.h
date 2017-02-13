@@ -34,3 +34,9 @@ class RaftCategory : public std::error_category {
 
 } // namespace raft
 } // namespace xzero
+
+namespace std {
+  inline std::error_code make_error_code(xzero::raft::RaftError ec) {
+    return std::error_code((int) ec, xzero::raft::RaftCategory::get());
+  }
+}
