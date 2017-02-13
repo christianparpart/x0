@@ -64,11 +64,10 @@ Index MemoryStore::latestIndex() {
   return log_.size() - 1;
 }
 
-bool MemoryStore::appendLogEntry(const LogEntry& log) {
-  logDebug("MemoryStore", "appendLogEntry: at $0: $1", 
-      log_.size(), log);
+std::error_code MemoryStore::appendLogEntry(const LogEntry& log) {
+  logDebug("MemoryStore", "appendLogEntry: at index:$0, $1", log_.size(), log);
   log_.emplace_back(log);
-  return true;
+  return std::error_code();
 }
 
 Result<LogEntry> MemoryStore::getLogEntry(Index index) {

@@ -139,19 +139,19 @@ void Server::stop() {
   // TODO: be more intelligent, maybe telling the others why I go.
 }
 
-RaftError Server::sendCommand(Command&& command) {
+std::error_code Server::sendCommand(Command&& command) {
   if (state_ != ServerState::Leader)
-    return RaftError::NotLeading;
+    return std::make_error_code(RaftError::NotLeading);
 
   std::vector<std::shared_ptr<LogEntry>> entries;
   entries.emplace_back(new LogEntry(currentTerm(), std::move(command)));
 
   // store commands locally first
-  for (auto& entry: entries) {
-    logDebug("raft.Server", "$0.sendCommand: store log locally first. $1",
-        id_, *entry);
-    storage_->appendLogEntry(*entry);
-  }
+  logDebug("raft.Server", "$0.sendCommand: store log locally first. $1", id_, *entries.front());
+  std::error_code ec = storage_->appendLogEntry(*entries.front());
+  if (ec)
+    return ec;
+
   logDebug("raft.Server", "$0.sendCommand: latestIndex = $1", id_, latestIndex());
 
   // replicate logs to each follower
@@ -162,7 +162,7 @@ RaftError Server::sendCommand(Command&& command) {
     }
   }
 
-  return RaftError::Success;
+  return std::error_code();
 }
 
 void Server::verifyLeader(std::function<void(bool)> callback) {
@@ -256,7 +256,7 @@ HelloResponse Server::handleRequest(const HelloRequest& req) {
 }
 
 void Server::handleResponse(Id from, const HelloResponse& res) {
-  // logDebug("raft.Server", "handleResponse: VoteResponse<$0, \"$1\">", 
+  // logDebug("raft.Server", "handleResponse: VoteResponse<$0, \"$1\">",
   //     res.success ? "success" : "failed", res.message);
 }
 
@@ -356,15 +356,16 @@ AppendEntriesResponse Server::handleRequest(
   if (!req.entries.empty()) {
     for (const LogEntry& entry: req.entries) {
       if (index > latestIndex()) {
-        logDebug("raft.Server", "AppendEntriesRequest: index >= latestIndex, $0 >= $1",
-            index, latestIndex());
+        // all items are identical between 0 and i are identical
         break;
       }
       if (entry.term() != getLogTerm(index)) {
-        logDebug("raft.Server",
-                 "AppendEntriesRequest: truncating at index $0, local term $1, leader term $2",
-                 getLogTerm(index), entry.term(), req.term);
-        storage_->truncateLog(index);
+        logInfo("raft.Server",
+                "Truncating at index $0. Local term $1 != leader term $2.",
+                getLogTerm(index),
+                entry.term(),
+                req.term);
+        storage_->truncateLog(index - 1);
         break;
       } else {
         logDebug("raft.Server", "found identical logEntry at [$0] $1: $2",
@@ -400,10 +401,12 @@ AppendEntriesResponse Server::handleRequest(
 }
 
 void Server::handleResponse(Id peerId, const AppendEntriesResponse& resp) {
-  logDebug("raft.Server", "$0-to-$1 ($1) received: $3", peerId, id_, state_, resp);
-  assert(state_ == ServerState::Leader);
-
   timer_.rewind();
+
+  if (state_ != ServerState::Leader) {
+    logWarning("raft.Server", "Received an AppendEntriesResponse from a follower, but I am no leader (anymore).");
+    return;
+  }
 
   if (resp.success) {
     // If successful: update nextIndex and matchIndex for follower (§5.3)
@@ -411,6 +414,8 @@ void Server::handleResponse(Id peerId, const AppendEntriesResponse& resp) {
 
     matchIndex_[peerId] = resp.lastLogIndex;
     nextIndex_[peerId] = resp.lastLogIndex + 1;
+    if (resp.lastLogIndex >= nextIndex_[peerId]) {
+    }
   } else {
     // If AppendEntries fails because of log inconsistency:
     //  decrement (adjust) nextIndex and retry (§5.3)
@@ -426,14 +431,15 @@ void Server::handleResponse(Id peerId, const AppendEntriesResponse& resp) {
   // update commitIndex to the latest matchIndex the majority of servers provides
   Index newCommitIndex = ServerUtil::majorityIndexOf(matchIndex_);
   if (commitIndex_ != newCommitIndex) {
-    logDebug("raft.Server", "$0 ($1) updating commitIndex = $2 (was $3)", 
-        id_, state_, newCommitIndex, commitIndex_); 
+    logDebug("raft.Server", "$0 ($1) updating commitIndex = $2 (was $3)",
+        id_, state_, newCommitIndex, commitIndex_);
     commitIndex_ = newCommitIndex;
+    applyLogs();
   }
 
   // trigger replication feed for peerId
 //  heartbeat_->wakeup();
-  replicateLogsTo(peerId); // FIXME
+  replicateLogsTo(peerId); // replicate any pending messages to peer, if any
 }
 
 InstallSnapshotResponse Server::handleRequest(
@@ -501,9 +507,9 @@ void Server::replicateLogsTo(Id peerId) {
   // If last log index ≥ nextIndex for a follower: send
   // AppendEntries RPC with log entries starting at nextIndex
   const Index nextIndex = nextIndex_[peerId];
-  logDebug("raft.Server", "replicateLogsTo($0): nextIndex=$1, latestIndex=$2",
-      peerId, nextIndex_[peerId], latestIndex());
-  if (nextIndex_[peerId] > latestIndex()) {
+
+  if (nextIndex > latestIndex()) {
+    // peer is up-to-date
     return;
   }
 
@@ -511,6 +517,11 @@ void Server::replicateLogsTo(Id peerId) {
   for (int i = 0; nextIndex + i <= latestIndex(); ++i) {
     entries.emplace_back(*storage_->getLogEntry(nextIndex + i));
   }
+
+  logDebug("raft.Server",
+           "replicateLogsTo peer $0: $1 log entries",
+           peerId,
+           entries.size());
 
   transport_->send(peerId, AppendEntriesRequest{
       .term = currentTerm(),
@@ -522,11 +533,6 @@ void Server::replicateLogsTo(Id peerId) {
   });
 
   nextIndex_[peerId] = latestIndex() + 1;
-
-  logDebug("raft.Server",
-      "replicateLogsTo($0): new nextIndex=$1",
-      peerId, 
-      nextIndex_[peerId]);
 }
 
 void Server::applyLogs() {

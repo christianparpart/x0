@@ -137,7 +137,7 @@ class Server : public Handler {
   /**
    * Sends given @p command to the Raft cluster.
    */
-  RaftError sendCommand(Command&& command);
+  std::error_code sendCommand(Command&& command);
 
   /**
    * Verifies whether or not this Server is (still) a #ServerState::Leader.

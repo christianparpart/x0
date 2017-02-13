@@ -55,7 +55,7 @@ class Storage {
   virtual Index latestIndex() = 0;
 
   //! saves given LogEntry @p entry at the end of the current log.
-  virtual bool appendLogEntry(const LogEntry& entry) = 0;
+  virtual std::error_code appendLogEntry(const LogEntry& entry) = 0;
 
   //! Retrieves the LogEntry from given @p index and stores it in @p log.
   //! retrieves log entry at given @p index.
@@ -103,7 +103,7 @@ class MemoryStore : public Storage {
   std::error_code setCurrentTerm(Term currentTerm) override;
   Term currentTerm() override;
   Index latestIndex() override;
-  bool appendLogEntry(const LogEntry& log) override;
+  std::error_code appendLogEntry(const LogEntry& log) override;
   Result<LogEntry> getLogEntry(Index index) override;
   void truncateLog(Index last) override;
 

@@ -311,9 +311,10 @@ void LocalTransport::send(Id target, const AppendEntriesRequest& msg) {
   assert(msg.leaderId == myId_);
 
   executor_->execute([=]() {
-    logDebug("raft.LocalTransport", "AppendEntriesRequest from $0 to $1: $2", myId_, target, msg);
+    logDebug("raft.LocalTransport", "$0-to-$1: recv $2", myId_, target, msg);
     AppendEntriesResponse result = getPeer(target)->handleRequest(myId_, msg);
     executor_->execute([=]() {
+      logDebug("raft.LocalTransport", "$0-to-$1: recv $2", target, myId_, result);
       getPeer(myId_)->handleResponse(target, result);
     });
   });

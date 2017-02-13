@@ -109,7 +109,7 @@ class TestServer { // {{{
              Executor* executor);
 
   int get(int key) const;
-  raft::RaftError set(int key, int value);
+  std::error_code set(int key, int value);
 
   raft::LocalTransport* transport() noexcept { return &transport_; }
   raft::Server* server() noexcept { return &raftServer_; }
@@ -135,7 +135,7 @@ int TestServer::get(int key) const {
   return stateMachine_.get(key);
 }
 
-raft::RaftError TestServer::set(int key, int value) {
+std::error_code TestServer::set(int key, int value) {
   raft::Command cmd;
 
   auto o = [&](const uint8_t* data, size_t len) {
@@ -280,8 +280,8 @@ TEST(raft_Server, AppendEntries) {
   ASSERT_TRUE(pod.isConsensusReached());
   ASSERT_TRUE(pod.getInstance(1)->server()->isLeader());
 
-  raft::RaftError err = pod.getInstance(1)->set(2, 4);
-  ASSERT_EQ(raft::RaftError::Success, err);
+  std::error_code err = pod.getInstance(1)->set(2, 4);
+  ASSERT_FALSE(err);
 
   int applyCount = 0;
   for (raft::Id id = 1; id <= 3; ++id) {
