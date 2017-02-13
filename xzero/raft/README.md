@@ -14,6 +14,23 @@ This is why I left almost everything adaptable.
 It is recommended to run your distributed system in a 5-node cluster,
 so that up to 2 servers can fail.
 
+## Durability
+
+Every log entry is assigned a monotonically increasing sequenced number
+with an ID space of `2^64` - so how long does that last?
+
+`2^64` equals `18.446.744.073.709.551.616`, in short 1.8e19.
+
+Assuming you consume sustained 100k IDs per second, your software still lasts
+as long as 5.849.424 years - hm, let's think more big-data style,..
+
+Let's assume you consume a sustained *100mio* IDs per second, your
+software still lasts as long as 5.849 years.
+
+My conclusion though will be, a unsigned 64 bit integer for identifying
+each and every little historical change within a database surely looks
+sufficient.
+
 ## Algorithm
 
 The core of this little library is the Raft algorithm.
