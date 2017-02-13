@@ -414,8 +414,6 @@ void Server::handleResponse(Id peerId, const AppendEntriesResponse& resp) {
 
     matchIndex_[peerId] = resp.lastLogIndex;
     nextIndex_[peerId] = resp.lastLogIndex + 1;
-    if (resp.lastLogIndex >= nextIndex_[peerId]) {
-    }
   } else {
     // If AppendEntries fails because of log inconsistency:
     //  decrement (adjust) nextIndex and retry (§5.3)
