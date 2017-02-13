@@ -106,7 +106,7 @@ void RaftTestHandler::handleResponse(
 }
 // }}}
 
-TEST(raft_Transport, handshake) {
+TEST(raft_InetTransport, handshake) {
   PosixScheduler executor;
   StaticDiscovery discovery { {1, "127.0.0.1:1708"},
                               {2, "127.0.0.2:1708"} };
@@ -127,7 +127,7 @@ TEST(raft_Transport, handshake) {
   EXPECT_EQ("\x06\x08\x01\x03psk", cli->output());
 }
 
-TEST(raft_Transport, no_handshake) {
+TEST(raft_InetTransport, no_handshake) {
   PosixScheduler executor;
   StaticDiscovery discovery { {1, "127.0.0.1:1708"},
                               {2, "127.0.0.2:1708"} };
@@ -149,7 +149,7 @@ TEST(raft_Transport, no_handshake) {
   EXPECT_EQ("", cli->output());
 }
 
-TEST(raft_Transport, receive_framed_response) {
+TEST(raft_InetTransport, receive_framed_response) {
   PosixScheduler executor;
   StaticDiscovery discovery { {1, "127.0.0.1:1708"},
                               {2, "127.0.0.2:1708"} };
@@ -172,7 +172,7 @@ TEST(raft_Transport, receive_framed_response) {
   EXPECT_EQ("\x06\x08\x01\x03psk\x03\x02\x13\x01", cli->output());
 }
 
-TEST(raft_Transport, unknown_message) {
+TEST(raft_InetTransport, unknown_message) {
   PosixScheduler executor;
   StaticDiscovery discovery { {1, "127.0.0.1:1708"},
                               {2, "127.0.0.2:1708"} };
@@ -194,7 +194,7 @@ TEST(raft_Transport, unknown_message) {
   EXPECT_EQ("", cli->output());
 }
 
-TEST(raft_Transport, zero_length_message) {
+TEST(raft_InetTransport, zero_length_message) {
   PosixScheduler executor;
   StaticDiscovery discovery { {1, "127.0.0.1:1708"},
                               {2, "127.0.0.2:1708"} };
