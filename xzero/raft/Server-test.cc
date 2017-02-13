@@ -283,12 +283,18 @@ TEST(raft_Server, AppendEntries) {
   std::error_code err = pod.getInstance(1)->set(2, 4);
   ASSERT_FALSE(err);
 
+  err = pod.getInstance(1)->set(3, 6);
+  ASSERT_FALSE(err);
+
+  err = pod.getInstance(1)->set(4, 7);
+  ASSERT_FALSE(err);
+
   int applyCount = 0;
   for (raft::Id id = 1; id <= 3; ++id) {
     pod.getInstance(id)->fsm()->onApplyCommand = [&](int key, int value) {
       logf("onApplyCommand for instance $0 = $1", key, value);
       applyCount++;
-      if (applyCount == 3) {
+      if (applyCount == 9) {
         pod.executor.breakLoop();
       }
     };
@@ -296,7 +302,15 @@ TEST(raft_Server, AppendEntries) {
 
   pod.executor.runLoop();
 
-  // ASSERT_EQ(4, pod.getInstance(1)->get(2));
-  // ASSERT_EQ(4, pod.getInstance(2)->get(2));
-  // ASSERT_EQ(4, pod.getInstance(3)->get(2));
+  ASSERT_EQ(4, pod.getInstance(1)->get(2));
+  ASSERT_EQ(4, pod.getInstance(2)->get(2));
+  ASSERT_EQ(4, pod.getInstance(3)->get(2));
+
+  ASSERT_EQ(6, pod.getInstance(1)->get(3));
+  ASSERT_EQ(6, pod.getInstance(2)->get(3));
+  ASSERT_EQ(6, pod.getInstance(3)->get(3));
+
+  ASSERT_EQ(7, pod.getInstance(1)->get(4));
+  ASSERT_EQ(7, pod.getInstance(2)->get(4));
+  ASSERT_EQ(7, pod.getInstance(3)->get(4));
 }
