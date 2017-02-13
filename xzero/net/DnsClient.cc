@@ -10,7 +10,10 @@
 #include <xzero/RuntimeError.h>
 #include <xzero/logging.h>
 #include <vector>
+#include <netinet/in.h>
+#include <arpa/nameser.h>
 #include <netdb.h>
+#include <resolv.h>
 
 namespace xzero {
 
@@ -101,6 +104,26 @@ std::vector<std::string> DnsClient::txt(const std::string& name) {
 std::vector<std::pair<int, std::string>> DnsClient::mx(const std::string& name) {
   RAISE_STATUS(NotImplementedError);
 }
+
+// TODO http://stackoverflow.com/questions/9507054/why-srv-res-query-always-returns-1
+#if 0
+std::vector<DnsClient::SRV> DnsClient::srv(const std::string& service,
+                                           const std::string& protocol,
+                                           const std::string& name) {
+  std::vector<SRV> result;
+
+  std::string name = StringUtil::format("_$0._$1.$2", service, protocol, name);
+
+  // https://gist.github.com/scaryghost/6565447
+  int ec = res_query(name.c_str(), C_IN, ns_t_srv, buf, sizeof(buf));
+  if (ec < 0)
+    return result;
+
+  ns_msg msg;
+
+  return result;
+}
+#endif
 
 void DnsClient::clearIPv4() {
   std::lock_guard<std::mutex> _lk(ipv4Mutex_);

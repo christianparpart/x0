@@ -56,6 +56,26 @@ class XZERO_BASE_API DnsClient {
    */
   std::string rr(const IPAddress& ip);
 
+  struct SRV {
+    int priority;
+    int weight;
+    int port;
+    std::string target;
+  };
+
+  /**
+   * Resolves SRV records.
+   *
+   * @param service the service name (without leading underscore)
+   * @param protocol such as "tcp" or "udp" (without leading underscore)
+   * @param name the DNS base name
+   *
+   * the input parameters will be glued together, like @c _SERVICE._PROTOCOL.NAME.
+   */
+  std::vector<SRV> srv(const std::string& service,
+                       const std::string& protocol,
+                       const std::string& name);
+
   void clearIPv4();
   void clearIPv6();
   void clearIP();
