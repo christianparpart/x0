@@ -17,6 +17,16 @@
 
 namespace xzero {
 
+DnsClient::DnsClient()
+  : ipv4_(),
+    ipv4Mutex_(),
+    ipv6_(),
+    ipv6Mutex_() {
+}
+
+DnsClient::~DnsClient() {
+}
+
 const std::vector<IPAddress>& DnsClient::ipv4(const std::string& name) {
   return lookupIP<sockaddr_in, AF_INET>(name, &ipv4_, &ipv4Mutex_);
 }
@@ -72,8 +82,9 @@ const std::vector<IPAddress>& DnsClient::lookupIP(
     std::mutex* cacheMutex) {
   std::lock_guard<decltype(*cacheMutex)> _lk(*cacheMutex);
   auto i = cache->find(name);
-  if (i != cache->end())
-      return i->second;
+  if (i != cache->end()) {
+    return i->second;
+  }
 
   addrinfo* res = nullptr;
   addrinfo hints;
@@ -105,25 +116,82 @@ std::vector<std::pair<int, std::string>> DnsClient::mx(const std::string& name) 
   RAISE_STATUS(NotImplementedError);
 }
 
-// TODO http://stackoverflow.com/questions/9507054/why-srv-res-query-always-returns-1
-#if 0
 std::vector<DnsClient::SRV> DnsClient::srv(const std::string& service,
                                            const std::string& protocol,
                                            const std::string& name) {
+  return srv(StringUtil::format("_$0._$1.$2.", service, protocol, name));
+}
+
+std::vector<DnsClient::SRV> DnsClient::srv(const std::string& fqdn) {
+  Buffer answer(NS_MAXMSG);
+  int answerLength = res_query(fqdn.c_str(),
+                               C_IN,
+                               ns_t_srv,
+                               (unsigned char*) answer.data(),
+                               answer.capacity());
+  if (answerLength < 0) {
+    logDebug("DnsClient", "SRV lookup failed for $0", fqdn);
+    return std::vector<SRV>();
+  }
+  answer.resize(answerLength);
+
   std::vector<SRV> result;
+  ns_msg nsMsg;
+  ns_initparse((unsigned char*) answer.data(), answer.size(), &nsMsg);
 
-  std::string name = StringUtil::format("_$0._$1.$2", service, protocol, name);
+  // iterate through answer section
+  for (unsigned x = 0; x < ns_msg_count(nsMsg, ns_s_an); x++) {
+    ns_rr rr;
+    ns_parserr(&nsMsg, ns_s_an, x, &rr);
 
-  // https://gist.github.com/scaryghost/6565447
-  int ec = res_query(name.c_str(), C_IN, ns_t_srv, buf, sizeof(buf));
-  if (ec < 0)
-    return result;
+    if (ns_rr_type(rr) == ns_t_srv) {
+			char name[1024];
+			dn_expand(ns_msg_base(nsMsg),
+                ns_msg_end(nsMsg),
+                ns_rr_rdata(rr) + 6,
+                name,
+                sizeof(name));
 
-  ns_msg msg;
+			result.emplace_back(SRV{
+          .ttl = Duration::fromSeconds(ns_rr_ttl(rr)),
+          .priority = ntohs(*(unsigned short*)ns_rr_rdata(rr)),
+          .weight = ntohs(*((unsigned short*)ns_rr_rdata(rr) + 1)),
+          .port = ntohs(*((unsigned short*)ns_rr_rdata(rr) + 2)),
+          .target = name,
+      });
+    }
+  }
+
+  // iterate through Additional Records
+  std::unordered_map<std::string, std::vector<IPAddress>> ipv4;
+  for (unsigned x = 0; x < ns_msg_count(nsMsg, ns_s_ar); x++) {
+    ns_rr rr;
+    ns_parserr(&nsMsg, ns_s_ar, x, &rr);
+
+    if (ns_rr_type(rr) == ns_t_a) {
+      auto ttl = Duration::fromSeconds(ns_rr_ttl(rr));
+
+      in_addr addr;
+      addr.s_addr = *(uint32_t*) ns_rr_rdata(rr);
+      IPAddress ip(&addr);
+      std::string name = rr.name;
+
+      logDebug("DnsClient", "Additional Section: $0 $1 IN A $2 ($3)",
+               name, ttl.seconds(), ip, name.size());
+
+      ipv4[name].emplace_back(ip);
+    }
+  }
+
+  {
+    std::lock_guard<decltype(ipv4Mutex_)> _lk(ipv4Mutex_);
+    for (const auto& ip: ipv4) {
+      ipv4_[ip.first] = std::move(ip.second);
+    }
+  }
 
   return result;
 }
-#endif
 
 void DnsClient::clearIPv4() {
   std::lock_guard<std::mutex> _lk(ipv4Mutex_);

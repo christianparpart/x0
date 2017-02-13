@@ -8,6 +8,7 @@
 #pragma once
 
 #include <xzero/Api.h>
+#include <xzero/Duration.h>
 #include <xzero/net/IPAddress.h>
 #include <unordered_map>
 #include <string>
@@ -21,6 +22,9 @@ namespace xzero {
  */
 class XZERO_BASE_API DnsClient {
  public:
+  DnsClient();
+  ~DnsClient();
+
   /** Retrieves all IPv4 addresses for given DNS name.
    *
    * @throw if none found or an error occurred.
@@ -56,10 +60,13 @@ class XZERO_BASE_API DnsClient {
    */
   std::string rr(const IPAddress& ip);
 
+  /** SRV represents a single SRV resource record.
+   */
   struct SRV {
-    int priority;
-    int weight;
-    int port;
+    Duration ttl;
+    unsigned short int priority;
+    unsigned short int weight;
+    unsigned short int port;
     std::string target;
   };
 
@@ -75,6 +82,8 @@ class XZERO_BASE_API DnsClient {
   std::vector<SRV> srv(const std::string& service,
                        const std::string& protocol,
                        const std::string& name);
+
+  std::vector<SRV> srv(const std::string& fqdn);
 
   void clearIPv4();
   void clearIPv6();
