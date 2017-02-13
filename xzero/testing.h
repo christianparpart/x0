@@ -194,7 +194,7 @@ namespace testing {
 
 #define _EXPECT_BOOLEAN(fileName, lineNo, fatal, expected, actual)            \
   do {                                                                        \
-    bool actualEvaluated = actual;                                            \
+    bool actualEvaluated = !! (actual);                                       \
     bool failed = (expected && !actualEvaluated)                              \
                || (!expected && actualEvaluated);                             \
     if (failed) {                                                             \
