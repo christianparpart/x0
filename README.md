@@ -59,18 +59,12 @@ a number of standard plugins to become *your* web application server.
 
 ```sh
 # Installs required dependencies
-sudo apt-get install make gcc-4.8 g++-4.8 libssl-dev \
-    libmysqlclient-dev libev-dev zlib1g-dev libbz2-dev pkg-config \
-    libpcre3-dev libfcgi-dev libgoogle-perftools-dev libpam-dev git
-
-# If you want to built the tests, you must install libgtest-dev and then
-# built it yourself
-sudo apt-get install libgtest-dev cmake
-cd /usr/src/gtest && sudo cmake . && sudo make && \
-     sudo cp -vpi libgtest*.a /usr/local/lib/; cd -
+sudo apt-get install make autoconf automake libtool gcc-4.8 g++-4.8 \
+    libmysqlclient-dev zlib1g-dev libbz2-dev pkg-config libssl-dev \
+    libpcre3-dev libfcgi-dev libgoogle-perftools-dev libpam-dev git \
 
 # Install git and clone repository
-git clone git://github.com/xzero/x0.git && cd x0
+git clone git://github.com/christianparpart/x0.git && cd x0
 
 # Now run cmake to bootstrap the build
 mkdir -p build && cd build
