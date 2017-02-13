@@ -143,21 +143,16 @@ std::error_code Server::sendCommand(Command&& command) {
   if (state_ != ServerState::Leader)
     return std::make_error_code(RaftError::NotLeading);
 
-  std::vector<std::shared_ptr<LogEntry>> entries;
-  entries.emplace_back(new LogEntry(currentTerm(), std::move(command)));
+  LogEntry entry(currentTerm(), std::move(command));
 
   // store commands locally first
-  logDebug("raft.Server", "$0.sendCommand: store log locally first. $1", id_, *entries.front());
-  std::error_code ec = storage_->appendLogEntry(*entries.front());
+  std::error_code ec = storage_->appendLogEntry(entry);
   if (ec)
     return ec;
-
-  logDebug("raft.Server", "$0.sendCommand: latestIndex = $1", id_, latestIndex());
 
   // replicate logs to each follower
   for (Id peerId: discovery_->listMembers()) {
     if (peerId != id_) {
-      logDebug("raft.Server", "$0.sendCommand: replicateLogsTo $1", id_, peerId);
       replicateLogsTo(peerId);
     }
   }
