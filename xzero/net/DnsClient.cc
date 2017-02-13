@@ -107,9 +107,35 @@ const std::vector<IPAddress>& DnsClient::lookupIP(
   return (*cache)[name] = list;
 }
 
-std::vector<std::string> DnsClient::txt(const std::string& name) {
-  // http://stackoverflow.com/questions/2315504/best-way-to-resolve-a-dns-txt-record-on-linux-unix-posix-bsd-type-systems
-  RAISE_STATUS(NotImplementedError);
+std::vector<std::string> DnsClient::txt(const std::string& fqdn) {
+  Buffer answer(NS_MAXMSG);
+  int answerLength = res_query(fqdn.c_str(),
+                               C_IN,
+                               ns_t_txt,
+                               (unsigned char*) answer.data(),
+                               answer.capacity());
+  if (answerLength < 0) {
+    logDebug("DnsClient", "TXT lookup failed for $0", fqdn);
+    return std::vector<std::string>();
+  }
+  answer.resize(answerLength);
+
+  std::vector<std::string> result;
+  ns_msg nsMsg;
+  ns_initparse((unsigned char*) answer.data(), answer.size(), &nsMsg);
+
+  // iterate through answer section
+  for (unsigned x = 0; x < ns_msg_count(nsMsg, ns_s_an); x++) {
+    ns_rr rr;
+    ns_parserr(&nsMsg, ns_s_an, x, &rr);
+
+    if (ns_rr_type(rr) == ns_t_txt) {
+      result.emplace_back((char*) (ns_rr_rdata(rr) + 1),
+                          (size_t) ns_rr_rdata(rr)[0]);
+    }
+  }
+
+  return result;
 }
 
 std::vector<std::pair<int, std::string>> DnsClient::mx(const std::string& name) {
