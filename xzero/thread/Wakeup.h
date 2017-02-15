@@ -48,12 +48,17 @@ class XZERO_BASE_API Wakeup {
   void wakeup();
 
   /**
-   * Registeres a callback to be invoked when given generation has become old.
+   * Registers a @p callback to be invoked when given generation has become old.
    *
    * @param generation Threshold of old generations.
    * @param callback Callback to invoke upon fire.
    */
   void onWakeup(long generation, std::function<void()> callback);
+
+  /**
+   * Registers a @p callback to be invoked when current generation has become old.
+   */
+  void onNextWakeup(std::function<void()> callback);
 
   /**
    * Retrieves the current wakeup-generation number.
@@ -66,5 +71,9 @@ class XZERO_BASE_API Wakeup {
   std::atomic<long> gen_;
   std::list<std::function<void()>> callbacks_;
 };
+
+inline void Wakeup::onNextWakeup(std::function<void()> callback) {
+  onWakeup(generation(), callback);
+}
 
 } // namespace xzero
