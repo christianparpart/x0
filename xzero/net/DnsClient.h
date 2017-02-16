@@ -8,8 +8,8 @@
 #pragma once
 
 #include <xzero/Api.h>
-#include <xzero/Duration.h>
 #include <xzero/net/IPAddress.h>
+#include <xzero/MonotonicTime.h>
 #include <unordered_map>
 #include <string>
 #include <mutex>
@@ -63,7 +63,7 @@ class XZERO_BASE_API DnsClient {
   /** SRV represents a single SRV resource record.
    */
   struct SRV {
-    Duration ttl;
+    MonotonicTime ttl;
     unsigned short int priority;
     unsigned short int weight;
     unsigned short int port;
@@ -105,6 +105,9 @@ class XZERO_BASE_API DnsClient {
 
   std::unordered_map<std::string, std::vector<IPAddress>> ipv6_;
   std::mutex ipv6Mutex_;
+
+  std::unordered_map<std::string, std::vector<SRV>> srvCache_;
+  std::mutex srvCacheMutex_;
 };
 
 }  // namespace xzero

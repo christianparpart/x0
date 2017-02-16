@@ -8,6 +8,7 @@
 #include <xzero/net/DnsClient.h>
 #include <xzero/net/IPAddress.h>
 #include <xzero/RuntimeError.h>
+#include <xzero/MonotonicClock.h>
 #include <xzero/logging.h>
 #include <vector>
 #include <netinet/in.h>
@@ -149,6 +150,26 @@ std::vector<DnsClient::SRV> DnsClient::srv(const std::string& service,
 }
 
 std::vector<DnsClient::SRV> DnsClient::srv(const std::string& fqdn) {
+  std::lock_guard<decltype(srvCacheMutex_)> _lk(srvCacheMutex_);
+  const MonotonicTime now = MonotonicClock::now();
+
+  // evict dead records
+  std::vector<SRV>& srvCache = srvCache_[fqdn];
+  {
+    auto i = srvCache.begin();
+    auto e = srvCache.end();
+    while (i != e) {
+      if (i->ttl <= now) {
+        srvCache.erase(i);
+      } else {
+        ++i;
+      }
+    }
+  }
+
+  if (!srvCache.empty())
+    return srvCache;
+
   Buffer answer(NS_MAXMSG);
   int answerLength = res_query(fqdn.c_str(),
                                C_IN,
@@ -161,7 +182,6 @@ std::vector<DnsClient::SRV> DnsClient::srv(const std::string& fqdn) {
   }
   answer.resize(answerLength);
 
-  std::vector<SRV> result;
   ns_msg nsMsg;
   ns_initparse((unsigned char*) answer.data(), answer.size(), &nsMsg);
 
@@ -171,15 +191,15 @@ std::vector<DnsClient::SRV> DnsClient::srv(const std::string& fqdn) {
     ns_parserr(&nsMsg, ns_s_an, x, &rr);
 
     if (ns_rr_type(rr) == ns_t_srv) {
-			char name[1024];
-			dn_expand(ns_msg_base(nsMsg),
+      char name[NS_MAXDNAME];
+      dn_expand(ns_msg_base(nsMsg),
                 ns_msg_end(nsMsg),
                 ns_rr_rdata(rr) + 6,
                 name,
                 sizeof(name));
 
-			result.emplace_back(SRV{
-          .ttl = Duration::fromSeconds(ns_rr_ttl(rr)),
+      srvCache.emplace_back(SRV{
+          .ttl = now + Duration::fromSeconds(ns_rr_ttl(rr)),
           .priority = ntohs(*(unsigned short*)ns_rr_rdata(rr)),
           .weight = ntohs(*((unsigned short*)ns_rr_rdata(rr) + 1)),
           .port = ntohs(*((unsigned short*)ns_rr_rdata(rr) + 2)),
@@ -195,6 +215,7 @@ std::vector<DnsClient::SRV> DnsClient::srv(const std::string& fqdn) {
     ns_parserr(&nsMsg, ns_s_ar, x, &rr);
 
     if (ns_rr_type(rr) == ns_t_a) {
+      // TODO: honor ttl in IPv4 cache
       auto ttl = Duration::fromSeconds(ns_rr_ttl(rr));
 
       in_addr addr;
@@ -216,7 +237,7 @@ std::vector<DnsClient::SRV> DnsClient::srv(const std::string& fqdn) {
     }
   }
 
-  return result;
+  return srvCache;
 }
 
 void DnsClient::clearIPv4() {
