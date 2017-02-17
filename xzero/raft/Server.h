@@ -71,6 +71,11 @@ class Server : public Handler {
    * @param transport Transport is used for peer communication.
    * @param stateMachine The finite state machine to apply the replication log's
    *                     commands onto.
+   * @param maxCommandsPerMessage maximum number of log entries per
+   *                             AppendEntriesRequest
+   * @param maxCommandsPerMessagemaximum maximum number of bytes of log entries per
+   *                               AppendEntriesRequest
+   *
    * @param heartbeatTimeout TODO
    * @param electionTimeout Time frame within at least one message must have
    *                        been arrived from the current leader.
@@ -86,6 +91,8 @@ class Server : public Handler {
          const Discovery* discovery,
          Transport* transport,
          StateMachine* stateMachine,
+         size_t maxCommandsPerMessage,
+         size_t maxCommandsSizePerMessage,
          Duration heartbeatTimeout,
          Duration electionTimeout,
          Duration commitTimeout);
@@ -175,10 +182,13 @@ class Server : public Handler {
   void setCurrentTerm(Term newTerm);
   void setState(ServerState newState);
   void setupLeader();
-  void sendHeartbeat();
   Index latestIndex();
   Term getLogTerm(Index index);
+  void wakeupReplicationTo(Id peerId);
+  void replicateLogsWithWakeupTo(Id peerId);
+  void onFollowerTimeout(Id peerId);
   void replicateLogsTo(Id peerId);
+  bool tryLoadLogEntries(Index first, std::vector<LogEntry>* entries);
   void applyLogs();
   MonotonicTime nextHeartbeat() const;
 
@@ -200,8 +210,8 @@ class Server : public Handler {
   Duration heartbeatTimeout_;
   Duration electionTimeout_;
   Duration commitTimeout_;
-  unsigned maxCommandsPerMessage_; //!< number of commands to batch in an AppendEntriesRequest
-  size_t maxMessageSize_;
+  size_t maxCommandsPerMessage_; //!< number of commands to batch in an AppendEntriesRequest
+  size_t maxCommandsSizePerMessage_;//!< total size in bytes of all log entries per AppendEntriesRequest
 
   // ------------------- volatile state ---------------------------------------
 
@@ -227,10 +237,14 @@ class Server : public Handler {
   //! (initialized to 0, increases monotonically)
   ServerIndexMap matchIndex_;
 
-  /*!
-   * Timestamp of next heartbeat for each peer.
-   */
+  //! for each server, timestamp of next heartbeat.
   std::unordered_map<Id, MonotonicTime> nextHeartbeats_;
+
+  //! for each server, a handle to wakeup the replication feed
+  std::unordered_map<Id, Wakeup> wakeups_;
+
+  //! for each server, a handle to the heartbeat timer
+  std::unordered_map<Id, std::unique_ptr<DeadlineTimer>> followerTimeouts_;
 
  public:
   std::function<void(Server* self, ServerState oldState)> onStateChanged;

@@ -273,7 +273,37 @@ TEST(raft_Server, startWithLeader) {
   ASSERT_TRUE(pod.getInstance(1)->server()->isLeader());
 }
 
-TEST(raft_Server, AppendEntries) {
+TEST(raft_Server, AppendEntries_single_entry) {
+  TestServerPod pod;
+  pod.enableBreakOnConsensus();
+  pod.startWithLeader(1);
+  pod.executor.runLoop();
+  ASSERT_TRUE(pod.isConsensusReached());
+  ASSERT_TRUE(pod.getInstance(1)->server()->isLeader());
+
+  std::error_code err = pod.getInstance(1)->set(2, 4);
+  ASSERT_FALSE(err);
+
+  int applyCount = 0;
+  for (raft::Id id = 1; id <= 3; ++id) {
+    pod.getInstance(id)->fsm()->onApplyCommand = [&](int key, int value) {
+      logf("onApplyCommand for instance $0 = $1", key, value);
+      applyCount++;
+      if (applyCount == 3) {
+        logf("onApplyCommand: breaking loop with applyCount = $0", applyCount);
+        pod.executor.breakLoop();
+      }
+    };
+  }
+
+  pod.executor.runLoop();
+
+  ASSERT_EQ(4, pod.getInstance(1)->get(2));
+  ASSERT_EQ(4, pod.getInstance(2)->get(2));
+  ASSERT_EQ(4, pod.getInstance(3)->get(2));
+}
+
+TEST(raft_Server, AppendEntries_batched_entries) {
   TestServerPod pod;
   pod.enableBreakOnConsensus();
   pod.startWithLeader(1);
@@ -296,6 +326,7 @@ TEST(raft_Server, AppendEntries) {
       logf("onApplyCommand for instance $0 = $1", key, value);
       applyCount++;
       if (applyCount == 9) {
+        logf("onApplyCommand: breaking loop with applyCount = $0", applyCount);
         pod.executor.breakLoop();
       }
     };
