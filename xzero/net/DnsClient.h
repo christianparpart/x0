@@ -70,6 +70,12 @@ class XZERO_BASE_API DnsClient {
     std::string target;
   };
 
+  //! TXT record type for cache entries
+  struct TXT {
+    MonotonicTime ttl;
+    std::string text;
+  };
+
   /**
    * Resolves SRV records.
    *
@@ -108,6 +114,9 @@ class XZERO_BASE_API DnsClient {
 
   std::unordered_map<std::string, std::vector<SRV>> srvCache_;
   std::mutex srvCacheMutex_;
+
+  std::unordered_map<std::string, std::vector<TXT>> txtCache_;
+  std::mutex txtCacheMutex_;
 };
 
 }  // namespace xzero

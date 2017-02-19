@@ -15,6 +15,7 @@
 #include <arpa/nameser.h>
 #include <netdb.h>
 #include <resolv.h>
+#include <algorithm>
 
 namespace xzero {
 
@@ -109,6 +110,33 @@ const std::vector<IPAddress>& DnsClient::lookupIP(
 }
 
 std::vector<std::string> DnsClient::txt(const std::string& fqdn) {
+  std::lock_guard<decltype(txtCacheMutex_)> _lk(txtCacheMutex_);
+
+  MonotonicTime now = MonotonicClock::now();
+  std::vector<TXT>& txtCache = txtCache_[fqdn];
+  {
+    auto i = txtCache.begin();
+    auto e = txtCache.end();
+    while (i != e) {
+      if (i->ttl < now) {
+        txtCache_.clear();
+        break;
+      } else {
+        ++i;
+      }
+    }
+  }
+
+  if (!txtCache.empty()) {
+    logDebug("DnsClient", "using cached TXT: $0", fqdn);
+    std::vector<std::string> result;
+    for (const auto& txt: txtCache) {
+      result.emplace_back(txt.text);
+    }
+    return result;
+  }
+
+  logDebug("DnsClient", "resolving TXT: $0", fqdn);
   Buffer answer(NS_MAXMSG);
   int answerLength = res_query(fqdn.c_str(),
                                C_IN,
@@ -131,8 +159,13 @@ std::vector<std::string> DnsClient::txt(const std::string& fqdn) {
     ns_parserr(&nsMsg, ns_s_an, x, &rr);
 
     if (ns_rr_type(rr) == ns_t_txt) {
-      result.emplace_back((char*) (ns_rr_rdata(rr) + 1),
-                          (size_t) ns_rr_rdata(rr)[0]);
+      MonotonicTime ttl = now + Duration::fromSeconds(ns_rr_ttl(rr));
+      std::string text((char*) (ns_rr_rdata(rr) + 1),
+                       (size_t) ns_rr_rdata(rr)[0]);
+
+      txtCache.emplace_back(TXT{ .ttl = ttl,
+                                 .text = text });
+      result.emplace_back(text);
     }
   }
 
