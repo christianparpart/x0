@@ -8,6 +8,7 @@
 #pragma once
 
 #include <xzero/http/Api.h>
+#include <system_error>
 #include <string>
 
 namespace xzero {
@@ -97,6 +98,14 @@ enum class HttpStatus  // {{{
   NetworkAuthenticationRequired = 511  // RFC 6585
 };
 // }}}
+
+class XZERO_HTTP_API HttpStatusCategory : public std::error_category {
+ public:
+  static std::error_category& get();
+
+  const char* name() const noexcept override;
+  std::string message(int ev) const override;
+};
 
 inline bool operator!(HttpStatus st) {
   //.

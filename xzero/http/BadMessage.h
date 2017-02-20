@@ -14,14 +14,6 @@
 namespace xzero {
 namespace http {
 
-class XZERO_HTTP_API HttpStatusCategory : public std::error_category {
- public:
-  static std::error_category& get();
-
-  const char* name() const noexcept override;
-  std::string message(int ev) const override;
-};
-
 /**
  * Helper exception that is thrown on semantic message errors by HttpChannel.
  */

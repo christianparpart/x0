@@ -11,19 +11,6 @@
 namespace xzero {
 namespace http {
 
-std::error_category& HttpStatusCategory::get() {
-  static HttpStatusCategory ec;
-  return ec;
-}
-
-const char* HttpStatusCategory::name() const noexcept {
-  return "http";
-}
-
-std::string HttpStatusCategory::message(int ev) const {
-  return to_string(static_cast<HttpStatus>(ev));
-}
-
 BadMessage::BadMessage(HttpStatus code)
   : RuntimeError(static_cast<int>(code),
                  HttpStatusCategory::get()) {

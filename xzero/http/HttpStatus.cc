@@ -74,6 +74,19 @@ const std::string& to_string(HttpStatus code) {
   }
 }
 
+std::error_category& HttpStatusCategory::get() {
+  static HttpStatusCategory cat;
+  return cat;
+}
+
+const char* HttpStatusCategory::name() const noexcept {
+  return "HttpStatus";
+}
+
+std::string HttpStatusCategory::message(int ev) const {
+  return to_string(static_cast<HttpStatus>(ev));
+}
+
 } // namespace http
 
 template <>
