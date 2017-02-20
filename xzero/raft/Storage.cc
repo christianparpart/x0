@@ -70,6 +70,19 @@ std::error_code MemoryStore::appendLogEntry(const LogEntry& log) {
   return std::error_code();
 }
 
+Future<Index> MemoryStore::appendLogEntryAsync(const LogEntry& log) {
+  logDebug("MemoryStore", "appendLogEntry: at index:$0, $1", log_.size(), log);
+
+  Promise<Index> promise;
+
+  // TODO: make it sleepy with executor_.executeAfter(some msecs) to emulate
+  //       [slowish] disk speeds
+  log_.emplace_back(log);
+  promise.success(latestIndex());
+
+  return promise.future();
+}
+
 Result<LogEntry> MemoryStore::getLogEntry(Index index) {
   // XXX we also support returning log[0] as this has a term of 0 and no command.
   //logDebug("MemoryStore", "getLogEntry: at $0/$1", index, latestIndex());

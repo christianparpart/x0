@@ -10,6 +10,7 @@
 #include <xzero/raft/Handler.h>
 #include <xzero/raft/Transport.h>
 #include <xzero/raft/Error.h>
+#include <xzero/thread/Future.h>
 #include <xzero/Option.h>
 #include <xzero/DeadlineTimer.h>
 #include <xzero/Duration.h>
@@ -145,6 +146,16 @@ class Server : public Handler {
    * Sends given @p command to the Raft cluster.
    */
   std::error_code sendCommand(Command&& command);
+
+  /**
+   * Sends given @p command to the Raft cluster but doesn't wait for its
+   * completion.
+   *
+   * @param command the command to be replicated.
+   * @return a Future<> telling when the majority of nodes have committed the
+   *         entry.
+   */
+  Future<Index> sendCommandAsync(Command&& command);
 
   /**
    * Verifies whether or not this Server is (still) a #ServerState::Leader.

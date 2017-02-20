@@ -7,6 +7,7 @@
 #pragma once
 
 #include <xzero/raft/rpc.h>
+#include <xzero/thread/Future.h>
 #include <xzero/io/InputStream.h>
 #include <xzero/io/OutputStream.h>
 #include <xzero/Option.h>
@@ -57,6 +58,9 @@ class Storage {
   //! saves given LogEntry @p entry at the end of the current log.
   virtual std::error_code appendLogEntry(const LogEntry& entry) = 0;
 
+  //! saves given LogEntry @p entry  at the end of the current log.
+  virtual Future<Index> appendLogEntryAsync(const LogEntry& log) = 0;
+
   //! Retrieves the LogEntry from given @p index and stores it in @p log.
   //! retrieves log entry at given @p index.
   virtual Result<LogEntry> getLogEntry(Index index) = 0;
@@ -104,6 +108,7 @@ class MemoryStore : public Storage {
   Term currentTerm() override;
   Index latestIndex() override;
   std::error_code appendLogEntry(const LogEntry& log) override;
+  Future<Index> appendLogEntryAsync(const LogEntry& log) override;
   Result<LogEntry> getLogEntry(Index index) override;
   void truncateLog(Index last) override;
 

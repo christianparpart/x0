@@ -145,6 +145,23 @@ void Server::stop() {
   // TODO: be more intelligent, maybe telling the others why I go.
 }
 
+Future<Index> Server::sendCommandAsync(Command&& command) {
+  // 1. apply log to local store.
+  // 2. wait for local store's ACK: or complete future with timeout
+  // 3. send log to peers
+  // 4. wait for ACKs from majority of peers
+  //    5. complete promise with success or timeout error if timed out
+
+  Promise<Index> promise;
+
+  if (state_ != ServerState::Leader) {
+    promise.failure(std::make_error_code(RaftError::NotLeading));
+    return promise.future();
+  }
+
+  return promise.future();
+}
+
 std::error_code Server::sendCommand(Command&& command) {
   if (state_ != ServerState::Leader)
     return std::make_error_code(RaftError::NotLeading);
