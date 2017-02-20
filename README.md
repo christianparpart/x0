@@ -55,7 +55,7 @@ a number of standard plugins to become *your* web application server.
 - OpenSSL (optional & recommended, for SSL/TLS encryption)
 - gtest (optional, for unit testing)
 
-### Building from Source on Ubuntu 14.04:
+### Building from Source on Ubuntu 16.04:
 
 ```sh
 # Installs required dependencies
