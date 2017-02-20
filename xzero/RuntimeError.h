@@ -25,6 +25,7 @@ class XZERO_BASE_API RuntimeError : public std::system_error {
  public:
   RuntimeError(int ev, const std::error_category& ec);
   RuntimeError(int ev, const std::error_category& ec, const std::string& what);
+  explicit RuntimeError(const std::error_code& ec);
 
   template<typename... Args>
   RuntimeError(int ev, const std::error_category& ec, const char* fmt, Args... args);
@@ -92,6 +93,10 @@ inline RuntimeError::RuntimeError(
                  StatusCategory::get(),
                  cformat(fmt, args...)) {
 }
+
+inline RuntimeError::RuntimeError(const std::error_code& ec)
+  : RuntimeError(ec.value(), ec.category()) {
+}
 // }}}
 
 } // namespace xzero
@@ -121,6 +126,15 @@ inline RuntimeError::RuntimeError(
  */
 #define RAISE_CATEGORY(Code, ...) {                                           \
   RAISE_EXCEPTION(RuntimeError, ((int) Code), __VA_ARGS__);                   \
+}
+
+/**
+ * Raises an exception of given std::error_code.
+ *
+ * @see RAISE_EXCEPTION(E, ...)
+ */
+#define RAISE_ERROR(ErrorCode) {                                              \
+  RAISE_EXCEPTION(RuntimeError, (ErrorCode))                                  \
 }
 
 /**
