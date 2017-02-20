@@ -8,6 +8,7 @@
 #include <xzero/http/client/HttpClient.h>
 #include <xzero/http/client/HttpTransport.h>
 #include <xzero/http/client/Http1Connection.h>
+#include <xzero/http/HttpStatus.h>
 #include <xzero/net/InetEndPoint.h>
 #include <xzero/net/DnsClient.h>
 #include <xzero/net/InetAddress.h>
@@ -107,8 +108,8 @@ Future<HttpClient*> HttpClient::sendAsync(InetAddress& addr,
     transport_->completed();
   });
 
-  f.onFailure([this](Status s) {
-    promise_->failure(s);
+  f.onFailure([this](const std::error_code& ec) {
+    promise_->failure(ec);
   });
 
   promise_ = std::unique_ptr<Promise<HttpClient*>>(new Promise<HttpClient*>());
@@ -175,7 +176,7 @@ void HttpClient::onMessageEnd() {
 
 void HttpClient::onProtocolError(HttpStatus code, const std::string& message) {
   logError("HttpClient", "Protocol Error. $0; $1", code, message);
-  promise_->failure(Status::ForeignError);
+  promise_->failure(std::error_code((int) code, HttpStatusCategory::get()));
 }
 
 } // namespace client

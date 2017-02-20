@@ -362,8 +362,8 @@ bool ProxyModule::proxy_http(XzeroContext* cx, xzero::flow::vm::Params& args) {
   Future<HttpClient*> f = client->sendAsync(
       addr, connectTimeout, readTimeout, writeTimeout);
 
-  f.onFailure([cx, addr] (Status s) {
-    logError("proxy", "Failed to proxy to $0. $1", addr, s);
+  f.onFailure([cx, addr] (const std::error_code& ec) {
+    logError("proxy", "Failed to proxy to $0. $1", addr, ec.message());
     cx->response()->setStatus(HttpStatus::ServiceUnavailable);
     cx->response()->completed();
   });

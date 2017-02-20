@@ -87,7 +87,7 @@ public:
 private:
   bool process(HttpClusterRequest* cr);
   void onResponseReceived(HttpClusterRequest* cr);
-  void onFailure(HttpClusterRequest* cr, Status status);
+  void onFailure(HttpClusterRequest* cr, const std::error_code& ec);
 
 private:
   EventListener* eventListener_;

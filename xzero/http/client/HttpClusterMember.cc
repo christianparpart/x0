@@ -127,7 +127,7 @@ bool HttpClusterMember::process(HttpClusterRequest* cr) {
   return true;
 }
 
-void HttpClusterMember::onFailure(HttpClusterRequest* cr, Status status) {
+void HttpClusterMember::onFailure(HttpClusterRequest* cr, const std::error_code& ec) {
   --load_;
   healthMonitor()->setState(HttpHealthMonitor::State::Offline);
 

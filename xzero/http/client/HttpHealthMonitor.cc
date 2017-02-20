@@ -169,8 +169,8 @@ void HttpHealthMonitor::onCheckNow() {
                         std::placeholders::_1));
 }
 
-void HttpHealthMonitor::onFailure(Status status) {
-  DEBUG("Connecting to backend failed. $0", status);
+void HttpHealthMonitor::onFailure(const std::error_code& ec) {
+  DEBUG("Connecting to backend failed. $0", ec.message());
   logFailure();
 }
 

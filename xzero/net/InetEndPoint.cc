@@ -364,11 +364,11 @@ class InetConnectState {
         promise_.success(ep_.as<EndPoint>());
       } else {
         DEBUG("Connecting to $0 failed. $1", inet_, strerror(val));
-        promise_.failure(Status::IOError); // dislike: wanna pass errno val here.
+        promise_.failure(std::errc::io_error); // dislike: wanna pass errno val here.
       }
     } else {
       DEBUG("Connecting to $0 failed. $1", inet_, strerror(val));
-      promise_.failure(Status::IOError); // dislike: wanna pass errno val here.
+      promise_.failure(std::errc::io_error); // dislike: wanna pass errno val here.
     }
     delete this;
   }
@@ -412,7 +412,7 @@ Future<RefPtr<EndPoint>> InetEndPoint::connectAsync(const InetAddress& inet,
         if (::connect(fd, (const struct sockaddr*) &saddr, sizeof(saddr)) < 0) {
           if (errno != EINPROGRESS) {
             TRACE("connectAsync: connect() error. $0", strerror(errno));
-            promise.failure(Status::IOError); // errno
+            promise.failure(std::errc::io_error);
             return promise.future();
           } else {
             TRACE("connectAsync: backgrounding");
@@ -471,7 +471,7 @@ void InetEndPoint::connectAsync(
     Duration writeTimeout,
     Executor* executor,
     std::function<void(RefPtr<EndPoint>)> onSuccess,
-    std::function<void(Status)> onError) {
+    std::function<void(const std::error_code& ec)> onError) {
   Future<RefPtr<EndPoint>> f = connectAsync(
       inet, connectTimeout, readTimeout, writeTimeout, executor);
 

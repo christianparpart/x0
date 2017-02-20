@@ -88,7 +88,7 @@ class HttpHealthMonitor {
   void logSuccess();
   void logFailure();
   void onCheckNow();
-  void onFailure(Status status);
+  void onFailure(const std::error_code& ec);
   void onResponseReceived(HttpClient* client);
 
  private:

@@ -69,7 +69,7 @@ class XZERO_BASE_API InetEndPoint : public EndPoint {
       Duration connectTimeout, Duration readTimeout, Duration writeTimeout,
       Executor* executor,
       std::function<void(RefPtr<EndPoint>)> onSuccess,
-      std::function<void(Status)> onError);
+      std::function<void(const std::error_code&)> onError);
 
   static RefPtr<EndPoint> connect(
       const InetAddress& inet,
