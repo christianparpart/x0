@@ -32,7 +32,7 @@ TEST(Future, successNow) {
 
 TEST(Future, failureGetThrows) {
   Promise<int> promise;
-  promise.failure(Status::KeyError);
+  promise.failure(std::errc::io_error);
 
   Future<int> f = promise.future();
 
@@ -46,7 +46,7 @@ TEST(Future, failureGetThrows) {
     try {
       f.get();
     } catch (const RuntimeError& e) {
-      ASSERT_EQ(Status::KeyError, static_cast<Status>(e.code().value()));
+      ASSERT_EQ(std::errc::io_error, static_cast<std::errc>(e.code().value()));
       throw;
     }
   }(), RuntimeError);

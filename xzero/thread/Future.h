@@ -12,12 +12,12 @@
 #include <xzero/RefPtr.h>
 #include <xzero/Duration.h>
 #include <xzero/RuntimeError.h>
-#include <xzero/Status.h>
 #include <xzero/thread/Wakeup.h>
 #include <functional>
 #include <memory>
 #include <mutex>
 #include <cstdlib>
+#include <system_error>
 
 namespace xzero {
 
@@ -34,13 +34,13 @@ class XZERO_BASE_API PromiseState : public RefCounted {
 
  private:
   Wakeup wakeup;
-  Status status;
+  std::error_code error;
   std::mutex mutex; // FIXPAUL use spinlock
   char value_data[sizeof(T)];
   T* value;
   bool ready;
 
-  std::function<void (const Status& status)> on_failure;
+  std::function<void (std::error_code status)> on_failure;
   std::function<void (const T& value)> on_success;
 
   friend class Future<T>;
@@ -61,7 +61,7 @@ class XZERO_BASE_API Future {
   bool isFailure() const;
   bool isSuccess() const;
 
-  void onFailure(std::function<void (const Status& status)> fn);
+  void onFailure(std::function<void (std::error_code ec)> fn);
   void onSuccess(std::function<void (const T& value)> fn);
 
   void wait() const;
@@ -91,7 +91,8 @@ class XZERO_BASE_API Promise {
   void success(const T& value);
   void success(T&& value);
   void failure(const std::exception& e);
-  void failure(Status e);
+  void failure(const std::error_code& ec);
+  void failure(std::errc ec);
 
   Future<T> future() const;
   bool isFulfilled() const;

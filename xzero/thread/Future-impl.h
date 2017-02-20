@@ -13,7 +13,7 @@ namespace xzero {
 
 template <typename T>
 PromiseState<T>::PromiseState() :
-    status(Status::Success),
+    error(),
     value(nullptr),
     ready(false),
     on_failure(nullptr),
@@ -52,13 +52,13 @@ void Future<T>::wait() const {
 }
 
 template <typename T>
-void Future<T>::onFailure(std::function<void (const Status& status)> fn) {
+void Future<T>::onFailure(std::function<void(std::error_code)> fn) {
   std::unique_lock<std::mutex> lk(state_->mutex);
 
   if (!state_->ready) {
     state_->on_failure = fn;
-  } else if (state_->status != Status::Success) {
-    fn(state_->status);
+  } else if (state_->error) {
+    fn(state_->error);
   }
 }
 
@@ -68,7 +68,7 @@ void Future<T>::onSuccess(std::function<void (const T& value)> fn) {
 
   if (!state_->ready) {
     state_->on_success = fn;
-  } else if (state_->status == Status::Success) {
+  } else if (!state_->error) {
     fn(*(state_->value));
   }
 }
@@ -80,12 +80,12 @@ bool Future<T>::isReady() const {
 
 template <typename T>
 bool Future<T>::isSuccess() const {
-  return isReady() && state_->status == Status::Success;
+  return isReady() && !state_->error;
 }
 
 template <typename T>
 bool Future<T>::isFailure() const {
-  return isReady() && state_->status != Status::Success;
+  return isReady() && state_->error;
 }
 
 template <typename T>
@@ -96,7 +96,9 @@ T& Future<T>::get() {
     RAISE(FutureError, "get() called on pending future");
   }
 
-  raiseIfError(state_->status);
+  if (state_->error)
+    RAISE_ERROR(state_->error);
+
   return *state_->value;
 }
 
@@ -108,7 +110,9 @@ const T& Future<T>::get() const {
     RAISE(FutureError, "get() called on pending future");
   }
 
-  raiseIfError(state_->status);
+  if (state_->error)
+    RAISE_ERROR(state_->error);
+
   return *state_->value;
 }
 
@@ -150,20 +154,25 @@ void Promise<T>::failure(const std::exception& e) {
 }
 
 template <typename T>
-void Promise<T>::failure(Status status) {
+void Promise<T>::failure(std::errc ec) {
+  failure(std::make_error_code(ec));
+}
+
+template <typename T>
+void Promise<T>::failure(const std::error_code& error) {
   std::unique_lock<std::mutex> lk(state_->mutex);
   if (state_->ready) {
     RAISE(FutureError, "promise was already fulfilled");
   }
 
-  state_->status = status;
+  state_->error = error;
   state_->ready = true;
   lk.unlock();
 
   state_->wakeup.wakeup();
 
   if (state_->on_failure) {
-    state_->on_failure(state_->status);
+    state_->on_failure(state_->error);
   }
 }
 
