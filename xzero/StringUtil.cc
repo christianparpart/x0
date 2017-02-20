@@ -24,6 +24,11 @@ std::string StringUtil::toString(std::string value) {
 }
 
 template <>
+std::string StringUtil::toString(std::errc value) {
+  return std::make_error_code(value).message();
+}
+
+template <>
 std::string StringUtil::toString(const char* value) {
   return value;
 }
