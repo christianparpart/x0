@@ -16,6 +16,7 @@
 #include <vector>
 #include <memory>
 #include <system_error>
+#include <unordered_map>
 
 namespace xzero {
 namespace raft {
@@ -127,7 +128,40 @@ class MemoryStore : public Storage {
 
 class FileStore : public Storage {
  public:
-  // TODO
+  explicit FileStore(const std::string& basedir);
+  ~FileStore();
+
+  std::error_code initialize(Id* id) override;
+
+  Option<std::pair<Id, Term>> votedFor() override;
+  std::error_code clearVotedFor() override;
+  std::error_code setVotedFor(Id id, Term term) override;
+
+  std::error_code setCurrentTerm(Term currentTerm) override;
+  Term currentTerm() override;
+  Index latestIndex() override;
+  std::error_code appendLogEntry(const LogEntry& log) override;
+  Future<Index> appendLogEntryAsync(const LogEntry& log) override;
+  Result<LogEntry> getLogEntry(Index index) override;
+  void truncateLog(Index last) override;
+
+  bool saveSnapshot(std::unique_ptr<InputStream>&& state, Term term, Index lastIndex) override;
+  bool loadSnapshot(std::unique_ptr<OutputStream>&& state, Term* term, Index* lastIndex) override;
+
+ private:
+  std::string basedir_;
+
+  // disk cache
+  Option<std::pair<Id, Term>> votedFor_;
+  Index latestIndex_;
+  Term currentTerm_;
+  std::unordered_map<Index, LogEntry> logCache_;
+
+  // read-helper: index-to-offset mapping
+  std::unordered_map<Index, size_t> indexToOffsetMapping_;
+
+  // write-helper: serialized log entries not yet flushed to disk
+  Buffer outputBuffer_;
 };
 
 } // namespace raft
