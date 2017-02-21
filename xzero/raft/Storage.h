@@ -38,8 +38,13 @@ class Storage {
    */
   virtual std::error_code initialize(Id* id) = 0;
 
+  //! Clears the vote, iff any.
   virtual std::error_code clearVotedFor() = 0;
+
+  //! Persists the given vote.
   virtual std::error_code setVotedFor(Id id, Term term) = 0;
+
+  //! Candidate's Id that received vote in current term (or null if none).
   virtual Option<std::pair<Id, Term>> votedFor() = 0;
 
   /**
@@ -96,13 +101,8 @@ class MemoryStore : public Storage {
 
   std::error_code initialize(Id* id) override;
 
-  //! Candidate's Id that received vote in current term (or null if none).
   Option<std::pair<Id, Term>> votedFor() override;
-
-  //! Clears the vote, iff any.
   std::error_code clearVotedFor() override;
-
-  //! Persists the given vote.
   std::error_code setVotedFor(Id id, Term term) override;
 
   std::error_code setCurrentTerm(Term currentTerm) override;
