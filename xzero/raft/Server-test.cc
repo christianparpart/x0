@@ -111,6 +111,7 @@ class TestServer { // {{{
 
   int get(int key) const;
   std::error_code set(int key, int value);
+  Future<raft::Index> setAsync(int key, int value);
 
   raft::LocalTransport* transport() noexcept { return &transport_; }
   raft::Server* server() noexcept { return &raftServer_; }
@@ -153,6 +154,25 @@ std::error_code TestServer::set(int key, int value) {
       StringUtil::hexPrint(cmd.data(), cmd.size()));
 
   return raftServer_.sendCommand(std::move(cmd));
+}
+
+Future<raft::Index> TestServer::setAsync(int key, int value) {
+  raft::Command cmd;
+
+  auto o = [&](const uint8_t* data, size_t len) {
+    for (size_t i = 0; i < len; ++i) {
+      cmd.push_back(data[i]);
+    }
+  };
+
+  BinaryWriter bw(o);
+  bw.writeVarUInt(key);
+  bw.writeVarUInt(value);
+
+  logDebug("TestServer", "setAsync($0, $1): $2", key, value,
+      StringUtil::hexPrint(cmd.data(), cmd.size()));
+
+  return raftServer_.sendCommandAsync(std::move(cmd));
 }
 // }}}
 struct TestServerPod { // {{{
@@ -363,4 +383,33 @@ TEST(raft_Server, AppendEntries_not_leading_err) {
 
   err = pod.getInstance(3)->set(2, 4);
   EXPECT_EQ(std::make_error_code(RaftError::NotLeading), err);
+}
+
+TEST(raft_Server, sendCommandAsync) {
+  TestServerPod pod;
+  pod.enableBreakOnConsensus();
+  pod.startWithLeader(1);
+  pod.executor.runLoop();
+  ASSERT_TRUE(pod.isConsensusReached());
+  ASSERT_TRUE(pod.getInstance(1)->server()->isLeader());
+
+  int applyCount = 0;
+  for (raft::Id id = 1; id <= 3; ++id) {
+    pod.getInstance(id)->fsm()->onApplyCommand = [&](int key, int value) {
+      logf("onApplyCommand for instance $0 = $1", key, value);
+      applyCount++;
+      if (applyCount == 3) {
+        logf("onApplyCommand: breaking loop with applyCount = $0", applyCount);
+        pod.executor.breakLoop();
+      }
+    };
+  }
+
+  Future<raft::Index> f = pod.getInstance(1)->setAsync(2, 4);
+
+  pod.executor.runLoop();
+
+  ASSERT_EQ(4, pod.getInstance(1)->get(2));
+  ASSERT_EQ(4, pod.getInstance(2)->get(2));
+  ASSERT_EQ(4, pod.getInstance(3)->get(2));
 }

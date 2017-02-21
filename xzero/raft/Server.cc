@@ -81,6 +81,7 @@ Server::Server(Executor* executor,
       state_(ServerState::Follower),
       nextHeartbeat_(MonotonicClock::now()),
       timer_(executor, std::bind(&Server::onTimeout, this)),
+      verifyLeaderCallbacks_(),
       heartbeatTimeout_(heartbeatTimeout),
       electionTimeout_(electionTimeout),
       commitTimeout_(commitTimeout),
@@ -88,8 +89,15 @@ Server::Server(Executor* executor,
       maxCommandsSizePerMessage_(maxCommandsSizePerMessage),
       commitIndex_(0),
       lastApplied_(0),
+      votesGranted_(0),
       nextIndex_(),
-      matchIndex_() {
+      matchIndex_(),
+      nextHeartbeats_(),
+      wakeups_(),
+      followerTimeouts_(),
+      commitPromises_(),
+      onStateChanged(),
+      onLeaderChanged() {
   transport_->setHandler(this);
 }
 
@@ -158,6 +166,24 @@ Future<Index> Server::sendCommandAsync(Command&& command) {
     promise.failure(std::make_error_code(RaftError::NotLeading));
     return promise.future();
   }
+
+  LogEntry entry(currentTerm(), std::move(command));
+
+  Future<Index> localAck = storage_->appendLogEntryAsync(entry);
+
+  localAck.onFailure([this, promise](const std::error_code& ec) {
+    promise.failure(ec);
+  });
+
+  localAck.onSuccess([this, promise](const Index& index) {
+    commitPromises_.emplace_back(std::make_pair(index, promise));
+
+    for (Id peerId: discovery_->listMembers()) {
+      if (peerId != id_) {
+        wakeupReplicationTo(peerId);
+      }
+    }
+  });
 
   return promise.future();
 }
@@ -491,9 +517,18 @@ void Server::handleResponse(Id peerId, const AppendEntriesResponse& resp) {
     applyLogs();
   }
 
-  // trigger replication feed for peerId
-//  heartbeat_->wakeup();
-  replicateLogsTo(peerId); // replicate any pending messages to peer, if any
+  // deliver promises with index smaller or equal to the commitIndex
+  {
+    auto i = commitPromises_.begin();
+    auto e = commitPromises_.end();
+    while (i != e && i->first <= commitIndex_) {
+      i->second.success(i->first);
+      i = commitPromises_.erase(i);
+    }
+  }
+
+  // replicate any pending messages to peer, if any
+  replicateLogsTo(peerId);
 }
 
 InstallSnapshotResponse Server::handleRequest(

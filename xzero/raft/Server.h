@@ -10,13 +10,13 @@
 #include <xzero/raft/Handler.h>
 #include <xzero/raft/Transport.h>
 #include <xzero/raft/Error.h>
+#include <xzero/executor/Executor.h>
 #include <xzero/thread/Future.h>
-#include <xzero/Option.h>
+#include <xzero/thread/Wakeup.h>
 #include <xzero/DeadlineTimer.h>
 #include <xzero/Duration.h>
 #include <xzero/MonotonicTime.h>
-#include <xzero/executor/Executor.h>
-#include <xzero/thread/Wakeup.h>
+#include <xzero/Option.h>
 #include <initializer_list>
 #include <unordered_map>
 #include <atomic>
@@ -256,6 +256,10 @@ class Server : public Handler {
 
   //! for each server, a handle to the heartbeat timer
   std::unordered_map<Id, std::unique_ptr<DeadlineTimer>> followerTimeouts_;
+
+  //! Ordered list of <Index, Promise> pairs to complete when the given index
+  //! has been committed.
+  std::list<std::pair<Index, Promise<Index>>> commitPromises_;
 
  public:
   std::function<void(Server* self, ServerState oldState)> onStateChanged;
