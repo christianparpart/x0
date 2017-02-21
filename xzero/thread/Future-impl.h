@@ -145,7 +145,7 @@ Future<T> Promise<T>::future() const {
 }
 
 template <typename T>
-void Promise<T>::failure(const std::exception& e) {
+void Promise<T>::failure(const std::exception& e) const {
   if (auto re = dynamic_cast<const RuntimeError*>(&e)) {
     failure(static_cast<Status>(re->code().value()));
   } else {
@@ -154,12 +154,12 @@ void Promise<T>::failure(const std::exception& e) {
 }
 
 template <typename T>
-void Promise<T>::failure(std::errc ec) {
+void Promise<T>::failure(std::errc ec) const {
   failure(std::make_error_code(ec));
 }
 
 template <typename T>
-void Promise<T>::failure(const std::error_code& error) {
+void Promise<T>::failure(const std::error_code& error) const {
   std::unique_lock<std::mutex> lk(state_->mutex);
   if (state_->ready) {
     RAISE(FutureError, "promise was already fulfilled");
@@ -177,7 +177,7 @@ void Promise<T>::failure(const std::error_code& error) {
 }
 
 template <typename T>
-void Promise<T>::success(const T& value) {
+void Promise<T>::success(const T& value) const {
   std::unique_lock<std::mutex> lk(state_->mutex);
   if (state_->ready) {
     RAISE(FutureError, "promise was already fulfilled");
@@ -195,7 +195,7 @@ void Promise<T>::success(const T& value) {
 }
 
 template <typename T>
-void Promise<T>::success(T&& value) {
+void Promise<T>::success(T&& value) const {
   std::unique_lock<std::mutex> lk(state_->mutex);
   if (state_->ready) {
     RAISE(FutureError, "promise was already fulfilled");

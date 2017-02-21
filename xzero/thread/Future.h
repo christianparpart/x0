@@ -88,17 +88,17 @@ class XZERO_BASE_API Promise {
   Promise(Promise<T>&& other);
   ~Promise();
 
-  void success(const T& value);
-  void success(T&& value);
-  void failure(const std::exception& e);
-  void failure(const std::error_code& ec);
-  void failure(std::errc ec);
+  void success(const T& value) const;
+  void success(T&& value) const;
+  void failure(const std::exception& e) const;
+  void failure(const std::error_code& ec) const;
+  void failure(std::errc ec) const;
 
   Future<T> future() const;
   bool isFulfilled() const;
 
  protected:
-  RefPtr<PromiseState<T>> state_;
+  mutable RefPtr<PromiseState<T>> state_;
 };
 
 } // namespace xzero
