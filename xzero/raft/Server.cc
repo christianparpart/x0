@@ -194,20 +194,19 @@ std::error_code Server::sendCommand(Command&& command) {
 
   LogEntry entry(currentTerm(), std::move(command));
 
-  // store commands locally first
-  std::error_code ec = storage_->appendLogEntry(entry);
-  if (ec)
-    return ec;
+  Future<Index> localAck = storage_->appendLogEntryAsync(entry);
 
-  // replicate logs to each follower
-  for (Id peerId: discovery_->listMembers()) {
-    if (peerId != id_) {
-      wakeupReplicationTo(peerId);
+  localAck.onFailure([this](const std::error_code& ec) {
+    logError("raft.Server", "Failed to write log to disk. $0", ec.message());
+  });
+
+  localAck.onSuccess([this](const Index& index) {
+    for (Id peerId: discovery_->listMembers()) {
+      if (peerId != id_) {
+        wakeupReplicationTo(peerId);
+      }
     }
-  }
-
-  // TODO: allow returning log index as result
-  // TODO: allow synchronous blocking call
+  });
 
   return std::error_code();
 }
