@@ -412,4 +412,48 @@ TEST(raft_Server, sendCommandAsync) {
   ASSERT_EQ(4, pod.getInstance(1)->get(2));
   ASSERT_EQ(4, pod.getInstance(2)->get(2));
   ASSERT_EQ(4, pod.getInstance(3)->get(2));
+  ASSERT_EQ(1, f.get());
+}
+
+TEST(raft_Server, sendCommandAsync_batched) {
+  TestServerPod pod;
+  pod.enableBreakOnConsensus();
+  pod.startWithLeader(1);
+  pod.executor.runLoop();
+  ASSERT_TRUE(pod.isConsensusReached());
+  ASSERT_TRUE(pod.getInstance(1)->server()->isLeader());
+
+  int applyCount = 0;
+  for (raft::Id id = 1; id <= 3; ++id) {
+    pod.getInstance(id)->fsm()->onApplyCommand = [&](int key, int value) {
+      logf("onApplyCommand for instance $0 = $1", key, value);
+      applyCount++;
+      if (applyCount == 9) {
+        logf("onApplyCommand: breaking loop with applyCount = $0", applyCount);
+        pod.executor.breakLoop();
+      }
+    };
+  }
+
+  Future<raft::Index> f = pod.getInstance(1)->setAsync(1, 2);
+  Future<raft::Index> g = pod.getInstance(1)->setAsync(3, 4);
+  Future<raft::Index> h = pod.getInstance(1)->setAsync(5, 6);
+
+  pod.executor.runLoop();
+
+  ASSERT_EQ(2, pod.getInstance(1)->get(1));
+  ASSERT_EQ(2, pod.getInstance(2)->get(1));
+  ASSERT_EQ(2, pod.getInstance(3)->get(1));
+
+  ASSERT_EQ(4, pod.getInstance(1)->get(3));
+  ASSERT_EQ(4, pod.getInstance(2)->get(3));
+  ASSERT_EQ(4, pod.getInstance(3)->get(3));
+
+  ASSERT_EQ(6, pod.getInstance(1)->get(5));
+  ASSERT_EQ(6, pod.getInstance(2)->get(5));
+  ASSERT_EQ(6, pod.getInstance(3)->get(5));
+
+  ASSERT_EQ(1, f.get());
+  ASSERT_EQ(2, g.get());
+  ASSERT_EQ(3, h.get());
 }
