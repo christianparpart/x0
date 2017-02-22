@@ -6,6 +6,7 @@
 // the License at: http://opensource.org/licenses/MIT
 
 #include <xzero/raft/Storage.h>
+#include <xzero/executor/Executor.h>
 #include <xzero/logging.h>
 #include <stdlib.h>
 #include <assert.h>
@@ -14,8 +15,9 @@ namespace xzero {
 namespace raft {
 
 // {{{ MemoryStore
-MemoryStore::MemoryStore()
-    : votedFor_(),
+MemoryStore::MemoryStore(Executor* executor)
+    : executor_(executor),
+      votedFor_(),
       currentTerm_(1),
       log_(),
       snapshottedTerm_(),
@@ -75,10 +77,18 @@ Future<Index> MemoryStore::appendLogEntryAsync(const LogEntry& log) {
 
   Promise<Index> promise;
 
-  // TODO: make it sleepy with executor_.executeAfter(some msecs) to emulate
-  //       [slowish] disk speeds
-  log_.emplace_back(log);
-  promise.success(latestIndex());
+  auto storeTask = [this, log, promise]() {
+    log_.emplace_back(log);
+    promise.success(latestIndex());
+  };
+
+  if (executor_) {
+    // badly simulate disk speecs
+    constexpr Duration delay = 50_milliseconds;
+    executor_->executeAfter(delay, storeTask);
+  } else {
+    storeTask();
+  }
 
   return promise.future();
 }

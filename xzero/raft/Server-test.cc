@@ -128,7 +128,7 @@ TestServer::TestServer(raft::Id id,
                        const raft::Discovery* discovery,
                        Executor* executor)
   : stateMachine_(),
-    storage_(),
+    storage_(executor),
     transport_(id, executor),
     raftServer_(executor, id, &storage_, discovery, &transport_, &stateMachine_) {
 }

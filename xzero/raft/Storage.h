@@ -19,6 +19,9 @@
 #include <unordered_map>
 
 namespace xzero {
+
+class Executor;
+
 namespace raft {
 
 /**
@@ -97,7 +100,7 @@ class Storage {
  */
 class MemoryStore : public Storage {
  public:
-  MemoryStore();
+  explicit MemoryStore(Executor* executor);
 
   std::error_code initialize(Id* id) override;
 
@@ -117,6 +120,8 @@ class MemoryStore : public Storage {
   bool loadSnapshot(std::unique_ptr<OutputStream>&& state, Term* term, Index* lastIndex) override;
 
  private:
+  Executor* executor_;
+
   Option<std::pair<Id, Term>> votedFor_;
   Term currentTerm_;
   std::vector<LogEntry> log_;
