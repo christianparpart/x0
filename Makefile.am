@@ -635,15 +635,10 @@ x0d_LDFLAGS = \
 x0d_SOURCES = \
 	$(x0d_types) \
 	src/x0d/XzeroContext.cc \
-	src/x0d/XzeroContext.h \
 	src/x0d/XzeroDaemon.cc \
-	src/x0d/XzeroDaemon.h \
 	src/x0d/XzeroEventHandler.cc \
-	src/x0d/XzeroEventHandler.h \
 	src/x0d/XzeroModule.cc \
-	src/x0d/XzeroModule.h \
 	src/x0d/XzeroState.cc \
-	src/x0d/XzeroState.h \
 	src/modules/access.cc \
 	src/modules/accesslog.cc \
 	src/modules/auth.cc \
@@ -655,6 +650,14 @@ x0d_SOURCES = \
 	src/modules/userdir.cc \
 	src/modules/webdav.cc \
 	src/main.cc
+
+x0ddir = $(includedir)/x0d
+x0d_HEADERS = \
+	src/x0d/XzeroContext.h \
+	src/x0d/XzeroDaemon.h \
+	src/x0d/XzeroEventHandler.h \
+	src/x0d/XzeroModule.h \
+	src/x0d/XzeroState.h
 
 nodist_x0d_SOURCES = \
 	@builddir@/3rdparty/mime.mt.cc
