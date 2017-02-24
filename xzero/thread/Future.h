@@ -61,6 +61,8 @@ class XZERO_BASE_API Future {
   bool isFailure() const;
   bool isSuccess() const;
 
+  template<typename U>
+  void onFailure(Promise<U> forward);
   void onFailure(std::function<void (std::error_code ec)> fn);
   void onSuccess(std::function<void (const T& value)> fn);
 
@@ -79,6 +81,7 @@ class XZERO_BASE_API Future {
  protected:
   RefPtr<PromiseState<T>> state_;
 };
+
 
 template <typename T>
 class XZERO_BASE_API Promise {

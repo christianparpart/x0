@@ -51,6 +51,14 @@ void Future<T>::wait() const {
   state_->wakeup.waitForFirstWakeup();
 }
 
+template<typename T>
+template<typename U>
+void Future<T>::onFailure(Promise<U> forward) {
+  onFailure([this, forward](const std::error_code& ec) {
+    forward.failure(ec);
+  });
+}
+
 template <typename T>
 void Future<T>::onFailure(std::function<void(std::error_code)> fn) {
   std::unique_lock<std::mutex> lk(state_->mutex);
