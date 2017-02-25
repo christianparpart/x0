@@ -24,6 +24,7 @@ typedef uint64_t Index;
  * @see StateMachine
  */
 typedef std::vector<uint8_t> Command;
+typedef std::vector<uint8_t> Reply;
 
 enum LogType {
   LOG_COMMAND = 1,
