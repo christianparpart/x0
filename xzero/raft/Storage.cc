@@ -7,6 +7,12 @@
 
 #include <xzero/raft/Storage.h>
 #include <xzero/executor/Executor.h>
+#include <xzero/io/FileUtil.h>
+#include <xzero/io/File.h>
+#include <xzero/io/MemoryMap.h>
+#include <xzero/util/BinaryReader.h>
+#include <xzero/util/BinaryWriter.h>
+#include <xzero/BufferUtil.h>
 #include <xzero/logging.h>
 #include <stdlib.h>
 #include <assert.h>
@@ -109,12 +115,166 @@ void MemoryStore::truncateLog(Index last) {
   log_.resize(last);
 }
 
-bool MemoryStore::saveSnapshot(std::unique_ptr<InputStream>&& state, Term term, Index lastIndex) {
-  return false;
+std::error_code MemoryStore::saveSnapshot(std::unique_ptr<InputStream>&& state, Term term, Index lastIndex) {
+  return std::error_code();
 }
 
-bool MemoryStore::loadSnapshot(std::unique_ptr<OutputStream>&& state, Term* term, Index* lastIndex) {
-  return false;
+std::error_code MemoryStore::loadSnapshot(std::unique_ptr<OutputStream>&& state, Term* term, Index* lastIndex) {
+  return std::error_code();
+}
+// }}}
+
+// {{{ FileStore
+FileStore::FileStore(const std::string& basedir)
+  : basedir_(basedir),
+    votedFor_(),
+    latestIndex_(),
+    currentTerm_(),
+    logCache_(),
+    indexToOffsetMapping_(),
+    outputBuffer_() {
+}
+
+FileStore::~FileStore() {
+}
+
+Buffer FileStore::readFile(const std::string& name) {
+  std::string path = FileUtil::joinPaths(basedir_, name);
+  return FileUtil::read(path);
+}
+
+Option<std::pair<Id, Term>> FileStore::parseVote(const BufferRef& data) {
+  BinaryReader in(data);
+  auto id = in.tryParseVarUInt();
+  auto term = in.tryParseVarUInt();
+
+  if (id && term) {
+    return Some(std::make_pair((Id) *id, (Term) *term));
+  } else {
+    return None();
+  }
+}
+
+std::error_code FileStore::initialize(Id* id) {
+  if (!FileUtil::isDirectory(basedir_)) {
+    FileUtil::mkdir_p(basedir_);
+  }
+
+  clusterId_ = readFile("cluster_id").str();
+  serverId_ = readFile("server_id").toInt();
+  votedFor_ = parseVote(readFile("voted_for"));
+
+  // TODO FileUtil::joinPaths(basedir_, "log");
+
+  return std::error_code();
+}
+
+Option<std::pair<Id, Term>> FileStore::votedFor() {
+  return votedFor_;
+}
+
+std::error_code FileStore::clearVotedFor() {
+  FileUtil::rm(FileUtil::joinPaths(basedir_, "voted_for"));
+  votedFor_.reset();
+
+  return std::error_code();
+}
+
+std::error_code FileStore::setVotedFor(Id id, Term term) {
+  Buffer data;
+  BinaryWriter writer(BufferUtil::writer(&data));
+  writer.writeVarUInt(id);
+  writer.writeVarUInt(term);
+
+  votedFor_ = Some(std::make_pair(id, term));
+
+  return std::error_code();
+}
+
+std::error_code FileStore::setCurrentTerm(Term currentTerm) {
+  return std::error_code();
+}
+
+Term FileStore::currentTerm() {
+  return currentTerm_;
+}
+
+Index FileStore::latestIndex() {
+  return latestIndex_;
+}
+
+std::error_code FileStore::appendLogEntry(const LogEntry& log) {
+  Buffer data;
+  {
+    BinaryWriter writer(BufferUtil::writer(&data));
+    writer.writeVarUInt(log.term());
+    writer.writeVarUInt(log.type());
+    writer.writeLengthDelimited(log.command().data(), log.command().size());
+  }
+
+  Buffer header;
+  {
+    BinaryWriter writer(BufferUtil::writer(&header));
+    writer.writeFixed64(data.size());
+    uint64_t crc = 0; // TODO
+    writer.writeFixed64(crc);
+  }
+
+  logStream_->write(header.data(), header.size());
+  logStream_->write(data.data(), data.size());
+
+  return std::error_code();
+}
+
+Future<Index> FileStore::appendLogEntryAsync(const LogEntry& log) {
+#if 0
+  std::lock_guard<decltype(storeMutex_)> _lk(storeMutex_);
+
+  storesPending_.emplace_back(log);
+  const Index index = latestIndex + storesPending_.size();
+  return storePromises_[index].future();
+#endif
+}
+
+void FileStore::writePendingStores() {
+#if 0
+  std::list<LogEntry> pending;
+  std::unordered_ma<Index, Promise<Index>> promises;
+
+  {
+    std::lock_guard<decltype(storeMutex_)> _lk(storeMutex_);
+    pending = std::move(storesPending_);
+    promises = std::move(storePromises_);
+  }
+
+  for (size_t i = 0; i < pending.size(); ++i) {
+    writeLog(pending[i], &outputBuffer_);
+  }
+
+  outputBuffer_.clear();
+  latestIndex_ += promises.size();
+#endif
+}
+
+void FileStore::writeLoop() {
+  for (;;) {
+    writePendingStores();
+  }
+}
+
+Result<LogEntry> FileStore::getLogEntry(Index index) {
+  return Failure("TODO");
+}
+
+void FileStore::truncateLog(Index last) {
+}
+
+std::error_code FileStore::saveSnapshot(std::unique_ptr<InputStream>&& state, Term term, Index lastIndex) {
+  return std::error_code();
+}
+
+std::error_code FileStore::loadSnapshot(std::unique_ptr<OutputStream>&& state, Term* term, Index* lastIndex) {
+  return std::error_code();
 }
 // }}}
 

@@ -13,10 +13,13 @@
 #include <xzero/Option.h>
 #include <xzero/Result.h>
 #include <cstdint>
-#include <vector>
-#include <memory>
-#include <system_error>
 #include <unordered_map>
+#include <vector>
+#include <list>
+#include <memory>
+#include <mutex>
+#include <atomic>
+#include <system_error>
 
 namespace xzero {
 
@@ -80,7 +83,7 @@ class Storage {
   /**
    * Saves the snapshot @p state along with its latest @p term and @p lastIndex.
    */
-  virtual bool saveSnapshot(std::unique_ptr<InputStream>&& state, Term term, Index lastIndex) = 0;
+  virtual std::error_code saveSnapshot(std::unique_ptr<InputStream>&& state, Term term, Index lastIndex) = 0;
 
   /**
    * Loads a snapshot into @p state along with its latest @p term and @p lastIndex.
@@ -89,7 +92,7 @@ class Storage {
    * @param term
    * @param lastIndex
    */
-  virtual bool loadSnapshot(std::unique_ptr<OutputStream>&& state, Term* term, Index* lastIndex) = 0;
+  virtual std::error_code loadSnapshot(std::unique_ptr<OutputStream>&& state, Term* term, Index* lastIndex) = 0;
 };
 
 /**
@@ -116,8 +119,8 @@ class MemoryStore : public Storage {
   Result<LogEntry> getLogEntry(Index index) override;
   void truncateLog(Index last) override;
 
-  bool saveSnapshot(std::unique_ptr<InputStream>&& state, Term term, Index lastIndex) override;
-  bool loadSnapshot(std::unique_ptr<OutputStream>&& state, Term* term, Index* lastIndex) override;
+  std::error_code saveSnapshot(std::unique_ptr<InputStream>&& state, Term term, Index lastIndex) override;
+  std::error_code loadSnapshot(std::unique_ptr<OutputStream>&& state, Term* term, Index* lastIndex) override;
 
  private:
   Executor* executor_;
@@ -150,17 +153,32 @@ class FileStore : public Storage {
   Result<LogEntry> getLogEntry(Index index) override;
   void truncateLog(Index last) override;
 
-  bool saveSnapshot(std::unique_ptr<InputStream>&& state, Term term, Index lastIndex) override;
-  bool loadSnapshot(std::unique_ptr<OutputStream>&& state, Term* term, Index* lastIndex) override;
+  std::error_code saveSnapshot(std::unique_ptr<InputStream>&& state, Term term, Index lastIndex) override;
+  std::error_code loadSnapshot(std::unique_ptr<OutputStream>&& state, Term* term, Index* lastIndex) override;
+
+ public: // helpers
+  Buffer readFile(const std::string& filename);
+  static Option<std::pair<Id, Term>> parseVote(const BufferRef& data);
+
+  void writePendingStores();
+  void writeLoop();
 
  private:
   std::string basedir_;
+  std::unique_ptr<OutputStream> logStream_;
 
   // disk cache
+  std::string clusterId_;
+  Id serverId_;
   Option<std::pair<Id, Term>> votedFor_;
-  Index latestIndex_;
+  std::atomic<Index> latestIndex_;
   Term currentTerm_;
   std::unordered_map<Index, LogEntry> logCache_;
+
+  // async batched write
+  std::mutex storeMutex_;
+  std::list<LogEntry> storesPending_;
+  std::unordered_map<Index, Promise<Index>> storePromises_;
 
   // read-helper: index-to-offset mapping
   std::unordered_map<Index, size_t> indexToOffsetMapping_;

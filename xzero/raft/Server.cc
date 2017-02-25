@@ -154,12 +154,6 @@ void Server::stop() {
 }
 
 Future<Index> Server::sendCommandAsync(Command&& command) {
-  // 1. apply log to local store.
-  // 2. wait for local store's ACK: or complete future with timeout
-  // 3. send log to peers
-  // 4. wait for ACKs from majority of peers
-  //    5. complete promise with success or timeout error if timed out
-
   Promise<Index> promise;
 
   if (state_ != ServerState::Leader) {
@@ -171,10 +165,7 @@ Future<Index> Server::sendCommandAsync(Command&& command) {
 
   Future<Index> localAck = storage_->appendLogEntryAsync(entry);
 
-  localAck.onFailure([this, promise](const std::error_code& ec) {
-    promise.failure(ec);
-  });
-
+  localAck.onFailure(promise);
   localAck.onSuccess([this, promise](const Index& index) {
     commitPromises_.emplace_back(std::make_pair(index, promise));
 

@@ -42,8 +42,8 @@ The core of this little library is the Raft algorithm.
 
 ## Peer Communication
 
-- LocalChannel: performs communication to in-process reachable peers. Used for testing and debugging only.
-- TcpChannel: performs communication over the network, via TCP/IP.
+- LocalTransport: performs communication to in-process reachable peers. Used for testing and debugging only.
+- InetTransport: performs communication over the network, via TCP/IP.
 
 ## Storage
 
@@ -99,3 +99,18 @@ LeaderReplicationThread::replicateOne() {
   transport_->send(peerId_, appendMessagesReq);
 }
 ```
+
+### Local File Storage
+
+```
+/cluster_id               cluster ID
+/server_id                represents server ID
+
+/voted_for                if exists and non-empty, contains the server that
+                          this server voted for
+
+/log.{BaseIndex}          log[] starting at given base index
+/log.latest               -> symlink
+/snapshot.{LatestIndex}   state machine snapshot up to given index
+```
+
