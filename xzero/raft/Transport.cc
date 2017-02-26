@@ -27,10 +27,13 @@ Transport::~Transport() {
 /*
  * - the peer that wants to say something, initiates the connection
  * - the connection may be reused (pooled) for future messages
- * - an incoming connection MAY be reused to send the response, too
+ * - an incoming connection MUST be reused to send the corresponding response
  */
 
 // {{{ PeerConnection
+/**
+ * PeerConnection represents an incoming peer commection.
+ */
 class PeerConnection
   : public Connection,
     public Listener {
@@ -232,6 +235,7 @@ void InetTransport::send(Id target, const VoteRequest& msg) {
     Buffer buffer;
     Generator(BufferUtil::writer(&buffer)).generateVoteRequest(msg);
     ep->flush(buffer);
+    consumeResponse(target, ep);
   }
 }
 
@@ -240,6 +244,7 @@ void InetTransport::send(Id target, const AppendEntriesRequest& msg) {
     Buffer buffer;
     Generator(BufferUtil::writer(&buffer)).generateAppendEntriesRequest(msg);
     ep->flush(buffer);
+    consumeResponse(target, ep);
   }
 }
 
@@ -248,7 +253,12 @@ void InetTransport::send(Id target, const InstallSnapshotRequest& msg) {
     Buffer buffer;
     Generator(BufferUtil::writer(&buffer)).generateInstallSnapshotRequest(msg);
     ep->flush(buffer);
+    consumeResponse(target, ep);
   }
+}
+
+void InetTransport::consumeResponse(Id target, RefPtr<EndPoint> ep) {
+  // TODO
 }
 // }}}
 
@@ -311,10 +321,10 @@ void LocalTransport::send(Id target, const AppendEntriesRequest& msg) {
   assert(msg.leaderId == myId_);
 
   executor_->execute([=]() {
-    logDebug("raft.LocalTransport", "$0-to-$1: recv $2", myId_, target, msg);
+    //logDebug("raft.LocalTransport", "$0-to-$1: recv $2", myId_, target, msg);
     AppendEntriesResponse result = getPeer(target)->handleRequest(myId_, msg);
     executor_->execute([=]() {
-      logDebug("raft.LocalTransport", "$0-to-$1: recv $2", target, myId_, result);
+      //logDebug("raft.LocalTransport", "$0-to-$1: recv $2", target, myId_, result);
       getPeer(myId_)->handleResponse(target, result);
     });
   });

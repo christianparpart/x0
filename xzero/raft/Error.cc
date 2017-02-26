@@ -30,6 +30,8 @@ std::string RaftCategory::message(int ec) const {
       return "Not leading the cluster";
     case RaftError::CommitTimeout:
       return "Commit timeout";
+    case RaftError::ServerNotFound:
+      return "Server not found";
     default:
       return StringUtil::format("RaftError<$0>", ec);
   }

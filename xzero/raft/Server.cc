@@ -34,34 +34,20 @@ std::string StringUtil::toString(raft::ServerState s) {
 
 namespace raft {
 
-struct Follower {
-  //! for each server, index of the next log entry
-  //! to send to that server (initialized to leader
-  //! last log index + 1)
-  Index nextIndex;
-
-  //! for each server, index of highest log entry
-  //! known to be replicated on server
-  //! (initialized to 0, increases monotonically)
-  Index matchIndex;
-};
-
-Server::Server(Executor* executor,
-               Id id,
+Server::Server(Id id,
                Storage* storage,
                const Discovery* discovery,
                Transport* transport,
                StateMachine* sm)
-      : Server(executor, id, storage, discovery, transport, sm,
+      : Server(id, storage, discovery, transport, sm,
                5,                   // maxCommandsPerMessage
                1024,                // maxCommandsSizePerMessage
-               250_milliseconds,    // heartbeatTimeout
-               100_milliseconds,    // electionTimeout
+               1000_milliseconds,    // heartbeatTimeout
+               200_milliseconds,    // electionTimeout
                500_milliseconds) {  // commitTimeout
 }
 
-Server::Server(Executor* executor,
-               Id id,
+Server::Server(Id id,
                Storage* storage,
                const Discovery* discovery,
                Transport* transport,
@@ -71,7 +57,7 @@ Server::Server(Executor* executor,
                Duration heartbeatTimeout,
                Duration electionTimeout,
                Duration commitTimeout)
-    : executor_(executor),
+    : executor_(std::make_unique<CatchAndLogExceptionHandler>("raft")),
       id_(id),
       currentLeaderId_(0),
       storage_(storage),
@@ -80,7 +66,7 @@ Server::Server(Executor* executor,
       stateMachine_(sm),
       state_(ServerState::Follower),
       nextHeartbeat_(MonotonicClock::now()),
-      timer_(executor, std::bind(&Server::onTimeout, this)),
+      timer_(&executor_, std::bind(&Server::onTimeout, this)),
       verifyLeaderCallbacks_(),
       heartbeatTimeout_(heartbeatTimeout),
       electionTimeout_(electionTimeout),
@@ -90,12 +76,7 @@ Server::Server(Executor* executor,
       commitIndex_(0),
       lastApplied_(0),
       votesGranted_(0),
-      nextIndex_(),
-      matchIndex_(),
-      nextHeartbeats_(),
-      wakeups_(),
-      followerTimeouts_(),
-      commitPromises_(),
+      appliedPromises_(),
       onStateChanged(),
       onLeaderChanged() {
   transport_->setHandler(this);
@@ -115,9 +96,12 @@ std::error_code Server::start() {
 
   logDebug("raft.Server",
            "Server $0 starts with term $1 and index $2",
-           id(), currentTerm(), commitIndex_);
+           id(), currentTerm(), commitIndex());
 
-  timer_.setTimeout(heartbeatTimeout_);
+  executor_.execute(StringUtil::format("apply/$0", id_),
+                    std::bind(&Server::applyLogsLoop, this));
+
+  timer_.setTimeout(ServerUtil::cumulativeDuration(heartbeatTimeout_));
   timer_.start();
 
   return ec;
@@ -128,33 +112,47 @@ std::error_code Server::startWithLeader(Id leaderId) {
   if (ec)
     return ec;
 
+  executor_.execute(StringUtil::format("apply/$0", id_),
+                    std::bind(&Server::applyLogsLoop, this));
+
   if (leaderId == id_) {
     logDebug("raft.Server",
              "Server $0 starts with term $1 and index $2 (as leader)",
-             id(), currentTerm(), commitIndex_, leaderId);
+             id(), currentTerm(), commitIndex(), leaderId);
 
     setupLeader();
   } else {
     logDebug("raft.Server",
              "Server $0 starts with term $1 and index $2 (as follower)",
-             id(), currentTerm(), commitIndex_, leaderId);
+             id(), currentTerm(), commitIndex(), leaderId);
 
     currentLeaderId_ = id_;
+
     timer_.setTimeout(ServerUtil::cumulativeDuration(heartbeatTimeout_));
     timer_.start();
   }
-
 
   return ec;
 }
 
 void Server::stop() {
+  logDebug("raft.Server", "$0 Sending STOP event.", id_);
   timer_.cancel();
-  // TODO: be more intelligent, maybe telling the others why I go.
+  shutdownWakeup_.wakeup();
+  executor_.joinAll();
 }
 
-Future<Index> Server::sendCommandAsync(Command&& command) {
-  Promise<Index> promise;
+void Server::waitUntilStopped() {
+  shutdownWakeup_.waitForNextWakeup();
+  logDebug("raft.Server", "$0 STOP event received.", id_);
+}
+
+Result<Reply> Server::sendCommand(Command&& command) {
+  return sendCommandAsync(std::move(command)).waitAndGetResult();
+}
+
+Future<Reply> Server::sendCommandAsync(Command&& command) {
+  Promise<Reply> promise;
 
   if (state_ != ServerState::Leader) {
     promise.failure(std::make_error_code(RaftError::NotLeading));
@@ -167,7 +165,7 @@ Future<Index> Server::sendCommandAsync(Command&& command) {
 
   localAck.onFailure(promise);
   localAck.onSuccess([this, promise](const Index& index) {
-    commitPromises_.emplace_back(std::make_pair(index, promise));
+    appliedPromises_[index] = promise;
 
     for (Id peerId: discovery_->listMembers()) {
       if (peerId != id_) {
@@ -177,29 +175,6 @@ Future<Index> Server::sendCommandAsync(Command&& command) {
   });
 
   return promise.future();
-}
-
-std::error_code Server::sendCommand(Command&& command) {
-  if (state_ != ServerState::Leader)
-    return std::make_error_code(RaftError::NotLeading);
-
-  LogEntry entry(currentTerm(), std::move(command));
-
-  Future<Index> localAck = storage_->appendLogEntryAsync(entry);
-
-  localAck.onFailure([this](const std::error_code& ec) {
-    logError("raft.Server", "Failed to write log to disk. $0", ec.message());
-  });
-
-  localAck.onSuccess([this](const Index& index) {
-    for (Id peerId: discovery_->listMembers()) {
-      if (peerId != id_) {
-        wakeupReplicationTo(peerId);
-      }
-    }
-  });
-
-  return std::error_code();
 }
 
 void Server::verifyLeader(std::function<void(bool)> callback) {
@@ -215,6 +190,7 @@ void Server::verifyLeader(std::function<void(bool)> callback) {
 void Server::sendVoteRequest() {
   assert(state_ == ServerState::Candidate && "Must be in CANDIDATE state to vote.");
 
+  timer_.setTimeout(ServerUtil::alleviatedDuration(electionTimeout_));
   timer_.rewind();
 
   votesGranted_ = 0;
@@ -230,7 +206,10 @@ void Server::sendVoteRequest() {
 
   for (Id peerId: discovery_->listMembers()) {
     if (peerId != id_) {
-      transport_->send(peerId, voteRequest);
+      executor_.execute(StringUtil::format("voter/$0", peerId),
+                        [this, peerId, voteRequest]() {
+                          transport_->send(peerId, voteRequest);
+                        });
     }
   }
 }
@@ -256,32 +235,22 @@ void Server::onTimeout() {
   }
 }
 
-void Server::setState(ServerState newState) {
-  logInfo("raft.Server", "$0: Entering $1 state.", id_, newState);
+bool Server::setState(ServerState newState) {
+  if (newState == state_) {
+    // logWarning("raft.Server", "$0: Attempt to enter already entered state $1.",
+    //            id_, newState);
+    return false;
+  }
 
   ServerState oldState = state_;
   state_ = newState;
-
-  switch (newState) {
-    case ServerState::Follower:
-      timer_.setTimeout(ServerUtil::cumulativeDuration(heartbeatTimeout_));
-      for (auto& peer: followerTimeouts_)
-        peer.second->cancel();
-      break;
-    case ServerState::Candidate:
-      timer_.setTimeout(electionTimeout_);
-      for (auto& peer: followerTimeouts_)
-        peer.second->cancel();
-      break;
-    case ServerState::Leader:
-      timer_.setTimeout(heartbeatTimeout_);
-      timer_.cancel(); // stop global timer, as we use per-peer timers
-      break;
-  }
+  logInfo("raft.Server", "$0: Entering $1 state (was $2).", id_, newState, oldState);
 
   if (onStateChanged) {
-    executor_->execute(std::bind(onStateChanged, this, oldState));
+    onStateChanged(this, oldState);
   }
+
+  return true;
 }
 
 void Server::setCurrentTerm(Term newTerm) {
@@ -299,14 +268,11 @@ HelloResponse Server::handleRequest(const HelloRequest& req) {
 void Server::handleResponse(Id peerId, const HelloResponse& res) {
   // logDebug("raft.Server", "handleResponse: VoteResponse<$0, \"$1\">",
   //     res.success ? "success" : "failed", res.message);
-  if (state_ != ServerState::Leader)
-    return;
-
-  followerTimeouts_[peerId]->rewind();
 }
 
 VoteResponse Server::handleRequest(Id peerId, const VoteRequest& req) {
   timer_.rewind();
+  std::lock_guard<decltype(serverLock_)> _lk(serverLock_);
 
   if (req.term < currentTerm()) {
     // decline request as peer's term is older than our currentTerm
@@ -318,15 +284,8 @@ VoteResponse Server::handleRequest(Id peerId, const VoteRequest& req) {
   if (req.term > currentTerm()) {
     logDebug("raft.Server", "$0 received term ($1) > currentTerm ($2) from $3. Converting to follower.",
         id_, req.term, currentTerm(), req.candidateId);
-    setCurrentTerm(req.term);
-    setState(ServerState::Follower);
-    storage_->clearVotedFor();
 
-    Id oldLeaderId = currentLeaderId_;
-    currentLeaderId_ = req.candidateId;
-    if (onLeaderChanged) {
-      executor_->execute(std::bind(onLeaderChanged, oldLeaderId));
-    }
+    convertToFollower(req.candidateId, req.term);
   }
 
   const auto votedFor = storage_->votedFor();
@@ -346,6 +305,8 @@ VoteResponse Server::handleRequest(Id peerId, const VoteRequest& req) {
 }
 
 void Server::handleResponse(Id peerId, const VoteResponse& resp) {
+  std::lock_guard<decltype(serverLock_)> _lk(serverLock_);
+
   if (state_ == ServerState::Leader)
     return;
 
@@ -361,6 +322,7 @@ AppendEntriesResponse Server::handleRequest(
     Id peerId,
     const AppendEntriesRequest& req) {
   timer_.rewind();
+  std::lock_guard<decltype(serverLock_)> _lk(serverLock_);
 
   // 1. Reply false if term < currentTerm (§5.1)
   if (req.term < currentTerm()) {
@@ -379,18 +341,7 @@ AppendEntriesResponse Server::handleRequest(
     logDebug("raft.Server", "$0: new leader $1 detected with term $2",
         id_, req.leaderId, req.term);
 
-    setCurrentTerm(req.term);
-
-    Id oldLeaderId = currentLeaderId_;
-    currentLeaderId_ = req.leaderId;
-
-    if (state_ != ServerState::Follower) {
-      setState(ServerState::Follower);
-    }
-
-    if (onLeaderChanged) {
-      executor_->execute(std::bind(onLeaderChanged, oldLeaderId));
-    }
+    convertToFollower(req.leaderId, req.term);
   }
 
   // 3. If an existing entry conflicts with a new one (same index
@@ -436,12 +387,17 @@ AppendEntriesResponse Server::handleRequest(
   //    min(leaderCommit, index of last new entry)
   if (req.leaderCommit > commitIndex_) {
     commitIndex_ = std::min(req.leaderCommit, lastIndex);
-    logDebug("raft.Server", "$0 ($1) commitIndex = $2", id_, state_, commitIndex_);
-  }
+    logDebug("raft.Server", "$0 ($1) commitIndex = $2", id(), state(), commitIndex());
 
-  // Once a follower learns that a log entry is committed,
-  // it applies the entry to its local state machine (in log order)
-  applyLogs();
+    Future<Reply> applied = appliedPromises_[commitIndex_].future();
+
+    // Once a follower learns that a log entry is committed,
+    // it applies the entry to its local state machine (in log order)
+    applyLogsWakeup_.wakeup();
+
+    // block until also applied (may involves disk i/o)
+    applied.wait();
+  }
 
   return AppendEntriesResponse{currentTerm(), latestIndex(), true};
 }
@@ -466,6 +422,11 @@ bool Server::tryLoadLogEntries(Index first,
     }
 
     totalSize += entry->command().size();
+
+    if (totalSize > maxCommandsSizePerMessage_) {
+      break;
+    }
+
     entries->emplace_back(*entry);
   }
 
@@ -473,58 +434,88 @@ bool Server::tryLoadLogEntries(Index first,
 }
 
 void Server::handleResponse(Id peerId, const AppendEntriesResponse& resp) {
+  std::lock_guard<decltype(serverLock_)> _lk(serverLock_);
+
   if (state_ != ServerState::Leader) {
     logWarning("raft.Server", "Received an AppendEntriesResponse from a follower, but I am no leader (anymore).");
     return;
   }
 
-  followerTimeouts_[peerId]->rewind();
+  FollowerState& followerState = followers_[peerId];
 
   if (resp.success) {
     // If successful: update nextIndex and matchIndex for follower (§5.3)
-    // XXX we currently replicate only 1 log entry at a time
-
-    matchIndex_[peerId] = resp.lastLogIndex;
-    nextIndex_[peerId] = resp.lastLogIndex + 1;
+    followerState.nextHeartbeat = MonotonicClock::now() + heartbeatTimeout_;
+    followerState.nextIndex = resp.lastLogIndex + 1;
+    followerState.matchIndex = resp.lastLogIndex;
   } else {
     // If AppendEntries fails because of log inconsistency:
     //  decrement (adjust) nextIndex and retry (§5.3)
-    nextIndex_[peerId] = resp.lastLogIndex + 1;
-    if (matchIndex_[peerId] != 0) {
+    followerState.nextHeartbeat = MonotonicClock::now();
+    followerState.nextIndex = resp.lastLogIndex + 1;
+    if (followerState.matchIndex != 0) {
       logWarning("raft.Server",
                  "$0: matchIndex[$1] should be 0 (actual $2). Fixing.",
-                 id_, peerId, matchIndex_[peerId]);
-      matchIndex_[peerId] = 0;
+                 id_, peerId, followerState.matchIndex);
+      followerState.matchIndex = 0;
     }
   }
 
   // update commitIndex to the latest matchIndex the majority of servers provides
-  Index newCommitIndex = ServerUtil::majorityIndexOf(matchIndex_);
+  Index newCommitIndex = computeCommitIndex();
   if (commitIndex_ != newCommitIndex) {
     logDebug("raft.Server", "$0 ($1) updating commitIndex = $2 (was $3)",
-        id_, state_, newCommitIndex, commitIndex_);
+        id(), state(), newCommitIndex, commitIndex());
     commitIndex_ = newCommitIndex;
-    applyLogs();
+    applyLogsWakeup_.wakeup();
   }
+}
 
-  // deliver promises with index smaller or equal to the commitIndex
-  {
-    auto i = commitPromises_.begin();
-    auto e = commitPromises_.end();
-    while (i != e && i->first <= commitIndex_) {
-      i->second.success(i->first);
-      i = commitPromises_.erase(i);
+Index Server::computeCommitIndex() {
+  // smallest matchIndex
+  const Index low = std::min_element(followers_.begin(),
+                                     followers_.end(),
+                                     [](const auto& a, const auto& b) -> bool {
+                                       return a.second.matchIndex <
+                                              b.second.matchIndex;
+                                     })->second.matchIndex;
+
+  // biggest matchIndex
+  const Index high = std::max_element(followers_.begin(),
+                                      followers_.end(),
+                                      [](const auto& a, const auto& b) -> bool {
+                                        return a.second.matchIndex <
+                                               b.second.matchIndex;
+                                      })->second.matchIndex;
+
+  const size_t quorum = followers_.size() / 2 + 1;
+
+  // logDebug("raft.Server", "computeCommitIndex: min=$0, max=$1, quorum=$2",
+  //          low, high, quorum);
+
+  Index result = low;
+  for (Index N = low; N <= high; N++) {
+    size_t ok = 0;
+
+    for (const auto& follower: followers_) {
+      if (follower.second.matchIndex >= N) {
+        ok++;
+      }
+    }
+
+    if (ok >= quorum && N > result) {
+      result = N;
     }
   }
 
-  // replicate any pending messages to peer, if any
-  replicateLogsTo(peerId);
+  return result;
 }
 
 InstallSnapshotResponse Server::handleRequest(
     Id peerId,
     const InstallSnapshotRequest& req) {
   timer_.rewind();
+  std::lock_guard<decltype(serverLock_)> _lk(serverLock_);
 
   logDebug("raft.Server", "$0: received from $1: $2", id_, peerId, req);
   RAISE(NotImplementedError); // TODO
@@ -532,76 +523,84 @@ InstallSnapshotResponse Server::handleRequest(
 
 void Server::handleResponse(Id peerId, const InstallSnapshotResponse& res) {
   logDebug("raft.Server", "$0: received from $1: $2", id_, peerId, res);
-  followerTimeouts_[peerId]->rewind();
 
   RAISE(NotImplementedError); // TODO
 }
 // }}}
 // {{{ Server: receiver helper
+void Server::convertToFollower(Id newLeaderId, Term leaderTerm) {
+  setState(ServerState::Follower);
+
+  setCurrentTerm(leaderTerm);
+  storage_->clearVotedFor();
+
+  Id oldLeaderId = currentLeaderId_;
+  currentLeaderId_ = newLeaderId;
+
+  if (onLeaderChanged) {
+    onLeaderChanged(oldLeaderId);
+  }
+
+  timer_.setTimeout(ServerUtil::cumulativeDuration(heartbeatTimeout_));
+  timer_.start();
+}
+
 void Server::setupLeader() {
-  setState(ServerState::Leader);
+  logDebug("raft.Server", "$0 setupLeader", id_);
+  timer_.cancel();
   currentLeaderId_ = id_;
 
-  const Index theNextIndex = latestIndex() + 1;
+  setState(ServerState::Leader);
+
   for (Id peerId: discovery_->listMembers()) {
     if (peerId != id_) {
-      nextIndex_[peerId] = theNextIndex;
-      matchIndex_[peerId] = 0;
-      nextHeartbeats_[peerId] = MonotonicTime::Zero; // force heartbeat
-      followerTimeouts_[peerId].reset(new DeadlineTimer(
-            executor_,
-            std::bind(&Server::onFollowerTimeout, this, peerId),
-            heartbeatTimeout_));
-      followerTimeouts_[peerId]->start();
-
-      replicateLogsWithWakeupTo(peerId);
+      logDebug("raft.Server", "$0 starting replication loop for peer $1", id_, peerId);
+      executor_.execute(StringUtil::format("replicate/$0", peerId),
+                        std::bind(&Server::replicationLoop, this, peerId));
     }
   }
 }
 
-Index Server::latestIndex() {
-  return storage_->latestIndex();
-}
+void Server::replicationLoop(Id followerId) {
+  logInfo("raft.Server", "$0 Starting worker: replication/$1", id_, followerId);
+  FollowerState& followerState = followers_[followerId];
 
-Term Server::getLogTerm(Index index) {
-  if (index > storage_->latestIndex())
-    return 0;
+  followerState.nextIndex = latestIndex() + 1;
+  followerState.matchIndex = 0;
 
-  return storage_->getLogEntry(index)->term();
+  while (true) {
+    const MonotonicTime now = MonotonicClock::now();
+    const Duration timeout =
+        followerState.nextHeartbeat > now ? followerState.nextHeartbeat - now
+                                          : Duration::Zero;
+
+    if (timeout > Duration::Zero) {
+      logDebug("raft.Server", "$0 replicationLoop/$1: waitFor $2", id_, followerId, timeout);
+      // waits until a new log entry arrived, or
+      // a forced heartbeat comes in.
+      followerState.wakeup.waitFor(timeout);
+    }
+
+    // replicate all pending logs or submit a heartbeat (empty message)
+    replicateLogsTo(followerId);
+  }
+  logInfo("raft.Server", "$0 Stopping worker: replication/$1", id_, followerId);
 }
 
 void Server::wakeupReplicationTo(Id peerId) {
+  FollowerState& followerState = followers_[peerId];
   logDebug("raft.Server", "$0 wakeup replication to $1", id_, peerId);
-  wakeups_[peerId].wakeup();
-}
-
-void Server::replicateLogsWithWakeupTo(Id peerId) {
-  logDebug("raft.Server", "[Wakeup] replicate logs with wakeup to $0!", peerId);
-
-  replicateLogsTo(peerId);
-
-  executor_->executeOnNextWakeup(
-      std::bind(&Server::replicateLogsWithWakeupTo, this, peerId),
-      &wakeups_[peerId]);
-}
-
-void Server::onFollowerTimeout(Id peerId) {
-  logDebug("raft.Server", "$0: Maintaining leadership.", id_);
-  replicateLogsTo(peerId);
+  followerState.wakeup.wakeup();
 }
 
 void Server::replicateLogsTo(Id peerId) {
-  logDebug("raft.Server", "$0 replicating logs to $1", id_, peerId);
+  FollowerState& followerState = followers_[peerId];
+  //logDebug("raft.Server", "$0 replicating logs to $1", id_, peerId);
 
   // If last log index ≥ nextIndex for a follower: send
   // AppendEntries RPC with log entries starting at nextIndex
-  const Index nextIndex = nextIndex_[peerId];
-
-  // peer is up-to-date and doesn't need a heartbeat either
-  if (nextIndex > latestIndex() && nextHeartbeats_[peerId] > MonotonicClock::now()) {
-    logDebug("raft.Server", "peer $0 is up-to-date and is within heartbeat time frame", peerId);
-    return;
-  }
+  const Index nextIndex = followerState.nextIndex;
+  const Index prevLogIndex = nextIndex - 1;
 
   std::vector<LogEntry> entries;
   if (nextIndex <= latestIndex()) {
@@ -622,47 +621,89 @@ void Server::replicateLogsTo(Id peerId) {
              id_, peerId);
   } else {
     logDebug("raft.Server",
-             "replicateLogsTo peer $0: $1 log entries",
-             peerId,
-             entries.size());
+             "$0 replicating $1 log entries to peer $2",
+             id_,
+             entries.size(),
+             peerId);
   }
 
   transport_->send(peerId, AppendEntriesRequest{
       .term = currentTerm(),
       .leaderId = id_,
-      .prevLogIndex = nextIndex - 1,
-      .prevLogTerm = getLogTerm(nextIndex - 1),
+      .prevLogIndex = prevLogIndex,
+      .prevLogTerm = getLogTerm(prevLogIndex),
       .entries = entries,
-      .leaderCommit = commitIndex_,
+      .leaderCommit = commitIndex(),
   });
 
-  nextIndex_[peerId] += numEntries;
-  nextHeartbeats_[peerId] = MonotonicClock::now() + heartbeatTimeout_;
+  followerState.nextIndex += numEntries;
+  followerState.nextHeartbeat = MonotonicClock::now() + heartbeatTimeout_;
+}
+
+Index Server::latestIndex() {
+  return storage_->latestIndex();
+}
+
+Term Server::getLogTerm(Index index) {
+  if (index <= storage_->latestIndex())
+    return storage_->getLogEntry(index)->term();
+  else
+    return 0;
+}
+
+void Server::applyLogsLoop() {
+  logInfo("raft.Server", "$0 Starting worker: applyLogs", id_);
+
+  bool quit = false;
+
+  shutdownWakeup_.onWakeup(shutdownWakeup_.generation(), [&]() {
+    quit = true;
+    applyLogsWakeup_.wakeup();
+  });
+
+  for (;;) {
+    applyLogsWakeup_.waitForNextWakeup();
+    if (quit) {
+      break;
+    }
+    applyLogs();
+  }
+
+  logInfo("raft.Server", "$0 Stopping worker: applyLogs.", id_);
 }
 
 void Server::applyLogs() {
   logDebug("raft.Server", "Applying logs (commitIndex:$0, lastApplied:$1)",
-            commitIndex_, lastApplied_);
+            commitIndex(), lastApplied());
   // If commitIndex > lastApplied: increment lastApplied, apply
   // log[lastApplied] to state machine (§5.3)
   while (commitIndex_ > lastApplied_) {
-    Result<LogEntry> logEntry = storage_->getLogEntry(lastApplied_ + 1);
+    const Index index = lastApplied_ + 1;
+    Result<LogEntry> logEntry = storage_->getLogEntry(index);
     if (logEntry.isFailure()) {
       logError("raft.Server",
                "Failed to apply log index $0. $1",
-               lastApplied_ + 1,
+               index,
                logEntry.failureMessage());
       break;
     }
-    logDebug("raft.Server", "applyCommand at index $0: $1",
-             lastApplied_ + 1, *logEntry);
-    lastApplied_++;
+
+    logDebug("raft.Server", "applyCommand at index $0: $1", index, *logEntry);
+
     if (logEntry->type() == LOG_COMMAND) {
-      stateMachine_->applyCommand(logEntry->command());
+      Reply reply = stateMachine_->applyCommand(logEntry->command());
+      auto i = appliedPromises_.find(index);
+      if (i != appliedPromises_.end()) {
+        Promise<Reply> promise = i->second;
+        appliedPromises_.erase(i);
+        promise.success(reply);
+      }
     } else {
       // TODO: LOG_PEER_ADD, LOG_PEER_REMOVE
       RAISE(NotImplementedError);
     }
+
+    lastApplied_ = index; // equals lastApplied_++
   }
 }
 // }}}

@@ -13,6 +13,7 @@
 #include <xzero/util/BinaryReader.h>
 #include <xzero/util/BinaryWriter.h>
 #include <xzero/BufferUtil.h>
+#include <xzero/Status.h>
 #include <xzero/logging.h>
 #include <stdlib.h>
 #include <assert.h>
@@ -105,7 +106,7 @@ Result<LogEntry> MemoryStore::getLogEntry(Index index) {
   //assert(index >= 0 && index <= latestIndex());
 
   if (index > latestIndex())
-    return Failuref("No LogEntry at index $0", index);
+    return std::make_error_code(std::errc::result_out_of_range);
 
   return Result<LogEntry>(log_[index]);
 }
@@ -116,11 +117,11 @@ void MemoryStore::truncateLog(Index last) {
 }
 
 std::error_code MemoryStore::saveSnapshot(std::unique_ptr<InputStream>&& state, Term term, Index lastIndex) {
-  return std::error_code();
+  return makeErrorCode(Status::NotImplementedError);
 }
 
 std::error_code MemoryStore::loadSnapshot(std::unique_ptr<OutputStream>&& state, Term* term, Index* lastIndex) {
-  return std::error_code();
+  return makeErrorCode(Status::NotImplementedError);
 }
 // }}}
 
@@ -192,7 +193,7 @@ std::error_code FileStore::setVotedFor(Id id, Term term) {
 }
 
 std::error_code FileStore::setCurrentTerm(Term currentTerm) {
-  return std::error_code();
+  return makeErrorCode(Status::NotImplementedError);
 }
 
 Term FileStore::currentTerm() {
@@ -263,18 +264,18 @@ void FileStore::writeLoop() {
 }
 
 Result<LogEntry> FileStore::getLogEntry(Index index) {
-  return Failure("TODO");
+  return makeErrorCode(Status::NotImplementedError);
 }
 
 void FileStore::truncateLog(Index last) {
 }
 
 std::error_code FileStore::saveSnapshot(std::unique_ptr<InputStream>&& state, Term term, Index lastIndex) {
-  return std::error_code();
+  return makeErrorCode(Status::NotImplementedError);
 }
 
 std::error_code FileStore::loadSnapshot(std::unique_ptr<OutputStream>&& state, Term* term, Index* lastIndex) {
-  return std::error_code();
+  return makeErrorCode(Status::NotImplementedError);
 }
 // }}}
 

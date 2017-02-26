@@ -3,6 +3,18 @@
 
 raft::Server allows you to implement replicated finite state machine.
 
+## Execution Model
+
+The Raft consensus module is multi threaded. 
+
+* Follower:
+  - peer: one thread per incoming connection; this can be the leader, or a candidate
+* Candidate:
+  - peer: one thread for each peer to talk to
+* Leader:
+  - apply-logs: thread to locally apply logs that are safe to apply
+  - replicator: one worker thread for each follower to replicate logs to
+
 ## Design
 
 The intend of this API is to provide an easy mechanism to implement

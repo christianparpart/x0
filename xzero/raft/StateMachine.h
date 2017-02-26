@@ -38,7 +38,7 @@ class StateMachine {
    * It is assured that the command is comitted (persisted on the majority
    * of cluster members).
    */
-  virtual void applyCommand(const Command& command) = 0;
+  virtual Reply applyCommand(const Command& command) = 0;
 };
 
 } // namespace raft

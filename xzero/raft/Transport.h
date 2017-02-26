@@ -40,9 +40,6 @@ class Transport {
 
 /**
  * Implements Raft peer-to-peer communication over streaming sockets.
- *
- * I/O is implemented non-blocking, and thus, all handler tasks MUST
- * be invoked within a seperate threaded worker executor.
  */
 class InetTransport
   : public Transport,
@@ -67,6 +64,7 @@ class InetTransport
 
  private:
   RefPtr<EndPoint> getEndPoint(Id target);
+  void consumeResponse(Id target, RefPtr<EndPoint> ep);
 
  private:
   const Discovery* discovery_;

@@ -22,6 +22,9 @@ enum class RaftError {
   NotLeading,
   //! Timed out committing the command.
   CommitTimeout,
+
+  //! Server with given ID not found.
+  ServerNotFound,
 };
 
 class RaftCategory : public std::error_category {

@@ -15,6 +15,7 @@
 #include <xzero/util/BinaryReader.h>
 #include <xzero/util/BinaryWriter.h>
 #include <xzero/executor/PosixScheduler.h>
+#include <xzero/BufferUtil.h>
 #include <xzero/testing.h>
 #include <initializer_list>
 #include <unordered_map>
@@ -22,6 +23,7 @@
 #include <algorithm>
 #include <iostream>
 #include <limits>
+#include <unistd.h>
 
 using namespace xzero;
 using raft::RaftError;
@@ -32,7 +34,7 @@ class TestKeyValueStore : public raft::StateMachine { // {{{
 
   bool saveSnapshot(std::unique_ptr<OutputStream>&& output) override;
   bool loadSnapshot(std::unique_ptr<InputStream>&& input) override;
-  void applyCommand(const raft::Command& serializedCmd) override;
+  raft::Reply applyCommand(const raft::Command& serializedCmd) override;
 
   int get(int key) const;
 
@@ -82,17 +84,23 @@ bool TestKeyValueStore::loadSnapshot(std::unique_ptr<InputStream>&& input) {
   return true;
 }
 
-void TestKeyValueStore::applyCommand(const raft::Command& command) {
+raft::Reply TestKeyValueStore::applyCommand(const raft::Command& command) {
   logDebug("TestKeyValueStore", "applyCommand: $0", StringUtil::hexPrint(command.data(), command.size()));
   BinaryReader reader(command.data(), command.size());
   int a = reader.parseVarUInt();
   int b = reader.parseVarUInt();
+  int oldValue = tuples_[a];
+
   logDebug("TestKeyValueStore", "-> applyCommand: $0 = $1", a, b);
   tuples_[a] = b;
 
   if (onApplyCommand) {
     onApplyCommand(a, b);
   }
+
+  raft::Reply reply;
+  BinaryWriter(BufferUtil::writer(&reply)).writeVarUInt(oldValue);
+  return reply;
 }
 
 int TestKeyValueStore::get(int a) const {
@@ -111,7 +119,7 @@ class TestServer { // {{{
 
   int get(int key) const;
   std::error_code set(int key, int value);
-  Future<raft::Index> setAsync(int key, int value);
+  Future<raft::Reply> setAsync(int key, int value);
 
   raft::LocalTransport* transport() noexcept { return &transport_; }
   raft::Server* server() noexcept { return &raftServer_; }
@@ -119,6 +127,7 @@ class TestServer { // {{{
 
  private:
   TestKeyValueStore stateMachine_;
+  ThreadedExecutor executor_;
   raft::MemoryStore storage_;
   raft::LocalTransport transport_;
   raft::Server raftServer_;
@@ -130,7 +139,7 @@ TestServer::TestServer(raft::Id id,
   : stateMachine_(),
     storage_(executor),
     transport_(id, executor),
-    raftServer_(executor, id, &storage_, discovery, &transport_, &stateMachine_) {
+    raftServer_(id, &storage_, discovery, &transport_, &stateMachine_) {
 }
 
 int TestServer::get(int key) const {
@@ -153,10 +162,14 @@ std::error_code TestServer::set(int key, int value) {
   logDebug("TestServer", "set($0, $1): $2", key, value,
       StringUtil::hexPrint(cmd.data(), cmd.size()));
 
-  return raftServer_.sendCommand(std::move(cmd));
+  Future<raft::Reply> f = raftServer_.sendCommandAsync(std::move(cmd));
+  std::error_code ec;
+  f.onFailure([&](const std::error_code& error) { ec = error; });
+  f.wait();
+  return ec;
 }
 
-Future<raft::Index> TestServer::setAsync(int key, int value) {
+Future<raft::Reply> TestServer::setAsync(int key, int value) {
   raft::Command cmd;
 
   auto o = [&](const uint8_t* data, size_t len) {
@@ -176,7 +189,7 @@ Future<raft::Index> TestServer::setAsync(int key, int value) {
 }
 // }}}
 struct TestServerPod { // {{{
-  PosixScheduler executor;
+  ThreadedExecutor executor;
   const raft::StaticDiscovery discovery;
   std::vector<std::unique_ptr<TestServer>> servers;
 
@@ -187,6 +200,8 @@ struct TestServerPod { // {{{
 
   void startWithLeader(raft::Id id);
   void start();
+  void stop();
+  void waitUntilAllStopped();
 
   TestServer* getInstance(raft::Id id);
 };
@@ -221,7 +236,8 @@ void TestServerPod::enableBreakOnConsensus() {
     s->server()->onStateChanged = [&](raft::Server* s, raft::ServerState oldState) {
       logDebug("TestServerPod", "onStateChanged[$0]: $1 ~> $2", s->id(), oldState, s->state());
       if (isConsensusReached()) {
-        executor.breakLoop();
+        // XXX usleep(Duration(1000_milliseconds).microseconds());
+        stop();
       }
     };
   }
@@ -261,6 +277,19 @@ void TestServerPod::start() {
   };
 }
 
+void TestServerPod::stop() {
+  for (auto& s: servers) {
+    s->server()->stop();
+  }
+}
+
+void TestServerPod::waitUntilAllStopped() {
+  executor.joinAll();
+  for (auto& s: servers) {
+    s->server()->waitUntilStopped();
+  }
+}
+
 TestServer* TestServerPod::getInstance(raft::Id id) {
   for (auto& i: servers) {
     if (i->server()->id() == id) {
@@ -276,7 +305,7 @@ TEST(raft_Server, leaderElection) {
   TestServerPod pod;
   pod.enableBreakOnConsensus();
   pod.start();
-  pod.executor.runLoop();
+  pod.waitUntilAllStopped();
 
   // now, leader election must have been taken place
   // 1 leader and 2 followers must exist
@@ -288,7 +317,7 @@ TEST(raft_Server, startWithLeader) {
   TestServerPod pod;
   pod.enableBreakOnConsensus();
   pod.startWithLeader(1);
-  pod.executor.runLoop();
+  pod.waitUntilAllStopped();
   ASSERT_TRUE(pod.isConsensusReached());
   ASSERT_TRUE(pod.getInstance(1)->server()->isLeader());
 }
@@ -297,7 +326,7 @@ TEST(raft_Server, AppendEntries_single_entry) {
   TestServerPod pod;
   pod.enableBreakOnConsensus();
   pod.startWithLeader(1);
-  pod.executor.runLoop();
+  pod.waitUntilAllStopped();
   ASSERT_TRUE(pod.isConsensusReached());
   ASSERT_TRUE(pod.getInstance(1)->server()->isLeader());
 
@@ -311,12 +340,12 @@ TEST(raft_Server, AppendEntries_single_entry) {
       applyCount++;
       if (applyCount == 3) {
         logf("onApplyCommand: breaking loop with applyCount = $0", applyCount);
-        pod.executor.breakLoop();
+        pod.stop();
       }
     };
   }
 
-  pod.executor.runLoop();
+  pod.waitUntilAllStopped();
 
   ASSERT_EQ(4, pod.getInstance(1)->get(2));
   ASSERT_EQ(4, pod.getInstance(2)->get(2));
@@ -327,7 +356,7 @@ TEST(raft_Server, AppendEntries_batched_entries) {
   TestServerPod pod;
   pod.enableBreakOnConsensus();
   pod.startWithLeader(1);
-  pod.executor.runLoop();
+  pod.waitUntilAllStopped();
   ASSERT_TRUE(pod.isConsensusReached());
   ASSERT_TRUE(pod.getInstance(1)->server()->isLeader());
 
@@ -347,12 +376,12 @@ TEST(raft_Server, AppendEntries_batched_entries) {
       applyCount++;
       if (applyCount == 9) {
         logf("onApplyCommand: breaking loop with applyCount = $0", applyCount);
-        pod.executor.breakLoop();
+        pod.stop();
       }
     };
   }
 
-  pod.executor.runLoop();
+  pod.waitUntilAllStopped();
 
   ASSERT_EQ(4, pod.getInstance(1)->get(2));
   ASSERT_EQ(4, pod.getInstance(2)->get(2));
@@ -371,7 +400,7 @@ TEST(raft_Server, AppendEntries_not_leading_err) {
   TestServerPod pod;
   pod.enableBreakOnConsensus();
   pod.startWithLeader(1);
-  pod.executor.runLoop();
+  pod.waitUntilAllStopped();
   ASSERT_TRUE(pod.isConsensusReached());
   ASSERT_TRUE(pod.getInstance(1)->server()->isLeader());
 
@@ -389,7 +418,7 @@ TEST(raft_Server, sendCommandAsync) {
   TestServerPod pod;
   pod.enableBreakOnConsensus();
   pod.startWithLeader(1);
-  pod.executor.runLoop();
+  pod.waitUntilAllStopped();
   ASSERT_TRUE(pod.isConsensusReached());
   ASSERT_TRUE(pod.getInstance(1)->server()->isLeader());
 
@@ -400,26 +429,26 @@ TEST(raft_Server, sendCommandAsync) {
       applyCount++;
       if (applyCount == 3) {
         logf("onApplyCommand: breaking loop with applyCount = $0", applyCount);
-        pod.executor.breakLoop();
+        pod.stop();
       }
     };
   }
 
-  Future<raft::Index> f = pod.getInstance(1)->setAsync(2, 4);
+  Future<raft::Reply> f = pod.getInstance(1)->setAsync(2, 4);
 
-  pod.executor.runLoop();
+  pod.waitUntilAllStopped();
 
   ASSERT_EQ(4, pod.getInstance(1)->get(2));
   ASSERT_EQ(4, pod.getInstance(2)->get(2));
   ASSERT_EQ(4, pod.getInstance(3)->get(2));
-  ASSERT_EQ(1, f.get());
+  ASSERT_EQ(0, BinaryReader(f.get()).parseVarUInt());
 }
 
 TEST(raft_Server, sendCommandAsync_batched) {
   TestServerPod pod;
   pod.enableBreakOnConsensus();
   pod.startWithLeader(1);
-  pod.executor.runLoop();
+  pod.waitUntilAllStopped();
   ASSERT_TRUE(pod.isConsensusReached());
   ASSERT_TRUE(pod.getInstance(1)->server()->isLeader());
 
@@ -430,16 +459,16 @@ TEST(raft_Server, sendCommandAsync_batched) {
       applyCount++;
       if (applyCount == 9) {
         logf("onApplyCommand: breaking loop with applyCount = $0", applyCount);
-        pod.executor.breakLoop();
+        pod.stop();
       }
     };
   }
 
-  Future<raft::Index> f = pod.getInstance(1)->setAsync(1, 2);
-  Future<raft::Index> g = pod.getInstance(1)->setAsync(3, 4);
-  Future<raft::Index> h = pod.getInstance(1)->setAsync(5, 6);
+  Future<raft::Reply> f = pod.getInstance(1)->setAsync(1, 2);
+  Future<raft::Reply> g = pod.getInstance(1)->setAsync(3, 4);
+  Future<raft::Reply> h = pod.getInstance(1)->setAsync(5, 6);
 
-  pod.executor.runLoop();
+  pod.waitUntilAllStopped();
 
   ASSERT_EQ(2, pod.getInstance(1)->get(1));
   ASSERT_EQ(2, pod.getInstance(2)->get(1));
@@ -453,7 +482,7 @@ TEST(raft_Server, sendCommandAsync_batched) {
   ASSERT_EQ(6, pod.getInstance(2)->get(5));
   ASSERT_EQ(6, pod.getInstance(3)->get(5));
 
-  ASSERT_EQ(1, f.get());
-  ASSERT_EQ(2, g.get());
-  ASSERT_EQ(3, h.get());
+  ASSERT_EQ(0, BinaryReader(f.get()).parseVarUInt());
+  ASSERT_EQ(0, BinaryReader(g.get()).parseVarUInt());
+  ASSERT_EQ(0, BinaryReader(h.get()).parseVarUInt());
 }

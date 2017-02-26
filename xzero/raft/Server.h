@@ -10,13 +10,14 @@
 #include <xzero/raft/Handler.h>
 #include <xzero/raft/Transport.h>
 #include <xzero/raft/Error.h>
-#include <xzero/executor/Executor.h>
+#include <xzero/executor/ThreadedExecutor.h>
 #include <xzero/thread/Future.h>
 #include <xzero/thread/Wakeup.h>
 #include <xzero/DeadlineTimer.h>
 #include <xzero/Duration.h>
 #include <xzero/MonotonicTime.h>
 #include <xzero/Option.h>
+#include <xzero/Result.h>
 #include <initializer_list>
 #include <unordered_map>
 #include <atomic>
@@ -32,8 +33,6 @@ enum class ServerState {
   Candidate,
   Leader,
 };
-
-typedef std::unordered_map<Id, Index> ServerIndexMap;
 
 class Storage;
 class Discovery;
@@ -55,8 +54,7 @@ class Server : public Handler {
    * @param stateMachine The finite state machine to apply the replication log's
    *                     commands onto.
    */
-  Server(Executor* executor,
-         Id id,
+  Server(Id id,
          Storage* storage,
          const Discovery* discovery,
          Transport* transport,
@@ -86,8 +84,7 @@ class Server : public Handler {
    * @param commitTimeout Time frame until when a commit into the StateMachine
    *                      must be be completed.
    */
-  Server(Executor* executor,
-         Id id,
+  Server(Id id,
          Storage* storage,
          const Discovery* discovery,
          Transport* transport,
@@ -101,13 +98,13 @@ class Server : public Handler {
   ~Server();
 
   Id id() const noexcept { return id_; }
-  Index commitIndex() const noexcept { return commitIndex_; }
-  Index lastApplied() const noexcept { return lastApplied_; }
 
+  Index commitIndex() const noexcept { return commitIndex_.load(); }
+  Index lastApplied() const noexcept { return lastApplied_.load(); }
   ServerState state() const noexcept { return state_; }
-  bool isFollower() const noexcept { return state_ == ServerState::Follower; }
-  bool isCandidate() const noexcept { return state_ == ServerState::Candidate; }
-  bool isLeader() const noexcept { return state_ == ServerState::Leader; }
+  bool isFollower() const noexcept { return state() == ServerState::Follower; }
+  bool isCandidate() const noexcept { return state() == ServerState::Candidate; }
+  bool isLeader() const noexcept { return state() == ServerState::Leader; }
 
   Storage* storage() const noexcept { return storage_; }
   const Discovery* discovery() const noexcept { return discovery_; }
@@ -130,6 +127,8 @@ class Server : public Handler {
 
   /**
    * Starts the Server and assumes that @p leaderId is the current cluster leader.
+   *
+   * Iff this server happens to be the leader, it'll start <b>as</b> leader.
    */
   std::error_code startWithLeader(Id leaderId);
 
@@ -143,19 +142,22 @@ class Server : public Handler {
   void stop();
 
   /**
-   * Sends given @p command to the Raft cluster.
+   * Blocks caller and waits until this server has stopped.
    */
-  std::error_code sendCommand(Command&& command);
+  void waitUntilStopped();
 
   /**
-   * Sends given @p command to the Raft cluster but doesn't wait for its
-   * completion.
+   * Sends given @p command to the Raft cluster.
+   */
+  Result<Reply> sendCommand(Command&& command);
+
+  /**
+   * Sends given @p command to the Raft cluster.
    *
    * @param command the command to be replicated.
-   * @return a Future<> telling when the majority of nodes have committed the
-   *         entry.
+   * @return a Future<> containing the result of the command.
    */
-  Future<Index> sendCommandAsync(Command&& command);
+  Future<Reply> sendCommandAsync(Command&& command);
 
   /**
    * Verifies whether or not this Server is (still) a #ServerState::Leader.
@@ -191,20 +193,26 @@ class Server : public Handler {
   void onTimeout();
   void sendVoteRequest();
   void setCurrentTerm(Term newTerm);
-  void setState(ServerState newState);
+  bool setState(ServerState newState);
   void setupLeader();
+  void convertToFollower(Id newLeaderId, Term leaderTerm);
   Index latestIndex();
   Term getLogTerm(Index index);
   void wakeupReplicationTo(Id peerId);
-  void replicateLogsWithWakeupTo(Id peerId);
-  void onFollowerTimeout(Id peerId);
+  void replicationLoop(Id followerId);
   void replicateLogsTo(Id peerId);
   bool tryLoadLogEntries(Index first, std::vector<LogEntry>* entries);
+  void applyLogsLoop();
   void applyLogs();
-  MonotonicTime nextHeartbeat() const;
+
+  /**
+   * Computes a new commitIndex based on the majority that each peers's
+   * matchIndex shares.
+   */
+  Index computeCommitIndex();
 
  private:
-  Executor* executor_;
+  ThreadedExecutor executor_;
   Id id_;
   Id currentLeaderId_;
   Storage* storage_;
@@ -212,6 +220,7 @@ class Server : public Handler {
   Transport* transport_;
   StateMachine* stateMachine_;
   ServerState state_;
+  std::mutex stateLock_;
   MonotonicTime nextHeartbeat_;
   DeadlineTimer timer_;
 
@@ -221,45 +230,52 @@ class Server : public Handler {
   Duration heartbeatTimeout_;
   Duration electionTimeout_;
   Duration commitTimeout_;
-  size_t maxCommandsPerMessage_; //!< number of commands to batch in an AppendEntriesRequest
-  size_t maxCommandsSizePerMessage_;//!< total size in bytes of all log entries per AppendEntriesRequest
+  size_t maxCommandsPerMessage_;      //!< number of commands to batch in an AppendEntriesRequest
+  size_t maxCommandsSizePerMessage_;  //!< total size in bytes of all log entries per AppendEntriesRequest
 
   // ------------------- volatile state ---------------------------------------
+  Wakeup shutdownWakeup_;
+  Wakeup applyLogsWakeup_;
+
+  //! holds access to shared state of this server.
+  std::mutex serverLock_;
 
   //! index of highest log entry known to be committed (initialized to 0,
   //! increases monotonically)
-  Index commitIndex_;
+  std::atomic<Index> commitIndex_;
 
   //! index of highest log entry applied to state machine (initialized to 0,
   //! increases monotonically)
-  Index lastApplied_;
+  std::atomic<Index> lastApplied_;
 
   // ------------------- volatile state on candidates -------------------------
   size_t votesGranted_;
 
   // ------------------- volatile state on leaders ----------------------------
-  //! for each server, index of the next log entry
-  //! to send to that server (initialized to leader
-  //! last log index + 1)
-  ServerIndexMap nextIndex_;
+  struct FollowerState {
+    //! index of the next log entry
+    //! to send to that server (initialized to leader
+    //! last log index + 1)
+    Index nextIndex;
 
-  //! for each server, index of highest log entry
-  //! known to be replicated on server
-  //! (initialized to 0, increases monotonically)
-  ServerIndexMap matchIndex_;
+    //! index of highest log entry
+    //! known to be replicated on server
+    //! (initialized to 0, increases monotonically)
+    Index matchIndex;
 
-  //! for each server, timestamp of next heartbeat.
-  std::unordered_map<Id, MonotonicTime> nextHeartbeats_;
+    //! handle to wake up the replication thread
+    Wakeup wakeup;
 
-  //! for each server, a handle to wakeup the replication feed
-  std::unordered_map<Id, Wakeup> wakeups_;
+    //! timestamp when the next heartbeat should occur
+    MonotonicTime nextHeartbeat;
+  };
 
-  //! for each server, a handle to the heartbeat timer
-  std::unordered_map<Id, std::unique_ptr<DeadlineTimer>> followerTimeouts_;
+  //! for each follower, the volatile state
+  std::unordered_map<Id, FollowerState> followers_;
 
-  //! Ordered list of <Index, Promise> pairs to complete when the given index
-  //! has been committed.
-  std::list<std::pair<Index, Promise<Index>>> commitPromises_;
+  //! `<Index, Promise>` pairs to complete when the given index
+  //! has been committed & applied to the local state machine.
+  std::unordered_map<Index, Promise<Reply>> appliedPromises_;
 
  public:
   std::function<void(Server* self, ServerState oldState)> onStateChanged;

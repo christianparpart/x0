@@ -21,7 +21,7 @@ class RaftTestFSM : public StateMachine { // {{{
  public:
   bool loadSnapshot(std::unique_ptr<InputStream>&& input) override;
   bool saveSnapshot(std::unique_ptr<OutputStream>&& output) override;
-  void applyCommand(const Command& command) override;
+  raft::Reply applyCommand(const Command& command) override;
 };
 
 bool RaftTestFSM::loadSnapshot(std::unique_ptr<InputStream>&& input) {
@@ -32,7 +32,8 @@ bool RaftTestFSM::saveSnapshot(std::unique_ptr<OutputStream>&& output) {
   return false;
 }
 
-void RaftTestFSM::applyCommand(const Command& command) {
+raft::Reply RaftTestFSM::applyCommand(const Command& command) {
+  return raft::Reply();
 }
 // }}}
 class RaftTestHandler : public Handler { // {{{

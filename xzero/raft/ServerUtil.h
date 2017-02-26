@@ -15,13 +15,7 @@ namespace raft {
 
 class ServerUtil {
  public:
-  /**
-   * Computes the index that the majority of the given input @p set contains.
-   */
-  static Index majorityIndexOf(const ServerIndexMap& set);
-
   static Duration alleviatedDuration(Duration base);
-
   static Duration cumulativeDuration(Duration base);
 };
 

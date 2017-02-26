@@ -6,6 +6,7 @@
 // the License at: http://opensource.org/licenses/MIT
 
 #include <xzero/raft/Discovery.h>
+#include <xzero/raft/Error.h>
 #include <xzero/logging.h>
 
 namespace xzero {
@@ -44,7 +45,7 @@ Result<std::string> StaticDiscovery::getAddress(Id serverId) const {
     return Result<std::string>(i->second);
   }
 
-  return Failuref("No server found with Id $0.", serverId);
+  return std::make_error_code(RaftError::ServerNotFound);
 }
 
 Result<Id> StaticDiscovery::getId(const std::string& address) const {
@@ -52,7 +53,7 @@ Result<Id> StaticDiscovery::getId(const std::string& address) const {
   if (i != reverse_.end()) {
     return Result<Id>(i->second);
   }
-  return Failuref("No server found with address $0.", address);
+  return std::make_error_code(RaftError::ServerNotFound);
 }
 
 } // namespace raft
