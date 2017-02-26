@@ -23,6 +23,7 @@ class BinaryReader {
   BinaryReader(const uint8_t* begin, const uint8_t* end);
   BinaryReader(const uint8_t* data, size_t length);
   BinaryReader(const BufferRef& data);
+  BinaryReader(const std::vector<uint8_t>& data);
 
   void reset(const BufferRef& data);
 
@@ -59,6 +60,11 @@ inline BinaryReader::BinaryReader(const uint8_t* data, size_t length) :
 inline BinaryReader::BinaryReader(const BufferRef& data)
   : BinaryReader((const uint8_t*) data.begin(),
                  (const uint8_t*) data.end()) {
+}
+
+inline BinaryReader::BinaryReader(const std::vector<uint8_t>& data)
+  : BinaryReader((const uint8_t*) &data[0],
+                 (const uint8_t*) &data[0] + data.size()) {
 }
 
 inline void BinaryReader::reset(const BufferRef& data) {
