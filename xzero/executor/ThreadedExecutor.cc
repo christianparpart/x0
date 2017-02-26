@@ -8,12 +8,19 @@
 #include <xzero/executor/ThreadedExecutor.h>
 #include <xzero/executor/PosixScheduler.h>
 #include <xzero/executor/ThreadPool.h>
+#include <xzero/thread/Wakeup.h>
+#include <xzero/Application.h>
 #include <xzero/RuntimeError.h>
+#include <xzero/WallClock.h>
 #include <xzero/sysconfig.h>
 #include <memory>
 #include <algorithm>
 #include <limits>
 #include <pthread.h>
+
+#ifdef HAVE_UNISTD_H
+#include <unistd.h>
+#endif
 
 namespace xzero {
 
@@ -65,29 +72,16 @@ void* ThreadedExecutor::launchme(void* ptr) {
 }
 
 void ThreadedExecutor::execute(const std::string& name, Task task) {
-  pthread_t tid;
   auto runner = [this, name, task]() {
+    pthread_t tid = pthread_self();
 #if defined(HAVE_DECL_PTHREAD_SETNAME_NP) && HAVE_DECL_PTHREAD_SETNAME_NP
 # if XZERO_OS_DARWIN
     // on Darwin you can only set thread rhead name for your own thread
     pthread_setname_np(name.c_str());
 # else
-    pthread_setname_np(pthread_self(), name.c_str());
+    pthread_setname_np(tid, name.c_str());
 # endif
 #endif
-    safeCall(task);
-  };
-  pthread_create(&tid, NULL, &launchme, new Task{std::move(runner)});
-
-  std::lock_guard<std::mutex> lock(mutex_);
-  threads_.push_back(tid);
-}
-
-void ThreadedExecutor::execute(Task task) {
-  pthread_t tid = 0;
-  //pthread_create(&tid, NULL, &launchme, new Task{std::move(task)});
-  pthread_create(&tid, NULL, &launchme, new Task([this, task]{
-    pthread_t tid = pthread_self();
     safeCall(task);
     {
       TRACE("task $0 finished. getting lock for cleanup", ThreadPool::getThreadName(&tid));
@@ -98,9 +92,17 @@ void ThreadedExecutor::execute(Task task) {
         threads_.erase(i);
       }
     }
-  }));
+  };
+
+  pthread_t tid;
+  pthread_create(&tid, NULL, &launchme, new Task{std::move(runner)});
+
   std::lock_guard<std::mutex> lock(mutex_);
   threads_.push_back(tid);
+}
+
+void ThreadedExecutor::execute(Task task) {
+  execute(Application::appName(), task);
 }
 
 Executor::HandleRef ThreadedExecutor::executeOnReadable(int fd, Task task, Duration timeout, Task onTimeout) {
@@ -120,15 +122,31 @@ void ThreadedExecutor::cancelFD(int fd) {
 }
 
 Executor::HandleRef ThreadedExecutor::executeAfter(Duration delay, Task task) {
-  RAISE(NotImplementedError); // TODO
+  HandleRef hr(new Handle(nullptr));
+  execute([this, task, hr, delay] {
+    usleep(delay.microseconds());
+    safeCall([&] { hr->fire(task); });
+  });
+  return hr;
 }
 
-Executor::HandleRef ThreadedExecutor::executeAt(UnixTime ts, Task task) {
-  RAISE(NotImplementedError); // TODO
+Executor::HandleRef ThreadedExecutor::executeAt(UnixTime dt, Task task) {
+  HandleRef hr(new Handle(nullptr));
+  execute([this, task, hr, dt] {
+    UnixTime now = WallClock::now();
+    if (dt > now) {
+      Duration delay = dt - now;
+      usleep(delay.microseconds());
+    }
+    safeCall([&] { hr->fire(task); });
+  });
+  return hr;
 }
 
 void ThreadedExecutor::executeOnWakeup(Task task, Wakeup* wakeup, long generation) {
-  RAISE(NotImplementedError); // TODO
+  wakeup->onWakeup(generation, [this, task] {
+    execute(task);
+  });
 }
 
 std::string ThreadedExecutor::toString() const {
