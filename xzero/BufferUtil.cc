@@ -114,4 +114,12 @@ std::function<void(const uint8_t*, size_t)> BufferUtil::writer(Buffer* output) {
   };
 }
 
+std::function<void(const uint8_t*, size_t)> BufferUtil::writer(std::vector<uint8_t>* output) {
+  return [output](const uint8_t* data, size_t len) {
+    for (size_t i = 0; i < len; ++i) {
+      output->push_back(data[i]);
+    }
+  };
+}
+
 } // namespace xzero

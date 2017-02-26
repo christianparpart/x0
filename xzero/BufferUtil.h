@@ -59,6 +59,7 @@ public:
   static bool endsWithIgnoreCase(const BufferRef& data, const BufferRef& suffix);
 
   static std::function<void(const uint8_t*, size_t)> writer(Buffer* output);
+  static std::function<void(const uint8_t*, size_t)> writer(std::vector<uint8_t>* output);
 };
 
 } // namespace xzero
