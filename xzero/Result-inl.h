@@ -6,32 +6,40 @@
 // the License at: http://opensource.org/licenses/MIT
 
 #include <xzero/RuntimeError.h>
+#include <xzero/Status.h>
 #include <xzero/StringUtil.h>
 
 template<typename T>
 inline Result<T>::Result(const T& value)
   : success_(true),
-    failureMessage_() {
+    error_() {
   new (storage_) T(value);
 }
 
 template<typename T>
 inline Result<T>::Result(T&& value)
   : success_(true),
-    failureMessage_() {
+    error_() {
   new (storage_) T(std::move(value));
 }
 
 template<typename T>
-inline Result<T>::Result(_FailureMessage&& failure)
+inline Result<T>::Result(const std::error_code& ec)
   : success_(false),
-    failureMessage_(std::move(failure.message)) {
+    error_(ec) {
+  if (!error_) {
+    using xzero::Status;
+    using xzero::RuntimeError;
+
+    // "received an error_code in Result, but there is no error."
+    RAISE(InternalError);
+  }
 }
 
 template<typename T>
 Result<T>::Result(Result&& other)
     : success_(other.success_),
-      failureMessage_(std::move(other.failureMessage_)) {
+      error_(std::move(other.error_)) {
   if (success_) {
     new (storage_) T(std::move(*other.get()));
     other.get()->~T();
@@ -62,8 +70,13 @@ inline bool Result<T>::isFailure() const noexcept {
 }
 
 template<typename T>
-inline const std::string& Result<T>::failureMessage() const noexcept {
-  return failureMessage_;
+inline const std::string Result<T>::failureMessage() const {
+  return error_.message();
+}
+
+template<typename T>
+inline const std::error_code& Result<T>::error() const noexcept {
+  return error_;
 }
 
 template<typename T>
@@ -105,16 +118,6 @@ inline void Result<T>::require() const {
 
   if (isFailure())
     RAISE(IllegalStateError);
-}
-
-inline _FailureMessage Failure(const std::string& message) {
-  return _FailureMessage(std::move(message));
-}
-
-template<typename... Args>
-inline _FailureMessage Failuref(const std::string& fmt, Args... args) {
-  std::string message = ::xzero::StringUtil::format(fmt, args...);
-  return _FailureMessage(std::move(message));
 }
 
 template<typename T>

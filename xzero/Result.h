@@ -9,12 +9,7 @@
 // Inspired by Mesos' libprocess Result<>
 
 #include <string>
-
-struct _FailureMessage {
-  explicit _FailureMessage(const std::string& msg) : message(msg) {}
-  explicit _FailureMessage(std::string&& msg) : message(std::move(msg)) {}
-  std::string message;
-};
+#include <system_error>
 
 /**
  * @brief Result<T> gives you the opportunity to either return some value or an error.
@@ -41,14 +36,15 @@ class Result {
  public:
   Result(const T& value);
   Result(T&& value);
-  Result(_FailureMessage&& message);
+  Result(const std::error_code& message);
   Result(Result&& other);
   ~Result();
 
   operator bool () const noexcept;
   bool isSuccess() const noexcept;
   bool isFailure() const noexcept;
-  const std::string& failureMessage() const noexcept;
+  const std::string failureMessage() const;
+  const std::error_code& error() const noexcept;
 
   T* get();
   const T* get() const;
@@ -64,7 +60,7 @@ class Result {
  private:
   bool success_;
   unsigned char storage_[sizeof(T)];
-  std::string failureMessage_;
+  std::error_code error_;
 };
 
 /**
@@ -78,13 +74,5 @@ Result<T> Success(const T& value);
  */
 template<typename T>
 Result<T> Success(T&& value);
-
-/**
- * Generates Result<T> helper object that represents a failure with given @p message.
- */
-_FailureMessage Failure(const std::string& message);
-
-template<typename... Args>
-_FailureMessage Failuref(const std::string& fmt, Args... args);
 
 #include <xzero/Result-inl.h>

@@ -9,19 +9,11 @@
 #include <xzero/Result.h>
 
 TEST(Result, Failure) {
-  Result<int> t = Failure("fnord");
+  Result<int> t = std::make_error_code(std::errc::result_out_of_range);
 
   ASSERT_FALSE(t.isSuccess());
   ASSERT_TRUE(t.isFailure());
-  ASSERT_EQ("fnord", t.failureMessage());
-}
-
-TEST(Result, Failuref) {
-  Result<int> t = Failuref("Hello, $0", "world");
-
-  ASSERT_FALSE(t.isSuccess());
-  ASSERT_TRUE(t.isFailure());
-  ASSERT_EQ("Hello, world", t.failureMessage());
+  ASSERT_EQ(std::errc::result_out_of_range, t.error());
 }
 
 TEST(Result, Success) {
