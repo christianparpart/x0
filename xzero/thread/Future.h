@@ -10,6 +10,7 @@
 #include <xzero/Api.h>
 #include <xzero/RefCounted.h>
 #include <xzero/RefPtr.h>
+#include <xzero/Result.h>
 #include <xzero/Duration.h>
 #include <xzero/RuntimeError.h>
 #include <xzero/thread/Wakeup.h>
@@ -74,7 +75,9 @@ class XZERO_BASE_API Future {
 
   T& get();
   const T& get() const;
+  const std::error_code& error() const;
   const T& waitAndGet() const;
+  Result<T> waitAndGetResult() const;
 
   Wakeup* wakeup() const;
 
@@ -90,6 +93,9 @@ class XZERO_BASE_API Promise {
   Promise(const Promise<T>& other);
   Promise(Promise<T>&& other);
   ~Promise();
+
+  Promise<T>& operator=(const Promise<T>& other);
+  Promise<T>& operator=(Promise&& other);
 
   void success(const T& value) const;
   void success(T&& value) const;

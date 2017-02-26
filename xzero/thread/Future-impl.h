@@ -125,6 +125,20 @@ const T& Future<T>::get() const {
 }
 
 template <typename T>
+const std::error_code& Future<T>::error() const {
+  std::unique_lock<std::mutex> lk(state_->mutex);
+
+  if (!state_->ready) {
+    RAISE(FutureError, "error() called on pending future");
+  }
+
+  if (!state_->error)
+    RAISE(InternalError, "erorr() called but no error received");
+
+  return state_->error;
+}
+
+template <typename T>
 Wakeup* Future<T>::wakeup() const {
   return &state_->wakeup;
 }
@@ -133,6 +147,16 @@ template <typename T>
 const T& Future<T>::waitAndGet() const {
   wait();
   return get();
+}
+
+template <typename T>
+Result<T> Future<T>::waitAndGetResult() const {
+  wait();
+  if (isFailure()) {
+    return Result<T>(state_->error);
+  } else {
+    return Result<T>(get());
+  }
 }
 
 template <typename T>
@@ -146,6 +170,18 @@ Promise<T>::Promise(Promise<T>&& other) : state_(std::move(other.state_)) {}
 
 template <typename T>
 Promise<T>::~Promise() {}
+
+template <typename T>
+Promise<T>& Promise<T>::operator=(const Promise<T>& other) {
+  state_ = other.state_;
+  return *this;
+}
+
+template <typename T>
+Promise<T>& Promise<T>::operator=(Promise&& other) {
+  state_ = std::move(other.state_);
+  return *this;
+}
 
 template <typename T>
 Future<T> Promise<T>::future() const {
