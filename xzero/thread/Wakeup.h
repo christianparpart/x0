@@ -7,6 +7,7 @@
 #pragma once
 
 #include <xzero/Api.h>
+#include <xzero/Duration.h>
 #include <condition_variable>
 #include <atomic>
 #include <mutex>
@@ -41,6 +42,9 @@ class XZERO_BASE_API Wakeup {
    *                   Any generation number bigger this will wakeup the caller.
    */
   void waitForWakeup(long generation);
+
+  void waitFor(Duration timeout);
+  void waitFor(Duration timeout, long oldgen);
 
   /**
    * Increments the generation and invokes all waiters.

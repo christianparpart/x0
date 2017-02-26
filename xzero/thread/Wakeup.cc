@@ -6,6 +6,7 @@
 // the License at: http://opensource.org/licenses/MIT
 
 #include <xzero/thread/Wakeup.h>
+#include <chrono>
 
 namespace xzero {
 
@@ -24,6 +25,20 @@ void Wakeup::waitForWakeup(long oldgen) {
   std::unique_lock<std::mutex> l(mutex_);
 
   condvar_.wait(l, [this, oldgen] {
+    return gen_.load() > oldgen;
+  });
+}
+
+void Wakeup::waitFor(Duration timeout) {
+  waitFor(timeout, generation());
+}
+
+void Wakeup::waitFor(Duration timeout, long oldgen) {
+  std::unique_lock<std::mutex> l(mutex_);
+
+  std::chrono::milliseconds rel_time(timeout.milliseconds());
+
+  condvar_.wait_for(l, rel_time, [this, oldgen] {
     return gen_.load() > oldgen;
   });
 }
