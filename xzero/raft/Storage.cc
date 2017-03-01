@@ -80,7 +80,7 @@ std::error_code MemoryStore::appendLogEntry(const LogEntry& log) {
 }
 
 Future<Index> MemoryStore::appendLogEntryAsync(const LogEntry& log) {
-  logDebug("MemoryStore", "appendLogEntry: at index:$0, $1", log_.size(), log);
+  logDebug("MemoryStore", "appendLogEntryAsync: at index:$0, $1", log_.size(), log);
 
   Promise<Index> promise;
 

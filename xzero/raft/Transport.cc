@@ -294,7 +294,8 @@ Handler* LocalTransport::getPeer(Id id) {
   if (i != peers_.end()) {
     return i->second;
   } else {
-    return nullptr;
+    logError("raft", "LocalTransport($0).getPeer($1) failed.", myId_, id);
+    RAISE_ERROR(std::make_error_code(RaftError::ServerNotFound));
   }
 }
 

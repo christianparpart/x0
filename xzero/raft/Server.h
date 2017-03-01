@@ -234,6 +234,7 @@ class Server : public Handler {
   size_t maxCommandsSizePerMessage_;  //!< total size in bytes of all log entries per AppendEntriesRequest
 
   // ------------------- volatile state ---------------------------------------
+  std::atomic<bool> running_;
   Wakeup shutdownWakeup_;
   Wakeup applyLogsWakeup_;
 

@@ -127,7 +127,6 @@ class TestServer { // {{{
 
  private:
   TestKeyValueStore stateMachine_;
-  ThreadedExecutor executor_;
   raft::MemoryStore storage_;
   raft::LocalTransport transport_;
   raft::Server raftServer_;
@@ -162,11 +161,8 @@ std::error_code TestServer::set(int key, int value) {
   logDebug("TestServer", "set($0, $1): $2", key, value,
       StringUtil::hexPrint(cmd.data(), cmd.size()));
 
-  Future<raft::Reply> f = raftServer_.sendCommandAsync(std::move(cmd));
-  std::error_code ec;
-  f.onFailure([&](const std::error_code& error) { ec = error; });
-  f.wait();
-  return ec;
+  Result<raft::Reply> result = raftServer_.sendCommand(std::move(cmd));
+  return result.error();
 }
 
 Future<raft::Reply> TestServer::setAsync(int key, int value) {
@@ -192,18 +188,23 @@ struct TestServerPod { // {{{
   ThreadedExecutor executor;
   const raft::StaticDiscovery discovery;
   std::vector<std::unique_ptr<TestServer>> servers;
+  Wakeup consensusReached;
 
   TestServerPod();
 
-  void enableBreakOnConsensus();
+  void onApplyCommand(std::function<void(raft::Id, int, int)> fn);
+  void enableStopOnConsensus();
   bool isConsensusReached() const;
+  raft::Id getLeaderId() const;
 
   void startWithLeader(raft::Id id);
   void start();
   void stop();
   void waitUntilAllStopped();
+  void waitForConsensus();
 
   TestServer* getInstance(raft::Id id);
+  TestServer* getLeader();
 };
 
 TestServerPod::TestServerPod()
@@ -231,7 +232,7 @@ TestServerPod::TestServerPod()
   }
 }
 
-void TestServerPod::enableBreakOnConsensus() {
+void TestServerPod::enableStopOnConsensus() {
   for (auto& s: servers) {
     s->server()->onStateChanged = [&](raft::Server* s, raft::ServerState oldState) {
       logDebug("TestServerPod", "onStateChanged[$0]: $1 ~> $2", s->id(), oldState, s->state());
@@ -250,6 +251,7 @@ bool TestServerPod::isConsensusReached() const {
   for (const auto& s: servers) {
     switch (s->server()->state()) {
       case raft::ServerState::Leader:
+        logDebug("TestServerPod", "isConsensusReached: leader = $0", s->server()->id());
         leaderCount++;
         break;
       case raft::ServerState::Follower:
@@ -277,6 +279,16 @@ void TestServerPod::start() {
   };
 }
 
+void TestServerPod::onApplyCommand(
+    std::function<void(raft::Id, int, int)> callback) {
+  for (auto& s: servers) {
+    s->fsm()->onApplyCommand = std::bind(callback,
+                                         s->server()->id(), 
+                                         std::placeholders::_1,
+                                         std::placeholders::_2);
+  }
+}
+
 void TestServerPod::stop() {
   for (auto& s: servers) {
     s->server()->stop();
@@ -284,10 +296,43 @@ void TestServerPod::stop() {
 }
 
 void TestServerPod::waitUntilAllStopped() {
-  executor.joinAll();
   for (auto& s: servers) {
     s->server()->waitUntilStopped();
   }
+  executor.joinAll();
+}
+
+void TestServerPod::waitForConsensus() {
+  for (auto& s: servers) {
+    s->server()->onStateChanged = [&](raft::Server* s, raft::ServerState oldState) {
+      logDebug("TestServerPod", "onStateChanged[$0]: $1 ~> $2", s->id(), oldState, s->state());
+      if (isConsensusReached()) {
+        // XXX usleep(Duration(1000_milliseconds).microseconds());
+        consensusReached.wakeup();
+      }
+    };
+  }
+
+  if (!isConsensusReached()) {
+    logDebug("TestServerPod", "waitForConsensus...");
+    consensusReached.waitForNextWakeup();
+    logDebug("TestServerPod", "waitForConsensus... reached!");
+  } else {
+    logDebug("TestServerPod", "waitForConsensus... reached straight");
+  }
+}
+
+TestServer* TestServerPod::getLeader() {
+  return getInstance(getLeaderId());
+}
+
+raft::Id TestServerPod::getLeaderId() const {
+  for (const auto& s: servers) {
+    if (s->server()->isLeader()) {
+      return s->server()->id();
+    }
+  }
+  return 0;
 }
 
 TestServer* TestServerPod::getInstance(raft::Id id) {
@@ -303,7 +348,7 @@ TestServer* TestServerPod::getInstance(raft::Id id) {
 
 TEST(raft_Server, leaderElection) {
   TestServerPod pod;
-  pod.enableBreakOnConsensus();
+  pod.enableStopOnConsensus();
   pod.start();
   pod.waitUntilAllStopped();
 
@@ -315,7 +360,7 @@ TEST(raft_Server, leaderElection) {
 
 TEST(raft_Server, startWithLeader) {
   TestServerPod pod;
-  pod.enableBreakOnConsensus();
+  pod.enableStopOnConsensus();
   pod.startWithLeader(1);
   pod.waitUntilAllStopped();
   ASSERT_TRUE(pod.isConsensusReached());
@@ -324,26 +369,22 @@ TEST(raft_Server, startWithLeader) {
 
 TEST(raft_Server, AppendEntries_single_entry) {
   TestServerPod pod;
-  pod.enableBreakOnConsensus();
   pod.startWithLeader(1);
-  pod.waitUntilAllStopped();
-  ASSERT_TRUE(pod.isConsensusReached());
-  ASSERT_TRUE(pod.getInstance(1)->server()->isLeader());
+  pod.waitForConsensus();
 
-  std::error_code err = pod.getInstance(1)->set(2, 4);
+  std::mutex applyCountLock;
+  std::atomic<int> applyCount(0);
+  pod.onApplyCommand([&](raft::Id serverId, int key, int value) {
+    std::lock_guard<std::mutex> _lk(applyCountLock);
+    applyCount++;
+    logf("onApplyCommand(server: $0, key: $1, value: $2): $3", serverId, key, value, applyCount.load());
+    if (applyCount == 3) {
+      pod.stop();
+    }
+  });
+
+  std::error_code err = pod.getLeader()->set(2, 4);
   ASSERT_FALSE(err);
-
-  int applyCount = 0;
-  for (raft::Id id = 1; id <= 3; ++id) {
-    pod.getInstance(id)->fsm()->onApplyCommand = [&](int key, int value) {
-      logf("onApplyCommand for instance $0 = $1", key, value);
-      applyCount++;
-      if (applyCount == 3) {
-        logf("onApplyCommand: breaking loop with applyCount = $0", applyCount);
-        pod.stop();
-      }
-    };
-  }
 
   pod.waitUntilAllStopped();
 
@@ -354,135 +395,156 @@ TEST(raft_Server, AppendEntries_single_entry) {
 
 TEST(raft_Server, AppendEntries_batched_entries) {
   TestServerPod pod;
-  pod.enableBreakOnConsensus();
   pod.startWithLeader(1);
+  pod.waitForConsensus();
+
+  std::mutex applyCountLock;
+  std::atomic<int> applyCount(0);
+  pod.onApplyCommand([&](raft::Id serverId, int key, int value) {
+    std::lock_guard<std::mutex> _lk(applyCountLock);
+    applyCount++;
+    logf("onApplyCommand(server: $0, key: $1, value: $2): $3", serverId, key, value, applyCount.load());
+    if (applyCount == 9) {
+      pod.stop();
+    }
+  });
+
+  pod.getLeader()->setAsync(1, 11);
+  pod.getLeader()->setAsync(2, 22);
+  pod.getLeader()->setAsync(3, 33);
+
   pod.waitUntilAllStopped();
-  ASSERT_TRUE(pod.isConsensusReached());
-  ASSERT_TRUE(pod.getInstance(1)->server()->isLeader());
 
-  std::error_code err = pod.getInstance(1)->set(2, 4);
-  ASSERT_FALSE(err);
+  ASSERT_EQ(11, pod.getInstance(1)->get(1));
+  ASSERT_EQ(11, pod.getInstance(2)->get(1));
+  ASSERT_EQ(11, pod.getInstance(3)->get(1));
 
-  err = pod.getInstance(1)->set(3, 6);
-  ASSERT_FALSE(err);
+  ASSERT_EQ(22, pod.getInstance(1)->get(2));
+  ASSERT_EQ(22, pod.getInstance(2)->get(2));
+  ASSERT_EQ(22, pod.getInstance(3)->get(2));
 
-  err = pod.getInstance(1)->set(4, 7);
-  ASSERT_FALSE(err);
+  ASSERT_EQ(33, pod.getInstance(1)->get(3));
+  ASSERT_EQ(33, pod.getInstance(2)->get(3));
+  ASSERT_EQ(33, pod.getInstance(3)->get(3));
+}
 
-  int applyCount = 0;
-  for (raft::Id id = 1; id <= 3; ++id) {
-    pod.getInstance(id)->fsm()->onApplyCommand = [&](int key, int value) {
-      logf("onApplyCommand for instance $0 = $1", key, value);
-      applyCount++;
-      if (applyCount == 9) {
-        logf("onApplyCommand: breaking loop with applyCount = $0", applyCount);
-        pod.stop();
-      }
-    };
-  }
+TEST(raft_Server, AppendEntries_async_single) {
+  TestServerPod pod;
+  pod.startWithLeader(1);
+
+  std::mutex applyCountLock;
+  std::atomic<int> applyCount(0);
+  pod.onApplyCommand([&](raft::Id serverId, int key, int value) {
+    std::lock_guard<std::mutex> _lk(applyCountLock);
+    applyCount++;
+    logf("onApplyCommand(server: $0, key: $1, value: $2): $3", serverId, key, value, applyCount.load());
+    if (applyCount == 3) {
+      pod.stop();
+    }
+  });
+
+  Future<raft::Reply> f = pod.getLeader()->setAsync(2, 4);
+  f.wait();
 
   pod.waitUntilAllStopped();
 
   ASSERT_EQ(4, pod.getInstance(1)->get(2));
   ASSERT_EQ(4, pod.getInstance(2)->get(2));
   ASSERT_EQ(4, pod.getInstance(3)->get(2));
+  ASSERT_EQ(0, BinaryReader(f.get()).parseVarUInt());
+}
 
-  ASSERT_EQ(6, pod.getInstance(1)->get(3));
-  ASSERT_EQ(6, pod.getInstance(2)->get(3));
-  ASSERT_EQ(6, pod.getInstance(3)->get(3));
+TEST(raft_Server, AppendEntries_async_batched) {
+  TestServerPod pod;
+  pod.startWithLeader(1);
 
-  ASSERT_EQ(7, pod.getInstance(1)->get(4));
-  ASSERT_EQ(7, pod.getInstance(2)->get(4));
-  ASSERT_EQ(7, pod.getInstance(3)->get(4));
+  std::mutex applyCountLock;
+  std::atomic<int> applyCount(0);
+  pod.onApplyCommand([&](raft::Id serverId, int key, int value) {
+    std::lock_guard<std::mutex> _lk(applyCountLock);
+    applyCount++;
+    logf("onApplyCommand(server: $0, key: $1, value: $2): $3", serverId, key, value, applyCount.load());
+    if (applyCount == 9) {
+      pod.stop();
+    }
+  });
+
+
+  Future<raft::Reply> f = pod.getInstance(1)->setAsync(1, 11);
+  Future<raft::Reply> g = pod.getInstance(1)->setAsync(2, 22);
+  Future<raft::Reply> h = pod.getInstance(1)->setAsync(3, 33);
+
+  ASSERT_EQ(0, BinaryReader(f.waitAndGet()).parseVarUInt());
+  ASSERT_EQ(0, BinaryReader(g.waitAndGet()).parseVarUInt());
+  ASSERT_EQ(0, BinaryReader(h.waitAndGet()).parseVarUInt());
+
+  pod.waitUntilAllStopped();
+
+  ASSERT_EQ(11, pod.getInstance(1)->get(1));
+  ASSERT_EQ(11, pod.getInstance(2)->get(1));
+  ASSERT_EQ(11, pod.getInstance(3)->get(1));
+
+  ASSERT_EQ(22, pod.getInstance(1)->get(2));
+  ASSERT_EQ(22, pod.getInstance(2)->get(2));
+  ASSERT_EQ(22, pod.getInstance(3)->get(2));
+
+  ASSERT_EQ(33, pod.getInstance(1)->get(3));
+  ASSERT_EQ(33, pod.getInstance(2)->get(3));
+  ASSERT_EQ(33, pod.getInstance(3)->get(3));
+}
+
+TEST(raft_Server, AppendEntries_update) {
+  TestServerPod pod;
+  pod.startWithLeader(1);
+
+  int applyCount = 0;
+  for (raft::Id id = 1; id <= 3; ++id) {
+    pod.getInstance(id)->fsm()->onApplyCommand = [&](int key, int value) {
+      logf("onApplyCommand for instance $0 = $1", key, value);
+      applyCount++;
+      if (applyCount == 6) {
+        logf("onApplyCommand: breaking loop with applyCount = $0", applyCount);
+        pod.stop();
+      }
+    };
+  }
+
+  Future<raft::Reply> f = pod.getInstance(1)->setAsync(1, 1);
+  Future<raft::Reply> g = pod.getInstance(1)->setAsync(1, 2);
+
+  ASSERT_EQ(0, BinaryReader(f.get()).parseVarUInt());
+  ASSERT_EQ(1, BinaryReader(g.waitAndGet()).parseVarUInt());
+  ASSERT_EQ(2, pod.getLeader()->get(1));
+  pod.waitUntilAllStopped();
 }
 
 TEST(raft_Server, AppendEntries_not_leading_err) {
   TestServerPod pod;
-  pod.enableBreakOnConsensus();
   pod.startWithLeader(1);
-  pod.waitUntilAllStopped();
-  ASSERT_TRUE(pod.isConsensusReached());
-  ASSERT_TRUE(pod.getInstance(1)->server()->isLeader());
+  pod.waitForConsensus();
 
-  std::error_code err = pod.getInstance(1)->set(2, 4);
+  std::mutex applyCountLock;
+  std::atomic<int> applyCount(0);
+  pod.onApplyCommand([&](raft::Id serverId, int key, int value) {
+    std::lock_guard<std::mutex> _lk(applyCountLock);
+    applyCount++;
+    logf("onApplyCommand(server: $0, key: $1, value: $2): $3", serverId, key, value, applyCount.load());
+    if (applyCount == 3) {
+      pod.stop();
+    }
+  });
+
+  std::error_code err;
+  
+  err = pod.getInstance(3)->set(3, 33);
+  EXPECT_EQ(std::make_error_code(RaftError::NotLeading), err);
+
+  err = pod.getInstance(2)->set(2, 22);
+  EXPECT_EQ(std::make_error_code(RaftError::NotLeading), err);
+
+  err = pod.getInstance(1)->set(1, 11);
   EXPECT_EQ(std::error_code(), err);
 
-  err = pod.getInstance(2)->set(2, 4);
-  EXPECT_EQ(std::make_error_code(RaftError::NotLeading), err);
-
-  err = pod.getInstance(3)->set(2, 4);
-  EXPECT_EQ(std::make_error_code(RaftError::NotLeading), err);
-}
-
-TEST(raft_Server, sendCommandAsync) {
-  TestServerPod pod;
-  pod.enableBreakOnConsensus();
-  pod.startWithLeader(1);
+  log("waitUntilStopped");
   pod.waitUntilAllStopped();
-  ASSERT_TRUE(pod.isConsensusReached());
-  ASSERT_TRUE(pod.getInstance(1)->server()->isLeader());
-
-  int applyCount = 0;
-  for (raft::Id id = 1; id <= 3; ++id) {
-    pod.getInstance(id)->fsm()->onApplyCommand = [&](int key, int value) {
-      logf("onApplyCommand for instance $0 = $1", key, value);
-      applyCount++;
-      if (applyCount == 3) {
-        logf("onApplyCommand: breaking loop with applyCount = $0", applyCount);
-        pod.stop();
-      }
-    };
-  }
-
-  Future<raft::Reply> f = pod.getInstance(1)->setAsync(2, 4);
-
-  pod.waitUntilAllStopped();
-
-  ASSERT_EQ(4, pod.getInstance(1)->get(2));
-  ASSERT_EQ(4, pod.getInstance(2)->get(2));
-  ASSERT_EQ(4, pod.getInstance(3)->get(2));
-  ASSERT_EQ(0, BinaryReader(f.get()).parseVarUInt());
-}
-
-TEST(raft_Server, sendCommandAsync_batched) {
-  TestServerPod pod;
-  pod.enableBreakOnConsensus();
-  pod.startWithLeader(1);
-  pod.waitUntilAllStopped();
-  ASSERT_TRUE(pod.isConsensusReached());
-  ASSERT_TRUE(pod.getInstance(1)->server()->isLeader());
-
-  int applyCount = 0;
-  for (raft::Id id = 1; id <= 3; ++id) {
-    pod.getInstance(id)->fsm()->onApplyCommand = [&](int key, int value) {
-      logf("onApplyCommand for instance $0 = $1", key, value);
-      applyCount++;
-      if (applyCount == 9) {
-        logf("onApplyCommand: breaking loop with applyCount = $0", applyCount);
-        pod.stop();
-      }
-    };
-  }
-
-  Future<raft::Reply> f = pod.getInstance(1)->setAsync(1, 2);
-  Future<raft::Reply> g = pod.getInstance(1)->setAsync(3, 4);
-  Future<raft::Reply> h = pod.getInstance(1)->setAsync(5, 6);
-
-  pod.waitUntilAllStopped();
-
-  ASSERT_EQ(2, pod.getInstance(1)->get(1));
-  ASSERT_EQ(2, pod.getInstance(2)->get(1));
-  ASSERT_EQ(2, pod.getInstance(3)->get(1));
-
-  ASSERT_EQ(4, pod.getInstance(1)->get(3));
-  ASSERT_EQ(4, pod.getInstance(2)->get(3));
-  ASSERT_EQ(4, pod.getInstance(3)->get(3));
-
-  ASSERT_EQ(6, pod.getInstance(1)->get(5));
-  ASSERT_EQ(6, pod.getInstance(2)->get(5));
-  ASSERT_EQ(6, pod.getInstance(3)->get(5));
-
-  ASSERT_EQ(0, BinaryReader(f.get()).parseVarUInt());
-  ASSERT_EQ(0, BinaryReader(g.get()).parseVarUInt());
-  ASSERT_EQ(0, BinaryReader(h.get()).parseVarUInt());
 }
