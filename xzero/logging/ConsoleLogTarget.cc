@@ -66,7 +66,13 @@ std::string ConsoleLogTarget::createTimestamp() const {
   if (timestampEnabled_ == false)
     return "";
 
-  return WallClock::now().toString("%Y-%m-%d %H:%M:%S ");
+  char buf[7];
+  UnixTime now = WallClock::now();
+  snprintf(buf, sizeof(buf), "%06lu", now.unixMicros() % 1000000);
+
+  return StringUtil::format("$0.$1 ",
+                            now.toString("%Y-%m-%d %H:%M:%S"),
+                            buf);
 }
 
 } // namespace xzero
