@@ -226,6 +226,8 @@ void Server::sendVoteRequest() {
 }
 
 void Server::onTimeout() {
+  std::lock_guard<decltype(serverLock_)> _lk(serverLock_);
+
   if (!running_)
     return;
 
