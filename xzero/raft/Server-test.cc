@@ -10,7 +10,7 @@
 #include <xzero/raft/Server.h>
 #include <xzero/raft/StateMachine.h>
 #include <xzero/raft/Discovery.h>
-#include <xzero/raft/Transport.h>
+#include <xzero/raft/LocalTransport.h>
 #include <xzero/raft/Storage.h>
 #include <xzero/util/BinaryReader.h>
 #include <xzero/util/BinaryWriter.h>

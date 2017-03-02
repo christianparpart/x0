@@ -6,7 +6,7 @@
 // the License at: http://opensource.org/licenses/MIT
 #include <xzero/testing.h>
 #include <xzero/raft/Discovery.h>
-#include <xzero/raft/Transport.h>
+#include <xzero/raft/InetTransport.h>
 #include <xzero/raft/StateMachine.h>
 #include <xzero/raft/Storage.h>
 #include <xzero/raft/Server.h>

@@ -190,6 +190,8 @@ libXzero_a_SOURCES = \
 	xzero/raft/Discovery.cc \
 	xzero/raft/Error.cc \
 	xzero/raft/Generator.cc \
+	xzero/raft/InetTransport.cc \
+	xzero/raft/LocalTransport.cc \
 	xzero/raft/MessageType.cc \
 	xzero/raft/Parser.cc \
 	xzero/raft/rpc.cc \
@@ -555,10 +557,10 @@ xzero_test_SOURCES = \
 	xzero/MimeTypes-test.cc \
 	xzero/Option-test.cc \
 	xzero/raft/Generator-test.cc \
+	xzero/raft/InetTransport-test.cc \
 	xzero/raft/Parser-test.cc \
 	xzero/raft/Server-test.cc \
 	xzero/raft/ServerUtil-test.cc \
-	xzero/raft/Transport-test.cc \
 	xzero/RefPtr-test.cc \
 	xzero/Result-test.cc \
 	xzero/StringUtil-test.cc \
