@@ -42,8 +42,8 @@ Server::Server(Id id,
       : Server(id, storage, discovery, transport, sm,
                5,                   // maxCommandsPerMessage
                1024,                // maxCommandsSizePerMessage
-               250_milliseconds,    // heartbeatTimeout
-               500_milliseconds,    // electionTimeout
+               500_milliseconds,    // heartbeatTimeout
+               250_milliseconds,    // electionTimeout
                500_milliseconds) {  // commitTimeout
 }
 
