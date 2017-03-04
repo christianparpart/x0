@@ -113,8 +113,11 @@ TEST(raft_InetTransport, handshake) {
                               {2, "127.0.0.2:1708"} };
 
   std::shared_ptr<LocalConnector> connector(new LocalConnector(&executor));
+  auto endpointCreator = [&](const std::string& address) -> RefPtr<EndPoint> {
+    return nullptr;
+  };
   std::shared_ptr<InetTransport> transport(new InetTransport(
-      &discovery, &executor, connector));
+      &discovery, &executor, endpointCreator, connector));
   connector->addConnectionFactory(transport);
   connector->start();
 
@@ -134,8 +137,11 @@ TEST(raft_InetTransport, no_handshake) {
                               {2, "127.0.0.2:1708"} };
 
   std::shared_ptr<LocalConnector> connector(new LocalConnector(&executor));
+  auto endpointCreator = [&](const std::string& address) -> RefPtr<EndPoint> {
+    return nullptr;
+  };
   std::shared_ptr<InetTransport> transport(new InetTransport(
-      &discovery, &executor, connector));
+      &discovery, &executor, endpointCreator, connector));
   connector->addConnectionFactory(transport);
   connector->start();
 
@@ -156,8 +162,11 @@ TEST(raft_InetTransport, receive_framed_response) {
                               {2, "127.0.0.2:1708"} };
 
   std::shared_ptr<LocalConnector> connector(new LocalConnector(&executor));
+  auto endpointCreator = [&](const std::string& address) -> RefPtr<EndPoint> {
+    return nullptr;
+  };
   std::shared_ptr<InetTransport> transport(new InetTransport(
-      &discovery, &executor, connector));
+      &discovery, &executor, endpointCreator, connector));
   connector->addConnectionFactory(transport);
   connector->start();
 
@@ -179,8 +188,11 @@ TEST(raft_InetTransport, unknown_message) {
                               {2, "127.0.0.2:1708"} };
 
   std::shared_ptr<LocalConnector> connector(new LocalConnector(&executor));
+  auto endpointCreator = [&](const std::string& address) -> RefPtr<EndPoint> {
+    return nullptr;
+  };
   std::shared_ptr<InetTransport> transport(new InetTransport(
-      &discovery, &executor, connector));
+      &discovery, &executor, endpointCreator, connector));
   connector->addConnectionFactory(transport);
   connector->start();
 
@@ -201,8 +213,11 @@ TEST(raft_InetTransport, zero_length_message) {
                               {2, "127.0.0.2:1708"} };
 
   std::shared_ptr<LocalConnector> connector(new LocalConnector(&executor));
+  auto endpointCreator = [&](const std::string& address) -> RefPtr<EndPoint> {
+    return nullptr;
+  };
   std::shared_ptr<InetTransport> transport(new InetTransport(
-      &discovery, &executor, connector));
+      &discovery, &executor, endpointCreator, connector));
   connector->addConnectionFactory(transport);
   connector->start();
 

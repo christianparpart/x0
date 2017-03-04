@@ -13,32 +13,34 @@
 #include <xzero/raft/Generator.h>
 #include <xzero/raft/Parser.h>
 #include <xzero/net/EndPoint.h>
-#include <xzero/net/InetEndPoint.h>
-#include <xzero/net/InetConnector.h>
 #include <xzero/BufferUtil.h>
 #include <xzero/logging.h>
 
 namespace xzero {
 namespace raft {
 
-// {{{ PeerConnection
 /**
- * PeerConnection represents an incoming peer commection.
+ * PeerConnection represents peer commection for InetTransport.
+ *
+ * Reading is performed non-blocking whereas writing is performed blocking.
  */
 class PeerConnection
   : public Connection,
     public Listener {
  public:
-  PeerConnection(Connector* connector,
+  PeerConnection(InetTransport* mgr,
+                 Executor* executor,
+                 Handler* handler,
                  EndPoint* endpoint,
-                 Handler* handler);
+                 Id peerId = 0);
 
   // Connection override (connection-endpoint hooks)
   void onOpen(bool dataReady) override;
+  void onClose() override;
   void onFillable() override;
   void onFlushable() override;
 
-  // Listener overrides (parser hooks)
+  // Listener overrides for parser
   void receive(const HelloRequest& message) override;
   void receive(const HelloResponse& message) override;
   void receive(const VoteRequest& message) override;
@@ -49,6 +51,7 @@ class PeerConnection
   void receive(const InstallSnapshotRequest& message) override;
 
  private:
+  InetTransport* manager_;
   Id peerId_;
   Buffer inputBuffer_;
   Buffer outputBuffer_;
@@ -57,11 +60,14 @@ class PeerConnection
   Parser parser_;
 };
 
-PeerConnection::PeerConnection(Connector* connector,
+PeerConnection::PeerConnection(InetTransport* manager,
+                               Executor* executor,
+                               Handler* handler,
                                EndPoint* endpoint,
-                               Handler* handler)
-  : Connection(endpoint, connector->executor()),
-    peerId_(0),
+                               Id peerId)
+  : Connection(endpoint, executor),
+    manager_(manager),
+    peerId_(peerId),
     inputBuffer_(4096),
     outputBuffer_(4096),
     outputOffset_(0),
@@ -69,13 +75,24 @@ PeerConnection::PeerConnection(Connector* connector,
     parser_(this) {
 }
 
+void PeerConnection::onClose() {
+  Connection::onClose();
+
+  if (peerId_ != 0) {
+    manager_->onClose(peerId_);
+  }
+}
+
 void PeerConnection::onOpen(bool dataReady) {
   Connection::onOpen(dataReady);
 
-  if (dataReady) {
-    onFillable();
-  } else {
-    wantFill();
+  if (peerId_ == 0) {
+    // XXX this is an incoming connection.
+    if (dataReady) {
+      onFillable();
+    } else {
+      wantFill();
+    }
   }
 }
 
@@ -119,6 +136,7 @@ void PeerConnection::receive(const HelloRequest& req) {
 }
 
 void PeerConnection::receive(const HelloResponse& res) {
+  handler_->handleResponse(peerId_, res);
 }
 
 void PeerConnection::receive(const VoteRequest& req) {
@@ -171,17 +189,21 @@ void PeerConnection::receive(const InstallSnapshotResponse& res) {
     handler_->handleResponse(peerId_, res);
   }
 }
-// }}}
 
-// {{{ InetTransport
+// ----------------------------------------------------------------------------
+
 InetTransport::InetTransport(const Discovery* discovery,
                              Executor* handlerExecutor,
+                             EndPointCreator endpointCreator,
                              std::shared_ptr<Connector> connector)
   : ConnectionFactory("raft"),
     discovery_(discovery),
     handler_(nullptr),
     handlerExecutor_(handlerExecutor),
-    connector_(connector) {
+    endpointCreator_(endpointCreator),
+    connector_(connector),
+    endpointLock_(),
+    endpoints_() {
 }
 
 InetTransport::~InetTransport() {
@@ -194,31 +216,56 @@ void InetTransport::setHandler(Handler* handler) {
 Connection* InetTransport::create(Connector* connector,
                                   EndPoint* endpoint) {
   return configure(
-      endpoint->setConnection<PeerConnection>(connector,
-                                              endpoint,
-                                              handler_),
+      endpoint->setConnection<PeerConnection>(this,
+                                              connector->executor(),
+                                              handler_,
+                                              endpoint),
       connector);
 }
 
 RefPtr<EndPoint> InetTransport::getEndPoint(Id target) {
-  constexpr Duration connectTimeout = 5_seconds;
-  constexpr Duration readTimeout = 5_seconds;
-  constexpr Duration writeTimeout = 5_seconds;
+  {
+    std::lock_guard<decltype(endpointLock_)> lk(endpointLock_);
+    auto i = endpoints_.find(target);
+    if (i != endpoints_.end()) {
+      RefPtr<EndPoint> ep = i->second;
+      endpoints_.erase(i);
+      ep->setBlocking(false);
+      return ep;
+    }
+  }
 
   Result<std::string> address = discovery_->getAddress(target);
   if (address.isFailure())
     return nullptr;
 
-  // TODO: make ourself independant from TCP/IP here and also allow other EndPoint's.
-  // TODO: add endpoint pooling, to reduce resource hogging.
-  RefPtr<EndPoint> ep = InetEndPoint::connect(
-      InetAddress(*address),
-      connectTimeout,
-      readTimeout,
-      writeTimeout,
-      connector_->executor());
+  RefPtr<EndPoint> ep = endpointCreator_(*address);
+  if (ep) {
+    ep->setConnection<PeerConnection>(this,
+                                      handlerExecutor_,
+                                      handler_,
+                                      ep.get(),
+                                      target);
+  }
 
   return ep;
+}
+
+void InetTransport::watchEndPoint(Id target, RefPtr<EndPoint> ep) {
+  std::lock_guard<decltype(endpointLock_)> lk(endpointLock_);
+
+  endpoints_[target] = ep;
+  ep->setBlocking(false);
+  ep->wantFill();
+}
+
+void InetTransport::onClose(Id target) {
+  std::lock_guard<decltype(endpointLock_)> lk(endpointLock_);
+
+  auto i = endpoints_.find(target);
+  if (i != endpoints_.end()) {
+    endpoints_.erase(i);
+  }
 }
 
 void InetTransport::send(Id target, const VoteRequest& msg) {
@@ -226,7 +273,7 @@ void InetTransport::send(Id target, const VoteRequest& msg) {
     Buffer buffer;
     Generator(BufferUtil::writer(&buffer)).generateVoteRequest(msg);
     ep->flush(buffer);
-    consumeResponse(target, ep);
+    watchEndPoint(target, ep);
   }
 }
 
@@ -235,7 +282,7 @@ void InetTransport::send(Id target, const AppendEntriesRequest& msg) {
     Buffer buffer;
     Generator(BufferUtil::writer(&buffer)).generateAppendEntriesRequest(msg);
     ep->flush(buffer);
-    consumeResponse(target, ep);
+    watchEndPoint(target, ep);
   }
 }
 
@@ -244,14 +291,9 @@ void InetTransport::send(Id target, const InstallSnapshotRequest& msg) {
     Buffer buffer;
     Generator(BufferUtil::writer(&buffer)).generateInstallSnapshotRequest(msg);
     ep->flush(buffer);
-    consumeResponse(target, ep);
+    watchEndPoint(target, ep);
   }
 }
-
-void InetTransport::consumeResponse(Id target, RefPtr<EndPoint> ep) {
-  // TODO
-}
-// }}}
 
 } // namespace raft
 } // namespace xzero
