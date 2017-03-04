@@ -67,8 +67,10 @@ void DeadlineTimer::touch() {
 
 void DeadlineTimer::start() {
   assert(onTimeout_ && "No timeout callback defined");
-  if (!active_) {
-    active_ = true;
+  bool cur = active_.load();
+  if (!cur && active_.compare_exchange_strong(cur, true,
+                                              std::memory_order_release,
+                                              std::memory_order_relaxed)) {
     schedule();
   }
 }
@@ -118,13 +120,13 @@ void DeadlineTimer::schedule() {
 }
 
 void DeadlineTimer::onFired() {
-  TRACE("DeadlineTimer($0).onFired: active=$1", this, active_);
-  if (!active_) {
+  TRACE("DeadlineTimer($0).onFired: active=$1", this, isActive());
+  if (!isActive()) {
     return;
   }
 
   if (elapsed() >= timeout_) {
-    active_ = false;
+    active_.store(false);
     onTimeout_();
   } else if (isActive()) {
     reschedule();
@@ -132,7 +134,7 @@ void DeadlineTimer::onFired() {
 }
 
 bool DeadlineTimer::isActive() const {
-  return active_;
+  return active_.load();
 }
 
 template<>

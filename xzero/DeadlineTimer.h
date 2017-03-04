@@ -12,6 +12,7 @@
 #include <xzero/MonotonicTime.h>
 #include <xzero/executor/Executor.h>
 #include <functional>
+#include <atomic>
 
 namespace xzero {
 
@@ -64,7 +65,7 @@ class XZERO_BASE_API DeadlineTimer {
   Executor* executor_;
   Duration timeout_;
   MonotonicTime fired_;
-  bool active_;
+  std::atomic<bool> active_;
   std::function<void()> onTimeout_;
   Executor::HandleRef handle_;
 };
