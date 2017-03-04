@@ -10,7 +10,6 @@
 #include <xzero/http/HttpChannel.h>
 #include <xzero/http/HeaderFieldList.h>
 #include <xzero/http/http2/SettingParameter.h>
-#include <xzero/sysconfig.h>
 #include <list>
 #include <vector>
 #include <utility>

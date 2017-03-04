@@ -7,7 +7,6 @@
 
 #pragma once
 
-#include <xzero/sysconfig.h>
 #include <xzero/ExceptionHandler.h>
 
 #include <memory>

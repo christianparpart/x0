@@ -13,7 +13,6 @@
 #include <xzero/http/HttpChannel.h>
 #include <xzero/Buffer.h>
 #include <xzero/http/Api.h>
-#include <xzero/sysconfig.h>
 
 namespace xzero {
 

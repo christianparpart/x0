@@ -7,7 +7,6 @@
 
 #pragma once
 
-#include <xzero/sysconfig.h>
 #include <xzero/executor/PosixScheduler.h>
 
 #if defined(__linux__)

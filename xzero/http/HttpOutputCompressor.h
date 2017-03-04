@@ -8,7 +8,6 @@
 #pragma once
 
 #include <xzero/http/Api.h>
-#include <xzero/sysconfig.h>
 #include <unordered_map>
 #include <string>
 

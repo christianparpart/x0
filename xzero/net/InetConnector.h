@@ -8,7 +8,6 @@
 #pragma once
 
 #include <xzero/Api.h>
-#include <xzero/sysconfig.h>
 #include <xzero/net/Connector.h>
 #include <xzero/net/IPAddress.h>
 #include <xzero/io/FileDescriptor.h>

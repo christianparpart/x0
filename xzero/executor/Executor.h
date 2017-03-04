@@ -13,7 +13,6 @@
 #include <xzero/RefPtr.h>
 #include <xzero/Duration.h>
 #include <xzero/UnixTime.h>
-#include <xzero/sysconfig.h>
 
 #include <memory>
 #include <mutex>

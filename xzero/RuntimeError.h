@@ -10,7 +10,6 @@
 #include <xzero/Api.h>
 #include <xzero/Status.h>
 #include <xzero/StackTrace.h>
-#include <xzero/sysconfig.h>
 #include <iosfwd>
 #include <vector>
 #include <string>

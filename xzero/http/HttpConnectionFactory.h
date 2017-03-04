@@ -8,7 +8,6 @@
 #pragma once
 
 #include <xzero/http/Api.h>
-#include <xzero/sysconfig.h>
 #include <xzero/net/ConnectionFactory.h>
 #include <xzero/http/HttpHandler.h>
 #include <xzero/http/HttpDateGenerator.h>

@@ -15,7 +15,6 @@
 #include <xzero/http/fastcgi/bits.h>
 #include <xzero/io/FileView.h>
 #include <xzero/Buffer.h>
-#include <xzero/sysconfig.h>
 
 namespace xzero {
 

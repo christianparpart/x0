@@ -11,7 +11,6 @@
 #include <xzero/http/HeaderFieldList.h>
 #include <xzero/io/FileView.h>
 #include <xzero/Buffer.h>
-#include <xzero/sysconfig.h>
 #include <memory>
 
 namespace xzero {

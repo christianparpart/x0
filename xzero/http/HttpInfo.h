@@ -8,7 +8,6 @@
 #pragma once
 
 #include <xzero/http/Api.h>
-#include <xzero/sysconfig.h>
 #include <xzero/http/HttpVersion.h>
 #include <xzero/http/HeaderFieldList.h>
 #include <string>

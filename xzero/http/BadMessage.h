@@ -8,7 +8,6 @@
 #include <xzero/http/Api.h>
 #include <xzero/http/HttpStatus.h>
 #include <xzero/RuntimeError.h>
-#include <xzero/sysconfig.h>
 #include <system_error>
 
 namespace xzero {

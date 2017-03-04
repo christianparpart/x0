@@ -8,7 +8,6 @@
 #pragma once
 
 #include <xzero/Api.h>
-#include <xzero/sysconfig.h>
 #include <xzero/thread/Future.h>
 #include <xzero/net/EndPoint.h>
 #include <xzero/net/InetAddress.h>

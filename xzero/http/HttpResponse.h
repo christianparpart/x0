@@ -13,7 +13,6 @@
 #include <xzero/http/HttpResponseInfo.h>
 #include <xzero/http/HeaderFieldList.h>
 #include <xzero/CompletionHandler.h>
-#include <xzero/sysconfig.h>
 #include <memory>
 
 namespace xzero {

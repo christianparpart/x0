@@ -10,7 +10,6 @@
 #include <xzero/Api.h>
 #include <xzero/io/FileUtil.h>
 #include <xzero/io/FileDescriptor.h>
-#include <xzero/sysconfig.h>
 #include <xzero/Buffer.h>
 #include <cstdint>
 #include <unistd.h>

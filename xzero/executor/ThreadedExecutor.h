@@ -7,7 +7,6 @@
 
 #pragma once
 
-#include <xzero/sysconfig.h>
 #include <xzero/executor/Executor.h>
 #include <deque>
 #include <pthread.h>

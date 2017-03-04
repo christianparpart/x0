@@ -15,6 +15,7 @@
 #include <xzero/text/IniFile.h>
 #include <xzero/JsonWriter.h>
 #include <xzero/logging.h>
+#include <xzero/sysconfig.h>
 #include <algorithm>
 #include <sstream>
 

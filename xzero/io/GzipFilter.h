@@ -7,7 +7,6 @@
 
 #include <xzero/Api.h>
 #include <xzero/io/Filter.h>
-#include <xzero/sysconfig.h>
 #include <string>
 
 #include <zlib.h>

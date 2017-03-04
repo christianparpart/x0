@@ -8,7 +8,6 @@
 #pragma once
 
 #include <xzero/Api.h>
-#include <xzero/sysconfig.h>
 #include <cstdint>
 #include <string>
 

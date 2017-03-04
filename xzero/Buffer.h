@@ -9,7 +9,6 @@
 
 #include <xzero/Api.h>
 #include <xzero/RuntimeError.h>
-#include <xzero/sysconfig.h>
 #include <cstddef>
 #include <climits>
 #include <cstring>

@@ -8,7 +8,6 @@
 #pragma once
 
 #include <xzero/http/Api.h>
-#include <xzero/sysconfig.h>
 #include <xzero/Buffer.h>
 #include <xzero/http/HttpStatus.h>
 #include <memory>
