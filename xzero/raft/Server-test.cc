@@ -32,8 +32,8 @@ class TestKeyValueStore : public raft::StateMachine { // {{{
  public:
   TestKeyValueStore();
 
-  bool saveSnapshot(std::unique_ptr<OutputStream>&& output) override;
-  bool loadSnapshot(std::unique_ptr<InputStream>&& input) override;
+  std::error_code saveSnapshot(std::unique_ptr<OutputStream>&& output) override;
+  std::error_code loadSnapshot(std::unique_ptr<InputStream>&& input) override;
   raft::Reply applyCommand(const raft::Command& serializedCmd) override;
 
   int get(int key) const;
@@ -49,7 +49,7 @@ TestKeyValueStore::TestKeyValueStore()
       tuples_() {
 }
 
-bool TestKeyValueStore::saveSnapshot(std::unique_ptr<OutputStream>&& output) {
+std::error_code TestKeyValueStore::saveSnapshot(std::unique_ptr<OutputStream>&& output) {
   auto o = [&](const uint8_t* data, size_t len) {
     output->write((const char*) data, len);
   };
@@ -58,10 +58,10 @@ bool TestKeyValueStore::saveSnapshot(std::unique_ptr<OutputStream>&& output) {
     bw.writeVarUInt(pair.first);
     bw.writeVarUInt(pair.second);
   }
-  return true;
+  return std::error_code();
 }
 
-bool TestKeyValueStore::loadSnapshot(std::unique_ptr<InputStream>&& input) {
+std::error_code TestKeyValueStore::loadSnapshot(std::unique_ptr<InputStream>&& input) {
   tuples_.clear();
 
   Buffer buffer;
@@ -81,7 +81,7 @@ bool TestKeyValueStore::loadSnapshot(std::unique_ptr<InputStream>&& input) {
     }
     tuples_[a] = b;
   }
-  return true;
+  return std::error_code();
 }
 
 raft::Reply TestKeyValueStore::applyCommand(const raft::Command& command) {
