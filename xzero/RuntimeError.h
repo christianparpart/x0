@@ -124,7 +124,7 @@ inline RuntimeError::RuntimeError(const std::error_code& ec)
  * @param what_arg 3rd (optional) argument is the actual error message.
  */
 #define RAISE_CATEGORY(Code, ...) {                                           \
-  RAISE_EXCEPTION(RuntimeError, ((int) Code), __VA_ARGS__);                   \
+  RAISE_EXCEPTION(::xzero::RuntimeError, ((int) Code), __VA_ARGS__);                   \
 }
 
 /**
@@ -161,7 +161,7 @@ inline RuntimeError::RuntimeError(const std::error_code& ec)
  * @param StatusCode must be a member field of Status.
  */
 #define RAISE_STATUS(StatusCode)                                              \
-  RAISE_CATEGORY((Status:: StatusCode), StatusCategory::get())
+  RAISE_CATEGORY((::xzero::Status:: StatusCode), ::xzero::StatusCategory::get())
 
 /**
  * Alias to RAISE_STATUS(StatusCode).
