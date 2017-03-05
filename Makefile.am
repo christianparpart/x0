@@ -697,7 +697,7 @@ flow.7: docs/flow.7.pod
 dist_sysconf_DATA = x0d.conf
 
 pkgconfigdir = $(libdir)/pkgconfig
-pkgconfig_DATA = XzeroBase.pc XzeroFlow.pc
+pkgconfig_DATA = XzeroBase.pc XzeroFlow.pc XzeroTest.pc
 
 # vim:ts=8
 # EOF
