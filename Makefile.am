@@ -244,6 +244,8 @@ nobase_libXzero_HEADERS = \
 	xzero/RefCounted.h \
 	xzero/RefPtr.h \
 	xzero/RegExp.h \
+	xzero/Result-inl.h \
+	xzero/Result.h \
 	xzero/RuntimeError.h \
 	xzero/StackTrace.h \
 	xzero/Status.h \
@@ -437,6 +439,8 @@ nobase_libXzero_HEADERS = \
 	xzero/thread/Queue.h \
 	xzero/thread/SignalHandler.h \
 	xzero/thread/Wakeup.h \
+	xzero/util/BinaryReader.h \
+	xzero/util/BinaryWriter.h \
 	xzero/util/BinaryMessageReader.h \
 	xzero/util/BinaryMessageWriter.h \
 	xzero/util/SimpleRateLimit.h
