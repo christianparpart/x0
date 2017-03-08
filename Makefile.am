@@ -419,11 +419,13 @@ nobase_libXzero_HEADERS = \
 	xzero/raft/Error.h \
 	xzero/raft/Generator.h \
 	xzero/raft/Handler.h \
+	xzero/raft/InetTransport.h \
 	xzero/raft/Listener.h \
 	xzero/raft/MessageType.h \
 	xzero/raft/Parser.h \
 	xzero/raft/rpc.h \
 	xzero/raft/Server.h \
+	xzero/raft/Server-inl.h \
 	xzero/raft/ServerUtil.h \
 	xzero/raft/StateMachine.h \
 	xzero/raft/Storage.h \
