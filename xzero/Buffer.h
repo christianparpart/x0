@@ -260,7 +260,7 @@ class XZERO_BASE_API BufferRef : public BufferBase<char*> {
   /**
    * Initializes buffer reference with pointer to given std::string.
    */
-  explicit constexpr BufferRef(const std::string& v)
+  explicit BufferRef(const std::string& v)
       : BufferBase<char*>((data_type)v.data(), v.size()) {}
 
   constexpr BufferRef(const BufferRef& v) : BufferBase<char*>(v) {}
@@ -1635,14 +1635,16 @@ inline BufferSlice BufferSlice::slice(size_t offset, size_t count) const {
  *  view's size.
  */
 inline void BufferSlice::shl(ssize_t value) {
-  assert(data_.offset_ - value >= 0);
+  assert(static_cast<ssize_t>(data_.offset_) >= value);
   data_.offset_ -= value;
 }
 
 /** Shifts view's right margin by given bytes to the right, thus, increasing
  *  view's size.
  */
-inline void BufferSlice::shr(ssize_t value) { size_ += value; }
+inline void BufferSlice::shr(ssize_t value) {
+  size_ += value;
+}
 // }}}
 // {{{ free functions (concatenation) impl
 inline Buffer operator+(const BufferRef& a, const BufferRef& b) {
