@@ -7,6 +7,7 @@
 
 #include <xzero/io/OutputStream.h>
 #include <xzero/RuntimeError.h>
+#include <stdarg.h>
 
 namespace xzero {
 
