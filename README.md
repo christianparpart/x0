@@ -49,11 +49,10 @@ a number of standard plugins to become *your* web application server.
 
 ## Installation Requirements
 
-- gcc >= 4.8.0 (for building only, CLANG >= 3.5 is also supported)
-- cmake (for building only)
+- gcc >= 4.8.0 (for building only, CLANG >= 3.8 is also supported)
+- automake / autoconf (for building only)
 - zlib (optional & recommended, for compression)
 - OpenSSL (optional & recommended, for SSL/TLS encryption)
-- gtest (optional, for unit testing)
 
 ### Building from Source on Ubuntu 16.04:
 
