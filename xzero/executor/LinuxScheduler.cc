@@ -124,6 +124,8 @@ int LinuxScheduler::makeEvent(Mode mode) {
       return EPOLLIN;
     case Mode::WRITABLE:
       return EPOLLOUT;
+    default:
+      RAISE_STATUS(InvalidArgumentError);
   }
 }
 

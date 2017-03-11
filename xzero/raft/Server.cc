@@ -29,6 +29,8 @@ std::string StringUtil::toString(raft::ServerState s) {
       return "Candidate";
     case raft::ServerState::Leader:
       return "Leader";
+    default:
+      RAISE_STATUS(InvalidArgumentError);
   }
 }
 
