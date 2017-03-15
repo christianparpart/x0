@@ -266,7 +266,18 @@ void InetConnector::setDeferAccept(bool enable) {
 #if defined(TCP_DEFER_ACCEPT)
   int rc = enable ? 1 : 0;
   if (::setsockopt(socket_, SOL_TCP, TCP_DEFER_ACCEPT, &rc, sizeof(rc)) < 0) {
-    RAISE_ERRNO(errno);
+    switch (errno) {
+      case ENOPROTOOPT:
+      case ENOTSUP:
+#if defined(EOPNOTSUPP) && (EOPNOTSUPP != ENOTSUP)
+      case EOPNOTSUPP:
+#endif
+        logWarning("InetConnector", "setDeferAccept failed with $0. Ignoring",
+            strerror(errno));
+        break;
+      default:
+        RAISE_ERRNO(errno);
+    }
   }
   deferAccept_ = enable;
 #elif defined(SO_ACCEPTFILTER)
