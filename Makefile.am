@@ -34,7 +34,6 @@ AM_LDFLAGS = \
 
 lib_LIBRARIES += libXzeroTesting_main.a
 libXzeroTesting_main_a_SOURCES = xzero/testing_main.cc
-libXzeroTesting_main_a_LIBADD = libXzero.a
 
 ####### libXzero.a ############################################################
 
@@ -618,7 +617,9 @@ endif
 xzero_test_LDADD = \
 	libXzeroTesting_main.a \
 	libXzeroFlow.a \
-	libXzero.a
+	libXzero.a \
+	$(AM_LDFLAGS) \
+	$(PAM_LDFLAGS)
 
 ####### x0d ###################################################################
 
@@ -633,9 +634,7 @@ x0d_CXXFLAGS = \
 
 x0d_LDADD = \
 	libXzeroFlow.a \
-	libXzero.a
-
-x0d_LDFLAGS = \
+	libXzero.a \
 	$(AM_LDFLAGS) \
 	$(PAM_LDFLAGS)
 
