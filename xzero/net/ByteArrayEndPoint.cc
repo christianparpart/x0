@@ -69,17 +69,18 @@ std::string ByteArrayEndPoint::toString() const {
   return buf;
 }
 
-size_t ByteArrayEndPoint::fill(Buffer* sink) {
+size_t ByteArrayEndPoint::fill(Buffer* sink, size_t count) {
   if (closed_) {
     return 0;
   }
 
-  size_t n = sink->size();
-  sink->push_back(input_.ref(readPos_));
-  n = sink->size() - n;
-  readPos_ += n;
-  TRACE("$0 fill: $1 bytes", this, n);
-  return n;
+  const size_t bytesAvailable = input_.size() - readPos_;
+  const size_t actualBytes = std::min(bytesAvailable, count);
+
+  sink->push_back(input_.ref(readPos_, actualBytes));
+  readPos_ += actualBytes;
+  TRACE("$0 fill: $1 bytes", this, actualBytes);
+  return actualBytes;
 }
 
 size_t ByteArrayEndPoint::flush(const BufferRef& source) {

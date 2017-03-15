@@ -52,7 +52,8 @@ class XZERO_BASE_API ByteArrayEndPoint : public EndPoint {
   void close() override;
   bool isOpen() const override;
   std::string toString() const override;
-  size_t fill(Buffer*) override;
+  using EndPoint::fill;
+  size_t fill(Buffer* sink, size_t count) override;
   size_t flush(const BufferRef&) override;
   size_t flush(int fd, off_t offset, size_t size) override;
   void wantFill() override;

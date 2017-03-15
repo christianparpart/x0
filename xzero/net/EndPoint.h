@@ -75,15 +75,18 @@ class EndPoint : public RefCounted {
    */
   virtual void close() = 0;
 
+  size_t fill(Buffer* sink);
+
   /**
    * Fills given @p sink with what we can retrieve from this endpoint.
    *
    * @param sink the target buffer to fill with the bytes received.
+   * @param count number of bytes to fill at most.
    *
    * @return Number of bytes received from this endpoint and written
    *         to this sink.
    */
-  virtual size_t fill(Buffer* sink) = 0;
+  virtual size_t fill(Buffer* sink, size_t count) = 0;
 
   /**
    * Flushes given buffer @p source into this endpoint.

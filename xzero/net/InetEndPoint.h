@@ -92,7 +92,8 @@ class XZERO_BASE_API InetEndPoint : public EndPoint {
   bool isTcpNoDelay() const override;
   void setTcpNoDelay(bool enable) override;
   std::string toString() const override;
-  size_t fill(Buffer* result) override;
+  using EndPoint::fill;
+  size_t fill(Buffer* sink, size_t count) override;
   size_t flush(const BufferRef& source) override;
   size_t flush(int fd, off_t offset, size_t size) override;
   void wantFill() override;

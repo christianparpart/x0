@@ -111,13 +111,7 @@ void SslEndPoint::abort() {
 #endif
 }
 
-size_t SslEndPoint::fill(Buffer* sink) {
-  int space = sink->capacity() - sink->size();
-  if (space < 4 * 1024) {
-    sink->reserve(sink->capacity() + 8 * 1024);
-    space = sink->capacity() - sink->size();
-  }
-
+size_t SslEndPoint::fill(Buffer* sink, size_t space) {
   int rv = SSL_read(ssl_, sink->end(), space);
   if (rv > 0) {
     TRACE("$0 fill(Buffer:$1) -> $2", this, space, rv);

@@ -34,10 +34,12 @@ class XZERO_BASE_API SslEndPoint : public EndPoint {
    */
   void abort();
 
+  using EndPoint::fill;
+
   /**
    * Reads from remote endpoint and fills given buffer with it.
    */
-  size_t fill(Buffer* sink) override;
+  size_t fill(Buffer* sink, size_t count) override;
 
   /**
    * Appends given buffer into the pending buffer vector and attempts to flush.

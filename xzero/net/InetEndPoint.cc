@@ -214,9 +214,10 @@ std::string InetEndPoint::toString() const {
   return buf;
 }
 
-size_t InetEndPoint::fill(Buffer* result) {
-  result->reserve(result->size() + 1024);
-  ssize_t n = read(handle(), result->end(), result->capacity() - result->size());
+size_t InetEndPoint::fill(Buffer* result, size_t count) {
+  assert(count <= result->capacity() - result->size());
+
+  ssize_t n = read(handle(), result->end(), count);
   TRACE("read($0 bytes) -> $1", result->capacity() - result->size(), n);
 
   if (n < 0) {

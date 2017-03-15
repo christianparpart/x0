@@ -7,6 +7,7 @@
 
 #include <xzero/net/EndPoint.h>
 #include <xzero/net/Connection.h>
+#include <xzero/Buffer.h>
 #include <cassert>
 
 namespace xzero {
@@ -28,6 +29,16 @@ Option<InetAddress> EndPoint::remoteAddress() const {
 
 Option<InetAddress> EndPoint::localAddress() const {
   return None();
+}
+
+size_t EndPoint::fill(Buffer* sink) {
+  int space = sink->capacity() - sink->size();
+  if (space < 4 * 1024) {
+    sink->reserve(sink->capacity() + 8 * 1024);
+    space = sink->capacity() - sink->size();
+  }
+
+  return fill(sink, space);
 }
 
 }  // namespace xzero
