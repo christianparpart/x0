@@ -176,6 +176,7 @@ libXzero_a_SOURCES = \
 	xzero/net/InetAddress.cc \
 	xzero/net/InetConnector.cc \
 	xzero/net/InetEndPoint.cc \
+	xzero/net/InetUtil.cc \
 	xzero/net/LocalConnector.cc \
 	xzero/net/LocalDatagramConnector.cc \
 	xzero/net/LocalDatagramEndPoint.cc \
@@ -404,6 +405,7 @@ nobase_libXzero_HEADERS = \
 	xzero/net/InetAddress.h \
 	xzero/net/InetConnector.h \
 	xzero/net/InetEndPoint.h \
+	xzero/net/InetUtil.h \
 	xzero/net/LocalConnector.h \
 	xzero/net/LocalDatagramConnector.h \
 	xzero/net/LocalDatagramEndPoint.h \

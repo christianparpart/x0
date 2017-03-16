@@ -8,6 +8,7 @@
 #include <xzero/executor/EventLoop.h>
 #include <xzero/net/InetConnector.h>
 #include <xzero/net/InetEndPoint.h>
+#include <xzero/net/InetUtil.h>
 #include <xzero/net/ConnectionFactory.h>
 #include <xzero/net/Connection.h>
 #include <xzero/net/IPAddress.h>
@@ -138,7 +139,11 @@ void InetConnector::bind(const IPAddress& ipaddr, int port) {
 
   addressFamily_ = ipaddr.family();
   bindAddress_ = ipaddr;
-  port_ = port;
+  if (port != 0) {
+    port_ = port;
+  } else {
+    port_ = InetUtil::getLocalPort(socket_, addressFamily_);
+  }
 }
 
 void InetConnector::listen(int backlog) {
