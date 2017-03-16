@@ -503,10 +503,12 @@ RefPtr<EndPoint> InetConnector::createEndPoint(int cfd, Executor* executor) {
 }
 
 void InetConnector::onEndPointCreated(const RefPtr<EndPoint>& endpoint) {
-  // create Connection object for given endpoint
-  defaultConnectionFactory()->create(this, endpoint.get());
-
-  endpoint->connection()->onOpen(deferAccept());
+  if (connectionFactoryCount() > 1) {
+    endpoint.weak_as<InetEndPoint>()->startDetectProtocol(deferAccept());
+  } else {
+    defaultConnectionFactory()->create(this, endpoint.get());
+    endpoint->connection()->onOpen(deferAccept());
+  }
 }
 
 std::list<RefPtr<EndPoint>> InetConnector::connectedEndPoints() {

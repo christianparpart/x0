@@ -8,6 +8,8 @@
 #include <xzero/net/InetEndPoint.h>
 #include <xzero/net/InetConnector.h>
 #include <xzero/net/Connection.h>
+#include <xzero/net/ConnectionFactory.h>
+#include <xzero/util/BinaryReader.h>
 #include <xzero/io/FileUtil.h>
 #include <xzero/executor/Executor.h>
 #include <xzero/logging.h>
@@ -29,7 +31,7 @@ namespace xzero {
 
 #define ERROR(msg...) logError("net.InetEndPoint", msg)
 
-#if 0 // !defined(NDEBUG)
+#if !defined(NDEBUG)
 #define TRACE(msg...) logTrace("net.InetEndPoint", msg)
 #define DEBUG(msg...) logDebug("net.InetEndPoint", msg)
 #else
@@ -46,6 +48,8 @@ InetEndPoint::InetEndPoint(int socket,
       readTimeout_(connector->readTimeout()),
       writeTimeout_(connector->writeTimeout()),
       io_(),
+      inputBuffer_(),
+      inputOffset_(0),
       handle_(socket),
       addressFamily_(connector->addressFamily()),
       isCorking_(false) {
@@ -63,6 +67,8 @@ InetEndPoint::InetEndPoint(int socket,
       readTimeout_(readTimeout),
       writeTimeout_(writeTimeout),
       io_(),
+      inputBuffer_(),
+      inputOffset_(0),
       handle_(socket),
       addressFamily_(addressFamily),
       isCorking_(false) {
@@ -214,8 +220,62 @@ std::string InetEndPoint::toString() const {
   return buf;
 }
 
+void InetEndPoint::startDetectProtocol(bool dataReady) {
+  inputBuffer_.reserve(256);
+
+  if (dataReady) {
+    onDetectProtocol();
+  } else {
+    executor_->executeOnReadable(
+        handle(),
+        std::bind(&InetEndPoint::onDetectProtocol, this));
+  }
+}
+
+void InetEndPoint::onDetectProtocol() {
+  size_t n = fill(&inputBuffer_);
+
+  if (n == 0) {
+    close();
+    return;
+  }
+
+  // XXX detect magic byte (0x01) to protocol detection
+  if (inputBuffer_[0] == 0x01) {
+    BinaryReader reader(inputBuffer_.ref(1));
+    std::string protocol = reader.parseString();
+    inputOffset_ = inputBuffer_.size() - reader.pending() - 1;
+    auto factory = connector_->connectionFactory(protocol);
+    if (factory) {
+      DEBUG("Detected protocol \"$0\".", protocol);
+      factory->create(connector_, this);
+    } else {
+      // create Connection object for given endpoint
+      DEBUG("Detected protocol \"$0\" not found. Using default.", protocol);
+      connector_->defaultConnectionFactory()->create(connector_, this);
+    }
+  } else {
+    DEBUG("Protocol detection failed (no magic byte). Using default.");
+    // create Connection object for given endpoint
+    connector_->defaultConnectionFactory()->create(connector_, this);
+  }
+
+  connection()->onOpen(true);
+}
+
 size_t InetEndPoint::fill(Buffer* result, size_t count) {
   assert(count <= result->capacity() - result->size());
+
+  if (inputOffset_ < inputBuffer_.size()) {
+    count = std::min(count, inputBuffer_.size() - inputOffset_);
+    result->push_back(inputBuffer_.ref(inputOffset_, count));
+    inputOffset_ += count;
+    if (inputOffset_ == inputBuffer_.size()) {
+      inputBuffer_.clear();
+      inputOffset_ = 0;
+    }
+    return count;
+  }
 
   ssize_t n = read(handle(), result->end(), count);
   TRACE("read($0 bytes) -> $1", result->capacity() - result->size(), n);

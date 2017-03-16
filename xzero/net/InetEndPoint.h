@@ -105,6 +105,9 @@ class XZERO_BASE_API InetEndPoint : public EndPoint {
   Option<InetAddress> remoteAddress() const override;
   Option<InetAddress> localAddress() const override;
 
+  void startDetectProtocol(bool dataReady);
+  void onDetectProtocol();
+
  private:
   void fillable();
   void flushable();
@@ -116,6 +119,8 @@ class XZERO_BASE_API InetEndPoint : public EndPoint {
   Duration readTimeout_;
   Duration writeTimeout_;
   Executor::HandleRef io_;
+  Buffer inputBuffer_;
+  size_t inputOffset_;
   int handle_;
   int addressFamily_;
   bool isCorking_;
