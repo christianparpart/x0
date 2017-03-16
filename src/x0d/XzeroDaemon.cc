@@ -572,7 +572,7 @@ T* XzeroDaemon::doSetupConnector(
 
   inet->setDeferAccept(deferAccept);
   inet->setMultiAcceptCount(multiAccept);
-  inet->addConnectionFactory(http1_);
+  inet->addConnectionFactory(http1_.get());
 
   return inet;
 }

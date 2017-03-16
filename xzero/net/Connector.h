@@ -73,25 +73,23 @@ class XZERO_BASE_API Connector {
   /**
    * Registeres a new connection factory.
    */
-  std::shared_ptr<ConnectionFactory> addConnectionFactory(
-      std::shared_ptr<ConnectionFactory> factory);
+  ConnectionFactory* addConnectionFactory(ConnectionFactory* factory);
 
   /**
    * Registeres a new connection factory.
    */
   template <typename T, typename... Args>
-  std::shared_ptr<T> addConnectionFactory(Args... args);
+  std::unique_ptr<T> addConnectionFactory(Args... args);
 
   /**
    * Retrieves associated connection factory by @p protocolName.
    *
    * @param protocolName protocol name for the connection factory to retrieve.
    */
-  std::shared_ptr<ConnectionFactory> connectionFactory(
-      const std::string& protocolName) const;
+  ConnectionFactory* connectionFactory(const std::string& protocolName) const;
 
   /** Retrieves all registered connection factories. */
-  std::list<std::shared_ptr<ConnectionFactory>> connectionFactories() const;
+  std::list<ConnectionFactory*> connectionFactories() const;
 
   /** Retrieves number of registered connection factories. */
   size_t connectionFactoryCount() const;
@@ -99,12 +97,12 @@ class XZERO_BASE_API Connector {
   /**
    * Sets the default connection factory.
    */
-  void setDefaultConnectionFactory(std::shared_ptr<ConnectionFactory> factory);
+  void setDefaultConnectionFactory(ConnectionFactory* factory);
 
   /**
    * Retrieves the default connection factory.
    */
-  std::shared_ptr<ConnectionFactory> defaultConnectionFactory() const;
+  ConnectionFactory* defaultConnectionFactory() const;
 
   /**
    * Retrieves the default task executor service.
@@ -126,18 +124,18 @@ class XZERO_BASE_API Connector {
   std::string name_;
   Executor* executor_;
 
-  std::unordered_map<std::string, std::shared_ptr<ConnectionFactory>>
-      connectionFactories_;
+  std::unordered_map<std::string, ConnectionFactory*> connectionFactories_;
 
-  std::shared_ptr<ConnectionFactory> defaultConnectionFactory_;
+  ConnectionFactory* defaultConnectionFactory_;
 
   std::list<ConnectionListener*> listeners_;
 };
 
 template <typename T, typename... Args>
-inline std::shared_ptr<T> Connector::addConnectionFactory(Args... args) {
-  return std::static_pointer_cast<T>(
-      addConnectionFactory(std::shared_ptr<T>(new T(args...))));
+inline std::unique_ptr<T> Connector::addConnectionFactory(Args... args) {
+  std::unique_ptr<T> cf = std::make_unique<T>(args...);
+  addConnectionFactory(cf.get());
+  return cf;
 }
 
 }  // namespace xzero

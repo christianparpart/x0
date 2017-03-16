@@ -33,10 +33,8 @@ void Connector::setName(const std::string& name) {
   name_ = name;
 }
 
-std::shared_ptr<ConnectionFactory> Connector::addConnectionFactory(
-    std::shared_ptr<ConnectionFactory> factory) {
-
-  assert(factory.get() != nullptr);
+ConnectionFactory* Connector::addConnectionFactory(ConnectionFactory* factory) {
+  assert(factory != nullptr);
 
   connectionFactories_[factory->protocolName()] = factory;
 
@@ -47,7 +45,7 @@ std::shared_ptr<ConnectionFactory> Connector::addConnectionFactory(
   return factory;
 }
 
-std::shared_ptr<ConnectionFactory> Connector::connectionFactory(const std::string& protocolName) const {
+ConnectionFactory* Connector::connectionFactory(const std::string& protocolName) const {
   auto i = connectionFactories_.find(protocolName);
   if (i != connectionFactories_.end()) {
     return i->second;
@@ -55,8 +53,8 @@ std::shared_ptr<ConnectionFactory> Connector::connectionFactory(const std::strin
   return nullptr;
 }
 
-std::list<std::shared_ptr<ConnectionFactory>> Connector::connectionFactories() const {
-  std::list<std::shared_ptr<ConnectionFactory>> result;
+std::list<ConnectionFactory*> Connector::connectionFactories() const {
+  std::list<ConnectionFactory*> result;
   for (auto& entry: connectionFactories_) {
     result.push_back(entry.second);
   }
@@ -67,7 +65,7 @@ size_t Connector::connectionFactoryCount() const {
   return connectionFactories_.size();
 }
 
-void Connector::setDefaultConnectionFactory(std::shared_ptr<ConnectionFactory> factory) {
+void Connector::setDefaultConnectionFactory(ConnectionFactory* factory) {
   auto i = connectionFactories_.find(factory->protocolName());
   if (i == connectionFactories_.end())
     throw std::runtime_error("Invalid argument.");
@@ -78,7 +76,7 @@ void Connector::setDefaultConnectionFactory(std::shared_ptr<ConnectionFactory> f
   defaultConnectionFactory_ = factory;
 }
 
-std::shared_ptr<ConnectionFactory> Connector::defaultConnectionFactory() const {
+ConnectionFactory* Connector::defaultConnectionFactory() const {
   return defaultConnectionFactory_;
 }
 
