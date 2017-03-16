@@ -32,10 +32,12 @@
 
 namespace xzero {
 
-#if 0 // !defined(NDEBUG)
+#if !defined(NDEBUG)
 #define TRACE(msg...) logTrace("UnixSignals", msg)
+#define DEBUG(msg...) logDebug("UnixSignals", msg)
 #else
 #define TRACE(msg...) do {} while (0)
+#define DEBUG(msg...) do {} while (0)
 #endif
 
 class SignalWatcher : public Executor::Handle {
