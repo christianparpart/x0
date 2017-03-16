@@ -144,9 +144,15 @@ UnixSignals::HandleRef LinuxSignals::executeOnSignal(int signo,
 
   // on-demand create signalfd instance / update signalfd's mask
   if (fd_.isOpen()) {
-    signalfd(fd_, &signalMask_, 0);
+    int rv = signalfd(fd_, &signalMask_, 0);
+    if (rv < 0) {
+      RAISE_ERRNO(errno);
+    }
   } else {
     fd_ = signalfd(-1, &signalMask_, SFD_NONBLOCK | SFD_CLOEXEC);
+    if (fd_ < 0) {
+      RAISE_ERRNO(errno);
+    }
     TRACE("executeOnSignal: signalfd=$0", fd_.get());
   }
 
