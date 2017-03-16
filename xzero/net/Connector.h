@@ -93,6 +93,9 @@ class XZERO_BASE_API Connector {
   /** Retrieves all registered connection factories. */
   std::list<std::shared_ptr<ConnectionFactory>> connectionFactories() const;
 
+  /** Retrieves number of registered connection factories. */
+  size_t connectionFactoryCount() const;
+
   /**
    * Sets the default connection factory.
    */

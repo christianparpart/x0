@@ -63,6 +63,10 @@ std::list<std::shared_ptr<ConnectionFactory>> Connector::connectionFactories() c
   return result;
 }
 
+size_t Connector::connectionFactoryCount() const {
+  return connectionFactories_.size();
+}
+
 void Connector::setDefaultConnectionFactory(std::shared_ptr<ConnectionFactory> factory) {
   auto i = connectionFactories_.find(factory->protocolName());
   if (i == connectionFactories_.end())
