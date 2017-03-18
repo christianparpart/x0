@@ -31,6 +31,8 @@ class XZERO_BASE_API InetConnector : public Connector {
  public:
   typedef std::function<Executor*()> ExecutorSelector;
 
+  enum { RandomPort = 0 };
+
   /**
    * Initializes this connector.
    *
