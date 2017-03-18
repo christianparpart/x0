@@ -124,8 +124,7 @@ static const Duration maxKeepAlive = 30_seconds;
   xzero::Server server;                                                        \
   xzero::LocalExecutor executor(false);                                       \
   auto localConnector = server.addConnector<xzero::LocalConnector>(&executor); \
-  auto http = localConnector->addConnectionFactory<                            \
-                                 xzero::http::http1::ConnectionFactory>(       \
+  auto http = std::make_unique<xzero::http::http1::ConnectionFactory>(         \
       requestHeaderBufferSize, requestBodyBufferSize,                          \
       maxRequestUriLength, maxRequestBodyLength, maxRequestCount,              \
       maxKeepAlive, false, false);                                             \
@@ -136,6 +135,10 @@ static const Duration maxKeepAlive = 30_seconds;
       response->write(Buffer(request->path() + "\n"),                          \
           std::bind(&HttpResponse::completed, response));                       \
   });                                                                           \
+  localConnector->addConnectionFactory(http->protocolName(),                  \
+      std::bind(&HttpConnectionFactory::create, http.get(),                   \
+                std::placeholders::_1,                                        \
+                std::placeholders::_2));                                      \
   server.start();
 
 TEST(http_http1_Connection, ConnectionClose_1_1) {

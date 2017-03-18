@@ -8,7 +8,6 @@
 #pragma once
 
 #include <xzero/http/Api.h>
-#include <xzero/net/ConnectionFactory.h>
 #include <xzero/http/HttpHandler.h>
 #include <xzero/http/HttpDateGenerator.h>
 #include <xzero/http/HttpOutputCompressor.h>
@@ -17,6 +16,9 @@
 namespace xzero {
 
 class WallClock;
+class Connection;
+class Connector;
+class EndPoint;
 
 namespace http {
 
@@ -25,7 +27,7 @@ namespace http {
  *
  * This provides common functionality to all HTTP connection factories.
  */
-class XZERO_HTTP_API HttpConnectionFactory : public ConnectionFactory {
+class XZERO_HTTP_API HttpConnectionFactory {
  public:
   /**
    * Base initiailization for the HTTP connection factory.
@@ -40,6 +42,8 @@ class XZERO_HTTP_API HttpConnectionFactory : public ConnectionFactory {
       size_t maxRequestBodyLength);
 
   ~HttpConnectionFactory();
+
+  const std::string& protocolName() const noexcept { return protocolName_; }
 
   size_t maxRequestUriLength() const noexcept { return maxRequestUriLength_; }
   void setMaxRequestUriLength(size_t value) { maxRequestUriLength_ = value; }
@@ -56,9 +60,10 @@ class XZERO_HTTP_API HttpConnectionFactory : public ConnectionFactory {
   /** Access to the @c Date response header generator. */
   HttpDateGenerator* dateGenerator() noexcept;
 
-  Connection* configure(Connection* connection, Connector* connector) override;
+  virtual xzero::Connection* create(Connector* connector, EndPoint* endpoint) = 0;
 
  private:
+  std::string protocolName_;
   size_t maxRequestUriLength_;
   size_t maxRequestBodyLength_;
   HttpHandler handler_;

@@ -232,7 +232,7 @@ Connection::Connection(EndPoint* endpoint,
       channels_(),
       writer_(),
       onComplete_() {
-
+  inputBuffer_.reserve(4096);
   TRACE_CONN("$0 ctor", this);
 }
 
@@ -248,16 +248,6 @@ void Connection::onOpen(bool dataReady) {
     onFillable();
   else
     wantFill();
-}
-
-void Connection::onClose() {
-  TRACE_CONN("$0 onClose", this);
-  xzero::Connection::onClose();
-}
-
-void Connection::setInputBufferSize(size_t size) {
-  TRACE_CONN("$0 setInputBufferSize($1)", this, size);
-  inputBuffer_.reserve(size);
 }
 
 void Connection::onFillable() {

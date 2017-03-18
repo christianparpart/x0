@@ -9,7 +9,6 @@
 #include <xzero/net/InetConnector.h>
 #include <xzero/net/InetEndPoint.h>
 #include <xzero/net/InetUtil.h>
-#include <xzero/net/ConnectionFactory.h>
 #include <xzero/net/Connection.h>
 #include <xzero/net/IPAddress.h>
 #include <xzero/io/FileUtil.h>
@@ -47,15 +46,15 @@
 
 namespace xzero {
 
-InetConnector::InetConnector(const std::string& name,
-                             Executor* executor,
+InetConnector::InetConnector(const std::string& name, Executor* executor,
                              ExecutorSelector clientExecutorSelector,
-                             Duration readTimeout,
-                             Duration writeTimeout,
+                             Duration readTimeout, Duration writeTimeout,
                              Duration tcpFinTimeout)
     : Connector(name, executor),
       io_(),
-      selectClientExecutor_(clientExecutorSelector),
+      selectClientExecutor_(clientExecutorSelector
+                                ? clientExecutorSelector
+                                : [executor]() { return executor; }),
       bindAddress_(),
       port_(-1),
       connectedEndPoints_(),
@@ -511,7 +510,7 @@ void InetConnector::onEndPointCreated(const RefPtr<EndPoint>& endpoint) {
   if (connectionFactoryCount() > 1) {
     endpoint.weak_as<InetEndPoint>()->startDetectProtocol(deferAccept());
   } else {
-    defaultConnectionFactory()->create(this, endpoint.get());
+    defaultConnectionFactory()(this, endpoint.get());
     endpoint->connection()->onOpen(deferAccept());
   }
 }
@@ -537,7 +536,6 @@ void InetConnector::onEndPointClosed(EndPoint* endpoint) {
   assert(i != connectedEndPoints_.end());
 
   if (i != connectedEndPoints_.end()) {
-    endpoint->connection()->onClose();
     connectedEndPoints_.erase(i);
   }
 }

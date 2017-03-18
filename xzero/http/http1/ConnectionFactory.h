@@ -50,7 +50,6 @@ class XZERO_HTTP_API ConnectionFactory : public HttpConnectionFactory {
   bool tcpNoDelay() const noexcept { return tcpNoDelay_; }
 
   Connection* create(Connector* connector, EndPoint* endpoint) override;
-  Connection* configure(Connection* connection, Connector* connector) override;
 
  private:
   size_t requestHeaderBufferSize_;

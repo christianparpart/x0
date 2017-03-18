@@ -33,10 +33,10 @@ class PeerConnection
                  Handler* handler,
                  EndPoint* endpoint,
                  Id peerId = 0);
+  ~PeerConnection();
 
   // Connection override (connection-endpoint hooks)
   void onOpen(bool dataReady) override;
-  void onClose() override;
   void onFillable() override;
   void onFlushable() override;
 
@@ -75,9 +75,7 @@ PeerConnection::PeerConnection(InetTransport* manager,
     parser_(this) {
 }
 
-void PeerConnection::onClose() {
-  Connection::onClose();
-
+PeerConnection::~PeerConnection() {
   if (peerId_ != 0) {
     manager_->onClose(peerId_);
   }
@@ -196,14 +194,18 @@ InetTransport::InetTransport(const Discovery* discovery,
                              Executor* handlerExecutor,
                              EndPointCreator endpointCreator,
                              std::shared_ptr<Connector> connector)
-  : ConnectionFactory("raft"),
-    discovery_(discovery),
+  : discovery_(discovery),
     handler_(nullptr),
     handlerExecutor_(handlerExecutor),
     endpointCreator_(endpointCreator),
     connector_(connector),
     endpointLock_(),
     endpoints_() {
+  connector_->addConnectionFactory(
+      "raft-s2s",
+      std::bind(&InetTransport::create, this,
+                std::placeholders::_1,
+                std::placeholders::_2));
 }
 
 InetTransport::~InetTransport() {
@@ -215,12 +217,10 @@ void InetTransport::setHandler(Handler* handler) {
 
 Connection* InetTransport::create(Connector* connector,
                                   EndPoint* endpoint) {
-  return configure(
-      endpoint->setConnection<PeerConnection>(this,
-                                              connector->executor(),
-                                              handler_,
-                                              endpoint),
-      connector);
+  return endpoint->setConnection<PeerConnection>(this,
+                                                 connector->executor(),
+                                                 handler_,
+                                                 endpoint);
 }
 
 RefPtr<EndPoint> InetTransport::getEndPoint(Id target) {

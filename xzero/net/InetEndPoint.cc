@@ -8,7 +8,6 @@
 #include <xzero/net/InetEndPoint.h>
 #include <xzero/net/InetConnector.h>
 #include <xzero/net/Connection.h>
-#include <xzero/net/ConnectionFactory.h>
 #include <xzero/util/BinaryReader.h>
 #include <xzero/io/FileUtil.h>
 #include <xzero/executor/Executor.h>
@@ -241,23 +240,23 @@ void InetEndPoint::onDetectProtocol() {
   }
 
   // XXX detect magic byte (0x01) to protocol detection
-  if (inputBuffer_[0] == 0x01) {
-    BinaryReader reader(inputBuffer_.ref(1));
+  if (inputBuffer_[0] == MagicProtocolSwitchByte) {
+    BinaryReader reader(inputBuffer_);
+    reader.parseVarUInt(); // skip magic
     std::string protocol = reader.parseString();
-    inputOffset_ = inputBuffer_.size() - reader.pending() - 1;
+    inputOffset_ = inputBuffer_.size() - reader.pending();
     auto factory = connector_->connectionFactory(protocol);
     if (factory) {
-      DEBUG("Detected protocol \"$0\".", protocol);
-      factory->create(connector_, this);
+      TRACE("$0 protocol detected. using \"$1\".", this, protocol);
+      factory(connector_, this);
     } else {
-      // create Connection object for given endpoint
-      DEBUG("Detected protocol \"$0\" not found. Using default.", protocol);
-      connector_->defaultConnectionFactory()->create(connector_, this);
+      TRACE("$0 no protocol detected. using default.", this);
+      connector_->defaultConnectionFactory()(connector_, this);
     }
   } else {
-    DEBUG("Protocol detection failed (no magic byte). Using default.");
     // create Connection object for given endpoint
-    connector_->defaultConnectionFactory()->create(connector_, this);
+    TRACE("$0 protocol detection disabled.", this);
+    connector_->defaultConnectionFactory()(connector_, this);
   }
 
   connection()->onOpen(true);
@@ -267,8 +266,10 @@ size_t InetEndPoint::fill(Buffer* result, size_t count) {
   assert(count <= result->capacity() - result->size());
 
   if (inputOffset_ < inputBuffer_.size()) {
+    TRACE("$0 fill: with inputBuffer ($1, $2)", this, inputOffset_, inputBuffer_.size());
     count = std::min(count, inputBuffer_.size() - inputOffset_);
     result->push_back(inputBuffer_.ref(inputOffset_, count));
+    TRACE("$0 fill: \"$1\"", this, inputBuffer_.ref(inputOffset_, count));
     inputOffset_ += count;
     if (inputOffset_ == inputBuffer_.size()) {
       inputBuffer_.clear();

@@ -29,24 +29,21 @@ ConnectionFactory::ConnectionFactory(
                             maxRequestUriLength,
                             maxRequestBodyLength),
       maxKeepAlive_(maxKeepAlive) {
-  setInputBufferSize(16 * 1024);
 }
 
 ConnectionFactory::~ConnectionFactory() {
 }
 
-xzero::Connection* ConnectionFactory::create(
-    Connector* connector,
-    EndPoint* endpoint) {
-  return configure(endpoint->setConnection<Connection>(endpoint,
-                                                       connector->executor(),
-                                                       handler(),
-                                                       dateGenerator(),
-                                                       outputCompressor(),
-                                                       maxRequestUriLength(),
-                                                       maxRequestBodyLength(),
-                                                       maxKeepAlive()),
-                   connector);
+xzero::Connection* ConnectionFactory::create(Connector* connector,
+                                             EndPoint* endpoint) {
+  return endpoint->setConnection<Connection>(endpoint,
+                                             connector->executor(),
+                                             handler(),
+                                             dateGenerator(),
+                                             outputCompressor(),
+                                             maxRequestUriLength(),
+                                             maxRequestBodyLength(),
+                                             maxKeepAlive());
 }
 
 } // namespace fastcgi

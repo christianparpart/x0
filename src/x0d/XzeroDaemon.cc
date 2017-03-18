@@ -572,7 +572,10 @@ T* XzeroDaemon::doSetupConnector(
 
   inet->setDeferAccept(deferAccept);
   inet->setMultiAcceptCount(multiAccept);
-  inet->addConnectionFactory(http1_.get());
+  inet->addConnectionFactory(http1_->protocolName(),
+      std::bind(&HttpConnectionFactory::create, http1_.get(),
+                std::placeholders::_1,
+                std::placeholders::_2));
 
   return inet;
 }

@@ -166,7 +166,6 @@ libXzero_a_SOURCES = \
 	xzero/net/ByteArrayEndPoint.cc \
 	xzero/net/Cidr.cc \
 	xzero/net/Connection.cc \
-	xzero/net/ConnectionFactory.cc \
 	xzero/net/Connector.cc \
 	xzero/net/DatagramConnector.cc \
 	xzero/net/DatagramEndPoint.cc \
@@ -393,7 +392,6 @@ nobase_libXzero_HEADERS = \
 	xzero/net/ByteArrayEndPoint.h \
 	xzero/net/Cidr.h \
 	xzero/net/Connection.h \
-	xzero/net/ConnectionFactory.h \
 	xzero/net/Connector.h \
 	xzero/net/DatagramConnector.h \
 	xzero/net/DatagramEndPoint.h \
@@ -605,6 +603,7 @@ xzero_test_SOURCES = \
 	xzero/io/MemoryFile-test.cc \
 	xzero/io/MemoryMap-test.cc \
 	xzero/net/ByteArrayEndPoint-test.cc \
+	xzero/net/InetConnector-test.cc \
 	xzero/net/Cidr-test.cc \
 	xzero/thread/Future-test.cc \
 	xzero/thread/Queue-test.cc \

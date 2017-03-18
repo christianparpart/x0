@@ -44,6 +44,7 @@ Connection::Connection(EndPoint* endpoint,
                        size_t maxRequestBodyLength,
                        size_t maxRequestCount,
                        Duration maxKeepAlive,
+                       size_t inputBufferSize,
                        bool corkStream)
     : ::xzero::Connection(endpoint, executor),
       channel_(new Channel(
@@ -51,7 +52,7 @@ Connection::Connection(EndPoint* endpoint,
           maxRequestUriLength, maxRequestBodyLength,
           dateGenerator, outputCompressor)),
       parser_(Parser::REQUEST, channel_.get()),
-      inputBuffer_(),
+      inputBuffer_(inputBufferSize),
       inputOffset_(0),
       writer_(),
       onComplete_(),
@@ -79,11 +80,6 @@ void Connection::onOpen(bool dataReady) {
     onFillable();
   else
     wantFill();
-}
-
-void Connection::onClose() {
-  TRACE("$0 onClose", this);
-  ::xzero::Connection::onClose();
 }
 
 void Connection::abort() {
@@ -136,7 +132,6 @@ void Connection::onResponseComplete(bool succeed) {
     auto upgrade = upgradeCallback_;
     auto ep = endpoint();
 
-    onClose();
     ep->setConnection(nullptr);
     upgrade(ep);
     TRACE("upgrade complete");
@@ -298,11 +293,6 @@ void Connection::send(FileView&& chunk, CompletionHandler onComplete) {
   TRACE("$0 send(FileView, chunkSize=$1)", this, chunk.size());
   generator_.generateBody(std::move(chunk));
   wantFlush();
-}
-
-void Connection::setInputBufferSize(size_t size) {
-  TRACE("$0 setInputBufferSize($1)", this, size);
-  inputBuffer_.reserve(size);
 }
 
 void Connection::onFillable() {

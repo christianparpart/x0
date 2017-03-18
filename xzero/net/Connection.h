@@ -16,7 +16,6 @@ namespace xzero {
 class Executor;
 class Connector;
 class EndPoint;
-class ConnectionListener;
 
 /**
  * A Connection is responsible for processing an EndPoint.
@@ -39,11 +38,6 @@ class XZERO_BASE_API Connection {
   virtual void onOpen(bool dataReady);
 
   /**
-   * Callback, invoked when connection is closed.
-   */
-  virtual void onClose();
-
-  /**
    * Retrieves the corresponding endpoint for this connection.
    */
   EndPoint* endpoint() const XZERO_NOEXCEPT;
@@ -54,25 +48,9 @@ class XZERO_BASE_API Connection {
   Executor* executor() const XZERO_NOEXCEPT;
 
   /**
-   * Registers given @p listener to this connection.
-   *
-   * @param listener the listener to register.
-   *
-   * @see void Connector::addListener(ConnectionListener* listener)
-   */
-  void addListener(ConnectionListener* listener);
-
-  /**
    * Closes the underlying endpoint.
    */
   virtual void close();
-
-  /**
-   * Configures the input buffer size for this Connection.
-   *
-   * @param size number of bytes the input buffer for this connection may use.
-   */
-  virtual void setInputBufferSize(size_t size);
 
   /**
    * Ensures onFillable() is invoked when data is available for
@@ -93,12 +71,12 @@ class XZERO_BASE_API Connection {
   /**
    * Event callback being invoked when data is available for read.
    */
-  virtual void onFillable() = 0;
+  virtual void onFillable();
 
   /**
    * Event callback being invoked when underlying endpoint ready for write.
    */
-  virtual void onFlushable() = 0;
+  virtual void onFlushable();
 
   /**
    * Event callback being invoked on any errors while waiting for data.
@@ -123,7 +101,6 @@ class XZERO_BASE_API Connection {
  private:
   EndPoint* endpoint_;
   Executor* executor_;
-  std::list<ConnectionListener*> listeners_;
 };
 
 inline EndPoint* Connection::endpoint() const XZERO_NOEXCEPT {
@@ -133,21 +110,5 @@ inline EndPoint* Connection::endpoint() const XZERO_NOEXCEPT {
 inline Executor* Connection::executor() const XZERO_NOEXCEPT {
   return executor_;
 }
-
-/**
- * Connection event listener, such as on-open and on-close events.
- *
- * @see void Connector::addListener(ConnectionListener* listener)
- */
-class XZERO_BASE_API ConnectionListener {
- public:
-  virtual ~ConnectionListener();
-
-  /** Invoked via Conection::onOpen(bool). */
-  virtual void onOpened(Connection* connection);
-
-  /** Invoked via Conection::onClose(). */
-  virtual void onClosed(Connection* connection);
-};
 
 } // namespace xzero

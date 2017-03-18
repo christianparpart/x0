@@ -91,8 +91,6 @@ class Connection
 
   // Connection overrides
   void onOpen(bool dataReady) override;
-  void onClose() override;
-  void setInputBufferSize(size_t size) override;
   void onFillable() override;
   void onFlushable() override;
   void onInterestFailure(const std::exception& error) override;

@@ -118,7 +118,6 @@ TEST(raft_InetTransport, handshake) {
   };
   std::shared_ptr<InetTransport> transport(new InetTransport(
       &discovery, &executor, endpointCreator, connector));
-  connector->addConnectionFactory(transport.get());
   connector->start();
 
   RaftTestHandler handler;
@@ -142,7 +141,6 @@ TEST(raft_InetTransport, no_handshake) {
   };
   std::shared_ptr<InetTransport> transport(new InetTransport(
       &discovery, &executor, endpointCreator, connector));
-  connector->addConnectionFactory(transport.get());
   connector->start();
 
   RaftTestHandler handler;
@@ -167,7 +165,6 @@ TEST(raft_InetTransport, receive_framed_response) {
   };
   std::shared_ptr<InetTransport> transport(new InetTransport(
       &discovery, &executor, endpointCreator, connector));
-  connector->addConnectionFactory(transport.get());
   connector->start();
 
   RaftTestHandler handler;
@@ -193,7 +190,6 @@ TEST(raft_InetTransport, unknown_message) {
   };
   std::shared_ptr<InetTransport> transport(new InetTransport(
       &discovery, &executor, endpointCreator, connector));
-  connector->addConnectionFactory(transport.get());
   connector->start();
 
   RaftTestHandler handler;
@@ -218,7 +214,6 @@ TEST(raft_InetTransport, zero_length_message) {
   };
   std::shared_ptr<InetTransport> transport(new InetTransport(
       &discovery, &executor, endpointCreator, connector));
-  connector->addConnectionFactory(transport.get());
   connector->start();
 
   RaftTestHandler handler;

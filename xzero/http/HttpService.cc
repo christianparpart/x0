@@ -113,7 +113,7 @@ void HttpService::attachHttp1(Connector* connector) {
   bool corkStream = false;
   bool tcpNoDelay = false;
 
-  auto http = connector->addConnectionFactory<xzero::http::http1::ConnectionFactory>(
+  auto http1 = std::make_unique<xzero::http::http1::ConnectionFactory>(
       requestHeaderBufferSize,
       requestBodyBufferSize,
       maxRequestUriLength,
@@ -123,8 +123,17 @@ void HttpService::attachHttp1(Connector* connector) {
       corkStream,
       tcpNoDelay);
 
-  http->setHandler(std::bind(&HttpService::handleRequest, this,
-                   std::placeholders::_1, std::placeholders::_2));
+  http1->setHandler(std::bind(&HttpService::handleRequest, this,
+                              std::placeholders::_1,
+                              std::placeholders::_2));
+
+  connector->addConnectionFactory(
+      http1->protocolName(),
+      std::bind(&HttpConnectionFactory::create, http1.get(),
+                std::placeholders::_1,
+                std::placeholders::_2));
+
+  httpFactories_.emplace_back(std::move(http1));
 }
 
 void HttpService::attachFCGI(Connector* connector) {
@@ -132,11 +141,19 @@ void HttpService::attachFCGI(Connector* connector) {
   size_t maxRequestBodyLength = 64 * 1024 * 1024;
   Duration maxKeepAlive = 8_seconds;
 
-  auto fcgi = connector->addConnectionFactory<http::fastcgi::ConnectionFactory>(
+  auto fcgi = std::make_unique<http::fastcgi::ConnectionFactory>(
       maxRequestUriLength, maxRequestBodyLength, maxKeepAlive);
 
   fcgi->setHandler(std::bind(&HttpService::handleRequest, this,
                    std::placeholders::_1, std::placeholders::_2));
+
+  connector->addConnectionFactory(
+    fcgi->protocolName(),
+    std::bind(&HttpConnectionFactory::create, fcgi.get(),
+              std::placeholders::_1,
+              std::placeholders::_2));
+
+  httpFactories_.emplace_back(std::move(fcgi));
 }
 
 void HttpService::addHandler(Handler* handler) {

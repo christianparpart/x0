@@ -9,7 +9,6 @@
 #include <xzero/raft/Transport.h>
 #include <xzero/net/Connector.h>
 #include <xzero/net/Connection.h>
-#include <xzero/net/ConnectionFactory.h>
 #include <xzero/net/EndPoint.h>
 #include <unordered_map>
 #include <memory>
@@ -42,9 +41,7 @@ class PeerConnection;
  * the incoming message is being read in non-blocking and then sent
  * to the @c Handler for further proccessing.
  */
-class InetTransport
-  : public Transport,
-    public ConnectionFactory {
+class InetTransport : public Transport {
  public:
   typedef std::function<RefPtr<EndPoint>(const std::string&)>
       EndPointCreator;
@@ -62,10 +59,10 @@ class InetTransport
   void send(Id target, const AppendEntriesRequest& message) override;
   void send(Id target, const InstallSnapshotRequest& message) override;
 
-  // ConnectionFactory overrides
-  Connection* create(Connector* connector, EndPoint* endpoint) override;
-
   Connector* connector() const { return connector_.get(); }
+
+ private:
+  Connection* create(Connector* connector, EndPoint* endpoint);
 
  private:
   RefPtr<EndPoint> getEndPoint(Id target);

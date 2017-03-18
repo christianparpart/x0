@@ -36,6 +36,7 @@ Http1Connection::Http1Connection(HttpListener* channel,
       expectsBody_(true),
       responseComplete_(false),
       keepAliveCount_(0) {
+  inputBuffer_.reserve(4096);
 }
 
 Http1Connection::~Http1Connection() {
@@ -125,10 +126,6 @@ void Http1Connection::onResponseComplete(bool success) {
 
 void Http1Connection::abort() {
   close();
-}
-
-void Http1Connection::setInputBufferSize(size_t size) {
-  inputBuffer_.reserve(size);
 }
 
 void Http1Connection::onFillable() {

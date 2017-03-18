@@ -16,7 +16,7 @@ HttpConnectionFactory::HttpConnectionFactory(
     const std::string& protocolName,
     size_t maxRequestUriLength,
     size_t maxRequestBodyLength)
-    : ConnectionFactory(protocolName),
+    : protocolName_(protocolName),
       maxRequestUriLength_(maxRequestUriLength),
       maxRequestBodyLength_(maxRequestBodyLength),
       outputCompressor_(new HttpOutputCompressor()),
@@ -30,11 +30,6 @@ HttpConnectionFactory::~HttpConnectionFactory() {
 
 void HttpConnectionFactory::setHandler(HttpHandler&& handler) {
   handler_ = std::move(handler);
-}
-
-Connection* HttpConnectionFactory::configure(Connection* connection,
-                                             Connector* connector) {
-  return ConnectionFactory::configure(connection, connector);
 }
 
 }  // namespace http

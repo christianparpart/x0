@@ -27,7 +27,7 @@ Connection::Connection(EndPoint* endpoint,
                        size_t maxRequestCount)
     : xzero::Connection(endpoint, executor),
       inputFlow_(),
-      inputBuffer_(),
+      inputBuffer_(1024),
       inputOffset_(0),
       parser_(this),
       maxRequestUriLength_(1024), // TODO
@@ -160,14 +160,6 @@ void Connection::onOpen(bool dataReady) {
   // for (std::unique_ptr<Stream>& stream: streams_) {
   //   stream->handleRequest();
   // }
-}
-
-void Connection::onClose() {
-  TRACE("onClose");
-}
-
-void Connection::setInputBufferSize(size_t size) {
-  TRACE("setInputBufferSize");
 }
 
 void Connection::onFillable() {

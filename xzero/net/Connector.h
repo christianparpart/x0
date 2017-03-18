@@ -19,18 +19,29 @@ namespace xzero {
 class Executor;
 class WallClock;
 class EndPoint;
-class ConnectionFactory;
-class ConnectionListener;
+class Connection;
 
 /**
  * Base API for accepting new clients and binding them to a Connection.
  *
  * @see EndPoint
  * @see Connection
- * @see ConnectionFactory
  */
 class XZERO_BASE_API Connector {
  public:
+  /**
+   * Creates a new Connection instance for the given @p connector
+   * and @p endpoint.
+   *
+   * @param connector the Connector that accepted the incoming connection.
+   * @param endpoint the endpoint that corresponds to this connection.
+   *
+   * @return pointer to the newly created Connection instance.
+   *
+   * The newly created Connection instance will be owned by its EndPoint.
+   */
+  typedef std::function<Connection*(Connector*, EndPoint*)> ConnectionFactory;
+
   /**
    * Initializes this connector.
    */
@@ -73,23 +84,17 @@ class XZERO_BASE_API Connector {
   /**
    * Registeres a new connection factory.
    */
-  ConnectionFactory* addConnectionFactory(ConnectionFactory* factory);
-
-  /**
-   * Registeres a new connection factory.
-   */
-  template <typename T, typename... Args>
-  std::unique_ptr<T> addConnectionFactory(Args... args);
+  void addConnectionFactory(const std::string& protocol, ConnectionFactory factory);
 
   /**
    * Retrieves associated connection factory by @p protocolName.
    *
    * @param protocolName protocol name for the connection factory to retrieve.
    */
-  ConnectionFactory* connectionFactory(const std::string& protocolName) const;
+  ConnectionFactory connectionFactory(const std::string& protocolName) const;
 
   /** Retrieves all registered connection factories. */
-  std::list<ConnectionFactory*> connectionFactories() const;
+  std::list<std::string> connectionFactories() const;
 
   /** Retrieves number of registered connection factories. */
   size_t connectionFactoryCount() const;
@@ -97,26 +102,17 @@ class XZERO_BASE_API Connector {
   /**
    * Sets the default connection factory.
    */
-  void setDefaultConnectionFactory(ConnectionFactory* factory);
+  void setDefaultConnectionFactory(const std::string& protocolName);
 
   /**
    * Retrieves the default connection factory.
    */
-  ConnectionFactory* defaultConnectionFactory() const;
+  ConnectionFactory defaultConnectionFactory() const;
 
   /**
    * Retrieves the default task executor service.
    */
   Executor* executor() const { return executor_; }
-
-  /**
-   * Adds an Connection listener that will be
-   * automatically associated to newly created connections.
-   */
-  void addListener(ConnectionListener* listener);
-
-  /** Retrieves list of connection listeners. */
-  const std::list<ConnectionListener*>& listeners() const { return listeners_; }
 
   virtual std::string toString() const;
 
@@ -124,18 +120,8 @@ class XZERO_BASE_API Connector {
   std::string name_;
   Executor* executor_;
 
-  std::unordered_map<std::string, ConnectionFactory*> connectionFactories_;
-
-  ConnectionFactory* defaultConnectionFactory_;
-
-  std::list<ConnectionListener*> listeners_;
+  std::unordered_map<std::string, ConnectionFactory> connectionFactories_;
+  std::string defaultConnectionFactory_;
 };
-
-template <typename T, typename... Args>
-inline std::unique_ptr<T> Connector::addConnectionFactory(Args... args) {
-  std::unique_ptr<T> cf = std::make_unique<T>(args...);
-  addConnectionFactory(cf.get());
-  return cf;
-}
 
 }  // namespace xzero

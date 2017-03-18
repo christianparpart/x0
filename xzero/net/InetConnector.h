@@ -276,12 +276,6 @@ class XZERO_BASE_API InetConnector : public Connector {
 
   /**
    * Invoked by InetEndPoint to inform its creator that it got close()'d.
-   *
-   * This will unlink the endpoint with this connector, and also notify the
-   * endpoint's connection about the event via Connection::onClose().
-   *
-   * @see Connection::onClose()
-   * @see ConnectionListener::onClosed(Connection*)
    */
   void onEndPointClosed(EndPoint* endpoint);
   friend class InetEndPoint;

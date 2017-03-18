@@ -15,27 +15,13 @@ namespace xzero {
 Connection::Connection(EndPoint* endpoint,
                        Executor* executor)
     : endpoint_(endpoint),
-      executor_(executor),
-      listeners_() {
+      executor_(executor) {
 }
 
 Connection::~Connection() {
 }
 
 void Connection::onOpen(bool dataReady) {
-  for (ConnectionListener* listener : listeners_) {
-    listener->onOpened(this);
-  }
-}
-
-void Connection::onClose() {
-  for (ConnectionListener* listener : listeners_) {
-    listener->onClosed(this);
-  }
-}
-
-void Connection::addListener(ConnectionListener* listener) {
-  listeners_.push_back(listener);
 }
 
 void Connection::close() {
@@ -44,18 +30,18 @@ void Connection::close() {
   }
 }
 
-void Connection::setInputBufferSize(size_t size) {
-  // default no-op
-}
-
 void Connection::wantFill() {
-  // register read-event
   endpoint()->wantFill();
 }
 
 void Connection::wantFlush() {
-  // register write-event
   endpoint()->wantFlush();
+}
+
+void Connection::onFillable() {
+}
+
+void Connection::onFlushable() {
 }
 
 void Connection::onInterestFailure(const std::exception& error) {
@@ -71,16 +57,5 @@ template<>
 std::string StringUtil::toString(Connection* c) {
   return StringUtil::format("Connection[$0]", c->endpoint()->remoteAddress());
 }
-
-// {{{ ConnectionListener impl
-ConnectionListener::~ConnectionListener() {
-}
-
-void ConnectionListener::onOpened(Connection* connection) {
-}
-
-void ConnectionListener::onClosed(Connection* connection) {
-}
-// }}}
 
 }  // namespace xzero

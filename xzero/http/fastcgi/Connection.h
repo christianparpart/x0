@@ -56,8 +56,6 @@ class XZERO_HTTP_API Connection : public ::xzero::Connection {
 
   // xzero::net::Connection overrides
   void onOpen(bool dataReady) override;
-  void onClose() override;
-  void setInputBufferSize(size_t size) override;
 
  private:
   void parseFragment();

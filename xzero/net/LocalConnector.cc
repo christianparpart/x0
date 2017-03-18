@@ -6,7 +6,6 @@
 // the License at: http://opensource.org/licenses/MIT
 
 #include <xzero/net/LocalConnector.h>
-#include <xzero/net/ConnectionFactory.h>
 #include <xzero/net/Connection.h>
 #include <xzero/logging.h>
 #include <xzero/executor/Executor.h>
@@ -93,7 +92,7 @@ bool LocalConnector::acceptOne() {
   pendingConnects_.pop_front();
   connectedEndPoints_.push_back(endpoint);
 
-  auto connection = defaultConnectionFactory()->create(this, endpoint.get());
+  auto connection = defaultConnectionFactory()(this, endpoint.get());
   connection->onOpen(false);
 
   return true;
@@ -110,7 +109,6 @@ void LocalConnector::onEndPointClosed(LocalEndPoint* endpoint) {
   });
 
   if (i != connectedEndPoints_.end()) {
-    endpoint->connection()->onClose();
     connectedEndPoints_.erase(i);
     return;
   }

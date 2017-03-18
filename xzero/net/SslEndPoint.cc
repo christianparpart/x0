@@ -9,7 +9,6 @@
 #include <xzero/net/SslContext.h>
 #include <xzero/net/SslConnector.h>
 #include <xzero/net/Connection.h>
-#include <xzero/net/ConnectionFactory.h>
 #include <xzero/io/FileUtil.h>
 #include <xzero/RuntimeError.h>
 #include <xzero/logging.h>
@@ -360,12 +359,9 @@ void SslEndPoint::onHandshake() {
     std::string protocol = nextProtocolNegotiated().str();
     auto factory = connector_->connectionFactory(protocol);
     if (!factory) {
-      TRACE("$0 using connection factory: default (\"$1\")", this, factory->protocolName().c_str());
       factory = connector_->defaultConnectionFactory();
-    } else {
-      TRACE("$0 using connection factory: \"$1\"", this, factory->protocolName().c_str());
     }
-    factory->create(connector_, this);
+    factory(connector_, this);
 
     connection()->onOpen(false);
   }

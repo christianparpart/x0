@@ -7,6 +7,7 @@
 
 #include <xzero/http/http2/ConnectionFactory.h>
 #include <xzero/http/http2/Connection.h>
+#include <xzero/net/EndPoint.h>
 #include <xzero/net/Connector.h>
 
 namespace xzero {
@@ -25,17 +26,15 @@ ConnectionFactory::ConnectionFactory(
                             maxRequestBodyLength) {
 }
 
-xzero::Connection* ConnectionFactory::create(
-    Connector* connector,
-    EndPoint* endpoint) {
-  return configure(new http2::Connection(endpoint,
-                                         connector->executor(),
-                                         handler(),
-                                         dateGenerator(),
-                                         outputCompressor(),
-                                         maxRequestUriLength(),
-                                         maxRequestBodyLength()),
-                   connector);
+xzero::Connection* ConnectionFactory::create(Connector* connector,
+                                             EndPoint* endpoint) {
+  return endpoint->setConnection<http2::Connection>(endpoint,
+                                                    connector->executor(),
+                                                    handler(),
+                                                    dateGenerator(),
+                                                    outputCompressor(),
+                                                    maxRequestUriLength(),
+                                                    maxRequestBodyLength());
 }
 
 }  // namespace http1

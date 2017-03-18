@@ -6,7 +6,6 @@
 // the License at: http://opensource.org/licenses/MIT
 
 #include <xzero/net/Connector.h>
-#include <xzero/net/ConnectionFactory.h>
 #include <xzero/net/Server.h>
 #include <xzero/StringUtil.h>
 #include <algorithm>
@@ -18,8 +17,7 @@ Connector::Connector(const std::string& name, Executor* executor)
   : name_(name),
     executor_(executor),
     connectionFactories_(),
-    defaultConnectionFactory_(),
-    listeners_() {
+    defaultConnectionFactory_() {
 }
 
 Connector::~Connector() {
@@ -33,19 +31,19 @@ void Connector::setName(const std::string& name) {
   name_ = name;
 }
 
-ConnectionFactory* Connector::addConnectionFactory(ConnectionFactory* factory) {
-  assert(factory != nullptr);
+void Connector::addConnectionFactory(const std::string& protocolName,
+                                     ConnectionFactory factory) {
+  assert(protocolName != "");
+  assert(!!factory);
 
-  connectionFactories_[factory->protocolName()] = factory;
+  connectionFactories_[protocolName] = factory;
 
   if (connectionFactories_.size() == 1) {
-    defaultConnectionFactory_ = factory;
+    defaultConnectionFactory_ = protocolName;
   }
-
-  return factory;
 }
 
-ConnectionFactory* Connector::connectionFactory(const std::string& protocolName) const {
+Connector::ConnectionFactory Connector::connectionFactory(const std::string& protocolName) const {
   auto i = connectionFactories_.find(protocolName);
   if (i != connectionFactories_.end()) {
     return i->second;
@@ -53,10 +51,10 @@ ConnectionFactory* Connector::connectionFactory(const std::string& protocolName)
   return nullptr;
 }
 
-std::list<ConnectionFactory*> Connector::connectionFactories() const {
-  std::list<ConnectionFactory*> result;
+std::list<std::string> Connector::connectionFactories() const {
+  std::list<std::string> result;
   for (auto& entry: connectionFactories_) {
-    result.push_back(entry.second);
+    result.push_back(entry.first);
   }
   return result;
 }
@@ -65,19 +63,20 @@ size_t Connector::connectionFactoryCount() const {
   return connectionFactories_.size();
 }
 
-void Connector::setDefaultConnectionFactory(ConnectionFactory* factory) {
-  auto i = connectionFactories_.find(factory->protocolName());
+void Connector::setDefaultConnectionFactory(const std::string& protocolName) {
+  auto i = connectionFactories_.find(protocolName);
   if (i == connectionFactories_.end())
     throw std::runtime_error("Invalid argument.");
 
-  if (i->second != factory)
-    throw std::runtime_error("Invalid argument.");
-
-  defaultConnectionFactory_ = factory;
+  defaultConnectionFactory_ = protocolName;
 }
 
-ConnectionFactory* Connector::defaultConnectionFactory() const {
-  return defaultConnectionFactory_;
+Connector::ConnectionFactory Connector::defaultConnectionFactory() const {
+  auto i = connectionFactories_.find(defaultConnectionFactory_);
+  if (i == connectionFactories_.end())
+    throw nullptr;
+
+  return i->second;
 }
 
 std::string Connector::toString() const {

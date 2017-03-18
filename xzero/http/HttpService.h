@@ -8,6 +8,7 @@
 #pragma once
 
 #include <xzero/http/Api.h>
+#include <xzero/http/HttpConnectionFactory.h>
 #include <xzero/Duration.h>
 #include <xzero/UnixTime.h> // BuiltinAssetHandler
 #include <xzero/Buffer.h>
@@ -113,6 +114,7 @@ class XZERO_HTTP_API HttpService {
  private:
   Protocol protocol_;
   Server* server_;
+  std::vector<std::unique_ptr<HttpConnectionFactory>> httpFactories_;
   LocalConnector* localConnector_;
   InetConnector* inetConnector_;
   std::vector<Handler*> handlers_;
