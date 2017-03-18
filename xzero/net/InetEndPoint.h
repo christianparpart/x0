@@ -23,9 +23,6 @@ class InetConnector;
  */
 class XZERO_BASE_API InetEndPoint : public EndPoint {
  public:
-  // must be a non-printable ASCII byte.
-  enum { MagicProtocolSwitchByte = 0x01 };
-
   /**
    * Initializes a server-side InetEndPoint.
    *

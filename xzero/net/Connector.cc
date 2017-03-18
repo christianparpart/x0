@@ -7,6 +7,10 @@
 
 #include <xzero/net/Connector.h>
 #include <xzero/net/Server.h>
+#include <xzero/net/EndPoint.h>
+#include <xzero/util/BinaryWriter.h>
+#include <xzero/Buffer.h>
+#include <xzero/BufferUtil.h>
 #include <xzero/StringUtil.h>
 #include <algorithm>
 #include <cassert>
@@ -74,9 +78,19 @@ void Connector::setDefaultConnectionFactory(const std::string& protocolName) {
 Connector::ConnectionFactory Connector::defaultConnectionFactory() const {
   auto i = connectionFactories_.find(defaultConnectionFactory_);
   if (i == connectionFactories_.end())
-    throw nullptr;
+    return nullptr;
 
   return i->second;
+}
+
+void Connector::loadConnectionFactorySelector(const std::string& protocolName,
+                                              Buffer* sink) {
+  auto i = connectionFactories_.find(defaultConnectionFactory_);
+  if (i == connectionFactories_.end())
+    RAISE(InvalidArgumentError, "Invalid protocol name.");
+
+  sink->push_back((char) MagicProtocolSwitchByte);
+  BinaryWriter(BufferUtil::writer(sink)).writeString(protocolName);
 }
 
 std::string Connector::toString() const {

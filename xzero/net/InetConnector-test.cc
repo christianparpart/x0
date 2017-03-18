@@ -189,8 +189,7 @@ TEST(InetConnector, detectProtocols) {
 
   auto onConnectionEstablished = [&](RefPtr<EndPoint> ep) {
     Buffer text;
-    text.push_back((char) InetEndPoint::MagicProtocolSwitchByte);
-    BinaryWriter(BufferUtil::writer(&text)).writeString("yeah"); // protocol to use
+    connector->loadConnectionFactorySelector("yeah", &text);
     text.push_back("blurrrb");
     ep->setConnection<EchoClientConnection>(ep.get(), &sched, text, onClientReceived);
     ep->connection()->onOpen(false);

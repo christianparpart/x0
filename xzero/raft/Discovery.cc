@@ -56,5 +56,27 @@ Result<Id> StaticDiscovery::getId(const std::string& address) const {
   return std::make_error_code(RaftError::ServerNotFound);
 }
 
+DnsDiscovery::DnsDiscovery(const std::string& fqdn) {
+}
+
+DnsDiscovery::~DnsDiscovery() {
+}
+
+std::vector<Id> DnsDiscovery::listMembers() const {
+  return {};
+}
+
+size_t DnsDiscovery::totalMemberCount() const {
+  return 0;
+}
+
+Result<std::string> DnsDiscovery::getAddress(Id serverId) const {
+  return Result<std::string>("");
+}
+
+Result<Id> DnsDiscovery::getId(const std::string& address) const {
+  return Result<Id>(0);
+}
+
 } // namespace raft
 } // namespace xzero

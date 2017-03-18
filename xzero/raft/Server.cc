@@ -646,14 +646,22 @@ void Server::replicateLogsTo(Id peerId) {
              peerId);
   }
 
-  transport_->send(peerId, AppendEntriesRequest{
-      .term = currentTerm(),
-      .leaderId = id_,
-      .prevLogIndex = prevLogIndex,
-      .prevLogTerm = getLogTerm(prevLogIndex),
-      .entries = entries,
-      .leaderCommit = commitIndex(),
-  });
+  AppendEntriesRequest req{ currentTerm(),
+                            id_,
+                            prevLogIndex,
+                            getLogTerm(prevLogIndex),
+                            commitIndex(),
+                            entries };
+  transport_->send(peerId, req);
+
+  // transport_->send(peerId, AppendEntriesRequest{
+  //     .term = currentTerm(),
+  //     .leaderId = id_,
+  //     .prevLogIndex = prevLogIndex,
+  //     .prevLogTerm = getLogTerm(prevLogIndex),
+  //     .leaderCommit = commitIndex(),
+  //     .entries = entries,
+  // });
 
   followerState.nextIndex += numEntries;
   followerState.nextHeartbeat = MonotonicClock::now() + heartbeatTimeout_;

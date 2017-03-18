@@ -8,6 +8,7 @@
 #include <xzero/net/InetEndPoint.h>
 #include <xzero/net/InetConnector.h>
 #include <xzero/net/Connection.h>
+#include <xzero/net/Connector.h>
 #include <xzero/util/BinaryReader.h>
 #include <xzero/io/FileUtil.h>
 #include <xzero/executor/Executor.h>
@@ -240,7 +241,7 @@ void InetEndPoint::onDetectProtocol() {
   }
 
   // XXX detect magic byte (0x01) to protocol detection
-  if (inputBuffer_[0] == MagicProtocolSwitchByte) {
+  if (inputBuffer_[0] == Connector::MagicProtocolSwitchByte) {
     BinaryReader reader(inputBuffer_);
     reader.parseVarUInt(); // skip magic
     std::string protocol = reader.parseString();

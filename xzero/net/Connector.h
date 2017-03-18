@@ -16,6 +16,7 @@
 
 namespace xzero {
 
+class Buffer;
 class Executor;
 class WallClock;
 class EndPoint;
@@ -29,6 +30,9 @@ class Connection;
  */
 class XZERO_BASE_API Connector {
  public:
+  //! Must be a non-printable ASCII byte.
+  enum { MagicProtocolSwitchByte = 0x01 };
+
   /**
    * Creates a new Connection instance for the given @p connector
    * and @p endpoint.
@@ -108,6 +112,8 @@ class XZERO_BASE_API Connector {
    * Retrieves the default connection factory.
    */
   ConnectionFactory defaultConnectionFactory() const;
+
+  void loadConnectionFactorySelector(const std::string& protocolName, Buffer* sink);
 
   /**
    * Retrieves the default task executor service.

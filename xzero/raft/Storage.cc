@@ -141,7 +141,10 @@ FileStore::~FileStore() {
 
 Buffer FileStore::readFile(const std::string& name) {
   std::string path = FileUtil::joinPaths(basedir_, name);
-  return FileUtil::read(path);
+  if (FileUtil::exists(path))
+    return FileUtil::read(path);
+  else
+    return Buffer();
 }
 
 Option<std::pair<Id, Term>> FileStore::parseVote(const BufferRef& data) {
@@ -158,6 +161,7 @@ Option<std::pair<Id, Term>> FileStore::parseVote(const BufferRef& data) {
 
 std::error_code FileStore::initialize(Id* id) {
   if (!FileUtil::isDirectory(basedir_)) {
+    logDebug("raft.FileStore", "Creating directory $0", basedir_);
     FileUtil::mkdir_p(basedir_);
   }
 
