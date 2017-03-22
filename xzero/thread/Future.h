@@ -51,6 +51,8 @@ class XZERO_BASE_API PromiseState : public RefCounted {
 template <typename T>
 class XZERO_BASE_API Future {
  public:
+  typedef T value_type;
+
   Future(RefPtr<PromiseState<T>> promise_state);
   Future(const Future<T>& other);
   Future(Future<T>&& other);
@@ -80,6 +82,29 @@ class XZERO_BASE_API Future {
   Result<T> waitAndGetResult() const;
 
   Wakeup* wakeup() const;
+
+  /**
+   * Chains this @c Future<T> with another @c Continuation function that
+   * returns a @c Future<R> as well.
+   *
+   * @param cont a continuation function or lambda that receives the
+   *             result of this @c Future<T> and returns another Future.
+   *
+   * @return a Future that corresponds to the passed Continuation.
+   *
+   * Any error code will be chained on the the returned Future.
+   */
+  template<typename Continuation>
+  auto chain(Continuation cont) -> decltype(cont(T())) {
+    Promise<typename decltype(cont(T()))::value_type> promise;
+    onFailure([promise](std::error_code ec) { promise.failure(ec); });
+    onSuccess([promise, cont](auto val) {
+        auto y = cont(val);
+        y.onSuccess([=](const auto& yval) { promise.success(yval); });
+        y.onFailure([=](std::error_code ec) { promise.failure(ec); });
+    });
+    return promise.future();
+  }
 
  protected:
   RefPtr<PromiseState<T>> state_;

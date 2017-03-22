@@ -16,6 +16,34 @@ Future<int> getSomeFuture(int i) {
   return promise.future();
 }
 
+Future<double> i2d(int i) {
+  Promise<double> promise;
+  promise.success(double(i * i));
+  return promise.future();
+}
+
+TEST(Future, chain1) {
+  Future<int> f = getSomeFuture(42);
+  Future<double> g = f.chain(i2d);
+  Future<int> h = g.chain([](double x) -> Future<int> {
+    Promise<int> promise;
+    promise.success(static_cast<int>(x) - 1700);
+    return promise.future();
+  });
+  EXPECT_EQ(42, f.get());
+  EXPECT_EQ(1764.0, g.get());
+  EXPECT_EQ(64, h.get());
+}
+
+TEST(Future, chain2) {
+  Future<int> f = getSomeFuture(42).chain(i2d).chain([](double x) -> Future<int> {
+    Promise<int> promise;
+    promise.success(static_cast<int>(x) - 1700);
+    return promise.future();
+  });
+  EXPECT_EQ(64, f.get());
+}
+
 TEST(Future, successNow) {
   Promise<int> promise;
   promise.success(42);
