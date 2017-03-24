@@ -189,15 +189,6 @@ Future<T> Promise<T>::future() const {
 }
 
 template <typename T>
-void Promise<T>::failure(const std::exception& e) const {
-  if (auto re = dynamic_cast<const RuntimeError*>(&e)) {
-    failure(static_cast<Status>(re->code().value()));
-  } else {
-    failure(Status::ForeignError);
-  }
-}
-
-template <typename T>
 void Promise<T>::failure(std::errc ec) const {
   failure(std::make_error_code(ec));
 }
@@ -261,5 +252,157 @@ bool Promise<T>::isFulfilled() const {
   std::unique_lock<std::mutex> lk(state_->mutex);
   return state_->ready;
 }
+
+// {{{ PromiseState<void>
+inline PromiseState<void>::PromiseState() :
+    error(),
+    ready(false),
+    on_failure(nullptr),
+    on_success(nullptr) {
+}
+
+inline PromiseState<void>::~PromiseState() {
+  assert(ready == true);
+}
+// }}}
+// {{{ Future<void>
+inline Future<void>::Future(RefPtr<PromiseState<void>> state) : state_(state) {}
+
+inline Future<void>::Future(const Future<void>& other) : state_(other.state_) {}
+
+inline Future<void>::Future(Future<void>&& other) : state_(std::move(other.state_)) {}
+
+inline Future<void>::~Future() {}
+
+inline Future<void>& Future<void>::operator=(const Future<void>& other) {
+  state_ = other.state_;
+  return *this;
+}
+
+inline void Future<void>::wait() const {
+  state_->wakeup.waitForFirstWakeup();
+}
+
+template<typename U>
+inline void Future<void>::onFailure(Promise<U> forward) {
+  onFailure([this, forward](const std::error_code& ec) {
+    forward.failure(ec);
+  });
+}
+
+inline void Future<void>::onFailure(std::function<void(std::error_code)> fn) {
+  std::unique_lock<std::mutex> lk(state_->mutex);
+
+  if (!state_->ready) {
+    state_->on_failure = fn;
+  } else if (state_->error) {
+    fn(state_->error);
+  }
+}
+
+inline void Future<void>::onSuccess(std::function<void ()> fn) {
+  std::unique_lock<std::mutex> lk(state_->mutex);
+
+  if (!state_->ready) {
+    state_->on_success = fn;
+  } else if (!state_->error) {
+    fn();
+  }
+}
+
+inline bool Future<void>::isReady() const {
+  return state_->ready;
+}
+
+inline bool Future<void>::isSuccess() const {
+  return isReady() && !state_->error;
+}
+
+inline bool Future<void>::isFailure() const {
+  return isReady() && state_->error;
+}
+
+inline const std::error_code& Future<void>::error() const {
+  std::unique_lock<std::mutex> lk(state_->mutex);
+
+  if (!state_->ready) {
+    RAISE(FutureError, "error() called on pending future");
+  }
+
+  if (!state_->error)
+    RAISE(InternalError, "erorr() called but no error received");
+
+  return state_->error;
+}
+
+inline Wakeup* Future<void>::wakeup() const {
+  return &state_->wakeup;
+}
+// }}}
+// {{{ Promise<void>
+inline Promise<void>::Promise() : state_(new PromiseState<void>()) {}
+
+inline Promise<void>::Promise(const Promise<void>& other) : state_(other.state_) {}
+
+inline Promise<void>::Promise(Promise<void>&& other) : state_(std::move(other.state_)) {}
+
+inline Promise<void>::~Promise() {}
+
+inline Promise<void>& Promise<void>::operator=(const Promise<void>& other) {
+  state_ = other.state_;
+  return *this;
+}
+
+inline Promise<void>& Promise<void>::operator=(Promise&& other) {
+  state_ = std::move(other.state_);
+  return *this;
+}
+
+inline Future<void> Promise<void>::future() const {
+  return Future<void>(state_);
+}
+
+inline void Promise<void>::failure(std::errc ec) const {
+  failure(std::make_error_code(ec));
+}
+
+inline void Promise<void>::failure(const std::error_code& error) const {
+  std::unique_lock<std::mutex> lk(state_->mutex);
+  if (state_->ready) {
+    RAISE(FutureError, "promise was already fulfilled");
+  }
+
+  state_->error = error;
+  state_->ready = true;
+  lk.unlock();
+
+  state_->wakeup.wakeup();
+
+  if (state_->on_failure) {
+    state_->on_failure(state_->error);
+  }
+}
+
+inline void Promise<void>::success() const {
+  std::unique_lock<std::mutex> lk(state_->mutex);
+  if (state_->ready) {
+    RAISE(FutureError, "promise was already fulfilled");
+  }
+
+  state_->ready = true;
+  lk.unlock();
+
+  state_->wakeup.wakeup();
+
+  if (state_->on_success) {
+    state_->on_success();
+  }
+}
+
+inline bool Promise<void>::isFulfilled() const {
+  std::unique_lock<std::mutex> lk(state_->mutex);
+  return state_->ready;
+}
+// }}}
 
 } // namespace xzero

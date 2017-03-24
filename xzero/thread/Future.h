@@ -48,6 +48,25 @@ class XZERO_BASE_API PromiseState : public RefCounted {
   friend class Promise<T>;
 };
 
+template <>
+class PromiseState<void> : public RefCounted {
+ public:
+  PromiseState();
+  ~PromiseState();
+
+ private:
+  Wakeup wakeup;
+  std::error_code error;
+  std::mutex mutex; // FIXPAUL use spinlock
+  bool ready;
+
+  std::function<void (std::error_code status)> on_failure;
+  std::function<void ()> on_success;
+
+  friend class Future<void>;
+  friend class Promise<void>;
+};
+
 template <typename T>
 class XZERO_BASE_API Future {
  public:
@@ -110,6 +129,60 @@ class XZERO_BASE_API Future {
   RefPtr<PromiseState<T>> state_;
 };
 
+template <>
+class Future<void> {
+ public:
+  typedef void value_type;
+
+  Future(RefPtr<PromiseState<value_type>> promise_state);
+  Future(const Future<value_type>& other);
+  Future(Future<value_type>&& other);
+  ~Future();
+
+  Future& operator=(const Future<value_type>& other);
+
+  bool isReady() const;
+  bool isFailure() const;
+  bool isSuccess() const;
+
+  template<typename U>
+  void onFailure(Promise<U> forward);
+  void onFailure(std::function<void (std::error_code ec)> fn);
+  void onSuccess(std::function<void ()> fn);
+
+  void wait() const;
+  void wait(const Duration& timeout) const;
+
+  const std::error_code& error() const;
+
+  Wakeup* wakeup() const;
+
+  /**
+   * Chains this @c Future<T> with another @c Continuation function that
+   * returns a @c Future<R> as well.
+   *
+   * @param cont a continuation function or lambda that receives the
+   *             result of this @c Future<T> and returns another Future.
+   *
+   * @return a Future that corresponds to the passed Continuation.
+   *
+   * Any error code will be chained on the the returned Future.
+   */
+  template<typename Continuation>
+  auto chain(Continuation cont) -> decltype(cont()) {
+    Promise<typename decltype(cont())::value_type> promise;
+    onFailure([promise](std::error_code ec) { promise.failure(ec); });
+    onSuccess([promise, cont]() {
+        auto y = cont();
+        y.onSuccess([=](const auto& yval) { promise.success(yval); });
+        y.onFailure([=](std::error_code ec) { promise.failure(ec); });
+    });
+    return promise.future();
+  }
+
+ protected:
+  RefPtr<PromiseState<value_type>> state_;
+};
 
 template <typename T>
 class XZERO_BASE_API Promise {
@@ -124,7 +197,6 @@ class XZERO_BASE_API Promise {
 
   void success(const T& value) const;
   void success(T&& value) const;
-  void failure(const std::exception& e) const;
   void failure(const std::error_code& ec) const;
   void failure(std::errc ec) const;
 
@@ -135,6 +207,29 @@ class XZERO_BASE_API Promise {
   mutable RefPtr<PromiseState<T>> state_;
 };
 
+template <>
+class Promise<void> {
+ public:
+  typedef void value_type;
+
+  Promise();
+  Promise(const Promise<value_type>& other);
+  Promise(Promise<value_type>&& other);
+  ~Promise();
+
+  Promise<value_type>& operator=(const Promise<value_type>& other);
+  Promise<value_type>& operator=(Promise<value_type>&& other);
+
+  void success() const;
+  void failure(const std::error_code& ec) const;
+  void failure(std::errc ec) const;
+
+  Future<value_type> future() const;
+  bool isFulfilled() const;
+
+ protected:
+  mutable RefPtr<PromiseState<value_type>> state_;
+};
 } // namespace xzero
 
 #include <xzero/thread/Future-impl.h>

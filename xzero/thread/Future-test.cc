@@ -22,6 +22,18 @@ Future<double> i2d(int i) {
   return promise.future();
 }
 
+Future<void> getVoidFuture() {
+  Promise<void> promise;
+  promise.success();
+  return promise.future();
+}
+
+TEST(Future, of_void) {
+  Future<void> f = getVoidFuture();
+  f.wait();
+  EXPECT_TRUE(f.isSuccess());
+}
+
 TEST(Future, chain1) {
   Future<int> f = getSomeFuture(42);
   Future<double> g = f.chain(i2d);
