@@ -80,5 +80,8 @@ int main(int argc, char* argv[]) {
 
   std::cout << nwritten << " bytes written." << std::endl;
 
+  delete input;
+  delete output;
+
   return 0;
 }
