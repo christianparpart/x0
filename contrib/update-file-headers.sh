@@ -4,7 +4,7 @@ HEADER=~/.vim.header
 
 #for file in ${@}; do
 for file in $(find src \( -name '*.h' -o -name '*.cc' \) -print); do
-  cat $file | awk '
+  awk '
   BEGIN {
     in_header = 1;
   }
@@ -25,7 +25,7 @@ for file in $(find src \( -name '*.h' -o -name '*.cc' \) -print); do
       print $0;
     }
   }
-  ' > ${file}.noheader || exit $?
+  ' <${file} >${file}.noheader || exit $?
   rm ${file} || exit $?
   cat ${HEADER} ${file}.noheader > ${file} || exit $?
   rm -f ${file}.noheader

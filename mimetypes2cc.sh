@@ -11,7 +11,7 @@ SYMBOL="${3}"  # builtin_mimetypes
 mkdir -p $(dirname ${OUTFILE}) || exit 1
 
 #grep -v ^# $INFILE | grep -v ^$ | awk '
-cat $INFILE | awk '
+awk '
 BEGIN {
   printf("#include <string>\n");
   printf("#include <unordered_map>\n");
@@ -29,4 +29,4 @@ BEGIN {
 
 END {
   printf("};\n");
-}' >$OUTFILE
+}' <$INFILE >$OUTFILE
