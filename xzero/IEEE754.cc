@@ -37,6 +37,7 @@ uint64_t IEEE754::toBytes(double value) {
     memcpy((void *) &bytes, (void *) &value, sizeof(bytes));
   } else {
     /* not yet implemented */
+    value = 0;
   }
 
   return bytes;
@@ -57,6 +58,7 @@ double IEEE754::fromBytes(uint64_t bytes) {
     memcpy((void *) &value, (void *) &bytes, sizeof(bytes));
   } else {
     /* not yet implemented */
+    value = 0;
   }
 
   return value;
