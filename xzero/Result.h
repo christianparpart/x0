@@ -10,6 +10,7 @@
 
 #include <string>
 #include <system_error>
+#include <type_traits>
 
 /**
  * @brief Result<T> gives you the opportunity to either return some value or an error.
@@ -34,8 +35,11 @@
 template<typename T>
 class Result {
  public:
-  Result(const T& value);
-  Result(T&& value);
+  using value_type = std::remove_reference<T>::type;
+  using pointer_type = std::add_pointer<value_type>::type;
+
+  Result(const value_type& value);
+  Result(value_type&& value);
   Result(const std::error_code& message);
   Result(Result&& other);
   ~Result();
@@ -46,14 +50,14 @@ class Result {
   const std::string failureMessage() const;
   const std::error_code& error() const noexcept;
 
-  T* get();
-  const T* get() const;
+  pointer_type get();
+  const pointer_type get() const;
 
-  T* operator->();
-  const T* operator->() const;
+  pointer_type operator->();
+  const pointer_type operator->() const;
 
-  T& operator*();
-  const T& operator*() const;
+  value_type& operator*();
+  const value_type& operator*() const;
 
   void require() const;
 

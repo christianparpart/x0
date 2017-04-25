@@ -10,17 +10,17 @@
 #include <xzero/StringUtil.h>
 
 template<typename T>
-inline Result<T>::Result(const T& value)
+inline Result<T>::Result(const value_type& value)
   : success_(true),
     error_() {
-  new (storage_) T(value);
+  new (storage_) value_type(value);
 }
 
 template<typename T>
-inline Result<T>::Result(T&& value)
+inline Result<T>::Result(value_type&& value)
   : success_(true),
     error_() {
-  new (storage_) T(std::move(value));
+  new (storage_) value_type(std::move(value));
 }
 
 template<typename T>
@@ -41,8 +41,8 @@ Result<T>::Result(Result&& other)
     : success_(other.success_),
       error_(std::move(other.error_)) {
   if (success_) {
-    new (storage_) T(std::move(*other.get()));
-    other.get()->~T();
+    new (storage_) value_type(std::move(*other.get()));
+    other.get()->~value_type();
   }
 }
 
@@ -50,7 +50,7 @@ Result<T>::Result(Result&& other)
 template<typename T>
 inline Result<T>::~Result() {
   if (success_) {
-    ((T*) &storage_)->~T();
+    ((value_type*) &storage_)->~value_type();
   }
 }
 
@@ -80,34 +80,34 @@ inline const std::error_code& Result<T>::error() const noexcept {
 }
 
 template<typename T>
-inline T* Result<T>::get() {
+inline pointer_type Result<T>::get() {
   require();
-  return ((T*) &storage_);
+  return ((pointer_type) &storage_);
 }
 
 template<typename T>
-inline const T* Result<T>::get() const {
+inline const pointer_type Result<T>::get() const {
   require();
-  return ((T*) &storage_);
+  return ((pointer_type) &storage_);
 }
 
 template<typename T>
-inline T* Result<T>::operator->() {
+inline pointer_type Result<T>::operator->() {
   return get();
 }
 
 template<typename T>
-inline const T* Result<T>::operator->() const {
+inline const pointer_type Result<T>::operator->() const {
   return get();
 }
 
 template<typename T>
-inline T& Result<T>::operator*() {
+inline value_type& Result<T>::operator*() {
   return *get();
 }
 
 template<typename T>
-inline const T& Result<T>::operator*() const {
+inline const value_type& Result<T>::operator*() const {
   return *get();
 }
 
