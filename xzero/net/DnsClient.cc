@@ -139,7 +139,7 @@ std::vector<std::string> DnsClient::txt(const std::string& fqdn) {
   logDebug("DnsClient", "resolving TXT: $0", fqdn);
   Buffer answer(NS_MAXMSG);
   int answerLength = res_query(fqdn.c_str(),
-                               C_IN,
+                               ns_c_in,
                                ns_t_txt,
                                (unsigned char*) answer.data(),
                                answer.capacity());
@@ -205,7 +205,7 @@ std::vector<DnsClient::SRV> DnsClient::srv(const std::string& fqdn) {
 
   Buffer answer(NS_MAXMSG);
   int answerLength = res_query(fqdn.c_str(),
-                               C_IN,
+                               ns_c_in,
                                ns_t_srv,
                                (unsigned char*) answer.data(),
                                answer.capacity());
