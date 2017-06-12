@@ -80,34 +80,34 @@ inline const std::error_code& Result<T>::error() const noexcept {
 }
 
 template<typename T>
-inline pointer_type Result<T>::get() {
+inline typename Result<T>::pointer_type Result<T>::get() {
   require();
   return ((pointer_type) &storage_);
 }
 
 template<typename T>
-inline const pointer_type Result<T>::get() const {
+inline const typename Result<T>::pointer_type Result<T>::get() const {
   require();
   return ((pointer_type) &storage_);
 }
 
 template<typename T>
-inline pointer_type Result<T>::operator->() {
+inline typename Result<T>::pointer_type Result<T>::operator->() {
   return get();
 }
 
 template<typename T>
-inline const pointer_type Result<T>::operator->() const {
+inline const typename Result<T>::pointer_type Result<T>::operator->() const {
   return get();
 }
 
 template<typename T>
-inline value_type& Result<T>::operator*() {
+inline typename Result<T>::value_type& Result<T>::operator*() {
   return *get();
 }
 
 template<typename T>
-inline const value_type& Result<T>::operator*() const {
+inline const typename Result<T>::value_type& Result<T>::operator*() const {
   return *get();
 }
 
