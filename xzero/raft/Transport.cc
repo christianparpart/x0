@@ -13,5 +13,10 @@ namespace raft {
 Transport::~Transport() {
 }
 
+const std::string& Transport::protocolName() {
+  static std::string name = "raft-s2s";
+  return name;
+}
+
 } // namespace raft
 } // namespace xzero

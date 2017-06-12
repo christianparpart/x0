@@ -20,6 +20,8 @@ class Transport {
  public:
   virtual ~Transport();
 
+  static const std::string& protocolName();
+
   virtual void setHandler(Handler* handler) = 0;
 
   virtual void send(Id target, const VoteRequest& message) = 0;

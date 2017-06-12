@@ -202,7 +202,7 @@ InetTransport::InetTransport(const Discovery* discovery,
     endpointLock_(),
     endpoints_() {
   connector_->addConnectionFactory(
-      "raft-s2s",
+      protocolName(),
       std::bind(&InetTransport::create, this,
                 std::placeholders::_1,
                 std::placeholders::_2));
