@@ -6,6 +6,8 @@
 // the License at: http://opensource.org/licenses/MIT
 
 #include <xzero/net/InetUtil.h>
+#include <xzero/net/InetAddress.h>
+#include <xzero/net/IPAddress.h>
 #include <xzero/io/FileUtil.h>
 #include <xzero/executor/Executor.h>
 #include <xzero/RuntimeError.h>
@@ -26,6 +28,62 @@ namespace xzero {
 
 #define TRACE(msg...) logTrace("InetUtil", msg)
 
+Option<InetAddress> InetUtil::getRemoteAddress(int fd, int addressFamily) {
+  if (fd < 0)
+    return None();
+
+  switch (addressFamily) {
+    case AF_INET6: {
+      sockaddr_in6 saddr;
+      socklen_t slen = sizeof(saddr);
+      if (getpeername(fd, (sockaddr*)&saddr, &slen) < 0)
+        return None();
+
+      return InetAddress(IPAddress(&saddr), ntohs(saddr.sin6_port));
+    }
+    case AF_INET: {
+      sockaddr_in saddr;
+      socklen_t slen = sizeof(saddr);
+      if (getpeername(fd, (sockaddr*)&saddr, &slen) < 0)
+        return None();
+
+      return InetAddress(IPAddress(&saddr), ntohs(saddr.sin_port));
+    }
+    default:
+      RAISE(IllegalStateError, "Invalid address family.");
+  }
+  return None();
+}
+
+Option<InetAddress> InetUtil::getLocalAddress(int fd, int addressFamily) {
+  if (fd < 0)
+    return None();
+
+  switch (addressFamily) {
+    case AF_INET6: {
+      sockaddr_in6 saddr;
+      socklen_t slen = sizeof(saddr);
+
+      if (getsockname(fd, (sockaddr*)&saddr, &slen) == 0) {
+        return InetAddress(IPAddress(&saddr), ntohs(saddr.sin6_port));
+      }
+      break;
+    }
+    case AF_INET: {
+      sockaddr_in saddr;
+      socklen_t slen = sizeof(saddr);
+
+      if (getsockname(fd, (sockaddr*)&saddr, &slen) == 0) {
+        return InetAddress(IPAddress(&saddr), ntohs(saddr.sin_port));
+      }
+      break;
+    }
+    default:
+      break;
+  }
+
+  return None();
+}
 int InetUtil::getLocalPort(int socket, int addressFamily) {
   switch (addressFamily) {
     case AF_INET6: {

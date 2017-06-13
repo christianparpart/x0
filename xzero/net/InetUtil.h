@@ -10,14 +10,17 @@
 #include <xzero/net/InetAddress.h>
 #include <xzero/Duration.h>
 #include <system_error>
+#include <string>
 
 namespace xzero {
 
+class EndPoint;
 class Executor;
+class Connection;
 
 class InetUtil {
  public:
-  static int getLocalPort(int socket, int addressFamily);
+  using ConnectionFactory = std::function<Connection*(const std::string&)>;
 
   static Result<int> openTcpSocket(int addressFamily);
 
@@ -26,6 +29,10 @@ class InetUtil {
                              Executor* executor);
 
   static std::error_code connect(int socket, const InetAddress& remote);
+
+  static Option<InetAddress> getLocalAddress(int fd, int addressFamily);
+  static Option<InetAddress> getRemoteAddress(int fd, int addressFamily);
+  static int getLocalPort(int socket, int addressFamily);
 };
 
 }  // namespace xzero
