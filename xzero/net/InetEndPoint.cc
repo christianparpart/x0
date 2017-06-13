@@ -7,6 +7,7 @@
 
 #include <xzero/net/InetEndPoint.h>
 #include <xzero/net/InetConnector.h>
+#include <xzero/net/InetUtil.h>
 #include <xzero/net/Connection.h>
 #include <xzero/net/Connector.h>
 #include <xzero/util/BinaryReader.h>
@@ -91,60 +92,11 @@ InetEndPoint::~InetEndPoint() {
 }
 
 Option<InetAddress> InetEndPoint::remoteAddress() const {
-  if (handle_ < 0)
-    return None();
-
-  switch (addressFamily()) {
-    case AF_INET6: {
-      sockaddr_in6 saddr;
-      socklen_t slen = sizeof(saddr);
-      if (getpeername(handle_, (sockaddr*)&saddr, &slen) < 0)
-        return None();
-
-      return InetAddress(IPAddress(&saddr), ntohs(saddr.sin6_port));
-    }
-    case AF_INET: {
-      sockaddr_in saddr;
-      socklen_t slen = sizeof(saddr);
-      if (getpeername(handle_, (sockaddr*)&saddr, &slen) < 0)
-        return None();
-
-      return InetAddress(IPAddress(&saddr), ntohs(saddr.sin_port));
-    }
-    default:
-      RAISE(IllegalStateError, "Invalid address family.");
-  }
-  return None();
+  return InetUtil::getRemoteAddress(handle_, addressFamily());
 }
 
 Option<InetAddress> InetEndPoint::localAddress() const {
-  if (handle_ < 0)
-    return None();
-
-  switch (addressFamily()) {
-    case AF_INET6: {
-      sockaddr_in6 saddr;
-      socklen_t slen = sizeof(saddr);
-
-      if (getsockname(handle_, (sockaddr*)&saddr, &slen) == 0) {
-        return InetAddress(IPAddress(&saddr), ntohs(saddr.sin6_port));
-      }
-      break;
-    }
-    case AF_INET: {
-      sockaddr_in saddr;
-      socklen_t slen = sizeof(saddr);
-
-      if (getsockname(handle_, (sockaddr*)&saddr, &slen) == 0) {
-        return InetAddress(IPAddress(&saddr), ntohs(saddr.sin_port));
-      }
-      break;
-    }
-    default:
-      break;
-  }
-
-  return None();
+  return InetUtil::getLocalAddress(handle_, addressFamily());
 }
 
 bool InetEndPoint::isOpen() const XZERO_NOEXCEPT {
