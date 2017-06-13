@@ -8,6 +8,7 @@
 #include <xzero/net/SslEndPoint.h>
 #include <xzero/net/SslContext.h>
 #include <xzero/net/SslConnector.h>
+#include <xzero/net/SslUtil.h>
 #include <xzero/net/Connection.h>
 #include <xzero/io/FileUtil.h>
 #include <xzero/RuntimeError.h>
@@ -27,27 +28,31 @@ namespace xzero {
 #endif
 
 #define THROW_SSL_ERROR() {                                                   \
-  RAISE_CATEGORY(ERR_get_error(), ssl_error_category());                      \
+  RAISE_CATEGORY(ERR_get_error(), SslErrorCategory::get());                      \
 }
 
-SslEndPoint::SslEndPoint(
-    int socket, SslConnector* connector, Executor* executor)
-    : handle_(socket),
+SslEndPoint::SslEndPoint(FileDescriptor&& fd,
+                         Duration readTimeout,
+                         Duration writeTimeout,
+                         SslContext* defaultContext,
+                         std::function<void(EndPoint*)> onEndPointClosed,
+                         Executor* executor)
+    : handle_(fd.release()),
       isCorking_(false),
-      connector_(connector),
+      onEndPointClosed_(onEndPointClosed),
       executor_(executor),
       ssl_(nullptr),
       bioDesire_(Desire::None),
       io_(),
-      readTimeout_(connector->readTimeout()),
-      writeTimeout_(connector->writeTimeout()),
+      readTimeout_(readTimeout),
+      writeTimeout_(writeTimeout),
       idleTimeout_(executor) {
   TRACE("$0 SslEndPoint() ctor", this);
 
   idleTimeout_.setCallback(std::bind(&SslEndPoint::onTimeout, this));
 
-  ssl_ = SSL_new(connector->defaultContext()->get());
-  SSL_set_fd(ssl_, socket);
+  ssl_ = SSL_new(defaultContext->get());
+  SSL_set_fd(ssl_, fd);
 
 #if !defined(NDEBUG)
   SSL_set_tlsext_debug_callback(ssl_, &SslEndPoint::tlsext_debug_cb);
@@ -78,7 +83,7 @@ void SslEndPoint::shutdown() {
 
   TRACE("$0 close: SSL_shutdown -> $1", this, rv);
   if (rv == 1) {
-    connector_->onEndPointClosed(this);
+    onEndPointClosed_(this);
   } else if (rv == 0) {
     // call again
     shutdown();
@@ -106,7 +111,7 @@ void SslEndPoint::abort() {
   SSL_set_shutdown(ssl_, SSL_SENT_SHUTDOWN | SSL_RECEIVED_SHUTDOWN);
   shutdown();
 #else
-  connector_->onEndPointClosed(this);
+  onEndPointClosed_(this);
 #endif
 }
 
@@ -357,11 +362,9 @@ void SslEndPoint::onHandshake() {
     TRACE("$0 handshake complete (next protocol: \"$1\")", this, nextProtocolNegotiated().str().c_str());
 
     std::string protocol = nextProtocolNegotiated().str();
-    auto factory = connector_->connectionFactory(protocol);
-    if (!factory) {
-      factory = connector_->defaultConnectionFactory();
-    }
-    factory(connector_, this);
+    // TODO FIXME getting connectionFactory_
+    // std::unique_ptr<Connection> conn(connectionFactory_(protocol));
+    // setConnection(std::move(conn));
 
     connection()->onOpen(false);
   }

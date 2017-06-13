@@ -182,7 +182,9 @@ libXzero_a_SOURCES = \
 	xzero/net/Server.cc \
 	xzero/net/SslConnector.cc \
 	xzero/net/SslContext.cc \
+	xzero/net/SslClient.cc \
 	xzero/net/SslEndPoint.cc \
+	xzero/net/SslUtil.cc \
 	xzero/net/UdpClient.cc \
 	xzero/net/UdpConnector.cc \
 	xzero/net/UdpEndPoint.cc \
@@ -409,8 +411,10 @@ nobase_libXzero_HEADERS = \
 	xzero/net/LocalDatagramEndPoint.h \
 	xzero/net/Server.h \
 	xzero/net/SslConnector.h \
+	xzero/net/SslClient.h \
 	xzero/net/SslContext.h \
 	xzero/net/SslEndPoint.h \
+	xzero/net/SslUtil.h \
 	xzero/net/UdpClient.h \
 	xzero/net/UdpConnector.h \
 	xzero/net/UdpEndPoint.h \
@@ -605,6 +609,7 @@ xzero_test_SOURCES = \
 	xzero/net/ByteArrayEndPoint-test.cc \
 	xzero/net/InetConnector-test.cc \
 	xzero/net/Cidr-test.cc \
+	xzero/net/SslClient-test.cc \
 	xzero/thread/Future-test.cc \
 	xzero/thread/Queue-test.cc \
 	xzero/util/BinaryReader-test.cc \

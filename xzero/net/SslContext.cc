@@ -7,6 +7,7 @@
 
 #include <xzero/net/SslConnector.h>
 #include <xzero/net/SslContext.h>
+#include <xzero/net/SslUtil.h>
 #include <xzero/net/Connection.h>
 #include <xzero/RuntimeError.h>
 #include <xzero/logging.h>
@@ -28,43 +29,11 @@ namespace xzero {
 #endif
 
 #define THROW_SSL_ERROR() {                                                   \
-  RAISE_CATEGORY(ERR_get_error(), ssl_error_category());                      \
+  RAISE_CATEGORY(ERR_get_error(), SslErrorCategory::get());                      \
 }
 
-
-class SslErrorCategory : public std::error_category { // {{{
- public:
-  static std::error_category& get() {
-    static SslErrorCategory ec;
-    return ec;
-  }
-
-  const char* name() const noexcept override {
-    return "ssl";
-  }
-
-  std::string message(int ev) const override {
-    char buf[256];
-    ERR_error_string_n(ev, buf, sizeof(buf));
-    return buf;
-  }
-}; // }}}
 
 // {{{ helper
-const std::error_category& ssl_error_category() {
-  return SslErrorCategory::get();
-}
-
-static inline void initializeSslLibrary() {
-  static int initCounter = 0;
-  if (initCounter == 0) {
-    initCounter++;
-    SSL_library_init();
-    SSL_load_error_strings();
-    OpenSSL_add_all_algorithms();
-  }
-}
-
 static std::vector<std::string> collectDnsNames(X509* crt) {
   std::vector<std::string> result;
 
@@ -128,7 +97,7 @@ SslContext::SslContext(SslConnector* connector,
 
   connector_ = connector;
 
-  initializeSslLibrary();
+  SslUtil::initialize();
 
 #if defined(SSL_TXT_TLSV1_2)
   ctx_ = SSL_CTX_new(TLSv1_2_server_method());

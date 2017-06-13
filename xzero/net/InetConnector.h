@@ -279,7 +279,8 @@ class XZERO_BASE_API InetConnector : public Connector {
    */
   void onEndPointClosed(EndPoint* endpoint);
   friend class InetEndPoint;
-  friend class SslEndPoint;
+  friend class SslConnector;
+  friend class SslUtil;
 
  private:
   Executor::HandleRef io_;

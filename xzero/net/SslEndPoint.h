@@ -8,13 +8,16 @@
 #pragma once
 
 #include <xzero/Api.h>
+#include <xzero/io/FileDescriptor.h>
 #include <xzero/net/EndPoint.h>
+#include <xzero/net/InetUtil.h>
 #include <xzero/DeadlineTimer.h>
 #include <openssl/ssl.h>
 
 namespace xzero {
 
 class SslConnector;
+class SslContext;
 
 /**
  * SSL EndPoint, aka SSL socket.
@@ -22,6 +25,21 @@ class SslConnector;
 class XZERO_BASE_API SslEndPoint : public EndPoint {
  public:
   SslEndPoint(int socket, SslConnector* connector, Executor* executor);
+
+  /**
+   * Initializes an SSL endpoint.
+   *
+   * @param fd
+   * @param readTimeout
+   * @param writeTimeout
+   */
+  SslEndPoint(FileDescriptor&& fd,
+              Duration readTimeout,
+              Duration writeTimeout,
+              SslContext* defaultContext,
+              std::function<void(EndPoint*)> onEndPointClosed,
+              Executor* executor);
+
   ~SslEndPoint();
 
   int handle() const noexcept { return handle_; }
@@ -105,7 +123,9 @@ class XZERO_BASE_API SslEndPoint : public EndPoint {
  private:
   int handle_;
   bool isCorking_;
-  SslConnector* connector_;
+
+  std::function<void(EndPoint*)> onEndPointClosed_;
+
   Executor* executor_;
   SSL* ssl_;
   Desire bioDesire_;

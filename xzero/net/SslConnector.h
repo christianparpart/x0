@@ -17,6 +17,7 @@
 namespace xzero {
 
 class SslContext;
+class SslUtil;
 
 /**
  * SSL Connector.
@@ -72,14 +73,14 @@ class XZERO_BASE_API SslConnector : public InetConnector {
   void onEndPointCreated(const RefPtr<EndPoint>& endpoint) override;
 
   SslContext* selectContext(const char* servername) const;
-
- private:
   SslContext* defaultContext() const;
 
+ private:
   static int selectContext(SSL* ssl, int* ad, SslConnector* connector);
 
   friend class SslEndPoint;
   friend class SslContext;
+  friend class SslUtil;
 
  private:
   std::list<std::unique_ptr<SslContext>> contexts_;

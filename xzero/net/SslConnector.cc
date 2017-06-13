@@ -91,7 +91,13 @@ std::list<RefPtr<EndPoint>> SslConnector::connectedEndPoints() {
 }
 
 RefPtr<EndPoint> SslConnector::createEndPoint(int cfd, Executor* executor) {
-  return make_ref<SslEndPoint>(cfd, this, executor).as<EndPoint>();
+  return make_ref<SslEndPoint>(
+      FileDescriptor(cfd),
+      readTimeout(),
+      writeTimeout(),
+      defaultContext(),
+      std::bind(&SslConnector::onEndPointClosed, this, std::placeholders::_1),
+      executor).as<EndPoint>();
 }
 
 void SslConnector::onEndPointCreated(const RefPtr<EndPoint>& endpoint) {
