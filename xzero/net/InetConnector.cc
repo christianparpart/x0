@@ -276,9 +276,9 @@ void InetConnector::setDeferAccept(bool enable) {
 #if defined(EOPNOTSUPP) && (EOPNOTSUPP != ENOTSUP)
       case EOPNOTSUPP:
 #endif
-        logWarning("InetConnector", "setDeferAccept failed with $0. Ignoring",
-            strerror(errno));
-        break;
+        logWarning("InetConnector", "setDeferAccept failed with $0 ($1). Ignoring",
+            strerror(errno), errno);
+        return;
       default:
         RAISE_ERRNO(errno);
     }
