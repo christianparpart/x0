@@ -192,6 +192,6 @@ BASE_LIBS="$PLATFORM_LDFLAGS $OPENSSL_LDADD $LIBPCRE_LIBS $OPENSSL_LIBS \
  $ZLIB_LIBS $BZLIB_LIBS -lresolv"
 AC_SUBST([BASE_LIBS])
 
-AC_CONFIG_HEADERS(xzero/sysconfig.h)
+AC_CONFIG_HEADERS(src/xzero/sysconfig.h)
 AC_CONFIG_FILES(Makefile XzeroBase.pc XzeroFlow.pc XzeroTest.pc)
 AC_OUTPUT
