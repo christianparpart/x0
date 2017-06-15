@@ -50,9 +50,12 @@ application/edi-consent
 application/edi-x12
 application/edifact
 application/eshop
-application/font-tdpfr
+application/font-sfnt				otf ttf
+application/font-tdpfr				pfr
+application/font-woff				woff
 application/futuresplash			spl
 application/ghostview
+application/gzip				gz
 application/hta					hta
 application/http
 application/hyperstudio
@@ -85,8 +88,9 @@ application/news-message-id
 application/news-transmission
 application/ocsp-request
 application/ocsp-response
-application/octet-stream			bin
+application/octet-stream			bin deploy msu msp
 application/oda					oda
+application/oebps-package+xml			opf
 application/ogg					ogx
 application/onenote				one onetoc2 onetmp onepkg
 application/parityfec
@@ -161,6 +165,7 @@ application/vnd.cups-postscript
 application/vnd.cups-raster
 application/vnd.cups-raw
 application/vnd.cybank
+application/vnd.debian.binary-package						deb ddeb udeb
 application/vnd.dna
 application/vnd.dpgraph
 application/vnd.dxr
@@ -182,6 +187,7 @@ application/vnd.eudora.data
 application/vnd.fdf
 application/vnd.ffsns
 application/vnd.flographit
+application/vnd.font-fontforge-sfd						sfd
 application/vnd.framemaker
 application/vnd.fsc.weblaunch
 application/vnd.fujitsu.oasys
@@ -381,7 +387,7 @@ application/vnd.uplanet.signal
 application/vnd.vcx
 application/vnd.vectorworks
 application/vnd.vidsoft.vidconference
-application/vnd.visio								vsd
+application/vnd.visio								vsd vst vsw vss
 application/vnd.vividence.scriptfile
 application/vnd.wap.sic
 application/vnd.wap.slc
@@ -396,6 +402,7 @@ application/vnd.wt.stf
 application/vnd.xara
 application/vnd.xfdl
 application/vnd.yellowriver-custom-menu
+application/zlib
 application/x-123				wk
 application/x-7z-compressed			7z
 application/x-abiword				abw
@@ -418,8 +425,8 @@ application/x-dms				dms
 application/x-doom				wad
 application/x-dvi				dvi
 application/x-executable
-application/x-font				pfa pfb gsf pcf pcf.Z
-application/x-font-woff				woff
+application/x-font				pfa pfb gsf
+application/x-font-pcf				pcf pcf.Z
 application/x-freemind				mm
 application/x-futuresplash			spl
 application/x-ganttproject			gan
@@ -460,15 +467,16 @@ application/x-lyx				lyx
 application/x-lzh				lzh
 application/x-lzx				lzx
 application/x-maker				frm maker frame fm fb book fbdoc
-application/x-md5				md5
 application/x-mif				mif
 application/x-mpegURL				m3u8
+application/x-ms-application			application
+application/x-ms-manifest			manifest
 application/x-ms-wmd				wmd
 application/x-ms-wmz				wmz
 application/x-msdos-program			com exe bat dll
 application/x-msi				msi
 application/x-netcdf				nc
-application/x-ns-proxy-autoconfig		pac dat
+application/x-ns-proxy-autoconfig		pac
 application/x-nwc				nwc
 application/x-object				o
 application/x-oz-application			oza
@@ -485,7 +493,6 @@ application/x-rx
 application/x-scilab				sci sce
 application/x-scilab-xcos			xcos
 application/x-sh				sh
-application/x-sha1				sha1
 application/x-shar				shar
 application/x-shellscript
 application/x-shockwave-flash			swf swfl
@@ -512,6 +519,7 @@ application/x-x509-ca-cert			crt
 application/x-xcf				xcf
 application/x-xfig				fig
 application/x-xpinstall				xpi
+application/x-xz				xz
 
 audio/32kadpcm
 audio/3gpp
@@ -725,6 +733,7 @@ text/h323					323
 text/html					html htm shtml
 text/iuls					uls
 text/mathml					mml
+text/markdown                                   md markdown
 text/parityfec
 text/plain					asc txt text pot brf srt
 text/prs.lines.tag
@@ -737,6 +746,7 @@ text/texmacs					tm
 text/tab-separated-values			tsv
 text/turtle					ttl
 text/uri-list
+text/vcard					vcf vcard
 text/vnd.abc
 text/vnd.curl
 text/vnd.debian.copyright
@@ -785,7 +795,6 @@ text/x-sh					sh
 text/x-tcl					tcl tk
 text/x-tex					tex ltx sty cls
 text/x-vcalendar				vcs
-text/x-vcard					vcf
 
 video/3gpp					3gp
 video/annodex					axv
