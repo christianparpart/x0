@@ -17,6 +17,7 @@
 #include <xzero/cli/CLI.h>
 #include <xzero/cli/Flags.h>
 #include <xzero/Application.h>
+#include <typeinfo>
 #include <iostream>
 #include <memory>
 #include <unistd.h>
@@ -162,8 +163,11 @@ int main(int argc, const char* argv[]) {
     PidFile pidFile = pidfilepath;
 
     x0d.run();
+  } catch (const xzero::RuntimeError& e) {
+    e.debugPrint(&std::cerr);
+    return 1;
   } catch (const std::exception& e) {
-    fprintf(stderr, "Unhandled exception caught. %s\n", e.what());
+    fprintf(stderr, "Unhandled exception caught (%s). %s\n", typeid(e).name(), e.what());
     return 1;
   }
 
