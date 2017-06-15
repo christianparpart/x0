@@ -66,7 +66,7 @@ InetConnector::InetConnector(const std::string& name, Executor* executor,
       blocking_(true),
       backlog_(128),
       multiAcceptCount_(1),
-      deferAccept_(true),
+      deferAccept_(false),
       readTimeout_(readTimeout),
       writeTimeout_(writeTimeout),
       tcpFinTimeout_(tcpFinTimeout),
@@ -276,8 +276,8 @@ void InetConnector::setDeferAccept(bool enable) {
 #if defined(EOPNOTSUPP) && (EOPNOTSUPP != ENOTSUP)
       case EOPNOTSUPP:
 #endif
-        logWarning("InetConnector", "setDeferAccept failed with $0 ($1). Ignoring",
-            strerror(errno), errno);
+        logWarning("InetConnector", "setDeferAccept($0) failed with $1 ($2). Ignoring",
+            enable ? "true" : "false", strerror(errno), errno);
         return;
       default:
         RAISE_ERRNO(errno);
@@ -352,6 +352,21 @@ bool InetConnector::isReusePortSupported() {
 
   FileUtil::close(fd);
   return res;
+}
+
+bool InetConnector::isDeferAcceptSupported() {
+#if defined(TCP_DEFER_ACCEPT)
+  FileDescriptor fd = ::socket(AF_INET, SOCK_STREAM, 0);
+  if (fd < 0)
+    return false;
+
+  int rc = 1;
+  bool res = ::setsockopt(fd, SOL_TCP, TCP_DEFER_ACCEPT, &rc, sizeof(rc)) == 0;
+
+  return res;
+#else
+  return false;
+#endif
 }
 
 bool InetConnector::reuseAddr() const {

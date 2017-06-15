@@ -525,6 +525,12 @@ void XzeroDaemon::setupConnector(
     reusePort = false;
   }
 
+  if (deferAccept && !InetConnector::isDeferAcceptSupported()) {
+    logWarning("x0d", "You platform does not support TCP_DEFER_ACCEPT. "
+                      "Disabling.");
+    deferAccept = false;
+  }
+
   if (reusePort) {
     for (auto& eventLoop: eventLoops_) {
       EventLoop* loop = eventLoop.get();
@@ -570,7 +576,9 @@ T* XzeroDaemon::doSetupConnector(
       reusePort
   );
 
-  inet->setDeferAccept(deferAccept);
+  if (deferAccept)
+    inet->setDeferAccept(deferAccept);
+
   inet->setMultiAcceptCount(multiAccept);
   inet->addConnectionFactory(http1_->protocolName(),
       std::bind(&HttpConnectionFactory::create, http1_.get(),

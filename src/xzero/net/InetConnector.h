@@ -175,6 +175,9 @@ class XZERO_BASE_API InetConnector : public Connector {
   /** Tests whether TCP-Port reusing is actually supported. */
   static bool isReusePortSupported();
 
+  /** Tests whether TCP_DEFER_ACCEPT is actually supported. */
+  static bool isDeferAcceptSupported();
+
   /** Tests whether the underlying system @c SO_REUSEADDR flag is set. */
   bool reuseAddr() const;
 
