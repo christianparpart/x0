@@ -327,6 +327,15 @@ void XzeroDaemon::postConfig() {
     RAISE(ConfigurationError, "No listeners configured.");
   }
 
+#if defined(XZERO_WSL)
+  if (config_->tcpFinTimeout != Duration::Zero) {
+    config_->tcpFinTimeout = Duration::Zero;
+    logWarning("x0d",
+               "Your platform does not support overriding TCP FIN timeout. "
+               "Using system defaults.");
+  }
+#endif
+
   // HTTP/1 connection factory
   http1_.reset(new http1::ConnectionFactory(
       config_->requestHeaderBufferSize,
