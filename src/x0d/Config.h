@@ -59,7 +59,7 @@ struct Config {
   size_t maxConnections = 1024;
   xzero::Duration maxReadIdle = 60_seconds;
   xzero::Duration maxWriteIdle = 360_seconds;
-  xzero::Duration tcpFinTimeout = 60_seconds;
+  xzero::Duration tcpFinTimeout = 0_seconds;
   xzero::Duration lingering = 0_seconds;
 
 #if 0
