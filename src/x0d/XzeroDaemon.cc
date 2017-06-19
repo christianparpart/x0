@@ -529,13 +529,13 @@ void XzeroDaemon::setupConnector(
     std::function<void(T*)> connectorVisitor) {
 
   if (reusePort && !InetConnector::isReusePortSupported()) {
-    logWarning("x0d", "You platform does not support SO_REUSEPORT. "
+    logWarning("x0d", "Your platform does not support SO_REUSEPORT. "
                       "Falling back to traditional connection scheduling.");
     reusePort = false;
   }
 
   if (deferAccept && !InetConnector::isDeferAcceptSupported()) {
-    logWarning("x0d", "You platform does not support TCP_DEFER_ACCEPT. "
+    logWarning("x0d", "Your platform does not support TCP_DEFER_ACCEPT. "
                       "Disabling.");
     deferAccept = false;
   }
