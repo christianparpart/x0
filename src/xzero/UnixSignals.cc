@@ -12,6 +12,7 @@
 #include <xzero/RuntimeError.h>
 #include <xzero/Duration.h>
 #include <xzero/logging.h>
+#include <xzero/sysconfig.h>
 #include <memory>
 #include <mutex>
 #include <atomic>
@@ -106,6 +107,74 @@ std::string UnixSignals::toString(int signo) {
   return buf;
 }
 
+class PosixSignals : public UnixSignals { // {{{
+ public:
+  explicit PosixSignals(Executor* executor);
+  ~PosixSignals();
+
+  HandleRef executeOnSignal(int signo, SignalHandler task) override;
+
+  static PosixSignals* get();
+
+ private:
+  static PosixSignals* singleton_;
+  static void onSignal(int signo);
+  void onSignal2(int signo);
+
+ private:
+  Executor* executor_;
+  std::vector<std::list<RefPtr<SignalWatcher>>> watchers_;
+  std::mutex mutex_;
+};
+
+PosixSignals* PosixSignals::singleton_ = nullptr;
+
+PosixSignals::PosixSignals(Executor* executor)
+    : executor_(executor),
+      watchers_(128),
+      mutex_() {
+  singleton_ = this;
+}
+
+PosixSignals::~PosixSignals() {
+  singleton_ = nullptr;
+}
+
+PosixSignals::HandleRef PosixSignals::executeOnSignal(int signo, SignalHandler task) {
+  std::lock_guard<std::mutex> _l(mutex_);
+
+  RefPtr<SignalWatcher> hr(new SignalWatcher(task));
+  watchers_[signo].emplace_back(hr);
+  signal(signo, &PosixSignals::onSignal);
+
+  return hr.as<Executor::Handle>();
+}
+
+void PosixSignals::onSignal(int signo) {
+  singleton_->onSignal2(signo);
+}
+
+void PosixSignals::onSignal2(int signo) {
+  signal(signo, SIG_DFL);
+
+  std::vector<RefPtr<SignalWatcher>> pending;
+  {
+    std::lock_guard<std::mutex> _l(mutex_);
+    std::list<RefPtr<SignalWatcher>>& watchers = watchers_[signo];
+    pending.reserve(watchers.size());
+    pending.insert(pending.end(), watchers.begin(), watchers.end());
+    watchers.clear();
+  }
+
+  // notify interests (XXX must not be invoked on local stack)
+  for (const auto& p: pending)
+    executor_->execute(std::bind(&SignalWatcher::fire, p));
+}
+
+PosixSignals* PosixSignals::get() {
+  return singleton_;
+}
+// }}}
 #if defined(XZERO_OS_LINUX) // {{{
 class LinuxSignals : public UnixSignals {
  public:
@@ -353,12 +422,15 @@ void KQueueSignals::onSignal() {
 // }}}
 
 std::unique_ptr<UnixSignals> UnixSignals::create(Executor* executor) {
-#if defined(XZERO_OS_LINUX)
+#if defined(XZERO_WSL)
+  // WSL doesn't support signalfd() yet (2017-06-19)
+  return std::unique_ptr<UnixSignals>(new PosixSignals(executor));
+#elif defined(XZERO_OS_LINUX)
   return std::unique_ptr<UnixSignals>(new LinuxSignals(executor));
 #elif defined(XZERO_OS_DARWIN)
   return std::unique_ptr<UnixSignals>(new KQueueSignals(executor));
 #else
-#error "Unsupported platform."
+  return std::unique_ptr<UnixSignals>(new PosixSignals(executor));
 #endif
 }
 
