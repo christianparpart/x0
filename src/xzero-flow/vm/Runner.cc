@@ -577,7 +577,7 @@ bool Runner::loop() {
   }
 
   instr(SCONTAINS) {
-    data_[A] = toString(B).find(toString(C)) != FlowString::npos;
+    data_[A] = toString(C).find(toString(B)) != FlowString::npos;
     next;
   }
 
