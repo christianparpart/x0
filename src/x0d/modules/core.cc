@@ -153,6 +153,7 @@ CoreModule::CoreModule(XzeroDaemon* d)
   setupFunction("fileinfo.ttl", &CoreModule::fileinfo_cache_ttl, FlowType::Number);
   setupFunction("server.advertise", &CoreModule::server_advertise, FlowType::Boolean);
   setupFunction("server.tags", &CoreModule::server_tags, FlowType::StringArray, FlowType::String);
+  setupFunction("tcp_fin_timeout", &CoreModule::tcp_fin_timeout, FlowType::Number);
   setupFunction("max_read_idle", &CoreModule::max_read_idle, FlowType::Number);
   setupFunction("max_write_idle", &CoreModule::max_write_idle, FlowType::Number);
   setupFunction("max_keepalive_idle", &CoreModule::max_keepalive_idle, FlowType::Number);
@@ -375,6 +376,10 @@ void CoreModule::server_advertise(Params& args) {
 
 void CoreModule::server_tags(Params& args) {
   // TODO [x0d] server.tags
+}
+
+void CoreModule::tcp_fin_timeout(Params& args) {
+  daemon().config_->tcpFinTimeout = Duration::fromSeconds(args.getInt(1));
 }
 
 void CoreModule::max_read_idle(Params& args) {

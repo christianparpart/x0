@@ -47,6 +47,7 @@ class CoreModule : public XzeroModule {
   void server_advertise(Params& args);
   void server_tags(Params& args);
 
+  void tcp_fin_timeout(Params& args);
   void max_read_idle(Params& args);
   void max_write_idle(Params& args);
   void max_keepalive_idle(Params& args);

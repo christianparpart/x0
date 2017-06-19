@@ -185,6 +185,12 @@ via the Server response header.
 Sets the array of custom server advertisement tags to append to
 the Server response header.
 
+=item B<tcp_fin_timeout> (timeout)
+
+Explicitely sets the TCP FIN timeout.
+
+Default: 0 seconds (equivalent to using the system global default)
+
 =item B<max_read_idle> (timeout)
 
 Gets or sets the connection read idle timeout value.
