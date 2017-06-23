@@ -52,6 +52,8 @@ class XZERO_BASE_API Option {
   T& get();
   const T& get() const;
 
+  const T& getOrElse(const T& alt) const;
+
   T& operator*();
   const T& operator*() const;
 

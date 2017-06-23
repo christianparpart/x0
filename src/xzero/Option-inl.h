@@ -108,6 +108,14 @@ inline const T& Option<T>::get() const {
 }
 
 template<typename T>
+const T& Option<T>::getOrElse(const T& alt) const {
+  if (isSome())
+    return *((T*) &storage_);
+  else
+    return alt;
+}
+
+template<typename T>
 inline T& Option<T>::operator*() {
   return get();
 }
