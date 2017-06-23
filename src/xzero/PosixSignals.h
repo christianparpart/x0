@@ -12,6 +12,7 @@
 #include <vector>
 #include <list>
 #include <mutex>
+#include <signal.h>
 
 namespace xzero {
 
@@ -29,8 +30,8 @@ class PosixSignals : public UnixSignals {
 
  private:
   static PosixSignals* singleton_;
-  static void onSignal(int signo);
-  void onSignal2(int signo);
+  static void onSignal(int signo, siginfo_t* info, void* p);
+  void onSignal2(int signo, siginfo_t* info, void* p);
 
  private:
   Executor* executor_;
