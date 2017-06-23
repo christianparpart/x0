@@ -58,9 +58,6 @@ class LinuxScheduler : public EventLoop {
   void runLoopOnce() override;
   void breakLoop() override;
 
-  // Executor API
-  //TODO(signalfd) HandleRef executeOnSignal(int signo, SignalHandler task) override;
-
   enum class Mode { READABLE, WRITABLE };
 
   struct Watcher : public Handle { // {{{

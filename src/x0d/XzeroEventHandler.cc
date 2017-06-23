@@ -19,15 +19,16 @@ using namespace xzero;
 XzeroEventHandler::XzeroEventHandler(XzeroDaemon* daemon,
                                      xzero::Executor* executor)
     : daemon_(daemon),
+      signals_(UnixSignals::create(executor)),
       executor_(executor),
       state_(XzeroState::Inactive) {
 
-  executor_->executeOnSignal(SIGHUP, std::bind(&XzeroEventHandler::onConfigReload, this));
-  executor_->executeOnSignal(SIGUSR1, std::bind(&XzeroEventHandler::onCycleLogs, this, std::placeholders::_1));
-  executor_->executeOnSignal(SIGUSR2, std::bind(&XzeroEventHandler::onUpgradeBinary, this, std::placeholders::_1));
-  executor_->executeOnSignal(SIGQUIT, std::bind(&XzeroEventHandler::onGracefulShutdown, this));
-  executor_->executeOnSignal(SIGTERM, std::bind(&XzeroEventHandler::onQuickShutdown, this));
-  executor_->executeOnSignal(SIGINT, std::bind(&XzeroEventHandler::onQuickShutdown, this));
+  signals_->notify(SIGHUP, std::bind(&XzeroEventHandler::onConfigReload, this));
+  signals_->notify(SIGUSR1, std::bind(&XzeroEventHandler::onCycleLogs, this, std::placeholders::_1));
+  signals_->notify(SIGUSR2, std::bind(&XzeroEventHandler::onUpgradeBinary, this, std::placeholders::_1));
+  signals_->notify(SIGQUIT, std::bind(&XzeroEventHandler::onGracefulShutdown, this));
+  signals_->notify(SIGTERM, std::bind(&XzeroEventHandler::onQuickShutdown, this));
+  signals_->notify(SIGINT, std::bind(&XzeroEventHandler::onQuickShutdown, this));
 }
 
 XzeroEventHandler::~XzeroEventHandler() {
@@ -37,7 +38,7 @@ void XzeroEventHandler::onConfigReload() {
   logNotice("x0d", "Reloading configuration.");
   daemon_->reloadConfiguration();
 
-  executor_->executeOnSignal(SIGHUP, std::bind(&XzeroEventHandler::onConfigReload, this));
+  signals_->notify(SIGHUP, std::bind(&XzeroEventHandler::onConfigReload, this));
 }
 
 void XzeroEventHandler::onCycleLogs(const xzero::UnixSignalInfo& info) {
@@ -45,7 +46,7 @@ void XzeroEventHandler::onCycleLogs(const xzero::UnixSignalInfo& info) {
 
   daemon_->onCycleLogs();
 
-  executor_->executeOnSignal(SIGUSR1, std::bind(&XzeroEventHandler::onCycleLogs, this, std::placeholders::_1));
+  signals_->notify(SIGUSR1, std::bind(&XzeroEventHandler::onCycleLogs, this, std::placeholders::_1));
 }
 
 void XzeroEventHandler::onUpgradeBinary(const UnixSignalInfo& info) {

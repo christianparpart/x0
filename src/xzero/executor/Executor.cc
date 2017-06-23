@@ -14,20 +14,14 @@ namespace xzero {
 
 Executor::Executor(std::unique_ptr<xzero::ExceptionHandler> eh)
     : safeCall_(std::move(eh)),
-      unixSignals_(UnixSignals::create(this)),
       refs_(0) {
 }
 
 Executor::~Executor() {
-  unixSignals_.reset();
 }
 
 void Executor::setExceptionHandler(std::unique_ptr<ExceptionHandler> eh) {
   safeCall_.setExceptionHandler(std::move(eh));
-}
-
-Executor::HandleRef Executor::executeOnSignal(int signo, SignalHandler task) {
-  return unixSignals_->executeOnSignal(signo, task);
 }
 
 /**

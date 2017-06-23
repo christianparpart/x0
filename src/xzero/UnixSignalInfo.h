@@ -14,7 +14,6 @@ namespace xzero {
  * An informational data structure that is passed to signal handlers.
  *
  * @see UnixSignals
- * @see Executor::executeOnSignal(int signal, SignalHandler task)
  */
 struct UnixSignalInfo {
   Option<int> pid; //!< sender's process-ID

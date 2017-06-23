@@ -16,6 +16,7 @@
 #include <xzero/Callback.h>
 #include <xzero/UnixTime.h>
 #include <xzero/Duration.h>
+#include <xzero/UnixSignals.h>
 #include <xzero/net/InetConnector.h>
 #include <xzero/executor/ThreadedExecutor.h>
 #include <xzero/executor/NativeScheduler.h>

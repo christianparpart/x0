@@ -6,6 +6,7 @@
 // the License at: http://opensource.org/licenses/MIT
 
 #include <x0d/XzeroState.h>
+#include <xzero/UnixSignals.h>
 
 namespace xzero {
   class HttpServer;
@@ -38,6 +39,7 @@ class XzeroEventHandler {
 
  private:
   XzeroDaemon* daemon_;
+  std::unique_ptr<xzero::UnixSignals> signals_;
   xzero::Executor* executor_;
   XzeroState state_;
 };

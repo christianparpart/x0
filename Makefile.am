@@ -56,6 +56,7 @@ libXzero_a_SOURCES = \
 	src/xzero/MimeTypes.cc \
 	src/xzero/MonotonicClock.cc \
 	src/xzero/MonotonicTime.cc \
+	src/xzero/PosixSignals.cc \
 	src/xzero/Random.cc \
 	src/xzero/RegExp.cc \
 	src/xzero/RuntimeError.cc \
@@ -243,6 +244,7 @@ nobase_libXzero_HEADERS = \
 	src/xzero/MimeTypes.h \
 	src/xzero/MonotonicClock.h \
 	src/xzero/MonotonicTime.h \
+	src/xzero/PosixSignals.h \
 	src/xzero/MonotonicTime_impl.h \
 	src/xzero/Option-inl.h \
 	src/xzero/Option.h \
@@ -460,14 +462,20 @@ nobase_libXzero_HEADERS = \
 # TODO: finalize
 if PLATFORM_LINUX
 libXzero_a_SOURCES += \
+	src/xzero/LinuxSignals.cc \
 	src/xzero/executor/LinuxScheduler.cc
 
 nobase_libXzero_HEADERS += \
+	src/xzero/LinuxSignals.h \
 	src/xzero/executor/LinuxScheduler.h
 endif
 
 if PLATFORM_DARWIN
-# XXX some stuff here, if any
+libXzero_a_SOURCES += \
+	src/xzero/KQueueSignals.cc
+
+nobase_libXzero_HEADERS += \
+	src/xzero/KQueueSignals.h
 endif
 
 ####### libXzeroFlow.a ########################################################

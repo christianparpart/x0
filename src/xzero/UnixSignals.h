@@ -9,6 +9,7 @@
 
 #include <xzero/defines.h>
 #include <xzero/executor/Executor.h>
+#include <xzero/UnixSignalInfo.h>
 #include <memory>
 
 namespace xzero {
@@ -34,10 +35,8 @@ class UnixSignals {
    *
    * @note If you always want to get notified on a given signal, you must
    *       reregister yourself each time you have been fired.
-   *
-   * @see Executor::executeOnSignal(int signal, SignalHandler task)
    */
-  virtual HandleRef executeOnSignal(int signal, SignalHandler task) = 0;
+  virtual HandleRef notify(int signo, SignalHandler task) = 0;
 
   /**
    * Creates a platform-dependant instance of UnixSignals.
@@ -66,6 +65,26 @@ class UnixSignals {
    *         the string @c "SIGTERM" for the signal @c SIGTERM.
    */
   static std::string toString(int signo);
+
+ protected:
+  class SignalWatcher;
+};
+
+class UnixSignals::SignalWatcher : public Executor::Handle {
+ public:
+  typedef Executor::Task Task;
+
+  explicit SignalWatcher(UnixSignals::SignalHandler action)
+      : action_(action) {};
+
+  void fire() {
+    Executor::Handle::fire(std::bind(action_, info));
+  }
+
+  UnixSignalInfo info;
+
+ private:
+  UnixSignals::SignalHandler action_;
 };
 
 } // namespace xzero
