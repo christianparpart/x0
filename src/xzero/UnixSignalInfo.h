@@ -16,6 +16,7 @@ namespace xzero {
  * @see UnixSignals
  */
 struct UnixSignalInfo {
+  int signal;      //!< signal number
   Option<int> pid; //!< sender's process-ID
   Option<int> uid; //!< sender's real user-ID
 };

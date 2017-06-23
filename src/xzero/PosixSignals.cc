@@ -66,6 +66,7 @@ void PosixSignals::onSignal2(int signo, siginfo_t* info, void* ptr) {
   }
 
   for (RefPtr<SignalWatcher>& p: pending) {
+    p->info.signal = info->si_signo;
     p->info.pid = info->si_pid;
     p->info.uid = info->si_uid;
   }

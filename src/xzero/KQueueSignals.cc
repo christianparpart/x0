@@ -88,6 +88,10 @@ void KQueueSignals::onSignal() {
 
       logDebug("UnixSignals", "Caught signal $0.", toString(signo));
 
+      for (RefPtr<SignalWatcher>& watcher: watchers) {
+        watcher->info.signal = signo;
+      }
+
       interests_ -= watchers_[signo].size();
       pending.insert(pending.end(), watchers.begin(), watchers.end());
       watchers.clear();

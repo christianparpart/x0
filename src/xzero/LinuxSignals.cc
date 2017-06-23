@@ -105,6 +105,7 @@ void LinuxSignals::onSignal() {
             event.ssi_uid);
 
       for (RefPtr<SignalWatcher>& watcher: watchers) {
+        watcher->info.signal = signo;
         watcher->info.pid = event.ssi_pid;
         watcher->info.uid = event.ssi_uid;
       }

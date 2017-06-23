@@ -36,17 +36,21 @@ XzeroEventHandler::~XzeroEventHandler() {
 
 void XzeroEventHandler::onConfigReload(const xzero::UnixSignalInfo& info) {
   logNotice("x0d",
-            "Reloading configuration, as requested by pid $0 uid $1.",
-            info.pid.getOrElse(-1), info.uid.getOrElse(-1));
+            "Reloading configuration. (requested via $0 by UID $1 PID $2)",
+            UnixSignals::toString(info.signal),
+            info.uid.getOrElse(-1),
+            info.pid.getOrElse(-1));
 
-  daemon_->reloadConfiguration();
+  /* daemon_->reloadConfiguration(); */
 
   signals_->notify(SIGHUP, std::bind(&XzeroEventHandler::onConfigReload, this, std::placeholders::_1));
 }
 
 void XzeroEventHandler::onCycleLogs(const xzero::UnixSignalInfo& info) {
-  logNotice("x0d", "Cycling logs, as requested by pid $0 uid $1.",
-            info.pid.getOrElse(-1), info.uid.getOrElse(-1));
+  logNotice("x0d", "Cycling logs. (requested via $0 by UID $1 PID $2)",
+            UnixSignals::toString(info.signal),
+            info.uid.getOrElse(-1),
+            info.pid.getOrElse(-1));
 
   daemon_->onCycleLogs();
 
@@ -55,8 +59,10 @@ void XzeroEventHandler::onCycleLogs(const xzero::UnixSignalInfo& info) {
 
 void XzeroEventHandler::onUpgradeBinary(const UnixSignalInfo& info) {
   logNotice("x0d",
-            "Upgrading binary requested by pid $0 uid $1",
-            info.pid.getOrElse(-1), info.uid.getOrElse(-1));
+            "Upgrading binary. (requested via $0 by UID $1 PID $2)",
+            UnixSignals::toString(info.signal),
+            info.uid.getOrElse(-1),
+            info.pid.getOrElse(-1));
 
   /* TODO [x0d] binary upgrade
    * 1. suspend the world
@@ -68,12 +74,21 @@ void XzeroEventHandler::onUpgradeBinary(const UnixSignalInfo& info) {
 }
 
 void XzeroEventHandler::onQuickShutdown(const xzero::UnixSignalInfo& info) {
-  logNotice("x0d", "Initiating quick shutdown.");
+  logNotice("x0d",
+            "Initiating quick shutdown. (requested via $0 by UID $1 PID $2)",
+            UnixSignals::toString(info.signal),
+            info.uid.getOrElse(-1),
+            info.pid.getOrElse(-1));
+
   daemon_->terminate();
 }
 
 void XzeroEventHandler::onGracefulShutdown(const xzero::UnixSignalInfo& info) {
-  logNotice("x0d", "Initiating graceful shutdown.");
+  logNotice("x0d",
+            "Initiating graceful shutdown. (requested via $0 by UID $1 PID $2)",
+            UnixSignals::toString(info.signal),
+            info.uid.getOrElse(-1),
+            info.pid.getOrElse(-1));
 
   /* 1. stop all listeners
    * 2. wait until all requests have been handled.
