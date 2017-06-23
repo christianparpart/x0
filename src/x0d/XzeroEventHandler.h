@@ -31,11 +31,11 @@ class XzeroEventHandler {
   void setState(XzeroState newState);
 
  private:
-  void onConfigReload();
+  void onConfigReload(const xzero::UnixSignalInfo& info);
   void onCycleLogs(const xzero::UnixSignalInfo& info);
   void onUpgradeBinary(const xzero::UnixSignalInfo& info);
-  void onQuickShutdown();
-  void onGracefulShutdown();
+  void onQuickShutdown(const xzero::UnixSignalInfo& info);
+  void onGracefulShutdown(const xzero::UnixSignalInfo& info);
 
  private:
   XzeroDaemon* daemon_;

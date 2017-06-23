@@ -23,22 +23,25 @@ XzeroEventHandler::XzeroEventHandler(XzeroDaemon* daemon,
       executor_(executor),
       state_(XzeroState::Inactive) {
 
-  signals_->notify(SIGHUP, std::bind(&XzeroEventHandler::onConfigReload, this));
+  signals_->notify(SIGHUP, std::bind(&XzeroEventHandler::onConfigReload, this, std::placeholders::_1));
   signals_->notify(SIGUSR1, std::bind(&XzeroEventHandler::onCycleLogs, this, std::placeholders::_1));
   signals_->notify(SIGUSR2, std::bind(&XzeroEventHandler::onUpgradeBinary, this, std::placeholders::_1));
-  signals_->notify(SIGQUIT, std::bind(&XzeroEventHandler::onGracefulShutdown, this));
-  signals_->notify(SIGTERM, std::bind(&XzeroEventHandler::onQuickShutdown, this));
-  signals_->notify(SIGINT, std::bind(&XzeroEventHandler::onQuickShutdown, this));
+  signals_->notify(SIGQUIT, std::bind(&XzeroEventHandler::onGracefulShutdown, this, std::placeholders::_1));
+  signals_->notify(SIGTERM, std::bind(&XzeroEventHandler::onQuickShutdown, this, std::placeholders::_1));
+  signals_->notify(SIGINT, std::bind(&XzeroEventHandler::onQuickShutdown, this, std::placeholders::_1));
 }
 
 XzeroEventHandler::~XzeroEventHandler() {
 }
 
-void XzeroEventHandler::onConfigReload() {
-  logNotice("x0d", "Reloading configuration.");
+void XzeroEventHandler::onConfigReload(const xzero::UnixSignalInfo& info) {
+  logNotice("x0d",
+            "Reloading configuration, as requested by pid $0 uid $1.",
+            info.pid.getOrElse(-1), info.uid.getOrElse(-1));
+
   daemon_->reloadConfiguration();
 
-  signals_->notify(SIGHUP, std::bind(&XzeroEventHandler::onConfigReload, this));
+  signals_->notify(SIGHUP, std::bind(&XzeroEventHandler::onConfigReload, this, std::placeholders::_1));
 }
 
 void XzeroEventHandler::onCycleLogs(const xzero::UnixSignalInfo& info) {
@@ -52,7 +55,7 @@ void XzeroEventHandler::onCycleLogs(const xzero::UnixSignalInfo& info) {
 void XzeroEventHandler::onUpgradeBinary(const UnixSignalInfo& info) {
   logNotice("x0d",
             "Upgrading binary requested by pid $0 uid $1",
-            info.pid.get(), info.uid.get());
+            info.pid.getOrElse(-1), info.uid.getOrElse(-1));
 
   /* TODO [x0d] binary upgrade
    * 1. suspend the world
@@ -63,12 +66,12 @@ void XzeroEventHandler::onUpgradeBinary(const UnixSignalInfo& info) {
    */
 }
 
-void XzeroEventHandler::onQuickShutdown() {
+void XzeroEventHandler::onQuickShutdown(const xzero::UnixSignalInfo& info) {
   logNotice("x0d", "Initiating quick shutdown.");
   daemon_->terminate();
 }
 
-void XzeroEventHandler::onGracefulShutdown() {
+void XzeroEventHandler::onGracefulShutdown(const xzero::UnixSignalInfo& info) {
   logNotice("x0d", "Initiating graceful shutdown.");
 
   /* 1. stop all listeners
