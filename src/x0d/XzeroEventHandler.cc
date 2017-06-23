@@ -45,7 +45,8 @@ void XzeroEventHandler::onConfigReload(const xzero::UnixSignalInfo& info) {
 }
 
 void XzeroEventHandler::onCycleLogs(const xzero::UnixSignalInfo& info) {
-  logNotice("x0d", "Reload signal received.");
+  logNotice("x0d", "Cycling logs, as requested by pid $0 uid $1.",
+            info.pid.getOrElse(-1), info.uid.getOrElse(-1));
 
   daemon_->onCycleLogs();
 
