@@ -2,6 +2,7 @@
 
 set -e
 
+BUILDDIR=`pwd`
 ROOT=`dirname $0`
 
 FILES=(
@@ -18,12 +19,12 @@ FILES=(
 )
 
 if test "$1" == "clean"; then
-  find $ROOT -name Makefile.in -exec rm {} \;
+  find ${ROOT} -name Makefile.in -exec rm {} \;
   for file in ${FILES[*]}; do rm -vrf "${ROOT}${file}"; done
   exit 0
 fi
 
-autoreconf --verbose --force --install $ROOT
+autoreconf --verbose --force --install ${ROOT}
 
 findexe() {
   for exe in ${@}; do
@@ -43,8 +44,7 @@ echo CXX = $CXX
 echo CC = $CC
 echo CXXFLAGS = $CXXFLAGS
 
-$ROOT/configure --prefix="$HOME/usr" \
-                --sysconfdir="$HOME/usr/etc" \
-                --with-pidfile="$HOME/projects/x0/build/x0d.pid" \
-                --with-logdir="$HOME/projects/x0/x0d"
-
+exec ${ROOT}/configure --prefix="${HOME}/usr" \
+                       --sysconfdir="${HOME}/usr/etc" \
+                       --with-pidfile="${BUILDDIR}/x0d.pid" \
+                       --with-logdir="${BUILDDIR}"
