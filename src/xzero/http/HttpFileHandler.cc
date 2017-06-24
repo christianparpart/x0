@@ -129,7 +129,11 @@ bool HttpFileHandler::handle(
   if (handleRangeRequest(*transferFile, fd, request, response))
     return true;
 
-  response->setStatus(HttpStatus::Ok);
+  // XXX Only set status code to 200 (Ok) when the status code hasn't been set
+  // previously yet. This may occur due to an internal redirect.
+  if (!isClientError(response->status()) && !isServerError(response->status()))
+    response->setStatus(HttpStatus::Ok);
+
   response->addHeader("Accept-Ranges", "bytes");
   response->addHeader("Content-Type", transferFile->mimetype());
 
