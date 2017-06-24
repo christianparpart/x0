@@ -68,6 +68,7 @@ class XZERO_FLOW_API Runner : public CustomData {
   bool run();
   void suspend();
   bool resume();
+  void rewind();
 
   State state() const { return state_; }
   bool isInactive() const { return state_ == Inactive; }

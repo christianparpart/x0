@@ -35,6 +35,60 @@ namespace xzero {
 namespace flow {
 namespace vm {
 
+// {{{ VM helper preprocessor definitions
+#define OP opcode((Instruction) * pc)
+#define A operandA((Instruction) * pc)
+#define B operandB((Instruction) * pc)
+#define C operandC((Instruction) * pc)
+
+#define toString(R) (*(FlowString*)data_[R])
+#define toIPAddress(R) (*(IPAddress*)data_[R])
+#define toCidr(R) (*(Cidr*)data_[R])
+#define toRegExp(R) (*(RegExp*)data_[R])
+#define toNumber(R) ((FlowNumber)data_[R])
+
+#define toStringPtr(R) ((FlowString*)data_[R])
+#define toCidrPtr(R) ((Cidr*)data_[R])
+
+#define incr_pc()       \
+  do {                  \
+    ++pc;               \
+  } while (0)
+
+#define jump_to(offset) \
+  do {                  \
+    set_pc(offset);     \
+    jump;               \
+  } while (0)
+
+#if defined(ENABLE_FLOW_DIRECT_THREADED_VM)
+#define instr(name) \
+  l_##name : ++pc;  \
+  TRACE("$0",    \
+        disassemble((Instruction) * pc, (pc - code.data()) / 2));
+
+#define get_pc() ((pc - code.data()) / 2)
+#define set_pc(offset)               \
+  do {                               \
+    pc = code.data() + (offset) * 2; \
+  } while (0)
+#define jump goto*(void*)*pc
+#define next goto*(void*)*++pc
+#else
+#define instr(name) \
+  l_##name : TRACE("$0", disassemble(*pc, pc - code.data()));
+
+#define get_pc() (pc - code.data())
+#define set_pc(offset)           \
+  do {                           \
+    pc = code.data() + (offset); \
+  } while (0)
+#define jump goto* ops[OP]
+#define next goto* ops[opcode(*++pc)]
+#endif
+
+// }}}
+
 std::unique_ptr<Runner> Runner::create(std::shared_ptr<Handler> handler) {
   Runner* p = (Runner*)malloc(sizeof(Runner) +
                               handler->registerCount() * sizeof(uint64_t));
@@ -83,6 +137,13 @@ FlowString* Runner::catString(const FlowString& a, const FlowString& b) {
   return &stringGarbage_.back();
 }
 
+bool Runner::run() {
+  assert(state_ == Inactive);
+  TRACE("Running handler $0.", handler_->name());
+
+  return loop();
+}
+
 void Runner::suspend() {
   assert(state_ == Running);
   TRACE("Suspending handler $0.", handler_->name());
@@ -97,68 +158,17 @@ bool Runner::resume() {
   return loop();
 }
 
-bool Runner::run() {
-  assert(state_ == Inactive);
-  TRACE("Running handler $0.", handler_->name());
-
-  return loop();
+void Runner::rewind() {
+  pc_ = 0;
 }
 
 bool Runner::loop() {
   state_ = Running;
 
-#define OP opcode((Instruction) * pc)
-#define A operandA((Instruction) * pc)
-#define B operandB((Instruction) * pc)
-#define C operandC((Instruction) * pc)
-
-#define toString(R) (*(FlowString*)data_[R])
-#define toIPAddress(R) (*(IPAddress*)data_[R])
-#define toCidr(R) (*(Cidr*)data_[R])
-#define toRegExp(R) (*(RegExp*)data_[R])
-#define toNumber(R) ((FlowNumber)data_[R])
-
-#define toStringPtr(R) ((FlowString*)data_[R])
-#define toCidrPtr(R) ((Cidr*)data_[R])
-
 #if defined(ENABLE_FLOW_DIRECT_THREADED_VM)
   auto& code = handler_->directThreadedCode();
-
-#define instr(name) \
-  l_##name : ++pc;  \
-  TRACE("$0",    \
-        disassemble((Instruction) * pc, (pc - code.data()) / 2));
-
-#define get_pc() ((pc - code.data()) / 2)
-#define set_pc(offset)               \
-  do {                               \
-    pc = code.data() + (offset) * 2; \
-  } while (0)
-#define jump_to(offset) \
-  do {                  \
-    set_pc(offset);     \
-    jump;               \
-  } while (0)
-#define jump goto*(void*)*pc
-#define next goto*(void*)*++pc
 #else
   const auto& code = handler_->code();
-
-#define instr(name) \
-  l_##name : TRACE("$0", disassemble(*pc, pc - code.data()));
-
-#define get_pc() (pc - code.data())
-#define set_pc(offset)           \
-  do {                           \
-    pc = code.data() + (offset); \
-  } while (0)
-#define jump_to(offset) \
-  do {                  \
-    set_pc(offset);     \
-    jump;               \
-  } while (0)
-#define jump goto* ops[OP]
-#define next goto* ops[opcode(*++pc)]
 #endif
 
 // {{{ jump table
@@ -714,21 +724,27 @@ bool Runner::loop() {
     TRACE("Calling function: $0",
           handler_->program()->nativeFunction(id)->signature());
 
+    incr_pc();
+    pc_ = get_pc();
+
     handler_->program()->nativeFunction(id)->invoke(args);
 
     if (state_ == Suspended) {
       logNotice("flow", "vm suspended. returning (false)");
-      pc_ = get_pc() + 1;
       return false;
     }
 
-    next;
+    set_pc(pc_);
+    jump;
   }
 
   instr(HANDLER) {  // IIR
     size_t id = A;
     int argc = B;
     Value* argv = &data_[C];
+
+    incr_pc();
+    pc_ = get_pc();
 
     Params args(argc, argv, this);
     TRACE("Calling handler: $0",
@@ -737,7 +753,6 @@ bool Runner::loop() {
     const bool handled = (bool)argv[0];
 
     if (state_ == Suspended) {
-      pc_ = get_pc() + 1;
       return false;
     }
 
@@ -746,7 +761,8 @@ bool Runner::loop() {
       return true;
     }
 
-    next;
+    set_pc(pc_);
+    jump;
   }
   // }}}
 }
