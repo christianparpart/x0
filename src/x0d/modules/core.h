@@ -48,6 +48,7 @@ class CoreModule : public XzeroModule {
   void server_tags(Params& args);
 
   void tcp_fin_timeout(Params& args);
+  void max_internal_redirect_count(Params& args);
   void max_read_idle(Params& args);
   void max_write_idle(Params& args);
   void max_keepalive_idle(Params& args);
@@ -89,6 +90,7 @@ class CoreModule : public XzeroModule {
   void sys_domainname(XzeroContext* cx, Params& args);
 
   // shared functions
+  void error_page(XzeroContext* cx, Params& args);
   void log_err(XzeroContext* cx, Params& args);
   void log_warn(XzeroContext* cx, Params& args);
   void log_notice(XzeroContext* cx, Params& args);

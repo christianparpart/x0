@@ -84,7 +84,7 @@ if exists("flow_x0")
 	syn match flowCoreFunctions '\<cgi\.\(mapping\|prefix\|exec\|map\)\>'
 	syn match flowCoreFunctions '\<rrd\(\.\(filename\|step\)\)\?\>'
 	syn match flowCoreFunctions '\<vhost\.\(mapping\|add\|map\)\>'
-	syn match flowCoreFunctions '\<error\.\(handler\)\>'
+	syn match flowCoreFunctions '\<error\.\(page\)\>'
 	syn match flowCoreFunctions '\<req\.\(accept_language\)\>'
 	syn match flowCoreFunctions '\<log\(\.\(err\|warn\|notice\|info\|diag\|debug\)\)\?\>'
 	syn match flowCoreVar '\<sys\.\(env\|pid\|cwd\|now\|now_str\|cpu_count\|hostname\|domainname\)\>'
@@ -97,7 +97,7 @@ if exists("flow_x0")
 	syn match flowCoreFunctions '\<regex\.\(group\)\>'
 	syn match flowCoreVar '\<browser\.\(ancient\|modern\|is_ancient\|is_modern\)\>'
 	syn match flowCoreVar '\<\(userdir.name\|userdir\)\>'
-	syn keyword flowCoreVar tcp_fin_timeout max_read_idle max_write_idle max_keepalive_idle max_keepalive_requests max_connections max_files max_address_space max_core_size tcp_cork tcp_nodelay lingering
+	syn keyword flowCoreVar tcp_fin_timeout max_internal_redirect_count max_read_idle max_write_idle max_keepalive_idle max_keepalive_requests max_connections max_files max_address_space max_core_size tcp_cork tcp_nodelay lingering
 	syn keyword flowCoreVar max_request_uri_size max_request_header_size max_request_header_count max_request_body_size request_header_buffer_size request_body_buffer_size
 	syn keyword flowCoreFunctions header rewrite
 	syn keyword flowCoreFunctions expire

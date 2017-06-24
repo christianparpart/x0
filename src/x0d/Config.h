@@ -10,6 +10,7 @@
 #include <xzero/Option.h>
 #include <xzero/Duration.h>
 #include <xzero/net/IPAddress.h>
+#include <xzero/http/HttpStatus.h>
 #include <list>
 #include <unordered_map>
 #include <string>
@@ -44,6 +45,8 @@ struct Config {
   std::string mimetypesPath;
   std::string mimetypesDefault = "application/octet-stream";
 
+  size_t maxInternalRedirectCount = 3;
+
   size_t maxRequestUriLength = 1024;              // 1 KB
   size_t maxRequestHeaderSize = 8 * 1024;         // 8 KB
   size_t maxRequestHeaderCount = 128;
@@ -61,6 +64,8 @@ struct Config {
   xzero::Duration maxWriteIdle = 360_seconds;
   xzero::Duration tcpFinTimeout = 0_seconds;
   xzero::Duration lingering = 0_seconds;
+
+  std::unordered_map<xzero::http::HttpStatus, std::string> errorPages;
 
 #if 0
   // accesslog

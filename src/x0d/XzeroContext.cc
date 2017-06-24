@@ -25,12 +25,12 @@ XzeroContext::XzeroContext(
     xzero::http::HttpResponse* response)
     : runner_(entrypoint->createRunner()),
       createdAt_(now()),
-      request_(request),
+      requests_({request}),
       response_(response),
       documentRoot_(),
       pathInfo_(),
       file_(),
-      errorHandler_(nullptr) {
+      errorPages_() {
   runner_->setUserData(this);
   response_->onResponseEnd([this] {
     // explicitely wipe customdata before we're actually deleting the context
@@ -39,44 +39,52 @@ XzeroContext::XzeroContext(
   });
 }
 
+XzeroContext::~XzeroContext() {
+  // ensure all internal redirect requests are freed
+  while (request() != masterRequest()) {
+    delete requests_.front();
+    requests_.pop_front();
+  }
+}
+
 xzero::UnixTime XzeroContext::now() const {
   return WallClock::now();
 }
 
-xzero::Duration XzeroContext::duration() const {
+xzero::Duration XzeroContext::age() const {
   return now() - createdAt();
 }
 
 const IPAddress& XzeroContext::remoteIP() const {
-  if (request_->remoteAddress().isSome())
-    return request_->remoteAddress()->ip();
+  if (requests_.back()->remoteAddress().isSome())
+    return requests_.back()->remoteAddress()->ip();
 
   RAISE(RuntimeError, "Non-IP transport channels not supported");
 }
 
 int XzeroContext::remotePort() const {
-  if (request_->remoteAddress().isSome())
-    return request_->remoteAddress()->port();
+  if (requests_.back()->remoteAddress().isSome())
+    return requests_.back()->remoteAddress()->port();
 
   RAISE(RuntimeError, "Non-IP transport channels not supported");
 }
 
 const IPAddress& XzeroContext::localIP() const {
-  if (request_->localAddress().isSome())
-    return request_->localAddress()->ip();
+  if (requests_.back()->localAddress().isSome())
+    return requests_.back()->localAddress()->ip();
 
   RAISE(RuntimeError, "Non-IP transport channels not supported");
 }
 
 int XzeroContext::localPort() const {
-  if (request_->localAddress().isSome())
-    return request_->localAddress()->port();
+  if (requests_.back()->localAddress().isSome())
+    return requests_.back()->localAddress()->port();
 
   RAISE(RuntimeError, "Non-IP transport channels not supported");
 }
 
 size_t XzeroContext::bytesReceived() const {
-  return request_->bytesReceived();
+  return requests_.back()->bytesReceived();
 }
 
 size_t XzeroContext::bytesTransmitted() const {
@@ -96,14 +104,32 @@ bool XzeroContext::verifyDirectoryDepth() {
   return true;
 }
 
-void XzeroContext::run() {
-  if (request_->expect100Continue()) {
-    response_->send100Continue([this](bool succeed) {
-      request_->consumeContent(std::bind(&flow::vm::Runner::run, runner_.get()));
-    });
-  } else {
-    request_->consumeContent(std::bind(&flow::vm::Runner::run, runner_.get()));
+void XzeroContext::setErrorPage(HttpStatus status, const std::string& path) {
+  errorPages_[status] = path;
+}
+
+bool XzeroContext::getErrorPage(HttpStatus status, std::string* uri) const {
+  auto i = errorPages_.find(status);
+  if (i != errorPages_.end()) {
+    *uri = i->second;
+    return true;
   }
+
+  // TODO: lookup in global error pages map (set up via setup handler)
+
+  return false;
+}
+
+bool XzeroContext::tryRedirect(const std::string& uri) {
+  requests_.emplace_front(new HttpRequest(
+        "GET",
+        uri,
+        request()->version(),
+        request()->isSecure(),
+        request()->headers(),
+        Buffer()));
+  runner_->rewind();
+  return true;
 }
 
 } // namespace x0d

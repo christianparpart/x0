@@ -12,6 +12,7 @@
 #include <xzero/Duration.h>
 #include <xzero/io/File.h>
 #include <xzero/CustomDataMgr.h>
+#include <xzero/http/HttpStatus.h>
 #include <xzero-flow/vm/Params.h>
 #include <xzero-flow/vm/Runner.h>
 #include <string>
@@ -43,13 +44,17 @@ class XzeroContext {
       std::shared_ptr<xzero::flow::vm::Handler> entrypoint,
       xzero::http::HttpRequest* request,
       xzero::http::HttpResponse* response);
+  ~XzeroContext();
 
-  xzero::http::HttpRequest* request() const noexcept { return request_; }
+  xzero::http::HttpRequest* masterRequest() const noexcept { return requests_.back(); }
+  xzero::http::HttpRequest* request() const noexcept { return requests_.front(); }
   xzero::http::HttpResponse* response() const noexcept { return response_; }
+
+  size_t internalRedirectCount() const { return requests_.size() - 1; }
 
   xzero::UnixTime createdAt() const { return createdAt_; }
   xzero::UnixTime now() const;
-  xzero::Duration duration() const;
+  xzero::Duration age() const;
 
   const std::string& documentRoot() const noexcept { return documentRoot_; }
   void setDocumentRoot(const std::string& path) { documentRoot_ = path; }
@@ -61,8 +66,6 @@ class XzeroContext {
   std::shared_ptr<xzero::File> file() const { return file_; }
 
   xzero::flow::vm::Runner* runner() const noexcept { return runner_.get(); }
-
-  void run();
 
   const xzero::IPAddress& remoteIP() const;
   int remotePort() const;
@@ -79,23 +82,20 @@ class XzeroContext {
     errorHandler_ = eh;
   }
 
-  bool invokeErrorHandler() {
-    if (errorHandler_) {
-      return errorHandler_->run(this);
-    } else {
-      return false;
-    }
-  }
+  void setErrorPage(xzero::http::HttpStatus status, const std::string& uri);
+  bool getErrorPage(xzero::http::HttpStatus status, std::string* uri) const;
+  bool tryRedirect(const std::string& uri);
 
  private:
   std::unique_ptr<xzero::flow::vm::Runner> runner_; //!< Flow VM execution unit.
   xzero::UnixTime createdAt_; //!< When the request started
-  xzero::http::HttpRequest* request_; //!< HTTP request
+  std::list<xzero::http::HttpRequest*> requests_; //!< HTTP request
   xzero::http::HttpResponse* response_; //!< HTTP response
   std::string documentRoot_; //!< associated document root
   std::string pathInfo_; //!< info-part of the request-path
   std::shared_ptr<xzero::File> file_; //!< local file associated with this request
   std::shared_ptr<xzero::flow::vm::Handler> errorHandler_; //!< custom error handler
+  std::unordered_map<xzero::http::HttpStatus, std::string> errorPages_; //!< custom error page request paths
 };
 
 } // namespace x0d

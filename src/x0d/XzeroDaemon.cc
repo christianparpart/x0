@@ -45,6 +45,7 @@
 #include <xzero-flow/ir/IRProgram.h>
 #include <xzero-flow/ir/PassManager.h>
 #include <xzero-flow/vm/Signature.h>
+#include <xzero-flow/vm/Runner.h>
 #include <xzero-flow/transform/UnusedBlockPass.h>
 #include <xzero-flow/transform/EmptyBlockElimination.h>
 #include <xzero-flow/transform/InstructionElimination.h>
@@ -425,8 +426,16 @@ std::unique_ptr<EventLoop> XzeroDaemon::createEventLoop() {
 }
 
 void XzeroDaemon::handleRequest(HttpRequest* request, HttpResponse* response) {
+  // XXX the XzeroContext instance is getting deleted upon response completion
   XzeroContext* cx = new XzeroContext(main_, request, response);
-  cx->run();
+
+  if (request->expect100Continue()) {
+    response->send100Continue([cx, request](bool succeed) {
+      request->consumeContent(std::bind(&flow::vm::Runner::run, cx->runner()));
+    });
+  } else {
+    request->consumeContent(std::bind(&flow::vm::Runner::run, cx->runner()));
+  }
 }
 
 void XzeroDaemon::validateConfig(flow::Unit* unit) {

@@ -154,6 +154,7 @@ CoreModule::CoreModule(XzeroDaemon* d)
   setupFunction("server.advertise", &CoreModule::server_advertise, FlowType::Boolean);
   setupFunction("server.tags", &CoreModule::server_tags, FlowType::StringArray, FlowType::String);
   setupFunction("tcp_fin_timeout", &CoreModule::tcp_fin_timeout, FlowType::Number);
+  setupFunction("max_internal_redirect_count", &CoreModule::max_internal_redirect_count, FlowType::Number);
   setupFunction("max_read_idle", &CoreModule::max_read_idle, FlowType::Number);
   setupFunction("max_write_idle", &CoreModule::max_write_idle, FlowType::Number);
   setupFunction("max_keepalive_idle", &CoreModule::max_keepalive_idle, FlowType::Number);
@@ -198,6 +199,7 @@ CoreModule::CoreModule(XzeroDaemon* d)
       .returnType(FlowType::String);
 
   // shared functions
+  sharedFunction("error.page", &CoreModule::error_page, FlowType::Number, FlowType::String);
   sharedFunction("file.exists", &CoreModule::file_exists, FlowType::String)
       .returnType(FlowType::Boolean);
   sharedFunction("file.is_reg", &CoreModule::file_is_reg, FlowType::String)
@@ -380,6 +382,10 @@ void CoreModule::server_tags(Params& args) {
 
 void CoreModule::tcp_fin_timeout(Params& args) {
   daemon().config_->tcpFinTimeout = Duration::fromSeconds(args.getInt(1));
+}
+
+void CoreModule::max_internal_redirect_count(Params& args) {
+  daemon().config_->maxInternalRedirectCount = args.getInt(1);
 }
 
 void CoreModule::max_read_idle(Params& args) {
@@ -676,6 +682,17 @@ void CoreModule::sleep(XzeroContext* cx, Params& args) {
       std::bind(&flow::vm::Runner::resume, cx->runner()));
 }
 
+void CoreModule::error_page(XzeroContext* cx, Params& args) {
+  HttpStatus status = static_cast<HttpStatus>(args.getInt(1));
+  std::string uri = args.getString(2).str();
+
+  if (cx) { // request handler
+    cx->setErrorPage(status, uri);
+  } else { // setup phase
+    daemon().config().errorPages[status] = uri;
+  }
+}
+
 void CoreModule::file_exists(XzeroContext* cx, Params& args) {
   auto fileinfo = daemon().vfs().getFile(args.getString(1).str(), "/");
   if (fileinfo)
@@ -780,15 +797,26 @@ bool CoreModule::redirect_with_to(XzeroContext* cx, Params& args) {
 }
 
 bool CoreModule::return_with(XzeroContext* cx, Params& args) {
-  int status = args.getInt(1);
-  cx->response()->setStatus(static_cast<HttpStatus>(status));
+  HttpStatus status = static_cast<HttpStatus>(args.getInt(1));
+  cx->response()->setStatus(status);
 
-  if (status == 444) {
+  if (status == HttpStatus::NoResponse) {
     cx->response()->completed(); // TODO: cx->response()->abort();
-  } else {
-    cx->response()->completed();
+    return true;
+  }
+  
+  if (isClientError(status) || isServerError(status)) {
+    if (cx->internalRedirectCount() < daemon().config().maxInternalRedirectCount) {
+      std::string uri;
+      if (cx->getErrorPage(status, &uri)) {
+        if (cx->tryRedirect(uri)) {
+          return false;
+        }
+      }
+    }
   }
 
+  cx->response()->completed();
   return true;
 }
 

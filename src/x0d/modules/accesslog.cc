@@ -86,7 +86,7 @@ template <typename iterator> inline BufferRef getFormatName(iterator& i, iterato
 }
 // }}}
 Buffer formatLog(XzeroContext* cx, const BufferRef& format) { // {{{
-  HttpRequest* request = cx->request();
+  HttpRequest* request = cx->masterRequest();
   HttpResponse* response = cx->response();
 
   Buffer result;
@@ -195,7 +195,7 @@ Buffer formatLog(XzeroContext* cx, const BufferRef& format) { // {{{
         ++i;
         break;
       case 'T': {  // request time duration
-        Duration duration = cx->duration();
+        Duration duration = cx->age();
         result.printf("%d.%03d",
                       duration.seconds(),
                       duration.milliseconds() % kMillisPerSecond);

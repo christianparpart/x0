@@ -191,6 +191,12 @@ Explicitely sets the TCP FIN timeout.
 
 Default: 0 seconds (equivalent to using the system global default)
 
+=item B<max_internal_redirect_count> (number)
+
+Sets the number of maximum internal redirects that may occur.
+
+Default: 3
+
 =item B<max_read_idle> (timeout)
 
 Gets or sets the connection read idle timeout value.
