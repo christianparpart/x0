@@ -199,7 +199,10 @@ CoreModule::CoreModule(XzeroDaemon* d)
       .returnType(FlowType::String);
 
   // shared functions
-  sharedFunction("error.page", &CoreModule::error_page, FlowType::Number, FlowType::String);
+  sharedFunction("error.page", &CoreModule::error_page,
+                               &CoreModule::error_page)
+      .param<FlowNumber>("status")
+      .param<FlowString>("uri");
   sharedFunction("file.exists", &CoreModule::file_exists, FlowType::String)
       .returnType(FlowType::Boolean);
   sharedFunction("file.is_reg", &CoreModule::file_is_reg, FlowType::String)
@@ -686,11 +689,14 @@ void CoreModule::error_page(XzeroContext* cx, Params& args) {
   HttpStatus status = static_cast<HttpStatus>(args.getInt(1));
   std::string uri = args.getString(2).str();
 
-  if (cx) { // request handler
-    cx->setErrorPage(status, uri);
-  } else { // setup phase
-    daemon().config().errorPages[status] = uri;
-  }
+  cx->setErrorPage(status, uri);
+}
+
+void CoreModule::error_page(Params& args) {
+  HttpStatus status = static_cast<HttpStatus>(args.getInt(1));
+  std::string uri = args.getString(2).str();
+
+  daemon().config().errorPages[status] = uri;
 }
 
 void CoreModule::file_exists(XzeroContext* cx, Params& args) {

@@ -89,7 +89,8 @@ class CoreModule : public XzeroModule {
   void sys_hostname(XzeroContext* cx, Params& args);
   void sys_domainname(XzeroContext* cx, Params& args);
 
-  // shared functions
+  // {{{ shared functions
+  void error_page(Params& args);
   void error_page(XzeroContext* cx, Params& args);
   void log_err(XzeroContext* cx, Params& args);
   void log_warn(XzeroContext* cx, Params& args);
@@ -105,6 +106,7 @@ class CoreModule : public XzeroModule {
   void file_is_reg(XzeroContext* cx, Params& args);
   void file_is_dir(XzeroContext* cx, Params& args);
   void file_is_exe(XzeroContext* cx, Params& args);
+  // }}}
 
   // main handlers
   bool verify_docroot(xzero::flow::Instr* call, xzero::flow::IRBuilder* builder);
