@@ -171,3 +171,14 @@ inline bool isContentForbidden(HttpStatus code) {
 
 }  // namespace http
 }  // namespace xzero
+
+namespace std {
+
+template <>
+struct hash<xzero::http::HttpStatus> : public unary_function<xzero::http::HttpStatus, size_t> {
+  size_t operator()(xzero::http::HttpStatus status) const {
+    return (size_t) status;
+  }
+};
+
+}  // namespace std
