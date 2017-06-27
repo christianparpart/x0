@@ -804,7 +804,7 @@ bool CoreModule::return_with(XzeroContext* cx, Params& args) {
     cx->response()->completed(); // TODO: cx->response()->abort();
     return true;
   }
-  
+
   if (isClientError(status) || isServerError(status)) {
     if (cx->internalRedirectCount() < daemon().config().maxInternalRedirectCount) {
       std::string uri;
