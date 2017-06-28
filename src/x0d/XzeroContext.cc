@@ -22,7 +22,8 @@ namespace x0d {
 XzeroContext::XzeroContext(
     std::shared_ptr<xzero::flow::vm::Handler> entrypoint,
     xzero::http::HttpRequest* request,
-    xzero::http::HttpResponse* response)
+    xzero::http::HttpResponse* response,
+    std::unordered_map<xzero::http::HttpStatus, std::string>* globalErrorPages)
     : runner_(entrypoint->createRunner()),
       createdAt_(now()),
       requests_({request}),
@@ -30,7 +31,8 @@ XzeroContext::XzeroContext(
       documentRoot_(),
       pathInfo_(),
       file_(),
-      errorPages_() {
+      errorPages_(),
+      globalErrorPages_(globalErrorPages) {
   runner_->setUserData(this);
   response_->onResponseEnd([this] {
     // explicitely wipe customdata before we're actually deleting the context
@@ -115,7 +117,11 @@ bool XzeroContext::getErrorPage(HttpStatus status, std::string* uri) const {
     return true;
   }
 
-  // TODO: lookup in global error pages map (set up via setup handler)
+  i = globalErrorPages_->find(status);
+  if (i != globalErrorPages_->end()) {
+    *uri = i->second;
+    return true;
+  }
 
   return false;
 }

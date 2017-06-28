@@ -43,7 +43,8 @@ class XzeroContext {
   XzeroContext(
       std::shared_ptr<xzero::flow::vm::Handler> entrypoint,
       xzero::http::HttpRequest* request,
-      xzero::http::HttpResponse* response);
+      xzero::http::HttpResponse* response,
+      std::unordered_map<xzero::http::HttpStatus, std::string>* globalErrorPages);
   ~XzeroContext();
 
   xzero::http::HttpRequest* masterRequest() const noexcept { return requests_.back(); }
@@ -96,6 +97,7 @@ class XzeroContext {
   std::shared_ptr<xzero::File> file_; //!< local file associated with this request
   std::shared_ptr<xzero::flow::vm::Handler> errorHandler_; //!< custom error handler
   std::unordered_map<xzero::http::HttpStatus, std::string> errorPages_; //!< custom error page request paths
+  std::unordered_map<xzero::http::HttpStatus, std::string>* globalErrorPages_;
 };
 
 } // namespace x0d
