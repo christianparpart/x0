@@ -11,7 +11,7 @@ x0d.conf - configuration file to x0d, a high performance HTTP web server.
  handler setup {
      workers 2;
      userdir.name 'public_html';
-     listen bind: 0.0.0.0, port: 8080, backlog: 128;
+     listen port: 8080, backlog: 128;
  }
 
  # main handler, invoked on every incoming request
@@ -319,7 +319,7 @@ Example:
 
 =over 6
 
-=item B<listen> (address: IP, port: number, backlog: number = 128, reuse_addr: bool = false, multi_accept: number = 1)
+=item B<listen> (address: IP = 0.0.0.0, port: number, backlog: number = 128, multi_accept: number = 1, reuse_addr: bool = false, reuse_port = false)
 
 Configures a listener on given address and port.
 
@@ -330,17 +330,17 @@ Example 1:
 
  handler setup {
      # listen on IPv4 address 127.0.0.1 with port 8081
-     listen bind: 127.0.0.1, port: 8081;
+     listen address: 127.0.0.1, port: 8081;
  }
 
 Example 2:
 
  handler setup {
      # listens on IPv6 address with port 8080
-     listen bind: fe80::2c0:26ff:fe85:b3, port: 8080;
+     listen address: fe80::2c0:26ff:fe85:b3, port: 8080;
 
      # listen on any IPv6 address with port 9090
-     listen bind: ::, port: 9090;
+     listen address: ::, port: 9090;
  }
 
 =back
@@ -374,6 +374,28 @@ Retrieves the current time as a formatted string value.
 Global functions are available in setup and main handlers.
 
 =over 6
+
+=item B<error.page> (status, uri)
+
+Defines an error page for the given response status code.
+
+Example:
+
+ setup {
+   listen port: 8080;
+   error.page 404, '/errors/404.html';
+ }
+ 
+ main {
+   if req.path =^ '/errors/' {
+     docroot '/var/www/error-pages';
+     staticfile;
+     return 500;
+   }
+
+   docroot '/var/www/htdocs';
+   staticfile;
+ }
 
 =item B<log.err> (message)
 
@@ -1362,7 +1384,7 @@ An example use looks as follows:
      ssl.loglevel 6;
  }
 
-=item B<ssl.listen> (bind: IP, port: int, backlog: int = 128, multi_accept: int = 1, reuse_port: bool = true)
+=item B<ssl.listen> (address: IP = 0.0.0.0, port: int, backlog: int = 128, multi_accept: int = 1, defer_accept: bool = false; reuse_port: bool = false)
 
 This setup-function creates an HTTPS listener.
 Incoming connections will be SSL-encrypted.
@@ -1372,7 +1394,7 @@ An example use looks as follows:
 
  handler setup {
      # ...
-     ssl.listen bind: 0.0.0.0, port: 443;
+     ssl.listen port: 443;
  }
 
 =item B<ssl.context> (keyfile: string, crtfile: string, trustfile: string = "", priorities: string = "")
