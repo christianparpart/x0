@@ -174,12 +174,18 @@ void HttpResponse::send100Continue(CompletionHandler onComplete) {
 }
 
 void HttpResponse::sendError(HttpStatus code, const std::string& message) {
+  if (!isClientError(code) && !isServerError(code))
+    RAISE(InvalidArgumentError);
+
   requireMutableInfo();
 
-  setStatus(code);
-  setReason(message);
   removeAllHeaders();
   removeAllOutputFilters();
+
+  setStatus(code);
+
+  if (!message.empty())
+    setReason(message);
 
   if (!isContentForbidden(code)) {
     Buffer body(2048);
