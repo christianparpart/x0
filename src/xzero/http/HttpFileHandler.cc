@@ -93,13 +93,11 @@ bool HttpFileHandler::handle(
     case 0:
       break;
     case ENOENT:
-      response->setStatus(HttpStatus::NotFound);
-      response->completed();
+      response->sendError(HttpStatus::NotFound);
       return true;
     case EACCES:
     case EPERM:
-      response->setStatus(HttpStatus::Forbidden);
-      response->completed();
+      response->sendError(HttpStatus::Forbidden);
       return true;
     default:
       RAISE_ERRNO(transferFile->errorCode());
@@ -112,13 +110,11 @@ bool HttpFileHandler::handle(
       if (errno != EPERM && errno != EACCES)
         RAISE_ERRNO(errno);
 
-      response->setStatus(HttpStatus::Forbidden);
-      response->completed();
+      response->sendError(HttpStatus::Forbidden);
       return true;
     }
   } else if (request->method() != HttpMethod::HEAD) {
-    response->setStatus(HttpStatus::MethodNotAllowed);
-    response->completed();
+    response->sendError(HttpStatus::MethodNotAllowed);
     return true;
   }
 
@@ -194,8 +190,7 @@ bool HttpFileHandler::handleClientCache(const File& transferFile,
     // XXX: on static files we probably don't need the token-list support
     if (value == transferFile.etag()) continue;
 
-    response->setStatus(HttpStatus::PreconditionFailed);
-    response->completed();
+    response->sendError(HttpStatus::PreconditionFailed);
     return true;
   } while (0);
 
@@ -208,8 +203,7 @@ bool HttpFileHandler::handleClientCache(const File& transferFile,
 
     if (transferFile.mtime() <= dt.unixtime()) continue;
 
-    response->setStatus(HttpStatus::PreconditionFailed);
-    response->completed();
+    response->sendError(HttpStatus::PreconditionFailed);
     return true;
   } while (0);
 
@@ -334,8 +328,7 @@ bool HttpFileHandler::handleRangeRequest(const File& transferFile, int fd,
         makeOffsets(range[0], transferFile.size()));
 
     if (offsets.second < offsets.first) {
-      response->setStatus(HttpStatus::RequestedRangeNotSatisfiable);
-      response->completed();
+      response->sendError(HttpStatus::RequestedRangeNotSatisfiable);
       return true;
     }
 

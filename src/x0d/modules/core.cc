@@ -804,26 +804,8 @@ bool CoreModule::redirect_with_to(XzeroContext* cx, Params& args) {
 
 bool CoreModule::return_with(XzeroContext* cx, Params& args) {
   HttpStatus status = static_cast<HttpStatus>(args.getInt(1));
-  cx->response()->setStatus(status);
-
-  if (status == HttpStatus::NoResponse) {
-    cx->response()->completed(); // TODO: cx->response()->abort();
-    return true;
-  }
-
-  if (isClientError(status) || isServerError(status)) {
-    if (cx->internalRedirectCount() < daemon().config().maxInternalRedirectCount) {
-      std::string uri;
-      if (cx->getErrorPage(status, &uri)) {
-        if (cx->tryRedirect(uri)) {
-          return false;
-        }
-      }
-    }
-  }
-
-  cx->response()->completed();
-  return true;
+  cx->sendErrorPage(status, &rewind);
+  return !rewind;
 }
 
 bool CoreModule::echo(XzeroContext* cx, Params& args) {
