@@ -127,6 +127,9 @@ XZERO_HTTP_API bool isSuccess(HttpStatus code);
 /** Tests whether given status @p code is a redirect (3xx). */
 XZERO_HTTP_API bool isRedirect(HttpStatus code);
 
+/** Tests whether given status @p code is a client or server error (4xx, 5xx). */
+XZERO_HTTP_API bool isError(HttpStatus code);
+
 /** Tests whether given status @p code is a client error (4xx). */
 XZERO_HTTP_API bool isClientError(HttpStatus code);
 
@@ -145,6 +148,10 @@ inline bool isSuccess(HttpStatus code) {
 
 inline bool isRedirect(HttpStatus code) {
   return static_cast<int>(code) / 100 == 3;
+}
+
+inline bool isError(HttpStatus code) {
+  return isClientError(code) || isServerError(code);
 }
 
 inline bool isClientError(HttpStatus code) {
