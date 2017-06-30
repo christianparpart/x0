@@ -1,3 +1,4 @@
+=encoding UTF-8
 =head1 NAME
 
 x0d.conf - configuration file to x0d, a high performance HTTP web server.

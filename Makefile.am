@@ -704,17 +704,17 @@ man_MANS = x0d.8 x0d.conf.5 flow.7
 man: x0d.8 x0d.conf.5 flow.7
 
 x0d.8: docs/x0d.8.pod
-	pod2man --name=x0d --section 8 --release --utf8 --stderr \
+	pod2man --name=x0d --section 8 --release --utf8 --stderr --utf8 \
 		--center "x0d - high performance HTTP web server" \
 		$< >$@
 
 x0d.conf.5: docs/x0d.conf.5.pod
-	pod2man --name=x0d --section 5 --release --utf8 --stderr \
+	pod2man --name=x0d --section 5 --release --utf8 --stderr --utf8 \
 		--center "x0d - high performance HTTP web server configuration" \
 		$< >$@
 
 flow.7: docs/flow.7.pod
-	pod2man --name=x0d --section 7 --release --utf8 --stderr \
+	pod2man --name=x0d --section 7 --release --utf8 --stderr --utf8 \
 		--center "Flow Language Specification" \
 		$< >$@
 
