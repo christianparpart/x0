@@ -128,61 +128,56 @@ bool XzeroContext::getErrorPage(HttpStatus status, std::string* uri) const {
   return false;
 }
 
-bool XzeroContext::tryInternalRedirect(const std::string& uri) {
-  if (internalRedirectCount() < maxInternalRedirectCount_) {
-    requests_.emplace_front(new HttpRequest(
-          "GET",
-          uri,
-          request()->version(),
-          request()->isSecure(),
-          request()->headers(),
-          Buffer()));
-    runner_->rewind();
-    return true;
-  } else {
-    // send plain 500 "too many internal redirects" instead
-    response_->setStatus(HttpStatus::InternalServerError);
-    response_->setReason("Too many internal redirects");
-    logError("Too many internal redirects.");
-    return false;
-  }
+void XzeroContext::internalRedirect(const std::string& uri) {
+  requests_.emplace_front(new HttpRequest(
+        "GET",
+        uri,
+        request()->version(),
+        request()->isSecure(),
+        request()->headers(),
+        Buffer()));
+  runner_->rewind();
 }
 
 void XzeroContext::sendErrorPage(xzero::http::HttpStatus status, bool* rewind) {
+  *rewind = false;
+
   if (status == HttpStatus::NoResponse) {
     response_->completed(); // TODO: response_->abort();
-    *rewind = false;
     return;
   }
 
-  if (!isClientError(status) ! && isServerError(status)) {
+  if (!isError(status)) {
+    // no client (4xx) nor server (5xx) error; so just generate simple response
     response_->setStatus(status);
     response_->completed();
-    *rewind = false;
     return;
   }
 
   std::string uri;
   if (getErrorPage(status, &uri)) {
-    if (tryInternalRedirect(uri)) {
+    if (internalRedirectCount() < maxInternalRedirectCount_) {
+      internalRedirect(uri);
       *rewind = true;
       return;
     } else {
-      *rewind = false;
+      // send plain 500 "too many internal redirects" instead
+      response_->setStatus(HttpStatus::InternalServerError);
+      response_->setReason("Too many internal redirects");
+      logError("x0d", "Too many internal redirects.");
     }
-  } else {
-    *rewind = false;
   }
 
   // send plain 500 "too many internal redirects" instead
   response_->setStatus(HttpStatus::InternalServerError);
 
-  if (!isContentForbidden(code)) {
+  *rewind = false;
+  response_->setStatus(status);
+
+  if (!isContentForbidden(status)) {
   }
 
-  response_->setStatus(status);
   response_->completed();
-  return true;
 }
 
 } // namespace x0d
