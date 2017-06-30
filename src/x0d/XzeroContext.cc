@@ -128,24 +128,8 @@ bool XzeroContext::getErrorPage(HttpStatus status, std::string* uri) const {
   return false;
 }
 
-void XzeroContext::internalRedirect(const std::string& uri) {
-  requests_.emplace_front(new HttpRequest(
-        "GET",
-        uri,
-        request()->version(),
-        request()->isSecure(),
-        request()->headers(),
-        Buffer()));
-  runner_->rewind();
-}
-
-void XzeroContext::sendErrorPage(xzero::http::HttpStatus status, bool* rewind) {
-  *rewind = false;
-
-  if (status == HttpStatus::NoResponse) {
-    response_->completed(); // TODO: response_->abort();
-    return;
-  }
+void XzeroContext::sendErrorPage(xzero::http::HttpStatus status, bool* internalRedirect) {
+  *internalRedirect = false;
 
   if (!isError(status)) {
     // no client (4xx) nor server (5xx) error; so just generate simple response
@@ -157,27 +141,52 @@ void XzeroContext::sendErrorPage(xzero::http::HttpStatus status, bool* rewind) {
   std::string uri;
   if (getErrorPage(status, &uri)) {
     if (internalRedirectCount() < maxInternalRedirectCount_) {
-      internalRedirect(uri);
-      *rewind = true;
-      return;
+      *internalRedirect = true;
+      runner_->rewind();
+      requests_.emplace_front(new HttpRequest(
+            "GET",
+            uri,
+            request()->version(),
+            request()->isSecure(),
+            request()->headers(),
+            Buffer()));
     } else {
-      // send plain 500 "too many internal redirects" instead
-      response_->setStatus(HttpStatus::InternalServerError);
-      response_->setReason("Too many internal redirects");
       logError("x0d", "Too many internal redirects.");
+      sendSimpleStatusPage(HttpStatus::InternalServerError, "Too many internal redirects.");
     }
+  } else if (!isContentForbidden(status)) {
+    sendSimpleStatusPage(status);
+    response_->completed();
+  } else {
+    response_->setStatus(status);
+    response_->completed();
   }
+}
 
-  // send plain 500 "too many internal redirects" instead
-  response_->setStatus(HttpStatus::InternalServerError);
+void XzeroContext::sendSimpleStatusPage(HttpStatus status, const std::string& reason) {
+  Buffer body(2048);
 
-  *rewind = false;
-  response_->setStatus(status);
+  Buffer htmlMessage = reason.empty() ? to_string(status) : reason;
 
-  if (!isContentForbidden(status)) {
-  }
+  htmlMessage.replaceAll("<", "&lt;");
+  htmlMessage.replaceAll(">", "&gt;");
+  htmlMessage.replaceAll("&", "&amp;");
 
-  response_->completed();
+  body << "<DOCTYPE html>\n"
+          "<html>\n"
+          "  <head>\n"
+          "    <title> Error. " << htmlMessage << " </title>\n"
+          "  </head>\n"
+          "  <body>\n"
+          "    <h1> Error. " << htmlMessage << " </h1>\n"
+          "  </body>\n"
+          "</html>\n";
+
+  response_->setHeader("Cache-Control", "must-revalidate,no-cache,no-store");
+  response_->setHeader("Content-Type", "text/html");
+  response_->setContentLength(body.size());
+  response_->write(std::move(body),
+                   std::bind(&HttpResponse::completed, response_));
 }
 
 } // namespace x0d

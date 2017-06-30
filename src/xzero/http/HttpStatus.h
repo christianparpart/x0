@@ -169,6 +169,8 @@ inline bool isContentForbidden(HttpStatus code) {
     case /*204*/ HttpStatus::NoContent:
     case /*205*/ HttpStatus::ResetContent:
     case /*304*/ HttpStatus::NotModified:
+    case /*444*/ HttpStatus::NoResponse:
+    case /*499*/ HttpStatus::Hangup:
       return true;
     default:
       return false;

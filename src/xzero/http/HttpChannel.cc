@@ -338,6 +338,11 @@ void HttpChannel::onProtocolError(HttpStatus code, const std::string& message) {
 void HttpChannel::completed() {
   TRACE("completed!");
 
+  if (response_->status() == HttpStatus::NoResponse) {
+    transport_->abort();
+    return;
+  }
+
   if (request_->method() != HttpMethod::HEAD &&
       response_->hasContentLength() &&
       response_->actualContentLength() < response_->contentLength()) {

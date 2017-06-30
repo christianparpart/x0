@@ -804,8 +804,12 @@ bool CoreModule::redirect_with_to(XzeroContext* cx, Params& args) {
 
 bool CoreModule::return_with(XzeroContext* cx, Params& args) {
   HttpStatus status = static_cast<HttpStatus>(args.getInt(1));
-  cx->sendErrorPage(status, &rewind);
-  return !rewind;
+
+  // internal redirects rewind the instruction pointer, starting from
+  // the entry point again, so the handler than should not return success (true).
+  bool internalRedirect = false;
+  cx->sendErrorPage(status, &internalRedirect);
+  return internalRedirect == false;
 }
 
 bool CoreModule::echo(XzeroContext* cx, Params& args) {
