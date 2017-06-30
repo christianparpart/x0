@@ -86,8 +86,8 @@ class XzeroContext {
 
   void setErrorPage(xzero::http::HttpStatus status, const std::string& uri);
   bool getErrorPage(xzero::http::HttpStatus status, std::string* uri) const;
-  void internalRedirect(const std::string& uri);
-  void sendErrorPage(xzero::http::HttpStatus status, bool* rewind);
+  void sendErrorPage(xzero::http::HttpStatus status, bool* internalRedirect);
+  void sendSimpleStatusPage(xzero::http::HttpStatus status, const std::string& reason = std::string());
 
  private:
   std::unique_ptr<xzero::flow::vm::Runner> runner_; //!< Flow VM execution unit.
