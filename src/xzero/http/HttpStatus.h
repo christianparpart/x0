@@ -108,7 +108,6 @@ class XZERO_HTTP_API HttpStatusCategory : public std::error_category {
 };
 
 inline bool operator!(HttpStatus st) {
-  //.
   return st == HttpStatus::Undefined;
 }
 
