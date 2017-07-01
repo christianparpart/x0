@@ -211,5 +211,89 @@ class XZERO_FLOW_API InstructionVisitor {
   virtual void visit(PInCidrInstr& instr) = 0;
 };
 
+class Instr;
+
+class IsSameInstruction : public InstructionVisitor {
+ public:
+  static bool test(Instr* a, Instr* b);
+  static bool isSameOperands(Instr* a, Instr* b);
+
+ private:
+  Instr* other_;
+  bool result_;
+
+ protected:
+  explicit IsSameInstruction(Instr* a);
+
+  void visit(NopInstr& instr) override;
+
+  // storage
+  void visit(AllocaInstr& instr) override;
+  void visit(StoreInstr& instr) override;
+  void visit(LoadInstr& instr) override;
+  void visit(PhiNode& instr) override;
+
+  // calls
+  void visit(CallInstr& instr) override;
+  void visit(HandlerCallInstr& instr) override;
+
+  // terminator
+  void visit(CondBrInstr& instr) override;
+  void visit(BrInstr& instr) override;
+  void visit(RetInstr& instr) override;
+  void visit(MatchInstr& instr) override;
+
+  // type cast
+  void visit(CastInstr& instr) override;
+
+  // numeric
+  void visit(INegInstr& instr) override;
+  void visit(INotInstr& instr) override;
+  void visit(IAddInstr& instr) override;
+  void visit(ISubInstr& instr) override;
+  void visit(IMulInstr& instr) override;
+  void visit(IDivInstr& instr) override;
+  void visit(IRemInstr& instr) override;
+  void visit(IPowInstr& instr) override;
+  void visit(IAndInstr& instr) override;
+  void visit(IOrInstr& instr) override;
+  void visit(IXorInstr& instr) override;
+  void visit(IShlInstr& instr) override;
+  void visit(IShrInstr& instr) override;
+  void visit(ICmpEQInstr& instr) override;
+  void visit(ICmpNEInstr& instr) override;
+  void visit(ICmpLEInstr& instr) override;
+  void visit(ICmpGEInstr& instr) override;
+  void visit(ICmpLTInstr& instr) override;
+  void visit(ICmpGTInstr& instr) override;
+
+  // boolean
+  void visit(BNotInstr& instr) override;
+  void visit(BAndInstr& instr) override;
+  void visit(BOrInstr& instr) override;
+  void visit(BXorInstr& instr) override;
+
+  // string
+  void visit(SLenInstr& instr) override;
+  void visit(SIsEmptyInstr& instr) override;
+  void visit(SAddInstr& instr) override;
+  void visit(SSubStrInstr& instr) override;
+  void visit(SCmpEQInstr& instr) override;
+  void visit(SCmpNEInstr& instr) override;
+  void visit(SCmpLEInstr& instr) override;
+  void visit(SCmpGEInstr& instr) override;
+  void visit(SCmpLTInstr& instr) override;
+  void visit(SCmpGTInstr& instr) override;
+  void visit(SCmpREInstr& instr) override;
+  void visit(SCmpBegInstr& instr) override;
+  void visit(SCmpEndInstr& instr) override;
+  void visit(SInInstr& instr) override;
+
+  // ip
+  void visit(PCmpEQInstr& instr) override;
+  void visit(PCmpNEInstr& instr) override;
+  void visit(PInCidrInstr& instr) override;
+};
+
 }  // namespace flow
 }  // namespace xzero
