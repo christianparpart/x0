@@ -40,6 +40,11 @@ class XZERO_BASE_API Application {
   static std::string groupName();
 
   /**
+   * Retrieves the underlying OS hostname.
+   */
+  static std::string hostname();
+
+  /**
    * Drops privileges to given @p user and @p group.
    *
    * Will only actually perform the drop if currently running as root

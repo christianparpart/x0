@@ -103,6 +103,18 @@ std::string Application::groupName() {
   RAISE_ERRNO(errno);
 }
 
+#if !defined(HOST_NAME_MAX)
+# define HOST_NAME_MAX 64
+#endif
+
+std::string Application::hostname() {
+  char name[HOST_NAME_MAX];
+  if (gethostname(name, sizeof(name)) == 0)
+    return name;
+
+  return "";
+}
+
 void Application::dropPrivileges(const std::string& username,
                                  const std::string& groupname) {
   if (username == Application::userName() && groupname == Application::groupName())
