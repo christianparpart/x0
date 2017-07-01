@@ -56,6 +56,14 @@ class XZERO_FLOW_API BasicBlock : public Value {
    * basic block.
    */
   const std::vector<Instr*>& instructions() const { return code_; }
+  Instr* front() const { return code_.front(); }
+  Instr* back() const { return code_.back(); }
+  Instr* back(size_t sub) const {
+    if (sub + 1 <= code_.size())
+      return code_[code_.size() - (1 + sub)];
+    else
+      return nullptr;
+  }
 
   /**
    * Appends a new instruction, \p instr, to this basic block.
