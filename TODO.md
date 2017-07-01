@@ -17,9 +17,8 @@
   - [x] `error.page(status, external_uri)` to support external URI redirects upon given status codes
         That means, it'll respond with a 302 (default) or any other 30x status
         code and adds a Location response header.
-  - [ ] ensure `staticfile` honors error pages
-  - [ ] ensure `precompressed` honors error pages
-  - [ ] ensure proxy honors error pages (optionally by intercepting upstream's error status)
+  - [x] ensure `staticfile` honors error pages
+  - [x] ensure `precompressed` honors error pages
 - SslConnector: add optional support to also allow plaintext connections
 - BUG: testing: EXPECTxx failures do also increment success count?
 - extend FCGI connector to tweak maxKeepAlive (just like in HTTP/1)
