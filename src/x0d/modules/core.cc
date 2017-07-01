@@ -11,6 +11,7 @@
 #include <xzero/http/HttpRequest.h>
 #include <xzero/http/HttpResponse.h>
 #include <xzero/io/FileUtil.h>
+#include <xzero/Application.h>
 #include <xzero/WallClock.h>
 #include <xzero/StringUtil.h>
 #include <xzero/RuntimeError.h>
@@ -628,13 +629,7 @@ void CoreModule::sys_now_str(XzeroContext* cx, Params& args) {
 }
 
 void CoreModule::sys_hostname(XzeroContext* cx, Params& args) {
-  char buf[256];
-  if (gethostname(buf, sizeof(buf)) == 0) {
-    args.setResult(buf);
-  } else {
-    logError("sys.hostname: gethostname() failed. $0", strerror(errno));
-    args.setResult("");
-  }
+  args.setResult(Application::hostname());
 }
 
 void CoreModule::sys_domainname(XzeroContext* cx, Params& args) {
