@@ -23,11 +23,6 @@ class XZERO_FLOW_API UnusedBlockPass : public HandlerPass {
   UnusedBlockPass() : HandlerPass("UnusedBlockPass") {}
 
   bool run(IRHandler* handler) override;
-
- private:
-  bool rewriteCondBrToSameBranches(BasicBlock* bb);
-  bool foldConstantCondBr(BasicBlock* bb);
-  bool branchToExit(BasicBlock* bb);
 };
 
 }  // namespace flow
