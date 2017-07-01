@@ -94,9 +94,16 @@ bool WebdavModule::webdav_get(XzeroContext* cx) {
   if (!cx->verifyDirectoryDepth())
     return true;
 
-  return daemon().fileHandler().handle(cx->request(),
-                                       cx->response(),
-                                       cx->file());
+  HttpStatus status = daemon().fileHandler().handle(cx->request(),
+                                                    cx->response(),
+                                                    cx->file());
+  if (!isError(status)) {
+    return true;
+  } else {
+    bool internalRedirect = false;
+    cx->sendErrorPage(status, &internalRedirect);
+    return internalRedirect == false;
+  }
 }
 
 bool WebdavModule::webdav_put(XzeroContext* cx, Params& args) {

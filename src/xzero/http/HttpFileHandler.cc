@@ -78,27 +78,36 @@ HttpFileHandler::HttpFileHandler(std::function<std::string()> generateBoundaryID
 HttpFileHandler::~HttpFileHandler() {
 }
 
-bool HttpFileHandler::handle(
-    HttpRequest* request,
-    HttpResponse* response,
-    std::shared_ptr<File> transferFile) {
-
+HttpStatus HttpFileHandler::handle(HttpRequest* request,
+                                   HttpResponse* response,
+                                   std::shared_ptr<File> transferFile) {
   if (!transferFile->isRegular())
-    return false;
+    return HttpStatus::NotFound;
 
-  if (handleClientCache(*transferFile, request, response))
-    return true;
+  HttpStatus status = handleClientCache(*transferFile, request, response);
+  switch (status) {
+    case HttpStatus::Undefined:
+      break;
+    case HttpStatus::NotModified:
+      // 304
+      response->setStatus(status);
+      response->completed();
+      return status;
+    case HttpStatus::PreconditionFailed:
+      // 412
+      return status;
+    default:
+      RAISE(InternalError); // internal bug; unhandled status code
+  }
 
   switch (transferFile->errorCode()) {
     case 0:
       break;
     case ENOENT:
-      response->sendError(HttpStatus::NotFound);
-      return true;
+      return HttpStatus::NotFound;
     case EACCES:
     case EPERM:
-      response->sendError(HttpStatus::Forbidden);
-      return true;
+      return HttpStatus::Forbidden;
     default:
       RAISE_ERRNO(transferFile->errorCode());
   }
@@ -110,12 +119,10 @@ bool HttpFileHandler::handle(
       if (errno != EPERM && errno != EACCES)
         RAISE_ERRNO(errno);
 
-      response->sendError(HttpStatus::Forbidden);
-      return true;
+      return HttpStatus::Forbidden;
     }
   } else if (request->method() != HttpMethod::HEAD) {
-    response->sendError(HttpStatus::MethodNotAllowed);
-    return true;
+    return HttpStatus::MethodNotAllowed;
   }
 
   response->addHeader("Allow", "GET, HEAD");
@@ -123,11 +130,11 @@ bool HttpFileHandler::handle(
   response->addHeader("ETag", transferFile->etag());
 
   if (handleRangeRequest(*transferFile, fd, request, response))
-    return true;
+    return HttpStatus::PartialContent;
 
   // XXX Only set status code to 200 (Ok) when the status code hasn't been set
   // previously yet. This may occur due to an internal redirect.
-  if (!isClientError(response->status()) && !isServerError(response->status()))
+  if (!isError(response->status()))
     response->setStatus(HttpStatus::Ok);
 
   response->addHeader("Accept-Ranges", "bytes");
@@ -145,12 +152,15 @@ bool HttpFileHandler::handle(
     response->completed();
   }
 
-  return true;
+  // This is the expected response status, even though it may have
+  // been overridden (due to internal redirect by setting failure code
+  // before invoking this handler).
+  return HttpStatus::Ok;
 }
 
-bool HttpFileHandler::handleClientCache(const File& transferFile,
-                                        HttpRequest* request,
-                                        HttpResponse* response) {
+HttpStatus HttpFileHandler::handleClientCache(const File& transferFile,
+                                              HttpRequest* request,
+                                              HttpResponse* response) {
   static const char* timeFormat = "%a, %d %b %Y %H:%M:%S GMT";
 
   // If-None-Match
@@ -161,9 +171,7 @@ bool HttpFileHandler::handleClientCache(const File& transferFile,
     // XXX: on static files we probably don't need the token-list support
     if (value != transferFile.etag()) continue;
 
-    response->setStatus(HttpStatus::NotModified);
-    response->completed();
-    return true;
+    return HttpStatus::NotModified;
   } while (0);
 
   // If-Modified-Since
@@ -175,9 +183,7 @@ bool HttpFileHandler::handleClientCache(const File& transferFile,
 
     if (transferFile.mtime() > dt.unixtime()) continue;
 
-    response->setStatus(HttpStatus::NotModified);
-    response->completed();
-    return true;
+    return HttpStatus::NotModified;
   } while (0);
 
   // If-Match
@@ -190,8 +196,7 @@ bool HttpFileHandler::handleClientCache(const File& transferFile,
     // XXX: on static files we probably don't need the token-list support
     if (value == transferFile.etag()) continue;
 
-    response->sendError(HttpStatus::PreconditionFailed);
-    return true;
+    return HttpStatus::PreconditionFailed;
   } while (0);
 
   // If-Unmodified-Since
@@ -203,11 +208,10 @@ bool HttpFileHandler::handleClientCache(const File& transferFile,
 
     if (transferFile.mtime() <= dt.unixtime()) continue;
 
-    response->sendError(HttpStatus::PreconditionFailed);
-    return true;
+    return HttpStatus::PreconditionFailed;
   } while (0);
 
-  return false;
+  return HttpStatus::Undefined;
 }
 
 /**

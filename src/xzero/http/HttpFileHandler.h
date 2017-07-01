@@ -8,6 +8,7 @@
 #pragma once
 
 #include <xzero/http/Api.h>
+#include <xzero/http/HttpStatus.h>
 #include <string>
 #include <memory>
 #include <functional>
@@ -54,9 +55,21 @@ class XZERO_HTTP_API HttpFileHandler {
    *
    * @param request the request to handle.
    * @param response the response to generate.
+   *
+   * @param HttpStatus::Ok Full document is being sent. The actual HTTP status
+   * code may differ due to internal redirects, but this return code declares
+   * this request as being fully handled.
+   * @param HttpStatus::PartialContent Partial content (ranged-request) sent.
+   * @param HttpStatus::NotModified Client side cache was hit. No response was generated.
+   * @param HttpStatus::PreconditionFailed Client's precondition failed. No response was generated.
+   * @param HttpStatus::NotFound HTTP request not handled, most probably
+   * because the underlying file was not found or is not a file.
+   * No response was generated.
+   * @param HttpStatus::MethodNotAllowed Unsupported method detected. No response was generated.
    */
-  bool handle(HttpRequest* request, HttpResponse* response,
-              std::shared_ptr<File> transferFile);
+  HttpStatus handle(HttpRequest* request,
+                    HttpResponse* response,
+                    std::shared_ptr<File> transferFile);
 
  private:
   /**
@@ -66,9 +79,9 @@ class XZERO_HTTP_API HttpFileHandler {
    * @param request HTTP request handle.
    * @param response HTTP response handle.
    *
-   * @retval true request was fully handled, e.g.
-   *              HttpResponse::completed() was invoked.
-   * @retval false Could not handle request.
+   * @retval HttpStatus::NotModified if client cache is valid
+   * @retval HttpStatus::Precondition HTTP client's precondition failed.
+   * @retval HttpStatus::Undefined if client cache is invalid or inexistent.
    *
    * This method tests whether the @p request is conditional.
    * It checks for the presense of request header fields, such as
@@ -78,8 +91,9 @@ class XZERO_HTTP_API HttpFileHandler {
    *
    * If the conditionas fail then no operations has been made to the @p response.
    */
-  bool handleClientCache(const File& transferFile, HttpRequest* request,
-                         HttpResponse* response);
+  HttpStatus handleClientCache(const File& transferFile,
+                               HttpRequest* request,
+                               HttpResponse* response);
 
   /**
    * Fully processes the ranged requests, if one, or does nothing.

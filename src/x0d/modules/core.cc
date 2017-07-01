@@ -857,9 +857,18 @@ bool CoreModule::staticfile(XzeroContext* cx, Params& args) {
   if (!cx->verifyDirectoryDepth())
     return true;
 
-  return daemon().fileHandler().handle(cx->request(),
-                                       cx->response(),
-                                       cx->file());
+  HttpStatus status = daemon().fileHandler().handle(cx->request(),
+                                                    cx->response(),
+                                                    cx->file());
+  if (status == HttpStatus::NotFound) {
+    return false;
+  } else if (!isError(status)) {
+    return true;
+  } else {
+    bool internalRedirect = false;
+    cx->sendErrorPage(status, &internalRedirect);
+    return internalRedirect == false;
+  }
 }
 
 bool CoreModule::precompressed(XzeroContext* cx, Params& args) {
@@ -906,9 +915,18 @@ bool CoreModule::precompressed(XzeroContext* cx, Params& args) {
         cx->setFile(pc);
 
         cx->response()->setHeader("Content-Encoding", encoding.id);
-        return daemon().fileHandler().handle(cx->request(),
-                                             cx->response(),
-                                             cx->file());
+        HttpStatus status = daemon().fileHandler().handle(cx->request(),
+                                                          cx->response(),
+                                                          cx->file());
+        if (status == HttpStatus::NotFound) {
+          return false;
+        } else if (!isError(status)) {
+          return true;
+        } else {
+          bool internalRedirect = false;
+          cx->sendErrorPage(status, &internalRedirect);
+          return internalRedirect == false;
+        }
       }
     }
   }
