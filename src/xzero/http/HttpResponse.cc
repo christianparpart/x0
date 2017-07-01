@@ -174,45 +174,14 @@ void HttpResponse::send100Continue(CompletionHandler onComplete) {
 }
 
 void HttpResponse::sendError(HttpStatus code, const std::string& message) {
-  if (!isClientError(code) && !isServerError(code))
+  if (!isError(code))
     RAISE(InvalidArgumentError);
 
-  requireMutableInfo();
-
-  removeAllHeaders();
-  removeAllOutputFilters();
+  // TODO: customizability of error pages - XzeroContext::sendErrorPage
 
   setStatus(code);
-
-  if (!message.empty())
-    setReason(message);
-
-  if (!isContentForbidden(code)) {
-    Buffer body(2048);
-
-    Buffer htmlMessage = message.empty() ? to_string(code) : message;
-
-    htmlMessage.replaceAll("<", "&lt;");
-    htmlMessage.replaceAll(">", "&gt;");
-    htmlMessage.replaceAll("&", "&amp;");
-
-    body << "<DOCTYPE html>\n"
-            "<html>\n"
-            "  <head>\n"
-            "    <title> Error. " << htmlMessage << " </title>\n"
-            "  </head>\n"
-            "  <body>\n"
-            "    <h1> Error. " << htmlMessage << " </h1>\n"
-            "  </body>\n"
-            "</html>\n";
-
-    setHeader("Cache-Control", "must-revalidate,no-cache,no-store");
-    setHeader("Content-Type", "text/html");
-    setContentLength(body.size());
-    write(std::move(body), std::bind(&HttpResponse::completed, this));
-  } else {
-    completed();
-  }
+  setReason(message);
+  completed();
 }
 
 // {{{ trailers

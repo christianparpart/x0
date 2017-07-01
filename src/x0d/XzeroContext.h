@@ -80,13 +80,36 @@ class XzeroContext {
 
   bool verifyDirectoryDepth();
 
-  void setErrorHandler(std::shared_ptr<xzero::flow::vm::Handler> eh) {
-    errorHandler_ = eh;
-  }
-
   void setErrorPage(xzero::http::HttpStatus status, const std::string& uri);
   bool getErrorPage(xzero::http::HttpStatus status, std::string* uri) const;
-  void sendErrorPage(xzero::http::HttpStatus status, bool* internalRedirect);
+
+  /**
+   * Sends an error page via an internal redirect or by generating a basic response.
+   *
+   * @param status the HTTP status code to send to the client.
+   * @param internalRedirect output set to @c true if the result is an internal
+   *                         redirect, false (HTTP response fully generated)
+   *                         otherwise.
+   * @param overrideStatus status to actually send to the client (may differ
+   *                       from the status to match the error page)
+   *
+   * It is important to note, that this call either fully generates
+   * a response and no further handling has to be done, or
+   * an internal redirect was triggered and the request handler has to be
+   * resumed for execution.
+   */
+  void sendErrorPage(
+      xzero::http::HttpStatus status,
+      bool* internalRedirect,
+      xzero::http::HttpStatus overrideStatus = xzero::http::HttpStatus::Undefined);
+
+  /**
+   * Sends a status page with simple content (if not forbidden).
+   *
+   * @param status HTTP status to send
+   * @param reason reason associated with that status; the text version of the
+   *               HTTP status will be used if this string is empty.
+   */
   void sendSimpleStatusPage(xzero::http::HttpStatus status, const std::string& reason = std::string());
 
  private:
@@ -97,7 +120,6 @@ class XzeroContext {
   std::string documentRoot_; //!< associated document root
   std::string pathInfo_; //!< info-part of the request-path
   std::shared_ptr<xzero::File> file_; //!< local file associated with this request
-  std::shared_ptr<xzero::flow::vm::Handler> errorHandler_; //!< custom error handler
   std::unordered_map<xzero::http::HttpStatus, std::string> errorPages_; //!< custom error page request paths
   const std::unordered_map<xzero::http::HttpStatus, std::string>* globalErrorPages_;
   const size_t maxInternalRedirectCount_;

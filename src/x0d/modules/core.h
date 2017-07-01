@@ -124,7 +124,6 @@ class CoreModule : public XzeroModule {
   bool matchIndex(XzeroContext* cx, const xzero::BufferRef& arg);
   void rewrite(XzeroContext* cx, Params& args);
   void pathinfo(XzeroContext* cx, Params& args);
-  void error_handler(XzeroContext* cx, Params& args);
   void header_add(XzeroContext* cx, Params& args);
   void header_append(XzeroContext* cx, Params& args);
   void header_overwrite(XzeroContext* cx, Params& args);

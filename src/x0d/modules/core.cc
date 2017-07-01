@@ -292,7 +292,6 @@ CoreModule::CoreModule(XzeroDaemon* d)
   mainFunction("autoindex", &CoreModule::autoindex, FlowType::StringArray);
   mainFunction("rewrite", &CoreModule::rewrite, FlowType::String) .returnType(FlowType::Boolean);
   mainFunction("pathinfo", &CoreModule::pathinfo);
-  mainFunction("error.handler", &CoreModule::error_handler, FlowType::Handler);
 
   // main: handlers
   mainHandler("docroot", &CoreModule::docroot, FlowType::String)
@@ -301,7 +300,9 @@ CoreModule::CoreModule(XzeroDaemon* d)
   mainHandler("staticfile", &CoreModule::staticfile);
   mainHandler("precompressed", &CoreModule::precompressed);
   mainHandler("return", &CoreModule::redirect_with_to, FlowType::Number, FlowType::String);
-  mainHandler("return", &CoreModule::return_with, FlowType::Number);
+  mainHandler("return", &CoreModule::return_with)
+      .param<FlowNumber>("status")
+      .param<FlowNumber>("override", 0);
   mainHandler("echo", &CoreModule::echo, FlowType::String);
   mainHandler("blank", &CoreModule::blank);
 }
@@ -685,9 +686,26 @@ void CoreModule::sleep(XzeroContext* cx, Params& args) {
       std::bind(&flow::vm::Runner::resume, cx->runner()));
 }
 
+bool verifyErrorPageConfig(HttpStatus status, const std::string& uri) {
+  if (!isError(status)) {
+    logError("x0d", "error.page: HTTP status %d is not a client nor server error\n", status);
+    return false;
+  }
+
+  if (uri.empty()) {
+    logError("x0d", "error.page: Empty URIs are not allowed. Ignoring\n");
+    return false;
+  }
+
+  return true;
+}
+
 void CoreModule::error_page(XzeroContext* cx, Params& args) {
   HttpStatus status = static_cast<HttpStatus>(args.getInt(1));
   std::string uri = args.getString(2).str();
+
+  if (!verifyErrorPageConfig(status, uri))
+    return;
 
   cx->setErrorPage(status, uri);
 }
@@ -695,6 +713,9 @@ void CoreModule::error_page(XzeroContext* cx, Params& args) {
 void CoreModule::error_page(Params& args) {
   HttpStatus status = static_cast<HttpStatus>(args.getInt(1));
   std::string uri = args.getString(2).str();
+
+  if (!verifyErrorPageConfig(status, uri))
+    return;
 
   daemon().config().errorPages[status] = uri;
 }
@@ -804,6 +825,7 @@ bool CoreModule::redirect_with_to(XzeroContext* cx, Params& args) {
 
 bool CoreModule::return_with(XzeroContext* cx, Params& args) {
   HttpStatus status = static_cast<HttpStatus>(args.getInt(1));
+  HttpStatus overrideStatus = static_cast<HttpStatus>(args.getInt(2));
 
   // internal redirects rewind the instruction pointer, starting from
   // the entry point again, so the handler than should not return success (true).
@@ -968,12 +990,6 @@ void CoreModule::pathinfo(XzeroContext* cx, Params& args) {
       break;
     }
   }
-}
-
-void CoreModule::error_handler(XzeroContext* cx, Params& args) {
-  std::shared_ptr<flow::vm::Handler> errorHandler = args.getHandler(1);
-
-  cx->setErrorHandler(errorHandler);
 }
 
 void CoreModule::header_add(XzeroContext* cx, Params& args) {

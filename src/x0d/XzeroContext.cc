@@ -128,8 +128,17 @@ bool XzeroContext::getErrorPage(HttpStatus status, std::string* uri) const {
   return false;
 }
 
-void XzeroContext::sendErrorPage(xzero::http::HttpStatus status, bool* internalRedirect) {
+bool requiresExternalRedirect(const std::string& uri) {
+  return uri[0] != '/';
+}
+
+void XzeroContext::sendErrorPage(xzero::http::HttpStatus status,
+                                 bool* internalRedirect,
+                                 xzero::http::HttpStatus overrideStatus) {
   *internalRedirect = false;
+
+  response_->removeAllHeaders();
+  response_->removeAllOutputFilters();
 
   if (!isError(status)) {
     // no client (4xx) nor server (5xx) error; so just generate simple response
@@ -140,16 +149,20 @@ void XzeroContext::sendErrorPage(xzero::http::HttpStatus status, bool* internalR
 
   std::string uri;
   if (getErrorPage(status, &uri)) {
-    if (internalRedirectCount() < maxInternalRedirectCount_) {
+    if (requiresExternalRedirect(uri)) {
+      response_->setStatus(HttpStatus::Found);
+      response_->setHeader("Location", uri);
+      response_->completed();
+    } else if (internalRedirectCount() < maxInternalRedirectCount_) {
       *internalRedirect = true;
       runner_->rewind();
-      requests_.emplace_front(new HttpRequest(
-            "GET",
-            uri,
-            request()->version(),
-            request()->isSecure(),
-            request()->headers(),
-            Buffer()));
+      response_->setStatus(!overrideStatus ? status : overrideStatus);
+      requests_.emplace_front(new HttpRequest("GET",
+                                              uri,
+                                              request()->version(),
+                                              request()->isSecure(),
+                                              request()->headers(),
+                                              Buffer()));
     } else {
       logError("x0d", "Too many internal redirects.");
       sendSimpleStatusPage(HttpStatus::InternalServerError, "Too many internal redirects.");

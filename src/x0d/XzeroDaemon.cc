@@ -46,6 +46,7 @@
 #include <xzero-flow/ir/PassManager.h>
 #include <xzero-flow/vm/Signature.h>
 #include <xzero-flow/vm/Runner.h>
+#include <xzero-flow/transform/MergeBlockPass.h>
 #include <xzero-flow/transform/UnusedBlockPass.h>
 #include <xzero-flow/transform/EmptyBlockElimination.h>
 #include <xzero-flow/transform/InstructionElimination.h>
@@ -195,7 +196,14 @@ std::shared_ptr<flow::vm::Program> XzeroDaemon::loadConfigStream(
 
     // optional passes
     if (optimizationLevel_ >= 1) {
+      pm.registerPass(std::make_unique<flow::MergeBlockPass>());
+    }
+
+    if (optimizationLevel_ >= 2) {
       pm.registerPass(std::make_unique<flow::EmptyBlockElimination>());
+    }
+
+    if (optimizationLevel_ >= 3) {
       pm.registerPass(std::make_unique<flow::InstructionElimination>());
     }
 
@@ -231,14 +239,31 @@ void XzeroDaemon::patchProgramIR(xzero::flow::IRProgram* programIR,
   // this function will never return, thus, we're not injecting
   // our return(I)V before the RET instruction but replace it.
   IRBuiltinHandler* returnFn =
-      irgen->getBuiltinHandler(vm::Signature("return(I)B"));
+      irgen->getBuiltinHandler(vm::Signature("return(II)B"));
 
+  // remove RetInstr if prior instr never returns
+  // replace RetInstr with `handler return(II)V 404, 0`
   for (BasicBlock* bb: mainIR->basicBlocks()) {
-    if (auto ret = dynamic_cast<RetInstr*>(bb->getTerminator())) {
+    if (auto br = dynamic_cast<BrInstr*>(bb->getTerminator())) {
+      // check if last instruction *always* finishes the handler
+      if (auto handler = dynamic_cast<HandlerCallInstr*>(bb->back(1))) {
+        if (handler->callee() == returnFn) { // return(II)B
+          delete bb->remove(br);
+        }
+      }
+    } else if (auto ret = dynamic_cast<RetInstr*>(bb->getTerminator())) {
       delete bb->remove(ret);
 
+      // check if last instruction *always* finishes the handler
+      if (auto handler = dynamic_cast<HandlerCallInstr*>(bb->back())) {
+        if (handler->callee() == returnFn) { // return(II)B
+          continue;
+        }
+      }
+
       irgen->setInsertPoint(bb);
-      irgen->createInvokeHandler(returnFn, { irgen->get(404) });
+      irgen->createInvokeHandler(returnFn, { irgen->get(404),   // status
+                                             irgen->get(0) });  // statusOverride
     }
   }
 }
