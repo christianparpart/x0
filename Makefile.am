@@ -509,6 +509,7 @@ libXzeroFlow_a_SOURCES = \
 	src/xzero-flow/ir/Value.cc \
 	src/xzero-flow/transform/EmptyBlockElimination.cc \
 	src/xzero-flow/transform/InstructionElimination.cc \
+	src/xzero-flow/transform/MergeBlockPass.cc \
 	src/xzero-flow/transform/UnusedBlockPass.cc \
 	src/xzero-flow/vm/ConstantPool.cc \
 	src/xzero-flow/vm/Handler.cc \
@@ -552,6 +553,7 @@ nobase_libXzeroFlow_HEADERS = \
 	src/xzero-flow/ir/Value.h \
 	src/xzero-flow/transform/EmptyBlockElimination.h \
 	src/xzero-flow/transform/InstructionElimination.h \
+	src/xzero-flow/transform/MergeBlockPass.h \
 	src/xzero-flow/transform/UnusedBlockPass.h \
 	src/xzero-flow/vm/ConstantPool.h \
 	src/xzero-flow/vm/Handler.h \
