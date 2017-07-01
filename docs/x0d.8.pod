@@ -180,6 +180,14 @@ Graceful process shutdown (waiting for the current requests to complete).
 
 =item B<SIGHUP>
 
+Reloads configuration at runtime.
+
+=item B<SIGUSR1>
+
+Reopen all log files (for logfile rotation).
+
+=item B<SIGUSR2>
+
 Reexecutes a new binary with a newly loaded configuration file as a child process.
 
 Before the child process is being executed, the parent process will suspend processing
@@ -193,10 +201,6 @@ and resumes normal operation as if there has been no B<SIBHUP> sent to this proc
 
 This method does not just reload into a new configuration file but also
 executs into a new binary for that, and is though, suitable for on the fly executable upgrades.
-
-=item B<SIGUSR1>
-
-Reopen all log files (for logfile rotation).
 
 =item B<SIGTTIN>
 

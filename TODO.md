@@ -4,7 +4,7 @@
 ### Intermediate 0
 
 - [ ] test: ensure `HttpStatus::NoResponse` actually terminates the transport instant
-- [ ] *fix* SIGNALS section in x0d man page. bring it up to date.
+- [x] *fix* SIGNALS section in x0d man page. bring it up to date.
 - Proper Error Page Handling
   - [x] ensure global status code maps are also looked up (secondary)
   - [x] `error.page(int status, string internal_uri, int override = 0)`
