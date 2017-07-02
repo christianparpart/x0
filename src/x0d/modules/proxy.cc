@@ -32,6 +32,7 @@
 #include <xzero/RuntimeError.h>
 #include <xzero/BufferUtil.h>
 #include <xzero/logging.h>
+#include <xzero/Application.h>
 #include <xzero-flow/AST.h>
 #include <xzero-flow/ir/Instr.h>
 #include <xzero-flow/ir/BasicBlock.h>
@@ -39,15 +40,6 @@
 #include <xzero-flow/ir/IRProgram.h>
 #include <xzero-flow/ir/ConstantValue.h>
 #include <xzero-flow/ir/ConstantArray.h>
-#include <sstream>
-#include <sys/resource.h>
-#include <sys/types.h>
-#include <sys/time.h>
-#include <unistd.h>
-#include <fcntl.h>
-#include <time.h>
-#include <pwd.h>
-#include <grp.h>
 
 namespace x0d {
 
@@ -277,9 +269,11 @@ bool ProxyModule::proxy_cluster_auto(XzeroContext* cx, Params& args) {
 
   std::string pseudonym = pseudonym_;
   if (pseudonym.empty()) {
-    pseudonym = StringUtil::format("$0:$1",
-        cx->request()->remoteAddress().get().ip(),
-        cx->request()->remoteAddress().get().port());
+    if (Option<InetAddress> addr = cx->request()->localAddress()) {
+      pseudonym = StringUtil::format("$0:$1", addr->ip(), addr->port());
+    } else {
+      pseudonym = Application::hostname();
+    }
   }
 
   HttpClusterRequest* cr = cx->setCustomData<HttpClusterRequest>(this,
@@ -288,7 +282,7 @@ bool ProxyModule::proxy_cluster_auto(XzeroContext* cx, Params& args) {
       std::unique_ptr<HttpListener>(new HttpResponseBuilder(cx->response())),
       cx->response()->executor(),
       daemon().config().responseBodyBufferSize,
-      pseudonym_);
+      pseudonym);
 
   cluster->schedule(cr, nullptr);
 
