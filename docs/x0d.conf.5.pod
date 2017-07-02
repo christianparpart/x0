@@ -802,7 +802,7 @@ Example:
 
 =back
 
-=head1 PLUGINS
+=head1 MODULES
 
 B<x0> comes with a set of standard plugins extending the core
 as described below:
@@ -1143,6 +1143,40 @@ is a handler that runs given executable on the given HTTP requests within
 a CGI/1.1 environment.
 
  cgi.run "/usr/bin/php" if req.path =$ '.php';
+
+=back
+
+=head2 proxy
+
+The proxy module implements HTTP reverse proxying and load balancing.
+
+=over 6
+
+=item B<proxy.pseudonym> (name: string)
+
+Specifies a pseudonym that is added to the C<Via> HTTP response header.
+If none has been specified, the hostname will be used instead.
+
+=item B<proxy.cluster> ()
+
+Load balances incoming requests to an upstream cluster whose name
+matches the requests Host headers hostname.
+
+=item B<proxy.cluster> (name: string, path: string = "", bucket: string = "", backend: string = "")
+
+  TODO
+
+=item B<proxy.api> ()
+
+  TODO
+
+=item B<proxy.fcgi> (address: ip, port: int, on_client_abort: string)
+
+  TODO
+
+=item B<proxy.http> (address: ip, port: int, on_client_abort: string)
+
+  TODO
 
 =back
 
