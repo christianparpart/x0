@@ -5,4 +5,4 @@
 
 ### References
 
-* [https://www.mnot.net/blog/2011/07/11/what_proxies_must_do](What Proxies Must Do)
+* [What Proxies Must Do](https://www.mnot.net/blog/2011/07/11/what_proxies_must_do)
