@@ -644,27 +644,6 @@ Example:
 
 =over 6
 
-=item B<error.handler> (proc)
-
-Defines a handler to invoke when processing the request generated an HTTP error.
-
-Example:
-
- handler custom_error {
-     if req.path =^ '/static' {
-         rewrite '/error.html'
-         staticfile
-     } else {
-         director.fcgi address: 127.0.0.1, port: 7500;
-     }
- }
-
- handler main {
-     error.handler custom_error
-     docroot '/var/www/localhost/htdocs'
-     staticfile
- }
-
 =item B<autoindex> (array)
 
 Remaps the current request to an index file as passed via arguments if the
@@ -1159,24 +1138,95 @@ If none has been specified, the hostname will be used instead.
 
 =item B<proxy.cluster> ()
 
-Load balances incoming requests to an upstream cluster whose name
-matches the requests Host headers hostname.
+Load balances incoming requests to an upstream cluster.
+The upstream cluster is selected by the request host header's host name.
 
 =item B<proxy.cluster> (name: string, path: string = "", bucket: string = "", backend: string = "")
 
-  TODO
+Passes the request to a specific backend on the given cluster.
 
-=item B<proxy.api> ()
+Use this to allow clients to decide (for example via cookie
+or request-header) what backend is to serve that request,
+which should help you testing code on a single backend before
+rolling out the backend's code change on the full cluster.
 
-  TODO
+If the specified backend is not available, a 503 (Service Unavailable)
+response will be generated and an appropriate error message will be logged.
+
+Please note, that explicitely specifying a backend does ignore
+any configured capacity limits.
+
+ handler main {
+   proxy.cluster name: 'app_cluster', backend: req.cookie("X-Backend");
+ }
 
 =item B<proxy.fcgi> (address: ip, port: int, on_client_abort: string)
 
-  TODO
+Directly proxies a givenr equest to FastCGI backend application.
 
-=item B<proxy.http> (address: ip, port: int, on_client_abort: string)
+The parameter I<on_client_abort> defines how to proceed with the backend connection
+when the client has aborted the connection to this server too early.
+It can either directly close the connection to the backend server,
+send a notification to the backend, that the client has aborted early, or
+ignore the event, so that the backend does not notice whether or not the
+client is still alive.
 
-  TODO
+ handler main {
+   if req.path =^ '/assets/' {
+     docroot '/var/www/localhost/htdocs';
+     staticfile;
+     return 404;
+   }
+
+   proxy.fcgi address: 127.0.0.1, port: 9000;
+ }
+
+=item B<proxy.http> (address: IP, port: number, string: on_client_abort = "close")
+
+Directly proxies a given request to an HTTP backend application.
+
+ handler main {
+   if req.path =^ '/assets/' {
+     docroot '/var/www/localhost/htdocs';
+     staticfile;
+     return 404;
+   }
+
+   proxy.http address: 127.0.0.1, port: 8081;
+ }
+
+=item B<proxy.cache> (enabled: bool = true, key: string = "", ttl: int = 0)
+
+Main function, defining whether or not the generated backend response may be cached inside B<x0d> or not.
+Caching though can still be disabled/enabled on cluster-level via the JSON API, which is evaluated before the
+request-local test.
+
+Use this in order improve user experience by accelerating your backends via this central cache.
+
+=item B<proxy.haproxy_stats> (prefix: string = "/")
+
+Handler that (if prefix matches the requests URI) serves an HAproxy compatible stats page.
+Currently only its CSV output is implemented.
+
+=item B<proxy.api> ()
+
+A request handler, to provide the client with a JSON API to inspect
+the current load balancer states, their statistics, as well as allowing
+you to actually reconfigure specific backends.
+
+Statically spawned clusters may only enable/disable backends,
+but dynamically spawned clusters are capable of creating new backends,
+reconfiguring them, and having them removed again.
+Dynamic cluster configuration is also kept on local storage and is kept in
+sync with the live configuration's changes.
+
+ handler main {
+   if req.path =^ '/x0' {
+       proxy.api '/x0';
+   }
+
+   # ...
+ }
 
 =back
 
@@ -1263,55 +1313,6 @@ any configured capacity limits.
 
  handler main {
      director.pass 'app_cluster', req.cookie("X-Backend");
- }
-
-=item B<director.fcgi> (address: IP, port: number, string: on_client_abort = "close")
-
-Directly proxies a givenr equest to FastCGI backend application.
-
-The parameter I<on_client_abort> defines how to proceed with the backend connection
-when the client has aborted the connection to this server too early.
-It can either directly close the connection to the backend server,
-send a notification to the backend, that the client has aborted early, or
-ignore the event, so that the backend does not notice whether or not the
-client is still alive.
-
-=item B<director.http> (address: IP, port: number, string: on_client_abort = "close")
-
-Directly proxies a givenr equest to an HTTP backend application.
-
- handler main {
-     docroot '/var/www/localhost/htdocs';
-     staticfile if req.path =^ '/assets/';
-
-     director.http address: 127.0.0.1, port: 8081;
- }
-
-=item B<director.haproxy_monitor> (prefix: string = "/")
-
-Handler that (if prefix matches the requests URI) serves an HAproxy compatible monitor page.
-
-=item B<director.haproxy_stats> (prefix: string = "/")
-
-Handler that (if prefix matches the requests URI) serves an HAproxy compatible stats page.
-Currently only its CSV output is implemented.
-
-=item B<director.cache> (enabled: bool = true)
-
-Main function, defining whether or not the generated backend response may be cached inside B<x0d> or not.
-Caching though can still be disabled/enabled on cluster-level via the JSON API, which is evaluated before the
-request-local test.
-
-Use this in order improve user experience by accelerating your backends via this central cache.
-
- handler myapp {
-   # Serve assets directly.
-   docroot '/srv/myapp/public';
-   precompressed;
-   staticfile;
-
-   # Pass request to the 'myapp'-cluster.
-   director.balance 'myapp';
  }
 
 =back

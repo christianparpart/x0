@@ -100,7 +100,7 @@ class XzeroContext {
    */
   void sendErrorPage(
       xzero::http::HttpStatus status,
-      bool* internalRedirect,
+      bool* internalRedirect = nullptr,
       xzero::http::HttpStatus overrideStatus = xzero::http::HttpStatus::Undefined);
 
   /**

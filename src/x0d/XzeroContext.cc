@@ -135,7 +135,9 @@ bool requiresExternalRedirect(const std::string& uri) {
 void XzeroContext::sendErrorPage(xzero::http::HttpStatus status,
                                  bool* internalRedirect,
                                  xzero::http::HttpStatus overrideStatus) {
-  *internalRedirect = false;
+  if (internalRedirect) {
+    *internalRedirect = false;
+  }
 
   response_->removeAllHeaders();
   response_->removeAllOutputFilters();
@@ -154,7 +156,9 @@ void XzeroContext::sendErrorPage(xzero::http::HttpStatus status,
       response_->setHeader("Location", uri);
       response_->completed();
     } else if (internalRedirectCount() < maxInternalRedirectCount_) {
-      *internalRedirect = true;
+      if (internalRedirect) {
+        *internalRedirect = true;
+      }
       runner_->rewind();
       response_->setStatus(!overrideStatus ? status : overrideStatus);
       requests_.emplace_front(new HttpRequest("GET",

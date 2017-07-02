@@ -65,23 +65,20 @@ class ProxyModule : public XzeroModule,
   bool proxy_api(XzeroContext* cx, xzero::flow::vm::Params& args);
   bool proxy_fcgi(XzeroContext* cx, xzero::flow::vm::Params& args);
   bool proxy_http(XzeroContext* cx, xzero::flow::vm::Params& args);
-  bool proxy_haproxy_monitor(XzeroContext* cx, xzero::flow::vm::Params& args);
   bool proxy_haproxy_stats(XzeroContext* cx, xzero::flow::vm::Params& args);
   bool proxy_roadwarrior_verify(xzero::flow::Instr* instr, xzero::flow::IRBuilder* builder);
-  void proxy_cache_enabled(XzeroContext* cx, xzero::flow::vm::Params& args);
-  void proxy_cache_key(XzeroContext* cx, xzero::flow::vm::Params& args);
-  void proxy_cache_ttl(XzeroContext* cx, xzero::flow::vm::Params& args);
+  void proxy_cache(XzeroContext* cx, xzero::flow::vm::Params& args);
   bool tryHandleTrace(XzeroContext* cx);
 
  private:
   bool internalServerError(XzeroContext* cx);
 
   void balance(XzeroContext* cx,
-               const std::string& directorName,
+               const std::string& clusterName,
                const std::string& bucketName);
 
   void pass(XzeroContext* cx,
-            const std::string& directorName,
+            const std::string& clusterName,
             const std::string& backendName);
 
   void proxyHttpConnected(xzero::RefPtr<xzero::EndPoint> ep,

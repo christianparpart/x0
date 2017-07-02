@@ -110,15 +110,10 @@ ProxyModule::ProxyModule(XzeroDaemon* d)
   mainHandler("proxy.haproxy_stats", &ProxyModule::proxy_haproxy_stats)
       .param<FlowString>("prefix", "/");
 
-  mainHandler("proxy.haproxy_monitor", &ProxyModule::proxy_haproxy_monitor)
-      .param<FlowString>("prefix", "/");
-
-  mainFunction("proxy.cache", &ProxyModule::proxy_cache_enabled,
-               FlowType::Boolean);
-  mainFunction("proxy.cache.key", &ProxyModule::proxy_cache_key,
-               FlowType::String);
-  mainFunction("proxy.cache.ttl", &ProxyModule::proxy_cache_ttl,
-               FlowType::Number);
+  mainFunction("proxy.cache", &ProxyModule::proxy_cache)
+      .param<bool>("enabled", true)
+      .param<FlowString>("key", "")
+      .param<int>("ttl", 0);
 }
 
 ProxyModule::~ProxyModule() {
@@ -358,8 +353,8 @@ bool ProxyModule::proxy_http(XzeroContext* cx, xzero::flow::vm::Params& args) {
 
   f.onFailure([cx, addr] (const std::error_code& ec) {
     logError("proxy", "Failed to proxy to $0. $1", addr, ec.message());
-    cx->response()->setStatus(HttpStatus::ServiceUnavailable);
-    cx->response()->completed();
+    bool internalRedirect = false;
+    cx->sendErrorPage(HttpStatus::ServiceUnavailable, &internalRedirect);
   });
   f.onSuccess([this, cx] (HttpClient* client) {
     for (const HeaderField& field: client->responseInfo().headers()) {
@@ -445,10 +440,6 @@ void ProxyModule::destroyCluster(const std::string& name) {
   }
 }
 
-bool ProxyModule::proxy_haproxy_monitor(XzeroContext* cx, xzero::flow::vm::Params& args) {
-  return false; // TODO
-}
-
 bool ProxyModule::proxy_haproxy_stats(XzeroContext* cx, xzero::flow::vm::Params& args) {
   return false; // TODO
 }
@@ -457,13 +448,8 @@ bool ProxyModule::proxy_roadwarrior_verify(xzero::flow::Instr* instr, xzero::flo
   return true; // TODO
 }
 
-void ProxyModule::proxy_cache_enabled(XzeroContext* cx, xzero::flow::vm::Params& args) {
-}
-
-void ProxyModule::proxy_cache_key(XzeroContext* cx, xzero::flow::vm::Params& args) {
-}
-
-void ProxyModule::proxy_cache_ttl(XzeroContext* cx, xzero::flow::vm::Params& args) {
+void ProxyModule::proxy_cache(XzeroContext* cx, xzero::flow::vm::Params& args) {
+  // TODO
 }
 
 bool ProxyModule::tryHandleTrace(XzeroContext* cx) {
