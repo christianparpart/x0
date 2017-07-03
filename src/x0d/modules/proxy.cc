@@ -30,7 +30,6 @@
 #include <xzero/WallClock.h>
 #include <xzero/StringUtil.h>
 #include <xzero/RuntimeError.h>
-#include <xzero/BufferUtil.h>
 #include <xzero/logging.h>
 #include <xzero/Application.h>
 #include <xzero-flow/AST.h>

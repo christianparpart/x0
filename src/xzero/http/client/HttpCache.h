@@ -199,7 +199,6 @@ class HttpCache {
   std::atomic<unsigned long long> cacheExpiries_;    //!< Automatic expiries.
 
   ObjectMap objects_;
-
 };
 
 /**

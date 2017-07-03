@@ -24,10 +24,8 @@ namespace xzero {
   }
   namespace http {
     class HttpRequestInfo;
-    class HttpResponseInfo;
     namespace client {
       class HttpCluster;
-      class HttpClient;
     }
   }
 }
