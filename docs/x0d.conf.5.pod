@@ -1141,7 +1141,7 @@ If none has been specified, the hostname will be used instead.
 Load balances incoming requests to an upstream cluster.
 The upstream cluster is selected by the request host header's host name.
 
-=item B<proxy.cluster> (name: string, path: string = "", bucket: string = "", backend: string = "")
+=item B<proxy.cluster> (name: string, path: string = @CLUSTERDIR@/NAME.cluster.conf, bucket: string = "", backend: string = "")
 
 Passes the request to a specific backend on the given cluster.
 

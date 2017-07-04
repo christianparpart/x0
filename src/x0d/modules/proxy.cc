@@ -8,7 +8,7 @@
 /*
  * Noteworthy
  *
- * - does not forward Expect request header to upstream
+ * - does not forward Expect request header to upstream (does nginx/apache?)
  */
 
 #include "proxy.h"
