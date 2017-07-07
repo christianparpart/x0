@@ -35,3 +35,34 @@
 ### References
 
 * [What Proxies Must Do](https://www.mnot.net/blog/2011/07/11/what_proxies_must_do)
+
+### API: code complete
+
+- [x] `proxy.pseudonym(name: string)`
+- [ ] `proxy.cluster()`
+- [ ] `proxy.cluster(name: string, path: string = @CLUSTERDIR@/NAME.cluster.conf, bucket: string = "", backend: string = "")`
+- [ ] `proxy.fcgi(address: ip, port: int, on_client_abort: string)`
+- [ ] `proxy.http(address: IP, port: number, string: on_client_abort = "close")`
+- [ ] `proxy.cache(enabled: bool = true, key: string = "", ttl: int = 0)`
+- [ ] `proxy.haproxy_stats(prefix: string = "/")`
+- [ ] `proxy.api()`
+- [x] `TRACE` HTTP method
+
+### API: code tested
+
+- [ ] `proxy.pseudonym(name: string)`
+- [ ] `proxy.cluster()`
+- [ ] `proxy.cluster(name: string, path: string = @CLUSTERDIR@/NAME.cluster.conf, bucket: string = "", backend: string = "")`
+- [ ] `proxy.fcgi(address: ip, port: int, on_client_abort: string)`
+- [ ] `proxy.http(address: IP, port: number, string: on_client_abort = "close")`
+- [ ] `proxy.cache(enabled: bool = true, key: string = "", ttl: int = 0)`
+- [ ] `proxy.haproxy_stats(prefix: string = "/")`
+- [ ] `proxy.api()`
+- [ ] `TRACE` HTTP method
+
+### TODO items found during evaluation
+- [ ] thread safety of clusterMap
+- [ ] cache implementation missing completely
+- [ ] reevaluate need of haproxy stats/monitor compatible endpoints
+- [ ] error page interception missing (custom)
+
