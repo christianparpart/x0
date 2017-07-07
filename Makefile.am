@@ -727,5 +727,19 @@ dist_sysconf_DATA = x0d.conf
 pkgconfigdir = $(libdir)/pkgconfig
 pkgconfig_DATA = XzeroBase.pc XzeroFlow.pc XzeroTest.pc
 
+####### xurl ##################################################################
+
+bin_PROGRAMS += xurl
+xurl_CXXFLAGS = \
+	-I$(top_srcdir)/src \
+	$(AM_CXXFLAGS)
+
+xurl_LDADD = \
+	libXzero.a \
+	$(AM_LDFLAGS)
+
+xurl_SOURCES = \
+	src/xurl/main.cc
+
 # vim:ts=8
 # EOF
