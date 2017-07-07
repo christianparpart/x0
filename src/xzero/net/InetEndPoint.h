@@ -50,11 +50,37 @@ class XZERO_BASE_API InetEndPoint : public EndPoint {
   ~InetEndPoint();
 
   /**
-   * Connects asynchronousely to a remote TCP/IP server.
+   * Asynchronousely connects to a remote TCP/IP server.
+   *
+   * The callee does not block.
    *
    * @param inet TCP/IP server address and port.
-   * @param timeout connect-timeout and default initialization for i/o timeout
-   *                in the resulting InetEndPoint.
+   * @param connectTimeout timeout until the connect must have been completed.
+   * @param readTimeout EndPoint-read timeout.
+   * @param writeTimeout EndPoint-write timeout.
+   * @param scheduler Task scheduler used for connecting and later passed
+   *                  to the created InetEndPoint.
+   * @param success Callback to be invoked upon success.
+   * @param failure Callback to be invoked upon failure.
+   */
+  static void connectAsync(
+      const InetAddress& inet,
+      Duration connectTimeout, Duration readTimeout, Duration writeTimeout,
+      Executor* executor,
+      std::function<void(RefPtr<EndPoint>)> onSuccess,
+      std::function<void(std::error_code)> onError);
+
+  /**
+   * Asynchronousely connects to a remote TCP/IP server.
+   *
+   * The callee does not block.
+   *
+   * @return A future to the yet to be created EndPoint.
+   *
+   * @param inet TCP/IP server address and port.
+   * @param connectTimeout timeout until the connect must have been completed.
+   * @param readTimeout EndPoint-read timeout.
+   * @param writeTimeout EndPoint-write timeout.
    * @param scheduler Task scheduler used for connecting and later passed
    *                  to the created InetEndPoint.
    */
@@ -63,18 +89,28 @@ class XZERO_BASE_API InetEndPoint : public EndPoint {
       Duration connectTimeout, Duration readTimeout, Duration writeTimeout,
       Executor* executor);
 
-  static void connectAsync(
-      const InetAddress& inet,
-      Duration connectTimeout, Duration readTimeout, Duration writeTimeout,
-      Executor* executor,
-      std::function<void(RefPtr<EndPoint>)> onSuccess,
-      std::function<void(const std::error_code&)> onError);
-
+  /**
+   * Synchronousely connects to a remote TCP/IP server.
+   *
+   * The callee does not block.
+   *
+   * @return A future to the yet to be created EndPoint.
+   *
+   * @param inet TCP/IP server address and port.
+   * @param connectTimeout timeout until the connect must have been completed.
+   * @param readTimeout EndPoint-read timeout.
+   * @param writeTimeout EndPoint-write timeout.
+   * @param scheduler Task scheduler used for connecting and later passed
+   *                  to the created InetEndPoint.
+   */
   static RefPtr<EndPoint> connect(
       const InetAddress& inet,
       Duration connectTimeout, Duration readTimeout, Duration writeTimeout,
       Executor* executor);
 
+  /**
+   * Native operating system handle to the file descriptor.
+   */
   int handle() const noexcept { return handle_; }
 
   /**

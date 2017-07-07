@@ -363,11 +363,14 @@ class InetConnectState {
   InetAddress inet_;
   RefPtr<InetEndPoint> ep_;
   Promise<RefPtr<EndPoint>> promise_;
+  std::function<void(RefPtr<EndPoint>)> success_;
+  std::function<void(std::error_code)> failure_;
 
   InetConnectState(const InetAddress& inet,
                    RefPtr<InetEndPoint> ep,
-                   const Promise<RefPtr<EndPoint>>& promise)
-      : inet_(inet), ep_(std::move(ep)), promise_(promise) {
+                   std::function<void(RefPtr<EndPoint>)> success,
+                   std::function<void(std::error_code)> failure)
+      : inet_(inet), ep_(std::move(ep)), success_(success), failure_(failure) {
   }
 
   void onConnectComplete() {
@@ -376,14 +379,14 @@ class InetConnectState {
     if (getsockopt(ep_->handle(), SOL_SOCKET, SO_ERROR, &val, &vlen) == 0) {
       if (val == 0) {
         TRACE("$0 onConnectComplete: connected $1. $2", this, val, strerror(val));
-        promise_.success(ep_.as<EndPoint>());
+        success_(ep_.as<EndPoint>());
       } else {
         DEBUG("Connecting to $0 failed. $1", inet_, strerror(val));
-        promise_.failure(std::errc::io_error); // dislike: wanna pass errno val here.
+        failure_(std::make_error_code(static_cast<std::errc>(val)));
       }
     } else {
       DEBUG("Connecting to $0 failed. $1", inet_, strerror(val));
-      promise_.failure(std::errc::io_error); // dislike: wanna pass errno val here.
+      failure_(std::make_error_code(static_cast<std::errc>(val)));
     }
     delete this;
   }
@@ -394,16 +397,19 @@ std::string StringUtil::toString(InetConnectState* obj) {
   return StringUtil::format("InetConnectState[$0]", (void*) obj);
 }
 
-Future<RefPtr<EndPoint>> InetEndPoint::connectAsync(const InetAddress& inet,
-                                                    Duration connectTimeout,
-                                                    Duration readTimeout,
-                                                    Duration writeTimeout,
-                                                    Executor* executor) {
+void InetEndPoint::connectAsync(const InetAddress& inet,
+                                Duration connectTimeout,
+                                Duration readTimeout,
+                                Duration writeTimeout,
+                                Executor* executor,
+                                std::function<void(RefPtr<EndPoint>)> success,
+                                std::function<void(std::error_code ec)> failure) {
   int fd = socket(inet.family(), SOCK_STREAM, IPPROTO_TCP);
-  if (fd < 0)
-    RAISE_ERRNO(errno);
+  if (fd < 0) {
+    failure(std::make_error_code(static_cast<std::errc>(errno)));
+    return;
+  }
 
-  Promise<RefPtr<EndPoint>> promise;
   RefPtr<InetEndPoint> ep;
 
   try {
@@ -427,14 +433,14 @@ Future<RefPtr<EndPoint>> InetEndPoint::connectAsync(const InetAddress& inet,
         if (::connect(fd, (const struct sockaddr*) &saddr, sizeof(saddr)) < 0) {
           if (errno != EINPROGRESS) {
             TRACE("connectAsync: connect() error. $0", strerror(errno));
-            promise.failure(std::errc::io_error);
-            return promise.future();
+            failure(std::make_error_code(static_cast<std::errc>(errno)));
+            return;
           } else {
             TRACE("connectAsync: backgrounding");
             executor->executeOnWritable(fd,
                 std::bind(&InetConnectState::onConnectComplete,
-                          new InetConnectState(inet, ep, promise)));
-            return promise.future();
+                          new InetConnectState(inet, ep, success, failure)));
+            return;
           }
         }
         TRACE("connectAsync: synchronous connect");
@@ -458,9 +464,8 @@ Future<RefPtr<EndPoint>> InetEndPoint::connectAsync(const InetAddress& inet,
             TRACE("connectAsync: backgrounding");
             executor->executeOnWritable(fd,
                 std::bind(&InetConnectState::onConnectComplete,
-                          new InetConnectState(inet, std::move(ep),
-                                               promise)));
-            return promise.future();
+                          new InetConnectState(inet, ep, success, failure)));
+            return;
           }
         }
         break;
@@ -471,29 +476,27 @@ Future<RefPtr<EndPoint>> InetEndPoint::connectAsync(const InetAddress& inet,
     }
 
     TRACE("connectAsync: connected instantly");
-    promise.success(ep.as<EndPoint>());
-    return promise.future();
+    success(ep.as<EndPoint>());
+    return;
   } catch (...) {
     FileUtil::close(fd);
     throw;
   }
 }
 
-void InetEndPoint::connectAsync(
-    const InetAddress& inet,
-    Duration connectTimeout,
-    Duration readTimeout,
-    Duration writeTimeout,
-    Executor* executor,
-    std::function<void(RefPtr<EndPoint>)> onSuccess,
-    std::function<void(const std::error_code& ec)> onError) {
-  Future<RefPtr<EndPoint>> f = connectAsync(
-      inet, connectTimeout, readTimeout, writeTimeout, executor);
+Future<RefPtr<EndPoint>> InetEndPoint::connectAsync(const InetAddress& inet,
+                                                    Duration connectTimeout,
+                                                    Duration readTimeout,
+                                                    Duration writeTimeout,
+                                                    Executor* executor) {
+  Promise<RefPtr<EndPoint>> promise;
 
-  f.onSuccess([onSuccess] (const RefPtr<EndPoint>& x) {
-      onSuccess(const_cast<RefPtr<EndPoint>&>(x));
-  });
-  f.onFailure(onError);
+  connectAsync(
+      inet, connectTimeout, readTimeout, writeTimeout, executor,
+      [=](auto ep) { promise.success(ep); },
+      [=](auto ec) { promise.failure(ec); });
+
+  return promise.future();
 }
 
 RefPtr<EndPoint> InetEndPoint::connect(
