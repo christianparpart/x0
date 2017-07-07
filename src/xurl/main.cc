@@ -23,7 +23,7 @@
 #include <iostream>
 #include <unistd.h>
 
-#define PACKAGE_VERSION X0_VERSION
+// #define PACKAGE_VERSION X0_VERSION
 #define PACKAGE_HOMEPAGE_URL "https://xzero.io"
 
 using namespace xzero;
@@ -76,7 +76,7 @@ class XUrl {
   int getPort(const Uri& uri);
   void query(const Uri& uri);
   void connected(RefPtr<EndPoint> ep, const Uri& uri);
-  void connectFailure(Status error);
+  void connectFailure(const std::error_code& ec);
 
  private:
   NativeScheduler scheduler_;
@@ -234,8 +234,8 @@ void XUrl::connected(RefPtr<EndPoint> ep, const Uri& uri) {
   write(1, http.responseBody().data(), http.responseBody().size());
 }
 
-void XUrl::connectFailure(Status error) {
-  logError("xurl", "connect() failed. $0", error);
+void XUrl::connectFailure(const std::error_code& ec) {
+  logError("xurl", "connect() failed. $0", ec.message());
 }
 
 int main(int argc, const char* argv[]) {
