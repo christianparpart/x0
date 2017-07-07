@@ -106,6 +106,7 @@ libXzero_a_SOURCES = \
 	src/xzero/http/client/HttpClusterMember.cc \
 	src/xzero/http/client/HttpClusterRequest.cc \
 	src/xzero/http/client/HttpClusterScheduler.cc \
+	src/xzero/http/client/HttpReverseProxy.cc \
 	src/xzero/http/client/HttpTransport.cc \
 	src/xzero/http/client/HttpHealthMonitor.cc \
 	src/xzero/http/fastcgi/Connection.cc \
@@ -332,6 +333,7 @@ nobase_libXzero_HEADERS = \
 	src/xzero/http/client/HttpClusterRequest.h \
 	src/xzero/http/client/HttpClusterScheduler.h \
 	src/xzero/http/client/HttpClusterSchedulerStatus.h \
+	src/xzero/http/client/HttpReverseProxy.h \
 	src/xzero/http/client/HttpHealthMonitor.h \
 	src/xzero/http/client/HttpTransport.h \
 	src/xzero/http/fastcgi/Connection.h \
