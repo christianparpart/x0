@@ -13,6 +13,7 @@
 #include <xzero/http/HttpRequest.h>
 #include <xzero/http/HttpResponse.h>
 #include <xzero/http/BadMessage.h>
+#include <xzero/http/HttpStatus.h>
 #include <xzero/http/HttpFileHandler.h>
 #include <xzero/io/LocalFileRepository.h>
 #include <xzero/executor/LocalExecutor.h>
@@ -36,7 +37,8 @@ void staticfileHandler(HttpRequest* request, HttpResponse* response) {
   auto docroot = FileUtil::realpath(".");
   auto file = repo.getFile(request->path(), docroot);
 
-  if (staticfile.handle(request, response, file))
+  HttpStatus status = staticfile.handle(request, response, file);
+  if (!isError(status))
     return;
 
   response->setStatus(HttpStatus::NotFound);
