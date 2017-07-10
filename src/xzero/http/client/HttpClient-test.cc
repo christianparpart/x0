@@ -27,7 +27,7 @@ RefPtr<ByteArrayEndPoint> createEndPoint() {
   return ep;
 };
 
-TEST(HttpClient, DISABLED_test_http1_default) {
+TEST(HttpClient, http1_default) {
   NativeScheduler sched(std::make_unique<CatchAndLogExceptionHandler>("unittest"));
 
   RefPtr<ByteArrayEndPoint> ep = createEndPoint();
