@@ -47,4 +47,5 @@ echo CXXFLAGS = $CXXFLAGS
 exec ${ROOT}/configure --prefix="${HOME}/usr" \
                        --sysconfdir="${HOME}/usr/etc" \
                        --with-pidfile="${BUILDDIR}/x0d.pid" \
-                       --with-logdir="${BUILDDIR}"
+                       --with-logdir="${BUILDDIR}" \
+                       --enable-xurl
