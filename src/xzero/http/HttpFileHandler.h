@@ -56,16 +56,16 @@ class XZERO_HTTP_API HttpFileHandler {
    * @param request the request to handle.
    * @param response the response to generate.
    *
-   * @param HttpStatus::Ok Full document is being sent. The actual HTTP status
+   * @retval HttpStatus::Ok Full document is being sent. The actual HTTP status
    * code may differ due to internal redirects, but this return code declares
    * this request as being fully handled.
-   * @param HttpStatus::PartialContent Partial content (ranged-request) sent.
-   * @param HttpStatus::NotModified Client side cache was hit. No response was generated.
-   * @param HttpStatus::PreconditionFailed Client's precondition failed. No response was generated.
-   * @param HttpStatus::NotFound HTTP request not handled, most probably
+   * @retval HttpStatus::PartialContent Partial content (ranged-request) sent.
+   * @retval HttpStatus::NotModified Client side cache was hit.
+   * @retval HttpStatus::PreconditionFailed Client's precondition failed. No response was generated.
+   * @retval HttpStatus::NotFound HTTP request not handled, most probably
    * because the underlying file was not found or is not a file.
    * No response was generated.
-   * @param HttpStatus::MethodNotAllowed Unsupported method detected. No response was generated.
+   * @retval HttpStatus::MethodNotAllowed Unsupported method detected. No response was generated.
    */
   HttpStatus handle(HttpRequest* request,
                     HttpResponse* response,
