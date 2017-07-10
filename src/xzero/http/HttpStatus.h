@@ -189,4 +189,8 @@ struct hash<xzero::http::HttpStatus> : public unary_function<xzero::http::HttpSt
   }
 };
 
+inline std::error_code make_error_code(xzero::http::HttpStatus status) {
+  return std::error_code((int) status, xzero::http::HttpStatusCategory::get());
+}
+
 }  // namespace std
