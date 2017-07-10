@@ -731,6 +731,7 @@ pkgconfig_DATA = XzeroBase.pc XzeroFlow.pc XzeroTest.pc
 
 ####### xurl ##################################################################
 
+if ENABLE_XURL
 bin_PROGRAMS += xurl
 xurl_CXXFLAGS = \
 	-I$(top_srcdir)/src \
@@ -742,6 +743,7 @@ xurl_LDADD = \
 
 xurl_SOURCES = \
 	src/xurl/main.cc
+endif
 
 # vim:ts=8
 # EOF

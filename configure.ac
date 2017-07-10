@@ -150,6 +150,14 @@ AS_IF([test "x$enable_o_tmpfile" != xno],
       [AC_DEFINE([ENABLE_O_TMPFILE], [1], [Enables use of O_TMPFILE])])
 
 # ----------------------------------------------------------------------------
+# Conditional Binaries
+
+AC_ARG_ENABLE([xurl],
+              AS_HELP_STRING([--enable-xurl],
+                             [Enables building xurl CLI.]))
+AM_CONDITIONAL([ENABLE_XURL], [test x$enable_xurl = xyes])
+
+# ----------------------------------------------------------------------------
 # some more dependencies
 
 dnl OpenSSL
@@ -213,6 +221,10 @@ AC_SUBST([BASE_CXXFLAGS])
 BASE_LIBS="$PLATFORM_LDFLAGS $OPENSSL_LDADD $LIBPCRE_LIBS $OPENSSL_LIBS \
  $ZLIB_LIBS $BZLIB_LIBS -lresolv"
 AC_SUBST([BASE_LIBS])
+
+AS_IF([test "x$enable_xurl" = xyes],
+      [AC_MSG_NOTICE([Builds with CLI xurl: yes])],
+      [AC_MSG_NOTICE([Builds with CLI xurl: no])])
 
 AC_CONFIG_HEADERS(src/xzero/sysconfig.h)
 AC_CONFIG_FILES(Makefile XzeroBase.pc XzeroFlow.pc XzeroTest.pc)
