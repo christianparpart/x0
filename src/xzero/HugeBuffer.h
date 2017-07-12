@@ -80,6 +80,7 @@ class HugeBuffer {
    * loaded into memory, so you can access it via BufferRef.
    */
   const BufferRef& getBuffer() const;
+  BufferRef&& getBuffer();
 
   void write(const BufferRef& chunk);
   void write(const FileView& chunk);

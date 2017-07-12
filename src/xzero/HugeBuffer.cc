@@ -91,6 +91,13 @@ const BufferRef& HugeBuffer::getBuffer() const {
   return buffer_;
 }
 
+BufferRef&& HugeBuffer::getBuffer() {
+  if (buffer_.empty() && fd_.isOpen())
+    const_cast<HugeBuffer*>(this)->buffer_ = FileUtil::read(fd_);
+
+  return std::move(buffer_);
+}
+
 std::unique_ptr<InputStream> HugeBuffer::getInputStream() {
   if (fd_.isOpen()) {
     // TODO: provide a PositionalFileInputStream (pread's) to get rid of this side-effect
