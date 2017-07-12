@@ -28,20 +28,63 @@ class InputStream;
  */
 class HugeBuffer {
  public:
+  /**
+   * Initializes an empty HugeBuffer instance with the in-memory capacity
+   * set to @p maxBufferSize.
+   *
+   * @param maxBufferSize Maximum capacity for the in-memory buffer.
+   */
   explicit HugeBuffer(size_t maxBufferSize);
 
+  /**
+   * Initializes this instance with the given @p inputBuffer.
+   *
+   * The instance's maxBufferSize will be set to the @p inputBuffer's size.
+   *
+   * @param inputBuffer The buffer that is to be moved into this HugeBuffer.
+   */
+  explicit HugeBuffer(Buffer&& inputBuffer);
+
+  /**
+   * Tests whether this HugeBuffer is empty or not.
+   */
   bool empty() const noexcept { return actualSize_ == 0; }
+
+  /**
+   * Retrieves the actual number of bytes within this HugeBuffer.
+   */
   size_t size() const noexcept { return actualSize_; }
+
+  /**
+   * Tests whether this HugeBuffer is layed off into a temporary file.
+   */
   bool isFile() const noexcept { return fd_.isOpen(); }
+
+  /**
+   * Retrieves a caller-owned InputStream to read out this HugeBuffer.
+   */
+  std::unique_ptr<InputStream> getInputStream();
+
+  /**
+   * Retrieves a FileView representation to this HugeBuffer.
+   *
+   * This persists the buffer into a temporary file if currently only in-memory,
+   * so you can access this HugeBuffer via a FileView.
+   */
+  FileView getFileView() const;
+
+  /**
+   * Retrieves a reference to the internal buffer of HugeBuffer.
+   *
+   * If the data is currently backed by a temporary file, it will be
+   * loaded into memory, so you can access it via BufferRef.
+   */
+  const BufferRef& getBuffer() const;
 
   void write(const BufferRef& chunk);
   void write(const FileView& chunk);
   void write(FileView&& chunk);
   void write(Buffer&& chunk);
-
-  FileView getFileView() const;
-  const BufferRef& getBuffer() const;
-  std::unique_ptr<InputStream> getInputStream();
 
   void reset();
 

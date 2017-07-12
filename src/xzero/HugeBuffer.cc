@@ -19,6 +19,13 @@ HugeBuffer::HugeBuffer(size_t maxBufferSize)
       fd_() {
 }
 
+HugeBuffer::HugeBuffer(Buffer&& inputBuffer)
+    : maxBufferSize_(inputBuffer.size()),
+      actualSize_(maxBufferSize_),
+      buffer_(std::move(inputBuffer)),
+      fd_() {
+}
+
 void HugeBuffer::write(const BufferRef& chunk) {
   if (buffer_.size() + chunk.size() > maxBufferSize_)
     tryDisplaceBufferToFile();
@@ -112,6 +119,5 @@ void HugeBuffer::reset() {
   actualSize_ = 0;
   fd_.close();
 }
-
 
 } // namespace xzero
