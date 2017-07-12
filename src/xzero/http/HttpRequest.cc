@@ -34,6 +34,13 @@ HttpRequest::HttpRequest(const std::string& method, const std::string& path,
                          HttpVersion version, bool secure,
                          const HeaderFieldList& headers,
                          Buffer&& content)
+  : HttpRequest(method, path, version, secure, headers, HugeBuffer(std::move(content))) {
+}
+
+HttpRequest::HttpRequest(const std::string& method, const std::string& path,
+                         HttpVersion version, bool secure,
+                         const HeaderFieldList& headers,
+                         HugeBuffer&& content)
     : HttpRequestInfo(version, method, path, 0, headers),
       remoteAddress_(),
       localAddress_(),
@@ -41,12 +48,10 @@ HttpRequest::HttpRequest(const std::string& method, const std::string& path,
       host_(headers.get("Host")),
       secure_(secure),
       expect100Continue_(false),
-      content_(content),
+      content_(std::move(content)),
       onContentReady_(),
       onContentAvailable_(),
       username_() {
-  // .
-  content_.write(std::move(content));
 }
 
 void HttpRequest::setRemoteAddress(const Option<InetAddress>& inet) {

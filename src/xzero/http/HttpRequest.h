@@ -35,6 +35,9 @@ class XZERO_HTTP_API HttpRequest : public HttpRequestInfo {
   HttpRequest(const std::string& method, const std::string& path,
               HttpVersion version, bool secure, const HeaderFieldList& headers,
               Buffer&& content);
+  HttpRequest(const std::string& method, const std::string& path,
+              HttpVersion version, bool secure, const HeaderFieldList& headers,
+              HugeBuffer&& content);
 
   void setRemoteAddress(const Option<InetAddress>& addr);
   const Option<InetAddress>& remoteAddress() const;
