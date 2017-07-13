@@ -127,18 +127,6 @@ const HttpResponseInfo& HttpClient::responseInfo() const noexcept {
   return responseInfo_;
 }
 
-bool HttpClient::isResponseBodyBuffered() const noexcept {
-  return !responseBody_.isFile();
-}
-
-const BufferRef& HttpClient::responseBody() {
-  return responseBody_.getBuffer();
-}
-
-FileView HttpClient::takeResponseBody() {
-  return responseBody_.getFileView();
-}
-
 void HttpClient::onMessageBegin(HttpVersion version, HttpStatus code,
                                 const BufferRef& text) {
   TRACE("onMessageBegin($0, $1, $2)", version, (int)code, text);

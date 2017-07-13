@@ -363,16 +363,13 @@ bool ProxyModule::proxy_http(XzeroContext* cx, xzero::flow::vm::Params& args) {
     }
     addVia(cx);
 
+    // TODO: what about streaming responses?
     cx->response()->setStatus(client->responseInfo().status());
     cx->response()->setReason(client->responseInfo().reason());
     cx->response()->setContentLength(client->responseInfo().contentLength());
-
-    if (client->isResponseBodyBuffered())
-      cx->response()->write(client->responseBody());
-    else
-      cx->response()->write(client->takeResponseBody());
-
+    cx->response()->write(std::move(client->responseBody()));
     cx->response()->completed();
+
     delete client;
   });
 

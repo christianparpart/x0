@@ -19,6 +19,7 @@
 #include <xzero/http/HttpResponseInfo.h>
 #include <xzero/http/HttpListener.h>
 #include <xzero/thread/Future.h>
+#include <functional>
 #include <vector>
 #include <utility>
 #include <memory>
@@ -34,6 +35,7 @@ class FileView;
 namespace http {
 
 class HeaderFieldList;
+class HttpRequest;
 
 namespace client {
 
@@ -64,9 +66,15 @@ class HttpClient : public HttpListener {
 
   // response message accessor
   const HttpResponseInfo& responseInfo() const noexcept;
-  bool isResponseBodyBuffered() const noexcept;
-  const BufferRef& responseBody();
-  FileView takeResponseBody();
+  const HugeBuffer& responseBody() const { return responseBody_; }
+  HugeBuffer&& responseBody() { return std::move(responseBody_); }
+
+  // XXX API idea
+  // static void send(
+  //     RefPtr<EndPoint> transport,
+  //     const HttpRequest& request,
+  //     std::function<void(HttpResponseInfo&&, HugeBuffer&&)> success,
+  //     std::function<void(const std::error_code& ec)> error);
 
  private:
   // HttpListener overrides

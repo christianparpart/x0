@@ -231,7 +231,8 @@ void XUrl::connected(RefPtr<EndPoint> ep, const Uri& uri) {
     logInfo("xurl", "> $0: $1", field.name(), field.value());
   }
 
-  write(1, http.responseBody().data(), http.responseBody().size());
+  const auto& content = http.responseBody().getBuffer();
+  write(STDOUT_FILENO, content.data(), content.size());
 }
 
 void XUrl::connectFailure(const std::error_code& ec) {

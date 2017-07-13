@@ -170,10 +170,10 @@ void HttpClusterMember::onResponseReceived(HttpClusterRequest* cr) {
   }
 
   cr->onMessageHeaderEnd();
-  if (cr->client.isResponseBodyBuffered()) {
-    cr->onMessageContent(cr->client.responseBody());
+  if (cr->client.responseBody().isBuffered()) {
+    cr->onMessageContent(cr->client.responseBody().getBuffer());
   } else {
-    cr->onMessageContent(cr->client.takeResponseBody());
+    cr->onMessageContent(cr->client.responseBody().getFileView());
   }
   cr->onMessageEnd();
 }
