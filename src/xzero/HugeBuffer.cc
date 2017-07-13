@@ -84,6 +84,12 @@ FileView HugeBuffer::getFileView() const {
   return FileView(fd_, 0, actualSize_, false);
 }
 
+FileView&& HugeBuffer::getFileView() {
+  const_cast<HugeBuffer*>(this)->tryDisplaceBufferToFile();
+
+  return std::move(FileView(std::move(fd_), 0, actualSize_));
+}
+
 const BufferRef& HugeBuffer::getBuffer() const {
   if (buffer_.empty() && fd_.isOpen())
     const_cast<HugeBuffer*>(this)->buffer_ = FileUtil::read(fd_);
