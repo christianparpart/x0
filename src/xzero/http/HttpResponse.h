@@ -174,7 +174,7 @@ class XZERO_HTTP_API HttpResponse {
    *
    * The C string will be copied into the response body.
    */
-  virtual void write(const char* cstr, CompletionHandler&& completed = nullptr);
+  void write(const char* cstr, CompletionHandler&& completed = nullptr);
 
   /**
    * Writes given string @p str to the client.
@@ -183,7 +183,7 @@ class XZERO_HTTP_API HttpResponse {
    *            copied.
    * @param completed Callback to invoke after completion.
    */
-  virtual void write(const std::string& str, CompletionHandler&& completed = nullptr);
+  void write(const std::string& str, CompletionHandler&& completed = nullptr);
 
   /**
    * Writes given buffer.
@@ -191,7 +191,7 @@ class XZERO_HTTP_API HttpResponse {
    * @param data The data chunk to write to the client.
    * @param completed Callback to invoke after completion.
    */
-  virtual void write(Buffer&& data, CompletionHandler&& completed = nullptr);
+  void write(Buffer&& data, CompletionHandler&& completed = nullptr);
 
   /**
    * Writes given buffer.
@@ -201,7 +201,7 @@ class XZERO_HTTP_API HttpResponse {
    *
    * @note You must ensure the data chunk is available until sending completed!
    */
-  virtual void write(const BufferRef& data, CompletionHandler&& completed = nullptr);
+  void write(const BufferRef& data, CompletionHandler&& completed = nullptr);
 
   /**
    * Writes the data received from the given file descriptor @p file.
@@ -209,7 +209,7 @@ class XZERO_HTTP_API HttpResponse {
    * @param file file ref handle
    * @param completed Callback to invoke after completion.
    */
-  virtual void write(FileView&& file, CompletionHandler&& completed = nullptr);
+  void write(FileView&& file, CompletionHandler&& completed = nullptr);
 
  private:
   friend class HttpChannel; // FIXME: can we get rid of friends?
