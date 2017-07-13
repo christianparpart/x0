@@ -263,6 +263,11 @@ void HttpResponse::write(FileView&& input, CompletionHandler&& completed) {
   actualContentLength_ += input.size();
   channel_->send(std::move(input), std::move(completed));
 }
+
+void HttpResponse::write(HugeBuffer&& content, CompletionHandler&& completed) {
+  actualContentLength_ += content.size();
+  channel_->send(std::move(content), std::move(completed));
+}
 // }}}
 
 }  // namespace http

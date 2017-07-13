@@ -14,6 +14,7 @@
 #include <xzero/http/HttpOutputCompressor.h>
 #include <xzero/http/HttpVersion.h>
 #include <xzero/http/BadMessage.h>
+#include <xzero/HugeBuffer.h>
 #include <xzero/logging.h>
 #include <xzero/io/FileView.h>
 #include <xzero/io/Filter.h>
@@ -163,6 +164,14 @@ void HttpChannel::send(FileView&& file, CompletionHandler onComplete) {
     } else {
       transport_->send(std::move(filtered), onComplete);
     }
+  }
+}
+
+void HttpChannel::send(HugeBuffer&& content, CompletionHandler&& completed) {
+  if (content.isFile()) {
+    send(std::move(content.getFileView()), completed);
+  } else {
+    send(std::move(content.getBuffer()), completed);
   }
 }
 

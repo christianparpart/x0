@@ -21,6 +21,7 @@ namespace xzero {
 
 class FileView;
 class Executor;
+class HugeBuffer;
 
 namespace http {
 
@@ -101,6 +102,17 @@ class XZERO_HTTP_API HttpChannel : public HttpListener {
    * response headers if not done yet.
    */
   void send(FileView&& file, CompletionHandler onComplete);
+
+  /**
+   * Sends a response body chunk.
+   *
+   * @param content the content to be sent to the client.
+   * @param onComplete callback invoked when sending chunk is succeed/failed.
+   *
+   * The response will auto-commit the response status line and
+   * response headers if not done yet.
+   */
+  void send(HugeBuffer&& content, CompletionHandler&& completed);
 
   /**
    * Sends an 100-continue intermediate response message.

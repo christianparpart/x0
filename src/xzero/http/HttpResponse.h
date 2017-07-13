@@ -22,6 +22,7 @@ class FileView;
 class Filter;
 class Buffer;
 class BufferRef;
+class HugeBuffer;
 
 namespace http {
 
@@ -210,6 +211,14 @@ class XZERO_HTTP_API HttpResponse {
    * @param completed Callback to invoke after completion.
    */
   void write(FileView&& file, CompletionHandler&& completed = nullptr);
+
+  /**
+   * Writes the data received from the given HugeBuffer @p file.
+   *
+   * @param file file ref handle
+   * @param completed Callback to invoke after completion.
+   */
+  void write(HugeBuffer&& content, CompletionHandler&& completed = nullptr);
 
  private:
   friend class HttpChannel; // FIXME: can we get rid of friends?
