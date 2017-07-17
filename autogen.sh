@@ -36,8 +36,8 @@ findexe() {
   echo $1
 }
 
-export CXX=$(findexe $CXX clang++-3.9 clang++-3.8 clang++ g++)
-export CC=$(findexe $CC clang-3.9 clang-3.8 clang gcc)
+export CXX=$(findexe $CXX clang++-4.0 clang++ g++)
+export CC=$(findexe $CC clang-4.0 clang gcc)
 export CXXFLAGS="-O0 -g"
 
 echo CXX = $CXX
