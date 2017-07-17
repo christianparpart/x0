@@ -123,6 +123,16 @@ void HttpClient::send(RefPtr<EndPoint> ep) {
   transport_->completed();
 }
 
+void HttpClient::send(RefPtr<EndPoint> transport,
+                      const HttpRequest& request,
+                      HttpListener* responseListener) {
+  Executor* executor = nullptr;
+  auto connection = transport->setConnection<Http1Connection>(
+      responseListener,
+      transport.get(),
+      executor);
+}
+
 const HttpResponseInfo& HttpClient::responseInfo() const noexcept {
   return responseInfo_;
 }

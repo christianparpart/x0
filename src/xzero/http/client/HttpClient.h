@@ -70,11 +70,23 @@ class HttpClient : public HttpListener {
   HugeBuffer&& responseBody() { return std::move(responseBody_); }
 
   // XXX API idea
-  // static void send(
-  //     RefPtr<EndPoint> transport,
-  //     const HttpRequest& request,
-  //     std::function<void(HttpResponseInfo&&, HugeBuffer&&)> success,
-  //     std::function<void(const std::error_code& ec)> error);
+  static void send(
+      RefPtr<EndPoint> transport,
+      const HttpRequest& request,
+      std::function<void(HttpResponseInfo&&, HugeBuffer&&)> success,
+      std::function<void(const std::error_code& ec)> error);
+
+  /**
+   * Sends given @p request to @p transport and feeds the response to the
+   * callers @p responseListener.
+   *
+   * @param transport
+   * @param request
+   * @param responseListener
+   */
+  static void send(RefPtr<EndPoint> transport,
+                   const HttpRequest& request,
+                   HttpListener* responseListener);
 
  private:
   // HttpListener overrides
