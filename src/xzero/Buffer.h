@@ -108,7 +108,7 @@ class XZERO_BASE_API BufferBase {
   typedef typename BufferTraits<T>::const_iterator const_iterator;
   typedef typename BufferTraits<T>::data_type data_type;
 
-  static const size_t npos = (size_t) -1;
+  static constexpr size_t npos = (size_t) -1;
 
  protected:
   data_type data_;
@@ -121,11 +121,11 @@ class XZERO_BASE_API BufferBase {
 
   // properties
   pointer_type data() { return data_; }
-  constexpr const pointer_type data() const {
+  constexpr pointer_type data() const {
     return const_cast<BufferBase<T>*>(this)->data_;
   }
   reference_type at(size_t offset) { return data()[offset]; }
-  constexpr const reference_type at(size_t offset) const { return data()[offset]; }
+  constexpr reference_type at(size_t offset) const { return data()[offset]; }
   constexpr size_t size() const { return size_; }
 
   constexpr bool empty() const { return size_ == 0; }
@@ -135,11 +135,8 @@ class XZERO_BASE_API BufferBase {
   void clear() { size_ = 0; }
 
   // iterator access
-  constexpr iterator begin() const { return const_cast<BufferBase<T>*>(this)->data_; }
-  constexpr iterator end() const {
-    return const_cast<BufferBase<T>*>(this)->data_ + size_;
-  }
-
+  constexpr iterator begin() const { return data(); }
+  constexpr iterator end() const { return data() + size(); }
   constexpr const_iterator cbegin() const { return data(); }
   constexpr const_iterator cend() const { return data() + size(); }
 
