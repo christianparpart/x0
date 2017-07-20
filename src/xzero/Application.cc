@@ -183,4 +183,28 @@ void Application::daemonize() {
   }
 }
 
+size_t Application::pageSize() {
+#if defined(HAVE_SYSCONF) && defined(_SC_PAGESIZE)
+  int rv = sysconf(_SC_PAGESIZE);
+  if (rv < 0)
+    throw std::system_error(errno, std::system_category());
+
+  return rv;
+#else
+  return 4096;
+#endif
+}
+
+size_t Application::processorCount() {
+#if defined(HAVE_SYSCONF) && defined(_SC_NPROCESSORS_ONLN)
+  int rv = sysconf(_SC_NPROCESSORS_ONLN);
+  if (rv < 0)
+    throw std::system_error(errno, std::system_category());
+
+  return rv;
+#else
+  return 1;
+#endif
+}
+
 } // namespace xzero

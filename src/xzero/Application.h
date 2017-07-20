@@ -56,6 +56,16 @@ class XZERO_BASE_API Application {
    * Forks the application into background and become a daemon.
    */
   static void daemonize();
+
+  /**
+   * Retrieves the system's page size in bytes.
+   */
+  static size_t pageSize();
+
+  /**
+   * Retrieves the number of available processors on the system system.
+   */
+  static size_t processorCount();
 };
 
 } // namespace xzero
