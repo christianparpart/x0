@@ -48,8 +48,6 @@ class ThreadPool : public Executor {
 
   ~ThreadPool();
 
-  static size_t processorCount();
-
   static std::string getThreadName(const void* id);
 
   /**

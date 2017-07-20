@@ -8,6 +8,7 @@
 #include <xzero/executor/ThreadPool.h>
 #include <xzero/executor/PosixScheduler.h>
 #include <xzero/thread/Wakeup.h>
+#include <xzero/Application.h>
 #include <xzero/WallClock.h>
 #include <xzero/UnixTime.h>
 #include <xzero/logging.h>
@@ -32,7 +33,7 @@ namespace xzero {
 #endif
 
 ThreadPool::ThreadPool()
-    : ThreadPool(processorCount(), nullptr) {
+    : ThreadPool(Application::processorCount(), nullptr) {
 }
 
 ThreadPool::ThreadPool(size_t num_threads)
@@ -40,7 +41,7 @@ ThreadPool::ThreadPool(size_t num_threads)
 }
 
 ThreadPool::ThreadPool(std::unique_ptr<xzero::ExceptionHandler> eh)
-    : ThreadPool(processorCount(), std::move(eh)) {
+    : ThreadPool(Application::processorCount(), std::move(eh)) {
 }
 
 ThreadPool::ThreadPool(size_t num_threads,
@@ -101,18 +102,6 @@ void ThreadPool::wait() {
 void ThreadPool::stop() {
   active_ = false;
   condition_.notify_all();
-}
-
-size_t ThreadPool::processorCount() {
-#if defined(HAVE_SYSCONF) && defined(_SC_NPROCESSORS_ONLN)
-  int rv = sysconf(_SC_NPROCESSORS_ONLN);
-  if (rv < 0)
-    throw std::system_error(errno, std::system_category());
-
-  return rv;
-#else
-  return 1;
-#endif
 }
 
 std::string ThreadPool::getThreadName(const void* tid) {
