@@ -28,7 +28,8 @@ class HttpTransport {
  public:
   virtual ~HttpTransport();
 
-  virtual void setListener(HttpListener* channel) = 0;
+  virtual void setListener(HttpListener* responseChannel) = 0;
+
   virtual void send(const HttpRequestInfo& requestInfo,
                     CompletionHandler onComplete) = 0;
   virtual void send(const HttpRequestInfo& requestInfo,
@@ -40,9 +41,11 @@ class HttpTransport {
   virtual void send(const HttpRequestInfo& requestInfo,
                     FileView&& chunk,
                     CompletionHandler onComplete) = 0;
+
   virtual void send(const BufferRef& chunk, CompletionHandler onComplete) = 0;
   virtual void send(Buffer&& chunk, CompletionHandler onComplete) = 0;
   virtual void send(FileView&& chunk, CompletionHandler onComplete) = 0;
+
   virtual void completed() = 0;
   virtual void abort() = 0;
 };
