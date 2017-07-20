@@ -33,12 +33,10 @@ namespace http {
 
 // {{{ helper methods
 /**
- * converts a range-spec into real offsets.
+ * Converts a range-spec into real offsets.
  *
- * \todo Mark this fn as \c constexpr as soon Ubuntu's LTS default compiler
- * supports it (14.04)
  */
-inline /*constexpr*/ std::pair<size_t, size_t> makeOffsets(
+inline constexpr std::pair<size_t, size_t> makeOffsets(
     const std::pair<size_t, size_t>& p, size_t actualSize) {
   return p.first == HttpRangeDef::npos
              ? std::make_pair(actualSize - p.second,
