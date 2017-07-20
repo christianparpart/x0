@@ -6,6 +6,7 @@
 // the License at: http://opensource.org/licenses/MIT
 
 #include <xzero/HugeBuffer.h>
+#include <xzero/Application.h>
 #include <xzero/io/FileUtil.h>
 #include <xzero/io/FileInputStream.h>
 #include <xzero/io/BufferInputStream.h>
@@ -24,6 +25,10 @@ HugeBuffer::HugeBuffer(Buffer&& inputBuffer)
       actualSize_(maxBufferSize_),
       buffer_(std::move(inputBuffer)),
       fd_() {
+}
+
+HugeBuffer::HugeBuffer()
+    : HugeBuffer(Application::pageSize()) {
 }
 
 void HugeBuffer::write(const BufferRef& chunk) {

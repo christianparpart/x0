@@ -46,6 +46,12 @@ class HugeBuffer {
   explicit HugeBuffer(Buffer&& inputBuffer);
 
   /**
+   * Initializes this instance with the system default page-size as
+   * maxBufferSize.
+   */
+  HugeBuffer();
+
+  /**
    * Tests whether this HugeBuffer is empty or not.
    */
   bool empty() const noexcept { return actualSize_ == 0; }
