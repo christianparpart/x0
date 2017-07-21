@@ -330,7 +330,7 @@ std::size_t Parser::parseFragment(const BufferRef& chunk) {
           method_ = chunk.ref(*nparsed - initialOutOffset, 1);
           nextChar();
         } else {
-          onProtocolError(HttpStatus::BadRequest);
+          onProtocolError();
           state_ = PROTOCOL_ERROR;
         }
         break;
@@ -342,7 +342,7 @@ std::size_t Parser::parseFragment(const BufferRef& chunk) {
           method_.shr();
           nextChar();
         } else {
-          onProtocolError(HttpStatus::BadRequest);
+          onProtocolError();
           state_ = PROTOCOL_ERROR;
         }
         break;
@@ -352,7 +352,7 @@ std::size_t Parser::parseFragment(const BufferRef& chunk) {
           state_ = REQUEST_ENTITY;
           nextChar();
         } else {
-          onProtocolError(HttpStatus::BadRequest);
+          onProtocolError();
           state_ = PROTOCOL_ERROR;
         }
         break;
@@ -367,7 +367,7 @@ std::size_t Parser::parseFragment(const BufferRef& chunk) {
           state_ = REQUEST_0_9_LF;
           nextChar();
         } else {
-          onProtocolError(HttpStatus::BadRequest);
+          onProtocolError();
           state_ = PROTOCOL_ERROR;
         }
         break;
@@ -378,13 +378,13 @@ std::size_t Parser::parseFragment(const BufferRef& chunk) {
           onMessageEnd();
           goto done;
         } else {
-          onProtocolError(HttpStatus::BadRequest);
+          onProtocolError();
           state_ = PROTOCOL_ERROR;
         }
         break;
       case REQUEST_PROTOCOL_BEGIN:
         if (*i != 'H') {
-          onProtocolError(HttpStatus::BadRequest);
+          onProtocolError();
           state_ = PROTOCOL_ERROR;
         } else {
           state_ = REQUEST_PROTOCOL_T1;
@@ -393,7 +393,7 @@ std::size_t Parser::parseFragment(const BufferRef& chunk) {
         break;
       case REQUEST_PROTOCOL_T1:
         if (*i != 'T') {
-          onProtocolError(HttpStatus::BadRequest);
+          onProtocolError();
           state_ = PROTOCOL_ERROR;
         } else {
           state_ = REQUEST_PROTOCOL_T2;
@@ -402,7 +402,7 @@ std::size_t Parser::parseFragment(const BufferRef& chunk) {
         break;
       case REQUEST_PROTOCOL_T2:
         if (*i != 'T') {
-          onProtocolError(HttpStatus::BadRequest);
+          onProtocolError();
           state_ = PROTOCOL_ERROR;
         } else {
           state_ = REQUEST_PROTOCOL_P;
@@ -411,7 +411,7 @@ std::size_t Parser::parseFragment(const BufferRef& chunk) {
         break;
       case REQUEST_PROTOCOL_P:
         if (*i != 'P') {
-          onProtocolError(HttpStatus::BadRequest);
+          onProtocolError();
           state_ = PROTOCOL_ERROR;
         } else {
           state_ = REQUEST_PROTOCOL_SLASH;
@@ -420,7 +420,7 @@ std::size_t Parser::parseFragment(const BufferRef& chunk) {
         break;
       case REQUEST_PROTOCOL_SLASH:
         if (*i != '/') {
-          onProtocolError(HttpStatus::BadRequest);
+          onProtocolError();
           state_ = PROTOCOL_ERROR;
         } else {
           state_ = REQUEST_PROTOCOL_VERSION_MAJOR;
@@ -432,7 +432,7 @@ std::size_t Parser::parseFragment(const BufferRef& chunk) {
           state_ = REQUEST_PROTOCOL_VERSION_MINOR;
           nextChar();
         } else if (!std::isdigit(*i)) {
-          onProtocolError(HttpStatus::BadRequest);
+          onProtocolError();
           state_ = PROTOCOL_ERROR;
         } else {
           versionMajor_ = versionMajor_ * 10 + *i - '0';
@@ -445,7 +445,7 @@ std::size_t Parser::parseFragment(const BufferRef& chunk) {
           nextChar();
         }
         else if (!std::isdigit(*i)) {
-          onProtocolError(HttpStatus::BadRequest);
+          onProtocolError();
           state_ = PROTOCOL_ERROR;
         } else {
           versionMinor_ = versionMinor_ * 10 + *i - '0';
@@ -462,14 +462,14 @@ std::size_t Parser::parseFragment(const BufferRef& chunk) {
 
           onMessageBegin(method_, entity_, versionMajor_, versionMinor_);
         } else {
-          onProtocolError(HttpStatus::BadRequest);
+          onProtocolError();
           state_ = PROTOCOL_ERROR;
         }
         break;
       case STATUS_LINE_BEGIN:
       case STATUS_PROTOCOL_BEGIN:
         if (*i != 'H') {
-          onProtocolError(HttpStatus::BadRequest);
+          onProtocolError();
           state_ = PROTOCOL_ERROR;
         } else {
           state_ = STATUS_PROTOCOL_T1;
@@ -478,7 +478,7 @@ std::size_t Parser::parseFragment(const BufferRef& chunk) {
         break;
       case STATUS_PROTOCOL_T1:
         if (*i != 'T') {
-          onProtocolError(HttpStatus::BadRequest);
+          onProtocolError();
           state_ = PROTOCOL_ERROR;
         } else {
           state_ = STATUS_PROTOCOL_T2;
@@ -487,7 +487,7 @@ std::size_t Parser::parseFragment(const BufferRef& chunk) {
         break;
       case STATUS_PROTOCOL_T2:
         if (*i != 'T') {
-          onProtocolError(HttpStatus::BadRequest);
+          onProtocolError();
           state_ = PROTOCOL_ERROR;
         } else {
           state_ = STATUS_PROTOCOL_P;
@@ -496,7 +496,7 @@ std::size_t Parser::parseFragment(const BufferRef& chunk) {
         break;
       case STATUS_PROTOCOL_P:
         if (*i != 'P') {
-          onProtocolError(HttpStatus::BadRequest);
+          onProtocolError();
           state_ = PROTOCOL_ERROR;
         } else {
           state_ = STATUS_PROTOCOL_SLASH;
@@ -505,7 +505,7 @@ std::size_t Parser::parseFragment(const BufferRef& chunk) {
         break;
       case STATUS_PROTOCOL_SLASH:
         if (*i != '/') {
-          onProtocolError(HttpStatus::BadRequest);
+          onProtocolError();
           state_ = PROTOCOL_ERROR;
         } else {
           state_ = STATUS_PROTOCOL_VERSION_MAJOR;
@@ -517,7 +517,7 @@ std::size_t Parser::parseFragment(const BufferRef& chunk) {
           state_ = STATUS_PROTOCOL_VERSION_MINOR;
           nextChar();
         } else if (!std::isdigit(*i)) {
-          onProtocolError(HttpStatus::BadRequest);
+          onProtocolError();
           state_ = PROTOCOL_ERROR;
         } else {
           versionMajor_ = versionMajor_ * 10 + *i - '0';
@@ -529,7 +529,7 @@ std::size_t Parser::parseFragment(const BufferRef& chunk) {
           state_ = STATUS_CODE_BEGIN;
           nextChar();
         } else if (!std::isdigit(*i)) {
-          onProtocolError(HttpStatus::BadRequest);
+          onProtocolError();
           state_ = PROTOCOL_ERROR;
         } else {
           versionMinor_ = versionMinor_ * 10 + *i - '0';
@@ -538,7 +538,7 @@ std::size_t Parser::parseFragment(const BufferRef& chunk) {
         break;
       case STATUS_CODE_BEGIN:
         if (!std::isdigit(*i)) {
-          onProtocolError(HttpStatus::BadRequest);
+          onProtocolError();
           state_ = PROTOCOL_ERROR;
           break;
         }
@@ -555,7 +555,7 @@ std::size_t Parser::parseFragment(const BufferRef& chunk) {
           state_ = STATUS_MESSAGE_LF;
           nextChar();
         } else {
-          onProtocolError(HttpStatus::BadRequest);
+          onProtocolError();
           state_ = PROTOCOL_ERROR;
         }
         break;
@@ -565,7 +565,7 @@ std::size_t Parser::parseFragment(const BufferRef& chunk) {
           message_ = chunk.ref(*nparsed - initialOutOffset, 1);
           nextChar();
         } else {
-          onProtocolError(HttpStatus::BadRequest);
+          onProtocolError();
           state_ = PROTOCOL_ERROR;
         }
         break;
@@ -577,7 +577,7 @@ std::size_t Parser::parseFragment(const BufferRef& chunk) {
           state_ = STATUS_MESSAGE_LF;
           nextChar();
         } else {
-          onProtocolError(HttpStatus::BadRequest);
+          onProtocolError();
           state_ = PROTOCOL_ERROR;
         }
         break;
@@ -590,7 +590,7 @@ std::size_t Parser::parseFragment(const BufferRef& chunk) {
           // versionMajor_, versionMinor_, code_, message_);
           onMessageBegin(versionMajor_, versionMinor_, code_, message_);
         } else {
-          onProtocolError(HttpStatus::BadRequest);
+          onProtocolError();
           state_ = PROTOCOL_ERROR;
         }
         break;
@@ -604,7 +604,7 @@ std::size_t Parser::parseFragment(const BufferRef& chunk) {
           nextChar();
         }
         else {
-          onProtocolError(HttpStatus::BadRequest);
+          onProtocolError();
           state_ = PROTOCOL_ERROR;
         }
         break;
@@ -624,7 +624,7 @@ std::size_t Parser::parseFragment(const BufferRef& chunk) {
           lwsNull_ = PROTOCOL_ERROR;
           nextChar();
         } else {
-          onProtocolError(HttpStatus::BadRequest);
+          onProtocolError();
           state_ = PROTOCOL_ERROR;
         }
         break;
@@ -635,7 +635,7 @@ std::size_t Parser::parseFragment(const BufferRef& chunk) {
           lwsNull_ = HEADER_VALUE_END;
           nextChar();
         } else {
-          onProtocolError(HttpStatus::BadRequest);
+          onProtocolError();
           state_ = PROTOCOL_ERROR;
         }
         break;
@@ -649,7 +649,7 @@ std::size_t Parser::parseFragment(const BufferRef& chunk) {
         } else if (std::isprint(*i)) {
           state_ = lwsNext_;
         } else {
-          onProtocolError(HttpStatus::BadRequest);
+          onProtocolError();
           state_ = PROTOCOL_ERROR;
         }
         break;
@@ -658,7 +658,7 @@ std::size_t Parser::parseFragment(const BufferRef& chunk) {
           state_ = LWS_SP_HT_BEGIN;
           nextChar();
         } else {
-          onProtocolError(HttpStatus::BadRequest);
+          onProtocolError();
           state_ = PROTOCOL_ERROR;
         }
         break;
@@ -671,7 +671,7 @@ std::size_t Parser::parseFragment(const BufferRef& chunk) {
         } else {
           // only (CF LF) parsed so far and no 1*(SP | HT) found.
           if (lwsNull_ == PROTOCOL_ERROR) {
-            onProtocolError(HttpStatus::BadRequest);
+            onProtocolError();
           }
           state_ = lwsNull_;
           // XXX no nparsed/i-update
@@ -695,7 +695,7 @@ std::size_t Parser::parseFragment(const BufferRef& chunk) {
           state_ = HEADER_VALUE_LF;
           nextChar();
         } else {
-          onProtocolError(HttpStatus::BadRequest);
+          onProtocolError();
           state_ = PROTOCOL_ERROR;
         }
         break;
@@ -710,7 +710,7 @@ std::size_t Parser::parseFragment(const BufferRef& chunk) {
           value_.shr();
           nextChar();
         } else {
-          onProtocolError(HttpStatus::BadRequest);
+          onProtocolError();
           state_ = PROTOCOL_ERROR;
         }
         break;
@@ -719,7 +719,7 @@ std::size_t Parser::parseFragment(const BufferRef& chunk) {
           state_ = HEADER_VALUE_END;
           nextChar();
         } else {
-          onProtocolError(HttpStatus::BadRequest);
+          onProtocolError();
           state_ = PROTOCOL_ERROR;
         }
         break;
@@ -769,7 +769,7 @@ std::size_t Parser::parseFragment(const BufferRef& chunk) {
             goto done;
           }
         } else {
-          onProtocolError(HttpStatus::BadRequest);
+          onProtocolError();
           state_ = PROTOCOL_ERROR;
         }
         break;
@@ -816,7 +816,7 @@ std::size_t Parser::parseFragment(const BufferRef& chunk) {
       }
       case CONTENT_CHUNK_SIZE_BEGIN:
         if (!std::isxdigit(*i)) {
-          onProtocolError(HttpStatus::BadRequest);
+          onProtocolError();
           state_ = PROTOCOL_ERROR;
           break;
         }
@@ -837,13 +837,13 @@ std::size_t Parser::parseFragment(const BufferRef& chunk) {
           contentLength_ = contentLength_ * 16 + 10 + *i - 'A';
           nextChar();
         } else {
-          onProtocolError(HttpStatus::BadRequest);
+          onProtocolError();
           state_ = PROTOCOL_ERROR;
         }
         break;
       case CONTENT_CHUNK_LF1:
         if (*i != LF) {
-          onProtocolError(HttpStatus::BadRequest);
+          onProtocolError();
           state_ = PROTOCOL_ERROR;
         } else {
           // TRACE("content_length: $0", contentLength_);
@@ -868,13 +868,13 @@ std::size_t Parser::parseFragment(const BufferRef& chunk) {
           state_ = CONTENT_CHUNK_LF2;
           nextChar();
         } else {
-          onProtocolError(HttpStatus::BadRequest);
+          onProtocolError();
           state_ = PROTOCOL_ERROR;
         }
         break;
       case CONTENT_CHUNK_LF2:
         if (*i != LF) {
-          onProtocolError(HttpStatus::BadRequest);
+          onProtocolError();
           state_ = PROTOCOL_ERROR;
         } else {
           state_ = CONTENT_CHUNK_SIZE;
@@ -883,7 +883,7 @@ std::size_t Parser::parseFragment(const BufferRef& chunk) {
         break;
       case CONTENT_CHUNK_CR3:
         if (*i != CR) {
-          onProtocolError(HttpStatus::BadRequest);
+          onProtocolError();
           state_ = PROTOCOL_ERROR;
         } else {
           state_ = CONTENT_CHUNK_LF3;
@@ -892,7 +892,7 @@ std::size_t Parser::parseFragment(const BufferRef& chunk) {
         break;
       case CONTENT_CHUNK_LF3:
         if (*i != LF) {
-          onProtocolError(HttpStatus::BadRequest);
+          onProtocolError();
           state_ = PROTOCOL_ERROR;
         } else {
           nextChar();
@@ -1058,9 +1058,9 @@ void Parser::onMessageEnd() {
     listener_->onMessageEnd();
 }
 
-void Parser::onProtocolError(HttpStatus code, const std::string& message) {
+void Parser::onProtocolError() {
   if (listener_) {
-    listener_->onProtocolError(code, message);
+    listener_->onError(std::make_error_code(HttpStatus::BadRequest));
   }
 }
 

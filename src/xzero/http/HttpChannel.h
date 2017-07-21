@@ -143,7 +143,7 @@ class XZERO_HTTP_API HttpChannel : public HttpListener {
   void onMessageContent(const BufferRef& chunk) override;
   void onMessageContent(FileView&& chunk) override;
   void onMessageEnd() override;
-  void onProtocolError(HttpStatus code, const std::string& message) override;
+  void onError(std::error_code ec) override;
 
   /**
    * Commits response headers.

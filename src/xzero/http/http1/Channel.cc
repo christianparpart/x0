@@ -198,8 +198,8 @@ void Channel::h2cUpgrade(const Http2Settings& settings,
       std::move(body));
 }
 
-void Channel::onProtocolError(HttpStatus code, const std::string& message) {
-  TRACE("Protocol Error: $0 $1", code, message);
+void Channel::onError(std::error_code ec) {
+  TRACE("Protocol Error: $0", ec);
 
   request_->setBytesReceived(bytesReceived());
 
@@ -211,7 +211,11 @@ void Channel::onProtocolError(HttpStatus code, const std::string& message) {
     else
       response_->setVersion(HttpVersion::VERSION_0_9);
 
-    response_->sendError(code, message);
+    if (ec.category() == HttpStatusCategory::get()) {
+      response_->sendError(static_cast<HttpStatus>(ec.value()));
+    } else {
+      response_->sendError(HttpStatus::InternalServerError);
+    }
   } else {
     transport_->abort();
   }

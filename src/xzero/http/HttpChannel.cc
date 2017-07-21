@@ -339,9 +339,13 @@ void HttpChannel::onMessageEnd() {
   request_->ready();
 }
 
-void HttpChannel::onProtocolError(HttpStatus code, const std::string& message) {
+void HttpChannel::onError(std::error_code ec) {
   TRACE("onProtocolError()");
-  response_->sendError(code, message);
+  if (ec.category() == HttpStatusCategory::get()) {
+    response_->sendError(static_cast<HttpStatus>(ec.value()));
+  } else {
+    response_->sendError(HttpStatus::InternalServerError);
+  }
 }
 
 void HttpChannel::completed() {

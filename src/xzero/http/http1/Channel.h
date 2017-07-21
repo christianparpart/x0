@@ -60,7 +60,7 @@ class Channel : public HttpChannel {
                       HttpVersion version) override;
   void onMessageHeader(const BufferRef& name, const BufferRef& value) override;
   void onMessageHeaderEnd() override;
-  void onProtocolError(HttpStatus code, const std::string& message) override;
+  void onError(std::error_code ec) override;
 
   typedef std::vector<std::pair<http2::SettingParameter, unsigned long>>
       Http2Settings;

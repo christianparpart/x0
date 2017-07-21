@@ -172,7 +172,7 @@ class XZERO_HTTP_API Parser {
   void onMessageHeaderEnd();
   void onMessageContent(const BufferRef& chunk);
   void onMessageEnd();
-  void onProtocolError(HttpStatus code, const std::string& message = "");
+  void onProtocolError();
 
  private:
   // lexer constants

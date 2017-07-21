@@ -11,6 +11,7 @@
 #include <xzero/Buffer.h>
 #include <xzero/http/HttpVersion.h>
 #include <xzero/http/HttpStatus.h>
+#include <system_error>
 #include <memory>
 
 namespace xzero {
@@ -95,12 +96,9 @@ class XZERO_HTTP_API HttpListener {
   virtual void onMessageEnd() = 0;
 
   /**
-   * HTTP message transport protocol error.
-   *
-   * @param code the HTTP response status code the protocol error would generate.
-   * @param message human readable text giving the reason.
+   * HTTP message protocol/transport error.
    */
-  virtual void onProtocolError(HttpStatus code, const std::string& message) = 0;
+  virtual void onError(std::error_code ec) = 0;
 };
 
 }  // namespace http
