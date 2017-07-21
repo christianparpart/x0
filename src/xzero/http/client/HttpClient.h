@@ -52,41 +52,36 @@ class HttpTransport;
  */
 class HttpClient : public HttpListener {
  public:
-  explicit HttpClient(Executor* executor);
-  HttpClient(Executor* executor, size_t responseBodyBufferSize);
+  HttpClient(Executor* executor,
+             const InetAddress& upstream,
+             Duration connectTimeout,
+             Duration writeTimeout,
+             Duration readTimeout);
+
+  HttpClient(Executor* executor,
+             const InetAddress& upstream);
+
   HttpClient(HttpClient&& other);
-  ~HttpClient();
 
-  // request builder
-  const HttpRequestInfo& requestInfo() const noexcept;
-  void setRequest(const HttpRequestInfo& requestInfo, const BufferRef& requestBody);
-  Future<HttpClient*> sendAsync(InetAddress& addr, Duration connectTimeout,
-                                Duration readTimeout, Duration writeTimeout);
-  void send(RefPtr<EndPoint> ep);
+  using Request = HttpRequest;
+  using ResponseListener = HttpListener;
+  class Response;
 
-  // response message accessor
-  const HttpResponseInfo& responseInfo() const noexcept;
-  const HugeBuffer& responseBody() const { return responseBody_; }
-  HugeBuffer&& responseBody() { return std::move(responseBody_); }
+  void send(const Request& request,
+            std::function<void(Response&&)> onSuccess,
+            std::function<void(std::error_code)> onFailure);
 
-  // XXX API idea
-  static void send(
-      RefPtr<EndPoint> transport,
-      const HttpRequest& request,
-      std::function<void(HttpResponseInfo&&, HugeBuffer&&)> success,
-      std::function<void(const std::error_code& ec)> error);
+  Future<Response> send(const Request& request);
 
   /**
    * Sends given @p request to @p transport and feeds the response to the
    * callers @p responseListener.
    *
-   * @param transport
    * @param request
    * @param responseListener
    */
-  static void send(RefPtr<EndPoint> transport,
-                   const HttpRequest& request,
-                   HttpListener* responseListener);
+  void send(const Request& request,
+            HttpListener* responseListener);
 
  private:
   // HttpListener overrides
@@ -114,6 +109,18 @@ class HttpClient : public HttpListener {
   std::unique_ptr<Promise<HttpClient*>> promise_;
 };
 
+class HttpClient::Response : public HttpResponseInfo {
+ public:
+  Response();
+  Response(Response&&) = default;
+  Response(const Response&) = default;
+
+  HugeBuffer& content() { return content_; }
+  const HugeBuffer& content() const { return content_; }
+
+ private:
+  HugeBuffer content_;
+};
 inline const HttpRequestInfo& HttpClient::requestInfo() const noexcept {
   return requestInfo_;
 }

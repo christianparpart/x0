@@ -1,3 +1,13 @@
+## HttpClient Requirements
+
+- streaming request
+- streaming response
+- parallel request processing
+  - http1: pipelined
+  - http2: multiplexed
+  - fastcgi: multiplexed
+- API for blocking request/response challenge
+
 ## HttpClient API
 
 - [ ] Unit Tests

@@ -229,9 +229,8 @@ void Http1Connection::onMessageEnd() {
   channel_->onMessageEnd();
 }
 
-void Http1Connection::onProtocolError(HttpStatus code,
-                                      const std::string& message) {
-  channel_->onProtocolError(code, message);
+void Http1Connection::onError(std::error_code ec) {
+  channel_->onError(ec);
 }
 // }}}
 
