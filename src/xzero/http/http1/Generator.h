@@ -9,13 +9,14 @@
 
 #include <xzero/http/Api.h>
 #include <xzero/http/HeaderFieldList.h>
-#include <xzero/io/FileView.h>
 #include <xzero/Buffer.h>
 #include <memory>
 
 namespace xzero {
 
 class EndPointWriter;
+class HugeBuffer;
+class FileView;
 
 namespace http {
 
@@ -54,6 +55,7 @@ class XZERO_HTTP_API Generator {
   void generateRequest(const HttpRequestInfo& info, const BufferRef& chunk);
   void generateRequest(const HttpRequestInfo& info, Buffer&& chunk);
   void generateRequest(const HttpRequestInfo& info, FileView&& chunk);
+  void generateRequest(const HttpRequestInfo& info, HugeBuffer&& chunk);
   void generateRequest(const HttpRequestInfo& info);
 
   /**
@@ -65,6 +67,7 @@ class XZERO_HTTP_API Generator {
   void generateResponse(const HttpResponseInfo& info, const BufferRef& chunk);
   void generateResponse(const HttpResponseInfo& info, Buffer&& chunk);
   void generateResponse(const HttpResponseInfo& info, FileView&& chunk);
+  void generateResponse(const HttpResponseInfo& info, HugeBuffer&& chunk);
 
   /**
    * Generates an HTTP message body chunk.
@@ -86,6 +89,13 @@ class XZERO_HTTP_API Generator {
    * @param chunk HTTP message body chunk, represented as a file.
    */
   void generateBody(FileView&& chunk);
+
+  /**
+   * Generates an HTTP message body chunk.
+   *
+   * @param chunk HTTP message body chunk, represented as a HugeBuffer.
+   */
+  void generateBody(HugeBuffer&& chunk);
 
   /**
    * Generates possibly pending bytes & trailers to complete the HTTP message.

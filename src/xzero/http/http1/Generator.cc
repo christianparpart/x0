@@ -12,6 +12,7 @@
 #include <xzero/http/HttpStatus.h>
 #include <xzero/net/EndPointWriter.h>
 #include <xzero/io/FileView.h>
+#include <xzero/HugeBuffer.h>
 #include <xzero/RuntimeError.h>
 #include <xzero/logging.h>
 #include <xzero/sysconfig.h>
@@ -69,6 +70,14 @@ void Generator::generateRequest(const HttpRequestInfo& info,
   generateBody(std::move(chunk));
 }
 
+void Generator::generateRequest(const HttpRequestInfo& info,
+                                HugeBuffer&& chunk) {
+  generateRequestLine(info);
+  generateHeaders(info);
+  flushBuffer();
+  generateBody(std::move(chunk));
+}
+
 void Generator::generateRequest(const HttpRequestInfo& info) {
   generateRequestLine(info);
   generateHeaders(info);
@@ -91,6 +100,12 @@ void Generator::generateResponse(const HttpResponseInfo& info,
 
 void Generator::generateResponse(const HttpResponseInfo& info,
                                      FileView&& chunk) {
+  generateResponseInfo(info);
+  generateBody(std::move(chunk));
+}
+
+void Generator::generateResponse(const HttpResponseInfo& info,
+                                 HugeBuffer&& chunk) {
   generateResponseInfo(info);
   generateBody(std::move(chunk));
 }
@@ -189,6 +204,14 @@ void Generator::generateBody(FileView&& chunk) {
     } else {
       RAISE(RuntimeError, "HTTP body chunk exceeds content length.");
     }
+  }
+}
+
+void Generator::generateBody(HugeBuffer&& chunk) {
+  if (chunk.isBuffered()) {
+    generateBody(std::move(chunk.getBuffer()));
+  } else {
+    generateBody(std::move(chunk.getFileView()));
   }
 }
 
