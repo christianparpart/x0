@@ -122,6 +122,14 @@ BufferRef HttpRequest::getContentBuffer() {
   return content_.getBuffer();
 }
 
+HugeBuffer& HttpRequest::getContent() {
+  return content_;
+}
+
+const HugeBuffer& HttpRequest::getContent() const {
+  return content_;
+}
+
 }  // namespace http
 
 template<>

@@ -70,6 +70,8 @@ class XZERO_HTTP_API HttpRequest : public HttpRequestInfo {
 
   std::unique_ptr<InputStream> getContentStream();
   BufferRef getContentBuffer();
+  const HugeBuffer& getContent() const;
+  HugeBuffer& getContent();
 
  private:
   Option<InetAddress> remoteAddress_;
