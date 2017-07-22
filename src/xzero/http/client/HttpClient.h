@@ -50,32 +50,29 @@ class HttpTransport;
  * Abstracts away the underlying transport protocol, such as
  * HTTP/1, HTTP/2, HTTPS, FastCGI.
  */
-class HttpClient : public HttpListener {
+class HttpClient {
  public:
-  HttpClient(Executor* executor,
-             const InetAddress& upstream,
-             Duration connectTimeout,
-             Duration writeTimeout,
-             Duration readTimeout);
-
-  HttpClient(Executor* executor,
-             const InetAddress& upstream);
-
-  HttpClient(HttpClient&& other);
-
   using Request = HttpRequest;
   using ResponseListener = HttpListener;
   class Response;
 
-  void send(const Request& request,
-            std::function<void(Response&&)> onSuccess,
-            std::function<void(std::error_code)> onFailure);
+  HttpClient(Executor* executor,
+             RefPtr<EndPoint> upstream);
 
-  Future<Response> send(const Request& request);
+  HttpClient(Executor* executor,
+             const InetAddress& upstream);
+
+  HttpClient(Executor* executor,
+             const InetAddress& upstream,
+             Duration connectTimeout,
+             Duration readTimeout,
+             Duration writeTimeout);
+
+  HttpClient(HttpClient&& other);
 
   /**
-   * Sends given @p request to @p transport and feeds the response to the
-   * callers @p responseListener.
+   * Sends given @p request and feeds the response to the
+   * callers @p responseListener in streaming events as they occur.
    *
    * @param request
    * @param responseListener
@@ -83,35 +80,34 @@ class HttpClient : public HttpListener {
   void send(const Request& request,
             HttpListener* responseListener);
 
+  /**
+   * Sends given @p request and invokes @p onSuccess once the full response
+   * received or @p onFailure upon communication any failure.
+   */
+  void send(const Request& request,
+            std::function<void(Response&&)> onSuccess,
+            std::function<void(std::error_code)> onFailure);
+
+  /**
+   * Sends given @p request and returns a Future<Response>.
+   */
+  Future<Response> send(const Request& request);
+
  private:
-  // HttpListener overrides
-  void onMessageBegin(HttpVersion version, HttpStatus code,
-                      const BufferRef& text) override;
-  void onMessageHeader(const BufferRef& name, const BufferRef& value) override;
-  void onMessageHeaderEnd() override;
-  void onMessageContent(const BufferRef& chunk) override;
-  void onMessageContent(FileView&& chunk) override;
-  void onMessageEnd() override;
-  void onProtocolError(HttpStatus code, const std::string& message) override;
+  void onConnected(int fd, int family, Duration rt, Duration wt);
+  void setupConnection();
+  HttpTransport* getChannel();
+
+  class ResponseBuilder;
 
  private:
   Executor* executor_;
-
   RefPtr<EndPoint> endpoint_;
-  HttpTransport* transport_;
-
-  HttpRequestInfo requestInfo_;
-  Buffer requestBody_;
-
-  HttpResponseInfo responseInfo_;
-  HugeBuffer responseBody_;
-
-  std::unique_ptr<Promise<HttpClient*>> promise_;
 };
 
 class HttpClient::Response : public HttpResponseInfo {
  public:
-  Response();
+  Response() = default;
   Response(Response&&) = default;
   Response(const Response&) = default;
 
@@ -121,9 +117,25 @@ class HttpClient::Response : public HttpResponseInfo {
  private:
   HugeBuffer content_;
 };
-inline const HttpRequestInfo& HttpClient::requestInfo() const noexcept {
-  return requestInfo_;
-}
+
+class HttpClient::ResponseBuilder : public HttpListener {
+ public:
+  ResponseBuilder(std::function<void(Response&&)> s, std::function<void(std::error_code)> e);
+
+  void onMessageBegin(HttpVersion version, HttpStatus code, const BufferRef& text) override;
+  void onMessageBegin() override;
+  void onMessageHeader(const BufferRef& name, const BufferRef& value) override;
+  void onMessageHeaderEnd() override;
+  void onMessageContent(const BufferRef& chunk) override;
+  void onMessageContent(FileView&& chunk) override;
+  void onMessageEnd() override;
+  void onError(std::error_code ec) override;
+
+ private:
+  std::function<void(Response&&)> success_;
+  std::function<void(std::error_code)> failure_;
+  Response response_;
+};
 
 } // namespace client
 } // namespace http

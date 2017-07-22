@@ -10,6 +10,7 @@
 #include <xzero/http/HttpRequestInfo.h>
 #include <xzero/net/EndPoint.h>
 #include <xzero/logging.h>
+#include <xzero/HugeBuffer.h>
 #include <xzero/Buffer.h>
 
 namespace xzero {
@@ -81,6 +82,15 @@ void Http1Connection::send(const HttpRequestInfo& requestInfo,
   wantFlush();
 }
 
+void Http1Connection::send(const HttpRequestInfo& requestInfo,
+                           HugeBuffer&& chunk,
+                           CompletionHandler onComplete) {
+  setCompleter(onComplete);
+  expectsBody_ = requestInfo.method() != HttpMethod::HEAD;
+  generator_.generateRequest(requestInfo, std::move(chunk));
+  wantFlush();
+}
+
 void Http1Connection::send(const BufferRef& chunk, CompletionHandler onComplete) {
   setCompleter(onComplete);
   generator_.generateBody(std::move(chunk));
@@ -97,6 +107,14 @@ void Http1Connection::send(FileView&& chunk, CompletionHandler onComplete) {
   setCompleter(onComplete_);
   generator_.generateBody(std::move(chunk));
   wantFlush();
+}
+
+void Http1Connection::send(HugeBuffer&& chunk, CompletionHandler onComplete) {
+  if (chunk.isBuffered()) {
+    send(std::move(chunk.getBuffer()), onComplete);
+  } else {
+    send(std::move(chunk.getFileView()), onComplete);
+  }
 }
 
 void Http1Connection::completed() {

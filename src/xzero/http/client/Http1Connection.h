@@ -51,9 +51,13 @@ public:
   void send(const HttpRequestInfo& requestInfo,
             FileView&& chunk,
             CompletionHandler onComplete) override;
+  void send(const HttpRequestInfo& requestInfo,
+            HugeBuffer&& chunk,
+            CompletionHandler onComplete) override;
   void send(const BufferRef& chunk, CompletionHandler onComplete) override;
   void send(Buffer&& chunk, CompletionHandler onComplete) override;
   void send(FileView&& chunk, CompletionHandler onComplete) override;
+  void send(HugeBuffer&& chunk, CompletionHandler onComplete) override;
   void completed() override;
   void abort() override;
 
