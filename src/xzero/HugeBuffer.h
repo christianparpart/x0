@@ -43,7 +43,7 @@ class HugeBuffer {
    *
    * @param inputBuffer The buffer that is to be moved into this HugeBuffer.
    */
-  explicit HugeBuffer(Buffer&& inputBuffer);
+  HugeBuffer(Buffer&& inputBuffer);
 
   /**
    * Initializes this instance with the system default page-size as
