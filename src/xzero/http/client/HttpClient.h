@@ -60,22 +60,25 @@ class HttpClient {
              RefPtr<EndPoint> upstream);
 
   HttpClient(Executor* executor,
-             const InetAddress& upstream);
-
-  HttpClient(Executor* executor,
              const InetAddress& upstream,
              Duration connectTimeout,
              Duration readTimeout,
              Duration writeTimeout);
 
+  HttpClient(Executor* executor,
+             const InetAddress& upstream);
+
   HttpClient(HttpClient&& other);
 
   /**
-   * Sends given @p request and feeds the response to the
-   * callers @p responseListener in streaming events as they occur.
+   * Sends given @p request and streams back the response 
+   * to @p responseListener.
    *
-   * @param request
-   * @param responseListener
+   * The response is considered complete if either @p responseListener's
+   * onError or onMessageEnd has been invoked.
+   *
+   * @param request The request to send.
+   * @param responseListener The listener to stream response events to.
    */
   void send(const Request& request,
             HttpListener* responseListener);
@@ -93,8 +96,12 @@ class HttpClient {
    */
   Future<Response> send(const Request& request);
 
+  /**
+   * Requests the resource @p url with custom headers.
+   */
+  Future<Response> send(const Uri& url, const HeaderFieldList& headers);
+
  private:
-  void onConnected(int fd, int family, Duration rt, Duration wt);
   void setupConnection();
   HttpTransport* getChannel();
 

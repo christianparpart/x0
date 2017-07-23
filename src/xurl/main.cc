@@ -6,7 +6,7 @@
 // the License at: http://opensource.org/licenses/MIT
 
 #include <xzero/http/client/HttpClient.h>
-#include <xzero/http/HttpRequestInfo.h>
+#include <xzero/http/HttpRequest.h>
 #include <xzero/http/HeaderFieldList.h>
 #include <xzero/net/InetEndPoint.h>
 #include <xzero/executor/NativeScheduler.h>
@@ -27,6 +27,7 @@
 #define PACKAGE_HOMEPAGE_URL "https://xzero.io"
 
 using namespace xzero;
+using namespace xzero::http;
 using namespace xzero::http::client;
 
 using xzero::http::HttpRequestInfo;
@@ -86,7 +87,6 @@ class XUrl {
   Duration readTimeout_;
   Duration writeTimeout_;
   http::HeaderFieldList requestHeaders_;
-  Buffer body_;
 };
 
 XUrl::XUrl()
@@ -192,24 +192,28 @@ void XUrl::query(const Uri& uri) {
 }
 
 void XUrl::connected(RefPtr<EndPoint> ep, const Uri& uri) {
-  HttpClient http(&scheduler_);
+  HttpClient httpClient(&scheduler_, ep);
+  const bool secure = false; // HTTP ?
 
   std::string method = flags_.getString("method");
   if (flags_.getBool("head")) {
     method = "HEAD";
   }
 
+  HugeBuffer body;
   if (!flags_.getString("upload-file").empty()) {
     method = "PUT";
-    body_ = FileUtil::read(flags_.getString("upload-file"));
+    body = FileUtil::read(flags_.getString("upload-file"));
   }
 
   requestHeaders_.overwrite("Host", uri.hostAndPort());
-  HttpRequestInfo req(HttpVersion::VERSION_1_1,
-                      method,
-                      uri.pathAndQuery(),
-                      body_.size(),
-                      requestHeaders_);
+
+  HttpRequest req(HttpVersion::VERSION_1_1,
+                  method,
+                  uri.pathAndQuery(),
+                  requestHeaders_,
+                  secure,
+                  std::move(body));
 
   logInfo("xurl", "$0 $1 HTTP/$2",
           req.unparsedMethod(), req.unparsedUri(), req.version());
@@ -218,21 +222,22 @@ void XUrl::connected(RefPtr<EndPoint> ep, const Uri& uri) {
     logInfo("xurl", "< $0: $1", field.name(), field.value());
   }
 
-  http.setRequest(req, body_);
-  http.send(ep);
+  Future<HttpClient::Response> f = httpClient.send(req);
 
   scheduler_.runLoop();
 
-  logInfo("xurl", "HTTP/$0 $1 $2", http.responseInfo().version(),
-                                   (int) http.responseInfo().status(),
-                                   http.responseInfo().reason());
+  f.onSuccess([](const HttpClient::Response& response) {
+    logInfo("xurl", "HTTP/$0 $1 $2", response.version(),
+                                     (int) response.status(),
+                                     response.reason());
 
-  for (const HeaderField& field: http.responseInfo().headers()) {
-    logInfo("xurl", "> $0: $1", field.name(), field.value());
-  }
+    for (const HeaderField& field: response.headers()) {
+      logInfo("xurl", "> $0: $1", field.name(), field.value());
+    }
 
-  const auto& content = http.responseBody().getBuffer();
-  write(STDOUT_FILENO, content.data(), content.size());
+    const BufferRef& content = response.content().getBuffer();
+    write(STDOUT_FILENO, content.data(), content.size());
+  });
 }
 
 void XUrl::connectFailure(const std::error_code& ec) {

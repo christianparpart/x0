@@ -115,10 +115,7 @@ void HttpClusterMember::release() {
 }
 
 bool HttpClusterMember::process(HttpClusterRequest* cr) {
-  Future<HttpClient*> f = cr->client.sendAsync(inetAddress_,
-                                               connectTimeout_,
-                                               readTimeout_,
-                                               writeTimeout_);
+  Future<HttpClient::Response&&> f = cr->client.send(cr->requestInfo);
 
   f.onFailure(std::bind(&HttpClusterMember::onFailure, this,
                         cr, std::placeholders::_1));

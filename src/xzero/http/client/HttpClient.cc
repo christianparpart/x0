@@ -46,29 +46,11 @@ template<typename T> static bool isConnectionHeader(const T& name) { // {{{
   return false;
 } // }}}
 
-static void removeConnectionHeaders(HeaderFieldList& headers) { // {{{
-  // filter out disruptive connection-level headers
-  headers.remove("Connection");
-  headers.remove("Content-Length");
-  headers.remove("Expect");
-  headers.remove("Trailer");
-  headers.remove("Transfer-Encoding");
-  headers.remove("Upgrade");
-} // }}}
-
 HttpClient::HttpClient(Executor* executor,
                        RefPtr<EndPoint> upstream)
     : executor_(executor),
       endpoint_(upstream) {
   setupConnection();
-}
-
-HttpClient::HttpClient(Executor* executor, const InetAddress& upstream)
-    : HttpClient(executor,
-                 upstream,
-                 5_seconds,
-                 5_seconds,
-                 5_seconds) {
 }
 
 HttpClient::HttpClient(Executor* executor,
@@ -79,32 +61,32 @@ HttpClient::HttpClient(Executor* executor,
     : executor_(executor),
       endpoint_() {
   Future<int> f = InetUtil::connect(upstream, connectTimeout, executor);
-  f.onSuccess(std::bind(&HttpClient::onConnected, this,
-                        std::placeholders::_1,
-                        upstream.family(),
-                        readTimeout,
-                        writeTimeout));
-  f.onFailure([upstream](std::error_code ec) {
-      logError("HttpClient", "Failed to connect to $0. $1", upstream, ec.message());
+
+  f.onSuccess([upstream, readTimeout, writeTimeout, this](int fd) {
+    endpoint_ = RefPtr<EndPoint>(new InetEndPoint(fd,
+                                                  upstream.family(),
+                                                  readTimeout,
+                                                  writeTimeout,
+                                                  executor_));
+    setupConnection();
   });
+
+  f.onFailure([upstream](std::error_code ec) {
+    logError("HttpClient", "Failed to connect to $0. $1", upstream, ec.message());
+  });
+}
+
+HttpClient::HttpClient(Executor* executor, const InetAddress& upstream)
+    : HttpClient(executor,
+                 upstream,
+                 5_seconds,
+                 5_seconds,
+                 5_seconds) {
 }
 
 HttpClient::HttpClient(HttpClient&& other)
     : executor_(other.executor_),
       endpoint_(std::move(other.endpoint_)) {
-}
-
-void HttpClient::onConnected(int fd, int family, Duration rt, Duration wt) {
-  endpoint_ = RefPtr<EndPoint>(new InetEndPoint(fd, family, rt, wt, executor_));
-  setupConnection();
-}
-
-void HttpClient::setupConnection() {
-  endpoint_->setConnection<Http1Connection>(this, endpoint_.get(), executor_);
-}
-
-HttpTransport* HttpClient::getChannel() {
-  return (HttpTransport*) (endpoint_->connection());
 }
 
 void HttpClient::send(const Request& request,
@@ -120,6 +102,15 @@ void HttpClient::send(const Request& request,
 void HttpClient::send(const Request& request,
             std::function<void(Response&&)> onSuccess,
             std::function<void(std::error_code)> onFailure) {
+  send(request, new ResponseBuilder(onSuccess, onFailure));
+}
+
+void HttpClient::setupConnection() {
+  endpoint_->setConnection<Http1Connection>(nullptr, endpoint_.get(), executor_);
+}
+
+HttpTransport* HttpClient::getChannel() {
+  return (HttpTransport*) (endpoint_->connection());
 }
 
 // ----------------------------------------------------------------------------
@@ -165,11 +156,13 @@ void HttpClient::ResponseBuilder::onMessageEnd() {
   TRACE("onMessageEnd()");
   response_.setContentLength(response_.content().size());
   success_(std::move(response_));
+  delete this;
 }
 
 void HttpClient::ResponseBuilder::onError(std::error_code ec) {
   logError("ResponseBuilder", "Error. $0; $1", ec.message());
   failure_(ec);
+  delete this;
 }
 
 } // namespace xzero::http::client

@@ -50,7 +50,7 @@ class HttpClusterRequest : public CustomData,
   void onMessageContent(const BufferRef& chunk) override;
   void onMessageContent(FileView&& chunk) override;
   void onMessageEnd() override;
-  void onProtocolError(HttpStatus code, const std::string& message) override;
+  void onError(std::error_code ec) override;
 
   void onFailure(HttpClusterRequest* cr, Status status);
 
@@ -58,6 +58,7 @@ class HttpClusterRequest : public CustomData,
   MonotonicTime ctime;
   HttpClient client;
   Executor* executor;
+  HttpRequestInfo requestInfo;
 
   // the bucket (node) this request is to be scheduled via
   TokenShaper<HttpClusterRequest>::Node* bucket;

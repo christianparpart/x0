@@ -161,12 +161,12 @@ void XzeroContext::sendErrorPage(xzero::http::HttpStatus status,
       }
       runner_->rewind();
       response_->setStatus(!overrideStatus ? status : overrideStatus);
-      requests_.emplace_front(new HttpRequest("GET",
+      requests_.emplace_front(new HttpRequest(request()->version(),
+                                              "GET",
                                               uri,
-                                              request()->version(),
-                                              request()->isSecure(),
                                               request()->headers(),
-                                              Buffer()));
+                                              request()->isSecure(),
+                                              {}));
     } else {
       logError("x0d", "Too many internal redirects.");
       sendSimpleStatusPage(HttpStatus::InternalServerError, "Too many internal redirects.");

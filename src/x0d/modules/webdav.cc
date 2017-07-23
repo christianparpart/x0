@@ -123,7 +123,7 @@ bool WebdavModule::webdav_put(XzeroContext* cx, Params& args) {
   if (!cx->verifyDirectoryDepth())
     return true;
 
-  BufferRef content = cx->request()->getContentBuffer();
+  BufferRef content = cx->request()->getContent().getBuffer();
 
   logDebug("webdav", "put filename: $0", cx->file()->path());
 

@@ -158,6 +158,16 @@ AC_ARG_ENABLE([xurl],
 AM_CONDITIONAL([ENABLE_XURL], [test x$enable_xurl = xyes])
 
 # ----------------------------------------------------------------------------
+# Conditional Features
+
+AC_ARG_ENABLE([proxy],
+              AS_HELP_STRING([--enable-proxy],
+                             [Enables proxy support]))
+AM_CONDITIONAL([ENABLE_PROXY], [test x$enable_proxy = xyes])
+AS_IF([test "x$enable_proxy" = xyes],
+      [AC_DEFINE([ENABLE_PROXY], [1], [Enables proxy support])])
+
+# ----------------------------------------------------------------------------
 # some more dependencies
 
 dnl OpenSSL

@@ -14,13 +14,12 @@
 #include <functional>
 #include <list>
 
-namespace xzero {
-namespace http {
+namespace xzero::http {
+  class HttpRequest;
+  class HttpResponse;
+}
 
-class HttpRequest;
-class HttpResponse;
-
-namespace client {
+namespace xzero::http::client {
 
 /**
  * Implements a reverse proxy to another internet HTTP server.
@@ -77,6 +76,4 @@ class HttpReverseProxy {
   std::list<HttpClient> endpoints_;
 };
 
-} // namespace client
-} // namespace http
-} // namespace xzero
+} // namespace xzero::http::client

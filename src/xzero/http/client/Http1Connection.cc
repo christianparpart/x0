@@ -47,47 +47,77 @@ void Http1Connection::setListener(HttpListener* channel) {
   channel_ = channel;
 }
 
+static void removeConnectionHeaders(HeaderFieldList& headers) { // {{{
+  // filter out disruptive connection-level headers
+  headers.remove("Connection");
+  headers.remove("Content-Length");
+  headers.remove("Expect");
+  headers.remove("Trailer");
+  headers.remove("Transfer-Encoding");
+  headers.remove("Upgrade");
+} // }}}
+
 void Http1Connection::send(const HttpRequestInfo& requestInfo,
                            CompletionHandler onComplete) {
+  HttpRequestInfo req(requestInfo);
+  removeConnectionHeaders(req.headers());
+
   setCompleter(onComplete);
-  expectsBody_ = requestInfo.method() != HttpMethod::HEAD;
-  generator_.generateRequest(requestInfo);
+  responseComplete_ = false;
+  expectsBody_ = req.method() != HttpMethod::HEAD;
+  generator_.generateRequest(req);
   wantFlush();
 }
 
 void Http1Connection::send(const HttpRequestInfo& requestInfo,
                            const BufferRef& chunk,
                            CompletionHandler onComplete) {
+  HttpRequestInfo req(requestInfo);
+  removeConnectionHeaders(req.headers());
+
   setCompleter(onComplete);
-  expectsBody_ = requestInfo.method() != HttpMethod::HEAD;
-  generator_.generateRequest(requestInfo, chunk);
+  responseComplete_ = false;
+  expectsBody_ = req.method() != HttpMethod::HEAD;
+  generator_.generateRequest(req, chunk);
   wantFlush();
 }
 
 void Http1Connection::send(const HttpRequestInfo& requestInfo,
                            Buffer&& chunk,
                            CompletionHandler onComplete) {
+  HttpRequestInfo req(requestInfo);
+  removeConnectionHeaders(req.headers());
+
   setCompleter(onComplete);
-  expectsBody_ = requestInfo.method() != HttpMethod::HEAD;
-  generator_.generateRequest(requestInfo, chunk);
+  responseComplete_ = false;
+  expectsBody_ = req.method() != HttpMethod::HEAD;
+  generator_.generateRequest(req, chunk);
   wantFlush();
 }
 
 void Http1Connection::send(const HttpRequestInfo& requestInfo,
                            FileView&& chunk,
                            CompletionHandler onComplete) {
+  HttpRequestInfo req(requestInfo);
+  removeConnectionHeaders(req.headers());
+
   setCompleter(onComplete);
-  expectsBody_ = requestInfo.method() != HttpMethod::HEAD;
-  generator_.generateRequest(requestInfo, std::move(chunk));
+  responseComplete_ = false;
+  expectsBody_ = req.method() != HttpMethod::HEAD;
+  generator_.generateRequest(req, std::move(chunk));
   wantFlush();
 }
 
 void Http1Connection::send(const HttpRequestInfo& requestInfo,
                            HugeBuffer&& chunk,
                            CompletionHandler onComplete) {
+  HttpRequestInfo req(requestInfo);
+  removeConnectionHeaders(req.headers());
+
   setCompleter(onComplete);
-  expectsBody_ = requestInfo.method() != HttpMethod::HEAD;
-  generator_.generateRequest(requestInfo, std::move(chunk));
+  responseComplete_ = false;
+  expectsBody_ = req.method() != HttpMethod::HEAD;
+  generator_.generateRequest(req, std::move(chunk));
   wantFlush();
 }
 
@@ -118,11 +148,11 @@ void Http1Connection::send(HugeBuffer&& chunk, CompletionHandler onComplete) {
 }
 
 void Http1Connection::completed() {
-  setCompleter(std::bind(&Http1Connection::onRequestComplete, this,
-                         std::placeholders::_1));
-
   if (!generator_.isChunked() && generator_.remainingContentLength() > 0)
     RAISE(IllegalStateError, "Invalid State. Request not fully written but completed() invoked.");
+
+  setCompleter(std::bind(&Http1Connection::onRequestComplete, this,
+                         std::placeholders::_1));
 
   //generator_.generateTrailer(channel_->requestInfo()->trailers());
   wantFlush();
@@ -130,8 +160,9 @@ void Http1Connection::completed() {
 
 void Http1Connection::onRequestComplete(bool success) {
   TRACE("onRequestComplete($0)", success ? "success" : "failed");
-  if (success)
+  if (success) {
     wantFill();
+  }
 }
 
 void Http1Connection::onResponseComplete(bool success) {
@@ -173,10 +204,10 @@ void Http1Connection::onFlushable() {
   const bool complete = writer_.flush(endpoint());
   TRACE("onFlushable: $0", complete ? "completed" : "needs-more-to-flush");
 
-  if (complete) {
-    wantFill();
-  } else {
+  if (!complete) {
     wantFlush();
+  } else {
+    notifySuccess();
   }
 }
 
@@ -204,20 +235,10 @@ void Http1Connection::invokeCompleter(bool success) {
 
 // {{{ HttpListener overrides
 void Http1Connection::onMessageBegin(HttpVersion version,
-                                     HttpStatus code,
+                                     HttpStatus status,
                                      const BufferRef& text) {
-  switch (code) {
-    case /*100*/ HttpStatus::ContinueRequest:
-    case /*101*/ HttpStatus::SwitchingProtocols:
-    case /*204*/ HttpStatus::NoContent:
-    case /*205*/ HttpStatus::ResetContent:
-    case /*304*/ HttpStatus::NotModified:
-      expectsBody_ = false;
-      break;
-    default:
-      break;
-  }
-  channel_->onMessageBegin(version, code, text);
+  expectsBody_ = !isContentForbidden(status);
+  channel_->onMessageBegin(version, status, text);
 }
 
 void Http1Connection::onMessageHeader(const BufferRef& name,
@@ -248,6 +269,7 @@ void Http1Connection::onMessageEnd() {
 }
 
 void Http1Connection::onError(std::error_code ec) {
+  TRACE("onError! $0", ec.message());
   channel_->onError(ec);
 }
 // }}}

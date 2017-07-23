@@ -32,12 +32,13 @@ namespace http {
 class XZERO_HTTP_API HttpRequest : public HttpRequestInfo {
  public:
   HttpRequest();
-  HttpRequest(const std::string& method, const std::string& path,
-              HttpVersion version, bool secure, const HeaderFieldList& headers,
-              Buffer&& content);
-  HttpRequest(const std::string& method, const std::string& path,
-              HttpVersion version, bool secure, const HeaderFieldList& headers,
+  HttpRequest(HttpVersion version,
+              const std::string& method,
+              const std::string& uri,
+              const HeaderFieldList& headers,
+              bool secure,
               HugeBuffer&& content);
+  HttpRequest(const HttpRequestInfo& info, HugeBuffer&& content);
 
   void setRemoteAddress(const Option<InetAddress>& addr);
   const Option<InetAddress>& remoteAddress() const;
@@ -62,16 +63,33 @@ class XZERO_HTTP_API HttpRequest : public HttpRequestInfo {
 
   void recycle();
 
-  // request body handling
+  // {{{ Asynchronous request body handler API
+  /**
+   * Discards the request body and invokes @p onReady once discarded.
+   */
   void discardContent(std::function<void()> onReady);
+
+  /**
+   * Consumes the request body and invokes @p onReady once fully available.
+   */
   void consumeContent(std::function<void()> onReady);
+
+  /**
+   * Adds a chunk to the request body, progressively populting it.
+   */
   void fillContent(const BufferRef& chunk);
+
+  /**
+   * Invoke if the request body has been fully populated.
+   */
   void ready();
 
-  std::unique_ptr<InputStream> getContentStream();
-  BufferRef getContentBuffer();
-  const HugeBuffer& getContent() const;
   HugeBuffer& getContent();
+  const HugeBuffer& getContent() const;
+
+  XZERO_DEPRECATED std::unique_ptr<InputStream> getContentStream();
+  XZERO_DEPRECATED BufferRef getContentBuffer();
+  // }}}
 
  private:
   Option<InetAddress> remoteAddress_;

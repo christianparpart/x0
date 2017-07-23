@@ -101,14 +101,7 @@ libXzero_a_SOURCES = \
 	src/xzero/http/HttpVersion.cc \
 	src/xzero/http/client/Http1Connection.cc \
 	src/xzero/http/client/HttpClient.cc \
-	src/xzero/http/client/HttpCluster.cc \
-	src/xzero/http/client/HttpClusterApiHandler.cc \
-	src/xzero/http/client/HttpClusterMember.cc \
-	src/xzero/http/client/HttpClusterRequest.cc \
-	src/xzero/http/client/HttpClusterScheduler.cc \
-	src/xzero/http/client/HttpReverseProxy.cc \
 	src/xzero/http/client/HttpTransport.cc \
-	src/xzero/http/client/HttpHealthMonitor.cc \
 	src/xzero/http/fastcgi/Connection.cc \
 	src/xzero/http/fastcgi/ConnectionFactory.cc \
 	src/xzero/http/fastcgi/Generator.cc \
@@ -214,12 +207,6 @@ libXzero_a_SOURCES = \
 	src/xzero/util/BinaryMessageWriter.cc \
 	src/xzero/util/SimpleRateLimit.cc
 
-install-data-hook:
-	for file in $(DESTDIR)/$(libXzerodir)/src/*; do \
-		mv -v $$file $(DESTDIR)/$(libXzerodir); \
-	done
-	rmdir $(DESTDIR)/$(libXzerodir)/src
-
 libXzerodir = $(includedir)
 nobase_libXzero_HEADERS = \
 	src/xzero/AnsiColor.h \
@@ -322,19 +309,8 @@ nobase_libXzero_HEADERS = \
 	src/xzero/http/HttpStatus.h \
 	src/xzero/http/HttpTransport.h \
 	src/xzero/http/HttpVersion.h \
-	src/xzero/http/client/ClientAbortAction.h \
 	src/xzero/http/client/Http1Connection.h \
-	src/xzero/http/client/HttpCache.h \
 	src/xzero/http/client/HttpClient.h \
-	src/xzero/http/client/HttpCluster.h \
-	src/xzero/http/client/HttpClusterApi.h \
-	src/xzero/http/client/HttpClusterApiHandler.h \
-	src/xzero/http/client/HttpClusterMember.h \
-	src/xzero/http/client/HttpClusterRequest.h \
-	src/xzero/http/client/HttpClusterScheduler.h \
-	src/xzero/http/client/HttpClusterSchedulerStatus.h \
-	src/xzero/http/client/HttpReverseProxy.h \
-	src/xzero/http/client/HttpHealthMonitor.h \
 	src/xzero/http/client/HttpTransport.h \
 	src/xzero/http/fastcgi/Connection.h \
 	src/xzero/http/fastcgi/ConnectionFactory.h \
@@ -479,6 +455,36 @@ libXzero_a_SOURCES += \
 nobase_libXzero_HEADERS += \
 	src/xzero/KQueueSignals.h
 endif
+
+if ENABLE_PROXY
+libXzero_a_SOURCES += \
+	src/xzero/http/proxy/HttpCluster.cc \
+	src/xzero/http/proxy/HttpClusterApiHandler.cc \
+	src/xzero/http/proxy/HttpClusterMember.cc \
+	src/xzero/http/proxy/HttpClusterRequest.cc \
+	src/xzero/http/proxy/HttpClusterScheduler.cc \
+	src/xzero/http/proxy/HttpReverseProxy.cc \
+	src/xzero/http/proxy/HttpHealthMonitor.cc
+
+nobase_libXzero_HEADERS += \
+	src/xzero/http/proxy/ClientAbortAction.h \
+	src/xzero/http/proxy/HttpCache.h \
+	src/xzero/http/proxy/HttpCluster.h \
+	src/xzero/http/proxy/HttpClusterApi.h \
+	src/xzero/http/proxy/HttpClusterApiHandler.h \
+	src/xzero/http/proxy/HttpClusterMember.h \
+	src/xzero/http/proxy/HttpClusterRequest.h \
+	src/xzero/http/proxy/HttpClusterScheduler.h \
+	src/xzero/http/proxy/HttpClusterSchedulerStatus.h \
+	src/xzero/http/proxy/HttpReverseProxy.h \
+	src/xzero/http/proxy/HttpHealthMonitor.h
+endif
+
+install-data-hook:
+	for file in $(DESTDIR)/$(libXzerodir)/src/*; do \
+		mv -v $$file $(DESTDIR)/$(libXzerodir); \
+	done
+	rmdir $(DESTDIR)/$(libXzerodir)/src
 
 ####### libXzeroFlow.a ########################################################
 
@@ -678,10 +684,14 @@ x0d_SOURCES = \
 	src/x0d/modules/core.cc \
 	src/x0d/modules/dirlisting.cc \
 	src/x0d/modules/empty_gif.cc \
-	src/x0d/modules/proxy.cc \
 	src/x0d/modules/userdir.cc \
 	src/x0d/modules/webdav.cc \
 	src/x0d/main.cc
+
+if ENABLE_PROXY
+x0d_SOURCES += \
+	src/x0d/modules/proxy.cc
+endif
 
 x0ddir = $(includedir)/x0d
 x0d_HEADERS = \

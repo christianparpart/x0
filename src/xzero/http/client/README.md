@@ -2,7 +2,7 @@
 
 - streaming request
 - streaming response
-- parallel request processing
+- concurrent request processing
   - http1: pipelined
   - http2: multiplexed
   - fastcgi: multiplexed

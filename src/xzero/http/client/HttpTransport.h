@@ -11,15 +11,16 @@
 #include <xzero/CompletionHandler.h>
 
 namespace xzero {
+  class FileView;
+  class HugeBuffer;
+}
 
-class FileView;
+namespace xzero::http {
+  class HttpRequestInfo;
+  class HttpListener;
+}
 
-namespace http {
-
-class HttpRequestInfo;
-class HttpListener;
-
-namespace client {
+namespace xzero::http::client {
 
 /**
  * HTTP client-side Transport Layer API
@@ -54,6 +55,4 @@ class HttpTransport {
   virtual void abort() = 0;
 };
 
-} // namespace client
-} // namespace http
-} // namespace xzero
+} // namespace xzero::http::client

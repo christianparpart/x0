@@ -19,7 +19,10 @@
 #include "modules/empty_gif.h"
 #include "modules/userdir.h"
 #include "modules/webdav.h"
+
+#if defined(ENABLE_PROXY)
 #include "modules/proxy.h"
+#endif
 
 #include <xzero/sysconfig.h>
 #include <xzero/http/HttpRequest.h>
@@ -100,7 +103,11 @@ XzeroDaemon::XzeroDaemon()
   loadModule<CoreModule>();
   loadModule<DirlistingModule>();
   loadModule<EmptyGifModule>();
+
+#if defined(ENABLE_PROXY)
   loadModule<ProxyModule>();
+#endif
+
   loadModule<UserdirModule>();
   loadModule<WebdavModule>();
 }

@@ -25,8 +25,7 @@ namespace client {
 # define TRACE(msg...) do {} while (0)
 #endif
 
-HttpClusterRequest::HttpClusterRequest(const HttpRequestInfo& _requestInfo,
-                                       const BufferRef& _requestBody,
+HttpClusterRequest::HttpClusterRequest(const HttpRequest& _request,
                                        std::unique_ptr<HttpListener> _responseListener,
                                        Executor* _executor,
                                        size_t responseBodyBufferSize,
@@ -38,12 +37,13 @@ HttpClusterRequest::HttpClusterRequest(const HttpRequestInfo& _requestInfo,
       backend(nullptr),
       tryCount(0),
       tokens(0),
-      proxyVersion_(_requestInfo.version()),
+      requestInfo(_requestInfo),
+      proxyVersion_(requestInfo.version()),
       proxyId_(proxyId),
       viaText_(),
       responseListener(std::move(_responseListener)) {
   TRACE("ctor: executor: $0", executor);
-  client.setRequest(_requestInfo, _requestBody);
+  client.send(_request);
 }
 
 HttpClusterRequest::~HttpClusterRequest() {
@@ -106,9 +106,8 @@ void HttpClusterRequest::onMessageEnd() {
   responseListener->onMessageEnd();
 }
 
-void HttpClusterRequest::onProtocolError(HttpStatus code,
-                                         const std::string& message) {
-  responseListener->onProtocolError(code, message);
+void HttpClusterRequest::onError(std::error_code ec) {
+  responseListener->onError(ec);
 }
 
 } // namespace client

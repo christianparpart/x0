@@ -26,22 +26,17 @@ namespace http {
 #endif
 
 HttpRequest::HttpRequest()
-    : HttpRequest("", "", HttpVersion::UNKNOWN, false, {}, Buffer()) {
+    : HttpRequest(HttpVersion::UNKNOWN, "", "", {}, false, {}) {
   // .
 }
 
-HttpRequest::HttpRequest(const std::string& method, const std::string& path,
-                         HttpVersion version, bool secure,
+HttpRequest::HttpRequest(HttpVersion version,
+                         const std::string& method,
+                         const std::string& uri,
                          const HeaderFieldList& headers,
-                         Buffer&& content)
-  : HttpRequest(method, path, version, secure, headers, HugeBuffer(std::move(content))) {
-}
-
-HttpRequest::HttpRequest(const std::string& method, const std::string& path,
-                         HttpVersion version, bool secure,
-                         const HeaderFieldList& headers,
+                         bool secure,
                          HugeBuffer&& content)
-    : HttpRequestInfo(version, method, path, 0, headers),
+    : HttpRequestInfo(version, method, uri, 0, headers),
       remoteAddress_(),
       localAddress_(),
       bytesReceived_(0),
@@ -105,8 +100,10 @@ void HttpRequest::consumeContent(std::function<void()> onReady) {
 void HttpRequest::fillContent(const BufferRef& chunk) {
   TRACE("fillContent $0 bytes: '$1'", chunk.size(), chunk);
   setContentLength(contentLength() + chunk.size());
-  if (onContentAvailable_)
+
+  if (onContentAvailable_) {
     onContentAvailable_(chunk);
+  }
 }
 
 void HttpRequest::ready() {
