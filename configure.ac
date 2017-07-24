@@ -81,7 +81,7 @@ AC_SUBST([XZERO_CLUSTERDIR])
 # x0d configuration
 
 AC_ARG_WITH([configfile],
-            AS_HELP_STRING([--with-configfile],
+            AS_HELP_STRING([--with-configfile=PATH],
                            [Path to x0d.conf file]))
 AS_IF([test "x$with_configfile" = "x"],
       [X0D_CONFIGFILE="$sysconfdir/cluster"],
@@ -89,14 +89,14 @@ AS_IF([test "x$with_configfile" = "x"],
 AC_SUBST([X0D_CONFIGFILE])
 
 AC_ARG_WITH([logdir],
-            AS_HELP_STRING([--logdir],
+            AS_HELP_STRING([--with-logdir=PATH],
                            [x0d log dir]))
 AS_IF([test "x$with_logdir" = "x"],
       [X0D_LOGDIR="$localstatedir/log"],
       [X0D_LOGDIR="$with_logdir"])
 AC_SUBST([X0D_LOGDIR])
 
-AC_ARG_WITH([pidfile], AS_HELP_STRING([--pidfile], [Path to x0d.pid file]))
+AC_ARG_WITH([pidfile], AS_HELP_STRING([--with-pidfile=PATH], [Path to x0d.pid file]))
 AS_IF([test "x$with_pidfile" = "x"],
       [X0D_PIDFILE="$localstatedir/run/x0d.pid"],
       [X0D_PIDFILE="$with_pidfile"])
