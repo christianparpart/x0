@@ -49,7 +49,7 @@ class ResponseParser : public HttpListener { // {{{
   void onMessageContent(const BufferRef& chunk) override;
   void onMessageContent(FileView&& chunk) override;
   void onMessageEnd() override;
-  void onProtocolError(HttpStatus code, const std::string& message) override;
+  void onError(std::error_code ec) override;
 
  private:
   HttpResponseInfo responseInfo_;
@@ -95,7 +95,7 @@ void ResponseParser::onMessageEnd() {
   // promise_->success(this);
 }
 
-void ResponseParser::onProtocolError(HttpStatus code, const std::string& message) {
+void ResponseParser::onError(std::error_code ec) {
   // TODO promise_->failure(Status::ForeignError);
 }
 // }}}

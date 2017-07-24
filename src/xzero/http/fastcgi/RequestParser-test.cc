@@ -38,7 +38,7 @@ class RequestListener : public HttpListener { // {{{
   void onMessageContent(const BufferRef& chunk) override;
   void onMessageContent(FileView&& chunk) override;
   void onMessageEnd() override;
-  void onProtocolError(HttpStatus code, const std::string& message) override;
+  void onError(std::error_code ec) override;
 
  public:
   BufferRef method;
@@ -96,7 +96,7 @@ void RequestListener::onMessageEnd() {
   this->messageEnd++;
 }
 
-void RequestListener::onProtocolError(HttpStatus code, const std::string& message) {
+void RequestListener::onError(std::error_code ec) {
   this->protocolErrors++;
 }
 // }}}

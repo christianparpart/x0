@@ -32,7 +32,7 @@ class ParserListener : public HttpListener {  // {{{
   void onMessageContent(const BufferRef& chunk) override;
   void onMessageContent(FileView&& chunk) override;
   void onMessageEnd() override;
-  void onProtocolError(HttpStatus code, const std::string& msg) override;
+  void onError(std::error_code ec) override;
 
  public:
   std::string method;
@@ -43,7 +43,6 @@ class ParserListener : public HttpListener {  // {{{
   std::vector<std::pair<std::string, std::string>> headers;
   Buffer body;
   HttpStatus errorCode;
-  std::string errorMessage;
 
   bool messageBegin;
   bool headerEnd;
@@ -58,7 +57,6 @@ ParserListener::ParserListener()
       statusReason(),
       headers(),
       errorCode(HttpStatus::Undefined),
-      errorMessage(),
       messageBegin(false),
       headerEnd(false),
       messageEnd(false) {
@@ -104,10 +102,8 @@ void ParserListener::onMessageEnd() {
   messageEnd = true;
 }
 
-void ParserListener::onProtocolError(HttpStatus code,
-                                         const std::string& msg) {
-  errorCode = code;
-  errorMessage = msg;
+void ParserListener::onError(std::error_code ec) {
+  errorCode = static_cast<HttpStatus>(ec.value());
 }
 // }}}
 
