@@ -27,6 +27,16 @@ class Scheduler;
 template <typename> class Future;
 template <typename> class Promise;
 
+enum class PromiseStatus {
+  UNDEFINED = 0,
+  SUCCESS,
+  FAILURE,
+};
+
+inline bool operator!(PromiseStatus s) {
+  return s == PromiseStatus::UNDEFINED;
+}
+
 template <typename T>
 class XZERO_BASE_API PromiseState : public RefCounted {
  public:
@@ -38,14 +48,15 @@ class XZERO_BASE_API PromiseState : public RefCounted {
   std::error_code error;
   std::mutex mutex; // FIXPAUL use spinlock
   char value_data[sizeof(T)];
-  T* value;
-  bool ready;
+  PromiseStatus status;
 
   std::function<void (std::error_code status)> on_failure;
   std::function<void (const T& value)> on_success;
 
   friend class Future<T>;
   friend class Promise<T>;
+
+  T& value() { return *((T*) value_data); }
 };
 
 template <>
@@ -58,7 +69,7 @@ class PromiseState<void> : public RefCounted {
   Wakeup wakeup;
   std::error_code error;
   std::mutex mutex; // FIXPAUL use spinlock
-  bool ready;
+  PromiseStatus status;
 
   std::function<void (std::error_code status)> on_failure;
   std::function<void ()> on_success;
