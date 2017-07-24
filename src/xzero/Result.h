@@ -44,6 +44,16 @@ class Result {
   Result(Result&& other);
   ~Result();
 
+  template<typename ErrorEnum>
+  Result(ErrorEnum e,
+         typename std::enable_if<std::is_error_code_enum<ErrorEnum>::value>::type* = 0)
+      : Result(make_error_code(e)) {}
+
+  template<typename ErrorEnum>
+  Result(ErrorEnum e,
+         typename std::enable_if<std::is_error_condition_enum<ErrorEnum>::value>::type* = 0)
+      : Result(make_error_code(e)) {}
+
   operator bool () const noexcept;
   bool isSuccess() const noexcept;
   bool isFailure() const noexcept;

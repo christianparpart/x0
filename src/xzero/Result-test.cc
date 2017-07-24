@@ -7,6 +7,8 @@
 
 #include <xzero/testing.h>
 #include <xzero/Result.h>
+#include <system_error>
+#include <future>
 
 TEST(Result, Failure) {
   Result<int> t = std::make_error_code(std::errc::result_out_of_range);
@@ -22,7 +24,6 @@ TEST(Result, Success) {
   ASSERT_TRUE(t.isSuccess());
   ASSERT_FALSE(t.isFailure());
   ASSERT_EQ(*t, 42);
-  ASSERT_EQ("", t.failureMessage());
 }
 
 TEST(Result, MoveSuccess) {
@@ -33,5 +34,12 @@ TEST(Result, MoveSuccess) {
   ASSERT_TRUE(u.isSuccess());
   ASSERT_FALSE(u.isFailure());
   ASSERT_EQ(*u, "Hello");
-  ASSERT_EQ(*t, "");
+}
+
+TEST(Result, ErrorEnumClass) {
+  Result<int> t = std::errc::io_error;
+  ASSERT_EQ(std::errc::io_error, t.error());
+
+  Result<int> u = std::future_errc::no_state;
+  ASSERT_EQ(std::future_errc::no_state, u.error());
 }
