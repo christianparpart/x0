@@ -45,7 +45,7 @@ Result<std::string> StaticDiscovery::getAddress(Id serverId) const {
     return Result<std::string>(i->second);
   }
 
-  return std::make_error_code(RaftError::ServerNotFound);
+  return make_error_code(RaftError::ServerNotFound);
 }
 
 Result<Id> StaticDiscovery::getId(const std::string& address) const {
@@ -53,7 +53,7 @@ Result<Id> StaticDiscovery::getId(const std::string& address) const {
   if (i != reverse_.end()) {
     return Result<Id>(i->second);
   }
-  return std::make_error_code(RaftError::ServerNotFound);
+  return make_error_code(RaftError::ServerNotFound);
 }
 
 DnsDiscovery::DnsDiscovery(const std::string& fqdn) {

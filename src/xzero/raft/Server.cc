@@ -167,7 +167,7 @@ Future<Reply> Server::sendCommandAsync(Command&& command) {
   Promise<Reply> promise;
 
   if (state_ != ServerState::Leader) {
-    promise.failure(std::make_error_code(RaftError::NotLeading));
+    promise.failure(make_error_code(RaftError::NotLeading));
     return promise.future();
   }
 

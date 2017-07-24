@@ -35,11 +35,22 @@ class RaftCategory : public std::error_category {
   std::string message(int ec) const override;
 };
 
+inline std::error_code make_error_code(RaftError ec) {
+  return std::error_code((int) ec, RaftCategory::get());
+}
+
 } // namespace raft
 } // namespace xzero
 
 namespace std {
-  inline std::error_code make_error_code(xzero::raft::RaftError ec) {
-    return std::error_code((int) ec, xzero::raft::RaftCategory::get());
+
+template <>
+struct hash<xzero::raft::RaftError> : public unary_function<xzero::raft::RaftError, size_t> {
+  size_t operator()(xzero::raft::RaftError error) const {
+    return (size_t) error;
   }
+};
+
+template<> struct is_error_code_enum<xzero::raft::RaftError> : public true_type{};
+
 }
