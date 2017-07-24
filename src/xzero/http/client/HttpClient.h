@@ -88,7 +88,7 @@ class HttpClient {
    * received or @p onFailure upon communication any failure.
    */
   void send(const Request& request,
-            std::function<void(Response&&)> onSuccess,
+            std::function<void(const Response&)> onSuccess,
             std::function<void(std::error_code)> onFailure);
 
   /**
@@ -99,7 +99,9 @@ class HttpClient {
   /**
    * Requests the resource @p url with custom headers.
    */
-  Future<Response> send(const Uri& url, const HeaderFieldList& headers);
+  Future<Response> send(const std::string& method,
+                        const Uri& url,
+                        const HeaderFieldList& headers = {});
 
  private:
   void setupConnection();
@@ -130,7 +132,6 @@ class HttpClient::ResponseBuilder : public HttpListener {
   ResponseBuilder(std::function<void(Response&&)> s, std::function<void(std::error_code)> e);
 
   void onMessageBegin(HttpVersion version, HttpStatus code, const BufferRef& text) override;
-  void onMessageBegin() override;
   void onMessageHeader(const BufferRef& name, const BufferRef& value) override;
   void onMessageHeaderEnd() override;
   void onMessageContent(const BufferRef& chunk) override;

@@ -15,6 +15,7 @@ using namespace xzero;
 using namespace xzero::http;
 using namespace xzero::http::client;
 
+#if 0
 RefPtr<ByteArrayEndPoint> createEndPoint() {
   RefPtr<ByteArrayEndPoint> ep(new ByteArrayEndPoint());
 
@@ -44,3 +45,5 @@ TEST(HttpClient, http1_default) {
   EXPECT_EQ("unittest", cli.responseInfo().headers().get("Server"));
   EXPECT_EQ("Hello, World\n", cli.responseBody().str());
 }
+
+#endif

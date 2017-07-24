@@ -100,9 +100,22 @@ void HttpClient::send(const Request& request,
 }
 
 void HttpClient::send(const Request& request,
-            std::function<void(Response&&)> onSuccess,
+            std::function<void(const Response&)> onSuccess,
             std::function<void(std::error_code)> onFailure) {
   send(request, new ResponseBuilder(onSuccess, onFailure));
+}
+
+Future<HttpClient::Response> HttpClient::send(const Request& request) {
+  Promise<Response> promise;
+  send(request,
+       [promise](const Response& response) {
+         //promise.success({});
+         //promise.success(std::move(response));
+       },
+       [promise](std::error_code ec) {
+         promise.failure(ec);
+       });
+  return promise.future();
 }
 
 void HttpClient::setupConnection() {
