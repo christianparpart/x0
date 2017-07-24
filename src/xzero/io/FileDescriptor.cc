@@ -11,6 +11,17 @@
 
 namespace xzero {
 
+FileDescriptor::FileDescriptor(const FileDescriptor& fd)
+    : fd_(fd.isOpen() ? dup(fd) : -1) {
+}
+
+FileDescriptor& FileDescriptor::operator=(const FileDescriptor& fd) {
+  close();
+  fd_ = fd.isOpen() ? dup(fd) : -1;
+
+  return *this;
+}
+
 FileDescriptor& FileDescriptor::operator=(FileDescriptor&& fd) {
   close();
   fd_ = fd.release();

@@ -18,13 +18,13 @@ class XZERO_BASE_API FileDescriptor {
  public:
   FileDescriptor() : fd_(-1) {}
   FileDescriptor(int fd) : fd_(fd) {}
-  FileDescriptor(FileDescriptor&& fd) : fd_(fd.release()) {}
   ~FileDescriptor() { close(); }
 
+  FileDescriptor(FileDescriptor&& fd) : fd_(fd.release()) {}
   FileDescriptor& operator=(FileDescriptor&& fd);
 
-  FileDescriptor(const FileDescriptor& fd) = delete;
-  FileDescriptor& operator=(const FileDescriptor& fd) = delete;
+  FileDescriptor(const FileDescriptor& fd);
+  FileDescriptor& operator=(const FileDescriptor& fd);
 
   int get() const noexcept { return fd_; }
   operator int() const noexcept { return fd_; }
