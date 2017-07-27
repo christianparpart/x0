@@ -51,6 +51,9 @@ class HugeBuffer {
    */
   HugeBuffer();
 
+  /** Retrieves the maximum size that may be kept in memory. */
+  size_t maxBufferSize() const noexcept { return maxBufferSize_; }
+
   /**
    * Tests whether this HugeBuffer is empty or not.
    */
@@ -119,4 +122,4 @@ class HugeBuffer {
   FileDescriptor fd_;
 };
 
-} // namespace http
+} // namespace xzero
