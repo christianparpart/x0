@@ -25,34 +25,20 @@ namespace xzero {
  * If the FileView was initialized with auto-close set to on, its
  * underlying resource file descriptor will be automatically closed.
  */
-class XZERO_BASE_API FileView {
+class FileView {
  private:
   FileView(const FileView&) = delete;
   FileView& operator=(const FileView&) = delete;
 
  public:
-  /** General move semantics for FileView(FileView&&). */
-  FileView(FileView&& ref)
-      : fd_(ref.fd_),
-        offset_(ref.offset_),
-        size_(ref.size_),
-        close_(ref.close_) {
-    ref.fd_ = -1;
-    ref.close_ = false;
-  }
-
-  /** General move semantics for operator=. */
-  FileView& operator=(FileView&& ref) {
-    fd_ = ref.fd_;
-    offset_ = ref.offset_;
-    size_ = ref.size_;
-    close_ = ref.close_;
-
-    ref.fd_ = -1;
-    ref.close_ = false;
-
-    return *this;
-  }
+  /**
+   * Initializes given FileView.
+   *
+   * @param fd Underlying resource file descriptor.
+   * @param offset The offset to start reading from.
+   * @param size Number of bytes to read.
+   */
+  FileView(FileDescriptor&& fd, off_t offset, size_t size);
 
   /**
    * Initializes given FileView.
@@ -63,29 +49,18 @@ class XZERO_BASE_API FileView {
    * @param close Whether or not to close the underlying file desriptor upon
    *              object destruction.
    */
-  FileView(int fd, off_t offset, size_t size, bool close)
-      : fd_(fd), offset_(offset), size_(size), close_(close) {}
+  FileView(int fd, off_t offset, size_t size, bool close);
 
-  /**
-   * Initializes given FileView.
-   *
-   * @param fd Underlying resource file descriptor.
-   * @param offset The offset to start reading from.
-   * @param size Number of bytes to read.
-   */
-  FileView(FileDescriptor&& fd, off_t offset, size_t size)
-      : fd_(fd.release()), offset_(offset), size_(size), close_(true) {}
+  /** General move semantics for FileView(FileView&&). */
+  FileView(FileView&& other);
 
-  /**
-   * Conditionally closes the underlying resource file descriptor.
-   */
-  ~FileView() {
-    if (close_) {
-      FileUtil::close(fd_);
-    }
-  }
+  /** Safely closes the underlying resource file descriptor. */
+  ~FileView();
 
-  int release() noexcept { close_ = false; return fd_; }
+  /** Moves the FileView @p other into @c *this. */
+  FileView& operator=(FileView&& other);
+
+  int release() noexcept;
 
   int handle() const noexcept { return fd_; }
 
@@ -107,11 +82,59 @@ class XZERO_BASE_API FileView {
   bool close_;
 };
 
+// {{{ inlines
+inline FileView::FileView(FileDescriptor&& fd, off_t offset, size_t size)
+    : fd_(fd.release()),
+      offset_(offset),
+      size_(size),
+      close_(true) {
+}
+
+inline FileView::FileView(int fd, off_t offset, size_t size, bool close)
+    : fd_(fd),
+      offset_(offset),
+      size_(size),
+      close_(close) {
+}
+
+inline FileView::FileView(FileView&& ref)
+    : fd_(ref.fd_),
+      offset_(ref.offset_),
+      size_(ref.size_),
+      close_(ref.close_) {
+  ref.fd_ = -1;
+  ref.close_ = false;
+}
+
+inline FileView::~FileView() {
+  if (close_) {
+    FileUtil::close(fd_);
+  }
+}
+
+inline FileView& FileView::operator=(FileView&& ref) {
+  fd_ = ref.fd_;
+  offset_ = ref.offset_;
+  size_ = ref.size_;
+  close_ = ref.close_;
+
+  ref.fd_ = -1;
+  ref.close_ = false;
+
+  return *this;
+}
+
 inline FileView FileView::view(size_t offset, size_t n) const {
   return FileView(fd_,
                   offset_ + offset,
                   std::min(n, size_ - offset),
                   false);
 }
+
+inline int FileView::release() noexcept {
+  close_ = false;
+  return fd_;
+}
+// }}}
 
 } // namespace xzero
