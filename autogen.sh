@@ -24,7 +24,7 @@ if test "$1" == "clean"; then
   exit 0
 fi
 
-autoreconf --verbose --force --install ${ROOT}
+[[ $# -ne 1 ]] && autoreconf --verbose --force --install ${ROOT}
 
 findexe() {
   for exe in ${@}; do
@@ -48,4 +48,5 @@ exec ${ROOT}/configure --prefix="${HOME}/usr" \
                        --sysconfdir="${HOME}/usr/etc" \
                        --with-pidfile="${BUILDDIR}/x0d.pid" \
                        --with-logdir="${BUILDDIR}" \
-                       --enable-xurl
+                       --enable-xurl \
+                       "${@}"
