@@ -268,11 +268,19 @@ void Uri::parseURI(
   }
 }
 
-void Uri::parseQueryString(
-    const std::string& query,
-    std::vector<std::pair<std::string, std::string>>* params) {
-  const char* begin = query.c_str();
-  const char* end = begin + query.size();
+void Uri::parseQueryString(const BufferRef& query, ParamList* params) {
+  parseQueryString(query.data(), query.size(), params);
+}
+
+void Uri::parseQueryString(const std::string& query, ParamList* params) {
+  parseQueryString(query.data(), query.size(), params);
+}
+
+void Uri::parseQueryString(const char* query,
+                           size_t queryLength,
+                           ParamList* params) {
+  const char* begin = query;
+  const char* end = begin + queryLength;
 
   for (const char* cur = begin; cur < end; ++cur) {
     for (; cur < end && *cur != '=' && *cur != '&'; cur++);

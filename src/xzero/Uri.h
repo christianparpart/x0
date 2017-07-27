@@ -7,7 +7,7 @@
 
 #pragma once
 
-#include <xzero/Api.h>
+#include <xzero/Buffer.h>
 #include <string>
 #include <vector>
 #include <utility>
@@ -17,7 +17,7 @@ namespace xzero {
 /**
  * Represents a parsed URI.
  */
-class XZERO_BASE_API Uri {
+class Uri {
 public:
   typedef std::vector<std::pair<std::string, std::string>> ParamList;
 
@@ -53,7 +53,9 @@ public:
       std::string* query,
       std::string* fragment);
 
+  static void parseQueryString(const BufferRef& query, ParamList* params);
   static void parseQueryString(const std::string& query, ParamList* params);
+  static void parseQueryString(const char* query, size_t queryLength, ParamList* params);
 
   static bool getParam(
       const ParamList&,
