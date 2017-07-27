@@ -100,9 +100,7 @@ bool WebdavModule::webdav_get(XzeroContext* cx) {
   if (!isError(status)) {
     return true;
   } else {
-    bool internalRedirect = false;
-    cx->sendErrorPage(status, &internalRedirect);
-    return internalRedirect == false;
+    return cx->sendErrorPage(status);
   }
 }
 

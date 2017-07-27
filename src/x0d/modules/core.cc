@@ -824,9 +824,7 @@ bool CoreModule::return_with(XzeroContext* cx, Params& args) {
 
   // internal redirects rewind the instruction pointer, starting from
   // the entry point again, so the handler than should not return success (true).
-  bool internalRedirect = false;
-  cx->sendErrorPage(status, &internalRedirect);
-  return internalRedirect == false;
+  return cx->sendErrorPage(status);
 }
 
 bool CoreModule::echo(XzeroContext* cx, Params& args) {
@@ -860,9 +858,7 @@ bool CoreModule::staticfile(XzeroContext* cx, Params& args) {
   } else if (!isError(status)) {
     return true;
   } else {
-    bool internalRedirect = false;
-    cx->sendErrorPage(status, &internalRedirect);
-    return internalRedirect == false;
+    return cx->sendErrorPage(status);
   }
 }
 
@@ -918,9 +914,7 @@ bool CoreModule::precompressed(XzeroContext* cx, Params& args) {
         } else if (!isError(status)) {
           return true;
         } else {
-          bool internalRedirect = false;
-          cx->sendErrorPage(status, &internalRedirect);
-          return internalRedirect == false;
+          return cx->sendErrorPage(status);
         }
       }
     }

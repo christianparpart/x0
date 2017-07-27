@@ -93,12 +93,15 @@ class XzeroContext {
    * @param overrideStatus status to actually send to the client (may differ
    *                       from the status to match the error page)
    *
+   * @retval true a response was generated
+   * @retval false no response was generated but an internal redirect was triggered.
+   *
    * It is important to note, that this call either fully generates
    * a response and no further handling has to be done, or
    * an internal redirect was triggered and the request handler has to be
    * resumed for execution.
    */
-  void sendErrorPage(
+  bool sendErrorPage(
       xzero::http::HttpStatus status,
       bool* internalRedirect = nullptr,
       xzero::http::HttpStatus overrideStatus = xzero::http::HttpStatus::Undefined);

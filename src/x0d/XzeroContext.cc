@@ -132,7 +132,7 @@ bool requiresExternalRedirect(const std::string& uri) {
   return uri[0] != '/';
 }
 
-void XzeroContext::sendErrorPage(xzero::http::HttpStatus status,
+bool XzeroContext::sendErrorPage(xzero::http::HttpStatus status,
                                  bool* internalRedirect,
                                  xzero::http::HttpStatus overrideStatus) {
   if (internalRedirect) {
@@ -146,7 +146,7 @@ void XzeroContext::sendErrorPage(xzero::http::HttpStatus status,
     // no client (4xx) nor server (5xx) error; so just generate simple response
     response_->setStatus(status);
     response_->completed();
-    return;
+    return true;
   }
 
   std::string uri;
@@ -155,6 +155,7 @@ void XzeroContext::sendErrorPage(xzero::http::HttpStatus status,
       response_->setStatus(HttpStatus::Found);
       response_->setHeader("Location", uri);
       response_->completed();
+      return true;
     } else if (internalRedirectCount() < maxInternalRedirectCount_) {
       if (internalRedirect) {
         *internalRedirect = true;
@@ -167,16 +168,19 @@ void XzeroContext::sendErrorPage(xzero::http::HttpStatus status,
                                               request()->headers(),
                                               request()->isSecure(),
                                               {}));
+      return false;
     } else {
       logError("x0d", "Too many internal redirects.");
       sendSimpleStatusPage(HttpStatus::InternalServerError, "Too many internal redirects.");
+      return true;
     }
   } else if (!isContentForbidden(status)) {
     sendSimpleStatusPage(status);
-    response_->completed();
+    return true;
   } else {
     response_->setStatus(status);
     response_->completed();
+    return true;
   }
 }
 
