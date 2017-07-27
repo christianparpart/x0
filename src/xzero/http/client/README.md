@@ -22,12 +22,13 @@
 
 ```
 NativeScheduler sched;
-HttpClient cli(&sched);
+HttpClient cli(&sched, InetAddress("127.0.0.1", 8080));
 
-HttpRequestInfo req(HttpVersion::VERSION_1_1, "GET", "/", 0, {
+HttpRequest req(HttpVersion::VERSION_1_1, "GET", "/", 0, {
     {"User-Agent", "raw/0.1"},
   });
 
-cli.connect(IPAddress("127.0.0.1"), 8080);
-cli.send(req);
-```
+auto f = cli.send(req); // enqueues, in case
+f.onSuccess([](const auto& response) { logDebug(response); });
+f.onFailure([](auto error) { logDebug(error); });
+

@@ -91,12 +91,19 @@ HttpClient::HttpClient(HttpClient&& other)
 
 void HttpClient::send(const Request& request,
                       HttpListener* responseListener) {
-  if (HttpTransport* channel = getChannel(); channel != nullptr) {
-    channel->setListener(responseListener);
-    channel->send(request, nullptr);
-    channel->send(request.getContent().getBuffer(), nullptr);
-    channel->completed();
-  }
+  pendingTasks_.emplace_back(Task{request, responseListener, false});
+}
+
+bool HttpClient::tryConsumeTask() {
+  // TODO
+  // if (HttpTransport* channel = getChannel(); channel != nullptr) {
+  //   channel->setListener(responseListener);
+  //   channel->send(request, nullptr);
+  //   channel->send(request.getContent().getBuffer(), nullptr);
+  //   channel->completed();
+  //   return true;
+  // }
+  return false;
 }
 
 void HttpClient::send(const Request& request,

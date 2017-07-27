@@ -15,7 +15,7 @@
 #include <xzero/Duration.h>
 #include <xzero/CompletionHandler.h>
 #include <xzero/io/FileDescriptor.h>
-#include <xzero/http/HttpRequestInfo.h>
+#include <xzero/http/HttpRequest.h>
 #include <xzero/http/HttpResponseInfo.h>
 #include <xzero/http/HttpListener.h>
 #include <xzero/thread/Future.h>
@@ -24,6 +24,7 @@
 #include <utility>
 #include <memory>
 #include <string>
+#include <deque>
 
 namespace xzero {
 
@@ -104,14 +105,23 @@ class HttpClient {
                         const HeaderFieldList& headers = {});
 
  private:
+  struct Task {
+    HttpClient::Request request;
+    HttpListener* listener;
+    bool isListenerOwned;
+  };
+
+ private:
   void setupConnection();
   HttpTransport* getChannel();
+  bool tryConsumeTask();
 
   class ResponseBuilder;
 
  private:
   Executor* executor_;
   RefPtr<EndPoint> endpoint_;
+  std::deque<Task> pendingTasks_;
 };
 
 class HttpClient::Response : public HttpResponseInfo {
