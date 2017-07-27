@@ -17,11 +17,10 @@
 #include <memory>
 
 namespace xzero {
+  class InputStream;
+}
 
-class InputStream;
-
-namespace http {
-namespace client {
+namespace xzero::http::client {
 
 class HttpClusterMember;
 
@@ -56,7 +55,6 @@ class HttpClusterRequest : public CustomData,
 
  public:
   MonotonicTime ctime;
-  HttpClient client;
   Executor* executor;
   HttpRequestInfo requestInfo;
 
@@ -80,6 +78,4 @@ class HttpClusterRequest : public CustomData,
   std::unique_ptr<HttpListener> responseListener;
 };
 
-} // namespace http
-} // namespace client
-} // namespace xzero
+} // namespace xzero::http::client

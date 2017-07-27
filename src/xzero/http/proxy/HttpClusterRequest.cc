@@ -31,7 +31,6 @@ HttpClusterRequest::HttpClusterRequest(const HttpRequest& _request,
                                        size_t responseBodyBufferSize,
                                        const std::string& proxyId)
     : ctime(MonotonicClock::now()),
-      client(_executor, responseBodyBufferSize),
       executor(_executor),
       bucket(nullptr),
       backend(nullptr),
@@ -43,7 +42,6 @@ HttpClusterRequest::HttpClusterRequest(const HttpRequest& _request,
       viaText_(),
       responseListener(std::move(_responseListener)) {
   TRACE("ctor: executor: $0", executor);
-  client.send(_request);
 }
 
 HttpClusterRequest::~HttpClusterRequest() {
