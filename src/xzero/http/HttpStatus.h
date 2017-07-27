@@ -99,6 +99,17 @@ enum class HttpStatus  // {{{
 };
 // }}}
 
+/**
+ * HttpStatusGroup classifies HttpStatus codes into groups.
+ */
+enum class HttpStatusGroup {
+  Informational = 1,
+  Success = 2,
+  Redirect = 3,
+  ClientError = 4,
+  ServerError = 5,
+};
+
 class XZERO_HTTP_API HttpStatusCategory : public std::error_category {
  public:
   static std::error_category& get();
@@ -107,61 +118,66 @@ class XZERO_HTTP_API HttpStatusCategory : public std::error_category {
   std::string message(int ev) const override;
 };
 
-inline bool operator!(HttpStatus st) {
+constexpr bool operator!(HttpStatus st) {
   return st == HttpStatus::Undefined;
+}
+
+/** Classifies an HttpStatus by converting to HttpStatusGroup. */
+constexpr HttpStatusGroup toStatusGroup(HttpStatus status) {
+  return static_cast<HttpStatusGroup>(static_cast<int>(status) / 100);
 }
 
 /** Retrieves the human readable text of the HTTP status @p code. */
 XZERO_HTTP_API const std::string& to_string(HttpStatus code);
 
 /** Tests whether given status @p code MUST NOT have a message body. */
-XZERO_HTTP_API bool isContentForbidden(HttpStatus code);
+constexpr bool isContentForbidden(HttpStatus code);
 
 /** Tests whether given status @p code is informatiional (1xx). */
-XZERO_HTTP_API bool isInformational(HttpStatus code);
+constexpr bool isInformational(HttpStatus code);
 
 /** Tests whether given status @p code is successful (2xx). */
-XZERO_HTTP_API bool isSuccess(HttpStatus code);
+constexpr bool isSuccess(HttpStatus code);
 
 /** Tests whether given status @p code is a redirect (3xx). */
-XZERO_HTTP_API bool isRedirect(HttpStatus code);
+constexpr bool isRedirect(HttpStatus code);
 
 /** Tests whether given status @p code is a client or server error (4xx, 5xx). */
-XZERO_HTTP_API bool isError(HttpStatus code);
+constexpr bool isError(HttpStatus code);
 
 /** Tests whether given status @p code is a client error (4xx). */
-XZERO_HTTP_API bool isClientError(HttpStatus code);
+constexpr bool isClientError(HttpStatus code);
 
 /** Tests whether given status @p code is a server error (5xx). */
-XZERO_HTTP_API bool isServerError(HttpStatus code);
+constexpr bool isServerError(HttpStatus code);
 //@}
 
-// {{{ inlines
-inline bool isInformational(HttpStatus code) {
-  return static_cast<int>(code) / 100 == 1;
+// {{{ constexpr's / inlines
+constexpr bool isInformational(HttpStatus code) {
+  return toStatusGroup(code) == HttpStatusGroup::Informational;
 }
 
-inline bool isSuccess(HttpStatus code) {
-  return static_cast<int>(code) / 100 == 2;
+constexpr bool isSuccess(HttpStatus code) {
+  return toStatusGroup(code) == HttpStatusGroup::Success;
 }
 
-inline bool isRedirect(HttpStatus code) {
-  return static_cast<int>(code) / 100 == 3;
+constexpr bool isRedirect(HttpStatus code) {
+  return toStatusGroup(code) == HttpStatusGroup::Redirect;
 }
 
-inline bool isError(HttpStatus code) {
+constexpr bool isError(HttpStatus code) {
   return isClientError(code) || isServerError(code);
 }
 
-inline bool isClientError(HttpStatus code) {
-  return static_cast<int>(code) / 100 == 4;
+constexpr bool isClientError(HttpStatus code) {
+  return toStatusGroup(code) == HttpStatusGroup::ClientError;
 }
 
-inline bool isServerError(HttpStatus code) {
-  return static_cast<int>(code) / 100 == 5;
+constexpr bool isServerError(HttpStatus code) {
+  return toStatusGroup(code) == HttpStatusGroup::ServerError;
 }
 
-inline bool isContentForbidden(HttpStatus code) {
+constexpr bool isContentForbidden(HttpStatus code) {
   switch (code) {
     case /*100*/ HttpStatus::ContinueRequest:
     case /*101*/ HttpStatus::SwitchingProtocols:
@@ -177,6 +193,10 @@ inline bool isContentForbidden(HttpStatus code) {
 }
 // }}}
 
+inline std::error_code make_error_code(HttpStatus status) {
+  return std::error_code((int) status, HttpStatusCategory::get());
+}
+
 }  // namespace http
 }  // namespace xzero
 
@@ -189,8 +209,6 @@ struct hash<xzero::http::HttpStatus> : public unary_function<xzero::http::HttpSt
   }
 };
 
-inline std::error_code make_error_code(xzero::http::HttpStatus status) {
-  return std::error_code((int) status, xzero::http::HttpStatusCategory::get());
-}
+template<> struct is_error_code_enum<xzero::http::HttpStatus> : public true_type{};
 
 }  // namespace std
