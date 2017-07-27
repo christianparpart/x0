@@ -535,15 +535,15 @@ TEST(raft_Server, AppendEntries_not_leading_err) {
   });
 
   std::error_code err;
-  
+
   err = pod.getInstance(3)->set(3, 33);
-  EXPECT_EQ(std::make_error_code(RaftError::NotLeading), err);
+  EXPECT_EQ(RaftError::NotLeading, err);
 
   err = pod.getInstance(2)->set(2, 22);
-  EXPECT_EQ(std::make_error_code(RaftError::NotLeading), err);
+  EXPECT_EQ(RaftError::NotLeading, err);
 
   err = pod.getInstance(1)->set(1, 11);
-  EXPECT_EQ(std::error_code(), err);
+  EXPECT_FALSE(err);
 
   log("waitUntilStopped");
   pod.waitUntilAllStopped();
