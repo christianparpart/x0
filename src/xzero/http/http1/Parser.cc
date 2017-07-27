@@ -1060,7 +1060,7 @@ void Parser::onMessageEnd() {
 
 void Parser::onProtocolError() {
   if (listener_) {
-    listener_->onError(std::make_error_code(HttpStatus::BadRequest));
+    listener_->onError(HttpStatus::BadRequest);
   }
 }
 
