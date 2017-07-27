@@ -1,13 +1,10 @@
 # Xzero HTTP Application Web Server
 
-[![](https://badge.imagelayers.io/trapni/x0:git.svg)](https://imagelayers.io/?images=trapni/x0:git 'Get your own badge on imagelayers.io')
-[![](https://secure.travis-ci.org/xzero/x0.png) ](http://travis-ci.org/xzero/x0)
-
 `x0d` is a thin low-latency and scalable HTTP web server built on-top
 of the Xzero C++ HTTP Framework.
 
 It supports a very expressive and natural configuration via
-the [Flow configuration language](https://github.com/xzero/x0/) and
+the [Flow configuration language](https://github.com/christianparpart/x0/) and
 a number of standard plugins to become *your* web application server.
 
 ## Features
@@ -49,12 +46,12 @@ a number of standard plugins to become *your* web application server.
 
 ## Installation Requirements
 
-- gcc >= 4.8.0 (for building only, CLANG >= 3.8 is also supported)
+- latest stable CLANG (4.0) or a comparible GCC
 - automake / autoconf (for building only)
 - zlib (optional & recommended, for compression)
 - OpenSSL (optional & recommended, for SSL/TLS encryption)
 
-### Building from Source on Ubuntu 16.04:
+### Building from Source on Ubuntu 17.04:
 
 ```sh
 # Installs required dependencies
@@ -65,59 +62,18 @@ sudo apt-get install make autoconf automake libtool gcc-4.8 g++-4.8 \
 # Install git and clone repository
 git clone git://github.com/christianparpart/x0.git && cd x0
 
-# Now run cmake to bootstrap the build
-mkdir -p build && cd build
-../autogen.sh
-../configure.sh
+# Now bootstrap the build (in a sandbox directory)
+mkdir -p build && cd build && ../autogen.sh
+../configure # <-- your custom configure-flags here
 
 # Now compiling should just work.
 make && sudo make install
 
 # Run web server on port 8080
-./src/x0d --instant=`pwd`/www/htdocs,8080
+./x0d --instant=`pwd`/www/htdocs,8080
 
 # or try its CLI help
-./src/x0d -h
-
-# have fun hacking and don't forget to checkout the just installed man pages ;-)
-```
-
-### Build from Sources on Ubuntu 12.04
-
-```sh
-# Ensure required GCC (version 4.8)
-sudo apt-get install python-software-properties
-sudo add-apt-repository ppa:ubuntu-toolchain-r/test
-sudo apt-get update
-sudo apt-get install gcc-4.8 g++-4.8
-
-# Installs required dependencies
-sudo apt-get install make cmake libssl-dev \
-    libmysqlclient-dev libev-dev zlib1g-dev libbz2-dev pkg-config \
-    libpcre3-dev libfcgi-dev libgoogle-perftools0 libpam-dev git
-
-# If you want to built the tests, you must install libgtest-dev and then
-# built it yourself
-sudo apt-get install libgtest-dev
-cd /usr/src/gtest && sudo cmake -DCMAKE_C_COMPILER=$CC \
-        -DCMAKE_CXX_COMPILER=$CXX . && sudo make && \
-    sudo cp -vpi libgtest*.a /usr/local/lib/; cd -
-
-# Install git and clone repository
-git clone git://github.com/xzero/x0.git && cd x0
-
-# Now run cmake to bootstrap the build
-mkdir -p build && cd build
-cmake .. -DCMAKE_C_COMPILER=/usr/bin/gcc-4.8 -DCMAKE_CXX_COMPILER=/usr/bin/g++-4.8
-
-# Now compiling should just work.
-make && sudo make install
-
-# Run web server on port 8080
-./src/x0d --instant=`pwd`/www/htdocs,8080
-
-# or try its CLI help
-./src/x0d -h
+./x0d -h
 
 # have fun hacking and don't forget to checkout the just installed man pages ;-)
 ```
