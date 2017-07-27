@@ -256,9 +256,9 @@ bool ProxyModule::proxy_cluster_auto(XzeroContext* cx, Params& args) {
 
   HttpCluster* cluster = findLocalCluster(host);
   if (!cluster) {
-    cx->response()->setStatus(HttpStatus::NotFound);
-    cx->response()->completed();
-    return true;
+    bool internalRedirect = false;
+    cx->sendErrorPage(HttpStatus::NotFound, &internalRedirect);
+    return internalRedirect == false;
   }
 
   std::string pseudonym = pseudonym_;
