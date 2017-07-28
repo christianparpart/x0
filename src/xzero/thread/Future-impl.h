@@ -243,7 +243,7 @@ void Promise<T>::success(T&& value) const {
   state_->wakeup.wakeup();
 
   if (state_->on_success) {
-    state_->on_success(std::move(state_->value()));
+    state_->on_success(state_->value());
   }
 }
 
