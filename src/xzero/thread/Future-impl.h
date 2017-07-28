@@ -53,7 +53,7 @@ void Future<T>::wait() const {
 template<typename T>
 template<typename U>
 void Future<T>::onFailure(Promise<U> forward) {
-  onFailure([this, forward](const std::error_code& ec) {
+  onFailure([this, forward](std::error_code ec) {
     forward.failure(ec);
   });
 }
@@ -70,7 +70,7 @@ void Future<T>::onFailure(std::function<void(std::error_code)> fn) {
 }
 
 template <typename T>
-void Future<T>::onSuccess(std::function<void (const T& value)> fn) {
+void Future<T>::onSuccess(std::function<void (T& value)> fn) {
   std::unique_lock<std::mutex> lk(state_->mutex);
 
   if (!state_->status) {

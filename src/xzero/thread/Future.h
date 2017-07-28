@@ -51,7 +51,7 @@ class XZERO_BASE_API PromiseState : public RefCounted {
   PromiseStatus status;
 
   std::function<void (std::error_code status)> on_failure;
-  std::function<void (const T& value)> on_success;
+  std::function<void (T& value)> on_success;
 
   friend class Future<T>;
   friend class Promise<T>;
@@ -97,7 +97,7 @@ class XZERO_BASE_API Future {
   template<typename U>
   void onFailure(Promise<U> forward);
   void onFailure(std::function<void (std::error_code ec)> fn);
-  void onSuccess(std::function<void (const T& value)> fn);
+  void onSuccess(std::function<void (T& value)> fn);
 
   void wait() const;
   void wait(const Duration& timeout) const;
@@ -130,7 +130,7 @@ class XZERO_BASE_API Future {
     onFailure([promise](std::error_code ec) { promise.failure(ec); });
     onSuccess([promise, cont](auto val) {
         auto y = cont(val);
-        y.onSuccess([=](const auto& yval) { promise.success(yval); });
+        y.onSuccess([=](auto& yval) { promise.success(yval); });
         y.onFailure([=](std::error_code ec) { promise.failure(ec); });
     });
     return promise.future();
