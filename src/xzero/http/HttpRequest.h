@@ -33,6 +33,12 @@ class XZERO_HTTP_API HttpRequest : public HttpRequestInfo {
  public:
   HttpRequest();
   HttpRequest(HttpVersion version,
+              HttpMethod method,
+              const std::string& uri,
+              const HeaderFieldList& headers,
+              bool secure,
+              HugeBuffer&& content);
+  HttpRequest(HttpVersion version,
               const std::string& method,
               const std::string& uri,
               const HeaderFieldList& headers,
@@ -87,8 +93,8 @@ class XZERO_HTTP_API HttpRequest : public HttpRequestInfo {
   HugeBuffer& getContent();
   const HugeBuffer& getContent() const;
 
-  XZERO_DEPRECATED std::unique_ptr<InputStream> getContentStream();
-  XZERO_DEPRECATED BufferRef getContentBuffer();
+  [[deprecated]] std::unique_ptr<InputStream> getContentStream();
+  [[deprecated]] BufferRef getContentBuffer();
   // }}}
 
  private:

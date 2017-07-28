@@ -31,6 +31,15 @@ HttpRequest::HttpRequest()
 }
 
 HttpRequest::HttpRequest(HttpVersion version,
+                         HttpMethod method,
+                         const std::string& uri,
+                         const HeaderFieldList& headers,
+                         bool secure,
+                         HugeBuffer&& content)
+    : HttpRequest(version, to_string(method), uri, headers, secure, std::move(content)) {
+}
+
+HttpRequest::HttpRequest(HttpVersion version,
                          const std::string& method,
                          const std::string& uri,
                          const HeaderFieldList& headers,
