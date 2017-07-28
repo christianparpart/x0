@@ -76,8 +76,6 @@ class XUrl {
   IPAddress getIPAddress(const std::string& host);
   int getPort(const Uri& uri);
   void query(const Uri& uri);
-  void connected(RefPtr<EndPoint> ep, const Uri& uri);
-  void connectFailure(const std::error_code& ec);
 
  private:
   NativeScheduler scheduler_;
@@ -181,18 +179,9 @@ int XUrl::getPort(const Uri& uri) {
 void XUrl::query(const Uri& uri) {
   IPAddress ipaddr = getIPAddress(uri.host());
   int port = getPort(uri);
-  InetAddress addr(ipaddr, port);
+  InetAddress inetAddr(ipaddr, port);
+  Duration keepAlive = 8_seconds;
 
-  InetEndPoint::connectAsync(
-      addr, connectTimeout_, readTimeout_, writeTimeout_, &scheduler_,
-      std::bind(&XUrl::connected, this, std::placeholders::_1, uri),
-      std::bind(&XUrl::connectFailure, this, std::placeholders::_1));
-
-  scheduler_.runLoop();
-}
-
-void XUrl::connected(RefPtr<EndPoint> ep, const Uri& uri) {
-  HttpClient httpClient(&scheduler_, ep);
   const bool secure = false; // HTTP ?
 
   std::string method = flags_.getString("method");
@@ -222,11 +211,14 @@ void XUrl::connected(RefPtr<EndPoint> ep, const Uri& uri) {
     logInfo("xurl", "< $0: $1", field.name(), field.value());
   }
 
+  HttpClient httpClient(
+      &scheduler_, inetAddr,
+      connectTimeout_, readTimeout_, writeTimeout_,
+      keepAlive);
+
   Future<HttpClient::Response> f = httpClient.send(req);
 
-  scheduler_.runLoop();
-
-  f.onSuccess([](const HttpClient::Response& response) {
+  f.onSuccess([](HttpClient::Response& response) {
     logInfo("xurl", "HTTP/$0 $1 $2", response.version(),
                                      (int) response.status(),
                                      response.reason());
@@ -238,10 +230,12 @@ void XUrl::connected(RefPtr<EndPoint> ep, const Uri& uri) {
     const BufferRef& content = response.content().getBuffer();
     write(STDOUT_FILENO, content.data(), content.size());
   });
-}
 
-void XUrl::connectFailure(const std::error_code& ec) {
-  logError("xurl", "connect() failed. $0", ec.message());
+  f.onFailure([](std::error_code ec) {
+    logError("xurl", "connect() failed. $0", ec.message());
+  });
+
+  scheduler_.runLoop();
 }
 
 int main(int argc, const char* argv[]) {
