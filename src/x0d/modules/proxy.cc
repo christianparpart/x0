@@ -52,6 +52,7 @@ using xzero::http::client::HttpCluster;
 using xzero::http::client::HttpClient;
 
 #define TRACE(msg...) logTrace("proxy", msg)
+#define DEBUG(msg...) logDebug("proxy", msg)
 
 template<typename T>
 static bool isConnectionHeader(const T& name) {
@@ -272,6 +273,9 @@ bool ProxyModule::proxy_cluster_auto(XzeroContext* cx, Params& args) {
     }
   }
 
+  DEBUG("proxy.cluster() auto-detect local cluster '$0', pseudonym '$1'",
+      cluster->name(), pseudonym);
+
   HttpClusterRequest* cr = cx->setCustomData<HttpClusterRequest>(this,
       *cx->request(),
       //cx->request()->getContent(),
@@ -280,7 +284,7 @@ bool ProxyModule::proxy_cluster_auto(XzeroContext* cx, Params& args) {
       daemon().config().responseBodyBufferSize,
       pseudonym);
 
-  cluster->schedule(cr, nullptr);
+  cluster->schedule(cr);
 
   return true;
 }
