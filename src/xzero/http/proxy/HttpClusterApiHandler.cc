@@ -5,10 +5,10 @@
 // file except in compliance with the License. You may obtain a copy of
 // the License at: http://opensource.org/licenses/MIT
 
-#include <xzero/http/client/HttpClusterApiHandler.h>
-#include <xzero/http/client/HttpClusterApi.h>
-#include <xzero/http/client/HttpCluster.h>
-#include <xzero/http/client/HttpClusterMember.h>
+#include <xzero/http/proxy/HttpClusterApiHandler.h>
+#include <xzero/http/proxy/HttpClusterApi.h>
+#include <xzero/http/proxy/HttpCluster.h>
+#include <xzero/http/proxy/HttpClusterMember.h>
 #include <xzero/http/HttpRequest.h>
 #include <xzero/http/HttpResponse.h>
 #include <xzero/JsonWriter.h>
@@ -111,7 +111,7 @@ bool HttpClusterApiHandler::run() {
     return false;
 
   Uri::ParamList params;
-  Uri::parseQueryString(request_->getContentBuffer().str(), &params);
+  Uri::parseQueryString(request_->getContent().getBuffer(), &params);
   Uri::parseQueryString(request_->query(), &params);
   for (const auto& param: params)
     params_[param.first] = param.second;

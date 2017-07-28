@@ -5,10 +5,10 @@
 // file except in compliance with the License. You may obtain a copy of
 // the License at: http://opensource.org/licenses/MIT
 
-#include <xzero/http/client/HttpCluster.h>
-#include <xzero/http/client/HttpClusterRequest.h>
-#include <xzero/http/client/HttpClusterMember.h>
-#include <xzero/http/client/HttpHealthMonitor.h>
+#include <xzero/http/proxy/HttpCluster.h>
+#include <xzero/http/proxy/HttpClusterRequest.h>
+#include <xzero/http/proxy/HttpClusterMember.h>
+#include <xzero/http/proxy/HttpHealthMonitor.h>
 #include <xzero/io/StringInputStream.h>
 #include <xzero/io/InputStream.h>
 #include <xzero/io/FileUtil.h>
@@ -866,8 +866,8 @@ void HttpCluster::onTimeout(HttpClusterRequest* cr) {
     logInfo("HttpCluster",
             "Queued request timed out ($0). $1 $2",
             diff,
-            cr->requestInfo.method(),
-            cr->requestInfo.path());
+            cr->request.method(),
+            cr->request.path());
 
     serviceUnavailable(cr, HttpStatus::GatewayTimeout);
   });

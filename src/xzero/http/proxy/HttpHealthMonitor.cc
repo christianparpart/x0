@@ -5,7 +5,7 @@
 // file except in compliance with the License. You may obtain a copy of
 // the License at: http://opensource.org/licenses/MIT
 
-#include <xzero/http/client/HttpHealthMonitor.h>
+#include <xzero/http/proxy/HttpHealthMonitor.h>
 #include <xzero/net/InetEndPoint.h>
 #include <xzero/io/InputStream.h>
 #include <xzero/StringUtil.h>
@@ -67,17 +67,9 @@ HttpHealthMonitor::HttpHealthMonitor(Executor* executor,
       totalFailCount_(0),
       consecutiveSuccessCount_(0),
       totalOfflineTime_(Duration::Zero),
-      client_(executor_) {
+      client_(executor, inetAddress,
+              connectTimeout, readTimeout, writeTimeout, Duration::Zero) {
   TRACE("ctor: $0", inetAddress);
-
-  BufferRef requestBody;
-  client_.setRequest(HttpRequestInfo(HttpVersion::VERSION_1_1,
-                                     HttpMethod::GET,
-                                     requestPath_,
-                                     requestBody.size(),
-                                     {{"Host", hostHeader_},
-                                      {"User-Agent", "HttpHealthMonitor"}}),
-                     requestBody);
 
   start();
 }
@@ -158,10 +150,14 @@ void HttpHealthMonitor::onCheckNow() {
 
   timerHandle_.reset();
 
-  Future<HttpClient*> f = client_.sendAsync(inetAddress_,
-                                            connectTimeout_,
-                                            readTimeout_,
-                                            writeTimeout_);
+  Future<HttpClient::Response> f = 
+      client_.send(HttpRequest(HttpVersion::VERSION_1_1,
+                               HttpMethod::GET,
+                               requestPath_,
+                               {{"Host", hostHeader_},
+                                {"User-Agent", "HttpHealthMonitor"}},
+                               false,
+                               {}));
 
   f.onSuccess(std::bind(&HttpHealthMonitor::onResponseReceived, this,
                         std::placeholders::_1));
@@ -174,15 +170,15 @@ void HttpHealthMonitor::onFailure(const std::error_code& ec) {
   logFailure();
 }
 
-void HttpHealthMonitor::onResponseReceived(HttpClient* client) {
+void HttpHealthMonitor::onResponseReceived(const HttpClient::Response& response) {
   TRACE("onResponseReceived");
   auto i = std::find(successCodes_.begin(),
                      successCodes_.end(),
-                     client->responseInfo().status());
+                     response.status());
   if (i == successCodes_.end()) {
     DEBUG("Received bad response status code. $0 $1",
-          (int) client->responseInfo().status(),
-          client->responseInfo().status());
+          static_cast<int>(response.status()),
+          response.status());
     logFailure();
     return;
   }

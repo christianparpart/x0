@@ -5,8 +5,8 @@
 // file except in compliance with the License. You may obtain a copy of
 // the License at: http://opensource.org/licenses/MIT
 
-#include <xzero/http/client/HttpClusterRequest.h>
-#include <xzero/http/client/HttpClusterMember.h>
+#include <xzero/http/proxy/HttpClusterRequest.h>
+#include <xzero/http/proxy/HttpClusterMember.h>
 #include <xzero/MonotonicClock.h>
 #include <xzero/TokenShaper.h>
 #include <xzero/JsonWriter.h>
@@ -36,8 +36,8 @@ HttpClusterRequest::HttpClusterRequest(const HttpRequest& _request,
       backend(nullptr),
       tryCount(0),
       tokens(0),
-      requestInfo(_requestInfo),
-      proxyVersion_(requestInfo.version()),
+      request(_request),
+      proxyVersion_(request.version()),
       proxyId_(proxyId),
       viaText_(),
       responseListener(std::move(_responseListener)) {

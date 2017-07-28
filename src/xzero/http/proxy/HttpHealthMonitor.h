@@ -18,18 +18,37 @@
 #include <vector>
 
 namespace xzero {
+  class InetEndPoint;
+  class JsonWriter;
+}
 
-class InetEndPoint;
-class JsonWriter;
+namespace xzero::http::client {
 
-namespace http {
-namespace client {
-
+/**
+ * Monitors an HTTP endpoint for healthiness.
+ */
 class HttpHealthMonitor {
  public:
   enum class State { Undefined, Offline, Online };
   typedef std::function<void(HttpHealthMonitor*, State)> StateChangeNotify;
 
+  /**
+   * Initializes the health monitor.
+   *
+   * @param executor Executor engine to use for performing I/O and tasks.
+   * @param inetAddress Upstream IP:port to connect to
+   * @param hostHeader HTTP host header to pass.
+   * @param requestPath HTTP request path to use.
+   * @param fcgiScriptFilename
+   * @param interval The check interval.
+   * @param successThreshold Number of consecutive checks to pass until this
+   *                         monitor switches from unhealthy to healthy state.
+   * @param successCodes HTTP status codes to consider as successful.
+   * @param connectTimeout Network connect timeout.
+   * @param readTimeout Network read timeout.
+   * @param writeTimeout Network write timeout.
+   * @param onStateChange Callback to invoke upon state changes.
+   */
   HttpHealthMonitor(Executor* executor,
                     const InetAddress& inetAddress,
                     const std::string& hostHeader,
@@ -89,7 +108,7 @@ class HttpHealthMonitor {
   void logFailure();
   void onCheckNow();
   void onFailure(const std::error_code& ec);
-  void onResponseReceived(HttpClient* client);
+  void onResponseReceived(const HttpClient::Response& response);
 
  private:
   Executor* executor_;
@@ -107,7 +126,7 @@ class HttpHealthMonitor {
   // number of consecutive succeeding responses before marking changing state to *online*.
   unsigned successThreshold_;
 
-  std::function<void(HttpHealthMonitor*, State)> onStateChange_;
+  StateChangeNotify onStateChange_;
 
   State state_;
   size_t totalFailCount_;
@@ -117,6 +136,4 @@ class HttpHealthMonitor {
   HttpClient client_;
 };
 
-} // namespace client
-} // namespace http
-} // namespace xzero
+} // namespace xzero::http::client

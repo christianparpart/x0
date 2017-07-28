@@ -7,9 +7,7 @@
 
 #pragma once
 
-namespace xzero {
-namespace http {
-namespace client {
+namespace xzero::http::client {
 
 /*!
  * Reflects the result of a request scheduling attempt.
@@ -25,6 +23,4 @@ enum class HttpClusterSchedulerStatus {
   Overloaded
 };
 
-} // namespace http
-} // namespace client
-} // namespace xzero
+} // namespace xzero::http::client

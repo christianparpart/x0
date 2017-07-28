@@ -14,9 +14,9 @@
 #include "proxy.h"
 #include <x0d/XzeroContext.h>
 #include <xzero/sysconfig.h>
-#include <xzero/http/client/HttpCluster.h>
-#include <xzero/http/client/HttpClusterRequest.h>
-#include <xzero/http/client/HttpClusterApiHandler.h>
+#include <xzero/http/proxy/HttpCluster.h>
+#include <xzero/http/proxy/HttpClusterRequest.h>
+#include <xzero/http/proxy/HttpClusterApiHandler.h>
 #include <xzero/http/client/HttpClient.h>
 #include <xzero/http/HttpRequest.h>
 #include <xzero/http/HttpResponse.h>
@@ -186,7 +186,7 @@ class HttpResponseBuilder : public HttpListener { // {{{
   void onMessageContent(const BufferRef& chunk) override;
   void onMessageContent(FileView&& chunk) override;
   void onMessageEnd() override;
-  void onProtocolError(HttpStatus code, const std::string& message) override;
+  void onError(std::error_code ec) override;
 
  private:
   HttpResponse* response_;
@@ -224,11 +224,15 @@ void HttpResponseBuilder::onMessageEnd() {
   response_->completed();
 }
 
-void HttpResponseBuilder::onProtocolError(HttpStatus code, const std::string& message) {
+void HttpResponseBuilder::onError(std::error_code ec) {
   // TODO used? sufficient? resistent? chocolate?
-  response_->setStatus(code);
-  response_->setReason(message);
-  response_->completed();
+
+  if (ec.category() == HttpStatusCategory::get()) {
+    response_->sendError(static_cast<HttpStatus>(ec.value()));
+  } else {
+    logError("proxy", "Unhandled error in response builder. $0", ec.message());
+    response_->sendError(HttpStatus::InternalServerError);
+  }
 }
 // }}}
 
@@ -270,7 +274,7 @@ bool ProxyModule::proxy_cluster_auto(XzeroContext* cx, Params& args) {
 
   HttpClusterRequest* cr = cx->setCustomData<HttpClusterRequest>(this,
       *cx->request(),
-      cx->request()->getContentBuffer(),
+      //cx->request()->getContent(),
       std::unique_ptr<HttpListener>(new HttpResponseBuilder(cx->response())),
       cx->response()->executor(),
       daemon().config().responseBodyBufferSize,
@@ -305,7 +309,7 @@ bool ProxyModule::proxy_cluster(XzeroContext* cx, Params& args) {
 
   HttpClusterRequest* cr = cx->setCustomData<HttpClusterRequest>(this,
       *cx->request(),
-      cx->request()->getContentBuffer(),
+      // cx->request()->getContentBuffer(),
       std::unique_ptr<HttpListener>(new HttpResponseBuilder(cx->response())),
       cx->response()->executor(),
       daemon().config().responseBodyBufferSize,
@@ -333,28 +337,30 @@ bool ProxyModule::proxy_fcgi(XzeroContext* cx, xzero::flow::vm::Params& args) {
 }
 
 bool ProxyModule::proxy_http(XzeroContext* cx, xzero::flow::vm::Params& args) {
-  InetAddress addr(args.getIPAddress(1), args.getInt(2));
+  InetAddress upstreamAddr(args.getIPAddress(1), args.getInt(2));
   FlowString onClientAbortStr = args.getString(3);
   Duration connectTimeout = 16_seconds;
   Duration readTimeout = 60_seconds;
   Duration writeTimeout = 8_seconds;
+  Duration keepAlive = 0_seconds;
   Executor* executor = cx->response()->executor();
 
   if (tryHandleTrace(cx))
     return true;
 
-  HttpClient* client = new HttpClient(executor);
-  client->setRequest(*cx->request(), cx->request()->getContentBuffer());
-  Future<HttpClient*> f = client->sendAsync(
-      addr, connectTimeout, readTimeout, writeTimeout);
+  HttpClient* client = new HttpClient(executor, upstreamAddr,
+      connectTimeout, readTimeout, writeTimeout, keepAlive);
 
-  f.onFailure([cx, addr] (const std::error_code& ec) {
-    logError("proxy", "Failed to proxy to $0. $1", addr, ec.message());
+  Future<HttpClient::Response> f = client->send(*cx->request());
+
+  f.onFailure([client, cx, upstreamAddr] (std::error_code ec) {
+    logError("proxy", "Failed to proxy to $0. $1", upstreamAddr, ec.message());
     bool internalRedirect = false;
     cx->sendErrorPage(HttpStatus::ServiceUnavailable, &internalRedirect);
+    delete client;
   });
-  f.onSuccess([this, cx] (HttpClient* client) {
-    for (const HeaderField& field: client->responseInfo().headers()) {
+  f.onSuccess([client, cx, this] (HttpClient::Response& response) {
+    for (const HeaderField& field: response.headers()) {
       if (!isConnectionHeader(field.name())) {
         cx->response()->addHeader(field.name(), field.value());
       }
@@ -362,15 +368,16 @@ bool ProxyModule::proxy_http(XzeroContext* cx, xzero::flow::vm::Params& args) {
     addVia(cx);
 
     // TODO: what about streaming responses?
-    cx->response()->setStatus(client->responseInfo().status());
-    cx->response()->setReason(client->responseInfo().reason());
-    cx->response()->setContentLength(client->responseInfo().contentLength());
-    cx->response()->write(std::move(client->responseBody()));
+    cx->response()->setStatus(response.status());
+    cx->response()->setReason(response.reason());
+    cx->response()->setContentLength(response.content().size());
+    cx->response()->write(std::move(response.content()));
     cx->response()->completed();
 
     delete client;
   });
 
+  // FIXME: a failure may generate an internal redirect, thus, returning true is bad.
   return true;
 }
 
@@ -464,7 +471,7 @@ bool ProxyModule::tryHandleTrace(XzeroContext* cx) {
     return false;
   }
 
-  BufferRef body = cx->request()->getContentBuffer();
+  BufferRef body = cx->request()->getContent().getBuffer();
 
   HttpRequestInfo requestInfo(
       cx->request()->version(),

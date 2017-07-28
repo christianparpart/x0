@@ -9,7 +9,7 @@
 
 #include <x0d/XzeroModule.h>
 #include <xzero/logging.h>
-#include <xzero/http/client/HttpClusterApi.h>
+#include <xzero/http/proxy/HttpClusterApi.h>
 #include <xzero-flow/AST.h>
 #include <xzero-flow/ir/Instr.h>
 

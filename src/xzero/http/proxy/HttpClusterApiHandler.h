@@ -7,24 +7,24 @@
 
 #pragma once
 
-#include <string>
-#include <vector>
-#include <unordered_map>
 #include <xzero/CustomDataMgr.h>
 #include <xzero/Buffer.h>
+#include <unordered_map>
+#include <string>
+#include <vector>
 
 namespace xzero {
+  class Duration;
+  class IPAddress;
+}
 
-class Duration;
-class IPAddress;
+namespace xzero::http {
+  class HttpRequest;
+  class HttpResponse;
+  enum class HttpStatus;
+}
 
-namespace http {
-
-class HttpRequest;
-class HttpResponse;
-enum class HttpStatus;
-
-namespace client {
+namespace xzero::http::client {
 
 class HttpClusterApi;
 class HttpClusterMember;
@@ -102,6 +102,4 @@ class HttpClusterApiHandler : public CustomData {
   std::unordered_map<std::string, std::string> params_;
 };
 
-} // namespace client
-} // namespace http
-} // namespace xzero
+} // namespace xzero::http::client

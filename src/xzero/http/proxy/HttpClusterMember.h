@@ -7,27 +7,26 @@
 
 #pragma once
 
-#include <list>
-#include <vector>
-#include <xzero/thread/Future.h>
+#include <xzero/http/proxy/HttpClusterSchedulerStatus.h>
+#include <xzero/http/proxy/HttpHealthMonitor.h>
 #include <xzero/http/client/HttpClient.h>
-#include <xzero/http/client/HttpClusterSchedulerStatus.h>
-#include <xzero/http/client/HttpHealthMonitor.h>
+#include <xzero/thread/Future.h>
 #include <xzero/net/InetAddress.h>
 #include <xzero/CompletionHandler.h>
 #include <xzero/Duration.h>
 #include <xzero/Counter.h>
 #include <xzero/Uri.h>
+#include <vector>
+#include <list>
 #include <mutex>
 #include <utility>
 
 namespace xzero {
+  class Executor;
+  class JsonWriter;
+}
 
-class Executor;
-class JsonWriter;
-
-namespace http {
-namespace client {
+namespace xzero::http::client {
 
 class HttpClusterRequest;
 
@@ -79,14 +78,14 @@ public:
 
   HttpHealthMonitor* healthMonitor() const { return healthMonitor_.get(); }
 
-  HttpClusterSchedulerStatus tryProcess(HttpClusterRequest* cr);
+  [[nodiscard]] HttpClusterSchedulerStatus tryProcess(HttpClusterRequest* cr);
   void release();
 
   void serialize(JsonWriter& json) const;
 
 private:
   bool process(HttpClusterRequest* cr);
-  void onResponseReceived(HttpClusterRequest* cr);
+  void onResponseReceived(HttpClusterRequest* cr, const HttpClient::Response& r);
   void onFailure(HttpClusterRequest* cr, const std::error_code& ec);
 
 private:
@@ -121,9 +120,11 @@ class HttpClusterMember::EventListener {
    * Invoked when backend is done processing with one request.
    */
   virtual void onProcessingSucceed(HttpClusterMember* member) = 0;
+
+  /**
+   * Invoked when given @p request has failed processing.
+   */
   virtual void onProcessingFailed(HttpClusterRequest* request) = 0;
 };
 
-} // namespace client
-} // namespace http
-} // namespace xzero
+} // namespace xzero::http::client

@@ -7,14 +7,12 @@
 
 #pragma once
 
-#include <xzero/http/client/HttpClusterSchedulerStatus.h>
+#include <xzero/http/proxy/HttpClusterSchedulerStatus.h>
 #include <vector>
 #include <string>
 #include <memory>
 
-namespace xzero {
-namespace http {
-namespace client {
+namespace xzero::http::client {
 
 class HttpClusterMember;
 class HttpClusterRequest;
@@ -61,6 +59,4 @@ class HttpClusterScheduler::Chance : public HttpClusterScheduler {
   HttpClusterSchedulerStatus schedule(HttpClusterRequest* cn) override;
 };
 
-} // namespace client
-} // namespace http
-} // namespace xzero
+} // namespace xzero::http::client

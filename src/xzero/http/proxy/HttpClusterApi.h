@@ -11,13 +11,12 @@
 #include <list>
 #include <memory>
 
-namespace xzero {
-namespace http {
+namespace xzero::http {
+  class HttpRequest;
+  class HttpResponse;
+}
 
-class HttpRequest;
-class HttpResponse;
-
-namespace client {
+namespace xzero::http::client {
 
 class HttpCluster;
 
@@ -39,6 +38,4 @@ class HttpClusterApi {
   virtual void destroyCluster(const std::string& name) = 0;
 };
 
-} // namespace client
-} // namespace http
-} // namespace xzero
+} // namespace xzero::http::client

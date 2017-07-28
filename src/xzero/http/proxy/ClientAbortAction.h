@@ -9,9 +9,7 @@
 
 #include <string>
 
-namespace xzero {
-namespace http {
-namespace client {
+namespace xzero::http::client {
 
 /**
  * Action/behavior how to react on client-side aborts.
@@ -47,6 +45,4 @@ enum class ClientAbortAction {
 // std::string tos(ClientAbortAction value);
 // }}}
 
-} // namespace client
-} // namespace http
-} // namespace xzero
+} // namespace xzero::http::client

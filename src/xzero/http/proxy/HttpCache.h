@@ -7,23 +7,26 @@
 
 #pragma once
 
-#include <xzero/Buffer.h>
 #include <xzero/io/Filter.h>
-#include <list>
+#include <xzero/Buffer.h>
 #include <memory>
+#include <list>
 
 namespace xzero {
+  class InputStream;
+  class OutputStream;
+}
 
-class InputStream;
-class OutputStream;
+namespace xzero::http {
+  class HttpRequestInfo;
+  class HttpResponseInfo;
+}
 
-namespace http {
+namespace xzero::http::client {
 
-class HttpRequestInfo;
-class HttpResponseInfo;
-
-namespace client {
-
+/**
+ * Implements an HTTP Object Cache Service.
+ */
 class HttpCache {
  public:
   class Builder;
@@ -157,12 +160,11 @@ class HttpCache {
    * Actively purges (expires) a cache object from the store.
    *
    * This does not mean that the cache object is gone from the store. It is
-   *usually
-   * just flagged as invalid, so it can still be served if stale content is
-   *requested.
+   * usually just flagged as invalid, so it can still be served if stale content
+   * is requested.
    *
-   * \retval true Object found.
-   * \retval false Object not found.
+   * @retval true Object found.
+   * @retval false Object not found.
    */
   bool purge(const std::string& cacheKey);
 
@@ -405,6 +407,4 @@ class HttpCache::ConcreteObject {
   friend class HttpCache;
 };
 
-} // namespace client
-} // namespace http
-} // namespace xzero
+} // namespace xzero::http::client

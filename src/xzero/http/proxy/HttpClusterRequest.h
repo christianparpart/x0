@@ -7,8 +7,7 @@
 
 #pragma once
 
-#include <xzero/http/client/HttpClient.h>
-#include <xzero/http/HttpRequestInfo.h>
+#include <xzero/http/HttpRequest.h>
 #include <xzero/http/HttpListener.h>
 #include <xzero/executor/Executor.h>
 #include <xzero/CustomDataMgr.h>
@@ -18,6 +17,10 @@
 
 namespace xzero {
   class InputStream;
+}
+
+namespace xzero::http::client {
+  class HttpClient;
 }
 
 namespace xzero::http::client {
@@ -31,8 +34,7 @@ class HttpClusterRequest : public CustomData,
   HttpClusterRequest(const HttpClusterRequest&) = delete;
   HttpClusterRequest& operator=(const HttpClusterRequest&) = delete;
 
-  HttpClusterRequest(const HttpRequestInfo& _requestInfo,
-                     const BufferRef& _requestBody,
+  HttpClusterRequest(const HttpRequest& _request,
                      std::unique_ptr<HttpListener> _responseListener,
                      Executor* _executor,
                      size_t responseBodyBufferSize,
@@ -56,19 +58,21 @@ class HttpClusterRequest : public CustomData,
  public:
   MonotonicTime ctime;
   Executor* executor;
-  HttpRequestInfo requestInfo;
 
   // the bucket (node) this request is to be scheduled via
   TokenShaper<HttpClusterRequest>::Node* bucket;
 
   // designated backend to serve this request
   HttpClusterMember* backend;
+  HttpClient* client;
 
   // number of scheduling attempts
   size_t tryCount;
 
   // contains the number of currently acquired tokens by this request
   size_t tokens;
+
+  HttpRequest request;
 
   HttpVersion proxyVersion_;
   std::string proxyId_;

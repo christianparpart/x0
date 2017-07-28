@@ -5,9 +5,9 @@
 // file except in compliance with the License. You may obtain a copy of
 // the License at: http://opensource.org/licenses/MIT
 
-#include <xzero/http/client/HttpClusterMember.h>
-#include <xzero/http/client/HttpClusterRequest.h>
-#include <xzero/http/client/HttpHealthMonitor.h>
+#include <xzero/http/proxy/HttpClusterMember.h>
+#include <xzero/http/proxy/HttpClusterRequest.h>
+#include <xzero/http/proxy/HttpHealthMonitor.h>
 #include <xzero/net/InetEndPoint.h>
 #include <xzero/io/FileView.h>
 #include <xzero/JsonWriter.h>
@@ -115,11 +115,12 @@ void HttpClusterMember::release() {
 }
 
 bool HttpClusterMember::process(HttpClusterRequest* cr) {
-  Future<HttpClient::Response&&> f = cr->client.send(cr->requestInfo);
+  Future<HttpClient::Response> f = cr->client->send(cr->request);
 
   f.onFailure(std::bind(&HttpClusterMember::onFailure, this,
                         cr, std::placeholders::_1));
-  f.onSuccess(std::bind(&HttpClusterMember::onResponseReceived, this, cr));
+  f.onSuccess(std::bind(&HttpClusterMember::onResponseReceived, this, cr,
+                        std::placeholders::_1));
 
   return true;
 }
@@ -133,7 +134,8 @@ void HttpClusterMember::onFailure(HttpClusterRequest* cr, const std::error_code&
   eventListener_->onProcessingFailed(cr);
 }
 
-void HttpClusterMember::onResponseReceived(HttpClusterRequest* cr) {
+void HttpClusterMember::onResponseReceived(HttpClusterRequest* cr,
+                                           const HttpClient::Response& response) {
   --load_;
 
   auto isConnectionHeader = [](const std::string& name) -> bool {
@@ -156,22 +158,23 @@ void HttpClusterMember::onResponseReceived(HttpClusterRequest* cr) {
     return false;
   };
 
-  cr->onMessageBegin(cr->client.responseInfo().version(),
-                     cr->client.responseInfo().status(),
-                     BufferRef(cr->client.responseInfo().reason()));
+  cr->onMessageBegin(response.version(),
+                     response.status(),
+                     BufferRef(response.reason()));
 
-  for (const HeaderField& field: cr->client.responseInfo().headers()) {
+  for (const HeaderField& field: response.headers()) {
     if (!isConnectionHeader(field.name())) {
       cr->onMessageHeader(BufferRef(field.name()), BufferRef(field.value()));
     }
   }
 
   cr->onMessageHeaderEnd();
-  if (cr->client.responseBody().isBuffered()) {
-    cr->onMessageContent(cr->client.responseBody().getBuffer());
+  if (response.content().isBuffered()) {
+    cr->onMessageContent(response.content().getBuffer());
   } else {
-    cr->onMessageContent(cr->client.responseBody().getFileView());
+    cr->onMessageContent(response.content().getFileView());
   }
+
   cr->onMessageEnd();
 }
 

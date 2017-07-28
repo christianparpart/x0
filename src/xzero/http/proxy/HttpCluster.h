@@ -8,10 +8,9 @@
 #pragma once
 
 #include <xzero/thread/Future.h>
-#include <xzero/http/client/HttpClient.h>
-#include <xzero/http/client/HttpClusterMember.h>
-#include <xzero/http/client/HttpClusterScheduler.h>
-#include <xzero/http/client/HttpHealthMonitor.h>
+#include <xzero/http/proxy/HttpClusterMember.h>
+#include <xzero/http/proxy/HttpClusterScheduler.h>
+#include <xzero/http/proxy/HttpHealthMonitor.h>
 #include <xzero/http/HttpRequestInfo.h>
 #include <xzero/http/HttpResponseInfo.h>
 #include <xzero/net/InetAddress.h>
@@ -26,17 +25,17 @@
 #include <list>
 
 namespace xzero {
+  class InputStream;
+  class Executor;
+  class IniFile;
+  class JsonWriter;
+}
 
-class InputStream;
-class Executor;
-class IniFile;
-class JsonWriter;
+namespace xzero::http {
+  class HttpListener;
+}
 
-namespace http {
-
-class HttpListener;
-
-namespace client {
+namespace xzero::http::client {
 
 class HttpClusterMember;
 class HttpClusterScheduler;
@@ -351,6 +350,4 @@ class HttpCluster : public HttpClusterMember::EventListener {
   std::atomic<unsigned long long> dropped_;
 };
 
-} // namespace client
-} // namespace http
-} // namespace xzero
+} // namespace xzero::http::client

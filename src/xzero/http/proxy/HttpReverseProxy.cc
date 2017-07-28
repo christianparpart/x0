@@ -5,15 +5,11 @@
 // file except in compliance with the License. You may obtain a copy of
 // the License at: http://opensource.org/licenses/MIT
 
-#include <xzero/http/client/HttpReverseProxy.h>
+#include <xzero/http/proxy/HttpReverseProxy.h>
 #include <xzero/http/HttpRequest.h>
 #include <xzero/http/HttpResponse.h>
 
-namespace xzero {
-namespace http {
-namespace client {
+namespace xzero::http::client {
 
 
-} // namespace client
-} // namespace http
-} // namespace xzero
+} // namespace xzero::http::client

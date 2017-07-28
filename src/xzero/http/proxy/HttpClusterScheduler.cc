@@ -5,9 +5,9 @@
 // file except in compliance with the License. You may obtain a copy of
 // the License at: http://opensource.org/licenses/MIT
 
-#include <xzero/http/client/HttpClusterScheduler.h>
-#include <xzero/http/client/HttpClusterMember.h>
-#include <xzero/http/client/HttpClusterRequest.h>
+#include <xzero/http/proxy/HttpClusterScheduler.h>
+#include <xzero/http/proxy/HttpClusterMember.h>
+#include <xzero/http/proxy/HttpClusterRequest.h>
 
 namespace xzero {
 namespace http {
