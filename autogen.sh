@@ -24,8 +24,6 @@ if test "$1" == "clean"; then
   exit 0
 fi
 
-[[ $# -ne 1 ]] && autoreconf --verbose --force --install ${ROOT}
-
 findexe() {
   for exe in ${@}; do
     if which $exe &>/dev/null; then
@@ -43,6 +41,8 @@ export CXXFLAGS="-O0 -g"
 echo CXX = $CXX
 echo CC = $CC
 echo CXXFLAGS = $CXXFLAGS
+
+[[ "${1}" != "--help" ]] && autoreconf --verbose --force --install ${ROOT}
 
 exec ${ROOT}/configure --prefix="${HOME}/usr" \
                        --sysconfdir="${HOME}/usr/etc" \
