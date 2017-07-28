@@ -47,51 +47,85 @@ template<typename T> static bool isConnectionHeader(const T& name) { // {{{
 } // }}}
 
 HttpClient::HttpClient(Executor* executor,
-                       RefPtr<EndPoint> upstream)
-    : executor_(executor),
-      endpoint_(upstream) {
-  setupConnection();
+                       const InetAddress& upstream)
+    : HttpClient(executor,
+                 upstream,
+                 10_seconds,   // connectTimeout
+                 5_minutes,   // readTimeout
+                 10_seconds,   // writeTimeout
+                 60_seconds) { // keepAlive
 }
 
 HttpClient::HttpClient(Executor* executor,
                        const InetAddress& upstream,
                        Duration connectTimeout,
                        Duration readTimeout,
-                       Duration writeTimeout)
+                       Duration writeTimeout,
+                       Duration keepAlive)
     : executor_(executor),
-      endpoint_() {
-  Future<int> f = InetUtil::connect(upstream, connectTimeout, executor);
-
-  f.onSuccess([upstream, readTimeout, writeTimeout, this](int fd) {
-    endpoint_ = RefPtr<EndPoint>(new InetEndPoint(fd,
-                                                  upstream.family(),
-                                                  readTimeout,
-                                                  writeTimeout,
-                                                  executor_));
-    setupConnection();
-  });
-
-  f.onFailure([upstream](std::error_code ec) {
-    logError("HttpClient", "Failed to connect to $0. $1", upstream, ec.message());
-  });
+      upstream_(upstream),
+      connectTimeout_(connectTimeout),
+      readTimeout_(readTimeout),
+      writeTimeout_(writeTimeout),
+      keepAlive_(keepAlive),
+      endpoint_(),
+      pendingTasks_() {
 }
 
-HttpClient::HttpClient(Executor* executor, const InetAddress& upstream)
-    : HttpClient(executor,
-                 upstream,
-                 5_seconds,
-                 5_seconds,
-                 5_seconds) {
+HttpClient::HttpClient(Executor* executor,
+                       RefPtr<EndPoint> upstream,
+                       Duration readTimeout,
+                       Duration writeTimeout,
+                       Duration keepAlive)
+    : executor_(executor),
+      upstream_(),
+      connectTimeout_(Duration::Zero),
+      readTimeout_(readTimeout),
+      writeTimeout_(writeTimeout),
+      keepAlive_(keepAlive),
+      endpoint_(upstream),
+      pendingTasks_() {
 }
 
 HttpClient::HttpClient(HttpClient&& other)
     : executor_(other.executor_),
-      endpoint_(std::move(other.endpoint_)) {
+      upstream_(std::move(other.upstream_)),
+      connectTimeout_(std::move(other.connectTimeout_)),
+      readTimeout_(std::move(other.readTimeout_)),
+      writeTimeout_(std::move(other.writeTimeout_)),
+      keepAlive_(std::move(other.keepAlive_)),
+      endpoint_(std::move(other.endpoint_)),
+      pendingTasks_(std::move(other.pendingTasks_)) {
 }
 
 void HttpClient::send(const Request& request,
                       HttpListener* responseListener) {
   pendingTasks_.emplace_back(Task{request, responseListener, false});
+
+  if (!endpoint_) {
+    startConnect();
+  }
+}
+
+bool HttpClient::isClosed() const {
+  return !endpoint_;
+}
+
+void HttpClient::startConnect() {
+  Future<int> f = InetUtil::connect(upstream_, connectTimeout_, executor_);
+
+  f.onSuccess([this](int fd) {
+    endpoint_ = RefPtr<EndPoint>(new InetEndPoint(fd,
+                                                  upstream_.family(),
+                                                  readTimeout_,
+                                                  writeTimeout_,
+                                                  executor_));
+    setupConnection();
+  });
+
+  f.onFailure([this](std::error_code ec) {
+    logError("HttpClient", "Failed to connect to $0. $1", upstream_, ec.message());
+  });
 }
 
 bool HttpClient::tryConsumeTask() {
@@ -116,8 +150,7 @@ Future<HttpClient::Response> HttpClient::send(const Request& request) {
   Promise<Response> promise;
   send(request,
        [promise](const Response& response) {
-         //promise.success({});
-         //promise.success(std::move(response));
+         promise.success(std::move(response));
        },
        [promise](std::error_code ec) {
          promise.failure(ec);

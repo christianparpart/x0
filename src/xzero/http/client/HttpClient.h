@@ -27,18 +27,18 @@
 #include <deque>
 
 namespace xzero {
+  class EndPoint;
+  class InetAddress;
+  class Executor;
+  class FileView;
+}
 
-class EndPoint;
-class InetAddress;
-class Executor;
-class FileView;
+namespace xzero::http {
+  class HeaderFieldList;
+  class HttpRequest;
+}
 
-namespace http {
-
-class HeaderFieldList;
-class HttpRequest;
-
-namespace client {
+namespace xzero::http::client {
 
 class HttpTransport;
 
@@ -58,16 +58,20 @@ class HttpClient {
   class Response;
 
   HttpClient(Executor* executor,
-             RefPtr<EndPoint> upstream);
+             const InetAddress& upstream);
 
   HttpClient(Executor* executor,
              const InetAddress& upstream,
              Duration connectTimeout,
              Duration readTimeout,
-             Duration writeTimeout);
+             Duration writeTimeout,
+             Duration keepAlive);
 
   HttpClient(Executor* executor,
-             const InetAddress& upstream);
+             RefPtr<EndPoint> upstream,
+             Duration readTimeout,
+             Duration writeTimeout,
+             Duration keepAlive);
 
   HttpClient(HttpClient&& other);
 
@@ -112,6 +116,8 @@ class HttpClient {
   };
 
  private:
+  bool isClosed() const;
+  void startConnect();
   void setupConnection();
   HttpTransport* getChannel();
   bool tryConsumeTask();
@@ -120,6 +126,13 @@ class HttpClient {
 
  private:
   Executor* executor_;
+
+  InetAddress upstream_;
+  Duration connectTimeout_;
+  Duration readTimeout_;
+  Duration writeTimeout_;
+  Duration keepAlive_;
+
   RefPtr<EndPoint> endpoint_;
   std::deque<Task> pendingTasks_;
 };
@@ -155,6 +168,4 @@ class HttpClient::ResponseBuilder : public HttpListener {
   Response response_;
 };
 
-} // namespace client
-} // namespace http
-} // namespace xzero
+} // namespace xzero::http::client
