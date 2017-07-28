@@ -11,14 +11,10 @@
 #include <xzero/http/proxy/HttpClusterMember.h>
 #include <xzero/http/proxy/HttpClusterScheduler.h>
 #include <xzero/http/proxy/HttpHealthMonitor.h>
-#include <xzero/http/HttpRequestInfo.h>
-#include <xzero/http/HttpResponseInfo.h>
 #include <xzero/net/InetAddress.h>
-#include <xzero/CompletionHandler.h>
 #include <xzero/TokenShaper.h>
 #include <xzero/Duration.h>
 #include <xzero/Counter.h>
-#include <xzero/Uri.h>
 #include <utility>
 #include <istream>
 #include <vector>
@@ -36,10 +32,6 @@ namespace xzero::http {
 }
 
 namespace xzero::http::client {
-
-class HttpClusterMember;
-class HttpClusterScheduler;
-class HttpCache;
 
 struct HttpHealthMonitorSettings {
   std::string hostHeader = "healthMonitor";
