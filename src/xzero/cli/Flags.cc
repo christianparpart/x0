@@ -10,9 +10,12 @@
 #include <xzero/net/IPAddress.h>
 #include <xzero/RuntimeError.h>
 #include <xzero/Buffer.h>
+#include <xzero/logging.h>
 #include <sstream>
 
 extern char** environ;
+
+#define TRACE(msg...) logTrace("cli.Flags", msg)
 
 namespace xzero {
 
@@ -46,6 +49,7 @@ bool Flags::isSet(const std::string& flag) const {
 }
 
 IPAddress Flags::getIPAddress(const std::string& flag) const {
+  TRACE("getIPAddress '$0'", flag);
   auto i = set_.find(flag);
   if (i == set_.end())
     RAISE_STATUS(CliFlagNotFoundError);
@@ -65,6 +69,7 @@ std::string Flags::asString(const std::string& flag) const {
 }
 
 std::string Flags::getString(const std::string& flag) const {
+  TRACE("getString '$0'", flag);
   auto i = set_.find(flag);
   if (i == set_.end())
     RAISE_STATUS(CliFlagNotFoundError);
@@ -76,6 +81,7 @@ std::string Flags::getString(const std::string& flag) const {
 }
 
 long int Flags::getNumber(const std::string& flag) const {
+  TRACE("getNumber '$0'", flag);
   auto i = set_.find(flag);
   if (i == set_.end())
     RAISE_STATUS(CliFlagNotFoundError);
@@ -87,6 +93,7 @@ long int Flags::getNumber(const std::string& flag) const {
 }
 
 float Flags::getFloat(const std::string& flag) const {
+  TRACE("getFloat '$0'", flag);
   auto i = set_.find(flag);
   if (i == set_.end())
     RAISE_STATUS(CliFlagNotFoundError);
@@ -98,6 +105,7 @@ float Flags::getFloat(const std::string& flag) const {
 }
 
 bool Flags::getBool(const std::string& flag) const {
+  TRACE("getBool '$0'", flag);
   auto i = set_.find(flag);
   if (i == set_.end())
     return false;
