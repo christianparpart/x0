@@ -4,24 +4,28 @@
 // Licensed under the MIT License (the "License"); you may not use this
 // file except in compliance with the License. You may obtain a copy of
 // the License at: http://opensource.org/licenses/MIT
-
-#include <iostream>
+#include <cassert>
 
 namespace xzero {
 
 template<typename T, const size_t BufSize>
 Channel<T, BufSize>::Channel()
     : lock_(),
-      road_(),
+      queue_(),
       isClosed_(false),
       receiversCond_(),
       sendersCond_() {
 }
 
 template<typename T, const size_t BufSize>
+Channel<T, BufSize>::~Channel() {
+  assert(empty() && "Channel must be empty when destructing.");
+}
+
+template<typename T, const size_t BufSize>
 void Channel<T, BufSize>::close() {
   std::unique_lock<std::mutex> lock(lock_);
-  sendersCond_.wait(lock, [this]() { return isClosed() || empty(); });
+  sendersCond_.wait(lock, [this]() { return isClosed() || queue_.empty(); });
 
   isClosed_.store(true);
 
@@ -32,12 +36,12 @@ void Channel<T, BufSize>::close() {
 template<typename T, const size_t BufSize>
 bool Channel<T, BufSize>::send(T&& value) {
   std::unique_lock<std::mutex> lock(lock_);
-  sendersCond_.wait(lock, [this]() { return isClosed() || size() < (BufSize ? BufSize : 1); });
+  sendersCond_.wait(lock, [this]() { return isClosed() || queue_.size() < (BufSize ? BufSize : 1); });
 
   if (isClosed())
     return false;
 
-  road_.emplace_back(std::move(value));
+  queue_.emplace_back(std::move(value));
   receiversCond_.notify_all();
 
   return true;
@@ -46,12 +50,12 @@ bool Channel<T, BufSize>::send(T&& value) {
 template<typename T, const size_t BufSize>
 bool Channel<T, BufSize>::send(const T& value) {
   std::unique_lock<std::mutex> lock(lock_);
-  sendersCond_.wait(lock, [this]() { return isClosed() || size() < (BufSize ? BufSize : 1); });
+  sendersCond_.wait(lock, [this]() { return isClosed() || queue_.size() < (BufSize ? BufSize : 1); });
 
   if (isClosed())
     return false;
 
-  road_.emplace_back(value);
+  queue_.emplace_back(value);
   receiversCond_.notify_all();
 
   return true;
@@ -60,13 +64,13 @@ bool Channel<T, BufSize>::send(const T& value) {
 template<typename T, const size_t BufSize>
 bool Channel<T, BufSize>::receive(T* value) {
   std::unique_lock<std::mutex> lock(lock_);
-  receiversCond_.wait(lock, [this]() { return isClosed() || !empty(); });
+  receiversCond_.wait(lock, [this]() { return isClosed() || !queue_.empty(); });
 
   if (isClosed())
     return false;
 
-  *value = std::move(road_.front());
-  road_.pop_front();
+  *value = std::move(queue_.front());
+  queue_.pop_front();
   sendersCond_.notify_all();
 
   return true;
@@ -74,8 +78,8 @@ bool Channel<T, BufSize>::receive(T* value) {
 
 template<typename T, const size_t BufSize>
 size_t Channel<T, BufSize>::size() const {
-  //TODO std::scoped_lock<std::mutex> lock(lock_);
-  return road_.size();
+  std::lock_guard<std::mutex> lock(lock_);
+  return queue_.size();
 }
 
 template<typename T, const size_t BufSize>

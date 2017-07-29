@@ -13,11 +13,6 @@
 
 namespace xzero {
 
-enum class ChannelState {
-  Open,
-  Closed,
-};
-
 /**
  * Go-like thread channel communication API.
  */
@@ -25,6 +20,7 @@ template<typename T, const size_t BufSize = 0>
 class Channel {
  public:
   Channel();
+  ~Channel();
 
   void close();
   bool send(T&& value);
@@ -42,8 +38,8 @@ class Channel {
   bool operator!() const noexcept { return isClosed_.load(); }
 
  private:
-  std::mutex lock_;
-  std::deque<T> road_;
+  mutable std::mutex lock_;
+  std::deque<T> queue_;
   std::atomic<bool> isClosed_;
   std::condition_variable receiversCond_;
   std::condition_variable sendersCond_;
