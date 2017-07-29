@@ -26,6 +26,9 @@
 // #define PACKAGE_VERSION X0_VERSION
 #define PACKAGE_HOMEPAGE_URL "https://xzero.io"
 
+#define DEBUG(msg...) logDebug("xurl", msg)
+#define TRACE(msg...) logTrace("xurl", msg)
+
 using namespace xzero;
 using namespace xzero::http;
 using namespace xzero::http::client;
@@ -184,11 +187,15 @@ void XUrl::query(const Uri& uri) {
 
   const bool secure = false; // HTTP ?
 
+  TRACE("getting request method");
   std::string method = flags_.getString("method");
+
+  TRACE("getting request head?");
   if (flags_.getBool("head")) {
     method = "HEAD";
   }
 
+  TRACE("getting request body");
   HugeBuffer body;
   if (!flags_.getString("upload-file").empty()) {
     method = "PUT";
