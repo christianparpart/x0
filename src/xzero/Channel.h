@@ -47,8 +47,48 @@ class Channel {
   std::condition_variable sendersCond_;
 };
 
+#if 1 == 0 // {{{ WIP: brainstorming the idea of multi-selecting
 template<typename... Channel>
 int select(Channel& ...channels);
+
+class SelectBuilder {
+ public:
+  SelectBuilder();
+  ~SelectBuilder();
+
+  class CaseStmtBase {
+   public:
+    virtual void consume() = 0;
+  };
+
+  template<typename ChannelT, typename T>
+  class CaseStmt {
+   public:
+    CaseStmt(ChannelT& channel, std::function<void(T&&, bool)> consumer)
+        : channel_(channel), consumer(consumer) {}
+
+    void consume() override {
+      T value;
+      bool ok = channel_.receive(&value);
+      consumer_(std::move(value), ok);
+    }
+
+   private:
+    ChannelT& channel_;
+    std::function<void(T&&, bool)> consumer_;
+  };
+
+  template<typename ChannelT, typename T>
+  SelectBuilder& on(ChannelT& c, std::function<void(T&&, bool)> f);
+
+  SelectBuilder& otherwise(std::function<void()> f);
+
+ private:
+  std::list<CaseStmt> selectors_;
+};
+
+SelectBuilder channelSelector();
+#endif // }}}
 
 } // namespace xzero
 
