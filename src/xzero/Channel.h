@@ -10,6 +10,7 @@
 #include <atomic>
 #include <mutex>
 #include <deque>
+#include <utility>
 
 namespace xzero {
 
@@ -32,6 +33,7 @@ class Channel {
   bool isClosed() const;
 
   Channel& operator<<(T&& value);
+  Channel& operator>>(std::pair<T, bool>* result);
   Channel& operator>>(T* result);
 
   operator bool() const noexcept { return !isClosed_.load(); }

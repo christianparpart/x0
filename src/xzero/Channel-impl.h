@@ -99,6 +99,12 @@ Channel<T, BufSize>& Channel<T, BufSize>::operator<<(T&& value) {
 }
 
 template<typename T, const size_t BufSize>
+Channel<T, BufSize>& Channel<T, BufSize>::operator>>(std::pair<T, bool>* result) {
+  result->second = receive(&result->first);
+  return *this;
+}
+
+template<typename T, const size_t BufSize>
 Channel<T, BufSize>& Channel<T, BufSize>::operator>>(T* result) {
   receive(result);
   return *this;
