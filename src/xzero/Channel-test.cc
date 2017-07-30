@@ -15,11 +15,6 @@ using xzero::MonotonicClock;
 using xzero::MonotonicTime;
 using xzero::Duration;
 
-void go(std::function<void()> fn) {
-  std::thread t(fn);
-  t.detach();
-}
-
 TEST(Channel, receiveOnClosed) {
   Channel<int> c;
   c.close();
