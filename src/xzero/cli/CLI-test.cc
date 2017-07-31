@@ -46,6 +46,20 @@ TEST(CLI, defaults) {
   ASSERT_EQ(false, flags.getBool("bool"));
 }
 
+TEST(CLI, getNumberDefault) {
+  CLI cli;
+  cli.defineNumber("some", 's', "<num>", "description", 42);
+  Flags flags = cli.evaluate({});
+  ASSERT_EQ(42, flags.getNumber("some"));
+}
+
+TEST(CLI, emptyStringDefault) {
+  CLI cli;
+  cli.defineString("some", 's', "<text>", "description", "");
+  Flags flags = cli.evaluate({});
+  ASSERT_EQ("", flags.getString("some"));
+}
+
 TEST(CLI, raise_on_unknown_long_option) {
   CLI cli;
   cli.defineBool("some", 's', "Something");

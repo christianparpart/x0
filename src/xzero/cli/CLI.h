@@ -10,6 +10,7 @@
 #include <xzero/Api.h>
 #include <xzero/RuntimeError.h>
 #include <xzero/cli/FlagType.h>
+#include <xzero/Option.h>
 #include <functional>
 #include <list>
 #include <vector>
@@ -139,7 +140,7 @@ class XZERO_BASE_API CLI {
       FlagType type,
       const std::string& helpText,
       const std::string& valuePlaceholder,
-      const std::string& defaultValue,
+      const Option<std::string>& defaultValue,
       std::function<void(const std::string&)> callback);
 
  private:
@@ -197,7 +198,7 @@ struct XZERO_BASE_API CLI::FlagDef {
   bool required;
   std::string valuePlaceholder;
   std::string helpText;
-  std::string defaultValue;
+  Option<std::string> defaultValue;
   std::function<void(const std::string&)> callback;
 
   std::string makeHelpText(size_t width, size_t helpTextOffset) const;

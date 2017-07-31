@@ -30,7 +30,7 @@ CLI& CLI::define(
     FlagType type,
     const std::string& valuePlaceholder,
     const std::string& helpText,
-    const std::string& defaultValue,
+    const Option<std::string>& defaultValue,
     std::function<void(const std::string&)> callback) {
 
   FlagDef fd;
@@ -56,7 +56,7 @@ CLI& CLI::defineString(
     std::function<void(const std::string&)> callback) {
 
   return define(longOpt, shortOpt, true, FlagType::String, valuePlaceholder,
-                helpText, "", callback);
+                helpText, None(), callback);
 }
 
 CLI& CLI::defineString(
@@ -68,7 +68,7 @@ CLI& CLI::defineString(
     std::function<void(const std::string&)> callback) {
 
   return define(longOpt, shortOpt, false, FlagType::String, valuePlaceholder,
-                helpText, defaultValue, callback);
+                helpText, Some(defaultValue), callback);
 }
 
 CLI& CLI::defineNumber(
@@ -80,7 +80,7 @@ CLI& CLI::defineNumber(
 
   return define(
       longOpt, shortOpt, true, FlagType::Number, valuePlaceholder,
-      helpText, "",
+      helpText, None(),
       [=](const std::string& value) {
         if (callback) {
           callback(std::stoi(value));
@@ -98,7 +98,7 @@ CLI& CLI::defineNumber(
 
   return define(
       longOpt, shortOpt, false, FlagType::Number, valuePlaceholder,
-      helpText, std::to_string(defaultValue),
+      helpText, Some(std::to_string(defaultValue)),
       [=](const std::string& value) {
         if (callback) {
           callback(std::stoi(value));
@@ -115,7 +115,7 @@ CLI& CLI::defineFloat(
 
   return define(
       longOpt, shortOpt, true, FlagType::Float, valuePlaceholder,
-      helpText, "",
+      helpText, None(),
       [=](const std::string& value) {
         if (callback) {
           callback(std::stof(value));
@@ -133,7 +133,7 @@ CLI& CLI::defineFloat(
 
   return define(
       longOpt, shortOpt, false, FlagType::Float, valuePlaceholder,
-      helpText, std::to_string(defaultValue),
+      helpText, Some(std::to_string(defaultValue)),
       [=](const std::string& value) {
         if (callback) {
           callback(std::stof(value));
@@ -150,7 +150,7 @@ CLI& CLI::defineIPAddress(
 
   return define(
       longOpt, shortOpt, true, FlagType::IP, valuePlaceholder,
-      helpText, "",
+      helpText, None(),
       [=](const std::string& value) {
         if (callback) {
           callback(IPAddress(value));
@@ -168,7 +168,7 @@ CLI& CLI::defineIPAddress(
 
   return define(
       longOpt, shortOpt, false, FlagType::IP, valuePlaceholder,
-      helpText, defaultValue.str(),
+      helpText, Some(defaultValue.str()),
       [=](const std::string& value) {
         if (callback) {
           callback(IPAddress(value));
@@ -184,7 +184,7 @@ CLI& CLI::defineBool(
 
   return define(
       longOpt, shortOpt, false, FlagType::Bool, "<bool>",
-      helpText, "",
+      helpText, None(),
       [=](const std::string& value) {
         if (callback) {
           callback(value == "true");
@@ -354,11 +354,11 @@ Flags CLI::evaluate(const std::vector<std::string>& args) const {
 
   // fill any missing default flags
   for (const FlagDef& fd: flagDefs_) {
-    if (!fd.defaultValue.empty()) {
+    if (fd.defaultValue.isSome()) {
       if (!flags.isSet(fd.longOption)) {
-        flags.set(fd.longOption, fd.defaultValue,
+        flags.set(fd.longOption, fd.defaultValue.get(),
                   FlagStyle::LongWithValue, fd.type);
-        call(fd.longOption, fd.defaultValue);
+        call(fd.longOption, fd.defaultValue.get());
       }
     } else if (fd.type == FlagType::Bool) {
       if (!flags.isSet(fd.longOption)) {
@@ -459,8 +459,8 @@ std::string CLI::FlagDef::makeHelpText(size_t width,
   }
 
   // help output with default value hint.
-  if (type != FlagType::Bool && !defaultValue.empty()) {
-    sstr << wordWrap(helpText + " [" + defaultValue + "]",
+  if (type != FlagType::Bool && defaultValue.isSome()) {
+    sstr << wordWrap(helpText + " [" + *defaultValue + "]",
                      column, width, helpTextOffset);
   } else {
     sstr << wordWrap(helpText, column, width, helpTextOffset);
