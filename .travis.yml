@@ -1,6 +1,15 @@
 language: cpp
 dist: xenial
 sudo: enabled
+addons:
+  apt:
+    sources:
+    - sourceline: 'ppa:ubuntu-toolchain-r-test'
+    - sourceline: 'deb http://apt.llvm.org/xenial/ llvm-toolchain-xenial-4.0 main'
+      key_url: 'http://apt.llvm.org/llvm-snapshot.gpg.key'
+    packages:
+    - clang++-4.0
+    - g++-6.0
 compiler:
   - gcc
   - clang
@@ -9,11 +18,9 @@ before_install:
   - sudo apt-get update -qq
 install:
   # gcc
-  - if [ "$CXX" == "g++" ]; then sudo apt-get install -y -qq g++-6; fi
   - if [ "$CXX" == "g++" ]; then export CXX="g++-6"; fi
   # clang
-  - if [ "$CXX" == "clang++" ]; then sudo apt-get install -y -qq clang++-3.9; fi
-  - if [ "$CXX" == "clang++" ]; then export CXX="clang++-3.9"; fi
+  - if [ "$CXX" == "clang++" ]; then export CXX="clang++-4.0"; fi
   # x0 dependencies
   - sudo apt-get install -y -qq make autoconf automake libtool pkg-config zlib1g-dev libssl-dev libpam-dev libpcre3-dev libfcgi-dev
 script:
