@@ -1,5 +1,6 @@
 language: cpp
-dist: zesty
+dist: xenial
+sudo: enabled
 compiler:
   - gcc
   - clang
@@ -7,12 +8,12 @@ before_install:
   - lsb_release -a
   - sudo apt-get update -qq
 install:
-  # gcc 6
+  # gcc
   - if [ "$CXX" == "g++" ]; then sudo apt-get install -y -qq g++-6; fi
   - if [ "$CXX" == "g++" ]; then export CXX="g++-6"; fi
-  # clang 4.0
-  - if [ "$CXX" == "clang++" ]; then sudo apt-get install -y -qq clang++-4; fi
-  - if [ "$CXX" == "clang++" ]; then export CXX="clang++-4"; fi
+  # clang
+  - if [ "$CXX" == "clang++" ]; then sudo apt-get install -y -qq clang++-3.9; fi
+  - if [ "$CXX" == "clang++" ]; then export CXX="clang++-3.9"; fi
   # x0 dependencies
   - sudo apt-get install -y -qq make autoconf automake libtool pkg-config zlib1g-dev libssl-dev libpam-dev libpcre3-dev libfcgi-dev
 script:
