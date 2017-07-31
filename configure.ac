@@ -208,7 +208,7 @@ AC_RUN_IFELSE([
     }
     ]])],
     [is_wsl=no; AC_MSG_NOTICE([Yay, no WSL])],
-    [is_wsl=yes; AC_MSG_NOTICE([Microsoft Windows Subsystem for Linux])]
+    [is_wsl=yes; AC_MSG_NOTICE([Microsoft Windows Subsystem for Linux: `uname -a`])]
 )
 AS_IF([test "x$is_wsl" != xno],
       [AC_DEFINE([XZERO_WSL], [1], [Works around WSL oddities (Windows Subsystem for Linux)])])
