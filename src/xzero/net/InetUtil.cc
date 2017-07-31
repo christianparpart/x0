@@ -39,7 +39,7 @@ Option<InetAddress> InetUtil::getRemoteAddress(int fd, int addressFamily) {
       if (getpeername(fd, (sockaddr*)&saddr, &slen) < 0)
         return None();
 
-      return InetAddress(IPAddress(&saddr), ntohs(saddr.sin6_port));
+      return Some(InetAddress(IPAddress(&saddr), ntohs(saddr.sin6_port)));
     }
     case AF_INET: {
       sockaddr_in saddr;
@@ -47,7 +47,7 @@ Option<InetAddress> InetUtil::getRemoteAddress(int fd, int addressFamily) {
       if (getpeername(fd, (sockaddr*)&saddr, &slen) < 0)
         return None();
 
-      return InetAddress(IPAddress(&saddr), ntohs(saddr.sin_port));
+      return Some(InetAddress(IPAddress(&saddr), ntohs(saddr.sin_port)));
     }
     default:
       RAISE(IllegalStateError, "Invalid address family.");
@@ -65,7 +65,7 @@ Option<InetAddress> InetUtil::getLocalAddress(int fd, int addressFamily) {
       socklen_t slen = sizeof(saddr);
 
       if (getsockname(fd, (sockaddr*)&saddr, &slen) == 0) {
-        return InetAddress(IPAddress(&saddr), ntohs(saddr.sin6_port));
+        return Some(InetAddress(IPAddress(&saddr), ntohs(saddr.sin6_port)));
       }
       break;
     }

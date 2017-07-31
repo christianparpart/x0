@@ -41,72 +41,40 @@ class XZERO_BASE_API CLI {
 
   CLI();
 
-  // required string flag
+  // string flag
   CLI& defineString(
       const std::string& longOpt,
       char shortOpt,
       const std::string& valuePlaceholder,
       const std::string& helpText,
+      const Option<std::string>& defaultValue,
       std::function<void(const std::string&)> callback = nullptr);
 
-  // defaulted string flag
-  CLI& defineString(
-      const std::string& longOpt,
-      char shortOpt,
-      const std::string& valuePlaceholder,
-      const std::string& helpText,
-      const std::string& defaultValue,
-      std::function<void(const std::string&)> callback = nullptr);
-
-  // required number flag
+  // number flag
   CLI& defineNumber(
       const std::string& longOpt,
       char shortOpt,
       const std::string& valuePlaceholder,
       const std::string& helpText,
+      Option<long int> defaultValue,
       std::function<void(long int)> callback = nullptr);
 
-  // defaulted number flag
-  CLI& defineNumber(
-      const std::string& longOpt,
-      char shortOpt,
-      const std::string& valuePlaceholder,
-      const std::string& helpText,
-      long int defaultValue,
-      std::function<void(long int)> callback = nullptr);
-
-  // required floating-number flag
+  // floating-number flag
   CLI& defineFloat(
       const std::string& longOpt,
       char shortOpt,
       const std::string& valuePlaceholder,
       const std::string& helpText,
+      Option<float> defaultValue,
       std::function<void(float)> callback = nullptr);
 
-  // defaulted floating-number flag
-  CLI& defineFloat(
-      const std::string& longOpt,
-      char shortOpt,
-      const std::string& valuePlaceholder,
-      const std::string& helpText,
-      float defaultValue,
-      std::function<void(float)> callback = nullptr);
-
-  // required IP-address flag
+  // IP-address flag
   CLI& defineIPAddress(
       const std::string& longOpt,
       char shortOpt,
       const std::string& valuePlaceholder,
       const std::string& helpText,
-      std::function<void(const IPAddress&)> callback = nullptr);
-
-  // defaulted IP-address flag
-  CLI& defineIPAddress(
-      const std::string& longOpt,
-      char shortOpt,
-      const std::string& valuePlaceholder,
-      const std::string& helpText,
-      const IPAddress& defaultValue,
+      const Option<IPAddress>& defaultValue,
       std::function<void(const IPAddress&)> callback = nullptr);
 
   // defaulted bool flag (always defaults to false)

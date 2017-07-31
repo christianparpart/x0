@@ -11,16 +11,18 @@ template<typename T>
 inline Option<T>::Option() : valid_(false) {}
 
 template<typename T>
-inline Option<T>::Option(const None&) : valid_(false) {}
+inline Option<T>::Option(None) : valid_(false) {}
 
 template<typename T>
-inline Option<T>::Option(const T& value) : valid_(false) { set(value); }
+template<typename U>
+inline Option<T>::Option(const U& value) : valid_(false) { set(value); }
 
 template<typename T>
 inline Option<T>::Option(const Option<T>& other) : valid_(false) { set(other); }
 
 template<typename T>
-inline Option<T>::Option(T&& value) : valid_(false) { set(std::move(value)); }
+template<typename U>
+inline Option<T>::Option(U&& value) : valid_(false) { set(std::move(value)); }
 
 template<typename T>
 inline Option<T>::~Option() { reset(); }
@@ -63,7 +65,8 @@ inline void Option<T>::clear() {
 }
 
 template<typename T>
-inline void Option<T>::set(const Option<T>& other) {
+template<typename U>
+inline void Option<T>::set(const Option<U>& other) {
   if (other.isSome()) {
     set(other.get());
   } else {
@@ -72,7 +75,8 @@ inline void Option<T>::set(const Option<T>& other) {
 }
 
 template<typename T>
-inline void Option<T>::set(Option<T>&& other) {
+template<typename U>
+inline void Option<T>::set(Option<U>&& other) {
   if (other.isSome()) {
     set(std::move(other.get()));
     other.valid_ = false;
@@ -82,14 +86,16 @@ inline void Option<T>::set(Option<T>&& other) {
 }
 
 template<typename T>
-inline void Option<T>::set(const T& other) {
+template<typename U>
+inline void Option<T>::set(const U& other) {
   reset();
   new (storage_) T(other);
   valid_ = true;
 }
 
 template<typename T>
-inline void Option<T>::set(T&& other) {
+template<typename U>
+inline void Option<T>::set(U&& other) {
   reset();
   new (storage_) T(std::move(other));
   valid_ = true;

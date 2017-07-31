@@ -27,14 +27,16 @@ template <typename T>
 class XZERO_BASE_API Option {
  public:
   Option();
-  Option(const None&);
-  Option(const T& value);
+  Option(None);
   Option(const Option<T>& other);
-  Option(T&& value);
+  template<typename U> Option(const U& value);
+  template<typename U> Option(U&& value);
   ~Option();
 
   Option<T>& operator=(const Option<T>& other);
   Option<T>& operator=(Option<T>&& other);
+
+  template<typename U> Option<T>& operator=(U&& other) { set(std::move(other)); return *this; }
 
   bool isSome() const noexcept;
   bool isNone() const noexcept;
@@ -44,10 +46,10 @@ class XZERO_BASE_API Option {
   void reset();
   void clear();
 
-  void set(const Option<T>& other);
-  void set(Option<T>&& other);
-  void set(const T& other);
-  void set(T&& other);
+  template<typename U> void set(const Option<U>& other);
+  template<typename U> void set(Option<U>&& other);
+  template<typename U> void set(const U& other);
+  template<typename U> void set(U&& other);
 
   T& get();
   const T& get() const;
