@@ -5,8 +5,6 @@ addons:
   apt:
     sources:
     - sourceline: 'ppa:ubuntu-toolchain-r-test'
-    - sourceline: 'deb http://apt.llvm.org/xenial/ llvm-toolchain-xenial-4.0 main'
-      key_url: 'http://apt.llvm.org/llvm-snapshot.gpg.key'
     packages:
     - clang++-4.0
     - g++-6.0
