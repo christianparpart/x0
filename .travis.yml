@@ -1,32 +1,25 @@
 language: cpp
+dist: zesty
 compiler:
   - gcc
   - clang
 before_install:
   - lsb_release -a
-  - if [ "$CXX" == "g++" ]; then sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test; fi
-  - if [ "$CXX" == "clang++" ]; then sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test && sudo apt-get update -y; fi
-  - if [ "$CXX" == "clang++" ]; then echo "deb http://ppa.launchpad.net/ubuntu-toolchain-r/test/ubuntu precise main" | sudo tee /etc/apt/sources.list.d/llvm.list; fi
-  - if [ "$CXX" == "clang++" ]; then echo "deb http://llvm.org/apt/precise/ llvm-toolchain-precise-3.6 main" | sudo tee -a /etc/apt/sources.list.d/llvm.list; fi
   - sudo apt-get update -qq
-  - if [ "$CXX" == "clang++" ]; then sudo apt-get install wget && wget -O - http://llvm.org/apt/llvm-snapshot.gpg.key | apt-key add -; fi
-  - if [ "$CXX" == "clang++" ]; then sudo apt-get install -y clang++-3.6 clang-3.6; fi
 install:
-  # gcc 4.8
-  - if [ "$CXX" == "g++" ]; then sudo apt-get install -y -qq g++-4.8; fi
-  - if [ "$CXX" == "g++" ]; then export CXX="g++-4.8"; fi
-  # clang 3.4
-  - if [ "$CXX" == "clang++" ]; then sudo apt-get install -y -qq clang-3.6; fi
-  - if [ "$CXX" == "clang++" ]; then export CXX="clang++-3.6"; fi
+  # gcc 6
+  - if [ "$CXX" == "g++" ]; then sudo apt-get install -y -qq g++-6; fi
+  - if [ "$CXX" == "g++" ]; then export CXX="g++-6"; fi
+  # clang 4.0
+  - if [ "$CXX" == "clang++" ]; then sudo apt-get install -y -qq clang++-4; fi
+  - if [ "$CXX" == "clang++" ]; then export CXX="clang++-4"; fi
   # x0 dependencies
-  - sudo apt-get install -y -qq cmake make zlib1g-dev libssl-dev libpam-dev pkg-config libgtest-dev libpcre3-dev
-  - mkdir ~/gtest && cd ~/gtest && cmake /usr/src/gtest -DBUILD_SHARED_LIBS=ON && make && sudo cp -vp *.a /usr/local/lib/ && cd -
+  - sudo apt-get install -y -qq make autoconf automake libtool pkg-config zlib1g-dev libssl-dev libpam-dev libpcre3-dev libfcgi-dev
 script:
   - $CXX --version
-  - cmake -DCMAKE_BUILD_TYPE=debug
+  - ./autogen.sh --enable-proxy
   - make
-  - ./src/xzero/test-base
-  - ./src/xzero-flow/test-flow
+  - ./xzero_test -v
 branches:
   only:
     - master
