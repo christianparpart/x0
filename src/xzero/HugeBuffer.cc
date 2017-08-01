@@ -103,7 +103,7 @@ const BufferRef& HugeBuffer::getBuffer() const {
   return buffer_;
 }
 
-Buffer HugeBuffer::takeBuffer() {
+Buffer&& HugeBuffer::takeBuffer() {
   if (buffer_.empty() && fd_.isOpen())
     const_cast<HugeBuffer*>(this)->buffer_ = FileUtil::read(fd_);
 
