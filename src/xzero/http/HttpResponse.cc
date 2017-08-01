@@ -177,6 +177,9 @@ void HttpResponse::sendError(HttpStatus code, const std::string& message) {
   if (!isError(code))
     RAISE(InvalidArgumentError);
 
+  requireNotSendingAlready();
+  channel_->setState(HttpChannelState::HANDLING);
+
   // TODO: customizability of error pages - XzeroContext::sendErrorPage
 
   setStatus(code);
