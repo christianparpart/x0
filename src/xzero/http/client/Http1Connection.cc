@@ -141,9 +141,9 @@ void Http1Connection::send(FileView&& chunk, CompletionHandler onComplete) {
 
 void Http1Connection::send(HugeBuffer&& chunk, CompletionHandler onComplete) {
   if (chunk.isBuffered()) {
-    send(std::move(chunk.takeBuffer()), onComplete);
+    send(chunk.takeBuffer(), onComplete);
   } else {
-    send(std::move(chunk.takeFileView()), onComplete);
+    send(chunk.takeFileView(), onComplete);
   }
 }
 
