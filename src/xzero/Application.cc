@@ -70,6 +70,7 @@ void Application::redirectStdOutToLogger(Executor* executor) {
 }
 
 void Application::redirectStdErrToLogger(Executor* executor) {
+  // TODO
 }
 
 static void globalEH() {
