@@ -205,7 +205,7 @@ TEST(CLI, callbacks_on_explicit) {
   IPAddress bindIP;
 
   CLI cli;
-  cli.defineIPAddress("bind", 'a', "<IP>", "IP address to bind listener address to.",
+  cli.defineIPAddress("bind", 'a', "<IP>", "IP address to bind listener address to.", None(),
       [&](const IPAddress& ip) {
         bindIP = ip;
       });
@@ -235,7 +235,7 @@ TEST(CLI, callbacks_on_repeated_args) {
   std::vector<IPAddress> hosts;
   CLI cli;
   cli.defineIPAddress(
-      "host", 't', "<IP>", "Host address to talk to.",
+      "host", 't', "<IP>", "Host address to talk to.", None(),
       [&](const IPAddress& host) { hosts.emplace_back(host); });
 
   cli.evaluate({"--host=127.0.0.1", "--host=192.168.0.1", "-t10.10.20.40"});

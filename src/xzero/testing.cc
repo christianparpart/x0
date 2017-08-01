@@ -138,10 +138,10 @@ int UnitTest::main(int argc, const char* argv[]) {
 
   CLI cli;
   cli.defineBool("help", 'h', "Prints this help and terminates.")
-     .defineBool("verbose", 'v', "Prints to console in debug log level."
-     .defineString("log-level", 'L', "ENUM", "Defines the minimum log level.", "")
-     .defineString("log-target", 0, "ENUM", "Specifies logging target. One of syslog, file, systemd, console.", Some(""))
-     .defineString("filter", 'f', "GLOB", "Filters tests by given glob.", Some("*"))
+     .defineBool("verbose", 'v', "Prints to console in debug log level.")
+     .defineString("log-level", 'L', "ENUM", "Defines the minimum log level.", "info")
+     .defineString("log-target", 0, "ENUM", "Specifies logging target. One of syslog, file, systemd, console.", "")
+     .defineString("filter", 'f', "GLOB", "Filters tests by given glob.", "*")
      .defineBool("list", 'l', "Prints all tests and exits.")
      .defineBool("randomize", 'R', "Randomizes test order.")
      .defineBool("sort", 's', "Sorts tests alphabetically ascending.")
@@ -160,9 +160,7 @@ int UnitTest::main(int argc, const char* argv[]) {
     Application::logToStderr(LogLevel::Debug);
   }
 
-  if (flags.isSet("log-level")) {
-    Logger::get()->setMinimumLogLevel(make_loglevel(flags.getString("log-level")));
-  }
+  Logger::get()->setMinimumLogLevel(make_loglevel(flags.getString("log-level")));
 
   if (flags.isSet("log-target")) {
     std::string logTargetStr = flags.getString("log-target");

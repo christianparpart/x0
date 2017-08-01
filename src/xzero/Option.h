@@ -35,6 +35,7 @@ class XZERO_BASE_API Option {
 
   Option<T>& operator=(const Option<T>& other);
   Option<T>& operator=(Option<T>&& other);
+  Option<T>& operator=(None);
 
   template<typename U> Option<T>& operator=(U&& other) { set(std::move(other)); return *this; }
 

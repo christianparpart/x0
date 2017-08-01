@@ -87,14 +87,14 @@ class HugeBuffer {
    */
   FileView getFileView() const;
 
-  /**
-   * Retrieves the FileView representation to this HugeBuffer, moving ownership
-   * to caller.
-   *
-   * This persists the buffer into a temporary file if currently only in-memory,
-   * so you can access this HugeBuffer via a FileView.
-   */
-  FileView&& getFileView();
+  // /**
+  //  * Retrieves the FileView representation to this HugeBuffer, moving ownership
+  //  * to caller.
+  //  *
+  //  * This persists the buffer into a temporary file if currently only in-memory,
+  //  * so you can access this HugeBuffer via a FileView.
+  //  */
+  // FileView&& getFileView();
 
   /**
    * Retrieves a reference to the internal buffer of HugeBuffer.

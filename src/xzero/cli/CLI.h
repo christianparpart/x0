@@ -11,6 +11,7 @@
 #include <xzero/RuntimeError.h>
 #include <xzero/cli/FlagType.h>
 #include <xzero/Option.h>
+#include <xzero/net/IPAddress.h>
 #include <functional>
 #include <list>
 #include <vector>
@@ -18,7 +19,6 @@
 
 namespace xzero {
 
-class IPAddress;
 class Flags;
 class Flag;
 
@@ -47,7 +47,7 @@ class XZERO_BASE_API CLI {
       char shortOpt,
       const std::string& valuePlaceholder,
       const std::string& helpText,
-      const Option<std::string>& defaultValue,
+      Option<std::string> defaultValue = None(),
       std::function<void(const std::string&)> callback = nullptr);
 
   // number flag
@@ -56,7 +56,7 @@ class XZERO_BASE_API CLI {
       char shortOpt,
       const std::string& valuePlaceholder,
       const std::string& helpText,
-      Option<long int> defaultValue,
+      Option<long int> defaultValue = None(),
       std::function<void(long int)> callback = nullptr);
 
   // floating-number flag
@@ -65,7 +65,7 @@ class XZERO_BASE_API CLI {
       char shortOpt,
       const std::string& valuePlaceholder,
       const std::string& helpText,
-      Option<float> defaultValue,
+      Option<float> defaultValue = None(),
       std::function<void(float)> callback = nullptr);
 
   // IP-address flag
@@ -74,7 +74,7 @@ class XZERO_BASE_API CLI {
       char shortOpt,
       const std::string& valuePlaceholder,
       const std::string& helpText,
-      const Option<IPAddress>& defaultValue,
+      Option<IPAddress> defaultValue = None(),
       std::function<void(const IPAddress&)> callback = nullptr);
 
   // defaulted bool flag (always defaults to false)

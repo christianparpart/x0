@@ -53,7 +53,7 @@ CLI& CLI::defineString(
     char shortOpt,
     const std::string& valuePlaceholder,
     const std::string& helpText,
-    const Option<std::string>& defaultValue,
+    Option<std::string> defaultValue,
     std::function<void(const std::string&)> callback) {
 
   return define(longOpt, shortOpt, false, FlagType::String, valuePlaceholder,
@@ -103,7 +103,7 @@ CLI& CLI::defineIPAddress(
     char shortOpt,
     const std::string& valuePlaceholder,
     const std::string& helpText,
-    const Option<IPAddress>& defaultValue,
+    Option<IPAddress> defaultValue,
     std::function<void(const IPAddress&)> callback) {
 
   return define(

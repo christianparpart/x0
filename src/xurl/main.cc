@@ -115,9 +115,10 @@ int XUrl::run(int argc, const char* argv[]) {
   cli.defineString("output", 'o', "PATH", "Write response body to given file.");
   cli.defineString("log-level", 0, "STRING", "Log level.", "info");
   cli.defineString("method", 'X', "METHOD", "HTTP method", "GET");
-  cli.defineNumber("connect-timeout", 0, "MS", "TCP connect() timeout", 10_seconds .milliseconds(), nullptr);
+  cli.defineNumber("connect-timeout", 0, "MS", "TCP connect() timeout", 10_seconds .milliseconds());
   cli.defineString("upload-file", 'T', "PATH", "Uploads given file.", "");
   cli.defineString("header", 'H', "HEADER", "Adds a custom request header",
+      None(),
       std::bind(&XUrl::addRequestHeader, this, std::placeholders::_1));
   cli.defineBool("ipv4", '4', "Favor IPv4 for TCP/IP communication.");
   cli.defineBool("ipv6", '6', "Favor IPv6 for TCP/IP communication.");

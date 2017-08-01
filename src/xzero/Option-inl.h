@@ -40,6 +40,12 @@ inline Option<T>& Option<T>::operator=(Option<T>&& other) {
 }
 
 template<typename T>
+inline Option<T>& Option<T>::operator=(None) {
+  reset();
+  return *this;
+}
+
+template<typename T>
 inline bool Option<T>::isSome() const noexcept { return valid_; }
 
 template<typename T>
@@ -89,7 +95,7 @@ template<typename T>
 template<typename U>
 inline void Option<T>::set(const U& other) {
   reset();
-  new (storage_) T(other);
+  new (storage_) T(T(other));
   valid_ = true;
 }
 

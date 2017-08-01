@@ -85,15 +85,14 @@ void HugeBuffer::write(Buffer&& chunk) {
 
 FileView HugeBuffer::getFileView() const {
   const_cast<HugeBuffer*>(this)->tryDisplaceBufferToFile();
-
   return FileView(fd_, 0, actualSize_, false);
 }
 
-FileView&& HugeBuffer::getFileView() {
-  const_cast<HugeBuffer*>(this)->tryDisplaceBufferToFile();
-
-  return std::move(FileView(std::move(fd_), 0, actualSize_));
-}
+// FileView&& HugeBuffer::getFileView() {
+//   const_cast<HugeBuffer*>(this)->tryDisplaceBufferToFile();
+// 
+//   return std::move(FileView(std::move(fd_), 0, actualSize_));
+// }
 
 const BufferRef& HugeBuffer::getBuffer() const {
   if (buffer_.empty() && fd_.isOpen())
