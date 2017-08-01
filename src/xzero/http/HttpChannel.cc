@@ -169,9 +169,9 @@ void HttpChannel::send(FileView&& file, CompletionHandler onComplete) {
 
 void HttpChannel::send(HugeBuffer&& content, CompletionHandler&& completed) {
   if (content.isFile()) {
-    send(std::move(content.takeFileView()), completed);
+    send(content.takeFileView(), completed);
   } else {
-    send(std::move(content.takeBuffer()), completed);
+    send(content.takeBuffer(), completed);
   }
 }
 
