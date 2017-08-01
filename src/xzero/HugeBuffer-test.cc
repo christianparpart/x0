@@ -88,6 +88,17 @@ TEST(HugeBuffer, getFileView_memory) {
   EXPECT_EQ("Hello", out);
 }
 
+TEST(HugeBuffer, takeFileView_memory) {
+  HugeBuffer hb(5);
+  hb.write(BufferRef("Hello"));
+
+  FileView view = hb.takeFileView();
+  EXPECT_EQ(5, view.size());
+
+  Buffer out = FileUtil::read(view);
+  EXPECT_EQ("Hello", out);
+}
+
 TEST(HugeBuffer, getFileView_file) {
   HugeBuffer hb(0);
   hb.write(BufferRef("Hello"));
@@ -103,6 +114,12 @@ TEST(HugeBuffer, getBuffer_memory) {
   HugeBuffer hb(5);
   hb.write(BufferRef("Hello"));
   EXPECT_EQ("Hello", hb.getBuffer());
+}
+
+TEST(HugeBuffer, takeBuffer_memory) {
+  HugeBuffer hb(5);
+  hb.write(BufferRef("Hello"));
+  EXPECT_EQ("Hello", hb.takeBuffer());
 }
 
 TEST(HugeBuffer, getBuffer_file) {

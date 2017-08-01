@@ -209,9 +209,9 @@ void Generator::generateBody(FileView&& chunk) {
 
 void Generator::generateBody(HugeBuffer&& chunk) {
   if (chunk.isBuffered()) {
-    generateBody(std::move(chunk.getBuffer()));
+    generateBody(std::move(chunk.takeBuffer()));
   } else {
-    generateBody(std::move(chunk.getFileView()));
+    generateBody(std::move(chunk.takeFileView()));
   }
 }
 

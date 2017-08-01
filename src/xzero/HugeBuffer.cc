@@ -88,11 +88,13 @@ FileView HugeBuffer::getFileView() const {
   return FileView(fd_, 0, actualSize_, false);
 }
 
-// FileView&& HugeBuffer::getFileView() {
-//   const_cast<HugeBuffer*>(this)->tryDisplaceBufferToFile();
-// 
-//   return std::move(FileView(std::move(fd_), 0, actualSize_));
-// }
+FileView HugeBuffer::takeFileView() {
+  const_cast<HugeBuffer*>(this)->tryDisplaceBufferToFile();
+
+  FileView view = FileView(std::move(fd_), 0, actualSize_);
+  actualSize_ = 0;
+  return view;
+}
 
 const BufferRef& HugeBuffer::getBuffer() const {
   if (buffer_.empty() && fd_.isOpen())
@@ -101,7 +103,7 @@ const BufferRef& HugeBuffer::getBuffer() const {
   return buffer_;
 }
 
-Buffer&& HugeBuffer::getBuffer() {
+Buffer HugeBuffer::takeBuffer() {
   if (buffer_.empty() && fd_.isOpen())
     const_cast<HugeBuffer*>(this)->buffer_ = FileUtil::read(fd_);
 
