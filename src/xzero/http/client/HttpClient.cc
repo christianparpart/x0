@@ -51,7 +51,7 @@ HttpClient::HttpClient(Executor* executor,
     : HttpClient(executor,
                  upstream,
                  10_seconds,   // connectTimeout
-                 5_minutes,   // readTimeout
+                 5_minutes,    // readTimeout
                  10_seconds,   // writeTimeout
                  60_seconds) { // keepAlive
 }
@@ -63,10 +63,11 @@ HttpClient::HttpClient(Executor* executor,
                        Duration writeTimeout,
                        Duration keepAlive)
     : executor_(executor),
-      upstream_(upstream),
-      connectTimeout_(connectTimeout),
-      readTimeout_(readTimeout),
-      writeTimeout_(writeTimeout),
+      createEndPoint_(std::bind(&HttpClient::createTcp, this,
+            upstream,
+            connectTimeout,
+            readTimeout,
+            writeTimeout)),
       keepAlive_(keepAlive),
       endpoint_(),
       pendingTasks_() {
@@ -74,25 +75,27 @@ HttpClient::HttpClient(Executor* executor,
 
 HttpClient::HttpClient(Executor* executor,
                        RefPtr<EndPoint> upstream,
-                       Duration readTimeout,
-                       Duration writeTimeout,
                        Duration keepAlive)
     : executor_(executor),
-      upstream_(),
-      connectTimeout_(Duration::Zero),
-      readTimeout_(readTimeout),
-      writeTimeout_(writeTimeout),
+      createEndPoint_(),
       keepAlive_(keepAlive),
       endpoint_(upstream),
       pendingTasks_() {
 }
 
+HttpClient::HttpClient(Executor* executor,
+                       CreateEndPoint endpointCreator,
+                       Duration keepAlive)
+    : executor_(executor),
+      createEndPoint_(endpointCreator),
+      keepAlive_(keepAlive),
+      endpoint_(),
+      pendingTasks_() {
+}
+
 HttpClient::HttpClient(HttpClient&& other)
     : executor_(other.executor_),
-      upstream_(std::move(other.upstream_)),
-      connectTimeout_(std::move(other.connectTimeout_)),
-      readTimeout_(std::move(other.readTimeout_)),
-      writeTimeout_(std::move(other.writeTimeout_)),
+      createEndPoint_(std::move(other.createEndPoint_)),
       keepAlive_(std::move(other.keepAlive_)),
       endpoint_(std::move(other.endpoint_)),
       pendingTasks_(std::move(other.pendingTasks_)) {
@@ -102,30 +105,45 @@ void HttpClient::send(const Request& request,
                       HttpListener* responseListener) {
   pendingTasks_.emplace_back(Task{request, responseListener, false});
 
-  if (!endpoint_) {
-    startConnect();
+  if (endpoint_) {
+    // TODO: maybe idle? then trigger consuming pending tasks
+    return;
   }
+
+  auto f = createEndPoint_();
+  f.onSuccess([this](RefPtr<EndPoint> ep) {
+    endpoint_ = ep;
+    setupConnection();
+  });
+  f.onFailure([this](std::error_code ec) {
+    logError("HttpClient", "Failed to connect. $0", ec.message());
+  });
 }
 
 bool HttpClient::isClosed() const {
   return !endpoint_;
 }
 
+Future<RefPtr<EndPoint>> HttpClient::createTcp(InetAddress addr,
+                                               Duration connectTimeout,
+                                               Duration readTimeout,
+                                               Duration writeTimeout) {
+  Promise<RefPtr<EndPoint>> promise;
+
+  Future<int> f = InetUtil::connect(addr, connectTimeout, executor_);
+  f.onFailure(promise);
+  f.onSuccess([promise, addr, readTimeout, writeTimeout, this](int fd) {
+    promise.success(RefPtr<EndPoint>(new InetEndPoint(fd,
+                                                      addr.family(),
+                                                      readTimeout,
+                                                      writeTimeout,
+                                                      executor_)));
+  });
+
+  return promise.future();
+}
+
 void HttpClient::startConnect() {
-  Future<int> f = InetUtil::connect(upstream_, connectTimeout_, executor_);
-
-  f.onSuccess([this](int fd) {
-    endpoint_ = RefPtr<EndPoint>(new InetEndPoint(fd,
-                                                  upstream_.family(),
-                                                  readTimeout_,
-                                                  writeTimeout_,
-                                                  executor_));
-    setupConnection();
-  });
-
-  f.onFailure([this](std::error_code ec) {
-    logError("HttpClient", "Failed to connect to $0. $1", upstream_, ec.message());
-  });
 }
 
 bool HttpClient::tryConsumeTask() {

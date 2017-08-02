@@ -69,8 +69,12 @@ class HttpClient {
 
   HttpClient(Executor* executor,
              RefPtr<EndPoint> upstream,
-             Duration readTimeout,
-             Duration writeTimeout,
+             Duration keepAlive);
+
+  using CreateEndPoint = std::function<Future<RefPtr<EndPoint>>()>;
+
+  HttpClient(Executor* executor,
+             CreateEndPoint endpointCreator,
              Duration keepAlive);
 
   HttpClient(HttpClient&& other);
@@ -116,6 +120,10 @@ class HttpClient {
   };
 
  private:
+  Future<RefPtr<EndPoint>> createTcp(InetAddress addr,
+                                     Duration connectTimeout,
+                                     Duration readTimeout,
+                                     Duration writeTimeout);
   bool isClosed() const;
   void startConnect();
   void setupConnection();
@@ -126,13 +134,8 @@ class HttpClient {
 
  private:
   Executor* executor_;
-
-  InetAddress upstream_;
-  Duration connectTimeout_;
-  Duration readTimeout_;
-  Duration writeTimeout_;
+  CreateEndPoint createEndPoint_;
   Duration keepAlive_;
-
   RefPtr<EndPoint> endpoint_;
   std::deque<Task> pendingTasks_;
 };
