@@ -22,6 +22,7 @@
 #if !defined(NDEBUG)
 #define TRACE(msg...) logTrace("HttpClient", msg)
 #else
+#warning "No NDEBUG set"
 #define TRACE(msg...) do {} while (0)
 #endif
 
@@ -112,6 +113,7 @@ void HttpClient::send(const Request& request,
 
   auto f = createEndPoint_();
   f.onSuccess([this](RefPtr<EndPoint> ep) {
+    TRACE("endpoint created");
     endpoint_ = ep;
     setupConnection();
   });
@@ -168,16 +170,26 @@ Future<HttpClient::Response> HttpClient::send(const Request& request) {
   Promise<Response> promise;
   send(request,
        [promise](const Response& response) {
+         printf("HttpClient.send: response received\n");
          promise.success(std::move(response));
        },
        [promise](std::error_code ec) {
+         printf("HttpClient.send: failure received\n");
          promise.failure(ec);
        });
   return promise.future();
 }
 
 void HttpClient::setupConnection() {
-  endpoint_->setConnection<Http1Connection>(nullptr, endpoint_.get(), executor_);
+  TRACE("setting up connection");
+  // XXX I am not happy. looks like I'll need a channel abstraction in the client-code, too
+  const Task& task = pendingTasks_.front();
+
+  HttpTransport* transport = endpoint_->setConnection<Http1Connection>(
+      task.listener, endpoint_.get(), executor_);
+
+  transport->send(task.request, nullptr);
+  //TODO: transport->send(task.request.getContent(), nullptr);
 }
 
 HttpTransport* HttpClient::getChannel() {

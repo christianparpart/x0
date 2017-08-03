@@ -6,6 +6,7 @@
 // the License at: http://opensource.org/licenses/MIT
 
 #include <xzero/http/client/HttpClient.h>
+#include <xzero/http/HttpRequest.h>
 #include <xzero/executor/NativeScheduler.h>
 #include <xzero/net/ByteArrayEndPoint.h>
 #include <xzero/logging.h>
@@ -15,7 +16,6 @@ using namespace xzero;
 using namespace xzero::http;
 using namespace xzero::http::client;
 
-#if 0
 RefPtr<ByteArrayEndPoint> createEndPoint() {
   RefPtr<ByteArrayEndPoint> ep(new ByteArrayEndPoint());
 
@@ -28,22 +28,32 @@ RefPtr<ByteArrayEndPoint> createEndPoint() {
   return ep;
 };
 
+Future<RefPtr<EndPoint>> createEndPointAsync() {
+  Promise<RefPtr<EndPoint>> promise;
+  promise.success(createEndPoint().as<EndPoint>());
+  return promise.future();
+}
+
 TEST(HttpClient, http1_default) {
   NativeScheduler sched(std::make_unique<CatchAndLogExceptionHandler>("unittest"));
 
-  RefPtr<ByteArrayEndPoint> ep = createEndPoint();
-  HttpClient cli(&sched);
+  HttpClient cli(&sched, createEndPointAsync, 5_seconds);
 
-  HttpRequestInfo req(HttpVersion::VERSION_1_1, "GET", "/", 0, {});
-  BufferRef body;
+  HttpRequest req(HttpVersion::VERSION_1_1, "GET", "/", {{"Host", "test"}}, false, {});
 
-  cli.setRequest(std::move(req), body);
-  cli.send(ep.as<EndPoint>());
+  auto f = cli.send(req);
+  f.onSuccess([this](const HttpClient::Response& response) {
+    log("onSuccess!");
+  });
+  f.onFailure([this](std::error_code) {
+    log("onFailure!");
+  });
+
+  sched.runLoop();
+
   // TODO: find out why it is not actually handling the request / receiving response
 
-  EXPECT_EQ(200, (int) cli.responseInfo().status());
-  EXPECT_EQ("unittest", cli.responseInfo().headers().get("Server"));
-  EXPECT_EQ("Hello, World\n", cli.responseBody().str());
+  // EXPECT_EQ(200, (int) cli.responseInfo().status());
+  // EXPECT_EQ("unittest", cli.responseInfo().headers().get("Server"));
+  // EXPECT_EQ("Hello, World\n", cli.responseBody().str());
 }
-
-#endif
