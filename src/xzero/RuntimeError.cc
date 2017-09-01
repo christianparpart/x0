@@ -106,6 +106,12 @@ void RuntimeError::debugPrint(std::ostream* os) const {
             functionName_,
             sourceFile_,
             sourceLine_);
+
+  int i = 0;
+  for (const auto& trace: stackTrace_.symbols()) {
+    *os << "[" << i << "] " << trace << std::endl;
+    i++;
+  }
 }
 
 std::string RuntimeError::cformat(const char* fmt, ...) {
