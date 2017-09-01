@@ -19,50 +19,27 @@
 
 namespace xzero {
 
-// FlagPassingStyle
-enum FlagStyle {
-  ShortSwitch,
-  LongSwitch,
-  ShortWithValue,
-  LongWithValue,
-  UnnamedParameter
-};
-
-enum class FlagType {
-  String,
-  Number,
-  Float,
-  IP,
-  Bool,
-};
-
-class Flag {
- public:
-  Flag(
-      const std::string& opt,
-      const std::string& val,
-      FlagStyle fs,
-      FlagType ft);
-
-  explicit Flag(char shortOpt);
-  Flag(char shortOpt, const std::string& val);
-  Flag(const std::string& longOpt);
-  Flag(const std::string& longOpt, const std::string& val);
-
-  FlagType type() const { return type_; }
-  const std::string& name() const { return name_; }
-  const std::string& value() const { return value_; }
-
- private:
-  FlagType type_;
-  FlagStyle style_;
-  std::string name_;
-  std::string value_;
-};
-
 class Flags {
  public:
+  enum class FlagType {
+    String,
+    Number,
+    Float,
+    IP,
+    Bool,
+  };
+
+  // FlagPassingStyle
+  enum FlagStyle {
+    ShortSwitch,
+    LongSwitch,
+    ShortWithValue,
+    LongWithValue,
+    UnnamedParameter
+  };
+
   struct FlagDef;
+  class Flag;
 
   Flags();
 
@@ -81,12 +58,7 @@ class Flags {
   std::string to_s() const;
 
   void set(const Flag& flag);
-  void set(const std::string& opt,
-           const std::string& val,
-           FlagStyle fs,
-           FlagType ft) {
-    set(Flag{opt, val, fs, ft});
-  }
+  void set(const std::string& opt, const std::string& val, FlagStyle fs, FlagType ft);
   bool isSet(const std::string& flag) const;
 
   Flags& defineString(const std::string& longOpt,
@@ -174,6 +146,30 @@ struct Flags::FlagDef {
   std::function<void(const std::string&)> callback;
 
   std::string makeHelpText(size_t width, size_t helpTextOffset) const;
+};
+
+class Flags::Flag {
+ public:
+  Flag(
+      const std::string& opt,
+      const std::string& val,
+      FlagStyle fs,
+      FlagType ft);
+
+  explicit Flag(char shortOpt);
+  Flag(char shortOpt, const std::string& val);
+  Flag(const std::string& longOpt);
+  Flag(const std::string& longOpt, const std::string& val);
+
+  FlagType type() const { return type_; }
+  const std::string& name() const { return name_; }
+  const std::string& value() const { return value_; }
+
+ private:
+  FlagType type_;
+  FlagStyle style_;
+  std::string name_;
+  std::string value_;
 };
 
 class FlagsErrorCategory : public std::error_category {

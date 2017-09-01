@@ -17,7 +17,7 @@ extern char** environ;
 namespace xzero {
 
 // {{{ Flag
-Flag::Flag(
+Flags::Flag::Flag(
     const std::string& opt,
     const std::string& val,
     FlagStyle fs,
@@ -40,6 +40,13 @@ Flags::Flags()
 
 void Flags::set(const Flag& flag) {
   set_[flag.name()] = std::make_pair(flag.type(), flag.value());
+}
+
+void Flags::set(const std::string& opt,
+                const std::string& val,
+                FlagStyle fs,
+                FlagType ft) {
+  set(Flag{opt, val, fs, ft});
 }
 
 bool Flags::isSet(const std::string& flag) const {
@@ -294,9 +301,12 @@ std::error_code Flags::parse(int argc, const char* argv[]) {
 }
 
 std::error_code Flags::parse(const std::vector<std::string>& args) {
-  auto invokeCallback = [&](const FlagDef* fd, const std::string& value) {
-    if (fd && fd->callback) {
-      fd->callback(value);
+  auto invokeCallback = [&](const FlagDef* fd, FlagStyle style, const std::string& value) {
+    if (fd) {
+      set(fd->longOption, value, style, fd->type);
+      if (fd->callback) {
+        fd->callback(value);
+      }
     }
   };
 
@@ -328,8 +338,7 @@ std::error_code Flags::parse(const std::vector<std::string>& args) {
         if (fd == nullptr) {
           return Error::UnknownOption;
         } else {
-          set(name, value, FlagStyle::LongWithValue, fd->type);
-          invokeCallback(fd, value);
+          invokeCallback(fd, FlagStyle::LongWithValue, value);
           i++;
         }
       } else { // --name [VALUE]
@@ -337,8 +346,7 @@ std::error_code Flags::parse(const std::vector<std::string>& args) {
         if (fd == nullptr) {
           return Error::UnknownOption;
         } else if (fd->type == FlagType::Bool) { // --name
-          set(arg, "true", FlagStyle::LongSwitch, fd->type);
-          invokeCallback(fd, "true");
+          invokeCallback(fd, FlagStyle::LongSwitch, "true");
           i++;
         } else { // --name VALUE
           i++;
@@ -351,8 +359,7 @@ std::error_code Flags::parse(const std::vector<std::string>& args) {
           std::string value = args[i];
           i++;
 
-          set(name, value, FlagStyle::LongWithValue, fd->type);
-          invokeCallback(fd, value);
+          invokeCallback(fd, FlagStyle::LongWithValue, value);
         }
       }
     } else if (arg.size() > 1 && arg[0] == '-') {
@@ -363,14 +370,12 @@ std::error_code Flags::parse(const std::vector<std::string>& args) {
         if (fd == nullptr) { // option not found
           return Error::UnknownOption; //"-" + arg.substr(0, 1));
         } else if (fd->type == FlagType::Bool) {
-          set(fd->longOption, "true", FlagStyle::ShortSwitch, FlagType::Bool);
-          invokeCallback(fd, "true");
+          invokeCallback(fd, FlagStyle::ShortSwitch, "true");
           arg = arg.substr(1);
           i++;
         } else if (arg.size() > 1) { // -fVALUE
           std::string value = arg.substr(1);
-          set(fd->longOption, value, FlagStyle::ShortSwitch, fd->type);
-          invokeCallback(fd, value);
+          invokeCallback(fd, FlagStyle::ShortSwitch, value);
           arg.clear();
           i++;
         } else { // -f VALUE
@@ -391,8 +396,7 @@ std::error_code Flags::parse(const std::vector<std::string>& args) {
             return Error::MissingOptionValue; //, option);
           }
 
-          set(name, value, FlagStyle::ShortSwitch, fd->type);
-          invokeCallback(fd, value);
+          invokeCallback(fd, FlagStyle::ShortSwitch, value);
         }
       }
     } else if (parametersEnabled_) {
@@ -410,15 +414,11 @@ std::error_code Flags::parse(const std::vector<std::string>& args) {
   for (const FlagDef& fd: flagDefs_) {
     if (fd.defaultValue.isSome()) {
       if (!isSet(fd.longOption)) {
-        set(fd.longOption, fd.defaultValue.get(),
-                  FlagStyle::LongWithValue, fd.type);
-        invokeCallback(&fd, fd.defaultValue.get());
+        invokeCallback(&fd, FlagStyle::LongWithValue, fd.defaultValue.get());
       }
     } else if (fd.type == FlagType::Bool) {
       if (!isSet(fd.longOption)) {
-        set(fd.longOption, "false",
-                  FlagStyle::LongWithValue, FlagType::Bool);
-        invokeCallback(&fd, "false");
+        invokeCallback(&fd, FlagStyle::LongWithValue, "false");
       }
     }
   }
