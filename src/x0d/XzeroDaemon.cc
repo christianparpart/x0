@@ -34,8 +34,6 @@
 #include <xzero/net/SslConnector.h>
 #include <xzero/net/InetConnector.h>
 #include <xzero/net/Server.h>
-#include <xzero/cli/CLI.h>
-#include <xzero/cli/Flags.h>
 #include <xzero/RuntimeError.h>
 #include <xzero/MimeTypes.h>
 #include <xzero/Application.h>

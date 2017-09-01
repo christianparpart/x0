@@ -15,8 +15,7 @@
 #include <xzero/Application.h>
 #include <xzero/RuntimeError.h>
 #include <xzero/Uri.h>
-#include <xzero/cli/CLI.h>
-#include <xzero/cli/Flags.h>
+#include <xzero/Flags.h>
 #include <xzero/logging.h>
 #include <unordered_map>
 #include "sysconfig.h"
@@ -102,6 +101,20 @@ XUrl::XUrl()
   Application::logToStderr(LogLevel::Info);
 
   requestHeaders_.push_back("User-Agent", "xurl/" PACKAGE_VERSION);
+
+  flags_.defineBool("help", 'h', "Prints this help.");
+  flags_.defineBool("head", 'I', "Performs a HEAD request");
+  flags_.defineString("output", 'o', "PATH", "Write response body to given file.");
+  flags_.defineString("log-level", 0, "STRING", "Log level.", "info");
+  flags_.defineString("method", 'X', "METHOD", "HTTP method", "GET");
+  flags_.defineNumber("connect-timeout", 0, "MS", "TCP connect() timeout", 10_seconds .milliseconds());
+  flags_.defineString("upload-file", 'T', "PATH", "Uploads given file.", "");
+  flags_.defineString("header", 'H', "HEADER", "Adds a custom request header",
+      None(),
+      std::bind(&XUrl::addRequestHeader, this, std::placeholders::_1));
+  flags_.defineBool("ipv4", '4', "Favor IPv4 for TCP/IP communication.");
+  flags_.defineBool("ipv6", '6', "Favor IPv6 for TCP/IP communication.");
+  flags_.enableParameters("URL", "URL to query");
 }
 
 void XUrl::addRequestHeader(const std::string& field) {
@@ -109,22 +122,11 @@ void XUrl::addRequestHeader(const std::string& field) {
 }
 
 int XUrl::run(int argc, const char* argv[]) {
-  CLI cli;
-  cli.defineBool("help", 'h', "Prints this help.");
-  cli.defineBool("head", 'I', "Performs a HEAD request");
-  cli.defineString("output", 'o', "PATH", "Write response body to given file.");
-  cli.defineString("log-level", 0, "STRING", "Log level.", "info");
-  cli.defineString("method", 'X', "METHOD", "HTTP method", "GET");
-  cli.defineNumber("connect-timeout", 0, "MS", "TCP connect() timeout", 10_seconds .milliseconds());
-  cli.defineString("upload-file", 'T', "PATH", "Uploads given file.", "");
-  cli.defineString("header", 'H', "HEADER", "Adds a custom request header",
-      None(),
-      std::bind(&XUrl::addRequestHeader, this, std::placeholders::_1));
-  cli.defineBool("ipv4", '4', "Favor IPv4 for TCP/IP communication.");
-  cli.defineBool("ipv6", '6', "Favor IPv6 for TCP/IP communication.");
-  cli.enableParameters("URL", "URL to query");
-
-  flags_ = cli.evaluate(argc, argv);
+  std::error_code ec = flags_.parse(argc, argv);
+  if (ec) {
+    fprintf(stderr, "Failed to parse flags. %s\n", ec.message().c_str());
+    return 1;
+  }
 
   Logger::get()->setMinimumLogLevel(make_loglevel(flags_.getString("log-level")));
 
@@ -137,7 +139,7 @@ int XUrl::run(int argc, const char* argv[]) {
       << "Usage: xurl [options ...]" << std::endl
       << std::endl
       << "Options:" << std::endl
-      << cli.helpText() << std::endl;
+      << flags_.helpText() << std::endl;
     return 0;
   }
 

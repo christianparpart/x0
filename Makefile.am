@@ -49,6 +49,7 @@ libXzero_a_SOURCES = \
 	src/xzero/DeadlineTimer.cc \
 	src/xzero/Duration.cc \
 	src/xzero/ExceptionHandler.cc \
+	src/xzero/Flags.cc \
 	src/xzero/HugeBuffer.cc \
 	src/xzero/IEEE754.cc \
 	src/xzero/ISO8601.cc \
@@ -72,8 +73,6 @@ libXzero_a_SOURCES = \
 	src/xzero/WallClock.cc \
 	src/xzero/base64.cc \
 	src/xzero/base64url.cc \
-	src/xzero/cli/CLI.cc \
-	src/xzero/cli/Flags.cc \
 	src/xzero/executor/Executor.cc \
 	src/xzero/executor/LocalExecutor.cc \
 	src/xzero/executor/PosixScheduler.cc \
@@ -224,6 +223,7 @@ nobase_libXzero_HEADERS = \
 	src/xzero/Duration.h \
 	src/xzero/Duration_impl.h \
 	src/xzero/ExceptionHandler.h \
+	src/xzero/Flags.h \
 	src/xzero/HugeBuffer.h \
 	src/xzero/IEEE754.h \
 	src/xzero/ISO8601.h \
@@ -272,9 +272,6 @@ nobase_libXzero_HEADERS = \
 	src/xzero/testing.h \
 	src/xzero/time_constants.h \
 	src/xzero/traits.h \
-	src/xzero/cli/CLI.h \
-	src/xzero/cli/FlagType.h \
-	src/xzero/cli/Flags.h \
 	src/xzero/executor/EventLoop.h \
 	src/xzero/executor/Executor-inl.h \
 	src/xzero/executor/Executor.h \
@@ -588,6 +585,7 @@ xzero_test_SOURCES = \
 	src/xzero/Callback-test.cc \
 	src/xzero/Channel-test.cc \
 	src/xzero/DeadlineTimer-test.cc \
+	src/xzero/Flags-test.cc \
 	src/xzero/HugeBuffer-test.cc \
 	src/xzero/MimeTypes-test.cc \
 	src/xzero/Option-test.cc \
@@ -602,7 +600,6 @@ xzero_test_SOURCES = \
 	src/xzero/TokenShaper-test.cc \
 	src/xzero/Tokenizer-test.cc \
 	src/xzero/Uri-test.cc \
-	src/xzero/cli/CLI-test.cc \
 	src/xzero/executor/PosixScheduler-test.cc \
 	src/xzero/executor/ThreadPool-test.cc \
 	src/xzero/hash/FNV-test.cc \

@@ -5,25 +5,151 @@
 // file except in compliance with the License. You may obtain a copy of
 // the License at: http://opensource.org/licenses/MIT
 
-#include <xzero/cli/CLI.h>
-#include <xzero/cli/Flags.h>
+#include <xzero/Flags.h>
 #include <xzero/net/IPAddress.h>
 #include <xzero/RuntimeError.h>
-#include <xzero/Tokenizer.h>
 #include <sstream>
 #include <iostream>
 #include <iomanip>
 
+extern char** environ;
+
 namespace xzero {
 
-CLI::CLI()
+// {{{ Flag
+Flag::Flag(
+    const std::string& opt,
+    const std::string& val,
+    FlagStyle fs,
+    FlagType ft)
+    : type_(ft),
+      style_(fs),
+      name_(opt),
+      value_(val) {
+}
+// }}}
+
+Flags::Flags()
     : flagDefs_(),
       parametersEnabled_(false),
       parametersPlaceholder_(),
-      parametersHelpText_() {
+      parametersHelpText_(),
+      set_(),
+      raw_() {
 }
 
-CLI& CLI::define(
+void Flags::set(const Flag& flag) {
+  set_[flag.name()] = std::make_pair(flag.type(), flag.value());
+}
+
+bool Flags::isSet(const std::string& flag) const {
+  return set_.find(flag) != set_.end();
+}
+
+IPAddress Flags::getIPAddress(const std::string& flag) const {
+  auto i = set_.find(flag);
+  if (i == set_.end())
+    throw "RAISE_STATUS(CliFlagNotFoundError)";
+
+  if (i->second.first != FlagType::IP)
+    throw "RAISE_STATUS(CliTypeMismatchError)";
+
+  return IPAddress(i->second.second);
+}
+
+std::string Flags::asString(const std::string& flag) const {
+  auto i = set_.find(flag);
+  if (i == set_.end())
+    throw "RAISE_STATUS(CliFlagNotFoundError)";
+
+  return i->second.second;
+}
+
+std::string Flags::getString(const std::string& flag) const {
+  auto i = set_.find(flag);
+  if (i == set_.end()) {
+    throw "RAISE_STATUS(CliFlagNotFoundError)";
+  }
+
+  if (i->second.first != FlagType::String)
+    throw "RAISE_STATUS(CliTypeMismatchError)";
+
+  return i->second.second;
+}
+
+long int Flags::getNumber(const std::string& flag) const {
+  auto i = set_.find(flag);
+  if (i == set_.end()) {
+    throw "RAISE_STATUS(CliFlagNotFoundError)";
+  }
+
+  if (i->second.first != FlagType::Number)
+    throw "RAISE_STATUS(CliTypeMismatchError)";
+
+  return std::stoi(i->second.second);
+}
+
+float Flags::getFloat(const std::string& flag) const {
+  auto i = set_.find(flag);
+  if (i == set_.end())
+    throw "RAISE_STATUS(CliFlagNotFoundError)";
+
+  if (i->second.first != FlagType::Float)
+    throw "RAISE_STATUS(CliTypeMismatchError)";
+
+  return std::stof(i->second.second);
+}
+
+bool Flags::getBool(const std::string& flag) const {
+  auto i = set_.find(flag);
+  if (i == set_.end())
+    return false;
+
+  return i->second.second == "true";
+}
+
+const std::vector<std::string>& Flags::parameters() const {
+  return raw_;
+}
+
+void Flags::setParameters(const std::vector<std::string>& v) {
+  raw_ = v;
+}
+
+std::string Flags::to_s() const {
+  std::stringstream sstr;
+
+  int i = 0;
+  for (const auto& flag: set_) {
+    if (i)
+      sstr << ' ';
+
+    i++;
+
+    switch (flag.second.first) {
+      case FlagType::Bool:
+        if (flag.second.second == "true")
+          sstr << "--" << flag.first;
+        else
+          sstr << "--" << flag.first << "=false";
+        break;
+      case FlagType::String:
+        sstr << "--" << flag.first << "=\"" << flag.second.second << "\"";
+        break;
+      default:
+        sstr << "--" << flag.first << "=" << flag.second.second;
+        break;
+    }
+  }
+
+  return sstr.str();
+}
+
+std::string inspect(const Flags& flags) {
+  return flags.to_s();
+}
+
+Flags& Flags::define(
     const std::string& longOpt,
     char shortOpt,
     bool required,
@@ -48,7 +174,7 @@ CLI& CLI::define(
   return *this;
 }
 
-CLI& CLI::defineString(
+Flags& Flags::defineString(
     const std::string& longOpt,
     char shortOpt,
     const std::string& valuePlaceholder,
@@ -60,7 +186,7 @@ CLI& CLI::defineString(
                 helpText, defaultValue, callback);
 }
 
-CLI& CLI::defineNumber(
+Flags& Flags::defineNumber(
     const std::string& longOpt,
     char shortOpt,
     const std::string& valuePlaceholder,
@@ -79,7 +205,7 @@ CLI& CLI::defineNumber(
       });
 }
 
-CLI& CLI::defineFloat(
+Flags& Flags::defineFloat(
     const std::string& longOpt,
     char shortOpt,
     const std::string& valuePlaceholder,
@@ -98,7 +224,7 @@ CLI& CLI::defineFloat(
       });
 }
 
-CLI& CLI::defineIPAddress(
+Flags& Flags::defineIPAddress(
     const std::string& longOpt,
     char shortOpt,
     const std::string& valuePlaceholder,
@@ -117,7 +243,7 @@ CLI& CLI::defineIPAddress(
       });
 }
 
-CLI& CLI::defineBool(
+Flags& Flags::defineBool(
     const std::string& longOpt,
     char shortOpt,
     const std::string& helpText,
@@ -133,7 +259,7 @@ CLI& CLI::defineBool(
       });
 }
 
-CLI& CLI::enableParameters(const std::string& valuePlaceholder,
+Flags& Flags::enableParameters(const std::string& valuePlaceholder,
                            const std::string& helpText) {
   parametersEnabled_ = true;
   parametersPlaceholder_ = valuePlaceholder;
@@ -142,7 +268,7 @@ CLI& CLI::enableParameters(const std::string& valuePlaceholder,
   return *this;
 }
 
-const CLI::FlagDef* CLI::find(const std::string& longOption) const {
+const Flags::FlagDef* Flags::findDef(const std::string& longOption) const {
   for (const auto& flag: flagDefs_)
     if (flag.longOption == longOption)
       return &flag;
@@ -150,7 +276,7 @@ const CLI::FlagDef* CLI::find(const std::string& longOption) const {
   return nullptr;
 }
 
-const CLI::FlagDef* CLI::find(char shortOption) const {
+const Flags::FlagDef* Flags::findDef(char shortOption) const {
   for (const auto& flag: flagDefs_)
     if (flag.shortOption == shortOption)
       return &flag;
@@ -158,36 +284,18 @@ const CLI::FlagDef* CLI::find(char shortOption) const {
   return nullptr;
 }
 
-const CLI::FlagDef* CLI::require(const std::string& longOption) const {
-  if (const FlagDef* fd = find(longOption))
-    return fd;
-
-  RAISE_EXCEPTION(CLI::UnknownOptionError); //"--" + longOption);
-}
-
-const CLI::FlagDef* CLI::require(char shortOption) const {
-  if (const FlagDef* fd = find(shortOption))
-    return fd;
-
-  //char option[3] = { '-', shortOption, '\0' };
-  RAISE_EXCEPTION(CLI::UnknownOptionError); // , option);
-}
-
 // -----------------------------------------------------------------------------
-Flags CLI::evaluate(int argc, const char* argv[]) const {
+std::error_code Flags::parse(int argc, const char* argv[]) {
   std::vector<std::string> args;
   for (int i = 1; i < argc; ++i)
     args.push_back(argv[i]);
 
-  return evaluate(args);
+  return parse(args);
 }
 
-Flags CLI::evaluate(const std::vector<std::string>& args) const {
-  Flags flags;
-
-  auto call = [&](const std::string& name, const std::string& value) {
-    const FlagDef* fd = require(name);
-    if (fd->callback) {
+std::error_code Flags::parse(const std::vector<std::string>& args) {
+  auto invokeCallback = [&](const FlagDef* fd, const std::string& value) {
+    if (fd && fd->callback) {
       fd->callback(value);
     }
   };
@@ -216,15 +324,21 @@ Flags CLI::evaluate(const std::vector<std::string>& args) const {
       if (eq != arg.npos) { // --name=value
         std::string name = arg.substr(0, eq);
         std::string value = arg.substr(eq + 1);
-        const FlagDef* fd = require(name);
-        flags.set(name, value, FlagStyle::LongWithValue, fd->type);
-        call(name, value);
-        i++;
+        const FlagDef* fd = findDef(name);
+        if (fd == nullptr) {
+          return Error::UnknownOption;
+        } else {
+          set(name, value, FlagStyle::LongWithValue, fd->type);
+          invokeCallback(fd, value);
+          i++;
+        }
       } else { // --name [VALUE]
-        const FlagDef* fd = require(arg);
-        if (fd->type == FlagType::Bool) { // --name
-          flags.set(arg, "true", FlagStyle::LongSwitch, fd->type);
-          call(arg, "true");
+        const FlagDef* fd = findDef(arg);
+        if (fd == nullptr) {
+          return Error::UnknownOption;
+        } else if (fd->type == FlagType::Bool) { // --name
+          set(arg, "true", FlagStyle::LongSwitch, fd->type);
+          invokeCallback(fd, "true");
           i++;
         } else { // --name VALUE
           i++;
@@ -232,32 +346,31 @@ Flags CLI::evaluate(const std::vector<std::string>& args) const {
 
           if (i >= args.size())
             // "--" + name
-            RAISE_EXCEPTION(CLI::MissingOptionValueError);
+            return Error::MissingOption;
 
           std::string value = args[i];
           i++;
 
-          flags.set(name, value, FlagStyle::LongWithValue, fd->type);
-          call(name, value);
+          set(name, value, FlagStyle::LongWithValue, fd->type);
+          invokeCallback(fd, value);
         }
       }
     } else if (arg.size() > 1 && arg[0] == '-') {
       // shortopt
       arg = arg.substr(1);
       while (!arg.empty()) {
-        const FlagDef* fd = find(arg[0]);
+        const FlagDef* fd = findDef(arg[0]);
         if (fd == nullptr) { // option not found
-          RAISE_EXCEPTION(CLI::UnknownOptionError); //"-" + arg.substr(0, 1));
+          return Error::UnknownOption; //"-" + arg.substr(0, 1));
         } else if (fd->type == FlagType::Bool) {
-          flags.set(fd->longOption, "true",
-                    FlagStyle::ShortSwitch, FlagType::Bool);
-          call(fd->longOption, "true");
+          set(fd->longOption, "true", FlagStyle::ShortSwitch, FlagType::Bool);
+          invokeCallback(fd, "true");
           arg = arg.substr(1);
           i++;
         } else if (arg.size() > 1) { // -fVALUE
-          flags.set(fd->longOption, arg.substr(1),
-                    FlagStyle::ShortSwitch, fd->type);
-          call(fd->longOption, arg.substr(1));
+          std::string value = arg.substr(1);
+          set(fd->longOption, value, FlagStyle::ShortSwitch, fd->type);
+          invokeCallback(fd, value);
           arg.clear();
           i++;
         } else { // -f VALUE
@@ -266,7 +379,7 @@ Flags CLI::evaluate(const std::vector<std::string>& args) const {
 
           if (i >= args.size()) {
             //char option[3] = { '-', fd->shortOption, '\0' };
-            RAISE_EXCEPTION(CLI::MissingOptionValueError); //, option);
+            return Error::MissingOptionValue; //, option);
           }
 
           arg.clear();
@@ -275,11 +388,11 @@ Flags CLI::evaluate(const std::vector<std::string>& args) const {
 
           if (!value.empty() && value[0] == '-') {
             //char option[3] = { '-', fd->shortOption, '\0' };
-            RAISE_EXCEPTION(CLI::MissingOptionValueError); //, option);
+            return Error::MissingOptionValue; //, option);
           }
 
-          flags.set(name, value, FlagStyle::ShortSwitch, fd->type);
-          call(name, value);
+          set(name, value, FlagStyle::ShortSwitch, fd->type);
+          invokeCallback(fd, value);
         }
       }
     } else if (parametersEnabled_) {
@@ -287,36 +400,35 @@ Flags CLI::evaluate(const std::vector<std::string>& args) const {
       i++;
     } else {
       // oops
-      RAISE_EXCEPTION(CLI::UnknownOptionError); // args[i]
+      return Error::UnknownOption; // args[i]
     }
   }
 
-  flags.setParameters(params);
+  setParameters(params);
 
   // fill any missing default flags
   for (const FlagDef& fd: flagDefs_) {
     if (fd.defaultValue.isSome()) {
-      if (!flags.isSet(fd.longOption)) {
-        flags.set(fd.longOption, fd.defaultValue.get(),
+      if (!isSet(fd.longOption)) {
+        set(fd.longOption, fd.defaultValue.get(),
                   FlagStyle::LongWithValue, fd.type);
-        call(fd.longOption, fd.defaultValue.get());
+        invokeCallback(&fd, fd.defaultValue.get());
       }
     } else if (fd.type == FlagType::Bool) {
-      if (!flags.isSet(fd.longOption)) {
-        flags.set(fd.longOption, "false",
+      if (!isSet(fd.longOption)) {
+        set(fd.longOption, "false",
                   FlagStyle::LongWithValue, FlagType::Bool);
-        call(fd.longOption, "false");
+        invokeCallback(&fd, "false");
       }
     }
   }
 
-  return flags;
+  return std::error_code();
 }
 
 // -----------------------------------------------------------------------------
 
-std::string CLI::helpText(size_t width,
-                          size_t helpTextOffset) const {
+std::string Flags::helpText(size_t width, size_t helpTextOffset) const {
   std::stringstream sstr;
 
   for (const FlagDef& fd: flagDefs_)
@@ -346,8 +458,6 @@ static std::string wordWrap(
     size_t width,
     size_t indent) {
 
-  //auto words = Tokenizer<std::string, std::string>::tokenize(text, " ");
-
   std::stringstream sstr;
 
   size_t i = 0;
@@ -365,9 +475,13 @@ static std::string wordWrap(
   return sstr.str();
 }
 
-// {{{ CLI::FlagDef
-std::string CLI::FlagDef::makeHelpText(size_t width,
-                                       size_t helpTextOffset) const {
+std::error_code make_error_code(Flags::Error errc) {
+  return std::error_code(static_cast<int>(errc), FlagsErrorCategory::get());
+}
+
+// {{{ Flags::FlagDef
+std::string Flags::FlagDef::makeHelpText(size_t width,
+                                         size_t helpTextOffset) const {
   std::stringstream sstr;
 
   sstr << ' ';
@@ -410,6 +524,32 @@ std::string CLI::FlagDef::makeHelpText(size_t width,
   sstr << std::endl;
 
   return sstr.str();
+}
+// }}}
+
+// {{{ FlagsErrorCategory
+FlagsErrorCategory& FlagsErrorCategory::get() {
+  static FlagsErrorCategory cat;
+  return cat;
+}
+
+const char* FlagsErrorCategory::name() const noexcept {
+  return "Flags";
+}
+
+std::string FlagsErrorCategory::message(int ec) const {
+  switch (static_cast<Flags::Error>(ec)) {
+  case Flags::Error::TypeMismatch:
+    return "Type Mismatch";
+  case Flags::Error::UnknownOption:
+    return "Unknown Option";
+  case Flags::Error::MissingOption:
+    return "Missing Option";
+  case Flags::Error::MissingOptionValue:
+    return "Missing Option Value";
+  case Flags::Error::NotFound:
+    return "Flag Not Found";
+  }
 }
 // }}}
 

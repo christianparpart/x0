@@ -6,8 +6,7 @@
 // the License at: http://opensource.org/licenses/MIT
 
 #include <xzero/testing.h>
-#include <xzero/cli/CLI.h>
-#include <xzero/cli/Flags.h>
+#include <xzero/Flags.h>
 #include <xzero/logging/Logger.h>
 #include <xzero/Application.h>
 #include <xzero/AnsiColor.h>
@@ -136,23 +135,27 @@ int UnitTest::main(int argc, const char* argv[]) {
 
   Application::init();
 
-  CLI cli;
-  cli.defineBool("help", 'h', "Prints this help and terminates.")
-     .defineBool("verbose", 'v', "Prints to console in debug log level.")
-     .defineString("log-level", 'L', "ENUM", "Defines the minimum log level.", "info")
-     .defineString("log-target", 0, "ENUM", "Specifies logging target. One of syslog, file, systemd, console.", "")
-     .defineString("filter", 'f', "GLOB", "Filters tests by given glob.", "*")
-     .defineBool("list", 'l', "Prints all tests and exits.")
-     .defineBool("randomize", 'R', "Randomizes test order.")
-     .defineBool("sort", 's', "Sorts tests alphabetically ascending.")
-     .defineBool("no-progress", 0, "Avoids printing progress.")
-     .defineNumber("repeat", 'r', "COUNT", "Repeat tests given number of times.", 1)
-     ;
+  Flags flags;
+  flags.defineBool("help", 'h', "Prints this help and terminates.")
+       .defineBool("verbose", 'v', "Prints to console in debug log level.")
+       .defineString("log-level", 'L', "ENUM", "Defines the minimum log level.", "info")
+       .defineString("log-target", 0, "ENUM", "Specifies logging target. One of syslog, file, systemd, console.", "")
+       .defineString("filter", 'f', "GLOB", "Filters tests by given glob.", "*")
+       .defineBool("list", 'l', "Prints all tests and exits.")
+       .defineBool("randomize", 'R', "Randomizes test order.")
+       .defineBool("sort", 's', "Sorts tests alphabetically ascending.")
+       .defineBool("no-progress", 0, "Avoids printing progress.")
+       .defineNumber("repeat", 'r', "COUNT", "Repeat tests given number of times.", 1)
+       ;
 
-  Flags flags = cli.evaluate(argc, argv);
+  std::error_code ec = flags.parse(argc, argv);
+  if (ec) {
+    fprintf(stderr, "Failed to parse flags. %s\n", ec.message().c_str());
+    return 1;
+  }
 
   if (flags.getBool("help")) {
-    printf("%s\n", cli.helpText().c_str());
+    printf("%s\n", flags.helpText().c_str());
     return 0;
   }
 

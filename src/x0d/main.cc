@@ -14,8 +14,7 @@
 #include <xzero/logging/FileLogTarget.h>
 #include <xzero/logging.h>
 #include <xzero/io/FileUtil.h>
-#include <xzero/cli/CLI.h>
-#include <xzero/cli/Flags.h>
+#include <xzero/Flags.h>
 #include <xzero/Application.h>
 #include <typeinfo>
 #include <iostream>
@@ -32,7 +31,7 @@ void printVersion() {
     << "Copyright (c) 2009-2017 by Christian Parpart <christian@parpart.family>" << std::endl;
 }
 
-void printHelp(const CLI& cli) {
+void printHelp(const Flags& cli) {
   printVersion();
   std::cout
     << std::endl
@@ -70,31 +69,35 @@ int main(int argc, const char* argv[]) {
   try {
     Application::init();
 
-    CLI cli;
-    cli.defineBool("help", 'h', "Prints this help and exits.")
-       .defineBool("version", 'v', "Prints software version and exits.")
-       .defineString("config", 'c', "PATH", "Specify a custom configuration file.", X0D_CONFIGFILE, nullptr)
-       .defineString("user", 'u', "NAME", "User privileges to drop down to.", Application::userName())
-       .defineString("group", 'g', "NAME", "Group privileges to drop down to.", Application::groupName())
-       .defineString("log-level", 'L', "ENUM", "Defines the minimum log level.", "info", nullptr)
-       .defineString("log-target", 0, "ENUM", "Specifies logging target. One of syslog, file, systemd, console.", "console", nullptr)
-       .defineString("log-file", 'l', "PATH", "Path to application log file.", "", nullptr)
-       .defineString("instant", 'i', "PATH[:PORT]", "Enable instant-mode (does not need config file).", "", nullptr)
-       .defineNumber("optimization-level", 'O', "LEVEL", "Sets the configuration optimization level.", 1)
-       .defineBool("daemonize", 'd', "Forks the process into background.")
-       .defineString("pid-file", 0, "PATH",
-                     "Path to PID-file this process will store its main PID.",
-                     X0D_PIDFILE,
-                     nullptr)
-       .defineBool("dump-ast", 0, "Dumps configuration AST and exits.")
-       .defineBool("dump-ir", 0, "Dumps configuration IR and exits.")
-       .defineBool("dump-tc", 0, "Dumps configuration opcode stream and exits.")
-       ;
+    Flags flags;
+    flags.defineBool("help", 'h', "Prints this help and exits.")
+         .defineBool("version", 'v', "Prints software version and exits.")
+         .defineString("config", 'c', "PATH", "Specify a custom configuration file.", X0D_CONFIGFILE, nullptr)
+         .defineString("user", 'u', "NAME", "User privileges to drop down to.", Application::userName())
+         .defineString("group", 'g', "NAME", "Group privileges to drop down to.", Application::groupName())
+         .defineString("log-level", 'L', "ENUM", "Defines the minimum log level.", "info", nullptr)
+         .defineString("log-target", 0, "ENUM", "Specifies logging target. One of syslog, file, systemd, console.", "console", nullptr)
+         .defineString("log-file", 'l', "PATH", "Path to application log file.", "", nullptr)
+         .defineString("instant", 'i', "PATH[:PORT]", "Enable instant-mode (does not need config file).", "", nullptr)
+         .defineNumber("optimization-level", 'O', "LEVEL", "Sets the configuration optimization level.", 1)
+         .defineBool("daemonize", 'd', "Forks the process into background.")
+         .defineString("pid-file", 0, "PATH",
+                       "Path to PID-file this process will store its main PID.",
+                       X0D_PIDFILE,
+                       nullptr)
+         .defineBool("dump-ast", 0, "Dumps configuration AST and exits.")
+         .defineBool("dump-ir", 0, "Dumps configuration IR and exits.")
+         .defineBool("dump-tc", 0, "Dumps configuration opcode stream and exits.")
+         ;
 
-    Flags flags = cli.evaluate(argc, argv);
+    std::error_code ec = flags.parse(argc, argv);
+    if (ec) {
+      fprintf(stderr, "Failed to parse flags. %s\n", ec.message().c_str());
+      return 1;
+    }
 
     if (flags.getBool("help")) {
-      printHelp(cli);
+      printHelp(flags);
       return 0;
     }
 
