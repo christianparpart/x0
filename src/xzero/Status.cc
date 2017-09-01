@@ -69,11 +69,6 @@ std::string StatusCategory::message(int ec) const {
     case Status::InvalidArgumentError: return "Invalid Argument Error";
     case Status::InternalError: return "Internal Error";
     case Status::InvalidUriPortError: return "Invalid URI-Port Error";
-    case Status::CliTypeMismatchError: return "Type Mismatch Error";
-    case Status::CliUnknownOptionError: return "Unknown Option Error";
-    case Status::CliMissingOptionError: return "Missing Option Error";
-    case Status::CliMissingOptionValueError: return "Missing Option Value Error";
-    case Status::CliFlagNotFoundError: return "Flag Not Found Error";
     case Status::SslPrivateKeyCheckError: return "Private Key Check Error";
     case Status::OptionUncheckedAccessToInstance: return "Unchecked access to Option instance";
     case Status::CaughtUnknownExceptionError: return "Caught Unknown exception Error";
