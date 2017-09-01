@@ -85,7 +85,7 @@ void HttpRequest::recycle() {
   secure_ = false;
   expect100Continue_ = false;
   host_.clear();
-  content_.reset();
+  content_.clear();
   username_.clear();
 }
 

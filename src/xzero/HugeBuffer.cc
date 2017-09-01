@@ -133,7 +133,7 @@ void HugeBuffer::tryDisplaceBufferToFile() {
   }
 }
 
-void HugeBuffer::reset() {
+void HugeBuffer::clear() {
   buffer_.clear();
   actualSize_ = 0;
   fd_.close();

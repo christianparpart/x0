@@ -110,7 +110,7 @@ class HugeBuffer {
   void write(FileView&& chunk);
   void write(Buffer&& chunk);
 
-  void reset();
+  void clear();
 
  private:
   void tryDisplaceBufferToFile();
