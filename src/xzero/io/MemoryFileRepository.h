@@ -28,9 +28,7 @@ class XZERO_BASE_API MemoryFileRepository : public FileRepository {
  public:
   explicit MemoryFileRepository(MimeTypes& mimetypes);
 
-  std::shared_ptr<File> getFile(
-      const std::string& requestPath,
-      const std::string& docroot = "/") override;
+  std::shared_ptr<File> getFile(const std::string& requestPath) override;
 
   void listFiles(std::function<bool(const std::string&)> callback) override;
   void deleteAllFiles() override;

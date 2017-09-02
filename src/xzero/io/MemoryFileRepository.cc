@@ -17,9 +17,7 @@ MemoryFileRepository::MemoryFileRepository(MimeTypes& mimetypes)
       notFound_(new MemoryFile()) {
 }
 
-std::shared_ptr<File> MemoryFileRepository::getFile(
-    const std::string& requestPath,
-    const std::string& /*docroot*/) {
+std::shared_ptr<File> MemoryFileRepository::getFile(const std::string& requestPath) {
   auto i = files_.find(requestPath);
   if (i != files_.end())
     return i->second;

@@ -716,7 +716,7 @@ void CoreModule::error_page(Params& args) {
 }
 
 void CoreModule::file_exists(XzeroContext* cx, Params& args) {
-  auto fileinfo = daemon().vfs().getFile(args.getString(1).str(), "/");
+  auto fileinfo = daemon().vfs().getFile(args.getString(1).str());
   if (fileinfo)
     args.setResult(fileinfo->exists());
   else
@@ -724,7 +724,7 @@ void CoreModule::file_exists(XzeroContext* cx, Params& args) {
 }
 
 void CoreModule::file_is_reg(XzeroContext* cx, Params& args) {
-  auto fileinfo = daemon().vfs().getFile(args.getString(1).str(), "/");
+  auto fileinfo = daemon().vfs().getFile(args.getString(1).str());
   if (fileinfo)
     args.setResult(fileinfo->isRegular());
   else
@@ -732,7 +732,7 @@ void CoreModule::file_is_reg(XzeroContext* cx, Params& args) {
 }
 
 void CoreModule::file_is_dir(XzeroContext* cx, Params& args) {
-  auto fileinfo = daemon().vfs().getFile(args.getString(1).str(), "/");
+  auto fileinfo = daemon().vfs().getFile(args.getString(1).str());
   if (fileinfo)
     args.setResult(fileinfo->isDirectory());
   else
@@ -740,7 +740,7 @@ void CoreModule::file_is_dir(XzeroContext* cx, Params& args) {
 }
 
 void CoreModule::file_is_exe(XzeroContext* cx, Params& args) {
-  auto fileinfo = daemon().vfs().getFile(args.getString(1).str(), "/");
+  auto fileinfo = daemon().vfs().getFile(args.getString(1).str());
   if (fileinfo)
     args.setResult(fileinfo->isExecutable());
   else
@@ -771,9 +771,10 @@ bool CoreModule::verify_docroot(xzero::flow::Instr* call, xzero::flow::IRBuilder
 bool CoreModule::docroot(XzeroContext* cx, Params& args) {
   std::string docroot = args.getString(1).str();
   docroot = FileUtil::realpath(docroot);
+  std::string filepath = FileUtil::joinPaths(docroot, cx->request()->path());
 
   cx->setDocumentRoot(docroot);
-  cx->setFile(daemon().vfs().getFile(cx->request()->path(), docroot));
+  cx->setFile(daemon().vfs().getFile(filepath));
 
   return redirectOnIncompletePath(cx);
 }
@@ -793,8 +794,9 @@ bool CoreModule::alias(XzeroContext* cx, Params& args) {
 
   if (StringUtil::beginsWith(cx->request()->path(), prefix)) {
     const std::string path = alias + cx->request()->path().substr(prefixLength);
+    const std::string filepath = FileUtil::joinPaths(prefix, path);
     cx->setDocumentRoot(prefix);
-    cx->setFile(daemon().vfs().getFile(path, prefix));
+    cx->setFile(daemon().vfs().getFile(filepath));
   }
 
   return redirectOnIncompletePath(cx);
@@ -947,8 +949,9 @@ void CoreModule::autoindex(XzeroContext* cx, Params& args) {
 
 bool CoreModule::matchIndex(XzeroContext* cx, const xzero::BufferRef& arg) {
   std::string ipath = FileUtil::joinPaths(cx->file()->path(), arg.str());
+  std::string path = FileUtil::joinPaths(cx->documentRoot(), ipath);
 
-  if (auto fi = daemon().vfs().getFile(ipath, cx->documentRoot())) {
+  if (auto fi = daemon().vfs().getFile(path)) {
     if (fi->isRegular()) {
       cx->setFile(fi);
       return true;
@@ -959,7 +962,9 @@ bool CoreModule::matchIndex(XzeroContext* cx, const xzero::BufferRef& arg) {
 }
 
 void CoreModule::rewrite(XzeroContext* cx, Params& args) {
-  auto file = daemon().vfs().getFile(args.getString(1).str(), cx->documentRoot());
+  std::string filepath = FileUtil::joinPaths(cx->documentRoot(),
+                                             args.getString(1).str());
+  auto file = daemon().vfs().getFile(filepath);
   cx->setFile(file);
   args.setResult(file ? file->exists() : false);
 }
@@ -991,7 +996,7 @@ void CoreModule::pathinfo(XzeroContext* cx, Params& args) {
 
     if (file->errorCode() == ENOTDIR) {
       pos = file->path().rfind('/', pos - 1);
-      file = daemon().vfs().getFile(file->path().substr(0, pos), "/");
+      file = daemon().vfs().getFile(file->path().substr(0, pos));
       cx->setFile(file);
     } else {
       break;

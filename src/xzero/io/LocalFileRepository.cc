@@ -24,14 +24,8 @@ LocalFileRepository::LocalFileRepository(MimeTypes& mt,
       etagConsiderINode_(etagInode) {
 }
 
-std::shared_ptr<File> LocalFileRepository::getFile(
-    const std::string& requestPath,
-    const std::string& docroot) {
-
-  std::string path = FileUtil::joinPaths(FileUtil::joinPaths(basedir_, docroot), requestPath);
-
-  return std::shared_ptr<File>(new LocalFile(
-        *this, path, mimetypes_.getMimeType(requestPath)));
+std::shared_ptr<File> LocalFileRepository::getFile(const std::string& path) {
+  return std::shared_ptr<File>(new LocalFile(*this, path, mimetypes_.getMimeType(path)));
 }
 
 void LocalFileRepository::listFiles(

@@ -125,7 +125,7 @@ std::unique_ptr<MemoryMap> LocalFile::createMemoryMap(bool rw) {
 std::shared_ptr<LocalFile> LocalFile::get(const std::string& path) {
   static MimeTypes mimetypes;
   static LocalFileRepository repo(mimetypes, "/", true, true, false);
-  return std::static_pointer_cast<LocalFile>(repo.getFile(path, "/"));
+  return std::static_pointer_cast<LocalFile>(repo.getFile(path));
 }
 
 } // namespace xzero

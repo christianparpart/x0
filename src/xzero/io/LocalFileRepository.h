@@ -35,9 +35,7 @@ class XZERO_BASE_API LocalFileRepository : public FileRepository {
 
   const std::string baseDirectory() const { return basedir_; }
 
-  std::shared_ptr<File> getFile(
-      const std::string& requestPath,
-      const std::string& docroot = "/") override;
+  std::shared_ptr<File> getFile(const std::string& requestPath) override;
 
   void listFiles(std::function<bool(const std::string&)> callback) override;
   void deleteAllFiles() override;

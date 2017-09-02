@@ -79,8 +79,11 @@ void UserdirModule::userdir(XzeroContext* cx, Params& args) {
   }
 
   if (struct passwd* pw = getpwnam(userName.c_str())) {
-    cx->setDocumentRoot(pw->pw_dir + dirname_);
-    cx->setFile(daemon().vfs().getFile(userPath, cx->documentRoot()));
+    std::string docroot = FileUtil::joinPaths(pw->pw_dir, dirname_);
+    std::string filepath = FileUtil::joinPaths(docroot, userPath);
+
+    cx->setDocumentRoot(docroot);
+    cx->setFile(daemon().vfs().getFile(filepath));
 
     logTrace("x0d", "docroot[$0], fileinfo[$1]",
              cx->documentRoot(),

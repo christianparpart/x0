@@ -44,7 +44,7 @@ bool DirlistingModule::dirlisting(XzeroContext* cx, Params& args) {
     appendDirectory(sstr, "..");
 
   FileUtil::ls(cx->file()->path(), [&](const std::string& path) -> bool {
-    std::shared_ptr<File> file = daemon().vfs().getFile(path, "/");
+    std::shared_ptr<File> file = daemon().vfs().getFile(path);
     if (file->isDirectory()) {
       appendDirectory(sstr, file->filename());
     } else {
