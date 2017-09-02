@@ -8,6 +8,7 @@
 #pragma once
 
 #include <xzero/Api.h>
+#include <xzero/Result.h>
 #include <functional>
 #include <string>
 #include <stdint.h>
@@ -26,7 +27,7 @@ class XZERO_BASE_API FileUtil {
   static std::string currentWorkingDirectory();
 
   static std::string absolutePath(const std::string& relpath);
-  static std::string realpath(const std::string& relpath);
+  static Result<std::string> realpath(const std::string& relpath);
   static bool exists(const std::string& path);
   static bool isDirectory(const std::string& path);
   static bool isRegular(const std::string& path);

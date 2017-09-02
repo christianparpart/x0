@@ -18,7 +18,7 @@ LocalFileRepository::LocalFileRepository(MimeTypes& mt,
                                                  bool etagSize,
                                                  bool etagInode)
     : mimetypes_(mt),
-      basedir_(FileUtil::realpath(basedir)),
+      basedir_(*FileUtil::realpath(basedir)),
       etagConsiderMTime_(etagMtime),
       etagConsiderSize_(etagSize),
       etagConsiderINode_(etagInode) {

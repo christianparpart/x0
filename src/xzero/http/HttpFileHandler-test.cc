@@ -34,8 +34,8 @@ void staticfileHandler(HttpRequest* request, HttpResponse* response) {
   LocalFileRepository repo(mimetypes, "/", true, true, true);
   HttpFileHandler staticfile(&generateBoundaryID);
 
-  auto docroot = FileUtil::realpath(".");
-  auto file = repo.getFile(request->path(), docroot);
+  auto path = FileUtil::joinPaths(*FileUtil::realpath("."), request->path());
+  auto file = repo.getFile(path);
 
   HttpStatus status = staticfile.handle(request, response, file);
   if (!isError(status))

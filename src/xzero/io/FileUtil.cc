@@ -51,12 +51,12 @@ std::string FileUtil::absolutePath(const std::string& relpath) {
   return joinPaths(currentWorkingDirectory(), relpath);
 }
 
-std::string FileUtil::realpath(const std::string& relpath) {
+Result<std::string> FileUtil::realpath(const std::string& relpath) {
   char result[PATH_MAX];
   if (::realpath(relpath.c_str(), result) == nullptr)
-    RAISE_SYSERR(errno, "Cannot resolve %s", relpath.c_str());
+    return std::make_error_code(static_cast<std::errc>(errno));
 
-  return result;
+  return Success(std::string(result));
 }
 
 bool FileUtil::exists(const std::string& path) {
