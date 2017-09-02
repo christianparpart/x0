@@ -769,11 +769,18 @@ bool CoreModule::verify_docroot(xzero::flow::Instr* call, xzero::flow::IRBuilder
 }
 
 bool CoreModule::docroot(XzeroContext* cx, Params& args) {
-  std::string docroot = args.getString(1).str();
-  docroot = FileUtil::realpath(docroot);
-  std::string filepath = FileUtil::joinPaths(docroot, cx->request()->path());
+  std::string path = args.getString(1).str();
+  Result<std::string> realpath = FileUtil::realpath(path);
+  if (realpath.isFailure()) {
+    logError("x0d", "docroot: Could not find docroot '$0'. ($1) $2",
+        path,
+        realpath.error().category().name(),
+        realpath.error().message());
+    return cx->sendErrorPage(HttpStatus::InternalServerError);
+  }
+  std::string filepath = FileUtil::joinPaths(*realpath, cx->request()->path());
 
-  cx->setDocumentRoot(docroot);
+  cx->setDocumentRoot(*realpath);
   cx->setFile(daemon().vfs().getFile(filepath));
 
   return redirectOnIncompletePath(cx);
