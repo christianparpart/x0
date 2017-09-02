@@ -893,8 +893,7 @@ bool CoreModule::precompressed(XzeroContext* cx, Params& args) {
       if (std::find(items.begin(), items.end(), encoding.id) == items.end())
         continue;
 
-      auto pc = daemon().vfs().getFile(
-          cx->file()->path() + encoding.fileExtension, "/");
+      auto pc = daemon().vfs().getFile(cx->file()->path() + encoding.fileExtension);
 
       if (pc->exists() && pc->isRegular() &&
           pc->mtime() == cx->file()->mtime()) {
