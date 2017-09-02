@@ -232,11 +232,11 @@ void UnitTest::printTestList() {
 
 void UnitTest::printSummary() {
   // print summary
-  printf("%sFinished running %d repeats, %zu tests. %zu success, %d failed, %zu disabled.%s\n",
+  printf("%sFinished running %zu tests (%d repeats). %zu success, %d failed, %zu disabled.%s\n",
       failCount_ ? colorsError.c_str()
                 : colorsOk.c_str(),
+      repeats_ * activeTests_.size(),
       repeats_,
-      activeTests_.size(),
       successCount_,
       failCount_,
       disabledCount(),
