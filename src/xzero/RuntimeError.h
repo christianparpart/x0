@@ -44,8 +44,8 @@ class XZERO_BASE_API RuntimeError : public std::system_error {
   const char* functionName() const { return functionName_; }
 
   // XXX for backwards-compatibility only
-  XZERO_DEPRECATED const char* typeName() const;
-  XZERO_DEPRECATED bool ofType(Status ev) const;
+  [[deprecated]] const char* typeName() const;
+  [[deprecated]] bool ofType(Status ev) const;
 
   bool operator==(Status status) const;
   bool operator!=(Status status) const;
