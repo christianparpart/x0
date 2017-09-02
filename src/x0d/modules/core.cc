@@ -931,9 +931,10 @@ void CoreModule::autoindex(XzeroContext* cx, Params& args) {
     return;
   }
 
-  if (!cx->file())
-    // something went wrong, just be sure we SEGFAULT here
-    RAISE(InternalError, "BUG: cx->file is NULL");
+  if (!cx->file()) {
+    logDebug("x0d", "autoindex: No file mapped. Skipping.");
+    return;
+  }
 
   if (!cx->file()->isDirectory())
     return;
