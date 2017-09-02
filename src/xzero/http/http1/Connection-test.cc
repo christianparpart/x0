@@ -64,7 +64,7 @@ ResponseParser::ResponseParser()
 size_t ResponseParser::parse(const BufferRef& response) {
   http1::Parser parser(Parser::RESPONSE, this);
   responseInfo_.reset();
-  responseBody_.reset();
+  responseBody_.clear();
   return parser.parseFragment(response);
 }
 
