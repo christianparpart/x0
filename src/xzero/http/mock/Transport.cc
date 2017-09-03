@@ -12,8 +12,10 @@
 #include <xzero/http/HttpChannel.h>
 #include <xzero/http/BadMessage.h>
 #include <xzero/executor/Executor.h>
-#include <xzero/Buffer.h>
+#include <xzero/StringUtil.h>
 #include <xzero/io/FileView.h>
+#include <xzero/Buffer.h>
+#include <xzero/logging.h>
 #include <stdexcept>
 #include <system_error>
 
@@ -40,6 +42,7 @@ Transport::Transport(Executor* executor,
       isAborted_(false),
       isCompleted_(false),
       channel_(),
+      responseChunked_(false),
       responseInfo_(),
       responseBody_() {
 }
@@ -88,10 +91,28 @@ void Transport::completed() {
   responseInfo_.setTrailers(channel_->response()->trailers());
 }
 
+void Transport::setResponseInfo(const HttpResponseInfo& info) {
+  responseInfo_ = info;
+  responseChunked_ = !info.hasContentLength() || info.hasTrailers();
+
+  if (!isContentForbidden(info.status())) {
+    if (responseChunked_) {
+      responseInfo_.headers().push_back("Transfer-Encoding", "chunked");
+    } else {
+      responseInfo_.headers().push_back("Content-Length", xzero::to_string(info.contentLength()));
+    }
+  }
+
+  for (const auto& header: responseInfo_.headers()) {
+    logTrace("mock.Transport", "responseHeader[\"$0\"]: \"$1\"", header.name(), header.value());
+  }
+}
+
 void Transport::send(HttpResponseInfo& responseInfo,
                      const BufferRef& chunk,
                      CompletionHandler onComplete) {
-  responseInfo_ = responseInfo;
+  setResponseInfo(responseInfo);
+
   responseBody_ += chunk;
 
   if (onComplete) {
@@ -104,7 +125,7 @@ void Transport::send(HttpResponseInfo& responseInfo,
 void Transport::send(HttpResponseInfo& responseInfo,
                      Buffer&& chunk,
                      CompletionHandler onComplete) {
-  responseInfo_ = responseInfo;
+  setResponseInfo(responseInfo);
   responseBody_ += chunk;
 
   if (onComplete) {
@@ -117,7 +138,7 @@ void Transport::send(HttpResponseInfo& responseInfo,
 void Transport::send(HttpResponseInfo& responseInfo,
                      FileView&& chunk,
                      CompletionHandler onComplete) {
-  responseInfo_ = responseInfo;
+  setResponseInfo(responseInfo);
 
   chunk.fill(&responseBody_);
 

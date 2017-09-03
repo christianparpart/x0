@@ -100,6 +100,8 @@ class XZERO_HTTP_API Transport : public HttpTransport {
   Executor* executor() const noexcept { return executor_; }
 
  private:
+  void setResponseInfo(const HttpResponseInfo& info);
+
   // HttpTransport overrides
   void abort() override;
   void completed() override;
@@ -121,6 +123,7 @@ class XZERO_HTTP_API Transport : public HttpTransport {
   bool isAborted_;
   bool isCompleted_;
   std::unique_ptr<HttpChannel> channel_;
+  bool responseChunked_;
   HttpResponseInfo responseInfo_;
   Buffer responseBody_;
 };
