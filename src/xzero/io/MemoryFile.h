@@ -27,12 +27,12 @@ class XZERO_BASE_API MemoryFile : public File {
   ~MemoryFile();
 
   const std::string& etag() const override;
-  size_t size() const XZERO_NOEXCEPT override;
-  time_t mtime() const XZERO_NOEXCEPT override;
-  size_t inode() const XZERO_NOEXCEPT override;
-  bool isRegular() const XZERO_NOEXCEPT override;
-  bool isDirectory() const XZERO_NOEXCEPT override;
-  bool isExecutable() const XZERO_NOEXCEPT override;
+  size_t size() const noexcept override;
+  time_t mtime() const noexcept override;
+  size_t inode() const noexcept override;
+  bool isRegular() const noexcept override;
+  bool isDirectory() const noexcept override;
+  bool isExecutable() const noexcept override;
   int createPosixChannel(OpenFlags flags) override;
   std::unique_ptr<InputStream> createInputChannel() override;
   std::unique_ptr<OutputStream> createOutputChannel(
