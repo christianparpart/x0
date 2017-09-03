@@ -43,8 +43,10 @@ MemoryFile::MemoryFile()
     : File("", ""),
       mtime_(0),
       inode_(0),
+      size_(0),
       etag_(),
-      fspath_() {
+      fspath_(),
+      fd_(-1) {
 }
 
 MemoryFile::MemoryFile(
