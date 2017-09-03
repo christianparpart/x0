@@ -103,6 +103,11 @@ void Transport::setResponseInfo(const HttpResponseInfo& info) {
     }
   }
 
+  logTrace("mock.Transport", "HTTP/$0 $1 $2",
+           responseInfo_.version(),
+           (int)responseInfo_.status(),
+           responseInfo_.status());
+
   for (const auto& header: responseInfo_.headers()) {
     logTrace("mock.Transport", "responseHeader[\"$0\"]: \"$1\"", header.name(), header.value());
   }
