@@ -13,10 +13,14 @@
 namespace xzero {
 
 template<> std::string StringUtil::toString(Status value) {
-  return to_string(value);
+  return as_string(value);
 }
 
-std::string to_string(Status ec) {
+std::ostream& operator<<(std::ostream& os, Status ec) {
+  os << as_string(ec);
+  return os;
+}
+std::string as_string(Status ec) {
   return StatusCategory::get().message(static_cast<int>(ec));
 }
 
