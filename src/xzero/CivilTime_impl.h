@@ -21,6 +21,19 @@ inline constexpr CivilTime::CivilTime(std::nullptr_t) :
     CivilTime() {
 }
 
+constexpr CivilTime::CivilTime(int year, int month, int day,
+                               int hour, int minute, int second, int millisecond,
+                               int offset) :
+    year_(year),
+    month_(month),
+    day_(day),
+    hour_(hour),
+    minute_(minute),
+    second_(second),
+    millisecond_(millisecond),
+    offset_(0) {
+}
+
 inline constexpr uint16_t CivilTime::year() const {
   return year_;
 }

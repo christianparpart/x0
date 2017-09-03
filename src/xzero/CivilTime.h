@@ -26,6 +26,10 @@ public:
    */
   constexpr CivilTime(std::nullptr_t);
 
+  constexpr CivilTime(int year, int month, int day,
+                      int hour, int minute, int second, int millisecond,
+                      int offset);
+
   /**
    * Parse time from the provided string
    *
