@@ -65,6 +65,8 @@ class XZERO_HTTP_API HttpFileHandler {
    * @retval HttpStatus::NotFound HTTP request not handled, most probably
    * because the underlying file was not found or is not a file.
    * No response was generated.
+   * @retval HttpStatus::Forbidden HTTP request not handled, as access to the
+   * underlying file is forbidden.
    * @retval HttpStatus::MethodNotAllowed Unsupported method detected. No response was generated.
    */
   HttpStatus handle(HttpRequest* request,
