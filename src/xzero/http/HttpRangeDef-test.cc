@@ -6,7 +6,7 @@
 // the License at: http://opensource.org/licenses/MIT
 
 #include <xzero/testing.h>
-// FIXME #include <xzero/http/HttpRangeDef.h>
+#include <xzero/http/HttpRangeDef.h>
 #include <xzero/Buffer.h>
 #include <iostream>
 #include <cstdlib>
@@ -14,9 +14,7 @@
 #include <cassert>
 #include <strings.h>
 
-// TODO: Property API missing (redesign HttpRangeDef or just import?)
-#if 0
-using xzero::HttpRangeDef;
+using xzero::http::HttpRangeDef;
 using xzero::BufferRef;
 
 TEST(http_HttpRangeDef, range1) {
@@ -92,4 +90,3 @@ TEST(http_HttpRangeDef, range6) {
   ASSERT_EQ(601, r[1].first);
   ASSERT_EQ(999, r[1].second);
 }
-#endif

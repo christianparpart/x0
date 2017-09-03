@@ -17,9 +17,14 @@
 namespace xzero {
 namespace http {
 
-inline HttpRangeDef::HttpRangeDef() : ranges_() {}
+inline HttpRangeDef::HttpRangeDef() :
+    unitName_(),
+    ranges_() {
+}
 
-inline HttpRangeDef::HttpRangeDef(const BufferRef& spec) : ranges_() {
+inline HttpRangeDef::HttpRangeDef(const BufferRef& spec) :
+    unitName_(),
+    ranges_() {
   parse(spec);
 }
 
@@ -49,9 +54,9 @@ inline bool HttpRangeDef::parse(const BufferRef& value) {
   typedef Tokenizer<BufferRef> Tokenizer;
 
   for (Tokenizer spec(value, "="); !spec.end(); spec.nextToken()) {
-    unitName = spec.token();
+    unitName_ = spec.token();
 
-    if (unitName == "bytes") {
+    if (unitName_ == "bytes") {
       for (auto& range : Tokenizer::tokenize(spec.nextToken(), ",")) {
         if (!parseRangeSpec(range)) {
           return false;
@@ -134,7 +139,7 @@ inline std::string HttpRangeDef::str() const {
   std::stringstream sstr;
   int count = 0;
 
-  sstr << unitName;
+  sstr << unitName_;
 
   for (const_iterator i = begin(), e = end(); i != e; ++i) {
     if (count++) {

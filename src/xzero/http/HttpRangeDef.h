@@ -49,13 +49,12 @@ class XZERO_HTTP_API HttpRangeDef {
   enum { npos = std::size_t(-1) };
 
  private:
+  BufferRef unitName_;
   vector_type ranges_;
 
  public:
   HttpRangeDef();
   explicit HttpRangeDef(const BufferRef& spec);
-
-  BufferRef unitName;
 
   bool parse(const BufferRef& value);
 
@@ -68,6 +67,8 @@ class XZERO_HTTP_API HttpRangeDef {
   std::size_t size() const;
 
   bool empty() const;
+
+  const BufferRef& unitName() const noexcept { return unitName_; }
 
   /** retrieves the range element at given \p index. */
   const element_type& operator[](std::size_t index) const;
