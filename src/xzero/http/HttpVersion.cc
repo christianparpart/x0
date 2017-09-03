@@ -13,14 +13,14 @@ namespace xzero {
 
 template<>
 std::string StringUtil::toString(http::HttpVersion version) {
-  return http::to_string(version);
+  return http::as_string(version);
 }
 
 namespace http {
 
 #define SRET(slit) { static std::string val(slit); return val; }
 
-const std::string& to_string(HttpVersion version) {
+const std::string& as_string(HttpVersion version) {
   switch (version) {
     case HttpVersion::VERSION_0_9: SRET("0.9");
     case HttpVersion::VERSION_1_0: SRET("1.0");
@@ -30,6 +30,11 @@ const std::string& to_string(HttpVersion version) {
     default:
       throw std::runtime_error("Invalid Argument. Invalid HttpVersion value.");
   }
+}
+
+std::ostream& operator<<(std::ostream& os, HttpVersion version) {
+  os << as_string(version);
+  return os;
 }
 
 HttpVersion make_version(const std::string& value) {

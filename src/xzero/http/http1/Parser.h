@@ -10,6 +10,7 @@
 #include <xzero/http/Api.h>
 #include <xzero/Buffer.h>
 #include <xzero/http/HttpStatus.h>
+#include <iosfwd>
 #include <memory>
 
 namespace xzero {
@@ -208,7 +209,8 @@ class XZERO_HTTP_API Parser {
   ssize_t contentLength_;  //!< content length of whole content or current chunk
 };
 
-XZERO_HTTP_API std::string to_string(Parser::State state);
+XZERO_HTTP_API std::string as_string(Parser::State state);
+std::ostream& operator<<(std::ostream& os, Parser::State state);
 
 }  // namespace http1
 }  // namespace http

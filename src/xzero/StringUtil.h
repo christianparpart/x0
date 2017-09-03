@@ -404,6 +404,9 @@ protected:
 
 };
 
+template<typename T> std::string to_string(const T& value);
+template<typename T> std::string to_string(T&& value);
+
 } // namespace xzero
 
 #include <xzero/StringUtil-impl.h>

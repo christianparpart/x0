@@ -32,7 +32,7 @@ namespace http {
 #define TRACE(msg...) do {} while (0)
 #endif
 
-std::string to_string(HttpChannelState state) {
+std::string as_string(HttpChannelState state) {
   switch (state) {
     case HttpChannelState::READING: return "READING";
     case HttpChannelState::HANDLING: return "HANDLING";
@@ -43,6 +43,11 @@ std::string to_string(HttpChannelState state) {
       return std::string(buf, n);
     }
   }
+}
+
+std::ostream& operator<<(std::ostream& os, HttpChannelState state) {
+  os << as_string(state);
+  return os;
 }
 
 HttpChannel::HttpChannel(HttpTransport* transport,
@@ -81,8 +86,8 @@ void HttpChannel::reset() {
 void HttpChannel::setState(HttpChannelState newState) {
   TRACE("$0 setState from $1 to $2",
         this,
-        to_string(state_),
-        to_string(newState));
+        as_string(state_),
+        as_string(newState));
 
   state_ = newState;
 }
@@ -181,7 +186,7 @@ void HttpChannel::onBeforeSend() {
 
   if (state() != HttpChannelState::HANDLING &&
       state() != HttpChannelState::READING) {
-    RAISE(IllegalStateError, "Invalid state (" + to_string(state()) + ". Creating a new send object not allowed.");
+    RAISE(IllegalStateError, "Invalid state (" + as_string(state()) + ". Creating a new send object not allowed.");
   }
 
   //XXX setState(HttpChannelState::SENDING);
@@ -258,7 +263,7 @@ void HttpChannel::onMessageBegin(const BufferRef& method,
   TRACE("onMessageBegin($0, $1, $2)",
         request_->unparsedMethod(),
         request_->path(),
-        to_string(version));
+        as_string(version));
 }
 
 void HttpChannel::onMessageHeader(const BufferRef& name,

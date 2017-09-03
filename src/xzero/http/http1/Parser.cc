@@ -22,7 +22,12 @@ namespace http1 {
 #define TRACE(msg...) do {} while (0)
 #endif
 
-std::string to_string(Parser::State state) {
+std::ostream& operator<<(std::ostream& os, Parser::State state) {
+  os << as_string(state);
+  return os;
+}
+
+std::string as_string(Parser::State state) {
   switch (state) {
     // artificial
     case Parser::PROTOCOL_ERROR:
@@ -264,9 +269,9 @@ std::size_t Parser::parseFragment(const BufferRef& chunk) {
     bytesReceived_ += n;
   };
 
-  // TRACE(2, "process(curState:%s): size: %ld: '%s'", to_string(state()).c_str(),
+  // TRACE(2, "process(curState:%s): size: %ld: '%s'", as_string(state()).c_str(),
   // chunk.size(), chunk.str().c_str());
-  TRACE("process(curState:$0): size: $1", to_string(state()).c_str(),
+  TRACE("process(curState:$0): size: $1", as_string(state()).c_str(),
         chunk.size());
 
 #if 0
@@ -292,10 +297,10 @@ std::size_t Parser::parseFragment(const BufferRef& chunk) {
 #if 0 // !defined(NDEBUG)
     if (std::isprint(*i)) {
       TRACE("parse: %4ld, 0x%02X (%c),  %s", *nparsed, *i, *i,
-            to_string(state()).c_str());
+            as_string(state()).c_str());
     } else {
       TRACE("parse: %4ld, 0x%02X,     %s", *nparsed, *i,
-            to_string(state()).c_str());
+            as_string(state()).c_str());
     }
 #endif
 
@@ -1069,7 +1074,7 @@ void Parser::onProtocolError() {
 
 template <>
 std::string StringUtil::toString(http::http1::Parser::State value) {
-  return http::http1::to_string(value);
+  return http::http1::as_string(value);
 }
 
 }  // namespace xzero

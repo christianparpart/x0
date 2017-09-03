@@ -18,6 +18,7 @@
 #include <vector>
 #include <utility>
 #include <unordered_map>
+#include <iosfwd>
 
 #include <xzero/http/Api.h>
 #include <xzero/Buffer.h>
@@ -40,7 +41,8 @@ enum class Type {
   UnknownType = 11
 };
 
-XZERO_HTTP_API std::string to_string(Type t);
+XZERO_HTTP_API std::string as_string(Type t);
+std::ostream& operator<<(std::ostream& os, Type t);
 
 enum class Role {
   Responder = 1,

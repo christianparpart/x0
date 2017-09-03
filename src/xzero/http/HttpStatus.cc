@@ -13,7 +13,7 @@ namespace http {
 
 #define SRET(slit) { static std::string val(slit); return val; }
 
-const std::string& to_string(HttpStatus code) {
+const std::string& as_string(HttpStatus code) {
   switch (code) {
     case HttpStatus::ContinueRequest: SRET("Continue Request");
     case HttpStatus::SwitchingProtocols: SRET("Switching Protocols");
@@ -72,6 +72,11 @@ const std::string& to_string(HttpStatus code) {
     case HttpStatus::NetworkAuthenticationRequired: SRET("Network Authentication Required");
     default: SRET("");
   }
+}
+
+std::ostream& operator<<(std::ostream& os, HttpStatus code) {
+  os << as_string(code);
+  return os;
 }
 
 std::error_category& HttpStatusCategory::get() {

@@ -9,6 +9,7 @@
 
 #include <xzero/http/Api.h>
 #include <string>
+#include <iosfwd>
 
 namespace xzero {
 namespace http {
@@ -33,7 +34,8 @@ enum class HttpMethod {
   UNLOCK,
 };
 
-XZERO_HTTP_API std::string to_string(HttpMethod value);
+XZERO_HTTP_API std::string as_string(HttpMethod value);
+std::ostream& operator<<(std::ostream& os, HttpMethod method);
 XZERO_HTTP_API HttpMethod to_method(const std::string& value);
 
 } // namespace http

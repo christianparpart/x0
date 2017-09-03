@@ -14,14 +14,14 @@ namespace xzero {
 
 template<>
 std::string StringUtil::toString(http::HttpMethod value) {
-  return http::to_string(value);
+  return http::as_string(value);
 }
 
 namespace http {
 
 #define SRET(slit) { static std::string val(slit); return val; }
 
-std::string to_string(HttpMethod value) {
+std::string as_string(HttpMethod value) {
   switch (value) {
     case HttpMethod::UNKNOWN_METHOD: SRET("UNKNOWN_METHOD");
     case HttpMethod::OPTIONS: SRET("OPTIONS");
@@ -41,6 +41,11 @@ std::string to_string(HttpMethod value) {
     case HttpMethod::UNLOCK: SRET("UNLOCK");
   }
   SRET("UNDEFINED_METHOD");
+}
+
+std::ostream& operator<<(std::ostream& os, HttpMethod method) {
+  os << as_string(method);
+  return os;
 }
 
 HttpMethod to_method(const std::string& value) {

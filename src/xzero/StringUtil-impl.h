@@ -9,6 +9,7 @@
 #include <stdlib.h>
 #include <stdint.h>
 #include <string>
+#include <sstream>
 
 namespace xzero {
 
@@ -119,6 +120,20 @@ std::string StringUtil::formatNumberMetric(T orig_value) {
   }
 
   return std::string(buf, len);
+}
+
+template<typename T>
+inline std::string to_string(const T& value) {
+  std::stringstream sstr;
+  sstr << value;
+  return sstr.str();
+}
+
+template<typename T>
+inline std::string to_string(T&& value) {
+  std::stringstream sstr;
+  sstr << value;
+  return sstr.str();
 }
 
 } // namespace xzero
