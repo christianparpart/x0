@@ -24,6 +24,7 @@ class XZERO_BASE_API MemoryFile : public File {
              const std::string& mimetype,
              const BufferRef& data,
              UnixTime mtime);
+
   ~MemoryFile();
 
   const std::string& etag() const override;
