@@ -74,12 +74,12 @@ void http_HttpFileHandler::staticfileHandler(HttpRequest* request, HttpResponse*
  * [ ] (conditional request) If-Match
  * [ ] (conditional request) If-Modified-Since
  * [ ] (conditional request) If-Unmodified-Since
- * [ ] (ranged request) full range
- * [ ] (ranged request) empty range
- * [ ] (ranged request) first N bytes
- * [ ] (ranged request) last N bytes
- * [ ] (ranged request) multiple ranges
- * [ ] HEAD on basic file
+ * [x] (ranged request) full range
+ * [ ] (ranged request) invalid range (for example "0-4" instead of "range=0-4")
+ * [x] (ranged request) first N bytes
+ * [x] (ranged request) last N bytes
+ * [x] (ranged request) multiple ranges
+ * [x] HEAD on basic file
  * [ ] HEAD on conditional request
  * [ ] HEAD on ranged request
  * [ ] non-GET/HEAD (should result in MethodNotAllowed)
@@ -152,7 +152,79 @@ TEST_F(http_HttpFileHandler, HEAD_simple) {
   EXPECT_EQ(200, static_cast<int>(transport.responseInfo().status()));
   EXPECT_EQ("", transport.responseBody());
 
-  // FIXME: no content-length header provided, it seems
   EXPECT_EQ("5", transport.responseInfo().getHeader("Content-Length"));
+  EXPECT_EQ(0, transport.responseBody().size());
+}
+
+TEST_F(http_HttpFileHandler, GET_range_full) {
+  LocalExecutor executor;
+  mock::Transport transport(&executor,
+      std::bind(&http_HttpFileHandler::staticfileHandler, this,
+                std::placeholders::_1, std::placeholders::_2));
+
+  transport.run(HttpVersion::VERSION_1_1, "GET", "/12345.txt",
+      {{"Host", "test"},
+       {"Range", "bytes=0-4"}}, "");
+
+  EXPECT_EQ(HttpStatus::PartialContent, transport.responseInfo().status());
+  EXPECT_EQ("bytes 0-4/5", transport.responseInfo().getHeader("Content-Range"));
+  EXPECT_EQ("12345", transport.responseBody());
+}
+
+TEST_F(http_HttpFileHandler, GET_range_first_n) {
+  LocalExecutor executor;
+  mock::Transport transport(&executor,
+      std::bind(&http_HttpFileHandler::staticfileHandler, this,
+                std::placeholders::_1, std::placeholders::_2));
+
+  transport.run(HttpVersion::VERSION_1_1, "GET", "/12345.txt",
+      {{"Host", "test"},
+       {"Range", "bytes=0-1"}}, "");
+
+  EXPECT_EQ(HttpStatus::PartialContent, transport.responseInfo().status());
+  EXPECT_EQ("bytes 0-1/5", transport.responseInfo().getHeader("Content-Range"));
+  EXPECT_EQ("12", transport.responseBody());
+}
+
+TEST_F(http_HttpFileHandler, GET_range_last_n) {
+  LocalExecutor executor;
+  mock::Transport transport(&executor,
+      std::bind(&http_HttpFileHandler::staticfileHandler, this,
+                std::placeholders::_1, std::placeholders::_2));
+
+  transport.run(HttpVersion::VERSION_1_1, "GET", "/12345.txt",
+      {{"Host", "test"},
+       {"Range", "bytes=-2"}}, "");
+
+  EXPECT_EQ(HttpStatus::PartialContent, transport.responseInfo().status());
+  EXPECT_EQ("bytes 3-4/5", transport.responseInfo().getHeader("Content-Range"));
+  EXPECT_EQ("45", transport.responseBody());
+}
+
+TEST_F(http_HttpFileHandler, GET_range_many) {
+  LocalExecutor executor;
+  mock::Transport transport(&executor,
+      std::bind(&http_HttpFileHandler::staticfileHandler, this,
+                std::placeholders::_1, std::placeholders::_2));
+
+  transport.run(HttpVersion::VERSION_1_1, "GET", "/12345.txt",
+      {{"Host", "test"},
+       {"Range", "bytes=0-0,3-3"}}, "");
+
+  EXPECT_EQ(HttpStatus::PartialContent, transport.responseInfo().status());
+  EXPECT_EQ("multipart/byteranges; boundary=HelloBoundaryID", transport.responseInfo().getHeader("Content-Type"));
+  EXPECT_EQ("\r\n"
+            "--HelloBoundaryID\r\n"
+            "Content-Type: application/octet-stream\r\n"
+            "Content-Range: bytes 0-0/5\r\n"
+            "\r\n"
+            "1\r\n"
+            "--HelloBoundaryID\r\n"
+            "Content-Type: application/octet-stream\r\n"
+            "Content-Range: bytes 3-3/5\r\n"
+            "\r\n"
+            "4\r\n"
+            "--HelloBoundaryID--\r\n",
+            transport.responseBody());
 }
 
