@@ -137,12 +137,12 @@ bool MemoryFile::isExecutable() const XZERO_NOEXCEPT {
 }
 
 int MemoryFile::createPosixChannel(OpenFlags oflags) {
-#if defined(XZERO_MEMORYFILE_USE_TMPFILE)
   if (fd_ < 0) {
     errno = ENOENT;
     return -1;
   }
 
+#if defined(XZERO_MEMORYFILE_USE_TMPFILE)
   // XXX when using dup(fd_) we'd also need to fcntl() the flags.
   // - Both having advantages / disadvantages.
   return ::open(fspath_.c_str(), to_posix(oflags));
