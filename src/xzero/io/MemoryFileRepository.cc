@@ -15,6 +15,7 @@ MemoryFileRepository::MemoryFileRepository(MimeTypes& mimetypes)
     : mimetypes_(mimetypes),
       files_(),
       notFound_(new MemoryFile()) {
+  notFound_->setErrorCode(static_cast<int>(std::errc::no_such_file_or_directory));
 }
 
 std::shared_ptr<File> MemoryFileRepository::getFile(const std::string& requestPath) {
@@ -42,17 +43,18 @@ int MemoryFileRepository::createTempFile(std::string* filename) {
   RAISE_STATUS(NotImplementedError);
 }
 
-void MemoryFileRepository::insert(
-    const std::string& path, const BufferRef& data, UnixTime mtime) {
+void MemoryFileRepository::insert(const std::string& path,
+                                  UnixTime mtime,
+                                  const BufferRef& data) {
   files_[path].reset(new MemoryFile(path,
                                     mimetypes_.getMimeType(path),
                                     data,
                                     mtime));
 }
 
-void MemoryFileRepository::insert(
-    const std::string& path, const BufferRef& data) {
-  insert(path, data, UnixTime());
+void MemoryFileRepository::insert(const std::string& path, UnixTime mtime, int errc) {
+  insert(path, mtime, "");
+  getFile(path)->setErrorCode(errc);
 }
 
 } // namespace xzero
