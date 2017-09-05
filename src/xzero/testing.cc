@@ -364,6 +364,44 @@ void UnitTest::runAllTestsOnce() {
   }
 }
 
+void UnitTest::reportError(const char* fileName,
+                           int lineNo,
+                           bool fatal,
+                           const char* actual,
+                           const std::error_code& ec) {
+  std::string message = StringUtil::format(
+      "$0:$1: Failure\n"
+      "  Value of: $2\n"
+      "  Expected: success\n"
+      "    Actual: ($3) $4\n",
+      fileName, lineNo,
+      actual,
+      ec.category().name(),
+      ec.message());
+
+  reportMessage(message, fatal);
+}
+
+void UnitTest::reportError(const char* fileName,
+                           int lineNo,
+                           bool fatal,
+                           const char* expected,
+                           const std::error_code& expectedEvaluated,
+                           const char* actual,
+                           const std::error_code& actualEvaluated) {
+  std::string message = StringUtil::format(
+      "$0:$1: Failure\n"
+      "  Value of: $2\n"
+      "  Expected: ($3) $4\n"
+      "    Actual: ($5) $6\n",
+      fileName, lineNo,
+      actual,
+      expectedEvaluated.category().name(), expectedEvaluated.message(),
+      actualEvaluated.category().name(), actualEvaluated.message());
+
+  reportMessage(message, fatal);
+}
+
 void UnitTest::reportBinary(const char* fileName,
                             int lineNo,
                             bool fatal,
