@@ -74,6 +74,7 @@ void http_HttpFileHandler::staticfileHandler(HttpRequest* request, HttpResponse*
  * [ ] (conditional request) If-Match
  * [ ] (conditional request) If-Modified-Since
  * [ ] (conditional request) If-Unmodified-Since
+ * [ ] (conditional request) If-Range
  * [x] (ranged request) full range
  * [ ] (ranged request) invalid range (for example "0-4" instead of "range=0-4")
  * [x] (ranged request) first N bytes
