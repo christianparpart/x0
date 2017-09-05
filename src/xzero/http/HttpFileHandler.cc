@@ -169,7 +169,7 @@ HttpStatus HttpFileHandler::handleClientCache(const File& transferFile,
     // XXX: on static files we probably don't need the token-list support
     if (value != transferFile.etag()) continue;
 
-    return HttpStatus::NotModified;
+    return HttpStatus::PreconditionFailed;
   } while (0);
 
   // If-Modified-Since
