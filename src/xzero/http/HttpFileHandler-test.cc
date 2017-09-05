@@ -69,7 +69,7 @@ void http_HttpFileHandler::staticfileHandler(HttpRequest* request, HttpResponse*
 /*
  * [x] 200, basic GET
  * [x] 404, file not found
- * [x] 403, permission failure (EPERM, EACCESS)
+ * [x] 403, permission failure (EPERM, EACCES)
  * [ ] (conditional request) If-None-Match
  * [ ] (conditional request) If-Match
  * [ ] (conditional request) If-Modified-Since
