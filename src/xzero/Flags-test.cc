@@ -39,6 +39,7 @@ TEST(Flags, defaults) {
   flags.defineBool("bool", 'b', "some boolean");
 
   std::error_code ec = flags.parse({});
+  ASSERT_ERROR_CODE_SUCCESS(ec);
 
   ASSERT_EQ(2, flags.size());
   ASSERT_EQ("some value", flags.getString("some"));
@@ -49,6 +50,7 @@ TEST(Flags, getNumberDefault) {
   Flags flags;
   flags.defineNumber("some", 's', "<num>", "description", 42);
   std::error_code ec = flags.parse({});
+  ASSERT_ERROR_CODE_SUCCESS(ec);
   ASSERT_EQ(42, flags.getNumber("some"));
 }
 
@@ -56,6 +58,7 @@ TEST(Flags, emptyStringDefault) {
   Flags flags;
   flags.defineString("some", 's', "<text>", "description", "");
   std::error_code ec = flags.parse({});
+  ASSERT_ERROR_CODE_SUCCESS(ec);
   ASSERT_EQ("", flags.getString("some"));
 }
 
@@ -63,21 +66,21 @@ TEST(Flags, fail_on_unknown_long_option) {
   Flags flags;
   flags.defineBool("some", 's', "Something");
   std::error_code ec = flags.parse({"--something-else"});
-  ASSERT_EQ(Flags::Error::UnknownOption, ec);
+  ASSERT_ERROR_CODE(Flags::Error::UnknownOption, ec);
 }
 
 TEST(Flags, fail_on_unknown_short_option) {
   Flags flags;
-  flags. defineBool("some", 's', "Something");
+  flags.defineBool("some", 's', "Something");
   std::error_code ec = flags.parse({"-t"});
-  ASSERT_EQ(Flags::Error::UnknownOption, ec);
+  ASSERT_ERROR_CODE(Flags::Error::UnknownOption, ec);
 }
 
 TEST(Flags, fail_on_missing_long_option) {
   Flags flags;
   flags.defineString("some", 's', "<text>", "Something");
   std::error_code ec = flags.parse({"--some"});
-  ASSERT_EQ(Flags::Error::MissingOption, ec);
+  ASSERT_ERROR_CODE(Flags::Error::MissingOption, ec);
 }
 
 TEST(Flags, fail_on_missing_option_value) {
@@ -86,10 +89,10 @@ TEST(Flags, fail_on_missing_option_value) {
   flags.defineString("tea", 't', "<some>", "Tea Time");
 
   std::error_code ec = flags.parse({"-s", "-tblack"});
-  ASSERT_EQ(Flags::Error::MissingOptionValue, ec);
+  ASSERT_ERROR_CODE(Flags::Error::MissingOptionValue, ec);
 
   ec = flags.parse({"-swhite", "-t"});
-  ASSERT_EQ(Flags::Error::MissingOptionValue, ec);
+  ASSERT_ERROR_CODE(Flags::Error::MissingOptionValue, ec);
 }
 
 TEST(Flags, short_option_values) {
@@ -98,6 +101,7 @@ TEST(Flags, short_option_values) {
   flags.defineString("tea", 't', "<text>", "Tea Time");
 
   std::error_code ec = flags.parse({"-sthing", "-t", "time"});
+  ASSERT_ERROR_CODE_SUCCESS(ec);
 
   ASSERT_EQ(2, flags.size());
   ASSERT_EQ("thing", flags.getString("some"));
@@ -109,6 +113,7 @@ TEST(Flags, short_option_single) {
   flags.defineBool("some", 's', "Something");
 
   std::error_code ec = flags.parse({"-s"});
+  ASSERT_ERROR_CODE_SUCCESS(ec);
 
   ASSERT_EQ(1, flags.size());
   ASSERT_TRUE(flags.getBool("some"));
@@ -121,6 +126,7 @@ TEST(Flags, short_option_multi) {
   flags.defineBool("else", 'e', "The Else");
 
   std::error_code ec = flags.parse({"-tes"});
+  ASSERT_ERROR_CODE_SUCCESS(ec);
 
   ASSERT_EQ(3, flags.size());
   ASSERT_TRUE(flags.getBool("some"));
@@ -134,6 +140,20 @@ TEST(Flags, short_option_multi_mixed) {
   flags.defineString("text", 't', "<text>", "The Text");
 
   std::error_code ec = flags.parse({"-sthello"});
+  ASSERT_ERROR_CODE_SUCCESS(ec);
+
+  ASSERT_EQ(2, flags.size());
+  ASSERT_TRUE(flags.getBool("some"));
+  ASSERT_EQ("hello", flags.getString("text"));
+}
+
+TEST(Flags, short_option_multi_mixed_2) {
+  Flags flags;
+  flags.defineBool("some", 's', "The Some");
+  flags.defineString("text", 't', "<text>", "The Text");
+
+  std::error_code ec = flags.parse({"-st", "hello"});
+  ASSERT_ERROR_CODE_SUCCESS(ec);
 
   ASSERT_EQ(2, flags.size());
   ASSERT_TRUE(flags.getBool("some"));
@@ -145,6 +165,7 @@ TEST(Flags, short_option_value_inline) {
   flags.defineString("text", 't', "<text>", "The Text");
 
   std::error_code ec = flags.parse({"-thello"});
+  ASSERT_ERROR_CODE_SUCCESS(ec);
 
   ASSERT_EQ(1, flags.size());
   ASSERT_EQ("hello", flags.getString("text"));
@@ -155,6 +176,7 @@ TEST(Flags, short_option_value_sep) {
   flags.defineString("text", 't', "<text>", "The Text");
 
   std::error_code ec = flags.parse({"-t", "hello"});
+  ASSERT_ERROR_CODE_SUCCESS(ec);
 
   ASSERT_EQ(1, flags.size());
   ASSERT_EQ("hello", flags.getString("text"));
@@ -165,6 +187,7 @@ TEST(Flags, long_option_with_value_inline) {
   flags.defineString("text", 't', "<text>", "The Text");
 
   std::error_code ec = flags.parse({"--text=hello"});
+  ASSERT_ERROR_CODE_SUCCESS(ec);
 
   ASSERT_EQ(1, flags.size());
   ASSERT_EQ("hello", flags.getString("text"));
@@ -175,6 +198,7 @@ TEST(Flags, long_option_with_value_sep) {
   flags.defineString("text", 't', "<text>", "The Text");
 
   std::error_code ec = flags.parse({"--text", "hello"});
+  ASSERT_ERROR_CODE_SUCCESS(ec);
 
   ASSERT_EQ(1, flags.size());
   ASSERT_EQ("hello", flags.getString("text"));
@@ -185,6 +209,7 @@ TEST(Flags, type_int) {
   flags.defineNumber("number", 'n', "<number>", "The Number");
 
   std::error_code ec = flags.parse({"-n42"});
+  ASSERT_ERROR_CODE_SUCCESS(ec);
   ASSERT_EQ(1, flags.size());
   ASSERT_EQ(42, flags.getNumber("number"));
 }
@@ -194,6 +219,7 @@ TEST(Flags, type_float) {
   flags.defineFloat("float", 'f', "<float>", "The Float");
 
   std::error_code ec = flags.parse({"-f1.42"});
+  ASSERT_ERROR_CODE_SUCCESS(ec);
   ASSERT_EQ(1, flags.size());
   ASSERT_EQ(1.42f, flags.getFloat("float"));
 }
@@ -203,6 +229,7 @@ TEST(Flags, type_ip) {
   flags.defineIPAddress("ip", 'a', "<IP>", "The IP");
 
   std::error_code ec = flags.parse({"--ip=4.2.2.1"});
+  ASSERT_ERROR_CODE_SUCCESS(ec);
   ASSERT_EQ(1, flags.size());
   ASSERT_EQ(IPAddress("4.2.2.1"), flags.getIPAddress("ip"));
 }
@@ -217,6 +244,7 @@ TEST(Flags, callbacks_on_explicit) {
       });
 
   std::error_code ec = flags.parse({"--bind", "127.0.0.2"});
+  ASSERT_ERROR_CODE_SUCCESS(ec);
 
   ASSERT_EQ(IPAddress("127.0.0.2"), bindIP);
 }
@@ -231,6 +259,7 @@ TEST(Flags, callbacks_on_defaults__passed) {
       [&](const IPAddress& ip) { bindIP = ip; });
 
   std::error_code ec = flags.parse({"--bind", "127.0.0.3"});
+  ASSERT_ERROR_CODE_SUCCESS(ec);
   ASSERT_EQ(IPAddress("127.0.0.3"), bindIP);
 }
 
@@ -244,6 +273,7 @@ TEST(Flags, callbacks_on_defaults__default) {
       [&](const IPAddress& ip) { bindIP = ip; });
 
   std::error_code ec = flags.parse({});
+  ASSERT_ERROR_CODE_SUCCESS(ec);
   ASSERT_EQ(IPAddress("127.0.0.1"), bindIP);
 }
 
@@ -255,6 +285,7 @@ TEST(Flags, callbacks_on_repeated_args) {
       [&](const IPAddress& host) { hosts.emplace_back(host); });
 
   std::error_code ec = flags.parse({"--host=127.0.0.1", "--host=192.168.0.1", "-t10.10.20.40"});
+  ASSERT_ERROR_CODE_SUCCESS(ec);
 
   ASSERT_EQ(3, hosts.size());
   ASSERT_EQ(IPAddress("127.0.0.1"), hosts[0]);
@@ -276,6 +307,7 @@ TEST(Flags, argc_argv_to_vector) {
   };
 
   std::error_code ec = flags.parse(argc, argv);
+  ASSERT_ERROR_CODE_SUCCESS(ec);
 
   ASSERT_EQ(2, flags.size());
   ASSERT_TRUE(flags.getBool("help"));
