@@ -8,6 +8,7 @@
 #include <xzero/Flags.h>
 #include <xzero/net/IPAddress.h>
 #include <xzero/RuntimeError.h>
+#include <xzero/logging.h>
 #include <sstream>
 #include <iostream>
 #include <iomanip>
@@ -321,12 +322,11 @@ std::error_code Flags::parse(const std::vector<std::string>& args) {
 
   while (i < args.size()) {
     std::string arg = args[i];
+    i++;
     if (pstate == ParsingState::Parameters) {
       params.push_back(arg);
-      i++;
     } else if (arg == "--") {
       pstate = ParsingState::Parameters;
-      i++;
     } else if (arg.size() > 2 && arg[0] == '-' && arg[1] == '-') {
       // longopt
       arg = arg.substr(2);
@@ -339,7 +339,6 @@ std::error_code Flags::parse(const std::vector<std::string>& args) {
           return Error::UnknownOption;
         } else {
           invokeCallback(fd, FlagStyle::LongWithValue, value);
-          i++;
         }
       } else { // --name [VALUE]
         const FlagDef* fd = findDef(arg);
@@ -347,9 +346,7 @@ std::error_code Flags::parse(const std::vector<std::string>& args) {
           return Error::UnknownOption;
         } else if (fd->type == FlagType::Bool) { // --name
           invokeCallback(fd, FlagStyle::LongSwitch, "true");
-          i++;
         } else { // --name VALUE
-          i++;
           std::string name = arg;
 
           if (i >= args.size())
@@ -372,19 +369,17 @@ std::error_code Flags::parse(const std::vector<std::string>& args) {
         } else if (fd->type == FlagType::Bool) {
           invokeCallback(fd, FlagStyle::ShortSwitch, "true");
           arg = arg.substr(1);
-          i++;
         } else if (arg.size() > 1) { // -fVALUE
           std::string value = arg.substr(1);
           invokeCallback(fd, FlagStyle::ShortSwitch, value);
           arg.clear();
-          i++;
         } else { // -f VALUE
           std::string name = fd->longOption;
-          i++;
 
           if (i >= args.size()) {
-            //char option[3] = { '-', fd->shortOption, '\0' };
-            return Error::MissingOptionValue; //, option);
+            char option[3] = { '-', fd->shortOption, '\0' };
+            logDebug("Flags", "Missing option value for $0", option);
+            return Error::MissingOptionValue;
           }
 
           arg.clear();
@@ -392,8 +387,9 @@ std::error_code Flags::parse(const std::vector<std::string>& args) {
           i++;
 
           if (!value.empty() && value[0] == '-') {
-            //char option[3] = { '-', fd->shortOption, '\0' };
-            return Error::MissingOptionValue; //, option);
+            char option[3] = { '-', fd->shortOption, '\0' };
+            logDebug("Flags", "Missing option value for $0", option);
+            return Error::MissingOptionValue;
           }
 
           invokeCallback(fd, FlagStyle::ShortSwitch, value);
@@ -401,10 +397,10 @@ std::error_code Flags::parse(const std::vector<std::string>& args) {
       }
     } else if (parametersEnabled_) {
       params.push_back(arg);
-      i++;
     } else {
       // oops
-      return Error::UnknownOption; // args[i]
+      logDebug("Flags", "Unknown option $0", arg);
+      return Error::UnknownOption;
     }
   }
 
