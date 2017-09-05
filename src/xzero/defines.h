@@ -34,7 +34,7 @@
 #define XZERO_EXPORT __attribute__((visibility("default")))
 #define XZERO_IMPORT /*!*/
 #define XZERO_UNUSED __attribute__ ((unused))
-#define XZERO_WARN_UNUSED_RESULT __attribute__((warn_unused_result))
+#define XZERO_NODISCARD __attribute__((warn_unused_result))
 #define XZERO_NO_RETURN [[noreturn]]
 #define XZERO_DEPRECATED [[deprecated]]
 #define XZERO_PURE __attribute__((pure))
@@ -57,7 +57,7 @@
 #define XZERO_EXPORT __declspec(export)
 #define XZERO_IMPORT __declspec(import)
 #define XZERO_UNUSED /*!*/
-#define XZERO_WARN_UNUSED_RESULT __attribute__((warn_unused_result))
+#define XZERO_NODISCARD __attribute__((warn_unused_result))
 #define XZERO_NO_RETURN __attribute__((no_return))
 #define XZERO_DEPRECATED __attribute__((__deprecated__))
 #define XZERO_PURE __attribute__((pure))
@@ -77,8 +77,8 @@
 #define XZERO_NO_EXPORT /*!*/
 #define XZERO_EXPORT __declspec(export)
 #define XZERO_IMPORT __declspec(import)
-#define XZERO_UNUSED /*!*/
-#define XZERO_WARN_UNUSED_RESULT /*!*/
+#define XZERO_UNUSED             /*!*/
+#define XZERO_NODISCARD          /*!*/
 #define XZERO_NO_RETURN          /*!*/
 #define XZERO_DEPRECATED         /*!*/
 #define XZERO_PURE               /*!*/
@@ -100,7 +100,7 @@
 #define XZERO_EXPORT             /*!*/
 #define XZERO_IMPORT             /*!*/
 #define XZERO_UNUSED             /*!*/
-#define XZERO_WARN_UNUSED_RESULT /*!*/
+#define XZERO_NODISCARD          /*!*/
 #define XZERO_NO_RETURN          /*!*/
 #define XZERO_DEPRECATED         /*!*/
 #define XZERO_PURE               /*!*/
