@@ -82,7 +82,7 @@ class XZERO_HTTP_API HttpFileHandler {
    * @param response HTTP response handle.
    *
    * @retval HttpStatus::NotModified if client cache is valid
-   * @retval HttpStatus::Precondition HTTP client's precondition failed.
+   * @retval HttpStatus::PreconditionFailed HTTP client's precondition failed.
    * @retval HttpStatus::Undefined if client cache is invalid or inexistent.
    *
    * This method tests whether the @p request is conditional.
