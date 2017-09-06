@@ -56,6 +56,8 @@ void Transport::run(HttpVersion version, const std::string& method,
                         const std::string& body) {
   isCompleted_ = false;
   isAborted_ = false;
+  responseInfo_.reset();
+  responseBody_.clear();
 
   channel_.reset(new HttpChannel(this, executor_, handler_,
                                  maxRequestUriLength_, maxRequestBodyLength_,
