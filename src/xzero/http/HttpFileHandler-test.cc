@@ -26,8 +26,10 @@
 using namespace xzero;
 using namespace xzero::http;
 
+#define HTTP_DATE_FMT "%a, %d %b %Y %T GMT"
+
 class http_HttpFileHandler : public testing::Test { // {{{
- private:
+ protected:
   MimeTypes mimetypes_;
   UnixTime mtime_;
   MemoryFileRepository vfs_;
@@ -37,6 +39,7 @@ class http_HttpFileHandler : public testing::Test { // {{{
   http_HttpFileHandler();
   static std::string generateBoundaryID();
   void staticfileHandler(HttpRequest* request, HttpResponse* response);
+  std::shared_ptr<File> getFile(const std::string& path);
 };
 
 std::string http_HttpFileHandler::generateBoundaryID() {
@@ -52,6 +55,10 @@ http_HttpFileHandler::http_HttpFileHandler()
   vfs_.insert("/12345.txt", mtime_, "12345");
   vfs_.insert("/fail-perm", mtime_, EPERM);
   vfs_.insert("/fail-access", mtime_, EACCES);
+}
+
+std::shared_ptr<File> http_HttpFileHandler::getFile(const std::string& path) {
+  return vfs_.getFile(path);
 }
 
 void http_HttpFileHandler::staticfileHandler(HttpRequest* request, HttpResponse* response) {
@@ -70,10 +77,10 @@ void http_HttpFileHandler::staticfileHandler(HttpRequest* request, HttpResponse*
  * [x] 200, basic GET
  * [x] 404, file not found
  * [x] 403, permission failure (EPERM, EACCES)
- * [ ] (conditional request) If-None-Match
- * [ ] (conditional request) If-Match
- * [ ] (conditional request) If-Modified-Since
- * [ ] (conditional request) If-Unmodified-Since
+ * [x] (conditional request) If-None-Match
+ * [x] (conditional request) If-Match
+ * [x] (conditional request) If-Modified-Since
+ * [x] (conditional request) If-Unmodified-Since
  * [ ] (conditional request) If-Range
  * [x] (ranged request) full range
  * [ ] (ranged request) invalid range (for example "0-4" instead of "range=0-4")
@@ -229,3 +236,100 @@ TEST_F(http_HttpFileHandler, GET_range_many) {
             transport.responseBody());
 }
 
+TEST_F(http_HttpFileHandler, GET_if_match) {
+  LocalExecutor executor;
+  mock::Transport transport(&executor,
+      std::bind(&http_HttpFileHandler::staticfileHandler, this,
+                std::placeholders::_1, std::placeholders::_2));
+
+  std::string path = "/12345.txt";
+  auto file = getFile(path);
+
+  transport.run(HttpVersion::VERSION_1_1, "GET", path,
+      {{"Host", "test"},
+       {"If-Match", "__" + file->etag()}}, "");
+  EXPECT_EQ(HttpStatus::PreconditionFailed, transport.responseInfo().status());
+
+  transport.run(HttpVersion::VERSION_1_1, "GET", path,
+      {{"Host", "test"},
+       {"If-Match", file->etag()}}, "");
+  EXPECT_EQ(HttpStatus::Ok, transport.responseInfo().status());
+}
+
+TEST_F(http_HttpFileHandler, GET_if_none_match) {
+  LocalExecutor executor;
+  mock::Transport transport(&executor,
+      std::bind(&http_HttpFileHandler::staticfileHandler, this,
+                std::placeholders::_1, std::placeholders::_2));
+
+  std::string path = "/12345.txt";
+  auto file = getFile(path);
+
+  transport.run(HttpVersion::VERSION_1_1, "GET", path,
+      {{"Host", "test"},
+       {"If-None-Match", file->etag()}}, "");
+  EXPECT_EQ(HttpStatus::PreconditionFailed, transport.responseInfo().status());
+
+  transport.run(HttpVersion::VERSION_1_1, "GET", path,
+      {{"Host", "test"},
+       {"If-None-Match", "__" + file->etag()}}, "");
+  EXPECT_EQ(HttpStatus::Ok, transport.responseInfo().status());
+}
+
+TEST_F(http_HttpFileHandler, GET_if_modified_since) {
+  LocalExecutor executor;
+  mock::Transport transport(&executor,
+      std::bind(&http_HttpFileHandler::staticfileHandler, this,
+                std::placeholders::_1, std::placeholders::_2));
+
+  std::string path = "/12345.txt";
+  auto file = getFile(path);
+
+  // test exact-date match
+  transport.run(HttpVersion::VERSION_1_1, "GET", path,
+      {{"Host", "test"},
+       {"If-Modified-Since", file->lastModified()}}, "");
+  EXPECT_EQ(HttpStatus::NotModified, transport.responseInfo().status());
+
+  // test future-date-match
+  transport.run(HttpVersion::VERSION_1_1, "GET", path,
+      {{"Host", "test"},
+       {"If-Modified-Since", (mtime_ + 1_minutes).toString(HTTP_DATE_FMT)}}, "");
+  EXPECT_EQ(HttpStatus::NotModified, transport.responseInfo().status());
+
+  // test past-date match
+  transport.run(HttpVersion::VERSION_1_1, "GET", path,
+      {{"Host", "test"},
+       {"If-Modified-Since", (mtime_ - 1_minutes).toString(HTTP_DATE_FMT)}}, "");
+  EXPECT_EQ(HttpStatus::Ok, transport.responseInfo().status());
+}
+
+TEST_F(http_HttpFileHandler, GET_if_unmodified_since) {
+  LocalExecutor executor;
+  mock::Transport transport(&executor,
+      std::bind(&http_HttpFileHandler::staticfileHandler, this,
+                std::placeholders::_1, std::placeholders::_2));
+
+  std::string path = "/12345.txt";
+  auto file = getFile(path);
+
+  // test exact-date match
+  transport.run(HttpVersion::VERSION_1_1, "GET", path,
+      {{"Host", "test"},
+       {"If-Unmodified-Since", file->lastModified()}}, "");
+  EXPECT_EQ(HttpStatus::Ok, transport.responseInfo().status());
+  EXPECT_EQ(5, transport.responseBody().size());
+
+  // test future-date match
+  transport.run(HttpVersion::VERSION_1_1, "GET", path,
+      {{"Host", "test"},
+       {"If-Unmodified-Since", (mtime_ + 1_minutes).toString(HTTP_DATE_FMT)}}, "");
+  EXPECT_EQ(HttpStatus::Ok, transport.responseInfo().status());
+  EXPECT_EQ(5, transport.responseBody().size());
+
+  // test past-date match
+  transport.run(HttpVersion::VERSION_1_1, "GET", path,
+      {{"Host", "test"},
+       {"If-Unmodified-Since", (mtime_ - 1_minutes).toString(HTTP_DATE_FMT)}}, "");
+  EXPECT_EQ(HttpStatus::PreconditionFailed, transport.responseInfo().status());
+}
