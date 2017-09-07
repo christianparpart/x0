@@ -83,16 +83,29 @@ void http_HttpFileHandler::staticfileHandler(HttpRequest* request, HttpResponse*
  * [x] (conditional request) If-Unmodified-Since
  * [x] (conditional request) If-Range
  * [x] (ranged request) full range
- * [ ] (ranged request) invalid range (for example "0-4" instead of "range=0-4")
+ * [x] (ranged request) invalid range (for example "0-4" instead of "range=0-4")
  * [x] (ranged request) first N bytes
  * [x] (ranged request) last N bytes
  * [x] (ranged request) multiple ranges
  * [x] HEAD on basic file
- * [ ] HEAD on conditional request
- * [ ] HEAD on ranged request
- * [ ] non-GET/HEAD (should result in MethodNotAllowed)
- * [ ] ensure we checked for 412 (Precondition Failed)
+ * [x] HEAD on conditional request
+ * [x] HEAD on ranged request
+ * [x] non-GET/HEAD (should result in MethodNotAllowed)
  */
+
+TEST_F(http_HttpFileHandler, MethodNotAllowed) {
+  LocalExecutor executor;
+  mock::Transport transport(&executor,
+      std::bind(&http_HttpFileHandler::staticfileHandler, this,
+                std::placeholders::_1, std::placeholders::_2));
+
+  std::string path = "/12345.txt";
+  auto file = getFile(path);
+
+  transport.run(HttpVersion::VERSION_1_1, "POST", path,
+      {{"Host", "test"}}, "");
+  EXPECT_EQ(HttpStatus::MethodNotAllowed, transport.responseInfo().status());
+}
 
 TEST_F(http_HttpFileHandler, GET_FileNotFound) {
   LocalExecutor executor;
@@ -145,23 +158,6 @@ TEST_F(http_HttpFileHandler, GET_fail_perm) {
 
   EXPECT_EQ(HttpVersion::VERSION_1_1, transport.responseInfo().version());
   EXPECT_EQ(403, static_cast<int>(transport.responseInfo().status()));
-}
-
-TEST_F(http_HttpFileHandler, HEAD_simple) {
-  LocalExecutor executor;
-  mock::Transport transport(&executor,
-      std::bind(&http_HttpFileHandler::staticfileHandler, this,
-                std::placeholders::_1, std::placeholders::_2));
-
-  transport.run(HttpVersion::VERSION_1_1, "HEAD", "/12345.txt",
-      {{"Host", "test"}}, "");
-
-  EXPECT_EQ(HttpVersion::VERSION_1_1, transport.responseInfo().version());
-  EXPECT_EQ(200, static_cast<int>(transport.responseInfo().status()));
-  EXPECT_EQ("", transport.responseBody());
-
-  EXPECT_EQ("5", transport.responseInfo().getHeader("Content-Length"));
-  EXPECT_EQ(0, transport.responseBody().size());
 }
 
 TEST_F(http_HttpFileHandler, GET_range_full) {
@@ -401,5 +397,59 @@ TEST_F(http_HttpFileHandler, GET_range_invalid1) {
        {"Range", "0-2"}}, "");
   EXPECT_EQ(HttpStatus::Ok, transport.responseInfo().status());
   EXPECT_EQ("12345", transport.responseBody());
+}
+
+TEST_F(http_HttpFileHandler, HEAD_simple) {
+  LocalExecutor executor;
+  mock::Transport transport(&executor,
+      std::bind(&http_HttpFileHandler::staticfileHandler, this,
+                std::placeholders::_1, std::placeholders::_2));
+
+  transport.run(HttpVersion::VERSION_1_1, "HEAD", "/12345.txt",
+      {{"Host", "test"}}, "");
+
+  EXPECT_EQ(HttpVersion::VERSION_1_1, transport.responseInfo().version());
+  EXPECT_EQ(HttpStatus::Ok, transport.responseInfo().status());
+  EXPECT_EQ("", transport.responseBody());
+
+  EXPECT_EQ("5", transport.responseInfo().getHeader("Content-Length"));
+  EXPECT_EQ(0, transport.responseBody().size());
+}
+
+TEST_F(http_HttpFileHandler, HEAD_range_full) {
+  LocalExecutor executor;
+  mock::Transport transport(&executor,
+      std::bind(&http_HttpFileHandler::staticfileHandler, this,
+                std::placeholders::_1, std::placeholders::_2));
+
+  transport.run(HttpVersion::VERSION_1_1, "HEAD", "/12345.txt",
+      {{"Host", "test"},
+       {"Range", "bytes=0-4"}}, "");
+
+  EXPECT_EQ(HttpStatus::PartialContent, transport.responseInfo().status());
+  EXPECT_EQ("bytes 0-4/5", transport.responseInfo().getHeader("Content-Range"));
+  EXPECT_EQ("", transport.responseBody());
+}
+
+TEST_F(http_HttpFileHandler, HEAD_if_match) {
+  LocalExecutor executor;
+  mock::Transport transport(&executor,
+      std::bind(&http_HttpFileHandler::staticfileHandler, this,
+                std::placeholders::_1, std::placeholders::_2));
+
+  std::string path = "/12345.txt";
+  auto file = getFile(path);
+
+  transport.run(HttpVersion::VERSION_1_1, "HEAD", path,
+      {{"Host", "test"},
+       {"If-Match", "__" + file->etag()}}, "");
+  EXPECT_EQ(HttpStatus::PreconditionFailed, transport.responseInfo().status());
+  EXPECT_EQ("", transport.responseBody());
+
+  transport.run(HttpVersion::VERSION_1_1, "HEAD", path,
+      {{"Host", "test"},
+       {"If-Match", file->etag()}}, "");
+  EXPECT_EQ(HttpStatus::Ok, transport.responseInfo().status());
+  EXPECT_EQ("", transport.responseBody());
 }
 
