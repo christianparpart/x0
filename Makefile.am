@@ -96,6 +96,7 @@ libXzero_a_SOURCES = \
 	src/xzero/http/HttpListener.cc \
 	src/xzero/http/HttpMethod.cc \
 	src/xzero/http/HttpOutputCompressor.cc \
+	src/xzero/http/HttpRangeDef.cc \
 	src/xzero/http/HttpTransport.cc \
 	src/xzero/http/HttpVersion.cc \
 	src/xzero/http/client/Http1Connection.cc \

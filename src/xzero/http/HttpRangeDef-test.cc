@@ -19,9 +19,7 @@ using xzero::BufferRef;
 
 TEST(http_HttpRangeDef, range1) {
   HttpRangeDef r;
-  BufferRef spec("bytes=0-499");
-
-  ASSERT_TRUE(r.parse(spec.ref()));
+  ASSERT_TRUE(r.parse("bytes=0-499"));
   ASSERT_EQ("bytes", r.unitName());
   ASSERT_EQ(1, r.size());
   ASSERT_EQ(0, r[0].first);
@@ -89,4 +87,16 @@ TEST(http_HttpRangeDef, range6) {
 
   ASSERT_EQ(601, r[1].first);
   ASSERT_EQ(999, r[1].second);
+}
+
+TEST(http_HttpRangeDef, range_invalid1) {
+  HttpRangeDef r;
+  ASSERT_FALSE(r.parse("0-199"));
+  ASSERT_EQ(0, r.size());
+}
+
+TEST(http_HttpRangeDef, range_invalid2) {
+  HttpRangeDef r;
+  ASSERT_FALSE(r.parse("fnord"));
+  ASSERT_EQ(0, r.size());
 }
