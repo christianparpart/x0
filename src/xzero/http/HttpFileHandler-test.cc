@@ -385,3 +385,21 @@ TEST_F(http_HttpFileHandler, GET_if_range_date) {
   EXPECT_EQ(HttpStatus::Ok, transport.responseInfo().status());
   EXPECT_EQ("12345", transport.responseBody());
 }
+
+TEST_F(http_HttpFileHandler, GET_range_invalid1) {
+  LocalExecutor executor;
+  mock::Transport transport(&executor,
+      std::bind(&http_HttpFileHandler::staticfileHandler, this,
+                std::placeholders::_1, std::placeholders::_2));
+
+  std::string path = "/12345.txt";
+  auto file = getFile(path);
+
+  // invalid Range header is ignored, we receive full response then.
+  transport.run(HttpVersion::VERSION_1_1, "GET", path,
+      {{"Host", "test"},
+       {"Range", "0-2"}}, "");
+  EXPECT_EQ(HttpStatus::Ok, transport.responseInfo().status());
+  EXPECT_EQ("12345", transport.responseBody());
+}
+
