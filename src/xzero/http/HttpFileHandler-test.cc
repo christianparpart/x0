@@ -81,7 +81,7 @@ void http_HttpFileHandler::staticfileHandler(HttpRequest* request, HttpResponse*
  * [x] (conditional request) If-Match
  * [x] (conditional request) If-Modified-Since
  * [x] (conditional request) If-Unmodified-Since
- * [ ] (conditional request) If-Range
+ * [x] (conditional request) If-Range
  * [x] (ranged request) full range
  * [ ] (ranged request) invalid range (for example "0-4" instead of "range=0-4")
  * [x] (ranged request) first N bytes
@@ -332,4 +332,56 @@ TEST_F(http_HttpFileHandler, GET_if_unmodified_since) {
       {{"Host", "test"},
        {"If-Unmodified-Since", (mtime_ - 1_minutes).toString(HTTP_DATE_FMT)}}, "");
   EXPECT_EQ(HttpStatus::PreconditionFailed, transport.responseInfo().status());
+}
+
+TEST_F(http_HttpFileHandler, GET_if_range_etag) {
+  LocalExecutor executor;
+  mock::Transport transport(&executor,
+      std::bind(&http_HttpFileHandler::staticfileHandler, this,
+                std::placeholders::_1, std::placeholders::_2));
+
+  std::string path = "/12345.txt";
+  auto file = getFile(path);
+
+  // test exact-etag match: receive requested range, as ETag matches
+  transport.run(HttpVersion::VERSION_1_1, "GET", path,
+      {{"Host", "test"},
+       {"Range", "bytes=0-2"},
+       {"If-Range", file->etag()}}, "");
+  EXPECT_EQ(HttpStatus::PartialContent, transport.responseInfo().status());
+  EXPECT_EQ("123", transport.responseBody());
+
+  // test wrong-etag match: receive full message instead
+  transport.run(HttpVersion::VERSION_1_1, "GET", path,
+      {{"Host", "test"},
+       {"Range", "bytes=0-2"},
+       {"If-Range", "__" + file->etag()}}, "");
+  EXPECT_EQ(HttpStatus::Ok, transport.responseInfo().status());
+  EXPECT_EQ("12345", transport.responseBody());
+}
+
+TEST_F(http_HttpFileHandler, GET_if_range_date) {
+  LocalExecutor executor;
+  mock::Transport transport(&executor,
+      std::bind(&http_HttpFileHandler::staticfileHandler, this,
+                std::placeholders::_1, std::placeholders::_2));
+
+  std::string path = "/12345.txt";
+  auto file = getFile(path);
+
+  // test exact-etag match: receive requested range, as ETag matches
+  transport.run(HttpVersion::VERSION_1_1, "GET", path,
+      {{"Host", "test"},
+       {"Range", "bytes=0-2"},
+       {"If-Range", file->lastModified()}}, "");
+  EXPECT_EQ(HttpStatus::PartialContent, transport.responseInfo().status());
+  EXPECT_EQ("123", transport.responseBody());
+
+  // test wrong-etag match: receive full message instead
+  transport.run(HttpVersion::VERSION_1_1, "GET", path,
+      {{"Host", "test"},
+       {"Range", "bytes=0-2"},
+       {"If-Range", (mtime_  - 1_minutes).toString(HTTP_DATE_FMT)}}, "");
+  EXPECT_EQ(HttpStatus::Ok, transport.responseInfo().status());
+  EXPECT_EQ("12345", transport.responseBody());
 }
