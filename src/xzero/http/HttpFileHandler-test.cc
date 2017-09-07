@@ -117,7 +117,7 @@ TEST_F(http_HttpFileHandler, GET_FileNotFound) {
       {{"Host", "test"}}, "");
 
   EXPECT_EQ(HttpVersion::VERSION_1_1, transport.responseInfo().version());
-  EXPECT_EQ(404, static_cast<int>(transport.responseInfo().status()));
+  EXPECT_EQ(HttpStatus::NotFound, transport.responseInfo().status());
 }
 
 TEST_F(http_HttpFileHandler, GET_Ok) {
@@ -130,7 +130,7 @@ TEST_F(http_HttpFileHandler, GET_Ok) {
       {{"Host", "test"}}, "");
 
   EXPECT_EQ(HttpVersion::VERSION_1_1, transport.responseInfo().version());
-  EXPECT_EQ(200, static_cast<int>(transport.responseInfo().status()));
+  EXPECT_EQ(HttpStatus::Ok, transport.responseInfo().status());
   EXPECT_EQ("12345", transport.responseBody());
 }
 
@@ -144,7 +144,7 @@ TEST_F(http_HttpFileHandler, GET_fail_access) {
       {{"Host", "test"}}, "");
 
   EXPECT_EQ(HttpVersion::VERSION_1_1, transport.responseInfo().version());
-  EXPECT_EQ(403, static_cast<int>(transport.responseInfo().status()));
+  EXPECT_EQ(HttpStatus::Forbidden, transport.responseInfo().status());
 }
 
 TEST_F(http_HttpFileHandler, GET_fail_perm) {
@@ -157,7 +157,7 @@ TEST_F(http_HttpFileHandler, GET_fail_perm) {
       {{"Host", "test"}}, "");
 
   EXPECT_EQ(HttpVersion::VERSION_1_1, transport.responseInfo().version());
-  EXPECT_EQ(403, static_cast<int>(transport.responseInfo().status()));
+  EXPECT_EQ(HttpStatus::Forbidden, transport.responseInfo().status());
 }
 
 TEST_F(http_HttpFileHandler, GET_range_full) {
