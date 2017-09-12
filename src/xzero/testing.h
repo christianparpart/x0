@@ -419,6 +419,7 @@ class UnitTest {
   //! ordered list of tests as offsets into testCases_
   std::vector<size_t> activeTests_;
 
+  std::string exclude_;
   std::string filter_;
   int repeats_;
   bool printProgress_;

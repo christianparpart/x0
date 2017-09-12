@@ -81,6 +81,7 @@ UnitTest::UnitTest()
   : environments_(),
     testCases_(),
     activeTests_(),
+    exclude_(),
     filter_("*"),
     repeats_(1),
     printProgress_(false),
@@ -129,6 +130,7 @@ int UnitTest::main(int argc, const char* argv[]) {
   //
   // --no-color | --color   explicitely enable/disable color output
   // --filter=REGEX         filter tests by regular expression
+  // --exclude=REGEX        excludes tests by regular expressions
   // --randomize            randomize test order
   // --repeats=NUMBER        repeats tests given number of times
   // --list[-tests]         Just list the tests and exit.
@@ -141,6 +143,7 @@ int UnitTest::main(int argc, const char* argv[]) {
        .defineString("log-level", 'L', "ENUM", "Defines the minimum log level.", "info")
        .defineString("log-target", 0, "ENUM", "Specifies logging target. One of syslog, file, systemd, console.", "")
        .defineString("filter", 'f', "GLOB", "Filters tests by given glob.", "*")
+       .defineString("exclude", 'e', "GLOB", "Excludes tests by given glob.", "")
        .defineBool("list", 'l', "Prints all tests and exits.")
        .defineBool("randomize", 'R', "Randomizes test order.")
        .defineBool("sort", 's', "Sorts tests alphabetically ascending.")
@@ -175,6 +178,7 @@ int UnitTest::main(int argc, const char* argv[]) {
     // TODO: log-target
   }
 
+  exclude_ = flags.getString("exclude");
   filter_ = flags.getString("filter");
   repeats_ = flags.getNumber("repeat");
   printProgress_ = !flags.getBool("no-progress");
@@ -190,7 +194,11 @@ int UnitTest::main(int argc, const char* argv[]) {
       TestInfo* testInfo = testCases_[activeTests_[i]].get();
       std::string matchName = StringUtil::format("$0.$1",
           testInfo->testCaseName(), testInfo->testName());
+
       const int flags = 0;
+
+      if (!exclude_.empty() && fnmatch(exclude_.c_str(), matchName.c_str(), flags) == 0)
+        continue; // exclude this one
 
       if (fnmatch(filter_.c_str(), matchName.c_str(), flags) == 0) {
         filtered.push_back(activeTests_[i]);
