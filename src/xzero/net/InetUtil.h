@@ -14,6 +14,7 @@
 
 namespace xzero {
 
+class FileView;
 class EndPoint;
 class Executor;
 class Connection;
@@ -33,6 +34,14 @@ class InetUtil {
   static Option<InetAddress> getLocalAddress(int fd, int addressFamily);
   static Option<InetAddress> getRemoteAddress(int fd, int addressFamily);
   static int getLocalPort(int socket, int addressFamily);
+
+  static bool isTcpNoDelay(int fd);
+  static void setTcpNoDelay(int fd, bool enable);
+
+  static bool isCorking(int fd);
+  static void setCorking(int fd, bool enable);
+
+  static size_t sendfile(int target, const FileView& source);
 };
 
 }  // namespace xzero

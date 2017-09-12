@@ -9,9 +9,11 @@
 #include <xzero/net/InetAddress.h>
 #include <xzero/net/IPAddress.h>
 #include <xzero/io/FileUtil.h>
+#include <xzero/io/FileView.h>
 #include <xzero/executor/Executor.h>
 #include <xzero/RuntimeError.h>
 #include <xzero/logging.h>
+#include <xzero/sysconfig.h>
 
 #include <netinet/tcp.h>
 #include <arpa/inet.h>
@@ -23,6 +25,10 @@
 #include <errno.h>
 #include <unistd.h>
 #include <assert.h>
+
+#if defined(HAVE_SYS_SENDFILE_H)
+#include <sys/sendfile.h>
+#endif
 
 namespace xzero {
 
@@ -181,4 +187,65 @@ std::error_code InetUtil::connect(int fd, const InetAddress& remote) {
     return std::error_code();
 }
 
+bool InetUtil::isTcpNoDelay(int fd) {
+  int result = 0;
+  socklen_t sz = sizeof(result);
+  if (getsockopt(fd, IPPROTO_TCP, TCP_NODELAY, &result, &sz) < 0)
+    RAISE_ERRNO(errno);
+
+  return result;
+}
+
+void InetUtil::setTcpNoDelay(int fd, bool enable) {
+  int flag = enable ? 1 : 0;
+  if (setsockopt(fd, IPPROTO_TCP, TCP_NODELAY, &flag, sizeof(flag)) < 0)
+    RAISE_ERRNO(errno);
+}
+
+bool InetUtil::isCorking(int fd) {
+#if defined(TCP_CORK)
+  int flag = 0;
+  socklen_t sz = sizeof(flag);
+  if (getsockopt(fd, IPPROTO_TCP, TCP_CORK, &flag, &sz) < 0)
+    RAISE_ERRNO(errno);
+
+  return flag;
+#else
+  return false;
+#endif
+}
+
+void InetUtil::setCorking(int fd, bool enable) {
+#if defined(TCP_CORK)
+  if (isCorking_ != enable) {
+    int flag = enable ? 1 : 0;
+    if (setsockopt(fd, IPPROTO_TCP, TCP_CORK, &flag, sizeof(flag)) < 0)
+      RAISE_ERRNO(errno);
+
+    isCorking_ = enable;
+  }
+#endif
+}
+
+size_t InetUtil::sendfile(int target, const FileView& source) {
+#if defined(__APPLE__)
+  off_t len = source.size();
+  int rv = ::sendfile(target, source.handle(), source.offset(), &len, nullptr, 0);
+  TRACE("flush(offset:$0, size:$1) -> $2", source.offset(), source.size(), rv);
+  if (rv < 0)
+    RAISE_ERRNO(errno);
+
+  return len;
+#else
+  off_t offset = source.offset();
+  ssize_t rv = ::sendfile(source.handle(), target, &offset, source.size());
+  TRACE("flush(offset:$0, size:$1) -> $2", offset, size, rv);
+  if (rv < 0)
+    RAISE_ERRNO(errno);
+
+  // EOF exception?
+
+  return rv;
+#endif
+}
 } // namespace xzero
