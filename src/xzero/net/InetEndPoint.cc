@@ -124,8 +124,10 @@ bool InetEndPoint::isCorking() const {
 }
 
 void InetEndPoint::setCorking(bool enable) {
-  InetUtil::setCorking(handle_, enable);
-  isCorking_ = enable;
+  if (isCorking_ != enable) {
+    InetUtil::setCorking(handle_, enable);
+    isCorking_ = enable;
+  }
 }
 
 bool InetEndPoint::isTcpNoDelay() const {
