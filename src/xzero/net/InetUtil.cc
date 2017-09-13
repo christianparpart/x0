@@ -217,13 +217,9 @@ bool InetUtil::isCorking(int fd) {
 
 void InetUtil::setCorking(int fd, bool enable) {
 #if defined(TCP_CORK)
-  if (isCorking_ != enable) {
-    int flag = enable ? 1 : 0;
-    if (setsockopt(fd, IPPROTO_TCP, TCP_CORK, &flag, sizeof(flag)) < 0)
-      RAISE_ERRNO(errno);
-
-    isCorking_ = enable;
-  }
+  int flag = enable ? 1 : 0;
+  if (setsockopt(fd, IPPROTO_TCP, TCP_CORK, &flag, sizeof(flag)) < 0)
+    RAISE_ERRNO(errno);
 #endif
 }
 
@@ -239,7 +235,7 @@ size_t InetUtil::sendfile(int target, const FileView& source) {
 #else
   off_t offset = source.offset();
   ssize_t rv = ::sendfile(source.handle(), target, &offset, source.size());
-  TRACE("flush(offset:$0, size:$1) -> $2", offset, size, rv);
+  TRACE("flush(offset:$0, size:$1) -> $2", source.offset(), source.size(), rv);
   if (rv < 0)
     RAISE_ERRNO(errno);
 
