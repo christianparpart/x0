@@ -8,6 +8,7 @@
 #pragma once
 
 #include <cassert>
+#include <xzero/RuntimeError.h>
 
 namespace xzero {
 
@@ -21,10 +22,15 @@ PromiseState<T>::PromiseState() :
 
 template <typename T>
 PromiseState<T>::~PromiseState() {
-  assert(status != PromiseStatus::UNDEFINED);
-
-  if (status == PromiseStatus::SUCCESS) {
+  switch (status) {
+  case PromiseStatus::UNDEFINED:
+    RAISE_STATUS(FutureError);
+    break;
+  case PromiseStatus::SUCCESS:
     value().~T();
+    break;
+  case PromiseStatus::FAILURE:
+    break;
   }
 }
 
