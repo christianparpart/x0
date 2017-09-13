@@ -3,8 +3,6 @@
 
 ### Intermediate 0
 
-- [ ] test: write full tests for HttpFileHandler using MockTransport
-
 - [ ] HttpListener: onMessagecontent(HugeBuffer&&) instead
 - [ ] extend FCGI connector to tweak maxKeepAlive (just like in HTTP/1)
   - make sure the keepalive-timeout is fired correctly
@@ -63,4 +61,5 @@
 - [x] UdpConnector
 - [x] improve timeout management (ideally testable)
 - [x] `InetEndPoint::wantFill()` to honor `TCP_DEFER_ACCEPT`
+- [x] test: write full tests for HttpFileHandler using MockTransport
 
