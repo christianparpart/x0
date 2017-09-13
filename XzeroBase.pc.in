@@ -8,5 +8,5 @@ Description: libXzero library and headers
 Version: @PACKAGE_VERSION@
 # Requires:
 # Conflicts: 
-Libs: -L${libdir} -lXzero @BASE_LIBS@
+Libs: -L${libdir} -lXzero @BASE_LIBS@ @BASE_LDFLAGS@
 Cflags: -I${includedir} @BASE_CXXFLAGS@

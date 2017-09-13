@@ -232,6 +232,9 @@ BASE_LIBS="$PLATFORM_LDFLAGS $OPENSSL_LDADD $LIBPCRE_LIBS $OPENSSL_LIBS \
  $ZLIB_LIBS $BZLIB_LIBS -lresolv"
 AC_SUBST([BASE_LIBS])
 
+BASE_LDFLAGS="-rdynamic"
+AC_SUBST([BASE_LDFLAGS])
+
 AS_IF([test "x$enable_xurl" = xyes],
       [AC_MSG_NOTICE([Builds with CLI xurl: yes])],
       [AC_MSG_NOTICE([Builds with CLI xurl: no])])
