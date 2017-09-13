@@ -56,9 +56,9 @@ size_t EndPointWriter::transfer(const BufferRef& chunk) {
   return sink_->flush(chunk);
 }
 
-size_t EndPointWriter::transfer(const FileView& file) {
-  TRACE("transfer(file): $0 bytes, fd $1", file.size(), file.handle());
-  return sink_->flush(file.handle(), file.offset(), file.size());
+size_t EndPointWriter::transfer(const FileView& fileView) {
+  TRACE("transfer(file): $0 bytes, fd $1", fileView.size(), fileView.handle());
+  return sink_->flush(fileView);
 }
 
 } // namespace xzero

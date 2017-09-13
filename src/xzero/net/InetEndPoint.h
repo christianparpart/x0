@@ -131,7 +131,7 @@ class XZERO_BASE_API InetEndPoint : public EndPoint {
   using EndPoint::fill;
   size_t fill(Buffer* sink, size_t count) override;
   size_t flush(const BufferRef& source) override;
-  size_t flush(int fd, off_t offset, size_t size) override;
+  size_t flush(const FileView& source) override;
   void wantFill() override;
   void wantFlush() override;
   Duration readTimeout() override;

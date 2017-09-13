@@ -24,10 +24,6 @@
 #include <fcntl.h>
 #include <errno.h>
 
-#if defined(HAVE_SYS_SENDFILE_H)
-#include <sys/sendfile.h>
-#endif
-
 namespace xzero {
 
 #define ERROR(msg...) logError("net.InetEndPoint", msg)
@@ -120,19 +116,7 @@ bool InetEndPoint::isBlocking() const {
 }
 
 void InetEndPoint::setBlocking(bool enable) {
-  TRACE("$0 setBlocking(\"$1\")", this, enable);
-#if 1
-  unsigned current = fcntl(handle_, F_GETFL);
-  unsigned flags = enable ? (current & ~O_NONBLOCK)
-                          : (current | O_NONBLOCK);
-#else
-  unsigned flags = enable ? fcntl(handle_, F_GETFL) & ~O_NONBLOCK
-                          : fcntl(handle_, F_GETFL) | O_NONBLOCK;
-#endif
-
-  if (fcntl(handle_, F_SETFL, flags) < 0) {
-    RAISE_ERRNO(errno);
-  }
+  FileUtil::setBlocking(handle_, enable);
 }
 
 bool InetEndPoint::isCorking() const {
@@ -140,30 +124,16 @@ bool InetEndPoint::isCorking() const {
 }
 
 void InetEndPoint::setCorking(bool enable) {
-#if defined(TCP_CORK)
-  if (isCorking_ != enable) {
-    int flag = enable ? 1 : 0;
-    if (setsockopt(handle_, IPPROTO_TCP, TCP_CORK, &flag, sizeof(flag)) < 0)
-      RAISE_ERRNO(errno);
-
-    isCorking_ = enable;
-  }
-#endif
+  InetUtil::setCorking(handle_, enable);
+  isCorking_ = enable;
 }
 
 bool InetEndPoint::isTcpNoDelay() const {
-  int result = 0;
-  socklen_t sz = sizeof(result);
-  if (getsockopt(handle_, IPPROTO_TCP, TCP_NODELAY, &result, &sz) < 0)
-    RAISE_ERRNO(errno);
-
-  return result;
+  return InetUtil::isTcpNoDelay(handle_);
 }
 
 void InetEndPoint::setTcpNoDelay(bool enable) {
-  int flag = enable ? 1 : 0;
-  if (setsockopt(handle_, IPPROTO_TCP, TCP_NODELAY, &flag, sizeof(flag)) < 0)
-    RAISE_ERRNO(errno);
+  InetUtil::setTcpNoDelay(handle_, enable);
 }
 
 std::string InetEndPoint::toString() const {
@@ -266,25 +236,8 @@ size_t InetEndPoint::flush(const BufferRef& source) {
   return rv;
 }
 
-size_t InetEndPoint::flush(int fd, off_t offset, size_t size) {
-#if defined(__APPLE__)
-  off_t len = 0;
-  int rv = sendfile(fd, handle(), offset, &len, nullptr, 0);
-  TRACE("flush(offset:$0, size:$1) -> $2", offset, size, rv);
-  if (rv < 0)
-    RAISE_ERRNO(errno);
-
-  return len;
-#else
-  ssize_t rv = sendfile(handle(), fd, &offset, size);
-  TRACE("flush(offset:$0, size:$1) -> $2", offset, size, rv);
-  if (rv < 0)
-    RAISE_ERRNO(errno);
-
-  // EOF exception?
-
-  return rv;
-#endif
+size_t InetEndPoint::flush(const FileView& view) {
+  return InetUtil::sendfile(handle(), view);
 }
 
 void InetEndPoint::wantFill() {

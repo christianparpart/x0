@@ -8,6 +8,7 @@
 #include <xzero/net/ByteArrayEndPoint.h>
 #include <xzero/net/Connection.h>
 #include <xzero/executor/Executor.h>
+#include <xzero/io/FileView.h>
 #include <xzero/logging.h>
 #include <system_error>
 #include <stdio.h>
@@ -95,10 +96,10 @@ size_t ByteArrayEndPoint::flush(const BufferRef& source) {
   return output_.size() - n;
 }
 
-size_t ByteArrayEndPoint::flush(int fd, off_t offset, size_t size) {
-  output_.reserve(output_.size() + size);
+size_t ByteArrayEndPoint::flush(const FileView& view) {
+  output_.reserve(output_.size() + view.size());
 
-  ssize_t n = pread(fd, output_.end(), size, offset);
+  ssize_t n = pread(view.handle(), output_.end(), view.size(), view.offset());
 
   if (n < 0)
     throw std::system_error(errno, std::system_category());

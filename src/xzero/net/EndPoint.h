@@ -20,6 +20,7 @@ namespace xzero {
 class Buffer;
 class BufferRef;
 class Connection;
+class FileView;
 
 /**
  * A communication endpoint (such as internet sockets, pipes, string streams).
@@ -100,13 +101,11 @@ class EndPoint : public RefCounted {
   /**
    * Flushes file contents behind filedescriptor @p fd into this endpoint.
    *
-   * @param fd Handle to a valid opened file.
-   * @param offset Offset where to start reading from.
-   * @param size Number of bytes to write from the given file.
+   * @param fileView a view into the file to be sent.
    *
    * @return Number of actual bytes flushed.
    */
-  virtual size_t flush(int fd, off_t offset, size_t size) = 0;
+  virtual size_t flush(const FileView& fileView) = 0;
 
   /**
    * Registers an interest on reading input data.

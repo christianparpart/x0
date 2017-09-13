@@ -54,16 +54,9 @@ class XZERO_BASE_API SslEndPoint : public EndPoint {
 
   using EndPoint::fill;
 
-  /**
-   * Reads from remote endpoint and fills given buffer with it.
-   */
   size_t fill(Buffer* sink, size_t count) override;
-
-  /**
-   * Appends given buffer into the pending buffer vector and attempts to flush.
-   */
   size_t flush(const BufferRef& source) override;
-  size_t flush(int fd, off_t offset, size_t size) override;
+  size_t flush(const FileView& source) override;
 
   /**
    * Ensures that the SSL socket is ready for receiving data.

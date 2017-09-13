@@ -10,6 +10,7 @@
 #include <xzero/net/SslConnector.h>
 #include <xzero/net/SslUtil.h>
 #include <xzero/net/Connection.h>
+#include <xzero/net/InetUtil.h>
 #include <xzero/io/FileUtil.h>
 #include <xzero/RuntimeError.h>
 #include <xzero/logging.h>
@@ -177,24 +178,9 @@ size_t SslEndPoint::flush(const BufferRef& source) {
   return 0;
 }
 
-size_t SslEndPoint::flush(int fd, off_t offset, size_t size) {
+size_t SslEndPoint::flush(const FileView& view) {
   Buffer buf;
-  buf.reserve(size);
-  ssize_t rv = ::read(fd, buf.data(), buf.capacity());
-  if (rv < 0) {
-    switch (errno) {
-      case EBUSY:
-      case EAGAIN:
-#if defined(EWOULDBLOCK) && (EWOULDBLOCK != EAGAIN)
-      case EWOULDBLOCK:
-#endif
-        return 0;
-      default:
-        RAISE_ERRNO(errno);
-    }
-  }
-
-  buf.resize(static_cast<size_t>(rv));
+  FileUtil::read(view, &buf);
   return flush(buf);
 }
 
@@ -277,23 +263,12 @@ void SslEndPoint::setWriteTimeout(Duration timeout) {
 }
 
 bool SslEndPoint::isBlocking() const {
-  return !(fcntl(handle(), F_GETFL) & O_NONBLOCK);
+  return FileUtil::isBlocking(handle());
 }
 
 void SslEndPoint::setBlocking(bool enable) {
   TRACE("$0 setBlocking($1)", this, enable);
-#if 1
-  unsigned current = fcntl(handle(), F_GETFL);
-  unsigned flags = enable ? (current & ~O_NONBLOCK)
-                          : (current | O_NONBLOCK);
-#else
-  unsigned flags = enable ? fcntl(handle(), F_GETFL) & ~O_NONBLOCK
-                          : fcntl(handle(), F_GETFL) | O_NONBLOCK;
-#endif
-
-  if (fcntl(handle(), F_SETFL, flags) < 0) {
-    RAISE_ERRNO(errno);
-  }
+  FileUtil::setBlocking(handle(), enable);
 }
 
 bool SslEndPoint::isCorking() const {
@@ -301,24 +276,12 @@ bool SslEndPoint::isCorking() const {
 }
 
 void SslEndPoint::setCorking(bool enable) {
-#if defined(TCP_CORK)
-  if (isCorking_ != enable) {
-    int flag = enable ? 1 : 0;
-    if (setsockopt(handle(), IPPROTO_TCP, TCP_CORK, &flag, sizeof(flag)) < 0)
-      RAISE_ERRNO(errno);
-
-    isCorking_ = enable;
-  }
-#endif
+  InetUtil::setCorking(handle(), enable);
+  isCorking_ = enable;
 }
 
 bool SslEndPoint::isTcpNoDelay() const {
-  int result = 0;
-  socklen_t sz = sizeof(result);
-  if (getsockopt(handle_, IPPROTO_TCP, TCP_NODELAY, &result, &sz) < 0)
-    RAISE_ERRNO(errno);
-
-  return result;
+  return InetUtil::isTcpNoDelay(handle());
 }
 
 void SslEndPoint::setTcpNoDelay(bool enable) {
