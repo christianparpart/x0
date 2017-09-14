@@ -68,11 +68,11 @@ class Executor {
   }; // }}}
   typedef RefPtr<Handle> HandleRef;
 
-  explicit Executor(std::unique_ptr<xzero::ExceptionHandler> eh);
+  explicit Executor(ExceptionHandler eh);
 
   virtual ~Executor();
 
-  void setExceptionHandler(std::unique_ptr<ExceptionHandler> eh);
+  void setExceptionHandler(ExceptionHandler eh);
 
   /**
    * Retrieves a human readable name of this executor (for introspection only).

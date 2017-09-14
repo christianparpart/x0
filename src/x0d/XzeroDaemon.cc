@@ -449,8 +449,7 @@ std::unique_ptr<EventLoop> XzeroDaemon::createEventLoop() {
   size_t i = eventLoops_.size();
 
   return std::unique_ptr<EventLoop>(new NativeScheduler(
-        std::unique_ptr<xzero::ExceptionHandler>(
-              new CatchAndLogExceptionHandler(StringUtil::format("x0d/$0", i))),
+        CatchAndLogExceptionHandler(StringUtil::format("x0d/$0", i)),
         nullptr /* preInvoke */,
         nullptr /* postInvoke */));
 }

@@ -18,8 +18,8 @@ namespace xzero {
  */
 class EventLoop : public Executor {
  public:
-  EventLoop(std::unique_ptr<ExceptionHandler> eh)
-      : Executor(std::move(eh)) {}
+  explicit EventLoop(ExceptionHandler eh)
+      : Executor(eh) {}
 
   /**
    * Runs the event loop until no event is to be served.

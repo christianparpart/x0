@@ -12,16 +12,16 @@
 
 namespace xzero {
 
-Executor::Executor(std::unique_ptr<xzero::ExceptionHandler> eh)
-    : safeCall_(std::move(eh)),
+Executor::Executor(ExceptionHandler eh)
+    : safeCall_(eh),
       refs_(0) {
 }
 
 Executor::~Executor() {
 }
 
-void Executor::setExceptionHandler(std::unique_ptr<ExceptionHandler> eh) {
-  safeCall_.setExceptionHandler(std::move(eh));
+void Executor::setExceptionHandler(ExceptionHandler eh) {
+  safeCall_.setExceptionHandler(eh);
 }
 
 /**

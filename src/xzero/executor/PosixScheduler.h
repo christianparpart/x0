@@ -22,13 +22,11 @@ class PosixScheduler : public EventLoop {
   PosixScheduler(const PosixScheduler&) = delete;
   PosixScheduler& operator=(const PosixScheduler&) = delete;
 
-  PosixScheduler(
-      std::unique_ptr<xzero::ExceptionHandler> eh,
-      std::function<void()> preInvoke,
-      std::function<void()> postInvoke);
+  PosixScheduler(ExceptionHandler eh,
+                 std::function<void()> preInvoke,
+                 std::function<void()> postInvoke);
 
-  explicit PosixScheduler(
-      std::unique_ptr<xzero::ExceptionHandler> eh);
+  explicit PosixScheduler(ExceptionHandler eh);
 
   PosixScheduler();
 

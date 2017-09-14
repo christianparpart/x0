@@ -28,12 +28,12 @@ class SafeCall {
  public:
   SafeCall();
 
-  explicit SafeCall(std::unique_ptr<ExceptionHandler> eh);
+  explicit SafeCall(ExceptionHandler eh);
 
   /**
    * Configures exception handler.
    */
-  void setExceptionHandler(std::unique_ptr<ExceptionHandler> eh);
+  void setExceptionHandler(ExceptionHandler eh);
 
   /**
    * Safely invokes given task within the callers context.
@@ -60,7 +60,7 @@ class SafeCall {
   void handleException(const std::exception& e) noexcept;
 
  private:
-  std::unique_ptr<ExceptionHandler> exceptionHandler_;
+  ExceptionHandler exceptionHandler_;
 };
 
 } // namespace xzero

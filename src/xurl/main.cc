@@ -90,8 +90,7 @@ class XUrl {
 };
 
 XUrl::XUrl()
-    : scheduler_(std::unique_ptr<ExceptionHandler>(
-                    new CatchAndLogExceptionHandler("xurl"))),
+    : scheduler_(CatchAndLogExceptionHandler("xurl")),
       flags_(),
       dns_(),
       connectTimeout_(4_seconds),

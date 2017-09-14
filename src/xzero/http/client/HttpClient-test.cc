@@ -35,7 +35,7 @@ Future<RefPtr<EndPoint>> createEndPointAsync() {
 }
 
 TEST(HttpClient, http1_default) {
-  NativeScheduler sched(std::make_unique<CatchAndLogExceptionHandler>("unittest"));
+  NativeScheduler sched;
 
   HttpClient cli(&sched, createEndPointAsync, 5_seconds);
 

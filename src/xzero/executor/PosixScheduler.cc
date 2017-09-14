@@ -98,10 +98,10 @@ std::string inspect(const PosixScheduler& s) {
 }
 
 PosixScheduler::PosixScheduler(
-    std::unique_ptr<xzero::ExceptionHandler> eh,
+    ExceptionHandler eh,
     std::function<void()> preInvoke,
     std::function<void()> postInvoke)
-    : EventLoop(std::move(eh)),
+    : EventLoop(eh),
       lock_(),
       wakeupPipe_(),
       onPreInvokePending_(preInvoke),
@@ -136,12 +136,12 @@ PosixScheduler::PosixScheduler(
       nofile);
 }
 
-PosixScheduler::PosixScheduler(std::unique_ptr<xzero::ExceptionHandler> eh)
-    : PosixScheduler(std::move(eh), nullptr, nullptr) {
+PosixScheduler::PosixScheduler(ExceptionHandler eh)
+    : PosixScheduler(eh, nullptr, nullptr) {
 }
 
 PosixScheduler::PosixScheduler()
-    : PosixScheduler(std::unique_ptr<ExceptionHandler>(new CatchAndLogExceptionHandler("PosixScheduler"))) {
+    : PosixScheduler(CatchAndLogExceptionHandler("PosixScheduler")) {
 }
 
 PosixScheduler::~PosixScheduler() {

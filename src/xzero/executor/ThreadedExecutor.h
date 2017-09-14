@@ -23,7 +23,7 @@ namespace xzero {
 class ThreadedExecutor : public Executor {
  public:
   ThreadedExecutor() : ThreadedExecutor(nullptr) {}
-  explicit ThreadedExecutor(std::unique_ptr<xzero::ExceptionHandler> eh);
+  explicit ThreadedExecutor(ExceptionHandler eh);
   ~ThreadedExecutor();
 
   void execute(const std::string& name, Task task);

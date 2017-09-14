@@ -33,10 +33,10 @@ namespace xzero {
 #endif
 
 LinuxScheduler::LinuxScheduler(
-    std::unique_ptr<xzero::ExceptionHandler> eh,
+    ExceptionHandler eh,
     std::function<void()> preInvoke,
     std::function<void()> postInvoke)
-    : EventLoop(std::move(eh)),
+    : EventLoop(eh),
       onPreInvokePending_(preInvoke),
       onPostInvokePending_(postInvoke),
       lock_(),
@@ -65,9 +65,8 @@ LinuxScheduler::LinuxScheduler(
   //TODO signalfd_ = ...;
 }
 
-LinuxScheduler::LinuxScheduler(
-    std::unique_ptr<xzero::ExceptionHandler> eh)
-    : LinuxScheduler(std::move(eh), nullptr, nullptr) {
+LinuxScheduler::LinuxScheduler(ExceptionHandler eh)
+    : LinuxScheduler(eh, nullptr, nullptr) {
 }
 
 LinuxScheduler::LinuxScheduler()

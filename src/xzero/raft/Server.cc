@@ -59,7 +59,7 @@ Server::Server(Id id,
                Duration heartbeatTimeout,
                Duration electionTimeout,
                Duration commitTimeout)
-    : executor_(std::make_unique<CatchAndLogExceptionHandler>("raft")),
+    : executor_(CatchAndLogExceptionHandler("raft")),
       id_(id),
       currentLeaderId_(0),
       storage_(storage),

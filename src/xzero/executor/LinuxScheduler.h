@@ -28,13 +28,11 @@ namespace xzero {
  */
 class LinuxScheduler : public EventLoop {
  public:
-  LinuxScheduler(
-      std::unique_ptr<ExceptionHandler> eh,
-      std::function<void()> preInvoke,
-      std::function<void()> postInvoke);
+  LinuxScheduler(ExceptionHandler eh,
+                 std::function<void()> preInvoke,
+                 std::function<void()> postInvoke);
 
-  explicit LinuxScheduler(
-      std::unique_ptr<ExceptionHandler> eh);
+  explicit LinuxScheduler(ExceptionHandler eh);
 
   LinuxScheduler();
   ~LinuxScheduler();

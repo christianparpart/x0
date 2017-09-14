@@ -21,8 +21,8 @@ namespace xzero {
 
 LocalExecutor::LocalExecutor(
     bool recursive,
-    std::unique_ptr<xzero::ExceptionHandler> eh)
-    : Executor(std::move(eh)),
+    ExceptionHandler eh)
+    : Executor(eh),
       recursive_(recursive),
       running_(0),
       deferred_() {

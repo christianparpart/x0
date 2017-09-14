@@ -40,13 +40,12 @@ ThreadPool::ThreadPool(size_t num_threads)
     : ThreadPool(num_threads, nullptr) {
 }
 
-ThreadPool::ThreadPool(std::unique_ptr<xzero::ExceptionHandler> eh)
-    : ThreadPool(Application::processorCount(), std::move(eh)) {
+ThreadPool::ThreadPool(ExceptionHandler eh)
+    : ThreadPool(Application::processorCount(), eh) {
 }
 
-ThreadPool::ThreadPool(size_t num_threads,
-                       std::unique_ptr<xzero::ExceptionHandler> eh)
-    : Executor(std::move(eh)),
+ThreadPool::ThreadPool(size_t num_threads, ExceptionHandler eh)
+    : Executor(eh),
       active_(true),
       threads_(),
       mutex_(),
