@@ -302,6 +302,8 @@ class Test {
 
   template<typename... Args>
   void logf(const char* fmt, Args... args);
+
+  void reportUnhandledException(const std::exception& e);
 };
 
 /**
@@ -385,6 +387,8 @@ class UnitTest {
                     const char* actual,
                     const std::string& actualEvaluated,
                     const char* op);
+
+  void reportUnhandledException(const std::exception& e);
 
   void reportEH(const char* fileName,
                 int lineNo,

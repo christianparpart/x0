@@ -58,6 +58,10 @@ void Test::log(const std::string& message) {
   UnitTest::instance()->log(message);
 }
 
+void Test::reportUnhandledException(const std::exception& e) {
+  UnitTest::instance()->reportUnhandledException(e);
+}
+
 // ############################################################################
 
 TestInfo::TestInfo(const std::string& testCaseName, 
@@ -428,6 +432,32 @@ void UnitTest::reportBinary(const char* fileName,
       actualEvaluated);
 
   reportMessage(message, fatal);
+}
+
+void UnitTest::reportUnhandledException(const std::exception& e) {
+  if (const RuntimeError* rte = dynamic_cast<const RuntimeError*>(&e)) {
+    std::string message = StringUtil::format(
+        "Unhandled Exception\n"
+          "  Type: $0\n"
+          "  What: $1\n"
+          "  Function: $2\n"
+          "  Source File: $3\n"
+          "  Source Line: $4\n",
+        typeid(*rte).name(),
+        rte->what(),
+        rte->functionName(),
+        rte->sourceFile(),
+        rte->sourceLine());
+    reportMessage(message, false);
+  } else {
+    std::string message = StringUtil::format(
+        "Unhandled Exception\n"
+          "  Type: $0\n"
+          "  What: $1\n",
+        typeid(e).name(),
+        e.what());
+    reportMessage(message, false);
+  }
 }
 
 void UnitTest::reportEH(const char* fileName,
