@@ -226,7 +226,7 @@ void InetUtil::setCorking(int fd, bool enable) {
 size_t InetUtil::sendfile(int target, const FileView& source) {
 #if defined(__APPLE__)
   off_t len = source.size();
-  int rv = ::sendfile(target, source.handle(), source.offset(), &len, nullptr, 0);
+  int rv = ::sendfile(source.handle(), target, source.offset(), &len, nullptr, 0);
   TRACE("flush(offset:$0, size:$1) -> $2", source.offset(), source.size(), rv);
   if (rv < 0)
     RAISE_ERRNO(errno);
