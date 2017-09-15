@@ -317,7 +317,6 @@ class InetConnectState {
  public:
   InetAddress inet_;
   RefPtr<InetEndPoint> ep_;
-  Promise<RefPtr<EndPoint>> promise_;
   std::function<void(RefPtr<EndPoint>)> success_;
   std::function<void(std::error_code)> failure_;
 
