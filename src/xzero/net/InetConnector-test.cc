@@ -93,8 +93,14 @@ void EchoClientConnection::onFillable() {
 }
 // }}}
 
+auto EH(xzero::testing::Test* t) {
+  return [t](const std::exception& e) {
+    return t->reportUnhandledException(e);
+  };
+}
+
 TEST(InetConnector, echoServer) {
-  PosixScheduler sched;
+  PosixScheduler sched(EH(this));
 
   auto connectionFactory = [&](Connector* connector, EndPoint* ep) -> Connection* {
     return ep->setConnection<EchoServerConnection>(ep, &sched);
