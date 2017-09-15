@@ -339,20 +339,8 @@ void UnitTest::runAllTestsOnce() {
       } catch (const BailOutException&) {
         // no-op
         failed++;
-      } catch (const RuntimeError& ex) {
-        reportMessage(
-            StringUtil::format(
-              "Unhandled exception caught in test. $0 ($1:$2 $3)",
-              ex.what(),
-              ex.sourceFile(),
-              ex.sourceLine(),
-              ex.functionName()),
-            false);
-        failed++;
       } catch (const std::exception& ex) {
-        reportMessage(
-            StringUtil::format("Unhandled exception caught in test. $0", ex.what()),
-            false);
+        reportUnhandledException(ex);
         failed++;
       } catch (...) {
         reportMessage("Unhandled exception caught in test.", false);
