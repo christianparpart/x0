@@ -88,11 +88,27 @@ InetEndPoint::~InetEndPoint() {
 }
 
 Option<InetAddress> InetEndPoint::remoteAddress() const {
-  return InetUtil::getRemoteAddress(handle_, addressFamily());
+  Result<InetAddress> addr = InetUtil::getRemoteAddress(handle_, addressFamily());
+  if (addr.isSuccess())
+    return Some(*addr);
+  else {
+    logError("InetEndPoint", "remoteAddress: ($0) $1",
+        addr.error().category().name(),
+        addr.error().message().c_str());
+    return None();
+  }
 }
 
 Option<InetAddress> InetEndPoint::localAddress() const {
-  return InetUtil::getLocalAddress(handle_, addressFamily());
+  Result<InetAddress> addr = InetUtil::getLocalAddress(handle_, addressFamily());
+  if (addr.isSuccess())
+    return Some(*addr);
+  else {
+    logError("InetEndPoint", "localAddress: ($0) $1",
+        addr.error().category().name(),
+        addr.error().message().c_str());
+    return None();
+  }
 }
 
 bool InetEndPoint::isOpen() const XZERO_NOEXCEPT {

@@ -541,7 +541,9 @@ std::list<RefPtr<EndPoint>> InetConnector::connectedEndPoints() {
 
 void InetConnector::onEndPointClosed(EndPoint* endpoint) {
   assert(endpoint != nullptr);
-  assert(endpoint->connection() != nullptr);
+
+  // XXX: e.g. SSL doesn't have a connection in case the handshake failed
+  // assert(endpoint->connection() != nullptr);
 
   std::lock_guard<std::mutex> _lk(mutex_);
 

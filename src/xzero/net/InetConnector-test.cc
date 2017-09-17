@@ -93,9 +93,9 @@ void EchoClientConnection::onFillable() {
 }
 // }}}
 
-auto EH(xzero::testing::Test* t) {
-  return [t](const std::exception& e) {
-    return t->reportUnhandledException(e);
+auto EH(xzero::testing::Test* test) {
+  return [test](const std::exception& e) {
+    test->reportUnhandledException(e);
   };
 }
 
@@ -194,6 +194,7 @@ TEST(InetConnector, detectProtocols) {
   };
 
   auto onConnectionEstablished = [&](RefPtr<EndPoint> ep) {
+    log("onConnectionEstablished");
     Buffer text;
     connector->loadConnectionFactorySelector("yeah", &text);
     text.push_back("blurrrb");

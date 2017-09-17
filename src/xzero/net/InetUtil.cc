@@ -34,62 +34,60 @@ namespace xzero {
 
 #define TRACE(msg...) logTrace("InetUtil", msg)
 
-Option<InetAddress> InetUtil::getRemoteAddress(int fd, int addressFamily) {
+Result<InetAddress> InetUtil::getRemoteAddress(int fd, int addressFamily) {
   if (fd < 0)
-    return None();
+    return static_cast<std::errc>(EINVAL);
 
   switch (addressFamily) {
     case AF_INET6: {
       sockaddr_in6 saddr;
       socklen_t slen = sizeof(saddr);
       if (getpeername(fd, (sockaddr*)&saddr, &slen) < 0)
-        return None();
+        return static_cast<std::errc>(errno);
 
-      return Some(InetAddress(IPAddress(&saddr), ntohs(saddr.sin6_port)));
+      return Success(InetAddress(IPAddress(&saddr), ntohs(saddr.sin6_port)));
     }
     case AF_INET: {
       sockaddr_in saddr;
       socklen_t slen = sizeof(saddr);
       if (getpeername(fd, (sockaddr*)&saddr, &slen) < 0)
-        return None();
+        return static_cast<std::errc>(errno);
 
-      return Some(InetAddress(IPAddress(&saddr), ntohs(saddr.sin_port)));
+      return Success(InetAddress(IPAddress(&saddr), ntohs(saddr.sin_port)));
     }
     default:
-      RAISE(IllegalStateError, "Invalid address family.");
+      return static_cast<std::errc>(EINVAL);
   }
-  return None();
 }
 
-Option<InetAddress> InetUtil::getLocalAddress(int fd, int addressFamily) {
+Result<InetAddress> InetUtil::getLocalAddress(int fd, int addressFamily) {
   if (fd < 0)
-    return None();
+    return static_cast<std::errc>(EINVAL);
 
   switch (addressFamily) {
     case AF_INET6: {
       sockaddr_in6 saddr;
       socklen_t slen = sizeof(saddr);
 
-      if (getsockname(fd, (sockaddr*)&saddr, &slen) == 0) {
-        return Some(InetAddress(IPAddress(&saddr), ntohs(saddr.sin6_port)));
-      }
-      break;
+      if (getsockname(fd, (sockaddr*)&saddr, &slen) < 0)
+        return static_cast<std::errc>(errno);
+
+      return Success(InetAddress(IPAddress(&saddr), ntohs(saddr.sin6_port)));
     }
     case AF_INET: {
       sockaddr_in saddr;
       socklen_t slen = sizeof(saddr);
 
-      if (getsockname(fd, (sockaddr*)&saddr, &slen) == 0) {
-        return InetAddress(IPAddress(&saddr), ntohs(saddr.sin_port));
-      }
-      break;
+      if (getsockname(fd, (sockaddr*)&saddr, &slen) < 0)
+        return static_cast<std::errc>(errno);
+
+      return Success(InetAddress(IPAddress(&saddr), ntohs(saddr.sin_port)));
     }
     default:
-      break;
+      return static_cast<std::errc>(EINVAL);
   }
-
-  return None();
 }
+
 int InetUtil::getLocalPort(int socket, int addressFamily) {
   switch (addressFamily) {
     case AF_INET6: {
