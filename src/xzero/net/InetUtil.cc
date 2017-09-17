@@ -242,4 +242,5 @@ size_t InetUtil::sendfile(int target, const FileView& source) {
   return rv;
 #endif
 }
+
 } // namespace xzero
