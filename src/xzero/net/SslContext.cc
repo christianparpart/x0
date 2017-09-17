@@ -145,7 +145,7 @@ int SslContext::onAppLayerProtoNegotiation(SSL* ssl,
     const unsigned char **out, unsigned char *outlen,
     const unsigned char *in, unsigned int inlen, void *pself) {
 #ifdef TLSEXT_TYPE_application_layer_protocol_negotiation
-  TRACE("SSL ALPN callback");
+  TRACE("SSL ALPN callback: inlen=$0", inlen);
 
   for (unsigned int i = 0; i < inlen; i += in[i] + 1) {
     std::string proto((char*)&in[i + 1], in[i]);

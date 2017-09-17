@@ -33,23 +33,27 @@ class SslErrorCategory : public std::error_category {
 
 class SslUtil {
  public:
+  using ConnectionFactory = std::function<void(const std::string&, SslEndPoint*)>;
+
   static void initialize();
 
   static std::error_code error(int ev);
 
   static RefPtr<SslEndPoint> accept(
       FileDescriptor&& fd,
+      int addressFamily,
       SslConnector* connector,
-      InetUtil::ConnectionFactory connectionFactory,
+      ConnectionFactory connectionFactory,
       Executor* executor);
 
   static RefPtr<SslEndPoint> accept(
       FileDescriptor&& fd,
+      int addressFamily,
       Duration readTimeout,
       Duration writeTimeout,
       SslContext* defaultContext,
       std::function<void(EndPoint*)> onEndPointClosed,
-      InetUtil::ConnectionFactory connectionFactory,
+      ConnectionFactory connectionFactory,
       Executor* executor);
 
   static Future<RefPtr<SslEndPoint>> connect(

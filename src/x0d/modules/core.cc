@@ -503,7 +503,7 @@ void CoreModule::ssl_context(Params& args) {
   std::string trustFile = args.getString(3).str();
   std::string priorities = args.getString(4).str();
 
-  daemon().config_->sslContexts.emplace_back(SslContext{keyFile, certFile, trustFile, priorities});
+  daemon().config_->sslContexts.emplace_back(SslContext{certFile, keyFile, trustFile, priorities});
 }
 
 void CoreModule::workers(Params& args) {

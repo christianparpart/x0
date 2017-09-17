@@ -91,11 +91,22 @@ std::list<RefPtr<EndPoint>> SslConnector::connectedEndPoints() {
 }
 
 RefPtr<EndPoint> SslConnector::createEndPoint(int cfd, Executor* executor) {
+  TRACE("createEndPoint: cfd=$0", cfd);
+  auto connectionFactory = [this](const std::string& proto, SslEndPoint* ep) {
+    auto factory = this->connectionFactory(proto);
+    if (factory) {
+      factory(this, ep);
+    } else {
+      defaultConnectionFactory()(this, ep);
+    }
+  };
   return make_ref<SslEndPoint>(
       FileDescriptor(cfd),
+      addressFamily(),
       readTimeout(),
       writeTimeout(),
       defaultContext(),
+      connectionFactory,
       std::bind(&SslConnector::onEndPointClosed, this, std::placeholders::_1),
       executor).as<EndPoint>();
 }

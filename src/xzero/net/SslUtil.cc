@@ -54,10 +54,12 @@ std::string SslErrorCategory::message(int ev) const {
 
 
 RefPtr<SslEndPoint> SslUtil::accept(FileDescriptor&& fd,
+                                    int addressFamily,
                                     SslConnector* connector,
-                                    InetUtil::ConnectionFactory connectionFactory,
+                                    ConnectionFactory connectionFactory,
                                     Executor* executor) {
   return accept(std::move(fd),
+                addressFamily,
                 connector->readTimeout(),
                 connector->writeTimeout(),
                 connector->defaultContext(),
@@ -67,18 +69,20 @@ RefPtr<SslEndPoint> SslUtil::accept(FileDescriptor&& fd,
 }
 
 RefPtr<SslEndPoint> SslUtil::accept(FileDescriptor&& fd,
+                                    int addressFamily,
                                     Duration readTimeout,
                                     Duration writeTimeout,
                                     SslContext* defaultContext,
                                     std::function<void(EndPoint*)> onEndPointClosed,
-                                    InetUtil::ConnectionFactory connectionFactory,
+                                    ConnectionFactory connectionFactory,
                                     Executor* executor) {
   return make_ref<SslEndPoint>(std::move(fd),
+                               addressFamily,
                                readTimeout,
                                writeTimeout,
                                defaultContext,
+                               connectionFactory,
                                onEndPointClosed,
-                               // connectionFactory,
                                executor);
 }
 

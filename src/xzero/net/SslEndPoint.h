@@ -16,6 +16,7 @@
 
 namespace xzero {
 
+class Connection;
 class SslConnector;
 class SslContext;
 
@@ -24,8 +25,6 @@ class SslContext;
  */
 class XZERO_BASE_API SslEndPoint : public EndPoint {
  public:
-  SslEndPoint(int socket, SslConnector* connector, Executor* executor);
-
   /**
    * Initializes an SSL endpoint.
    *
@@ -34,9 +33,11 @@ class XZERO_BASE_API SslEndPoint : public EndPoint {
    * @param writeTimeout
    */
   SslEndPoint(FileDescriptor&& fd,
+              int addressFamily,
               Duration readTimeout,
               Duration writeTimeout,
               SslContext* defaultContext,
+              std::function<void(const std::string&, SslEndPoint*)> connectionFactory,
               std::function<void(EndPoint*)> onEndPointClosed,
               Executor* executor);
 
@@ -89,6 +90,8 @@ class XZERO_BASE_API SslEndPoint : public EndPoint {
   bool isTcpNoDelay() const override;
   void setTcpNoDelay(bool enable) override;
   std::string toString() const override;
+  Option<InetAddress> localAddress() const override;
+  Option<InetAddress> remoteAddress() const override;
 
   /**
    * Retrieves the string that is identifies the negotiated next protocol, such
@@ -115,8 +118,10 @@ class XZERO_BASE_API SslEndPoint : public EndPoint {
 
  private:
   int handle_;
+  int addressFamily_;
   bool isCorking_;
 
+  std::function<void(const std::string&, SslEndPoint*)> connectionFactory_;
   std::function<void(EndPoint*)> onEndPointClosed_;
 
   Executor* executor_;

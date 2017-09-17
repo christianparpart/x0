@@ -278,11 +278,19 @@ std::string SslClient::toString() const {
 }
 
 Option<InetAddress> SslClient::remoteAddress() const {
-  return InetUtil::getRemoteAddress(fd_, addressFamily_);
+  Result<InetAddress> addr = InetUtil::getRemoteAddress(fd_, addressFamily_);
+  if (addr.isSuccess())
+    return Some(*addr);
+  else
+    return None();
 }
 
 Option<InetAddress> SslClient::localAddress() const {
-  return InetUtil::getLocalAddress(fd_, addressFamily_);
+  Result<InetAddress> addr = InetUtil::getLocalAddress(fd_, addressFamily_);
+  if (addr.isSuccess())
+    return Some(*addr);
+  else
+    return None();
 }
 
 } // namespace xzero
