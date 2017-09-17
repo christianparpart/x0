@@ -368,10 +368,10 @@ void SslEndPoint::onHandshake() {
     // create associated Connection object and run it
     bioDesire_ = Desire::None;
     RefPtr<EndPoint> _guard(this);
-    TRACE("$0 handshake complete (next protocol: \"$1\")", this, nextProtocolNegotiated().str().c_str());
+    std::string protocolName = applicationProtocolName().str();
+    TRACE("$0 handshake complete (next protocol: \"$1\")", this, protocolName.c_str());
 
-    std::string protocol = nextProtocolNegotiated().str();
-    connectionFactory_(protocol, this);
+    connectionFactory_(protocolName, this);
 
     connection()->onOpen(false);
   }
@@ -403,7 +403,7 @@ void SslEndPoint::onTimeout() {
   }
 }
 
-BufferRef SslEndPoint::nextProtocolNegotiated() const {
+BufferRef SslEndPoint::applicationProtocolName() const {
   const unsigned char* data = nullptr;
   unsigned int len = 0;
 
