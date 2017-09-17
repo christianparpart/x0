@@ -78,7 +78,7 @@ void Connector::setDefaultConnectionFactory(const std::string& protocolName) {
 Connector::ConnectionFactory Connector::defaultConnectionFactory() const {
   auto i = connectionFactories_.find(defaultConnectionFactory_);
   if (i == connectionFactories_.end())
-    return nullptr;
+    RAISE_STATUS(InternalError);
 
   return i->second;
 }
