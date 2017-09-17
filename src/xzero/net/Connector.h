@@ -91,6 +91,17 @@ class XZERO_BASE_API Connector {
   void addConnectionFactory(const std::string& protocol, ConnectionFactory factory);
 
   /**
+   * Creates a Connection object and assigns it to the @p endpoint.
+   *
+   * When no connection factory is matching the @p protocolName, then
+   * the default connection factory will be used instead.
+   *
+   * @param protocolName The connection's protoclName.
+   * @param endpoint The endpoint to assign the newly created connection to.
+   */
+  void createConnection(const std::string& protocolName, EndPoint* endpoint);
+
+  /**
    * Retrieves associated connection factory by @p protocolName.
    *
    * @param protocolName protocol name for the connection factory to retrieve.

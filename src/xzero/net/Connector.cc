@@ -12,10 +12,17 @@
 #include <xzero/Buffer.h>
 #include <xzero/BufferUtil.h>
 #include <xzero/StringUtil.h>
+#include <xzero/logging.h>
 #include <algorithm>
 #include <cassert>
 
 namespace xzero {
+
+#ifndef NDEBUG
+#define TRACE(msg...) logTrace("Connector", msg)
+#else
+#define TRACE(msg...) do {} while (0)
+#endif
 
 Connector::Connector(const std::string& name, Executor* executor)
   : name_(name),
@@ -44,6 +51,17 @@ void Connector::addConnectionFactory(const std::string& protocolName,
 
   if (connectionFactories_.size() == 1) {
     defaultConnectionFactory_ = protocolName;
+  }
+}
+
+void Connector::createConnection(const std::string& protocolName,
+                                            EndPoint* ep) {
+  TRACE("createConnection: \"$0\"", protocolName);
+  auto factory = connectionFactory(protocolName);
+  if (factory) {
+    factory(this, ep);
+  } else {
+    defaultConnectionFactory()(this, ep);
   }
 }
 

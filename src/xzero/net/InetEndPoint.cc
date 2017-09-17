@@ -186,14 +186,7 @@ void InetEndPoint::onDetectProtocol() {
     reader.parseVarUInt(); // skip magic
     std::string protocol = reader.parseString();
     inputOffset_ = inputBuffer_.size() - reader.pending();
-    auto factory = connector_->connectionFactory(protocol);
-    if (factory) {
-      TRACE("$0 protocol detected. using \"$1\".", this, protocol);
-      factory(connector_, this);
-    } else {
-      TRACE("$0 no protocol detected. using default.", this);
-      connector_->defaultConnectionFactory()(connector_, this);
-    }
+    connector_->createConnection(protocol, this);
   } else {
     // create Connection object for given endpoint
     TRACE("$0 protocol detection disabled.", this);
