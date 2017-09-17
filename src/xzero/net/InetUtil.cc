@@ -232,7 +232,7 @@ size_t InetUtil::sendfile(int target, const FileView& source) {
   return len;
 #else
   off_t offset = source.offset();
-  ssize_t rv = ::sendfile(source.handle(), target, &offset, source.size());
+  ssize_t rv = ::sendfile(target, source.handle(), &offset, source.size());
   TRACE("flush(offset:$0, size:$1) -> $2", source.offset(), source.size(), rv);
   if (rv < 0)
     RAISE_ERRNO(errno);
