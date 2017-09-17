@@ -7,6 +7,9 @@
 
 #include <xzero/net/SslUtil.h>
 #include <xzero/net/SslConnector.h>
+#include <xzero/util/BinaryWriter.h>
+#include <xzero/BufferUtil.h>
+#include <xzero/Buffer.h>
 #include <openssl/ssl.h>
 #include <openssl/err.h>
 #include <openssl/opensslconf.h>
@@ -84,6 +87,24 @@ RefPtr<SslEndPoint> SslUtil::accept(FileDescriptor&& fd,
                                connectionFactory,
                                onEndPointClosed,
                                executor);
+}
+
+Buffer SslUtil::makeProtocolList(const std::list<std::string>& protos) {
+  Buffer out;
+
+  size_t capacity = 0;
+  for (const auto& proto: protos) {
+    capacity += proto.size() + 1;
+  }
+  out.reserve(capacity);
+
+  BinaryWriter writer(BufferUtil::writer(&out));
+  for (const auto& proto: protos) {
+    assert(proto.size() < 0xFF);
+    writer.writeString(proto);
+  }
+
+  return out;
 }
 
 }  // namespace xzero

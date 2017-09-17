@@ -87,7 +87,7 @@ class Connector {
   /**
    * Registeres a new connection factory.
    */
-  void addConnectionFactory(const std::string& protocol, ConnectionFactory factory);
+  virtual void addConnectionFactory(const std::string& protocol, ConnectionFactory factory);
 
   /**
    * Creates a Connection object and assigns it to the @p endpoint.

@@ -136,27 +136,11 @@ SslContext::~SslContext() {
   SSL_CTX_free(ctx_);
 }
 
-inline Buffer buildProtocolList(const std::list<std::string>& protos) {
-  Buffer out;
-
-  size_t capacity = 0;
-  for (const auto& proto: protos) {
-    capacity += proto.size() + 1;
-  }
-  out.reserve(capacity);
-
-  BinaryWriter writer(BufferUtil::writer(&out));
-  for (const auto& proto: protos) {
-    assert(proto.size() < 0xFF);
-    writer.writeString(proto);
-  }
-
-  return out;
-}
-
-int SslContext::onAppLayerProtoNegotiation(SSL* ssl,
+int SslContext::onAppLayerProtoNegotiation(
+    SSL* ssl,
     const unsigned char **out, unsigned char *outlen,
-    const unsigned char *in, unsigned int inlen, void *pself) {
+    const unsigned char *in, unsigned int inlen,
+    void *pself) {
 #ifdef TLSEXT_TYPE_application_layer_protocol_negotiation
   TRACE("SSL ALPN callback: inlen=$0, outlen=$1", inlen, *outlen);
 
@@ -166,15 +150,12 @@ int SslContext::onAppLayerProtoNegotiation(SSL* ssl,
   }
 
   SslContext* self = (SslContext*) pself;
-  Buffer srv = buildProtocolList(self->connector_->connectionFactories());
+  SslConnector* connector = self->connector_;
+  const BufferRef& srv = connector->protocolList();
 
-  int rv = SSL_select_next_proto(
-      (unsigned char**) out, outlen,
-      (unsigned char*) srv.data(), srv.size(),
-      in, inlen);
-
-  if (rv != OPENSSL_NPN_NEGOTIATED) {
-    TRACE("SSL ALPN: rv=$0", rv);
+  if (SSL_select_next_proto((unsigned char**) out, outlen,
+                            (unsigned char*) srv.data(), srv.size(),
+                            in, inlen) != OPENSSL_NPN_NEGOTIATED) {
     return SSL_TLSEXT_ERR_NOACK;
   }
 

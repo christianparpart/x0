@@ -5,6 +5,7 @@
 // file except in compliance with the License. You may obtain a copy of
 // the License at: http://opensource.org/licenses/MIT
 
+#include <xzero/net/SslUtil.h>
 #include <xzero/net/SslConnector.h>
 #include <xzero/net/SslContext.h>
 #include <xzero/net/Connection.h>
@@ -31,10 +32,20 @@ SslConnector::SslConnector(const std::string& name, Executor* executor,
     : InetConnector(name, executor, clientExecutorSelector,
                     readTimeout, writeTimeout, tcpFinTimeout,
                     ipaddress, port, backlog, reuseAddr, reusePort),
+      protocolList_(),
       contexts_() {
 }
 
 SslConnector::~SslConnector() {
+}
+
+void SslConnector::addConnectionFactory(const std::string& protocol,
+                                        ConnectionFactory factory) {
+  Connector::addConnectionFactory(protocol, factory);
+
+  // XXX needs update whenever a new protocol-implementation is added.
+  // XXX should only happen at startup-time, too
+  protocolList_ = SslUtil::makeProtocolList(connectionFactories());
 }
 
 void SslConnector::addContext(const std::string& crtFilePath,

@@ -62,6 +62,8 @@ class SslUtil {
       Duration readTimeout,
       Duration writeConnect,
       Executor* executor);
+
+  static Buffer makeProtocolList(const std::list<std::string>& protos);
 };
 
 } // namespace xzero

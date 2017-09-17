@@ -34,9 +34,11 @@ class XZERO_BASE_API SslContext {
  private:
   static bool imatch(const std::string& pattern, const std::string& value);
   static int onServerName(SSL* ssl, int* ad, SslContext* self);
-  static int onAppLayerProtoNegotiation(SSL* ssl,
+  static int onAppLayerProtoNegotiation(
+      SSL* ssl,
       const unsigned char **out, unsigned char *outlen,
-      const unsigned char *in, unsigned int inlen, void *pself);
+      const unsigned char *in, unsigned int inlen,
+      void *pself);
 
  private:
   SslConnector* connector_;

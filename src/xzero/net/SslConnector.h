@@ -55,6 +55,10 @@ class XZERO_BASE_API SslConnector : public InetConnector {
                bool reuseAddr, bool reusePort);
   ~SslConnector();
 
+  void addConnectionFactory(const std::string& protocol, ConnectionFactory factory) override;
+
+  const BufferRef& protocolList() const noexcept { return protocolList_; }
+
   /**
    * Adds a new SSL context (certificate & key) pair.
    *
@@ -83,6 +87,7 @@ class XZERO_BASE_API SslConnector : public InetConnector {
   friend class SslUtil;
 
  private:
+  Buffer protocolList_;
   std::list<std::unique_ptr<SslContext>> contexts_;
 };
 
