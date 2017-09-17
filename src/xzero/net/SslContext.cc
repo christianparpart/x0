@@ -149,7 +149,7 @@ int SslContext::onAppLayerProtoNegotiation(SSL* ssl,
 
   for (unsigned int i = 0; i < inlen; i += in[i] + 1) {
     std::string proto((char*)&in[i + 1], in[i]);
-    printf("SSL ALPN client support [%d]: (%d) %s\n", i, in[i], proto.c_str());
+    TRACE("SSL ALPN client support: \"$0\"", proto.c_str());
   }
 
   const unsigned char* srv = (const unsigned char*) NPN_HTTP_1_1;
@@ -163,8 +163,7 @@ int SslContext::onAppLayerProtoNegotiation(SSL* ssl,
   if (rv != OPENSSL_NPN_NEGOTIATED)
     return SSL_TLSEXT_ERR_NOACK;
 
-  TRACE("SSL ALPN selected: \"$0\"",
-        std::string((const char*)*out, (size_t)*outlen));
+  TRACE("SSL ALPN selected: \"$0\"", BufferRef((char*)*out, (size_t)*outlen));
 
   return SSL_TLSEXT_ERR_OK;
 #else
