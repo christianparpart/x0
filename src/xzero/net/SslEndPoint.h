@@ -97,7 +97,7 @@ class XZERO_BASE_API SslEndPoint : public EndPoint {
    * Retrieves the string that is identifies the negotiated next protocol, such
    * as "HTTP/1.1" or "SPDY/3.1".
    *
-   * This method is implemented using ALPN or NPN protocol extensions to TLS.
+   * This method is implemented using ALPN protocol extensions to TLS.
    */
   BufferRef applicationProtocolName() const;
 

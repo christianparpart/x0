@@ -414,13 +414,6 @@ BufferRef SslEndPoint::applicationProtocolName() const {
   }
 #endif
 
-#ifdef TLSEXT_TYPE_next_proto_neg // NPN
-  SSL_get0_next_proto_negotiated(ssl_, &data, &len);
-  if (len > 0) {
-    return BufferRef((const char*) data, len);
-  }
-#endif
-
   return BufferRef();
 }
 

@@ -9,6 +9,8 @@
 #include <xzero/net/SslContext.h>
 #include <xzero/net/SslUtil.h>
 #include <xzero/net/Connection.h>
+#include <xzero/util/BinaryWriter.h>
+#include <xzero/BufferUtil.h>
 #include <xzero/RuntimeError.h>
 #include <xzero/logging.h>
 #include <xzero/sysconfig.h>
@@ -126,10 +128,6 @@ SslContext::SslContext(SslConnector* connector,
   SSL_CTX_set_alpn_select_cb(ctx_, &SslContext::onAppLayerProtoNegotiation, this);
 #endif
 
-#ifdef TLSEXT_TYPE_next_proto_neg
-  SSL_CTX_set_next_protos_advertised_cb(ctx_, &SslContext::onNextProtosAdvertised, this);
-#endif
-
   dnsNames_ = collectDnsNames(ctx_);
 }
 
@@ -138,50 +136,49 @@ SslContext::~SslContext() {
   SSL_CTX_free(ctx_);
 }
 
-#define NPN_HTTP_1_1 "\x08http/1.1"
-#define NPN_BLAH_1_0 "\x08" "blah/1.0"
+inline Buffer buildProtocolList(const std::list<std::string>& protos) {
+  Buffer out;
+
+  size_t capacity = 0;
+  for (const auto& proto: protos) {
+    capacity += proto.size() + 1;
+  }
+  out.reserve(capacity);
+
+  BinaryWriter writer(BufferUtil::writer(&out));
+  for (const auto& proto: protos) {
+    assert(proto.size() < 0xFF);
+    writer.writeString(proto);
+  }
+
+  return out;
+}
 
 int SslContext::onAppLayerProtoNegotiation(SSL* ssl,
     const unsigned char **out, unsigned char *outlen,
     const unsigned char *in, unsigned int inlen, void *pself) {
 #ifdef TLSEXT_TYPE_application_layer_protocol_negotiation
-  TRACE("SSL ALPN callback: inlen=$0", inlen);
+  TRACE("SSL ALPN callback: inlen=$0, outlen=$1", inlen, *outlen);
 
   for (unsigned int i = 0; i < inlen; i += in[i] + 1) {
     std::string proto((char*)&in[i + 1], in[i]);
     TRACE("SSL ALPN client support: \"$0\"", proto.c_str());
   }
 
-  const unsigned char* srv = (const unsigned char*) NPN_HTTP_1_1;
-  unsigned int srvlen = sizeof(NPN_HTTP_1_1) - 1;
+  SslContext* self = (SslContext*) pself;
+  Buffer srv = buildProtocolList(self->connector_->connectionFactories());
 
   int rv = SSL_select_next_proto(
       (unsigned char**) out, outlen,
-      srv, srvlen,
+      (unsigned char*) srv.data(), srv.size(),
       in, inlen);
 
-  if (rv != OPENSSL_NPN_NEGOTIATED)
+  if (rv != OPENSSL_NPN_NEGOTIATED) {
+    TRACE("SSL ALPN: rv=$0", rv);
     return SSL_TLSEXT_ERR_NOACK;
+  }
 
-  TRACE("SSL ALPN selected: \"$0\"", BufferRef((char*)*out, (size_t)*outlen));
-
-  return SSL_TLSEXT_ERR_OK;
-#else
-  return SSL_TLSEXT_ERR_NOACK;
-#endif
-}
-
-/**
- * NPN-callback invoked to inform the client what next-protocols the
- * server supports.
- */
-int SslContext::onNextProtosAdvertised(SSL* ssl,
-    const unsigned char** out, unsigned int* outlen, void* pself) {
-#ifdef TLSEXT_TYPE_next_proto_neg
-  TRACE("$0 NPN callback", pself);
-
-  *out = (const unsigned char*) NPN_BLAH_1_0 NPN_HTTP_1_1;
-  *outlen = sizeof(NPN_BLAH_1_0 NPN_HTTP_1_1) - 1;
+  TRACE("SSL ALPN selected: ($0) \"$1\"", (size_t)*outlen, BufferRef((char*)*out, (size_t)*outlen));
 
   return SSL_TLSEXT_ERR_OK;
 #else

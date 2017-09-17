@@ -18,7 +18,6 @@ namespace xzero {
 
 class Buffer;
 class Executor;
-class WallClock;
 class EndPoint;
 class Connection;
 
@@ -28,7 +27,7 @@ class Connection;
  * @see EndPoint
  * @see Connection
  */
-class XZERO_BASE_API Connector {
+class Connector {
  public:
   //! Must be a non-printable ASCII byte.
   enum { MagicProtocolSwitchByte = 0x01 };
@@ -101,13 +100,6 @@ class XZERO_BASE_API Connector {
    */
   void createConnection(const std::string& protocolName, EndPoint* endpoint);
 
-  /**
-   * Retrieves associated connection factory by @p protocolName.
-   *
-   * @param protocolName protocol name for the connection factory to retrieve.
-   */
-  ConnectionFactory connectionFactory(const std::string& protocolName) const;
-
   /** Retrieves all registered connection factories. */
   std::list<std::string> connectionFactories() const;
 
@@ -132,6 +124,14 @@ class XZERO_BASE_API Connector {
   Executor* executor() const { return executor_; }
 
   virtual std::string toString() const;
+
+ private:
+  /**
+   * Retrieves associated connection factory by @p protocolName.
+   *
+   * @param protocolName protocol name for the connection factory to retrieve.
+   */
+  ConnectionFactory connectionFactory(const std::string& protocolName) const;
 
  private:
   std::string name_;
