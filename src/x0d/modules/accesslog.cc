@@ -151,7 +151,11 @@ Buffer formatLog(XzeroContext* cx, const BufferRef& format) { // {{{
         ++i;
         break;
       case 'h':  // remote addr
-        result.push_back(cx->remoteIP().c_str());
+        if (request->remoteAddress().isSome())
+          result.push_back(request->remoteAddress()->ip().c_str());
+        else
+          result.push_back("none");
+
         ++i;
         break;
       case 'I':  // received bytes (transport level)
