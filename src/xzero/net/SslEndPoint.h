@@ -9,7 +9,7 @@
 
 #include <xzero/Api.h>
 #include <xzero/io/FileDescriptor.h>
-#include <xzero/net/EndPoint.h>
+#include <xzero/net/InetEndPoint.h>
 #include <xzero/net/InetUtil.h>
 #include <xzero/DeadlineTimer.h>
 #include <openssl/ssl.h>
@@ -21,16 +21,21 @@ class SslConnector;
 class SslContext;
 
 /**
- * SSL EndPoint, aka SSL socket.
+ * SSL InetEndPoint, aka SSL socket.
  */
-class XZERO_BASE_API SslEndPoint : public EndPoint {
+class SslEndPoint : public InetEndPoint {
  public:
   /**
    * Initializes an SSL endpoint.
    *
    * @param fd
+   * @param addressFamily
    * @param readTimeout
    * @param writeTimeout
+   * @param defaultContext
+   * @param connectionFactory
+   * @param onEndPointClosed
+   * @param executor
    */
   SslEndPoint(FileDescriptor&& fd,
               int addressFamily,
@@ -38,23 +43,17 @@ class XZERO_BASE_API SslEndPoint : public EndPoint {
               Duration writeTimeout,
               SslContext* defaultContext,
               std::function<void(const std::string&, SslEndPoint*)> connectionFactory,
-              std::function<void(EndPoint*)> onEndPointClosed,
+              std::function<void(InetEndPoint*)> onEndPointClosed,
               Executor* executor);
 
   ~SslEndPoint();
 
-  int handle() const noexcept { return handle_; }
-
-  bool isOpen() const override;
+  bool isOpen() const noexcept override;
   void close() override;
 
-  /**
-   * Closes the connection the hard way, by ignoring the SSL layer.
-   */
-  void abort();
+  void shutdown();
 
-  using EndPoint::fill;
-
+  using InetEndPoint::fill;
   size_t fill(Buffer* sink, size_t count) override;
   size_t flush(const BufferRef& source) override;
   size_t flush(const FileView& source) override;
@@ -79,19 +78,7 @@ class XZERO_BASE_API SslEndPoint : public EndPoint {
    */
   void wantFlush() override;
 
-  Duration readTimeout() override;
-  Duration writeTimeout() override;
-  void setReadTimeout(Duration timeout) override;
-  void setWriteTimeout(Duration timeout) override;
-  bool isBlocking() const override;
-  void setBlocking(bool enable) override;
-  bool isCorking() const override;
-  void setCorking(bool enable) override;
-  bool isTcpNoDelay() const override;
-  void setTcpNoDelay(bool enable) override;
   std::string toString() const override;
-  Option<InetAddress> localAddress() const override;
-  Option<InetAddress> remoteAddress() const override;
 
   /**
    * Retrieves the string that is identifies the negotiated next protocol, such
@@ -105,7 +92,6 @@ class XZERO_BASE_API SslEndPoint : public EndPoint {
   void onHandshake();
   void fillable();
   void flushable();
-  void shutdown();
   void onTimeout();
 
   friend class SslConnector;
@@ -117,20 +103,9 @@ class XZERO_BASE_API SslEndPoint : public EndPoint {
       unsigned char* data, int len, SslEndPoint* self);
 
  private:
-  int handle_;
-  int addressFamily_;
-  bool isCorking_;
-
-  std::function<void(const std::string&, SslEndPoint*)> connectionFactory_;
-  std::function<void(EndPoint*)> onEndPointClosed_;
-
-  Executor* executor_;
   SSL* ssl_;
   Desire bioDesire_;
-  Executor::HandleRef io_;
-  Duration readTimeout_;
-  Duration writeTimeout_;
-  DeadlineTimer idleTimeout_;
+  std::function<void(const std::string&, SslEndPoint*)> connectionFactory_;
 };
 
 } // namespace xzero

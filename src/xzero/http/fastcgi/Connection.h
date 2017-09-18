@@ -38,7 +38,7 @@ class HttpFastCgiTransport;
 class XZERO_HTTP_API Connection : public ::xzero::Connection {
   friend class HttpFastCgiTransport;
  public:
-  Connection(EndPoint* endpoint,
+  Connection(InetEndPoint* endpoint,
              Executor* executor,
              const HttpHandler& handler,
              HttpDateGenerator* dateGenerator,

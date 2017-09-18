@@ -12,6 +12,8 @@
 #include <xzero/net/Connection.h>
 #include <xzero/net/IPAddress.h>
 #include <xzero/io/FileUtil.h>
+#include <xzero/util/BinaryWriter.h>
+#include <xzero/BufferUtil.h>
 #include <xzero/RuntimeError.h>
 #include <xzero/logging.h>
 #include <xzero/sysconfig.h>
@@ -463,7 +465,7 @@ void InetConnector::onConnect() {
     TRACE("onConnect: fd=$0", cfd);
 
     Executor* clientExecutor = selectClientExecutor_();
-    RefPtr<EndPoint> ep = createEndPoint(cfd, clientExecutor);
+    RefPtr<InetEndPoint> ep = createEndPoint(cfd, clientExecutor);
     {
       std::lock_guard<std::mutex> _lk(mutex_);
       connectedEndPoints_.push_back(ep);
@@ -524,29 +526,35 @@ int InetConnector::acceptOne() {
   return cfd;
 }
 
-RefPtr<EndPoint> InetConnector::createEndPoint(int cfd, Executor* executor) {
-  return make_ref<InetEndPoint>(cfd, this, executor).as<EndPoint>();
+RefPtr<InetEndPoint> InetConnector::createEndPoint(int cfd, Executor* executor) {
+  return make_ref<InetEndPoint>(cfd, addressFamily(),
+      readTimeout_, writeTimeout_, executor_,
+      std::bind(&InetConnector::onEndPointClosed, this, std::placeholders::_1));
 }
 
-void InetConnector::onEndPointCreated(const RefPtr<EndPoint>& endpoint) {
+void InetConnector::onEndPointCreated(RefPtr<InetEndPoint> endpoint) {
   if (connectionFactoryCount() > 1) {
-    endpoint.weak_as<InetEndPoint>()->startDetectProtocol(deferAccept());
+    endpoint->startDetectProtocol(
+        deferAccept(),
+        std::bind(&InetConnector::createConnection, this,
+                  std::placeholders::_1,
+                  std::placeholders::_2));
   } else {
     defaultConnectionFactory()(this, endpoint.get());
     endpoint->connection()->onOpen(deferAccept());
   }
 }
 
-std::list<RefPtr<EndPoint>> InetConnector::connectedEndPoints() {
-  std::list<RefPtr<EndPoint>> result;
+std::list<RefPtr<InetEndPoint>> InetConnector::connectedEndPoints() {
+  std::list<RefPtr<InetEndPoint>> result;
   std::lock_guard<std::mutex> _lk(mutex_);
-  for (const RefPtr<EndPoint>& ep : connectedEndPoints_) {
+  for (const RefPtr<InetEndPoint>& ep : connectedEndPoints_) {
     result.push_back(ep);
   }
   return result;
 }
 
-void InetConnector::onEndPointClosed(EndPoint* endpoint) {
+void InetConnector::onEndPointClosed(InetEndPoint* endpoint) {
   assert(endpoint != nullptr);
 
   // XXX: e.g. SSL doesn't have a connection in case the handshake failed
@@ -577,14 +585,15 @@ void InetConnector::addConnectionFactory(const std::string& protocolName,
 }
 
 void InetConnector::createConnection(const std::string& protocolName,
-                                     EndPoint* ep) {
+                                     InetEndPoint* endpoint) {
   TRACE("createConnection: \"$0\"", protocolName);
   auto factory = connectionFactory(protocolName);
   if (factory) {
-    factory(this, ep);
+    factory(this, endpoint);
   } else {
-    defaultConnectionFactory()(this, ep);
+    defaultConnectionFactory()(this, endpoint);
   }
+  endpoint->connection()->onOpen(endpoint->prefilled() > 0);
 }
 
 InetConnector::ConnectionFactory InetConnector::connectionFactory(

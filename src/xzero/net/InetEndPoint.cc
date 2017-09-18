@@ -9,7 +9,6 @@
 #include <xzero/net/InetConnector.h>
 #include <xzero/net/InetUtil.h>
 #include <xzero/net/Connection.h>
-#include <xzero/net/Connector.h>
 #include <xzero/util/BinaryReader.h>
 #include <xzero/io/FileUtil.h>
 #include <xzero/executor/Executor.h>
@@ -37,33 +36,16 @@ namespace xzero {
 #endif
 
 InetEndPoint::InetEndPoint(int socket,
-                           InetConnector* connector,
-                           Executor* executor)
-    : EndPoint(),
-      connector_(connector),
-      executor_(executor),
-      readTimeout_(connector->readTimeout()),
-      writeTimeout_(connector->writeTimeout()),
-      io_(),
-      inputBuffer_(),
-      inputOffset_(0),
-      handle_(socket),
-      addressFamily_(connector->addressFamily()),
-      isCorking_(false) {
-  TRACE("$0 ctor fd=$1", this, handle_);
-}
-
-InetEndPoint::InetEndPoint(int socket,
                            int addressFamily,
                            Duration readTimeout,
                            Duration writeTimeout,
-                           Executor* executor)
-    : EndPoint(),
-      connector_(nullptr),
+                           Executor* executor,
+                           std::function<void(InetEndPoint*)> onEndPointClosed)
+    : io_(),
+      onEndPointClosed_(onEndPointClosed),
       executor_(executor),
       readTimeout_(readTimeout),
       writeTimeout_(writeTimeout),
-      io_(),
       inputBuffer_(),
       inputOffset_(0),
       handle_(socket),
@@ -121,10 +103,14 @@ void InetEndPoint::close() {
     FileUtil::close(handle_);
     handle_ = -1;
 
-    if (connector_) {
-      connector_->onEndPointClosed(this);
+    if (onEndPointClosed_) {
+      onEndPointClosed_(this);
     }
   }
+}
+
+void InetEndPoint::setConnection(std::unique_ptr<Connection>&& c) {
+  connection_ = std::move(c);
 }
 
 bool InetEndPoint::isBlocking() const {
@@ -160,19 +146,22 @@ std::string InetEndPoint::toString() const {
   return buf;
 }
 
-void InetEndPoint::startDetectProtocol(bool dataReady) {
+void InetEndPoint::startDetectProtocol(
+    bool dataReady,
+    std::function<void(const std::string&, InetEndPoint*)> createConnection) {
   inputBuffer_.reserve(256);
 
   if (dataReady) {
-    onDetectProtocol();
+    onDetectProtocol(createConnection);
   } else {
     executor_->executeOnReadable(
         handle(),
-        std::bind(&InetEndPoint::onDetectProtocol, this));
+        std::bind(&InetEndPoint::onDetectProtocol, this, createConnection));
   }
 }
 
-void InetEndPoint::onDetectProtocol() {
+void InetEndPoint::onDetectProtocol(
+    std::function<void(const std::string&, InetEndPoint*)> createConnection) {
   size_t n = fill(&inputBuffer_);
 
   if (n == 0) {
@@ -181,20 +170,40 @@ void InetEndPoint::onDetectProtocol() {
   }
 
   // XXX detect magic byte (0x01) to protocol detection
-  if (inputBuffer_[0] == Connector::MagicProtocolSwitchByte) {
+  if (inputBuffer_[0] == InetConnector::MagicProtocolSwitchByte) {
     BinaryReader reader(inputBuffer_);
     reader.parseVarUInt(); // skip magic
     std::string protocol = reader.parseString();
     inputOffset_ = inputBuffer_.size() - reader.pending();
-    connector_->createConnection(protocol, this);
+    createConnection(protocol, this);
   } else {
     // create Connection object for given endpoint
-    TRACE("$0 protocol detection disabled.", this);
-    connector_->defaultConnectionFactory()(connector_, this);
+    TRACE("$0 protocol-switch not detected.", this);
+    createConnection("", this);
   }
 
   connection()->onOpen(true);
 }
+
+size_t InetEndPoint::prefill(size_t maxBytes) {
+  const size_t nprefilled = prefilled();
+  if (nprefilled > 0)
+    return nprefilled;
+
+  inputBuffer_.reserve(maxBytes);
+  return fill(&inputBuffer_);
+}
+
+size_t InetEndPoint::fill(Buffer* sink) {
+  int space = sink->capacity() - sink->size();
+  if (space < 4 * 1024) {
+    sink->reserve(sink->capacity() + 8 * 1024);
+    space = sink->capacity() - sink->size();
+  }
+
+  return fill(sink, space);
+}
+
 
 size_t InetEndPoint::fill(Buffer* result, size_t count) {
   assert(count <= result->capacity() - result->size());
@@ -265,7 +274,7 @@ void InetEndPoint::wantFill() {
 }
 
 void InetEndPoint::fillable() {
-  RefPtr<EndPoint> _guard(this);
+  RefPtr<InetEndPoint> _guard(this);
 
   try {
     io_.reset();
@@ -292,8 +301,8 @@ void InetEndPoint::wantFlush() {
 }
 
 void InetEndPoint::flushable() {
-  RefPtr<EndPoint> _guard(this);
-
+  TRACE("$0 flushable()", this);
+  RefPtr<InetEndPoint> _guard(this);
   try {
     io_.reset();
     connection()->onFlushable();
@@ -326,12 +335,12 @@ class InetConnectState {
  public:
   InetAddress inet_;
   RefPtr<InetEndPoint> ep_;
-  std::function<void(RefPtr<EndPoint>)> success_;
+  std::function<void(RefPtr<InetEndPoint>)> success_;
   std::function<void(std::error_code)> failure_;
 
   InetConnectState(const InetAddress& inet,
                    RefPtr<InetEndPoint> ep,
-                   std::function<void(RefPtr<EndPoint>)> success,
+                   std::function<void(RefPtr<InetEndPoint>)> success,
                    std::function<void(std::error_code)> failure)
       : inet_(inet), ep_(std::move(ep)), success_(success), failure_(failure) {
   }
@@ -342,7 +351,7 @@ class InetConnectState {
     if (getsockopt(ep_->handle(), SOL_SOCKET, SO_ERROR, &val, &vlen) == 0) {
       if (val == 0) {
         TRACE("$0 onConnectComplete: connected $1. $2", this, val, strerror(val));
-        success_(ep_.as<EndPoint>());
+        success_(ep_.as<InetEndPoint>());
       } else {
         DEBUG("Connecting to $0 failed. $1", inet_, strerror(val));
         failure_(std::make_error_code(static_cast<std::errc>(val)));
@@ -365,7 +374,7 @@ void InetEndPoint::connectAsync(const InetAddress& inet,
                                 Duration readTimeout,
                                 Duration writeTimeout,
                                 Executor* executor,
-                                std::function<void(RefPtr<EndPoint>)> success,
+                                std::function<void(RefPtr<InetEndPoint>)> success,
                                 std::function<void(std::error_code ec)> failure) {
   int fd = socket(inet.family(), SOCK_STREAM, IPPROTO_TCP);
   if (fd < 0) {
@@ -439,7 +448,7 @@ void InetEndPoint::connectAsync(const InetAddress& inet,
     }
 
     TRACE("connectAsync: connected instantly");
-    success(ep.as<EndPoint>());
+    success(ep.as<InetEndPoint>());
     return;
   } catch (...) {
     FileUtil::close(fd);
@@ -447,12 +456,12 @@ void InetEndPoint::connectAsync(const InetAddress& inet,
   }
 }
 
-Future<RefPtr<EndPoint>> InetEndPoint::connectAsync(const InetAddress& inet,
-                                                    Duration connectTimeout,
-                                                    Duration readTimeout,
-                                                    Duration writeTimeout,
-                                                    Executor* executor) {
-  Promise<RefPtr<EndPoint>> promise;
+Future<RefPtr<InetEndPoint>> InetEndPoint::connectAsync(const InetAddress& inet,
+                                                        Duration connectTimeout,
+                                                        Duration readTimeout,
+                                                        Duration writeTimeout,
+                                                        Executor* executor) {
+  Promise<RefPtr<InetEndPoint>> promise;
 
   connectAsync(
       inet, connectTimeout, readTimeout, writeTimeout, executor,
@@ -462,17 +471,17 @@ Future<RefPtr<EndPoint>> InetEndPoint::connectAsync(const InetAddress& inet,
   return promise.future();
 }
 
-RefPtr<EndPoint> InetEndPoint::connect(
+RefPtr<InetEndPoint> InetEndPoint::connect(
     const InetAddress& inet,
     Duration connectTimeout,
     Duration readTimeout,
     Duration writeTimeout,
     Executor* executor) {
-  Future<RefPtr<EndPoint>> f = connectAsync(
+  Future<RefPtr<InetEndPoint>> f = connectAsync(
       inet, connectTimeout, readTimeout, writeTimeout, executor);
   f.wait();
 
-  RefPtr<EndPoint> ep = f.get();
+  RefPtr<InetEndPoint> ep = f.get();
 
   ep.as<InetEndPoint>()->setBlocking(true);
 

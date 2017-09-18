@@ -14,11 +14,10 @@
 namespace xzero {
 
 class Executor;
-class Connector;
-class EndPoint;
+class InetEndPoint;
 
 /**
- * A Connection is responsible for processing an EndPoint.
+ * A Connection is responsible for processing an InetEndPoint.
  *
  * A Connection derivate can implement various stream oriented protocols.
  * This doesn't necessarily has to be HTTP, but can also be SMTP or anything
@@ -26,7 +25,7 @@ class EndPoint;
  */
 class XZERO_BASE_API Connection {
  public:
-  Connection(EndPoint* endpoint, Executor* executor);
+  Connection(InetEndPoint* endpoint, Executor* executor);
   virtual ~Connection();
 
   /**
@@ -40,7 +39,7 @@ class XZERO_BASE_API Connection {
   /**
    * Retrieves the corresponding endpoint for this connection.
    */
-  EndPoint* endpoint() const XZERO_NOEXCEPT;
+  InetEndPoint* endpoint() const XZERO_NOEXCEPT;
 
   /**
    * Retrieves the Executor that may be used for handling this connection.
@@ -99,11 +98,11 @@ class XZERO_BASE_API Connection {
   virtual bool onReadTimeout();
 
  private:
-  EndPoint* endpoint_;
+  InetEndPoint* endpoint_;
   Executor* executor_;
 };
 
-inline EndPoint* Connection::endpoint() const XZERO_NOEXCEPT {
+inline InetEndPoint* Connection::endpoint() const XZERO_NOEXCEPT {
   return endpoint_;
 }
 

@@ -7,8 +7,8 @@
 
 #include <xzero/http/http2/ConnectionFactory.h>
 #include <xzero/http/http2/Connection.h>
-#include <xzero/net/EndPoint.h>
-#include <xzero/net/Connector.h>
+#include <xzero/net/InetEndPoint.h>
+#include <xzero/net/InetConnector.h>
 
 namespace xzero {
 namespace http {
@@ -26,8 +26,8 @@ ConnectionFactory::ConnectionFactory(
                             maxRequestBodyLength) {
 }
 
-xzero::Connection* ConnectionFactory::create(Connector* connector,
-                                             EndPoint* endpoint) {
+xzero::Connection* ConnectionFactory::create(InetConnector* connector,
+                                             InetEndPoint* endpoint) {
   return endpoint->setConnection<http2::Connection>(endpoint,
                                                     connector->executor(),
                                                     handler(),

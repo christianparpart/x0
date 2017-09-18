@@ -11,7 +11,7 @@
 #include <xzero/http/HttpTransport.h>
 #include <xzero/http/HttpRequest.h>
 #include <xzero/http/HttpResponse.h>
-#include <xzero/net/EndPoint.h>
+#include <xzero/net/InetEndPoint.h>
 #include <xzero/Tokenizer.h>
 #include <xzero/RuntimeError.h>
 #include <xzero/base64url.h>
@@ -50,7 +50,7 @@ void Channel::reset() {
 }
 
 void Channel::upgrade(const std::string& protocol,
-                      std::function<void(EndPoint*)> callback) {
+                      std::function<void(InetEndPoint*)> callback) {
   TRACE("upgrade: $0", protocol);
   Connection* connection = static_cast<Connection*>(transport_);
 
@@ -170,7 +170,7 @@ void Channel::h2cUpgradeHandler(const HttpHandler& nextHandler,
 }
 
 void Channel::h2cUpgrade(const Http2Settings& settings,
-                         EndPoint* endpoint,
+                         InetEndPoint* endpoint,
                          Executor* executor,
                          const HttpHandler& handler,
                          HttpDateGenerator* dateGenerator,

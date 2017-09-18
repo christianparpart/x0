@@ -9,7 +9,7 @@
 #include <xzero/RefPtr.h>
 #include <xzero/thread/Future.h>
 #include <xzero/executor/Executor.h>
-#include <xzero/net/EndPoint.h>
+#include <xzero/net/InetEndPoint.h>
 #include <xzero/io/FileDescriptor.h>
 #include <functional>
 #include <vector>
@@ -21,7 +21,7 @@ namespace xzero {
 
 class Executor;
 
-class SslClient : public EndPoint {
+class SslClient : public InetEndPoint {
  public:
   /**
    * Callback to create a client connection for the protocol being passed.
@@ -114,7 +114,7 @@ class SslClient : public EndPoint {
 
   std::string nextProtocolNegotiated() const;
 
-  // EndPoint overrides
+  // InetEndPoint overrides
   bool isOpen() const override;
   void close() override;
   size_t fill(Buffer* sink, size_t count) override;

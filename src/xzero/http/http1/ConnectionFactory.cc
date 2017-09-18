@@ -7,8 +7,8 @@
 
 #include <xzero/http/http1/ConnectionFactory.h>
 #include <xzero/http/http1/Connection.h>
-#include <xzero/net/Connector.h>
-#include <xzero/net/EndPoint.h>
+#include <xzero/net/InetConnector.h>
+#include <xzero/net/InetEndPoint.h>
 
 namespace xzero {
 namespace http {
@@ -47,8 +47,8 @@ ConnectionFactory::ConnectionFactory(
 ConnectionFactory::~ConnectionFactory() {
 }
 
-::xzero::Connection* ConnectionFactory::create(Connector* connector,
-                                               EndPoint* endpoint) {
+::xzero::Connection* ConnectionFactory::create(InetConnector* connector,
+                                               InetEndPoint* endpoint) {
   if (tcpNoDelay_) {
     endpoint->setTcpNoDelay(true);
   }

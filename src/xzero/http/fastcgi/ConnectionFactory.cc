@@ -7,8 +7,8 @@
 
 #include <xzero/http/fastcgi/ConnectionFactory.h>
 #include <xzero/http/fastcgi/Connection.h>
-#include <xzero/net/Connector.h>
-#include <xzero/net/EndPoint.h>
+#include <xzero/net/InetConnector.h>
+#include <xzero/net/InetEndPoint.h>
 #include <xzero/WallClock.h>
 
 namespace xzero {
@@ -34,8 +34,8 @@ ConnectionFactory::ConnectionFactory(
 ConnectionFactory::~ConnectionFactory() {
 }
 
-xzero::Connection* ConnectionFactory::create(Connector* connector,
-                                             EndPoint* endpoint) {
+xzero::Connection* ConnectionFactory::create(InetConnector* connector,
+                                             InetEndPoint* endpoint) {
   return endpoint->setConnection<Connection>(endpoint,
                                              connector->executor(),
                                              handler(),

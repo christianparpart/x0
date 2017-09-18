@@ -38,26 +38,18 @@ SslEndPoint::SslEndPoint(FileDescriptor&& fd,
                          Duration writeTimeout,
                          SslContext* defaultContext,
                          std::function<void(const std::string&, SslEndPoint*)> connectionFactory,
-                         std::function<void(EndPoint*)> onEndPointClosed,
+                         std::function<void(InetEndPoint*)> onEndPointClosed,
                          Executor* executor)
-    : handle_(fd.release()),
-      addressFamily_(addressFamily),
-      isCorking_(false),
-      connectionFactory_(connectionFactory),
-      onEndPointClosed_(onEndPointClosed),
-      executor_(executor),
+    : InetEndPoint(fd.release(), addressFamily,
+                   readTimeout, writeTimeout,
+                   executor, onEndPointClosed),
       ssl_(nullptr),
       bioDesire_(Desire::None),
-      io_(),
-      readTimeout_(readTimeout),
-      writeTimeout_(writeTimeout),
-      idleTimeout_(executor) {
-  TRACE("$0 SslEndPoint() ctor, cfd=$1", this, handle_);
-
-  idleTimeout_.setCallback(std::bind(&SslEndPoint::onTimeout, this));
+      connectionFactory_(connectionFactory) {
+  TRACE("$0 SslEndPoint() ctor, cfd=$1", this, handle());
 
   ssl_ = SSL_new(defaultContext->get());
-  SSL_set_fd(ssl_, handle_);
+  SSL_set_fd(ssl_, handle());
 
 #if !defined(NDEBUG)
   SSL_set_tlsext_debug_callback(ssl_, &SslEndPoint::tlsext_debug_cb);
@@ -69,42 +61,21 @@ SslEndPoint::~SslEndPoint() {
   TRACE("$0 ~SslEndPoint() dtor", this);
 
   SSL_free(ssl_);
-  FileUtil::close(handle());
+  close();
 }
 
-Option<InetAddress> SslEndPoint::remoteAddress() const {
-  Result<InetAddress> addr = InetUtil::getRemoteAddress(handle_, addressFamily_);
-  if (addr.isSuccess())
-    return Some(*addr);
-  else {
-    logError("InetEndPoint", "remoteAddress: ($0) $1",
-        addr.error().category().name(),
-        addr.error().message().c_str());
-    return None();
-  }
-}
-
-Option<InetAddress> SslEndPoint::localAddress() const {
-  Result<InetAddress> addr = InetUtil::getLocalAddress(handle_, addressFamily_);
-  if (addr.isSuccess())
-    return Some(*addr);
-  else {
-    logError("InetEndPoint", "localAddress: ($0) $1",
-        addr.error().category().name(),
-        addr.error().message().c_str());
-    return None();
-  }
-}
-
-bool SslEndPoint::isOpen() const {
-  return SSL_get_shutdown(ssl_) == 0;
+bool SslEndPoint::isOpen() const noexcept {
+  return handle() >= 0 && SSL_get_shutdown(ssl_) == 0;
 }
 
 void SslEndPoint::close() {
-  if (!isOpen())
-    return;
-
+#if 0
+  // pretend we did a full shutdown
+  SSL_set_shutdown(ssl_, SSL_SENT_SHUTDOWN | SSL_RECEIVED_SHUTDOWN);
   shutdown();
+#else
+  InetEndPoint::close();
+#endif
 }
 
 void SslEndPoint::shutdown() {
@@ -112,7 +83,7 @@ void SslEndPoint::shutdown() {
 
   TRACE("$0 close: SSL_shutdown -> $1", this, rv);
   if (rv == 1) {
-    onEndPointClosed_(this);
+    InetEndPoint::close();
   } else if (rv == 0) {
     // call again
     shutdown();
@@ -120,15 +91,15 @@ void SslEndPoint::shutdown() {
     switch (SSL_get_error(ssl_, rv)) {
       case SSL_ERROR_SYSCALL:
         // consider done
-        onEndPointClosed_(this);
+        InetEndPoint::close();
         break;
       case SSL_ERROR_WANT_READ:
-        io_ = executor_->executeOnReadable(
+        io_ = executor()->executeOnReadable(
             handle(),
             std::bind(&SslEndPoint::shutdown, this));
         break;
       case SSL_ERROR_WANT_WRITE:
-        io_ = executor_->executeOnWritable(
+        io_ = executor()->executeOnWritable(
             handle(),
             std::bind(&SslEndPoint::shutdown, this));
         break;
@@ -136,16 +107,6 @@ void SslEndPoint::shutdown() {
         THROW_SSL_ERROR();
     }
   }
-}
-
-void SslEndPoint::abort() {
-#if 0
-  // pretend we did a full shutdown
-  SSL_set_shutdown(ssl_, SSL_SENT_SHUTDOWN | SSL_RECEIVED_SHUTDOWN);
-  shutdown();
-#else
-  onEndPointClosed_(this);
-#endif
 }
 
 size_t SslEndPoint::fill(Buffer* sink, size_t space) {
@@ -174,7 +135,7 @@ size_t SslEndPoint::fill(Buffer* sink, size_t space) {
       break;
     case SSL_ERROR_ZERO_RETURN:
       TRACE("$0 fill(Buffer:$1) -> remote endpoint closed", this, space);
-      abort();
+      close();
       break;
     default:
       logError("SSL", "Failed to fill. $0",
@@ -210,7 +171,7 @@ size_t SslEndPoint::flush(const BufferRef& source) {
       break;
     case SSL_ERROR_ZERO_RETURN:
       TRACE("$0 flush(BufferRef, @$1, $2 bytes) failed -> remote endpoint closed.", this, source.data(), source.size());
-      abort();
+      close();
       break;
     default:
       logError("SSL", "Failed to flush. $0",
@@ -238,13 +199,13 @@ void SslEndPoint::wantFill() {
     case Desire::None:
     case Desire::Read:
       TRACE("$0 wantFill: read", this);
-      io_ = executor_->executeOnReadable(
+      io_ = executor()->executeOnReadable(
           handle(),
           std::bind(&SslEndPoint::fillable, this));
       break;
     case Desire::Write:
       TRACE("$0 wantFill: write", this);
-      io_ = executor_->executeOnWritable(
+      io_ = executor()->executeOnWritable(
           handle(),
           std::bind(&SslEndPoint::fillable, this));
       break;
@@ -253,7 +214,7 @@ void SslEndPoint::wantFill() {
 
 void SslEndPoint::fillable() {
   TRACE("$0 fillable()", this);
-  RefPtr<EndPoint> _guard(this);
+  RefPtr<InetEndPoint> _guard(this);
   try {
     io_.reset();
     bioDesire_ = Desire::None;
@@ -276,62 +237,14 @@ void SslEndPoint::wantFlush() {
   switch (bioDesire_) {
     case Desire::Read:
       TRACE("$0 wantFlush: read", this);
-      io_ = executor_->executeOnReadable(
-          handle(),
-          std::bind(&SslEndPoint::flushable, this));
+      InetEndPoint::wantFill();
       break;
     case Desire::None:
     case Desire::Write:
       TRACE("$0 wantFlush: write", this);
-      io_ = executor_->executeOnWritable(
-          handle(),
-          std::bind(&SslEndPoint::flushable, this));
+      InetEndPoint::wantFlush();
       break;
   }
-}
-
-Duration SslEndPoint::readTimeout() {
-  return readTimeout_;
-}
-
-Duration SslEndPoint::writeTimeout() {
-  return writeTimeout_;
-}
-
-void SslEndPoint::setReadTimeout(Duration timeout) {
-  readTimeout_ = timeout;
-}
-
-void SslEndPoint::setWriteTimeout(Duration timeout) {
-  writeTimeout_ = timeout;
-}
-
-bool SslEndPoint::isBlocking() const {
-  return FileUtil::isBlocking(handle());
-}
-
-void SslEndPoint::setBlocking(bool enable) {
-  TRACE("$0 setBlocking($1)", this, enable);
-  FileUtil::setBlocking(handle(), enable);
-}
-
-bool SslEndPoint::isCorking() const {
-  return isCorking_;
-}
-
-void SslEndPoint::setCorking(bool enable) {
-  InetUtil::setCorking(handle(), enable);
-  isCorking_ = enable;
-}
-
-bool SslEndPoint::isTcpNoDelay() const {
-  return InetUtil::isTcpNoDelay(handle());
-}
-
-void SslEndPoint::setTcpNoDelay(bool enable) {
-  int flag = enable ? 1 : 0;
-  if (setsockopt(handle_, IPPROTO_TCP, TCP_NODELAY, &flag, sizeof(flag)) < 0)
-    RAISE_ERRNO(errno);
 }
 
 std::string SslEndPoint::toString() const {
@@ -347,12 +260,12 @@ void SslEndPoint::onHandshake() {
     switch (SSL_get_error(ssl_, rv)) {
       case SSL_ERROR_WANT_READ:
         TRACE("$0 onHandshake (want read)", this);
-        executor_->executeOnReadable(
+        io_ = executor()->executeOnReadable(
             handle(), std::bind(&SslEndPoint::onHandshake, this));
         break;
       case SSL_ERROR_WANT_WRITE:
         TRACE("$0 onHandshake (want write)", this);
-        executor_->executeOnWritable(
+        io_ = executor()->executeOnWritable(
             handle(), std::bind(&SslEndPoint::onHandshake, this));
         break;
       default: {
@@ -360,14 +273,14 @@ void SslEndPoint::onHandshake() {
         ERR_error_string_n(ERR_get_error(), buf, sizeof(buf));
         logError("SSL", "Handshake error. $0", buf);
 
-        onEndPointClosed_(this);
+        InetEndPoint::close();
         return;
       }
     }
   } else {
     // create associated Connection object and run it
     bioDesire_ = Desire::None;
-    RefPtr<EndPoint> _guard(this);
+    RefPtr<InetEndPoint> _guard(this);
     std::string protocolName = applicationProtocolName().str();
     TRACE("$0 handshake complete (next protocol: \"$1\")", this, protocolName.c_str());
 
@@ -379,7 +292,7 @@ void SslEndPoint::onHandshake() {
 
 void SslEndPoint::flushable() {
   TRACE("$0 flushable()", this);
-  RefPtr<EndPoint> _guard(this);
+  RefPtr<InetEndPoint> _guard(this);
   try {
     io_.reset();
     bioDesire_ = Desire::None;
@@ -398,7 +311,7 @@ void SslEndPoint::onTimeout() {
     bool finalize = connection()->onReadTimeout();
 
     if (finalize) {
-      this->abort();
+      close();
     }
   }
 }

@@ -18,7 +18,6 @@
 namespace xzero {
 
 class Server;
-class Connector;
 class InetConnector;
 class Executor;
 class WallClock;
@@ -101,9 +100,9 @@ class XZERO_HTTP_API HttpService {
 
  private:
   static Protocol getDefaultProtocol();
-  void attachProtocol(Connector* connector);
-  void attachHttp1(Connector* connector);
-  void attachFCGI(Connector* connector);
+  void attachProtocol(InetConnector* connector);
+  void attachHttp1(InetConnector* connector);
+  void attachFCGI(InetConnector* connector);
   void handleRequest(HttpRequest* request, HttpResponse* response);
   void onAllDataRead(HttpRequest* request, HttpResponse* response);
 

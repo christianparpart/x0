@@ -41,7 +41,7 @@ SslConnector::~SslConnector() {
 
 void SslConnector::addConnectionFactory(const std::string& protocol,
                                         ConnectionFactory factory) {
-  Connector::addConnectionFactory(protocol, factory);
+  InetConnector::addConnectionFactory(protocol, factory);
 
   // XXX needs update whenever a new protocol-implementation is added.
   // XXX should only happen at startup-time, too
@@ -85,23 +85,7 @@ int SslConnector::selectContext(
   return SSL_TLSEXT_ERR_OK;
 }
 
-void SslConnector::start() {
-  InetConnector::start();
-}
-
-bool SslConnector::isStarted() const XZERO_NOEXCEPT {
-  return InetConnector::isStarted();
-}
-
-void SslConnector::stop() {
-  InetConnector::stop();
-}
-
-std::list<RefPtr<EndPoint>> SslConnector::connectedEndPoints() {
-  return InetConnector::connectedEndPoints();
-}
-
-RefPtr<EndPoint> SslConnector::createEndPoint(int cfd, Executor* executor) {
+RefPtr<InetEndPoint> SslConnector::createEndPoint(int cfd, Executor* executor) {
   TRACE("createEndPoint: cfd=$0", cfd);
   return make_ref<SslEndPoint>(
       FileDescriptor(cfd),
@@ -111,10 +95,11 @@ RefPtr<EndPoint> SslConnector::createEndPoint(int cfd, Executor* executor) {
       defaultContext(),
       std::bind(&SslConnector::createConnection, this, std::placeholders::_1, std::placeholders::_2),
       std::bind(&SslConnector::onEndPointClosed, this, std::placeholders::_1),
-      executor).as<EndPoint>();
+      executor).as<InetEndPoint>();
 }
 
-void SslConnector::onEndPointCreated(const RefPtr<EndPoint>& endpoint) {
+void SslConnector::onEndPointCreated(RefPtr<InetEndPoint> endpoint) {
+  TRACE("onEndPointCreated fd=$0", endpoint->handle());
   endpoint.weak_as<SslEndPoint>()->onHandshake();
 }
 

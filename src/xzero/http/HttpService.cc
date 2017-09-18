@@ -78,7 +78,7 @@ InetConnector* HttpService::configureInet(Executor* executor,
   return inetConnector_;
 }
 
-void HttpService::attachProtocol(Connector* connector) {
+void HttpService::attachProtocol(InetConnector* connector) {
   switch (protocol_) {
     case HTTP1:
       attachHttp1(connector);
@@ -89,7 +89,7 @@ void HttpService::attachProtocol(Connector* connector) {
   }
 }
 
-void HttpService::attachHttp1(Connector* connector) {
+void HttpService::attachHttp1(InetConnector* connector) {
   // TODO: make them configurable via ctor
   size_t requestHeaderBufferSize = 8 * 1024;
   size_t requestBodyBufferSize = 8 * 1024;
@@ -123,7 +123,7 @@ void HttpService::attachHttp1(Connector* connector) {
   httpFactories_.emplace_back(std::move(http1));
 }
 
-void HttpService::attachFCGI(Connector* connector) {
+void HttpService::attachFCGI(InetConnector* connector) {
   size_t maxRequestUriLength = 1024;
   size_t maxRequestBodyLength = 64 * 1024 * 1024;
   Duration maxKeepAlive = 8_seconds;

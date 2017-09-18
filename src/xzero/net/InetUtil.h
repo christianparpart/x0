@@ -15,7 +15,6 @@
 namespace xzero {
 
 class FileView;
-class EndPoint;
 class Executor;
 class Connection;
 

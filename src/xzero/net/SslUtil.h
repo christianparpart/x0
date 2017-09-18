@@ -17,7 +17,7 @@
 
 namespace xzero {
 
-class EndPoint;
+class InetEndPoint;
 class Executor;
 class SslContext;
 class SslConnector;
@@ -52,7 +52,7 @@ class SslUtil {
       Duration readTimeout,
       Duration writeTimeout,
       SslContext* defaultContext,
-      std::function<void(EndPoint*)> onEndPointClosed,
+      std::function<void(InetEndPoint*)> onEndPointClosed,
       ConnectionFactory connectionFactory,
       Executor* executor);
 

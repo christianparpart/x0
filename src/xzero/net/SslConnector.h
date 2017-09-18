@@ -25,7 +25,7 @@ class SslUtil;
  * @see InetConnector
  * @see SslEndPoint
  */
-class XZERO_BASE_API SslConnector : public InetConnector {
+class SslConnector : public InetConnector {
  public:
   /**
    * Initializes this connector.
@@ -68,13 +68,8 @@ class XZERO_BASE_API SslConnector : public InetConnector {
   void addContext(const std::string& crtFilePath,
                   const std::string& keyFilePath);
 
-  void start() override;
-  bool isStarted() const XZERO_NOEXCEPT override;
-  void stop() override;
-  std::list<RefPtr<EndPoint>> connectedEndPoints() override;
-
-  RefPtr<EndPoint> createEndPoint(int cfd, Executor* executor) override;
-  void onEndPointCreated(const RefPtr<EndPoint>& endpoint) override;
+  RefPtr<InetEndPoint> createEndPoint(int cfd, Executor* executor) override;
+  void onEndPointCreated(RefPtr<InetEndPoint> endpoint) override;
 
   SslContext* selectContext(const char* servername) const;
   SslContext* defaultContext() const;

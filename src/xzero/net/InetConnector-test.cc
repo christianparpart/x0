@@ -102,7 +102,7 @@ auto EH(xzero::testing::Test* test) {
 TEST(InetConnector, echoServer) {
   PosixScheduler sched(EH(this));
 
-  auto connectionFactory = [&](Connector* connector, EndPoint* ep) -> Connection* {
+  auto connectionFactory = [&](InetConnector* connector, EndPoint* ep) -> Connection* {
     return ep->setConnection<EchoServerConnection>(ep, &sched);
   };
 
@@ -166,13 +166,13 @@ TEST(InetConnector, detectProtocols) {
       false); // reusePort
 
   int echoCreated = 0;
-  auto echoFactory = [&](Connector* connector, EndPoint* ep) -> Connection* {
+  auto echoFactory = [&](InetConnector* connector, EndPoint* ep) -> Connection* {
     echoCreated++;
     return ep->setConnection<EchoServerConnection>(ep, &sched);
   };
 
   int yeahCreated = 0;
-  auto yeahFactory = [&](Connector* connector, EndPoint* ep) -> Connection* {
+  auto yeahFactory = [&](InetConnector* connector, EndPoint* ep) -> Connection* {
     yeahCreated++;
     return ep->setConnection<EchoServerConnection>(ep, &sched);
   };

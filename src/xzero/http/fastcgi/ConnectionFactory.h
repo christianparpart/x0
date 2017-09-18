@@ -32,7 +32,7 @@ class XZERO_HTTP_API ConnectionFactory : public HttpConnectionFactory {
   Duration maxKeepAlive() const noexcept { return maxKeepAlive_; }
   void setMaxKeepAlive(Duration value) { maxKeepAlive_ = value; }
 
-  xzero::Connection* create(Connector* connector, EndPoint* endpoint) override;
+  xzero::Connection* create(InetConnector* connector, InetEndPoint* endpoint) override;
 
  private:
   Duration maxKeepAlive_;

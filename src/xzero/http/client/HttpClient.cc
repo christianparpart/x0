@@ -75,7 +75,7 @@ HttpClient::HttpClient(Executor* executor,
 }
 
 HttpClient::HttpClient(Executor* executor,
-                       RefPtr<EndPoint> upstream,
+                       RefPtr<InetEndPoint> upstream,
                        Duration keepAlive)
     : executor_(executor),
       createEndPoint_(),
@@ -112,7 +112,7 @@ void HttpClient::send(const Request& request,
   }
 
   auto f = createEndPoint_();
-  f.onSuccess([this](RefPtr<EndPoint> ep) {
+  f.onSuccess([this](RefPtr<InetEndPoint> ep) {
     TRACE("endpoint created");
     endpoint_ = ep;
     setupConnection();
@@ -126,20 +126,20 @@ bool HttpClient::isClosed() const {
   return !endpoint_;
 }
 
-Future<RefPtr<EndPoint>> HttpClient::createTcp(InetAddress addr,
-                                               Duration connectTimeout,
-                                               Duration readTimeout,
-                                               Duration writeTimeout) {
-  Promise<RefPtr<EndPoint>> promise;
+Future<RefPtr<InetEndPoint>> HttpClient::createTcp(InetAddress addr,
+                                                   Duration connectTimeout,
+                                                   Duration readTimeout,
+                                                   Duration writeTimeout) {
+  Promise<RefPtr<InetEndPoint>> promise;
 
   Future<int> f = InetUtil::connect(addr, connectTimeout, executor_);
   f.onFailure(promise);
   f.onSuccess([promise, addr, readTimeout, writeTimeout, this](int fd) {
-    promise.success(RefPtr<EndPoint>(new InetEndPoint(fd,
-                                                      addr.family(),
-                                                      readTimeout,
-                                                      writeTimeout,
-                                                      executor_)));
+    promise.success(RefPtr<InetEndPoint>(new InetEndPoint(fd,
+                                                          addr.family(),
+                                                          readTimeout,
+                                                          writeTimeout,
+                                                          executor_)));
   });
 
   return promise.future();

@@ -9,7 +9,6 @@
 
 #include <xzero/Api.h>
 #include <xzero/thread/Future.h>
-#include <xzero/net/EndPoint.h>
 #include <xzero/net/InetAddress.h>
 #include <xzero/executor/Executor.h>
 #include <atomic>
@@ -17,23 +16,18 @@
 namespace xzero {
 
 class InetConnector;
+class Connection;
+class FileView;
 
 /**
- * TCP/IP endpoint, usually created by an InetConnector.
+ * TCP/IP endpoint, as created by an InetConnector.
+ *
+ * @see InetConnector
  */
-class XZERO_BASE_API InetEndPoint : public EndPoint {
+class InetEndPoint : public RefCounted {
  public:
   /**
-   * Initializes a server-side InetEndPoint.
-   *
-   * @param socket system file handle representing the server-side socket to
-   *               the client.
-   * @param executor the task scheduler to be used for I/O & timeout completion.
-   */
-  InetEndPoint(int socket, InetConnector* connector, Executor* executor);
-
-  /**
-   * Initializes a client-side InetEndPoint.
+   * Initializes an InetEndPoint.
    *
    * @param socket system file handle representing the client-side socket to
    *               the server.
@@ -42,10 +36,12 @@ class XZERO_BASE_API InetEndPoint : public EndPoint {
    * @param readTimeout read-readiness timeout.
    * @param writeTimeout write-readiness timeout.
    * @param executor the task scheduler to be used for I/O & timeout completion.
+   * @param onEndPointClosed invoked when this socket gets closed.
    */
   InetEndPoint(int socket, int addressFamily,
                Duration readTimeout, Duration writeTimeout,
-               Executor* executor);
+               Executor* executor,
+               std::function<void(InetEndPoint*)> onEndPointClosed = nullptr);
 
   ~InetEndPoint();
 
@@ -56,8 +52,8 @@ class XZERO_BASE_API InetEndPoint : public EndPoint {
    *
    * @param inet TCP/IP server address and port.
    * @param connectTimeout timeout until the connect must have been completed.
-   * @param readTimeout EndPoint-read timeout.
-   * @param writeTimeout EndPoint-write timeout.
+   * @param readTimeout InetEndPoint-read timeout.
+   * @param writeTimeout InetEndPoint-write timeout.
    * @param scheduler Task scheduler used for connecting and later passed
    *                  to the created InetEndPoint.
    * @param success Callback to be invoked upon success.
@@ -67,7 +63,7 @@ class XZERO_BASE_API InetEndPoint : public EndPoint {
       const InetAddress& inet,
       Duration connectTimeout, Duration readTimeout, Duration writeTimeout,
       Executor* executor,
-      std::function<void(RefPtr<EndPoint>)> onSuccess,
+      std::function<void(RefPtr<InetEndPoint>)> onSuccess,
       std::function<void(std::error_code)> onError);
 
   /**
@@ -75,16 +71,16 @@ class XZERO_BASE_API InetEndPoint : public EndPoint {
    *
    * The callee does not block.
    *
-   * @return A future to the yet to be created EndPoint.
+   * @return A future to the yet to be created InetEndPoint.
    *
    * @param inet TCP/IP server address and port.
    * @param connectTimeout timeout until the connect must have been completed.
-   * @param readTimeout EndPoint-read timeout.
-   * @param writeTimeout EndPoint-write timeout.
+   * @param readTimeout InetEndPoint-read timeout.
+   * @param writeTimeout InetEndPoint-write timeout.
    * @param scheduler Task scheduler used for connecting and later passed
    *                  to the created InetEndPoint.
    */
-  static Future<RefPtr<EndPoint>> connectAsync(
+  static Future<RefPtr<InetEndPoint>> connectAsync(
       const InetAddress& inet,
       Duration connectTimeout, Duration readTimeout, Duration writeTimeout,
       Executor* executor);
@@ -94,16 +90,16 @@ class XZERO_BASE_API InetEndPoint : public EndPoint {
    *
    * The callee does not block.
    *
-   * @return A future to the yet to be created EndPoint.
+   * @return A future to the yet to be created InetEndPoint.
    *
    * @param inet TCP/IP server address and port.
    * @param connectTimeout timeout until the connect must have been completed.
-   * @param readTimeout EndPoint-read timeout.
-   * @param writeTimeout EndPoint-write timeout.
+   * @param readTimeout InetEndPoint-read timeout.
+   * @param writeTimeout InetEndPoint-write timeout.
    * @param scheduler Task scheduler used for connecting and later passed
    *                  to the created InetEndPoint.
    */
-  static RefPtr<EndPoint> connect(
+  static RefPtr<InetEndPoint> connect(
       const InetAddress& inet,
       Duration connectTimeout, Duration readTimeout, Duration writeTimeout,
       Executor* executor);
@@ -118,48 +114,191 @@ class XZERO_BASE_API InetEndPoint : public EndPoint {
    */
   int addressFamily() const noexcept { return addressFamily_; }
 
-  // EndPoint overrides
-  bool isOpen() const XZERO_NOEXCEPT override;
-  void close() override;
-  bool isBlocking() const override;
-  void setBlocking(bool enable) override;
-  bool isCorking() const override;
-  void setCorking(bool enable) override;
-  bool isTcpNoDelay() const override;
-  void setTcpNoDelay(bool enable) override;
-  std::string toString() const override;
-  using EndPoint::fill;
-  size_t fill(Buffer* sink, size_t count) override;
-  size_t flush(const BufferRef& source) override;
-  size_t flush(const FileView& source) override;
-  void wantFill() override;
-  void wantFlush() override;
-  Duration readTimeout() override;
-  Duration writeTimeout() override;
-  void setReadTimeout(Duration timeout) override;
-  void setWriteTimeout(Duration timeout) override;
-  Option<InetAddress> remoteAddress() const override;
-  Option<InetAddress> localAddress() const override;
+  /**
+   * Tests whether or not this endpoint is still connected.
+   */
+  virtual bool isOpen() const noexcept;
 
-  void startDetectProtocol(bool dataReady);
-  void onDetectProtocol();
+  /**
+   * Convinience method against @c{isOpen() const}.
+   */
+  bool isClosed() const { return isOpen() == false; }
+
+  /**
+   * Fully closes this endpoint.
+   */
+  virtual void close();
+
+  /**
+   * Retrieves the connection object associated with this InetEndPoint.
+   */
+  Connection* connection() const { return connection_.get(); }
+
+  /**
+   * Associates a Connection associated with this InetEndPoint.
+   */
+  void setConnection(std::unique_ptr<Connection>&& connection);
+
+  /**
+   * Associates a Connection associated with this InetEndPoint.
+   */
+  template<typename T, typename... Args>
+  T* setConnection(Args&&... args);
+
+  /**
+   * Tests whether this endpoint is blocking on I/O.
+   */
+  bool isBlocking() const;
+
+  /**
+   * Sets whether this endpoint is blocking on I/O or not.
+   *
+   * @param enable @c true to ensures I/O operations block (default), @c false
+   *               otherwise.
+   */
+  void setBlocking(bool enable);
+
+  /**
+   * Retrieves @c TCP_CORK state.
+   */
+  bool isCorking() const;
+
+  /**
+   * Sets whether to @c TCP_CORK or not.
+   */
+  void setCorking(bool enable);
+  bool isTcpNoDelay() const;
+  void setTcpNoDelay(bool enable);
+
+  /**
+   * String representation of the object for introspection.
+   */
+  virtual std::string toString() const;
+
+  /**
+   * Fills given @p sink with what we can retrieve from this endpoint.
+   *
+   * @param sink the target buffer to fill with the bytes received.
+   *
+   * @return Number of bytes received from this endpoint and written
+   *         to this sink.
+   */
+  virtual size_t fill(Buffer* sink);
+
+  size_t prefill(size_t maxBytes);
+  size_t prefilled() const;
+
+  /**
+   * Fills given @p sink with what we can retrieve from this endpoint.
+   *
+   * @param sink the target buffer to fill with the bytes received.
+   * @param count number of bytes to fill at most.
+   *
+   * @return Number of bytes received from this endpoint and written
+   *         to this sink.
+   */
+  virtual size_t fill(Buffer* sink, size_t count);
+
+  /**
+   * Flushes given buffer @p source into this endpoint.
+   *
+   * @param source the buffer to flush into this endpoint.
+   *
+   * @return Number of actual bytes flushed.
+   */
+  virtual size_t flush(const BufferRef& source);
+
+  /**
+   * Flushes file contents behind filedescriptor @p fd into this endpoint.
+   *
+   * @param fileView a view into the file to be sent.
+   *
+   * @return Number of actual bytes flushed.
+   */
+  virtual size_t flush(const FileView& source);
+
+  /**
+   * Registers an interest on reading input data.
+   *
+   * When a fill-interest can be satisfied you will be notified via your
+   * associated Connection object to process the event.
+   *
+   * @see Connection::onSelectable()
+   */
+  virtual void wantFill();
+
+  /**
+   * Registers an interest on writing output data.
+   *
+   * When a flush-interest can be satisfied you will be notified via your
+   * associated Connection object to process the event.
+   *
+   * @see Connection::onSelectable()
+   */
+  virtual void wantFlush();
+
+  /**
+   * Retrieves the timeout before a TimeoutError is thrown when I/O
+   * interest cannot be * fullfilled.
+   */
+  Duration readTimeout();
+
+  /**
+   * Retrieves the timeout before a TimeoutError is thrown when I/O
+   * interest cannot be * fullfilled.
+   */
+  Duration writeTimeout();
+
+  /**
+   * Sets the timeout to wait for the read-interest before an TimeoutError is thrown.
+   */
+  void setReadTimeout(Duration timeout);
+
+  /**
+   * Sets the timeout to wait for the read-interest before an TimeoutError is thrown.
+   */
+  void setWriteTimeout(Duration timeout);
+
+  Option<InetAddress> remoteAddress() const;
+  Option<InetAddress> localAddress() const;
+
+  void startDetectProtocol(
+      bool dataReady,
+      std::function<void(const std::string&, InetEndPoint*)> createConnection);
+
+  Executor* executor() const noexcept { return executor_; }
 
  private:
+  void onDetectProtocol(
+    std::function<void(const std::string&, InetEndPoint*)> createConnection);
   void fillable();
   void flushable();
   void onTimeout();
 
+ protected:
+  Executor::HandleRef io_;
+
  private:
-  InetConnector* connector_;
+  std::function<void(InetEndPoint*)> onEndPointClosed_;
   Executor* executor_;
   Duration readTimeout_;
   Duration writeTimeout_;
-  Executor::HandleRef io_;
+  std::unique_ptr<Connection> connection_;
   Buffer inputBuffer_;
   size_t inputOffset_;
   int handle_;
   int addressFamily_;
   bool isCorking_;
 };
+
+inline size_t InetEndPoint::prefilled() const {
+  return inputBuffer_.size() - inputOffset_;
+}
+
+template<typename T, typename... Args>
+inline T* InetEndPoint::setConnection(Args&&... args) {
+  setConnection(std::make_unique<T>(std::forward<Args>(args)...));
+  return static_cast<T*>(connection());
+}
 
 } // namespace xzero

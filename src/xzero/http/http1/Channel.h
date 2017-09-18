@@ -17,7 +17,7 @@
 
 namespace xzero {
 
-class EndPoint;
+class InetEndPoint;
 
 namespace http {
 namespace http1 {
@@ -44,11 +44,11 @@ class Channel : public HttpChannel {
    *                 Upgrade response header.
    * @param callback A callback to be invoked when the response has been fully
    *                 sent out and the HTTP/1 connection has been removed
-   *                 from the EndPoint. The callback must install a new
+   *                 from the InetEndPoint. The callback must install a new
    *                 connection object to handle the application layer.
    */
   void upgrade(const std::string& protocol,
-               std::function<void(EndPoint*)> callback);
+               std::function<void(InetEndPoint*)> callback);
 
   bool isPersistent() const noexcept { return persistent_; }
   void setPersistent(bool value) noexcept { persistent_ = value; }
@@ -71,7 +71,7 @@ class Channel : public HttpChannel {
                          const Http2Settings& settings);
 
   static void h2cUpgrade(const Http2Settings& settings,
-                         EndPoint* endpoint,
+                         InetEndPoint* endpoint,
                          Executor* executor,
                          const HttpHandler& handler,
                          HttpDateGenerator* dateGenerator,

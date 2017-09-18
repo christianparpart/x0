@@ -17,17 +17,17 @@
 
 namespace xzero {
 
-class Connector;
+class InetConnector;
 
 /**
- * General purpose Server.
+ * General purpose Internet TCP Server.
  */
-class XZERO_BASE_API Server {
+class /*TODO XZERO_DEPRECATED*/ Server {
  public:
   /**
    * Minimally initializes a Server without any listener.
    *
-   * @see addConnector(std::unique_ptr<Connector>&& connector)
+   * @see addConnector(std::unique_ptr<InetConnector>&& connector)
    */
   Server();
 
@@ -83,24 +83,24 @@ class XZERO_BASE_API Server {
   }
 
   /**
-   * Removes all Connector instances from this server.
+   * Removes all InetConnector instances from this server.
    */
   void removeAllConnectors();
 
   /**
    * Removes given @p connector from this server.
    */
-  void removeConnector(Connector* connector);
+  void removeConnector(InetConnector* connector);
 
   /**
    * Retrieves list of all registered connectors.
    */
-  std::list<Connector*> getConnectors() const;
+  std::list<InetConnector*> getConnectors() const;
 
   /**
    * Finds all InetConnector instances that match given bind:port tuple.
    */
-  std::list<Connector*> findConnectors(const IPAddress& ip, int port);
+  std::list<InetConnector*> findConnectors(const IPAddress& ip, int port);
 
   /**
    * Fills given buffer with the current date.
@@ -110,11 +110,10 @@ class XZERO_BASE_API Server {
   void getDate(char* buf, size_t size);
 
  private:
-  void implAddConnector(Connector* connector);
+  void implAddConnector(InetConnector* connector);
 
  private:
-  std::list<Connector*> connectors_;
-  Buffer date_;
+  std::list<InetConnector*> connectors_;
 };
 
 template <typename T, typename... Args>

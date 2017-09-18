@@ -49,7 +49,8 @@ class XZERO_HTTP_API ConnectionFactory : public HttpConnectionFactory {
   bool corkStream() const noexcept { return corkStream_; }
   bool tcpNoDelay() const noexcept { return tcpNoDelay_; }
 
-  Connection* create(Connector* connector, EndPoint* endpoint) override;
+  ::xzero::Connection* create(InetConnector* connector,
+                              InetEndPoint* endpoint) override;
 
  private:
   size_t requestHeaderBufferSize_;

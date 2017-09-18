@@ -8,12 +8,12 @@
 #pragma once
 
 #include <xzero/Api.h>
-#include <xzero/net/Connector.h>
 #include <xzero/net/IPAddress.h>
 #include <xzero/io/FileDescriptor.h>
 #include <xzero/executor/Executor.h> // for Executor::HandleRef
 #include <xzero/Duration.h>
 #include <xzero/RefPtr.h>
+#include <unordered_map>
 #include <list>
 #include <deque>
 #include <mutex>
@@ -27,7 +27,7 @@ class SslEndPoint;
 /**
  * TCP/IP Internet Connector API
  */
-class InetConnector : public Connector {
+class InetConnector {
  public:
   //! Must be a non-printable ASCII byte.
   enum { MagicProtocolSwitchByte = 0x01 };
@@ -45,9 +45,9 @@ class InetConnector : public Connector {
    *
    * @return pointer to the newly created Connection instance.
    *
-   * The newly created Connection instance will be owned by its EndPoint.
+   * The newly created Connection instance will be owned by its InetEndPoint.
    */
-  typedef std::function<Connection*(Connector*, EndPoint*)> ConnectionFactory;
+  typedef std::function<Connection*(InetConnector*, InetEndPoint*)> ConnectionFactory;
 
   /**
    * Initializes this connector.
@@ -98,7 +98,7 @@ class InetConnector : public Connector {
                 Duration writeTimeout,
                 Duration tcpFinTimeout);
 
-  ~InetConnector();
+  virtual ~InetConnector();
 
   Executor* scheduler() const XZERO_NOEXCEPT;
 
@@ -158,7 +158,7 @@ class InetConnector : public Connector {
    * That is, a non-blocking connector will create non-blocking endpoints
    * for the newly accepted clients.
    *
-   * @see EndPoint::setBlocking(bool enable)
+   * @see InetEndPoint::setBlocking(bool enable)
    */
   void setBlocking(bool enable);
 
@@ -269,7 +269,7 @@ class InetConnector : public Connector {
   /**
    * Retrieves list of currently connected endpoints.
    */
-  std::list<RefPtr<EndPoint>> connectedEndPoints();
+  std::list<RefPtr<InetEndPoint>> connectedEndPoints();
 
   /**
    * Registeres a new connection factory.
@@ -288,7 +288,7 @@ class InetConnector : public Connector {
    * @param protocolName The connection's protoclName.
    * @param endpoint The endpoint to assign the newly created connection to.
    */
-  void createConnection(const std::string& protocolName, EndPoint* endpoint);
+  void createConnection(const std::string& protocolName, InetEndPoint* endpoint);
 
   /** Retrieves all registered connection factories. */
   std::list<std::string> connectionFactories() const;
@@ -340,19 +340,19 @@ class InetConnector : public Connector {
   int acceptOne();
 
   /**
-   * Creates an EndPoint instance for given client file descriptor.
+   * Creates an InetEndPoint instance for given client file descriptor.
    *
    * @param cfd       client's file descriptor
    * @param executor  client's designated I/O scheduler
    */
-  virtual RefPtr<EndPoint> createEndPoint(int cfd, Executor* executor);
+  virtual RefPtr<InetEndPoint> createEndPoint(int cfd, Executor* executor);
 
   /**
    * By default, creates Connection from default connection factory and initiates it.
    *
    * Initiated via @c Connection::onOpen().
    */
-  virtual void onEndPointCreated(const RefPtr<EndPoint>& endpoint);
+  virtual void onEndPointCreated(RefPtr<InetEndPoint> endpoint);
 
   /**
    * Accepts as many pending connections as possible.
@@ -365,7 +365,7 @@ class InetConnector : public Connector {
   /**
    * Invoked by InetEndPoint to inform its creator that it got close()'d.
    */
-  void onEndPointClosed(EndPoint* endpoint);
+  void onEndPointClosed(InetEndPoint* endpoint);
   friend class InetEndPoint;
   friend class SslConnector;
   friend class SslUtil;
@@ -383,7 +383,7 @@ class InetConnector : public Connector {
   IPAddress bindAddress_;
   int port_;
 
-  std::list<RefPtr<EndPoint>> connectedEndPoints_;
+  std::list<RefPtr<InetEndPoint>> connectedEndPoints_;
   std::mutex mutex_;
   FileDescriptor socket_;
   int addressFamily_;

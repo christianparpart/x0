@@ -164,7 +164,6 @@ libXzero_a_SOURCES = \
 	src/xzero/net/DatagramConnector.cc \
 	src/xzero/net/DatagramEndPoint.cc \
 	src/xzero/net/DnsClient.cc \
-	src/xzero/net/EndPoint.cc \
 	src/xzero/net/EndPointWriter.cc \
 	src/xzero/net/InetAddress.cc \
 	src/xzero/net/InetConnector.cc \
@@ -376,7 +375,6 @@ nobase_libXzero_HEADERS = \
 	src/xzero/net/DatagramConnector.h \
 	src/xzero/net/DatagramEndPoint.h \
 	src/xzero/net/DnsClient.h \
-	src/xzero/net/EndPoint.h \
 	src/xzero/net/EndPointWriter.h \
 	src/xzero/net/IPAddress.h \
 	src/xzero/net/InetAddress-inl.h \

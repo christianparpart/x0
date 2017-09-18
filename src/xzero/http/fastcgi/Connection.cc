@@ -13,7 +13,7 @@
 #include <xzero/http/HttpRequest.h>
 #include <xzero/http/BadMessage.h>
 #include <xzero/net/Connection.h>
-#include <xzero/net/EndPoint.h>
+#include <xzero/net/InetEndPoint.h>
 #include <xzero/net/EndPointWriter.h>
 #include <xzero/executor/Executor.h>
 #include <xzero/logging.h>
@@ -207,7 +207,7 @@ HttpFastCgiChannel::~HttpFastCgiChannel() {
 }
 // }}}
 
-Connection::Connection(EndPoint* endpoint,
+Connection::Connection(InetEndPoint* endpoint,
                        Executor* executor,
                        const HttpHandler& handler,
                        HttpDateGenerator* dateGenerator,

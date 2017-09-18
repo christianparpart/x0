@@ -170,6 +170,17 @@ int SslContext::onAppLayerProtoNegotiation(
 int SslContext::onServerName(SSL* ssl, int* ad, SslContext* self) {
   TRACE("$0 onServerName()", self);
   const char* name = SSL_get_servername(ssl, TLSEXT_NAMETYPE_host_name);
+  if (!name) {
+    TRACE("$0 onServerName() no SNI given; chosing default context", self);
+    if (SslContext* ctx = self->connector_->defaultContext()) {
+      SSL_set_SSL_CTX(ssl, ctx->get());
+      return SSL_TLSEXT_ERR_OK;
+    } else {
+      return SSL_TLSEXT_ERR_NOACK;
+    }
+  }
+
+  TRACE("$0 onServerName(): name=$1", self, name);
 
   if (SslContext* ctx = self->connector_->selectContext(name)) {
     SSL_set_SSL_CTX(ssl, ctx->get());

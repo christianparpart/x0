@@ -4,7 +4,7 @@
 // Licensed under the MIT License (the "License"); you may not use this
 // file except in compliance with the License. You may obtain a copy of
 // the License at: http://opensource.org/licenses/MIT
-
+#if 0
 #include <xzero/net/SslClient.h>
 
 #include <xzero/io/FileUtil.h>
@@ -294,3 +294,4 @@ Option<InetAddress> SslClient::localAddress() const {
 }
 
 } // namespace xzero
+#endif
