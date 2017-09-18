@@ -376,7 +376,7 @@ nobase_libXzero_HEADERS = \
 	src/xzero/net/InetAddress.h \
 	src/xzero/net/TcpConnector.h \
 	src/xzero/net/TcpEndPoint.h \
-	src/xzero/net/InetUtil.h \
+	src/xzero/net/TcpUtil.h \
 	src/xzero/net/SslConnector.h \
 	src/xzero/net/SslClient.h \
 	src/xzero/net/SslContext.h \
