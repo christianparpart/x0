@@ -48,7 +48,6 @@ class SslEndPoint : public TcpEndPoint {
 
   ~SslEndPoint();
 
-  bool isOpen() const noexcept override;
   void close() override;
 
   void shutdown();

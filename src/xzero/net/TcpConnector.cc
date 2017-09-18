@@ -555,6 +555,7 @@ std::list<RefPtr<TcpEndPoint>> TcpConnector::connectedEndPoints() {
 }
 
 void TcpConnector::onEndPointClosed(TcpEndPoint* endpoint) {
+  TRACE("onEndPointClosed()");
   assert(endpoint != nullptr);
 
   // XXX: e.g. SSL doesn't have a connection in case the handshake failed

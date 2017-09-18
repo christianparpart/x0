@@ -106,6 +106,8 @@ void TcpEndPoint::close() {
     if (onEndPointClosed_) {
       onEndPointClosed_(this);
     }
+  } else {
+    TRACE("close(fd=$0) invoked, but we're closed already", handle_);
   }
 }
 
@@ -387,7 +389,7 @@ void TcpEndPoint::connectAsync(const InetAddress& inet,
   try {
     TRACE("connectAsync: to $0", inet);
     ep = new TcpEndPoint(fd, inet.family(), readTimeout, writeTimeout,
-                          executor);
+                         executor, nullptr);
     ep->setBlocking(false);
 
     switch (inet.family()) {

@@ -60,12 +60,8 @@ SslEndPoint::SslEndPoint(FileDescriptor&& fd,
 SslEndPoint::~SslEndPoint() {
   TRACE("$0 ~SslEndPoint() dtor", this);
 
-  SSL_free(ssl_);
   close();
-}
-
-bool SslEndPoint::isOpen() const noexcept {
-  return handle() >= 0 && SSL_get_shutdown(ssl_) == 0;
+  SSL_free(ssl_);
 }
 
 void SslEndPoint::close() {

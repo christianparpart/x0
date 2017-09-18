@@ -41,7 +41,7 @@ class TcpEndPoint : public RefCounted {
   TcpEndPoint(int socket, int addressFamily,
               Duration readTimeout, Duration writeTimeout,
               Executor* executor,
-              std::function<void(TcpEndPoint*)> onEndPointClosed = nullptr);
+              std::function<void(TcpEndPoint*)> onEndPointClosed);
 
   ~TcpEndPoint();
 
@@ -117,7 +117,7 @@ class TcpEndPoint : public RefCounted {
   /**
    * Tests whether or not this endpoint is still connected.
    */
-  virtual bool isOpen() const noexcept;
+  bool isOpen() const noexcept;
 
   /**
    * Convinience method against @c{isOpen() const}.

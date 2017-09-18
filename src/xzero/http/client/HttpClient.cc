@@ -139,7 +139,8 @@ Future<RefPtr<TcpEndPoint>> HttpClient::createTcp(InetAddress addr,
                                                          addr.family(),
                                                          readTimeout,
                                                          writeTimeout,
-                                                         executor_)));
+                                                         executor_,
+                                                         nullptr)));
   });
 
   return promise.future();
