@@ -66,7 +66,7 @@ RefPtr<SslEndPoint> SslUtil::accept(FileDescriptor&& fd,
                 connector->readTimeout(),
                 connector->writeTimeout(),
                 connector->defaultContext(),
-                std::bind(&InetConnector::onEndPointClosed, connector, std::placeholders::_1),
+                std::bind(&TcpConnector::onEndPointClosed, connector, std::placeholders::_1),
                 connectionFactory,
                 executor);
 }
@@ -76,7 +76,7 @@ RefPtr<SslEndPoint> SslUtil::accept(FileDescriptor&& fd,
                                     Duration readTimeout,
                                     Duration writeTimeout,
                                     SslContext* defaultContext,
-                                    std::function<void(InetEndPoint*)> onEndPointClosed,
+                                    std::function<void(TcpEndPoint*)> onEndPointClosed,
                                     ConnectionFactory connectionFactory,
                                     Executor* executor) {
   return make_ref<SslEndPoint>(std::move(fd),

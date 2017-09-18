@@ -33,7 +33,7 @@ class Channel;
 class XZERO_HTTP_API Connection : public ::xzero::Connection,
                                    public HttpTransport {
  public:
-  Connection(InetEndPoint* endpoint,
+  Connection(TcpEndPoint* endpoint,
              Executor* executor,
              const HttpHandler& handler,
              HttpDateGenerator* dateGenerator,
@@ -71,11 +71,11 @@ class XZERO_HTTP_API Connection : public ::xzero::Connection,
    *                 Upgrade response header.
    * @param callback A callback to be invoked when the response has been fully
    *                 sent out and the HTTP/1 connection has been removed
-   *                 from the InetEndPoint. The callback must install a new
+   *                 from the TcpEndPoint. The callback must install a new
    *                 connection object to handle the application layer.
    */
   void upgrade(const std::string& protocol,
-               std::function<void(InetEndPoint*)> callback);
+               std::function<void(TcpEndPoint*)> callback);
 
  private:
   void setCompleter(CompletionHandler cb);
@@ -109,7 +109,7 @@ class XZERO_HTTP_API Connection : public ::xzero::Connection,
   size_t requestMax_;
   bool corkStream_;
 
-  std::function<void(InetEndPoint*)> upgradeCallback_;
+  std::function<void(TcpEndPoint*)> upgradeCallback_;
 };
 
 }  // namespace http1

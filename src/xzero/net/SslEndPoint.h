@@ -9,8 +9,8 @@
 
 #include <xzero/Api.h>
 #include <xzero/io/FileDescriptor.h>
-#include <xzero/net/InetEndPoint.h>
-#include <xzero/net/InetUtil.h>
+#include <xzero/net/TcpEndPoint.h>
+#include <xzero/net/TcpUtil.h>
 #include <xzero/DeadlineTimer.h>
 #include <openssl/ssl.h>
 
@@ -21,9 +21,9 @@ class SslConnector;
 class SslContext;
 
 /**
- * SSL InetEndPoint, aka SSL socket.
+ * SSL TcpEndPoint, aka SSL socket.
  */
-class SslEndPoint : public InetEndPoint {
+class SslEndPoint : public TcpEndPoint {
  public:
   /**
    * Initializes an SSL endpoint.
@@ -43,7 +43,7 @@ class SslEndPoint : public InetEndPoint {
               Duration writeTimeout,
               SslContext* defaultContext,
               std::function<void(const std::string&, SslEndPoint*)> connectionFactory,
-              std::function<void(InetEndPoint*)> onEndPointClosed,
+              std::function<void(TcpEndPoint*)> onEndPointClosed,
               Executor* executor);
 
   ~SslEndPoint();
@@ -53,7 +53,7 @@ class SslEndPoint : public InetEndPoint {
 
   void shutdown();
 
-  using InetEndPoint::fill;
+  using TcpEndPoint::fill;
   size_t fill(Buffer* sink, size_t count) override;
   size_t flush(const BufferRef& source) override;
   size_t flush(const FileView& source) override;

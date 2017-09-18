@@ -7,9 +7,9 @@
 #pragma once
 
 #include <xzero/raft/Transport.h>
-#include <xzero/net/InetConnector.h>
+#include <xzero/net/TcpConnector.h>
+#include <xzero/net/TcpEndPoint.h>
 #include <xzero/net/Connection.h>
-#include <xzero/net/InetEndPoint.h>
 #include <unordered_map>
 #include <memory>
 #include <mutex>
@@ -43,13 +43,13 @@ class PeerConnection;
  */
 class InetTransport : public Transport {
  public:
-  typedef std::function<RefPtr<InetEndPoint>(const std::string&)>
+  typedef std::function<RefPtr<TcpEndPoint>(const std::string&)>
       EndPointCreator;
 
   InetTransport(const Discovery* discovery,
                 Executor* handlerExecutor,
                 EndPointCreator endpointCreator,
-                std::shared_ptr<InetConnector> connector);
+                std::shared_ptr<TcpConnector> connector);
 
   ~InetTransport();
 
@@ -59,14 +59,14 @@ class InetTransport : public Transport {
   void send(Id target, const AppendEntriesRequest& message) override;
   void send(Id target, const InstallSnapshotRequest& message) override;
 
-  InetConnector* connector() const { return connector_.get(); }
+  TcpConnector* connector() const { return connector_.get(); }
 
  private:
-  Connection* create(InetConnector* connector, InetEndPoint* endpoint);
+  Connection* create(TcpConnector* connector, TcpEndPoint* endpoint);
 
  private:
-  RefPtr<InetEndPoint> getEndPoint(Id target);
-  void watchEndPoint(Id target, RefPtr<InetEndPoint> ep);
+  RefPtr<TcpEndPoint> getEndPoint(Id target);
+  void watchEndPoint(Id target, RefPtr<TcpEndPoint> ep);
   void onClose(Id target);
   friend class PeerConnection;
 
@@ -75,10 +75,10 @@ class InetTransport : public Transport {
   Handler* handler_;
   Executor* handlerExecutor_;
   EndPointCreator endpointCreator_;
-  std::shared_ptr<InetConnector> connector_;
+  std::shared_ptr<TcpConnector> connector_;
 
   std::mutex endpointLock_;
-  std::unordered_map<Id, RefPtr<InetEndPoint>> endpoints_;
+  std::unordered_map<Id, RefPtr<TcpEndPoint>> endpoints_;
 };
 
 } // namespace raft

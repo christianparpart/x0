@@ -15,7 +15,7 @@
 #include <xzero/http/HeaderFieldList.h>
 #include <xzero/net/IPAddress.h>
 #include <xzero/net/EndPointWriter.h>
-#include <xzero/net/InetEndPoint.h>
+#include <xzero/net/TcpEndPoint.h>
 #include <xzero/executor/Scheduler.h>
 #include <xzero/Buffer.h>
 #include <string>
@@ -85,7 +85,7 @@ class XZERO_HTTP_API Client {
 
  private:
   Scheduler* scheduler_;
-  InetEndPoint* endpoint_;
+  TcpEndPoint* endpoint_;
   EndPointWriter writer_;
   Generator generator_;
   Parser parser_;

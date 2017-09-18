@@ -18,7 +18,7 @@ class FileView;
 class Executor;
 class Connection;
 
-class InetUtil {
+class TcpUtil {
  public:
   using ConnectionFactory = std::function<Connection*(const std::string&)>;
 

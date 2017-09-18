@@ -8,7 +8,7 @@
 #include <xzero/net/SslClient.h>
 
 #include <xzero/io/FileUtil.h>
-#include <xzero/net/InetUtil.h>
+#include <xzero/net/TcpUtil.h>
 #include <xzero/net/SslUtil.h>
 #include <xzero/executor/Executor.h>
 #include <xzero/logging.h>
@@ -33,7 +33,7 @@ Future<RefPtr<SslClient>> SslClient::connect(
     const std::vector<std::string>& applicationProtocolsSupported,
     std::function<Connection*(const std::string&)> createApplicationConnection) {
 
-  return InetUtil::connect(target, connectTimeout, executor).
+  return TcpUtil::connect(target, connectTimeout, executor).
       chain(std::bind(&SslClient::start,
                       std::placeholders::_1,
                       target.family(),
@@ -258,19 +258,19 @@ void SslClient::setBlocking(bool enable) {
 }
 
 bool SslClient::isCorking() const {
-  return InetUtil::isCorking(fd_);
+  return TcpUtil::isCorking(fd_);
 }
 
 void SslClient::setCorking(bool enable) {
-  InetUtil::setCorking(fd_, enable);
+  TcpUtil::setCorking(fd_, enable);
 }
 
 bool SslClient::isTcpNoDelay() const {
-  return InetUtil::isTcpNoDelay(fd_);
+  return TcpUtil::isTcpNoDelay(fd_);
 }
 
 void SslClient::setTcpNoDelay(bool enable) {
-  InetUtil::setTcpNoDelay(fd_, enable);
+  TcpUtil::setTcpNoDelay(fd_, enable);
 }
 
 std::string SslClient::toString() const {
@@ -278,7 +278,7 @@ std::string SslClient::toString() const {
 }
 
 Option<InetAddress> SslClient::remoteAddress() const {
-  Result<InetAddress> addr = InetUtil::getRemoteAddress(fd_, addressFamily_);
+  Result<InetAddress> addr = TcpUtil::getRemoteAddress(fd_, addressFamily_);
   if (addr.isSuccess())
     return Some(*addr);
   else
@@ -286,7 +286,7 @@ Option<InetAddress> SslClient::remoteAddress() const {
 }
 
 Option<InetAddress> SslClient::localAddress() const {
-  Result<InetAddress> addr = InetUtil::getLocalAddress(fd_, addressFamily_);
+  Result<InetAddress> addr = TcpUtil::getLocalAddress(fd_, addressFamily_);
   if (addr.isSuccess())
     return Some(*addr);
   else

@@ -6,16 +6,13 @@
       Cidr
       IPAddress
       InetAddress
-  xzero/net/stream/
-      Connector, EndPoint, Connection
-      InetConnector, InetEndPoint
-      LocalConnector, ByteArrayEndPoint
+  xzero/net/ (TCP)
+      TcpConnector, EndPoint, Connection
       InetUtil, EndPointWriter, Server
-      SslClient
       SslConnector, SslEndPoint, SslUtil
-  xzero/net/datagram/
-      DatagramConnector, DatagramEndPoint, DatagramHandler
-      LocalDatagramConnector, LocalDatagramEndPoint
+      SslClient
+  xzero/net/ (UDP)
+      UdpConnector, UdpEndPoint
       UdpClient
   xzero/net/util/
       DnsClient

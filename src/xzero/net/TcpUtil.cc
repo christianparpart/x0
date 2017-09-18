@@ -5,7 +5,7 @@
 // file except in compliance with the License. You may obtain a copy of
 // the License at: http://opensource.org/licenses/MIT
 
-#include <xzero/net/InetUtil.h>
+#include <xzero/net/TcpUtil.h>
 #include <xzero/net/InetAddress.h>
 #include <xzero/net/IPAddress.h>
 #include <xzero/io/FileUtil.h>
@@ -32,9 +32,9 @@
 
 namespace xzero {
 
-#define TRACE(msg...) logTrace("InetUtil", msg)
+#define TRACE(msg...) logTrace("TcpUtil", msg)
 
-Result<InetAddress> InetUtil::getRemoteAddress(int fd, int addressFamily) {
+Result<InetAddress> TcpUtil::getRemoteAddress(int fd, int addressFamily) {
   if (fd < 0)
     return static_cast<std::errc>(EINVAL);
 
@@ -60,7 +60,7 @@ Result<InetAddress> InetUtil::getRemoteAddress(int fd, int addressFamily) {
   }
 }
 
-Result<InetAddress> InetUtil::getLocalAddress(int fd, int addressFamily) {
+Result<InetAddress> TcpUtil::getLocalAddress(int fd, int addressFamily) {
   if (fd < 0)
     return static_cast<std::errc>(EINVAL);
 
@@ -88,7 +88,7 @@ Result<InetAddress> InetUtil::getLocalAddress(int fd, int addressFamily) {
   }
 }
 
-int InetUtil::getLocalPort(int socket, int addressFamily) {
+int TcpUtil::getLocalPort(int socket, int addressFamily) {
   switch (addressFamily) {
     case AF_INET6: {
       sockaddr_in6 saddr;
@@ -112,7 +112,7 @@ int InetUtil::getLocalPort(int socket, int addressFamily) {
   }
 }
 
-Future<int> InetUtil::connect(const InetAddress& remote,
+Future<int> TcpUtil::connect(const InetAddress& remote,
                               Duration timeout,
                               Executor* executor) {
   Promise<int> promise;
@@ -125,13 +125,13 @@ Future<int> InetUtil::connect(const InetAddress& remote,
 
   FileUtil::setBlocking(fd, false);
 
-  std::error_code ec = InetUtil::connect(fd, remote);
+  std::error_code ec = TcpUtil::connect(fd, remote);
 
   if (!ec) {
-    TRACE("InetUtil.connect: connected instantly");
+    TRACE("TcpUtil.connect: connected instantly");
     promise.success(fd);
   } else if (ec == std::errc::operation_in_progress) {
-    TRACE("InetUtil.connect: backgrounding");
+    TRACE("TcpUtil.connect: backgrounding");
     executor->executeOnWritable(
         fd,
         [promise, fd]() { promise.success(fd); },
@@ -139,14 +139,14 @@ Future<int> InetUtil::connect(const InetAddress& remote,
         [promise, fd]() { FileUtil::close(fd);
                           promise.failure(std::errc::timed_out); });
   } else {
-    TRACE("InetUtil.connect: failed. $0", ec.message());
+    TRACE("TcpUtil.connect: failed. $0", ec.message());
     promise.failure(ec);
   }
 
   return promise.future();
 }
 
-std::error_code InetUtil::connect(int fd, const InetAddress& remote) {
+std::error_code TcpUtil::connect(int fd, const InetAddress& remote) {
   int rv;
   switch (remote.family()) {
     case AF_INET: {
@@ -185,7 +185,7 @@ std::error_code InetUtil::connect(int fd, const InetAddress& remote) {
     return std::error_code();
 }
 
-bool InetUtil::isTcpNoDelay(int fd) {
+bool TcpUtil::isTcpNoDelay(int fd) {
   int result = 0;
   socklen_t sz = sizeof(result);
   if (getsockopt(fd, IPPROTO_TCP, TCP_NODELAY, &result, &sz) < 0)
@@ -194,13 +194,13 @@ bool InetUtil::isTcpNoDelay(int fd) {
   return result;
 }
 
-void InetUtil::setTcpNoDelay(int fd, bool enable) {
+void TcpUtil::setTcpNoDelay(int fd, bool enable) {
   int flag = enable ? 1 : 0;
   if (setsockopt(fd, IPPROTO_TCP, TCP_NODELAY, &flag, sizeof(flag)) < 0)
     RAISE_ERRNO(errno);
 }
 
-bool InetUtil::isCorking(int fd) {
+bool TcpUtil::isCorking(int fd) {
 #if defined(TCP_CORK)
   int flag = 0;
   socklen_t sz = sizeof(flag);
@@ -213,7 +213,7 @@ bool InetUtil::isCorking(int fd) {
 #endif
 }
 
-void InetUtil::setCorking(int fd, bool enable) {
+void TcpUtil::setCorking(int fd, bool enable) {
 #if defined(TCP_CORK)
   int flag = enable ? 1 : 0;
   if (setsockopt(fd, IPPROTO_TCP, TCP_CORK, &flag, sizeof(flag)) < 0)
@@ -221,7 +221,7 @@ void InetUtil::setCorking(int fd, bool enable) {
 #endif
 }
 
-size_t InetUtil::sendfile(int target, const FileView& source) {
+size_t TcpUtil::sendfile(int target, const FileView& source) {
 #if defined(__APPLE__)
   off_t len = source.size();
   int rv = ::sendfile(source.handle(), target, source.offset(), &len, nullptr, 0);

@@ -8,7 +8,7 @@
 #pragma once
 
 #include <xzero/io/FileDescriptor.h>
-#include <xzero/net/InetUtil.h>
+#include <xzero/net/TcpUtil.h>
 #include <xzero/RefPtr.h>
 #include <xzero/Duration.h>
 #include <system_error>
@@ -17,7 +17,7 @@
 
 namespace xzero {
 
-class InetEndPoint;
+class TcpEndPoint;
 class Executor;
 class SslContext;
 class SslConnector;
@@ -52,7 +52,7 @@ class SslUtil {
       Duration readTimeout,
       Duration writeTimeout,
       SslContext* defaultContext,
-      std::function<void(InetEndPoint*)> onEndPointClosed,
+      std::function<void(TcpEndPoint*)> onEndPointClosed,
       ConnectionFactory connectionFactory,
       Executor* executor);
 

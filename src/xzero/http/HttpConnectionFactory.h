@@ -17,8 +17,8 @@ namespace xzero {
 
 class WallClock;
 class Connection;
-class InetConnector;
-class InetEndPoint;
+class TcpConnector;
+class TcpEndPoint;
 
 namespace http {
 
@@ -27,7 +27,7 @@ namespace http {
  *
  * This provides common functionality to all HTTP connection factories.
  */
-class XZERO_HTTP_API HttpConnectionFactory {
+class HttpConnectionFactory {
  public:
   /**
    * Base initiailization for the HTTP connection factory.
@@ -60,7 +60,7 @@ class XZERO_HTTP_API HttpConnectionFactory {
   /** Access to the @c Date response header generator. */
   HttpDateGenerator* dateGenerator() noexcept;
 
-  virtual xzero::Connection* create(InetConnector* connector, InetEndPoint* endpoint) = 0;
+  virtual xzero::Connection* create(TcpConnector* connector, TcpEndPoint* endpoint) = 0;
 
  private:
   std::string protocolName_;

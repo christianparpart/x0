@@ -29,9 +29,9 @@ SslConnector::SslConnector(const std::string& name, Executor* executor,
                            Duration tcpFinTimeout,
                            const IPAddress& ipaddress, int port, int backlog,
                            bool reuseAddr, bool reusePort)
-    : InetConnector(name, executor, clientExecutorSelector,
-                    readTimeout, writeTimeout, tcpFinTimeout,
-                    ipaddress, port, backlog, reuseAddr, reusePort),
+    : TcpConnector(name, executor, clientExecutorSelector,
+                   readTimeout, writeTimeout, tcpFinTimeout,
+                   ipaddress, port, backlog, reuseAddr, reusePort),
       protocolList_(),
       contexts_() {
 }
@@ -41,7 +41,7 @@ SslConnector::~SslConnector() {
 
 void SslConnector::addConnectionFactory(const std::string& protocol,
                                         ConnectionFactory factory) {
-  InetConnector::addConnectionFactory(protocol, factory);
+  TcpConnector::addConnectionFactory(protocol, factory);
 
   // XXX needs update whenever a new protocol-implementation is added.
   // XXX should only happen at startup-time, too
@@ -85,7 +85,7 @@ int SslConnector::selectContext(
   return SSL_TLSEXT_ERR_OK;
 }
 
-RefPtr<InetEndPoint> SslConnector::createEndPoint(int cfd, Executor* executor) {
+RefPtr<TcpEndPoint> SslConnector::createEndPoint(int cfd, Executor* executor) {
   TRACE("createEndPoint: cfd=$0", cfd);
   return make_ref<SslEndPoint>(
       FileDescriptor(cfd),
@@ -95,10 +95,10 @@ RefPtr<InetEndPoint> SslConnector::createEndPoint(int cfd, Executor* executor) {
       defaultContext(),
       std::bind(&SslConnector::createConnection, this, std::placeholders::_1, std::placeholders::_2),
       std::bind(&SslConnector::onEndPointClosed, this, std::placeholders::_1),
-      executor).as<InetEndPoint>();
+      executor).as<TcpEndPoint>();
 }
 
-void SslConnector::onEndPointCreated(RefPtr<InetEndPoint> endpoint) {
+void SslConnector::onEndPointCreated(RefPtr<TcpEndPoint> endpoint) {
   TRACE("onEndPointCreated fd=$0", endpoint->handle());
   endpoint.weak_as<SslEndPoint>()->onHandshake();
 }

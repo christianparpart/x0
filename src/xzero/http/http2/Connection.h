@@ -23,7 +23,7 @@
 
 namespace xzero {
 
-class InetEndPoint;
+class TcpEndPoint;
 class Executor;
 class HugeBuffer;
 
@@ -41,7 +41,7 @@ class Connection
   typedef std::vector<std::pair<http2::SettingParameter, unsigned long>>
       Settings;
 
-  Connection(InetEndPoint* endpoint,
+  Connection(TcpEndPoint* endpoint,
              Executor* executor,
              const HttpHandler& handler,
              HttpDateGenerator* dateGenerator,
@@ -49,7 +49,7 @@ class Connection
              size_t maxRequestBodyLength,
              size_t maxRequestCount);
 
-  Connection(InetEndPoint* endpoint,
+  Connection(TcpEndPoint* endpoint,
              Executor* executor,
              const HttpHandler& handler,
              HttpDateGenerator* dateGenerator,

@@ -32,10 +32,10 @@ public:
    * Initializes the client-side HTTP/1 transport layer.
    *
    * @param channel HTTP channel to report HTTP and error events to.
-   * @param endpoint communication InetEndPoint
+   * @param endpoint communication TcpEndPoint
    * @param executor connection-level executor API
    */
-  Http1Connection(HttpListener* channel, InetEndPoint* endpoint, Executor* executor);
+  Http1Connection(HttpListener* channel, TcpEndPoint* endpoint, Executor* executor);
   ~Http1Connection();
 
   // HttpTransport overrides

@@ -8,7 +8,7 @@
 #include <xzero/http/client/HttpClient.h>
 #include <xzero/http/HttpRequest.h>
 #include <xzero/http/HeaderFieldList.h>
-#include <xzero/net/InetEndPoint.h>
+#include <xzero/net/TcpEndPoint.h>
 #include <xzero/executor/NativeScheduler.h>
 #include <xzero/net/DnsClient.h>
 #include <xzero/io/FileUtil.h>

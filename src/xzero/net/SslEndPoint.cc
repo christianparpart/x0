@@ -10,7 +10,7 @@
 #include <xzero/net/SslConnector.h>
 #include <xzero/net/SslUtil.h>
 #include <xzero/net/Connection.h>
-#include <xzero/net/InetUtil.h>
+#include <xzero/net/TcpUtil.h>
 #include <xzero/io/FileUtil.h>
 #include <xzero/RuntimeError.h>
 #include <xzero/logging.h>
@@ -38,11 +38,11 @@ SslEndPoint::SslEndPoint(FileDescriptor&& fd,
                          Duration writeTimeout,
                          SslContext* defaultContext,
                          std::function<void(const std::string&, SslEndPoint*)> connectionFactory,
-                         std::function<void(InetEndPoint*)> onEndPointClosed,
+                         std::function<void(TcpEndPoint*)> onEndPointClosed,
                          Executor* executor)
-    : InetEndPoint(fd.release(), addressFamily,
-                   readTimeout, writeTimeout,
-                   executor, onEndPointClosed),
+    : TcpEndPoint(fd.release(), addressFamily,
+                  readTimeout, writeTimeout,
+                  executor, onEndPointClosed),
       ssl_(nullptr),
       bioDesire_(Desire::None),
       connectionFactory_(connectionFactory) {
@@ -74,7 +74,7 @@ void SslEndPoint::close() {
   SSL_set_shutdown(ssl_, SSL_SENT_SHUTDOWN | SSL_RECEIVED_SHUTDOWN);
   shutdown();
 #else
-  InetEndPoint::close();
+  TcpEndPoint::close();
 #endif
 }
 
@@ -83,7 +83,7 @@ void SslEndPoint::shutdown() {
 
   TRACE("$0 close: SSL_shutdown -> $1", this, rv);
   if (rv == 1) {
-    InetEndPoint::close();
+    TcpEndPoint::close();
   } else if (rv == 0) {
     // call again
     shutdown();
@@ -91,7 +91,7 @@ void SslEndPoint::shutdown() {
     switch (SSL_get_error(ssl_, rv)) {
       case SSL_ERROR_SYSCALL:
         // consider done
-        InetEndPoint::close();
+        TcpEndPoint::close();
         break;
       case SSL_ERROR_WANT_READ:
         io_ = executor()->executeOnReadable(
@@ -214,7 +214,7 @@ void SslEndPoint::wantFill() {
 
 void SslEndPoint::fillable() {
   TRACE("$0 fillable()", this);
-  RefPtr<InetEndPoint> _guard(this);
+  RefPtr<TcpEndPoint> _guard(this);
   try {
     io_.reset();
     bioDesire_ = Desire::None;
@@ -237,12 +237,12 @@ void SslEndPoint::wantFlush() {
   switch (bioDesire_) {
     case Desire::Read:
       TRACE("$0 wantFlush: read", this);
-      InetEndPoint::wantFill();
+      TcpEndPoint::wantFill();
       break;
     case Desire::None:
     case Desire::Write:
       TRACE("$0 wantFlush: write", this);
-      InetEndPoint::wantFlush();
+      TcpEndPoint::wantFlush();
       break;
   }
 }
@@ -273,14 +273,14 @@ void SslEndPoint::onHandshake() {
         ERR_error_string_n(ERR_get_error(), buf, sizeof(buf));
         logError("SSL", "Handshake error. $0", buf);
 
-        InetEndPoint::close();
+        TcpEndPoint::close();
         return;
       }
     }
   } else {
     // create associated Connection object and run it
     bioDesire_ = Desire::None;
-    RefPtr<InetEndPoint> _guard(this);
+    RefPtr<TcpEndPoint> _guard(this);
     std::string protocolName = applicationProtocolName().str();
     TRACE("$0 handshake complete (next protocol: \"$1\")", this, protocolName.c_str());
 
@@ -292,7 +292,7 @@ void SslEndPoint::onHandshake() {
 
 void SslEndPoint::flushable() {
   TRACE("$0 flushable()", this);
-  RefPtr<InetEndPoint> _guard(this);
+  RefPtr<TcpEndPoint> _guard(this);
   try {
     io_.reset();
     bioDesire_ = Desire::None;

@@ -6,9 +6,9 @@
 // the License at: http://opensource.org/licenses/MIT
 
 #include <xzero/executor/EventLoop.h>
-#include <xzero/net/InetConnector.h>
-#include <xzero/net/InetEndPoint.h>
-#include <xzero/net/InetUtil.h>
+#include <xzero/net/TcpConnector.h>
+#include <xzero/net/TcpEndPoint.h>
+#include <xzero/net/TcpUtil.h>
 #include <xzero/net/Connection.h>
 #include <xzero/net/IPAddress.h>
 #include <xzero/io/FileUtil.h>
@@ -41,14 +41,14 @@
 #endif
 
 #if !defined(NDEBUG)
-#define TRACE(msg...) logTrace("net.InetConnector", msg)
+#define TRACE(msg...) logTrace("net.TcpConnector", msg)
 #else
 #define TRACE(msg...) do {} while (0)
 #endif
 
 namespace xzero {
 
-InetConnector::InetConnector(const std::string& name, Executor* executor,
+TcpConnector::TcpConnector(const std::string& name, Executor* executor,
                              ExecutorSelector clientExecutorSelector,
                              Duration readTimeout, Duration writeTimeout,
                              Duration tcpFinTimeout)
@@ -78,7 +78,7 @@ InetConnector::InetConnector(const std::string& name, Executor* executor,
       isStarted_(false) {
 }
 
-InetConnector::InetConnector(const std::string& name,
+TcpConnector::TcpConnector(const std::string& name,
                              Executor* executor,
                              ExecutorSelector clientExecutorSelector,
                              Duration readTimeout,
@@ -86,17 +86,17 @@ InetConnector::InetConnector(const std::string& name,
                              Duration tcpFinTimeout,
                              const IPAddress& ipaddress, int port, int backlog,
                              bool reuseAddr, bool reusePort)
-    : InetConnector(name, executor, clientExecutorSelector,
+    : TcpConnector(name, executor, clientExecutorSelector,
                     readTimeout, writeTimeout, tcpFinTimeout) {
 
   open(ipaddress, port, backlog, reuseAddr, reusePort);
 }
 
-const std::string& InetConnector::name() const {
+const std::string& TcpConnector::name() const {
   return name_;
 }
 
-void InetConnector::open(const IPAddress& ipaddress, int port, int backlog,
+void TcpConnector::open(const IPAddress& ipaddress, int port, int backlog,
                          bool reuseAddr, bool reusePort) {
   if (isOpen())
     RAISE_STATUS(IllegalStateError);
@@ -120,7 +120,7 @@ void InetConnector::open(const IPAddress& ipaddress, int port, int backlog,
   bind(ipaddress, port);
 }
 
-void InetConnector::bind(const IPAddress& ipaddr, int port) {
+void TcpConnector::bind(const IPAddress& ipaddr, int port) {
   char sa[sizeof(sockaddr_in6)];
   socklen_t salen = ipaddr.size();
 
@@ -150,11 +150,11 @@ void InetConnector::bind(const IPAddress& ipaddr, int port) {
   if (port != 0) {
     port_ = port;
   } else {
-    port_ = InetUtil::getLocalPort(socket_, addressFamily_);
+    port_ = TcpUtil::getLocalPort(socket_, addressFamily_);
   }
 }
 
-void InetConnector::listen(int backlog) {
+void TcpConnector::listen(int backlog) {
   int somaxconn = SOMAXCONN;
 
 #if defined(XZERO_OS_LINUX)
@@ -185,30 +185,30 @@ void InetConnector::listen(int backlog) {
     RAISE_ERRNO(errno);
 }
 
-bool InetConnector::isOpen() const XZERO_NOEXCEPT {
+bool TcpConnector::isOpen() const XZERO_NOEXCEPT {
   return socket_ >= 0;
 }
 
-InetConnector::~InetConnector() {
-  TRACE("~InetConnector");
+TcpConnector::~TcpConnector() {
+  TRACE("~TcpConnector");
   if (isStarted()) {
     stop();
   }
 }
 
-int InetConnector::handle() const XZERO_NOEXCEPT {
+int TcpConnector::handle() const XZERO_NOEXCEPT {
   return socket_;
 }
 
-void InetConnector::setSocket(FileDescriptor&& socket) {
+void TcpConnector::setSocket(FileDescriptor&& socket) {
   socket_ = std::move(socket);
 }
 
-size_t InetConnector::backlog() const XZERO_NOEXCEPT {
+size_t TcpConnector::backlog() const XZERO_NOEXCEPT {
   return backlog_;
 }
 
-void InetConnector::setBacklog(size_t value) {
+void TcpConnector::setBacklog(size_t value) {
   if (isStarted()) {
     RAISE_STATUS(IllegalStateError);
   }
@@ -216,11 +216,11 @@ void InetConnector::setBacklog(size_t value) {
   backlog_ = value;
 }
 
-bool InetConnector::isBlocking() const {
+bool TcpConnector::isBlocking() const {
   return !(fcntl(socket_, F_GETFL) & O_NONBLOCK);
 }
 
-void InetConnector::setBlocking(bool enable) {
+void TcpConnector::setBlocking(bool enable) {
   unsigned flags = enable ? fcntl(socket_, F_GETFL) & ~O_NONBLOCK
                           : fcntl(socket_, F_GETFL) | O_NONBLOCK;
 
@@ -244,11 +244,11 @@ void InetConnector::setBlocking(bool enable) {
   blocking_ = enable;
 }
 
-bool InetConnector::closeOnExec() const {
+bool TcpConnector::closeOnExec() const {
   return fcntl(socket_, F_GETFD) & FD_CLOEXEC;
 }
 
-void InetConnector::setCloseOnExec(bool enable) {
+void TcpConnector::setCloseOnExec(bool enable) {
   unsigned flags = enable ? fcntl(socket_, F_GETFD) | FD_CLOEXEC
                           : fcntl(socket_, F_GETFD) & ~FD_CLOEXEC;
 
@@ -271,11 +271,11 @@ void InetConnector::setCloseOnExec(bool enable) {
 #endif
 }
 
-bool InetConnector::deferAccept() const {
+bool TcpConnector::deferAccept() const {
   return deferAccept_;
 }
 
-void InetConnector::setDeferAccept(bool enable) {
+void TcpConnector::setDeferAccept(bool enable) {
 #if defined(TCP_DEFER_ACCEPT)
   int rc = enable ? 1 : 0;
   if (::setsockopt(socket_, SOL_TCP, TCP_DEFER_ACCEPT, &rc, sizeof(rc)) < 0) {
@@ -285,7 +285,7 @@ void InetConnector::setDeferAccept(bool enable) {
 #if defined(EOPNOTSUPP) && (EOPNOTSUPP != ENOTSUP)
       case EOPNOTSUPP:
 #endif
-        logWarning("InetConnector", "setDeferAccept($0) failed with $1 ($2). Ignoring",
+        logWarning("TcpConnector", "setDeferAccept($0) failed with $1 ($2). Ignoring",
             enable ? "true" : "false", strerror(errno), errno);
         return;
       default:
@@ -305,7 +305,7 @@ void InetConnector::setDeferAccept(bool enable) {
   deferAccept_ = enable;
 #else
   if (enable) {
-    logWarning("InetConnector",
+    logWarning("TcpConnector",
                "Ignoring setting TCP_DEFER_ACCEPT. Not supported.");
   } else {
     deferAccept_ = enable;
@@ -313,7 +313,7 @@ void InetConnector::setDeferAccept(bool enable) {
 #endif
 }
 
-bool InetConnector::quickAck() const {
+bool TcpConnector::quickAck() const {
 #if defined(TCP_QUICKACK)
   int optval = 1;
   socklen_t optlen = sizeof(optval);
@@ -325,7 +325,7 @@ bool InetConnector::quickAck() const {
 #endif
 }
 
-void InetConnector::setQuickAck(bool enable) {
+void TcpConnector::setQuickAck(bool enable) {
 #if defined(TCP_QUICKACK)
   int rc = enable ? 1 : 0;
   if (::setsockopt(socket_, SOL_TCP, TCP_QUICKACK, &rc, sizeof(rc)) < 0) {
@@ -336,7 +336,7 @@ void InetConnector::setQuickAck(bool enable) {
 #endif
 }
 
-bool InetConnector::reusePort() const {
+bool TcpConnector::reusePort() const {
   int optval = 1;
   socklen_t optlen = sizeof(optval);
   return ::getsockopt(socket_, SOL_SOCKET, SO_REUSEPORT, &optval, &optlen) == 0
@@ -344,14 +344,14 @@ bool InetConnector::reusePort() const {
              : false;
 }
 
-void InetConnector::setReusePort(bool enable) {
+void TcpConnector::setReusePort(bool enable) {
   int rc = enable ? 1 : 0;
   if (::setsockopt(socket_, SOL_SOCKET, SO_REUSEPORT, &rc, sizeof(rc)) < 0) {
     RAISE_ERRNO(errno);
   }
 }
 
-bool InetConnector::isReusePortSupported() {
+bool TcpConnector::isReusePortSupported() {
   int fd = ::socket(AF_INET, SOCK_STREAM, 0);
   if (fd < 0)
     return false;
@@ -363,7 +363,7 @@ bool InetConnector::isReusePortSupported() {
   return res;
 }
 
-bool InetConnector::isDeferAcceptSupported() {
+bool TcpConnector::isDeferAcceptSupported() {
 #if defined(TCP_DEFER_ACCEPT)
   FileDescriptor fd = ::socket(AF_INET, SOCK_STREAM, 0);
   if (fd < 0)
@@ -378,7 +378,7 @@ bool InetConnector::isDeferAcceptSupported() {
 #endif
 }
 
-bool InetConnector::reuseAddr() const {
+bool TcpConnector::reuseAddr() const {
   int optval = 1;
   socklen_t optlen = sizeof(optval);
   return ::getsockopt(socket_, SOL_SOCKET, SO_REUSEADDR, &optval, &optlen) == 0
@@ -386,34 +386,34 @@ bool InetConnector::reuseAddr() const {
              : false;
 }
 
-void InetConnector::setReuseAddr(bool enable) {
+void TcpConnector::setReuseAddr(bool enable) {
   int rc = enable ? 1 : 0;
   if (::setsockopt(socket_, SOL_SOCKET, SO_REUSEADDR, &rc, sizeof(rc)) < 0) {
     RAISE_ERRNO(errno);
   }
 }
 
-size_t InetConnector::multiAcceptCount() const XZERO_NOEXCEPT {
+size_t TcpConnector::multiAcceptCount() const XZERO_NOEXCEPT {
   return multiAcceptCount_;
 }
 
-void InetConnector::setMultiAcceptCount(size_t value) XZERO_NOEXCEPT {
+void TcpConnector::setMultiAcceptCount(size_t value) XZERO_NOEXCEPT {
   multiAcceptCount_ = value;
 }
 
-void InetConnector::setReadTimeout(Duration value) {
+void TcpConnector::setReadTimeout(Duration value) {
   readTimeout_ = value;
 }
 
-void InetConnector::setWriteTimeout(Duration value) {
+void TcpConnector::setWriteTimeout(Duration value) {
   writeTimeout_ = value;
 }
 
-void InetConnector::setTcpFinTimeout(Duration value) {
+void TcpConnector::setTcpFinTimeout(Duration value) {
   tcpFinTimeout_ = value;
 }
 
-void InetConnector::start() {
+void TcpConnector::start() {
   TRACE("start: ip=$0, port=$1", bindAddress_, port_);
   if (!isOpen()) {
     RAISE_STATUS(IllegalStateError);
@@ -434,17 +434,17 @@ void InetConnector::start() {
   notifyOnEvent();
 }
 
-void InetConnector::notifyOnEvent() {
+void TcpConnector::notifyOnEvent() {
   io_ = executor()->executeOnReadable(
       handle(),
-      std::bind(&InetConnector::onConnect, this));
+      std::bind(&TcpConnector::onConnect, this));
 }
 
-bool InetConnector::isStarted() const XZERO_NOEXCEPT {
+bool TcpConnector::isStarted() const XZERO_NOEXCEPT {
   return isStarted_;
 }
 
-void InetConnector::stop() {
+void TcpConnector::stop() {
   TRACE("stop: $0", this);
 
   if (io_)
@@ -456,7 +456,7 @@ void InetConnector::stop() {
   isStarted_ = false;
 }
 
-void InetConnector::onConnect() {
+void TcpConnector::onConnect() {
   for (size_t i = 0; i < multiAcceptCount_; i++) {
     int cfd = acceptOne();
     if (cfd < 0)
@@ -465,14 +465,14 @@ void InetConnector::onConnect() {
     TRACE("onConnect: fd=$0", cfd);
 
     Executor* clientExecutor = selectClientExecutor_();
-    RefPtr<InetEndPoint> ep = createEndPoint(cfd, clientExecutor);
+    RefPtr<TcpEndPoint> ep = createEndPoint(cfd, clientExecutor);
     {
       std::lock_guard<std::mutex> _lk(mutex_);
       connectedEndPoints_.push_back(ep);
     }
 
     clientExecutor->execute(
-        std::bind(&InetConnector::onEndPointCreated, this, ep));
+        std::bind(&TcpConnector::onEndPointCreated, this, ep));
   }
 
   if (isStarted()) {
@@ -480,7 +480,7 @@ void InetConnector::onConnect() {
   }
 }
 
-int InetConnector::acceptOne() {
+int TcpConnector::acceptOne() {
 #if defined(HAVE_ACCEPT4) && defined(ENABLE_ACCEPT4)
   bool flagged = true;
   int cfd = ::accept4(socket_, nullptr, 0, typeMask_);
@@ -526,17 +526,17 @@ int InetConnector::acceptOne() {
   return cfd;
 }
 
-RefPtr<InetEndPoint> InetConnector::createEndPoint(int cfd, Executor* executor) {
-  return make_ref<InetEndPoint>(cfd, addressFamily(),
+RefPtr<TcpEndPoint> TcpConnector::createEndPoint(int cfd, Executor* executor) {
+  return make_ref<TcpEndPoint>(cfd, addressFamily(),
       readTimeout_, writeTimeout_, executor_,
-      std::bind(&InetConnector::onEndPointClosed, this, std::placeholders::_1));
+      std::bind(&TcpConnector::onEndPointClosed, this, std::placeholders::_1));
 }
 
-void InetConnector::onEndPointCreated(RefPtr<InetEndPoint> endpoint) {
+void TcpConnector::onEndPointCreated(RefPtr<TcpEndPoint> endpoint) {
   if (connectionFactoryCount() > 1) {
     endpoint->startDetectProtocol(
         deferAccept(),
-        std::bind(&InetConnector::createConnection, this,
+        std::bind(&TcpConnector::createConnection, this,
                   std::placeholders::_1,
                   std::placeholders::_2));
   } else {
@@ -545,16 +545,16 @@ void InetConnector::onEndPointCreated(RefPtr<InetEndPoint> endpoint) {
   }
 }
 
-std::list<RefPtr<InetEndPoint>> InetConnector::connectedEndPoints() {
-  std::list<RefPtr<InetEndPoint>> result;
+std::list<RefPtr<TcpEndPoint>> TcpConnector::connectedEndPoints() {
+  std::list<RefPtr<TcpEndPoint>> result;
   std::lock_guard<std::mutex> _lk(mutex_);
-  for (const RefPtr<InetEndPoint>& ep : connectedEndPoints_) {
+  for (const RefPtr<TcpEndPoint>& ep : connectedEndPoints_) {
     result.push_back(ep);
   }
   return result;
 }
 
-void InetConnector::onEndPointClosed(InetEndPoint* endpoint) {
+void TcpConnector::onEndPointClosed(TcpEndPoint* endpoint) {
   assert(endpoint != nullptr);
 
   // XXX: e.g. SSL doesn't have a connection in case the handshake failed
@@ -572,7 +572,7 @@ void InetConnector::onEndPointClosed(InetEndPoint* endpoint) {
   }
 }
 
-void InetConnector::addConnectionFactory(const std::string& protocolName,
+void TcpConnector::addConnectionFactory(const std::string& protocolName,
                                          ConnectionFactory factory) {
   assert(protocolName != "");
   assert(!!factory);
@@ -584,8 +584,8 @@ void InetConnector::addConnectionFactory(const std::string& protocolName,
   }
 }
 
-void InetConnector::createConnection(const std::string& protocolName,
-                                     InetEndPoint* endpoint) {
+void TcpConnector::createConnection(const std::string& protocolName,
+                                     TcpEndPoint* endpoint) {
   TRACE("createConnection: \"$0\"", protocolName);
   auto factory = connectionFactory(protocolName);
   if (factory) {
@@ -596,7 +596,7 @@ void InetConnector::createConnection(const std::string& protocolName,
   endpoint->connection()->onOpen(endpoint->prefilled() > 0);
 }
 
-InetConnector::ConnectionFactory InetConnector::connectionFactory(
+TcpConnector::ConnectionFactory TcpConnector::connectionFactory(
     const std::string& protocolName) const {
   auto i = connectionFactories_.find(protocolName);
   if (i != connectionFactories_.end()) {
@@ -605,7 +605,7 @@ InetConnector::ConnectionFactory InetConnector::connectionFactory(
   return nullptr;
 }
 
-std::list<std::string> InetConnector::connectionFactories() const {
+std::list<std::string> TcpConnector::connectionFactories() const {
   std::list<std::string> result;
   for (auto& entry: connectionFactories_) {
     result.push_back(entry.first);
@@ -613,11 +613,11 @@ std::list<std::string> InetConnector::connectionFactories() const {
   return result;
 }
 
-size_t InetConnector::connectionFactoryCount() const {
+size_t TcpConnector::connectionFactoryCount() const {
   return connectionFactories_.size();
 }
 
-void InetConnector::setDefaultConnectionFactory(const std::string& protocolName) {
+void TcpConnector::setDefaultConnectionFactory(const std::string& protocolName) {
   auto i = connectionFactories_.find(protocolName);
   if (i == connectionFactories_.end())
     throw std::runtime_error("Invalid argument.");
@@ -625,7 +625,7 @@ void InetConnector::setDefaultConnectionFactory(const std::string& protocolName)
   defaultConnectionFactory_ = protocolName;
 }
 
-InetConnector::ConnectionFactory InetConnector::defaultConnectionFactory() const {
+TcpConnector::ConnectionFactory TcpConnector::defaultConnectionFactory() const {
   auto i = connectionFactories_.find(defaultConnectionFactory_);
   if (i == connectionFactories_.end())
     RAISE_STATUS(InternalError);
@@ -633,7 +633,7 @@ InetConnector::ConnectionFactory InetConnector::defaultConnectionFactory() const
   return i->second;
 }
 
-void InetConnector::loadConnectionFactorySelector(const std::string& protocolName,
+void TcpConnector::loadConnectionFactorySelector(const std::string& protocolName,
                                                   Buffer* sink) {
   auto i = connectionFactories_.find(defaultConnectionFactory_);
   if (i == connectionFactories_.end())
@@ -643,14 +643,14 @@ void InetConnector::loadConnectionFactorySelector(const std::string& protocolNam
   BinaryWriter(BufferUtil::writer(sink)).writeString(protocolName);
 }
 
-std::string InetConnector::toString() const {
+std::string TcpConnector::toString() const {
   char buf[128];
-  int n = snprintf(buf, sizeof(buf), "InetConnector/%s@%p[%s:%d]",
+  int n = snprintf(buf, sizeof(buf), "TcpConnector/%s@%p[%s:%d]",
                    name().c_str(), this, bindAddress_.c_str(), port_);
   return std::string(buf, n);
 }
 
-template<> std::string StringUtil::toString(InetConnector* c) {
+template<> std::string StringUtil::toString(TcpConnector* c) {
   return c->toString();
 }
 

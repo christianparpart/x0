@@ -21,13 +21,13 @@
 namespace xzero {
 
 class Connection;
-class InetEndPoint;
+class TcpEndPoint;
 class SslEndPoint;
 
 /**
  * TCP/IP Internet Connector API
  */
-class InetConnector {
+class TcpConnector {
  public:
   //! Must be a non-printable ASCII byte.
   enum { MagicProtocolSwitchByte = 0x01 };
@@ -45,9 +45,9 @@ class InetConnector {
    *
    * @return pointer to the newly created Connection instance.
    *
-   * The newly created Connection instance will be owned by its InetEndPoint.
+   * The newly created Connection instance will be owned by its TcpEndPoint.
    */
-  typedef std::function<Connection*(InetConnector*, InetEndPoint*)> ConnectionFactory;
+  typedef std::function<Connection*(TcpConnector*, TcpEndPoint*)> ConnectionFactory;
 
   /**
    * Initializes this connector.
@@ -69,7 +69,7 @@ class InetConnector {
    *
    * @throw std::runtime_error on any kind of runtime error.
    */
-  InetConnector(const std::string& name,
+  TcpConnector(const std::string& name,
                 Executor* executor,
                 ExecutorSelector clientExecutorSelector,
                 Duration readTimeout,
@@ -91,14 +91,14 @@ class InetConnector {
    *                      A value of 0 means to leave it at system default.
    * @param eh exception handler for errors in hooks or during events.
    */
-  InetConnector(const std::string& name,
+  TcpConnector(const std::string& name,
                 Executor* executor,
                 ExecutorSelector clientExecutorSelector,
                 Duration readTimeout,
                 Duration writeTimeout,
                 Duration tcpFinTimeout);
 
-  virtual ~InetConnector();
+  virtual ~TcpConnector();
 
   Executor* scheduler() const XZERO_NOEXCEPT;
 
@@ -158,7 +158,7 @@ class InetConnector {
    * That is, a non-blocking connector will create non-blocking endpoints
    * for the newly accepted clients.
    *
-   * @see InetEndPoint::setBlocking(bool enable)
+   * @see TcpEndPoint::setBlocking(bool enable)
    */
   void setBlocking(bool enable);
 
@@ -269,7 +269,7 @@ class InetConnector {
   /**
    * Retrieves list of currently connected endpoints.
    */
-  std::list<RefPtr<InetEndPoint>> connectedEndPoints();
+  std::list<RefPtr<TcpEndPoint>> connectedEndPoints();
 
   /**
    * Registeres a new connection factory.
@@ -288,7 +288,7 @@ class InetConnector {
    * @param protocolName The connection's protoclName.
    * @param endpoint The endpoint to assign the newly created connection to.
    */
-  void createConnection(const std::string& protocolName, InetEndPoint* endpoint);
+  void createConnection(const std::string& protocolName, TcpEndPoint* endpoint);
 
   /** Retrieves all registered connection factories. */
   std::list<std::string> connectionFactories() const;
@@ -340,19 +340,19 @@ class InetConnector {
   int acceptOne();
 
   /**
-   * Creates an InetEndPoint instance for given client file descriptor.
+   * Creates an TcpEndPoint instance for given client file descriptor.
    *
    * @param cfd       client's file descriptor
    * @param executor  client's designated I/O scheduler
    */
-  virtual RefPtr<InetEndPoint> createEndPoint(int cfd, Executor* executor);
+  virtual RefPtr<TcpEndPoint> createEndPoint(int cfd, Executor* executor);
 
   /**
    * By default, creates Connection from default connection factory and initiates it.
    *
    * Initiated via @c Connection::onOpen().
    */
-  virtual void onEndPointCreated(RefPtr<InetEndPoint> endpoint);
+  virtual void onEndPointCreated(RefPtr<TcpEndPoint> endpoint);
 
   /**
    * Accepts as many pending connections as possible.
@@ -363,10 +363,10 @@ class InetConnector {
   void listen(int backlog);
 
   /**
-   * Invoked by InetEndPoint to inform its creator that it got close()'d.
+   * Invoked by TcpEndPoint to inform its creator that it got close()'d.
    */
-  void onEndPointClosed(InetEndPoint* endpoint);
-  friend class InetEndPoint;
+  void onEndPointClosed(TcpEndPoint* endpoint);
+  friend class TcpEndPoint;
   friend class SslConnector;
   friend class SslUtil;
 
@@ -383,7 +383,7 @@ class InetConnector {
   IPAddress bindAddress_;
   int port_;
 
-  std::list<RefPtr<InetEndPoint>> connectedEndPoints_;
+  std::list<RefPtr<TcpEndPoint>> connectedEndPoints_;
   std::mutex mutex_;
   FileDescriptor socket_;
   int addressFamily_;
@@ -399,23 +399,23 @@ class InetConnector {
   bool isStarted_;
 };
 
-inline const IPAddress& InetConnector::bindAddress() const noexcept {
+inline const IPAddress& TcpConnector::bindAddress() const noexcept {
   return bindAddress_;
 }
 
-inline int InetConnector::port() const noexcept {
+inline int TcpConnector::port() const noexcept {
   return port_;
 }
 
-inline Duration InetConnector::readTimeout() const XZERO_NOEXCEPT {
+inline Duration TcpConnector::readTimeout() const XZERO_NOEXCEPT {
   return readTimeout_;
 }
 
-inline Duration InetConnector::writeTimeout() const XZERO_NOEXCEPT {
+inline Duration TcpConnector::writeTimeout() const XZERO_NOEXCEPT {
   return writeTimeout_;
 }
 
-inline Duration InetConnector::tcpFinTimeout() const XZERO_NOEXCEPT {
+inline Duration TcpConnector::tcpFinTimeout() const XZERO_NOEXCEPT {
   return tcpFinTimeout_;
 }
 

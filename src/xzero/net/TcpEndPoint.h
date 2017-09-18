@@ -15,19 +15,19 @@
 
 namespace xzero {
 
-class InetConnector;
+class TcpConnector;
 class Connection;
 class FileView;
 
 /**
- * TCP/IP endpoint, as created by an InetConnector.
+ * TCP/IP endpoint, as created by an TcpConnector.
  *
- * @see InetConnector
+ * @see TcpConnector
  */
-class InetEndPoint : public RefCounted {
+class TcpEndPoint : public RefCounted {
  public:
   /**
-   * Initializes an InetEndPoint.
+   * Initializes an TcpEndPoint.
    *
    * @param socket system file handle representing the client-side socket to
    *               the server.
@@ -38,12 +38,12 @@ class InetEndPoint : public RefCounted {
    * @param executor the task scheduler to be used for I/O & timeout completion.
    * @param onEndPointClosed invoked when this socket gets closed.
    */
-  InetEndPoint(int socket, int addressFamily,
-               Duration readTimeout, Duration writeTimeout,
-               Executor* executor,
-               std::function<void(InetEndPoint*)> onEndPointClosed = nullptr);
+  TcpEndPoint(int socket, int addressFamily,
+              Duration readTimeout, Duration writeTimeout,
+              Executor* executor,
+              std::function<void(TcpEndPoint*)> onEndPointClosed = nullptr);
 
-  ~InetEndPoint();
+  ~TcpEndPoint();
 
   /**
    * Asynchronousely connects to a remote TCP/IP server.
@@ -52,10 +52,10 @@ class InetEndPoint : public RefCounted {
    *
    * @param inet TCP/IP server address and port.
    * @param connectTimeout timeout until the connect must have been completed.
-   * @param readTimeout InetEndPoint-read timeout.
-   * @param writeTimeout InetEndPoint-write timeout.
+   * @param readTimeout TcpEndPoint-read timeout.
+   * @param writeTimeout TcpEndPoint-write timeout.
    * @param scheduler Task scheduler used for connecting and later passed
-   *                  to the created InetEndPoint.
+   *                  to the created TcpEndPoint.
    * @param success Callback to be invoked upon success.
    * @param failure Callback to be invoked upon failure.
    */
@@ -63,7 +63,7 @@ class InetEndPoint : public RefCounted {
       const InetAddress& inet,
       Duration connectTimeout, Duration readTimeout, Duration writeTimeout,
       Executor* executor,
-      std::function<void(RefPtr<InetEndPoint>)> onSuccess,
+      std::function<void(RefPtr<TcpEndPoint>)> onSuccess,
       std::function<void(std::error_code)> onError);
 
   /**
@@ -71,16 +71,16 @@ class InetEndPoint : public RefCounted {
    *
    * The callee does not block.
    *
-   * @return A future to the yet to be created InetEndPoint.
+   * @return A future to the yet to be created TcpEndPoint.
    *
    * @param inet TCP/IP server address and port.
    * @param connectTimeout timeout until the connect must have been completed.
-   * @param readTimeout InetEndPoint-read timeout.
-   * @param writeTimeout InetEndPoint-write timeout.
+   * @param readTimeout TcpEndPoint-read timeout.
+   * @param writeTimeout TcpEndPoint-write timeout.
    * @param scheduler Task scheduler used for connecting and later passed
-   *                  to the created InetEndPoint.
+   *                  to the created TcpEndPoint.
    */
-  static Future<RefPtr<InetEndPoint>> connectAsync(
+  static Future<RefPtr<TcpEndPoint>> connectAsync(
       const InetAddress& inet,
       Duration connectTimeout, Duration readTimeout, Duration writeTimeout,
       Executor* executor);
@@ -90,16 +90,16 @@ class InetEndPoint : public RefCounted {
    *
    * The callee does not block.
    *
-   * @return A future to the yet to be created InetEndPoint.
+   * @return A future to the yet to be created TcpEndPoint.
    *
    * @param inet TCP/IP server address and port.
    * @param connectTimeout timeout until the connect must have been completed.
-   * @param readTimeout InetEndPoint-read timeout.
-   * @param writeTimeout InetEndPoint-write timeout.
+   * @param readTimeout TcpEndPoint-read timeout.
+   * @param writeTimeout TcpEndPoint-write timeout.
    * @param scheduler Task scheduler used for connecting and later passed
-   *                  to the created InetEndPoint.
+   *                  to the created TcpEndPoint.
    */
-  static RefPtr<InetEndPoint> connect(
+  static RefPtr<TcpEndPoint> connect(
       const InetAddress& inet,
       Duration connectTimeout, Duration readTimeout, Duration writeTimeout,
       Executor* executor);
@@ -130,17 +130,17 @@ class InetEndPoint : public RefCounted {
   virtual void close();
 
   /**
-   * Retrieves the connection object associated with this InetEndPoint.
+   * Retrieves the connection object associated with this TcpEndPoint.
    */
   Connection* connection() const { return connection_.get(); }
 
   /**
-   * Associates a Connection associated with this InetEndPoint.
+   * Associates a Connection associated with this TcpEndPoint.
    */
   void setConnection(std::unique_ptr<Connection>&& connection);
 
   /**
-   * Associates a Connection associated with this InetEndPoint.
+   * Associates a Connection associated with this TcpEndPoint.
    */
   template<typename T, typename... Args>
   T* setConnection(Args&&... args);
@@ -264,13 +264,13 @@ class InetEndPoint : public RefCounted {
 
   void startDetectProtocol(
       bool dataReady,
-      std::function<void(const std::string&, InetEndPoint*)> createConnection);
+      std::function<void(const std::string&, TcpEndPoint*)> createConnection);
 
   Executor* executor() const noexcept { return executor_; }
 
  private:
   void onDetectProtocol(
-    std::function<void(const std::string&, InetEndPoint*)> createConnection);
+    std::function<void(const std::string&, TcpEndPoint*)> createConnection);
   void fillable();
   void flushable();
   void onTimeout();
@@ -279,7 +279,7 @@ class InetEndPoint : public RefCounted {
   Executor::HandleRef io_;
 
  private:
-  std::function<void(InetEndPoint*)> onEndPointClosed_;
+  std::function<void(TcpEndPoint*)> onEndPointClosed_;
   Executor* executor_;
   Duration readTimeout_;
   Duration writeTimeout_;
@@ -291,12 +291,12 @@ class InetEndPoint : public RefCounted {
   bool isCorking_;
 };
 
-inline size_t InetEndPoint::prefilled() const {
+inline size_t TcpEndPoint::prefilled() const {
   return inputBuffer_.size() - inputOffset_;
 }
 
 template<typename T, typename... Args>
-inline T* InetEndPoint::setConnection(Args&&... args) {
+inline T* TcpEndPoint::setConnection(Args&&... args) {
   setConnection(std::make_unique<T>(std::forward<Args>(args)...));
   return static_cast<T*>(connection());
 }

@@ -26,7 +26,7 @@
 #include <xzero/net/ByteArrayEndPoint.h>
 #include <xzero/io/FileUtil.h>
 #include <xzero/io/BufferInputStream.h>
-#include <xzero/net/InetEndPoint.h>
+#include <xzero/net/TcpEndPoint.h>
 #include <xzero/WallClock.h>
 #include <xzero/StringUtil.h>
 #include <xzero/RuntimeError.h>

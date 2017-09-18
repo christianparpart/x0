@@ -8,7 +8,7 @@
 #pragma once
 
 #include <xzero/Api.h>
-#include <xzero/net/InetConnector.h>
+#include <xzero/net/TcpConnector.h>
 #include <xzero/net/SslEndPoint.h>
 #include <list>
 #include <memory>
@@ -22,10 +22,10 @@ class SslUtil;
 /**
  * SSL Connector.
  *
- * @see InetConnector
+ * @see TcpConnector
  * @see SslEndPoint
  */
-class SslConnector : public InetConnector {
+class SslConnector : public TcpConnector {
  public:
   /**
    * Initializes this connector.
@@ -68,8 +68,8 @@ class SslConnector : public InetConnector {
   void addContext(const std::string& crtFilePath,
                   const std::string& keyFilePath);
 
-  RefPtr<InetEndPoint> createEndPoint(int cfd, Executor* executor) override;
-  void onEndPointCreated(RefPtr<InetEndPoint> endpoint) override;
+  RefPtr<TcpEndPoint> createEndPoint(int cfd, Executor* executor) override;
+  void onEndPointCreated(RefPtr<TcpEndPoint> endpoint) override;
 
   SslContext* selectContext(const char* servername) const;
   SslContext* defaultContext() const;

@@ -6,7 +6,7 @@
 // the License at: http://opensource.org/licenses/MIT
 
 #include <xzero/net/EndPointWriter.h>
-#include <xzero/net/InetEndPoint.h>
+#include <xzero/net/TcpEndPoint.h>
 #include <xzero/logging.h>
 #include <unistd.h>
 
@@ -41,7 +41,7 @@ void EndPointWriter::write(FileView&& chunk) {
   chain_.write(std::move(chunk));
 }
 
-bool EndPointWriter::flush(InetEndPoint* sink) {
+bool EndPointWriter::flush(TcpEndPoint* sink) {
   TRACE("write: flushing $0 bytes", chain_.size());
   sink_ = sink;
   return chain_.transferTo(this);

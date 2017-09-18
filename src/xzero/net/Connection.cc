@@ -7,12 +7,12 @@
 
 #include <xzero/StringUtil.h>
 #include <xzero/net/Connection.h>
-#include <xzero/net/InetEndPoint.h>
+#include <xzero/net/TcpEndPoint.h>
 #include <algorithm>
 
 namespace xzero {
 
-Connection::Connection(InetEndPoint* endpoint,
+Connection::Connection(TcpEndPoint* endpoint,
                        Executor* executor)
     : endpoint_(endpoint),
       executor_(executor) {

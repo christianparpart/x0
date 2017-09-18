@@ -95,7 +95,7 @@ void XzeroEventHandler::onGracefulShutdown(const xzero::UnixSignalInfo& info) {
    * 3. orderly shutdown
    */
 
-  daemon_->server()->stop();
+  daemon_->stop();
 }
 
 } // namespace x0d

@@ -18,7 +18,6 @@
 #include <vector>
 
 namespace xzero {
-  class InetEndPoint;
   class JsonWriter;
 }
 

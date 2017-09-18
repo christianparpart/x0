@@ -6,7 +6,6 @@
 // the License at: http://opensource.org/licenses/MIT
 
 #include <xzero/http/proxy/HttpHealthMonitor.h>
-#include <xzero/net/InetEndPoint.h>
 #include <xzero/io/InputStream.h>
 #include <xzero/StringUtil.h>
 #include <xzero/logging.h>
