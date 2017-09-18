@@ -10,7 +10,6 @@
 #include <xzero/http/HttpResponse.h>
 #include <xzero/http/http1/ConnectionFactory.h>
 #include <xzero/http/fastcgi/ConnectionFactory.h>
-#include <xzero/net/LocalConnector.h>
 #include <xzero/net/InetConnector.h>
 #include <xzero/net/Server.h>
 #include <xzero/RuntimeError.h>
@@ -50,24 +49,12 @@ HttpService::Protocol HttpService::getDefaultProtocol() {
 HttpService::HttpService(Protocol protocol)
     : protocol_(protocol),
       server_(new Server()),
-      localConnector_(nullptr),
       inetConnector_(nullptr),
       handlers_() {
 }
 
 HttpService::~HttpService() {
   delete server_;
-}
-
-LocalConnector* HttpService::configureLocal() {
-  if (localConnector_ != nullptr)
-    throw std::runtime_error("Multiple local connectors not supported.");
-
-  localConnector_ = server_->addConnector<LocalConnector>();
-
-  attachProtocol(localConnector_);
-
-  return localConnector_;
 }
 
 InetConnector* HttpService::configureInet(Executor* executor,

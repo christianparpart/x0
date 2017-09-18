@@ -159,10 +159,8 @@ libXzero_a_SOURCES = \
 	src/xzero/logging/LogTarget.cc \
 	src/xzero/logging/Logger.cc \
 	src/xzero/logging/SyslogTarget.cc \
-	src/xzero/net/ByteArrayEndPoint.cc \
 	src/xzero/net/Cidr.cc \
 	src/xzero/net/Connection.cc \
-	src/xzero/net/Connector.cc \
 	src/xzero/net/DatagramConnector.cc \
 	src/xzero/net/DatagramEndPoint.cc \
 	src/xzero/net/DnsClient.cc \
@@ -172,9 +170,6 @@ libXzero_a_SOURCES = \
 	src/xzero/net/InetConnector.cc \
 	src/xzero/net/InetEndPoint.cc \
 	src/xzero/net/InetUtil.cc \
-	src/xzero/net/LocalConnector.cc \
-	src/xzero/net/LocalDatagramConnector.cc \
-	src/xzero/net/LocalDatagramEndPoint.cc \
 	src/xzero/net/Server.cc \
 	src/xzero/net/SslConnector.cc \
 	src/xzero/net/SslContext.cc \
@@ -376,10 +371,8 @@ nobase_libXzero_HEADERS = \
 	src/xzero/logging/Logger.h \
 	src/xzero/logging/Logger_impl.h \
 	src/xzero/logging/SyslogTarget.h \
-	src/xzero/net/ByteArrayEndPoint.h \
 	src/xzero/net/Cidr.h \
 	src/xzero/net/Connection.h \
-	src/xzero/net/Connector.h \
 	src/xzero/net/DatagramConnector.h \
 	src/xzero/net/DatagramEndPoint.h \
 	src/xzero/net/DnsClient.h \
@@ -391,9 +384,6 @@ nobase_libXzero_HEADERS = \
 	src/xzero/net/InetConnector.h \
 	src/xzero/net/InetEndPoint.h \
 	src/xzero/net/InetUtil.h \
-	src/xzero/net/LocalConnector.h \
-	src/xzero/net/LocalDatagramConnector.h \
-	src/xzero/net/LocalDatagramEndPoint.h \
 	src/xzero/net/Server.h \
 	src/xzero/net/SslConnector.h \
 	src/xzero/net/SslClient.h \
@@ -630,7 +620,6 @@ xzero_test_SOURCES = \
 	src/xzero/io/DataChain-test.cc \
 	src/xzero/io/MemoryFile-test.cc \
 	src/xzero/io/MemoryMap-test.cc \
-	src/xzero/net/ByteArrayEndPoint-test.cc \
 	src/xzero/net/InetConnector-test.cc \
 	src/xzero/net/Cidr-test.cc \
 	src/xzero/net/SslClient-test.cc \

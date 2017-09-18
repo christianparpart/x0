@@ -27,11 +27,27 @@ class SslEndPoint;
 /**
  * TCP/IP Internet Connector API
  */
-class XZERO_BASE_API InetConnector : public Connector {
+class InetConnector : public Connector {
  public:
-  typedef std::function<Executor*()> ExecutorSelector;
+  //! Must be a non-printable ASCII byte.
+  enum { MagicProtocolSwitchByte = 0x01 };
 
   enum { RandomPort = 0 };
+
+  typedef std::function<Executor*()> ExecutorSelector;
+
+  /**
+   * Creates a new Connection instance for the given @p connector
+   * and @p endpoint.
+   *
+   * @param connector the Connector that accepted the incoming connection.
+   * @param endpoint the endpoint that corresponds to this connection.
+   *
+   * @return pointer to the newly created Connection instance.
+   *
+   * The newly created Connection instance will be owned by its EndPoint.
+   */
+  typedef std::function<Connection*(Connector*, EndPoint*)> ConnectionFactory;
 
   /**
    * Initializes this connector.
@@ -85,6 +101,11 @@ class XZERO_BASE_API InetConnector : public Connector {
   ~InetConnector();
 
   Executor* scheduler() const XZERO_NOEXCEPT;
+
+  /**
+   * Retrieves the describing name for this connector.
+   */
+  const std::string& name() const;
 
   /**
    * Opens this connector by binding to the given @p ipaddress and @p port.
@@ -228,16 +249,80 @@ class XZERO_BASE_API InetConnector : public Connector {
    */
   void setTcpFinTimeout(Duration value);
 
-  void start() override;
-  bool isStarted() const XZERO_NOEXCEPT override;
-  void stop() override;
-  std::list<RefPtr<EndPoint>> connectedEndPoints() override;
+  /**
+   * Starts given connector.
+   *
+   * @throw std::runtime_error on runtime errors
+   */
+  void start();
+
+  /**
+   * Tests whether this connector has been started.
+   */
+  bool isStarted() const noexcept;
+
+  /**
+   * Stops given connector.
+   */
+  void stop();
+
+  /**
+   * Retrieves list of currently connected endpoints.
+   */
+  std::list<RefPtr<EndPoint>> connectedEndPoints();
+
+  /**
+   * Registeres a new connection factory.
+   */
+  virtual void addConnectionFactory(const std::string& protocol, ConnectionFactory factory);
 
   const IPAddress& bindAddress() const noexcept;
   int port() const noexcept;
 
-  std::string toString() const override;
+  /**
+   * Creates a Connection object and assigns it to the @p endpoint.
+   *
+   * When no connection factory is matching the @p protocolName, then
+   * the default connection factory will be used instead.
+   *
+   * @param protocolName The connection's protoclName.
+   * @param endpoint The endpoint to assign the newly created connection to.
+   */
+  void createConnection(const std::string& protocolName, EndPoint* endpoint);
+
+  /** Retrieves all registered connection factories. */
+  std::list<std::string> connectionFactories() const;
+
+  /** Retrieves number of registered connection factories. */
+  size_t connectionFactoryCount() const;
+
+  /**
+   * Sets the default connection factory.
+   */
+  void setDefaultConnectionFactory(const std::string& protocolName);
+
+  /**
+   * Retrieves the default connection factory.
+   */
+  ConnectionFactory defaultConnectionFactory() const;
+
+  void loadConnectionFactorySelector(const std::string& protocolName, Buffer* sink);
+
+  /**
+   * Retrieves the default task executor service.
+   */
+  Executor* executor() const { return executor_; }
+
+  std::string toString() const;
+
  private:
+  /**
+   * Retrieves associated connection factory by @p protocolName.
+   *
+   * @param protocolName protocol name for the connection factory to retrieve.
+   */
+  ConnectionFactory connectionFactory(const std::string& protocolName) const;
+
   /**
    * Registers to the Executor API for new incoming connections.
    */
@@ -286,6 +371,12 @@ class XZERO_BASE_API InetConnector : public Connector {
   friend class SslUtil;
 
  private:
+  std::string name_;
+  Executor* executor_;
+
+  std::unordered_map<std::string, ConnectionFactory> connectionFactories_;
+  std::string defaultConnectionFactory_;
+
   Executor::HandleRef io_;
   ExecutorSelector selectClientExecutor_;
 

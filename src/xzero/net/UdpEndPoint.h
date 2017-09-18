@@ -8,25 +8,35 @@
 #pragma once
 
 #include <xzero/Api.h>
-#include <xzero/net/DatagramEndPoint.h>
 #include <xzero/net/IPAddress.h>
 #include <xzero/Buffer.h>
+#include <xzero/RefCounted.h>
 
 namespace xzero {
 
 class UdpConnector;
 class IPAddress;
 
-class XZERO_BASE_API UdpEndPoint : public DatagramEndPoint {
+class UdpEndPoint : public RefCounted {
  public:
   UdpEndPoint(
       UdpConnector* connector, Buffer&& msg,
       struct sockaddr* remoteSock, int remoteSockLen);
   ~UdpEndPoint();
 
-  size_t send(const BufferRef& response) override;
+  UdpConnector* connector() const noexcept { return connector_; }
+
+  const Buffer& message() const { return message_; }
+
+  size_t send(const BufferRef& response);
 
  private:
+  //! the connector that was used to receive the message
+  UdpConnector* connector_;
+
+  //! message received
+  Buffer message_;
+
   Buffer remoteSock_;
 };
 

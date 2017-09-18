@@ -19,7 +19,6 @@ namespace xzero {
 
 class Server;
 class Connector;
-class LocalConnector;
 class InetConnector;
 class Executor;
 class WallClock;
@@ -76,9 +75,6 @@ class XZERO_HTTP_API HttpService {
                                int port,
                                int backlog = 128);
 
-  /** Configures a local connector. */
-  LocalConnector* configureLocal();
-
   /** Registers a new @p handler. */
   void addHandler(Handler* handler);
 
@@ -115,7 +111,6 @@ class XZERO_HTTP_API HttpService {
   Protocol protocol_;
   Server* server_;
   std::vector<std::unique_ptr<HttpConnectionFactory>> httpFactories_;
-  LocalConnector* localConnector_;
   InetConnector* inetConnector_;
   std::vector<Handler*> handlers_;
 };

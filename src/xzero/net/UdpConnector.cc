@@ -28,13 +28,16 @@ namespace xzero {
 #define SO_REUSEPORT 15
 #endif
 
-UdpConnector::UdpConnector(
-    const std::string& name,
-    DatagramHandler handler,
-    Executor* executor,
-    const IPAddress& ipaddr, int port,
-    bool reuseAddr, bool reusePort)
-    : DatagramConnector(name, handler, executor),
+UdpConnector::UdpConnector(const std::string& name,
+                           Handler handler,
+                           Executor* executor,
+                           const IPAddress& ipaddr,
+                           int port,
+                           bool reuseAddr,
+                           bool reusePort)
+    : name_(name),
+      handler_(handler),
+      executor_(executor),
       socket_(-1),
       addressFamily_(0) {
   open(ipaddr, port, reuseAddr, reusePort);
@@ -170,7 +173,7 @@ void UdpConnector::onMessage() {
 
   if (handler_) {
     message.resize(n);
-    RefPtr<DatagramEndPoint> client(new UdpEndPoint(
+    RefPtr<UdpEndPoint> client(new UdpEndPoint(
         this, std::move(message), remoteAddr, remoteAddrLen));
     executor_->execute(std::bind(handler_, client));
   } else {

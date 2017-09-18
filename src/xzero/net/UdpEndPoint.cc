@@ -18,7 +18,8 @@ UdpEndPoint::UdpEndPoint(
     Buffer&& msg,
     struct sockaddr* remoteSock,
     int remoteSockLen)
-    : DatagramEndPoint(connector, std::move(msg)),
+    : connector_(connector),
+      message_(std::move(msg)),
       remoteSock_((char*) remoteSock, remoteSockLen) {
 }
 
@@ -49,6 +50,5 @@ size_t UdpEndPoint::send(const BufferRef& response) {
 
   return n;
 }
-
 
 } // namespace xzero

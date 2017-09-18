@@ -50,7 +50,10 @@ InetConnector::InetConnector(const std::string& name, Executor* executor,
                              ExecutorSelector clientExecutorSelector,
                              Duration readTimeout, Duration writeTimeout,
                              Duration tcpFinTimeout)
-    : Connector(name, executor),
+    : name_(name),
+      executor_(executor),
+      connectionFactories_(),
+      defaultConnectionFactory_(),
       io_(),
       selectClientExecutor_(clientExecutorSelector
                                 ? clientExecutorSelector
@@ -85,6 +88,10 @@ InetConnector::InetConnector(const std::string& name,
                     readTimeout, writeTimeout, tcpFinTimeout) {
 
   open(ipaddress, port, backlog, reuseAddr, reusePort);
+}
+
+const std::string& InetConnector::name() const {
+  return name_;
 }
 
 void InetConnector::open(const IPAddress& ipaddress, int port, int backlog,
@@ -555,6 +562,76 @@ void InetConnector::onEndPointClosed(EndPoint* endpoint) {
   if (i != connectedEndPoints_.end()) {
     connectedEndPoints_.erase(i);
   }
+}
+
+void InetConnector::addConnectionFactory(const std::string& protocolName,
+                                         ConnectionFactory factory) {
+  assert(protocolName != "");
+  assert(!!factory);
+
+  connectionFactories_[protocolName] = factory;
+
+  if (connectionFactories_.size() == 1) {
+    defaultConnectionFactory_ = protocolName;
+  }
+}
+
+void InetConnector::createConnection(const std::string& protocolName,
+                                     EndPoint* ep) {
+  TRACE("createConnection: \"$0\"", protocolName);
+  auto factory = connectionFactory(protocolName);
+  if (factory) {
+    factory(this, ep);
+  } else {
+    defaultConnectionFactory()(this, ep);
+  }
+}
+
+InetConnector::ConnectionFactory InetConnector::connectionFactory(
+    const std::string& protocolName) const {
+  auto i = connectionFactories_.find(protocolName);
+  if (i != connectionFactories_.end()) {
+    return i->second;
+  }
+  return nullptr;
+}
+
+std::list<std::string> InetConnector::connectionFactories() const {
+  std::list<std::string> result;
+  for (auto& entry: connectionFactories_) {
+    result.push_back(entry.first);
+  }
+  return result;
+}
+
+size_t InetConnector::connectionFactoryCount() const {
+  return connectionFactories_.size();
+}
+
+void InetConnector::setDefaultConnectionFactory(const std::string& protocolName) {
+  auto i = connectionFactories_.find(protocolName);
+  if (i == connectionFactories_.end())
+    throw std::runtime_error("Invalid argument.");
+
+  defaultConnectionFactory_ = protocolName;
+}
+
+InetConnector::ConnectionFactory InetConnector::defaultConnectionFactory() const {
+  auto i = connectionFactories_.find(defaultConnectionFactory_);
+  if (i == connectionFactories_.end())
+    RAISE_STATUS(InternalError);
+
+  return i->second;
+}
+
+void InetConnector::loadConnectionFactorySelector(const std::string& protocolName,
+                                                  Buffer* sink) {
+  auto i = connectionFactories_.find(defaultConnectionFactory_);
+  if (i == connectionFactories_.end())
+    RAISE(InvalidArgumentError, "Invalid protocol name.");
+
+  sink->push_back((char) MagicProtocolSwitchByte);
+  BinaryWriter(BufferUtil::writer(sink)).writeString(protocolName);
 }
 
 std::string InetConnector::toString() const {
