@@ -1,6 +1,26 @@
 
 ## Incomplete TODO items
 
+```
+  xzero/net/
+      Cidr
+      IPAddress
+      InetAddress
+  xzero/net/stream/
+      Connector, EndPoint, Connection
+      InetConnector, InetEndPoint
+      LocalConnector, ByteArrayEndPoint
+      InetUtil, EndPointWriter, Server
+      SslClient
+      SslConnector, SslEndPoint, SslUtil
+  xzero/net/datagram/
+      DatagramConnector, DatagramEndPoint, DatagramHandler
+      LocalDatagramConnector, LocalDatagramEndPoint
+      UdpClient
+  xzero/net/util/
+      DnsClient
+```
+
 ### Intermediate 0
 
 - [ ] HttpListener: onMessagecontent(HugeBuffer&&) instead
