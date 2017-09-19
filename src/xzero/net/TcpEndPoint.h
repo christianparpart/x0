@@ -269,7 +269,7 @@ class TcpEndPoint : public RefCounted {
 
   Executor* executor() const noexcept { return executor_; }
 
- private:
+ protected:
   void onDetectProtocol(ProtocolCallback createConnection);
   void fillable();
   void flushable();
@@ -277,8 +277,6 @@ class TcpEndPoint : public RefCounted {
 
  protected:
   Executor::HandleRef io_;
-
- private:
   Executor* executor_;
   Duration readTimeout_;
   Duration writeTimeout_;
