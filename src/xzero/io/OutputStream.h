@@ -13,24 +13,14 @@
 
 namespace xzero {
 
-class StringOutputStream;
-class BufferOutputStream;
-class FileOutputStream;
-
-class OutputStreamVisitor {
- public:
-  virtual ~OutputStreamVisitor() {}
-
-  virtual void visit(StringOutputStream* stream) = 0;
-  virtual void visit(BufferOutputStream* stream) = 0;
-  virtual void visit(FileOutputStream* stream) = 0;
-};
+class FileView;
 
 class OutputStream {
  public:
   virtual ~OutputStream() {}
 
   virtual int write(const char* buf, size_t size) = 0;
+  // TODO virtual int write(const FileView& view) = 0;
 
   int write(const std::string& data);
   int printf(const char* fmt, ...);
