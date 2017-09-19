@@ -90,12 +90,12 @@ void SslEndPoint::shutdown() {
         TcpEndPoint::close();
         break;
       case SSL_ERROR_WANT_READ:
-        io_ = executor()->executeOnReadable(
+        io_ = executor_->executeOnReadable(
             handle(),
             std::bind(&SslEndPoint::shutdown, this));
         break;
       case SSL_ERROR_WANT_WRITE:
-        io_ = executor()->executeOnWritable(
+        io_ = executor_->executeOnWritable(
             handle(),
             std::bind(&SslEndPoint::shutdown, this));
         break;
@@ -195,13 +195,13 @@ void SslEndPoint::wantFill() {
     case Desire::None:
     case Desire::Read:
       TRACE("$0 wantFill: read", this);
-      io_ = executor()->executeOnReadable(
+      io_ = executor_->executeOnReadable(
           handle(),
           std::bind(&SslEndPoint::fillable, this));
       break;
     case Desire::Write:
       TRACE("$0 wantFill: write", this);
-      io_ = executor()->executeOnWritable(
+      io_ = executor_->executeOnWritable(
           handle(),
           std::bind(&SslEndPoint::fillable, this));
       break;
@@ -256,12 +256,12 @@ void SslEndPoint::onHandshake() {
     switch (SSL_get_error(ssl_, rv)) {
       case SSL_ERROR_WANT_READ:
         TRACE("$0 onHandshake (want read)", this);
-        io_ = executor()->executeOnReadable(
+        io_ = executor_->executeOnReadable(
             handle(), std::bind(&SslEndPoint::onHandshake, this));
         break;
       case SSL_ERROR_WANT_WRITE:
         TRACE("$0 onHandshake (want write)", this);
-        io_ = executor()->executeOnWritable(
+        io_ = executor_->executeOnWritable(
             handle(), std::bind(&SslEndPoint::onHandshake, this));
         break;
       default: {

@@ -38,7 +38,7 @@ class TcpEndPoint : public RefCounted {
    *                      that is: @c AF_INET or @c AF_INET6.
    * @param readTimeout read-readiness timeout.
    * @param writeTimeout write-readiness timeout.
-   * @param executor the task scheduler to be used for I/O & timeout completion.
+   * @param executor Task scheduler used for I/O.
    * @param onEndPointClosed invoked when this socket gets closed.
    */
   TcpEndPoint(int socket, int addressFamily,
@@ -57,8 +57,7 @@ class TcpEndPoint : public RefCounted {
    * @param connectTimeout timeout until the connect must have been completed.
    * @param readTimeout TcpEndPoint-read timeout.
    * @param writeTimeout TcpEndPoint-write timeout.
-   * @param scheduler Task scheduler used for connecting and later passed
-   *                  to the created TcpEndPoint.
+   * @param executor Task scheduler used for I/O.
    * @param success Callback to be invoked upon success.
    * @param failure Callback to be invoked upon failure.
    */
@@ -80,8 +79,7 @@ class TcpEndPoint : public RefCounted {
    * @param connectTimeout timeout until the connect must have been completed.
    * @param readTimeout TcpEndPoint-read timeout.
    * @param writeTimeout TcpEndPoint-write timeout.
-   * @param scheduler Task scheduler used for connecting and later passed
-   *                  to the created TcpEndPoint.
+   * @param executor Task scheduler used I/O.
    */
   static Future<RefPtr<TcpEndPoint>> connectAsync(
       const InetAddress& inet,
@@ -99,8 +97,7 @@ class TcpEndPoint : public RefCounted {
    * @param connectTimeout timeout until the connect must have been completed.
    * @param readTimeout TcpEndPoint-read timeout.
    * @param writeTimeout TcpEndPoint-write timeout.
-   * @param scheduler Task scheduler used for connecting and later passed
-   *                  to the created TcpEndPoint.
+   * @param executor Task scheduler used for I/O.
    */
   static RefPtr<TcpEndPoint> connect(
       const InetAddress& inet,
@@ -125,7 +122,7 @@ class TcpEndPoint : public RefCounted {
   /**
    * Convinience method against @c{isOpen() const}.
    */
-  bool isClosed() const { return isOpen() == false; }
+  bool isClosed() const noexcept { return isOpen() == false; }
 
   /**
    * Fully closes this endpoint.
@@ -242,32 +239,28 @@ class TcpEndPoint : public RefCounted {
 
   /**
    * Retrieves the timeout before a TimeoutError is thrown when I/O
-   * interest cannot be * fullfilled.
+   * interest cannot be fullfilled.
    */
-  Duration readTimeout();
+  Duration readTimeout() const noexcept;
 
   /**
    * Retrieves the timeout before a TimeoutError is thrown when I/O
-   * interest cannot be * fullfilled.
+   * interest cannot be fullfilled.
    */
-  Duration writeTimeout();
+  Duration writeTimeout() const noexcept;
 
   /**
-   * Sets the timeout to wait for the read-interest before an TimeoutError is thrown.
+   * Initiates detecting the application protocol and initializes the connection
+   * object.
+   *
+   * @param dataReady indicates whether or not data is already available for read.
+   * @param createConnection callback to be invoked when the protocol has been
+   * detected. This callback must expected to create the connection object.
    */
-  void setReadTimeout(Duration timeout);
-
-  /**
-   * Sets the timeout to wait for the read-interest before an TimeoutError is thrown.
-   */
-  void setWriteTimeout(Duration timeout);
+  void startDetectProtocol(bool dataReady, ProtocolCallback createConnection);
 
   Option<InetAddress> remoteAddress() const;
   Option<InetAddress> localAddress() const;
-
-  void startDetectProtocol(bool dataReady, ProtocolCallback createConnection);
-
-  Executor* executor() const noexcept { return executor_; }
 
  protected:
   void onDetectProtocol(ProtocolCallback createConnection);
@@ -285,8 +278,8 @@ class TcpEndPoint : public RefCounted {
   int handle_;
   int addressFamily_;
   bool isCorking_;
-  std::unique_ptr<Connection> connection_;
   Callback onEndPointClosed_;
+  std::unique_ptr<Connection> connection_;
 };
 
 inline size_t TcpEndPoint::prefilled() const {

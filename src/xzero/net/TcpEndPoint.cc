@@ -318,20 +318,12 @@ void TcpEndPoint::flushable() {
   }
 }
 
-Duration TcpEndPoint::readTimeout() {
+Duration TcpEndPoint::readTimeout() const noexcept {
   return readTimeout_;
 }
 
-Duration TcpEndPoint::writeTimeout() {
+Duration TcpEndPoint::writeTimeout() const noexcept {
   return writeTimeout_;
-}
-
-void TcpEndPoint::setReadTimeout(Duration timeout) {
-  readTimeout_ = timeout;
-}
-
-void TcpEndPoint::setWriteTimeout(Duration timeout) {
-  writeTimeout_ = timeout;
 }
 
 class TcpConnectState {
