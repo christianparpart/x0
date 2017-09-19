@@ -21,7 +21,6 @@ namespace xzero {
 
 class StringUtil {
 public:
-
   /**
    * Stringify the provided value
    *
