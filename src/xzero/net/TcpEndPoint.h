@@ -8,6 +8,7 @@
 #pragma once
 
 #include <xzero/Api.h>
+#include <xzero/io/FileDescriptor.h>
 #include <xzero/thread/Future.h>
 #include <xzero/net/InetAddress.h>
 #include <xzero/executor/Executor.h>
@@ -41,8 +42,10 @@ class TcpEndPoint : public RefCounted {
    * @param executor Task scheduler used for I/O.
    * @param onEndPointClosed invoked when this socket gets closed.
    */
-  TcpEndPoint(int socket, int addressFamily,
-              Duration readTimeout, Duration writeTimeout,
+  TcpEndPoint(FileDescriptor&& socket,
+              int addressFamily,
+              Duration readTimeout,
+              Duration writeTimeout,
               Executor* executor,
               Callback onEndPointClosed);
 
@@ -275,7 +278,7 @@ class TcpEndPoint : public RefCounted {
   Duration writeTimeout_;
   Buffer inputBuffer_;
   size_t inputOffset_;
-  int handle_;
+  FileDescriptor handle_;
   int addressFamily_;
   bool isCorking_;
   Callback onEndPointClosed_;

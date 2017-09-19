@@ -35,19 +35,19 @@ namespace xzero {
 #define DEBUG(msg...) do {} while (0)
 #endif
 
-TcpEndPoint::TcpEndPoint(int socket,
-                          int addressFamily,
-                          Duration readTimeout,
-                          Duration writeTimeout,
-                          Executor* executor,
-                          std::function<void(TcpEndPoint*)> onEndPointClosed)
+TcpEndPoint::TcpEndPoint(FileDescriptor&& socket,
+                         int addressFamily,
+                         Duration readTimeout,
+                         Duration writeTimeout,
+                         Executor* executor,
+                         std::function<void(TcpEndPoint*)> onEndPointClosed)
     : io_(),
       executor_(executor),
       readTimeout_(readTimeout),
       writeTimeout_(writeTimeout),
       inputBuffer_(),
       inputOffset_(0),
-      handle_(socket),
+      handle_(std::move(socket)),
       addressFamily_(addressFamily),
       isCorking_(false),
       onEndPointClosed_(onEndPointClosed),
@@ -100,15 +100,15 @@ bool TcpEndPoint::isOpen() const XZERO_NOEXCEPT {
 
 void TcpEndPoint::close() {
   if (isOpen()) {
-    TRACE("close() fd=$0", handle_);
-    FileUtil::close(handle_);
-    handle_ = -1;
+    TRACE("close() fd=$0", handle_.get());
 
     if (onEndPointClosed_) {
       onEndPointClosed_(this);
     }
+
+    handle_.close();
   } else {
-    TRACE("close(fd=$0) invoked, but we're closed already", handle_);
+    TRACE("close(fd=$0) invoked, but we're closed already", handle_.get());
   }
 }
 
