@@ -28,7 +28,7 @@ class TcpEndPoint;
  * @todo 2 consecutive buffer writes should merge.
  * @todo consider managing its own BufferPool
  */
-class XZERO_BASE_API EndPointWriter : public DataChainListener {
+class EndPointWriter : public DataChainListener {
  public:
   EndPointWriter();
   ~EndPointWriter();

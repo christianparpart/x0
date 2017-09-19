@@ -26,6 +26,9 @@ class FileView;
  */
 class TcpEndPoint : public RefCounted {
  public:
+  using Callback = std::function<void(TcpEndPoint*)>;
+  using ProtocolCallback = std::function<void(const std::string&, TcpEndPoint*)>;
+
   /**
    * Initializes an TcpEndPoint.
    *
@@ -41,7 +44,7 @@ class TcpEndPoint : public RefCounted {
   TcpEndPoint(int socket, int addressFamily,
               Duration readTimeout, Duration writeTimeout,
               Executor* executor,
-              std::function<void(TcpEndPoint*)> onEndPointClosed);
+              Callback onEndPointClosed);
 
   ~TcpEndPoint();
 
@@ -262,15 +265,12 @@ class TcpEndPoint : public RefCounted {
   Option<InetAddress> remoteAddress() const;
   Option<InetAddress> localAddress() const;
 
-  void startDetectProtocol(
-      bool dataReady,
-      std::function<void(const std::string&, TcpEndPoint*)> createConnection);
+  void startDetectProtocol(bool dataReady, ProtocolCallback createConnection);
 
   Executor* executor() const noexcept { return executor_; }
 
  private:
-  void onDetectProtocol(
-    std::function<void(const std::string&, TcpEndPoint*)> createConnection);
+  void onDetectProtocol(ProtocolCallback createConnection);
   void fillable();
   void flushable();
   void onTimeout();
@@ -279,16 +279,16 @@ class TcpEndPoint : public RefCounted {
   Executor::HandleRef io_;
 
  private:
-  std::function<void(TcpEndPoint*)> onEndPointClosed_;
   Executor* executor_;
   Duration readTimeout_;
   Duration writeTimeout_;
-  std::unique_ptr<Connection> connection_;
   Buffer inputBuffer_;
   size_t inputOffset_;
   int handle_;
   int addressFamily_;
   bool isCorking_;
+  std::unique_ptr<Connection> connection_;
+  Callback onEndPointClosed_;
 };
 
 inline size_t TcpEndPoint::prefilled() const {

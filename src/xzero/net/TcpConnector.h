@@ -70,13 +70,13 @@ class TcpConnector {
    * @throw std::runtime_error on any kind of runtime error.
    */
   TcpConnector(const std::string& name,
-                Executor* executor,
-                ExecutorSelector clientExecutorSelector,
-                Duration readTimeout,
-                Duration writeTimeout,
-                Duration tcpFinTimeout,
-                const IPAddress& ipaddress, int port, int backlog,
-                bool reuseAddr, bool reusePort);
+               Executor* executor,
+               ExecutorSelector clientExecutorSelector,
+               Duration readTimeout,
+               Duration writeTimeout,
+               Duration tcpFinTimeout,
+               const IPAddress& ipaddress, int port, int backlog,
+               bool reuseAddr, bool reusePort);
 
   /**
    * Minimal initializer.
@@ -92,15 +92,15 @@ class TcpConnector {
    * @param eh exception handler for errors in hooks or during events.
    */
   TcpConnector(const std::string& name,
-                Executor* executor,
-                ExecutorSelector clientExecutorSelector,
-                Duration readTimeout,
-                Duration writeTimeout,
-                Duration tcpFinTimeout);
+               Executor* executor,
+               ExecutorSelector clientExecutorSelector,
+               Duration readTimeout,
+               Duration writeTimeout,
+               Duration tcpFinTimeout);
 
   virtual ~TcpConnector();
 
-  Executor* scheduler() const XZERO_NOEXCEPT;
+  Executor* scheduler() const noexcept;
 
   /**
    * Retrieves the describing name for this connector.
@@ -124,12 +124,12 @@ class TcpConnector {
   /**
    * Tests whether this connector is open.
    */
-  bool isOpen() const XZERO_NOEXCEPT;
+  bool isOpen() const noexcept;
 
   /**
    * Retrieves the underlying system socket handle.
    */
-  int handle() const XZERO_NOEXCEPT;
+  int handle() const noexcept;
 
   /**
    * Returns the IP address family, such as @c IPAddress::V4 or @c IPAddress::V6.
@@ -141,7 +141,7 @@ class TcpConnector {
    */
   void setSocket(FileDescriptor&& socket);
 
-  size_t backlog() const XZERO_NOEXCEPT;
+  size_t backlog() const noexcept;
   void setBacklog(size_t enable);
 
   /** Tests wether this connector is blocking on accepting new clients. */
@@ -208,22 +208,22 @@ class TcpConnector {
   /**
    * Retrieves the number of maximum attempts to accept a new clients in a row.
    */
-  size_t multiAcceptCount() const XZERO_NOEXCEPT;
+  size_t multiAcceptCount() const noexcept;
 
   /**
    * Sets the number of attempts to accept a new client in a row.
    */
-  void setMultiAcceptCount(size_t value) XZERO_NOEXCEPT;
+  void setMultiAcceptCount(size_t value) noexcept;
 
   /**
    * Retrieves the timespan a connection may be idle within an I/O operation.
    */
-  Duration readTimeout() const XZERO_NOEXCEPT;
+  Duration readTimeout() const noexcept;
 
   /**
    * Retrieves the timespan a connection may be idle within an I/O operation.
    */
-  Duration writeTimeout() const XZERO_NOEXCEPT;
+  Duration writeTimeout() const noexcept;
 
   /**
    * Sets the timespan a connection may be idle within a read-operation.
@@ -240,7 +240,7 @@ class TcpConnector {
    *
    * A value of 0 means to use the system default.
    */
-  Duration tcpFinTimeout() const XZERO_NOEXCEPT;
+  Duration tcpFinTimeout() const noexcept;
 
   /**
    * Sets the timespan to leave a closing client connection in FIN_WAIT2 state.
@@ -407,15 +407,15 @@ inline int TcpConnector::port() const noexcept {
   return port_;
 }
 
-inline Duration TcpConnector::readTimeout() const XZERO_NOEXCEPT {
+inline Duration TcpConnector::readTimeout() const noexcept {
   return readTimeout_;
 }
 
-inline Duration TcpConnector::writeTimeout() const XZERO_NOEXCEPT {
+inline Duration TcpConnector::writeTimeout() const noexcept {
   return writeTimeout_;
 }
 
-inline Duration TcpConnector::tcpFinTimeout() const XZERO_NOEXCEPT {
+inline Duration TcpConnector::tcpFinTimeout() const noexcept {
   return tcpFinTimeout_;
 }
 

@@ -42,7 +42,6 @@ TcpEndPoint::TcpEndPoint(int socket,
                           Executor* executor,
                           std::function<void(TcpEndPoint*)> onEndPointClosed)
     : io_(),
-      onEndPointClosed_(onEndPointClosed),
       executor_(executor),
       readTimeout_(readTimeout),
       writeTimeout_(writeTimeout),
@@ -50,7 +49,9 @@ TcpEndPoint::TcpEndPoint(int socket,
       inputOffset_(0),
       handle_(socket),
       addressFamily_(addressFamily),
-      isCorking_(false) {
+      isCorking_(false),
+      onEndPointClosed_(onEndPointClosed),
+      connection_() {
   TRACE("$0 ctor", this);
 }
 
