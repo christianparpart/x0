@@ -14,7 +14,6 @@
 
 namespace xzero {
   class InputStream;
-  class OutputStream;
 }
 
 namespace xzero::http {

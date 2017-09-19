@@ -131,26 +131,19 @@ libXzero_a_SOURCES = \
 	src/xzero/http/http2/StreamState.cc \
 	src/xzero/http/mock/Transport.cc \
 	src/xzero/inspect.cc \
-	src/xzero/io/BufferInputStream.cc \
-	src/xzero/io/BufferOutputStream.cc \
 	src/xzero/io/DataChain.cc \
 	src/xzero/io/File.cc \
 	src/xzero/io/FileDescriptor.cc \
-	src/xzero/io/FileInputStream.cc \
-	src/xzero/io/FileOutputStream.cc \
 	src/xzero/io/FileRepository.cc \
 	src/xzero/io/FileUtil.cc \
 	src/xzero/io/FileView.cc \
 	src/xzero/io/Filter.cc \
 	src/xzero/io/GzipFilter.cc \
-	src/xzero/io/InputStream.cc \
 	src/xzero/io/LocalFile.cc \
 	src/xzero/io/LocalFileRepository.cc \
 	src/xzero/io/MemoryFile.cc \
 	src/xzero/io/MemoryFileRepository.cc \
 	src/xzero/io/MemoryMap.cc \
-	src/xzero/io/OutputStream.cc \
-	src/xzero/io/StringInputStream.cc \
 	src/xzero/io/SystemPipe.cc \
 	src/xzero/logging/ConsoleLogTarget.cc \
 	src/xzero/logging/FileLogTarget.cc \
@@ -336,27 +329,20 @@ nobase_libXzero_HEADERS = \
 	src/xzero/http/http2/StreamID.h \
 	src/xzero/http/http2/StreamState.h \
 	src/xzero/http/mock/Transport.h \
-	src/xzero/io/BufferInputStream.h \
-	src/xzero/io/BufferOutputStream.h \
 	src/xzero/io/DataChain.h \
 	src/xzero/io/DataChainListener.h \
 	src/xzero/io/File.h \
 	src/xzero/io/FileDescriptor.h \
-	src/xzero/io/FileInputStream.h \
-	src/xzero/io/FileOutputStream.h \
 	src/xzero/io/FileRepository.h \
 	src/xzero/io/FileUtil.h \
 	src/xzero/io/FileView.h \
 	src/xzero/io/Filter.h \
 	src/xzero/io/GzipFilter.h \
-	src/xzero/io/InputStream.h \
 	src/xzero/io/LocalFile.h \
 	src/xzero/io/LocalFileRepository.h \
 	src/xzero/io/MemoryFile.h \
 	src/xzero/io/MemoryFileRepository.h \
 	src/xzero/io/MemoryMap.h \
-	src/xzero/io/OutputStream.h \
-	src/xzero/io/StringInputStream.h \
 	src/xzero/io/SystemPipe.h \
 	src/xzero/logging/ConsoleLogTarget.h \
 	src/xzero/logging/FileLogTarget.h \

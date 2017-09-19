@@ -6,9 +6,6 @@
 // the License at: http://opensource.org/licenses/MIT
 
 #include <xzero/http/HttpRequest.h>
-#include <xzero/io/BufferInputStream.h>
-#include <xzero/io/FileInputStream.h>
-#include <xzero/io/InputStream.h>
 #include <xzero/io/FileUtil.h>
 #include <xzero/logging.h>
 
@@ -118,14 +115,6 @@ void HttpRequest::fillContent(const BufferRef& chunk) {
 void HttpRequest::ready() {
   if (onContentReady_)
     onContentReady_();
-}
-
-std::unique_ptr<InputStream> HttpRequest::getContentStream() {
-  return content_.getInputStream();
-}
-
-BufferRef HttpRequest::getContentBuffer() {
-  return content_.getBuffer();
 }
 
 HugeBuffer& HttpRequest::getContent() {

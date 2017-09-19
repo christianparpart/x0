@@ -44,18 +44,18 @@ namespace x0d {
 // {{{ LogFile impl LogFile impl LogFile impl LogFile impl
 LogFile::LogFile(std::shared_ptr<File> file)
     : file_(file),
-      output_(file_->createOutputChannel()) {
+      fd_(file_->createPosixChannel(File::Write | File::Append)) {
 }
 
 LogFile::~LogFile() {
 }
 
 void LogFile::write(Buffer&& message) {
-  output_->write(message.data(), message.size());
+  FileUtil::write(fd_, message);
 }
 
 void LogFile::cycle() {
-  output_ = file_->createOutputChannel();
+  fd_ = file_->createPosixChannel(File::Write | File::Append);
 }
 // }}}
 template <typename iterator> inline BufferRef getFormatName(iterator& i, iterator e) { // {{{

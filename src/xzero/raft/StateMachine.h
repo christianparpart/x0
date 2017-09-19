@@ -7,10 +7,9 @@
 #pragma once
 
 #include <xzero/raft/rpc.h>
-#include <xzero/io/InputStream.h>
-#include <xzero/io/OutputStream.h>
 #include <system_error>
 #include <memory>
+#include <iosfwd>
 
 namespace xzero {
 namespace raft {
@@ -25,12 +24,12 @@ class StateMachine {
   /**
    * Loads a snapshot of a full FSM state into this instance.
    */
-  virtual std::error_code loadSnapshot(std::unique_ptr<InputStream>&& input) = 0;
+  virtual std::error_code loadSnapshot(std::unique_ptr<std::istream>&& input) = 0;
 
   /**
    * Retrieves a full snapshot of this FSM.
    */
-  virtual std::error_code saveSnapshot(std::unique_ptr<OutputStream>&& output) = 0;
+  virtual std::error_code saveSnapshot(std::unique_ptr<std::ostream>&& output) = 0;
 
   /**
    * Applies given @p command to this state machine.

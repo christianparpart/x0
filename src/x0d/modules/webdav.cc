@@ -8,7 +8,6 @@
 #include "webdav.h"
 #include <xzero/http/HttpRequest.h>
 #include <xzero/http/HttpResponse.h>
-#include <xzero/io/OutputStream.h>
 #include <xzero/io/FileUtil.h>
 #include <xzero/io/File.h>
 #include <xzero/logging.h>
@@ -128,7 +127,7 @@ bool WebdavModule::webdav_put(XzeroContext* cx, Params& args) {
   //bool didNotExistBefore = !cx->file()->exists();
   int mode = args.getInt(1);
   File::OpenFlags flags = File::Write | File::Create | File::Truncate;
-  std::unique_ptr<OutputStream> output = cx->file()->createOutputChannel(flags, mode);
+  FileDescriptor output = cx->file()->createPosixChannel(flags, mode);
 
   // if (!output->tryAllocate(content.size())) {
   //   if (didNotExistBefore)
@@ -137,7 +136,7 @@ bool WebdavModule::webdav_put(XzeroContext* cx, Params& args) {
   //   cx->response()->completed();
   // }
 
-  output->write(content.data(), content.size());
+  FileUtil::write(output, content);
 
   cx->response()->setStatus(HttpStatus::Created);
   cx->response()->completed();

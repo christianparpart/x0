@@ -9,8 +9,6 @@
 #include <xzero/io/LocalFileRepository.h>
 #include <xzero/io/MemoryMap.h>
 #include <xzero/io/FileDescriptor.h>
-#include <xzero/io/FileInputStream.h>
-#include <xzero/io/FileOutputStream.h>
 #include <xzero/MimeTypes.h>
 #include <xzero/RuntimeError.h>
 #include <xzero/sysconfig.h>
@@ -38,27 +36,27 @@ LocalFile::LocalFile(LocalFileRepository& repo,
 LocalFile::~LocalFile() {
 }
 
-size_t LocalFile::size() const XZERO_NOEXCEPT {
+size_t LocalFile::size() const noexcept {
   return stat_.st_size;
 }
 
-time_t LocalFile::mtime() const XZERO_NOEXCEPT {
+time_t LocalFile::mtime() const noexcept {
   return stat_.st_mtime;
 }
 
-size_t LocalFile::inode() const XZERO_NOEXCEPT {
+size_t LocalFile::inode() const noexcept {
   return stat_.st_ino;
 }
 
-bool LocalFile::isRegular() const XZERO_NOEXCEPT {
+bool LocalFile::isRegular() const noexcept {
   return S_ISREG(stat_.st_mode);
 }
 
-bool LocalFile::isDirectory() const XZERO_NOEXCEPT {
+bool LocalFile::isDirectory() const noexcept {
   return S_ISDIR(stat_.st_mode);
 }
 
-bool LocalFile::isExecutable() const XZERO_NOEXCEPT {
+bool LocalFile::isExecutable() const noexcept {
   return stat_.st_mode & (S_IXUSR | S_IXGRP | S_IXOTH);
 }
 
@@ -101,16 +99,12 @@ void LocalFile::update() {
     setErrorCode(0);
 }
 
-int LocalFile::createPosixChannel(OpenFlags oflags) {
-  return ::open(path().c_str(), to_posix(oflags));
-}
-
-std::unique_ptr<InputStream> LocalFile::createInputChannel() {
-  return std::unique_ptr<InputStream>(new FileInputStream(path()));
-}
-
-std::unique_ptr<OutputStream> LocalFile::createOutputChannel(OpenFlags flags, int mode) {
-  return std::unique_ptr<OutputStream>(new FileOutputStream(path(), flags, mode));
+int LocalFile::createPosixChannel(OpenFlags oflags, int mode) {
+  if (mode) {
+    return ::open(path().c_str(), to_posix(oflags), mode);
+  } else {
+    return ::open(path().c_str(), to_posix(oflags));
+  }
 }
 
 std::unique_ptr<MemoryMap> LocalFile::createMemoryMap(bool rw) {

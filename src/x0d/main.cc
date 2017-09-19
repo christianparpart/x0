@@ -9,13 +9,13 @@
 #include <x0d/XzeroDaemon.h>
 
 #include <xzero/sysconfig.h>
-#include <xzero/io/OutputStream.h>
 #include <xzero/logging/ConsoleLogTarget.h>
 #include <xzero/logging/FileLogTarget.h>
 #include <xzero/logging.h>
 #include <xzero/io/FileUtil.h>
-#include <xzero/Flags.h>
+#include <xzero/StringUtil.h>
 #include <xzero/Application.h>
+#include <xzero/Flags.h>
 #include <typeinfo>
 #include <iostream>
 #include <memory>
@@ -56,7 +56,7 @@ PidFile::PidFile(const std::string& path)
   // TODO: sanity-check (flock?) to ensure that we're the one.
   logInfo("x0d", "Writing main process ID $0 into file $1",
           getpid(), path_);
-  FileUtil::write(path_, StringUtil::toString(getpid()));
+  FileUtil::write(path_, to_string(getpid()));
 }
 
 PidFile::~PidFile() {
@@ -119,7 +119,7 @@ int main(int argc, const char* argv[]) {
     std::string filename = flags.getString("log-file");
     std::shared_ptr<File> file = x0d.vfs().getFile(filename);
     File::OpenFlags openFlags = File::Write | File::Create | File::Append;
-    std::unique_ptr<OutputStream> out = file->createOutputChannel(openFlags);
+    FileDescriptor out = file->createPosixChannel(openFlags);
     fileLogTarget.reset(new FileLogTarget(std::move(out)));
     Logger::get()->addTarget(fileLogTarget.get());
   } else if (logTarget == "syslog") {

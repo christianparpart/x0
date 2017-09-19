@@ -8,8 +8,6 @@
 
 #include <xzero/raft/rpc.h>
 #include <xzero/thread/Future.h>
-#include <xzero/io/InputStream.h>
-#include <xzero/io/OutputStream.h>
 #include <xzero/Option.h>
 #include <xzero/Result.h>
 #include <cstdint>
@@ -20,6 +18,7 @@
 #include <mutex>
 #include <atomic>
 #include <system_error>
+#include <iosfwd>
 
 namespace xzero {
 
@@ -83,7 +82,7 @@ class Storage {
   /**
    * Saves the snapshot @p state along with its latest @p term and @p lastIndex.
    */
-  virtual std::error_code saveSnapshot(std::unique_ptr<InputStream>&& state, Term term, Index lastIndex) = 0;
+  virtual std::error_code saveSnapshot(std::unique_ptr<std::ostream>&& state, Term term, Index lastIndex) = 0;
 
   /**
    * Loads a snapshot into @p state along with its latest @p term and @p lastIndex.
@@ -92,7 +91,7 @@ class Storage {
    * @param term
    * @param lastIndex
    */
-  virtual std::error_code loadSnapshot(std::unique_ptr<OutputStream>&& state, Term* term, Index* lastIndex) = 0;
+  virtual std::error_code loadSnapshot(std::unique_ptr<std::istream>&& state, Term* term, Index* lastIndex) = 0;
 };
 
 /**
@@ -119,8 +118,8 @@ class MemoryStore : public Storage {
   Result<LogEntry> getLogEntry(Index index) override;
   void truncateLog(Index last) override;
 
-  std::error_code saveSnapshot(std::unique_ptr<InputStream>&& state, Term term, Index lastIndex) override;
-  std::error_code loadSnapshot(std::unique_ptr<OutputStream>&& state, Term* term, Index* lastIndex) override;
+  std::error_code saveSnapshot(std::unique_ptr<std::ostream>&& state, Term term, Index lastIndex) override;
+  std::error_code loadSnapshot(std::unique_ptr<std::istream>&& state, Term* term, Index* lastIndex) override;
 
  private:
   Executor* executor_;
@@ -153,8 +152,8 @@ class FileStore : public Storage {
   Result<LogEntry> getLogEntry(Index index) override;
   void truncateLog(Index last) override;
 
-  std::error_code saveSnapshot(std::unique_ptr<InputStream>&& state, Term term, Index lastIndex) override;
-  std::error_code loadSnapshot(std::unique_ptr<OutputStream>&& state, Term* term, Index* lastIndex) override;
+  std::error_code saveSnapshot(std::unique_ptr<std::ostream>&& state, Term term, Index lastIndex) override;
+  std::error_code loadSnapshot(std::unique_ptr<std::istream>&& state, Term* term, Index* lastIndex) override;
 
  public: // helpers
   Buffer readFile(const std::string& filename);
@@ -165,7 +164,7 @@ class FileStore : public Storage {
 
  private:
   std::string basedir_;
-  std::unique_ptr<OutputStream> logStream_;
+  std::unique_ptr<std::ostream> logStream_;
 
   // disk cache
   std::string clusterId_;

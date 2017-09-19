@@ -274,7 +274,7 @@ Buffer FileUtil::read(const std::string& path) {
   return output;
 }
 
-void FileUtil::write(const std::string& path, const Buffer& buffer) {
+void FileUtil::write(const std::string& path, const BufferRef& buffer) {
   int fd = open(path.c_str(), O_WRONLY | O_CREAT | O_TRUNC, 0660);
   if (fd < 0)
     RAISE_ERRNO(errno);
@@ -290,6 +290,10 @@ void FileUtil::write(const std::string& path, const Buffer& buffer) {
   } while (static_cast<size_t>(nwritten) < buffer.size());
 
   close(fd);
+}
+
+void FileUtil::write(const std::string& path, const std::string& buffer) {
+  write(path, BufferRef(buffer.data(), buffer.size()));
 }
 
 void FileUtil::write(int fd, const BufferRef& buffer) {
@@ -308,6 +312,10 @@ void FileUtil::write(int fd, const BufferRef& buffer) {
       nwritten += rv;
     }
   } while (nwritten < buffer.size());
+}
+
+void FileUtil::write(int fd, const std::string& buffer) {
+  FileUtil::write(fd, BufferRef(buffer.data(), buffer.size()));
 }
 
 void FileUtil::write(int fd, const FileView& fileView) {

@@ -7,6 +7,8 @@
 
 #include <xzero/logging/FileLogTarget.h>
 #include <xzero/logging/LogLevel.h>
+#include <xzero/io/FileDescriptor.h>
+#include <xzero/io/FileUtil.h>
 #include <xzero/StringUtil.h>
 #include <xzero/logging.h>
 #include <xzero/WallClock.h>
@@ -15,8 +17,8 @@
 
 namespace xzero {
 
-FileLogTarget::FileLogTarget(std::unique_ptr<OutputStream>&& output)
-    : output_(std::move(output)),
+FileLogTarget::FileLogTarget(FileDescriptor&& fd)
+    : fd_(std::move(fd)),
       timestampEnabled_(true) {
 }
 
@@ -31,7 +33,7 @@ void FileLogTarget::log(LogLevel level,
       component,
       message);
 
-  output_->write(logline.data(), logline.size());
+  FileUtil::write(fd_, logline);
 }
 
 std::string FileLogTarget::createTimestamp() const {

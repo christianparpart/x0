@@ -14,8 +14,6 @@
 
 namespace xzero {
 
-class InputStream;
-
 /**
  * A huge buffer API that can contain more data than your RAM.
  *
@@ -73,11 +71,6 @@ class HugeBuffer {
    * Tests whether this HugeBuffer is buffered in-memory.
    */
   bool isBuffered() const noexcept { return !buffer_.empty(); }
-
-  /**
-   * Retrieves a caller-owned InputStream to read out this HugeBuffer.
-   */
-  std::unique_ptr<InputStream> getInputStream();
 
   /**
    * Retrieves a FileView representation to this HugeBuffer.

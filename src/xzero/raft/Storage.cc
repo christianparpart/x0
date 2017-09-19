@@ -116,11 +116,11 @@ void MemoryStore::truncateLog(Index last) {
   log_.resize(last);
 }
 
-std::error_code MemoryStore::saveSnapshot(std::unique_ptr<InputStream>&& state, Term term, Index lastIndex) {
+std::error_code MemoryStore::saveSnapshot(std::unique_ptr<std::ostream>&& state, Term term, Index lastIndex) {
   return makeErrorCode(Status::NotImplementedError);
 }
 
-std::error_code MemoryStore::loadSnapshot(std::unique_ptr<OutputStream>&& state, Term* term, Index* lastIndex) {
+std::error_code MemoryStore::loadSnapshot(std::unique_ptr<std::istream>&& state, Term* term, Index* lastIndex) {
   return makeErrorCode(Status::NotImplementedError);
 }
 // }}}
@@ -274,11 +274,11 @@ Result<LogEntry> FileStore::getLogEntry(Index index) {
 void FileStore::truncateLog(Index last) {
 }
 
-std::error_code FileStore::saveSnapshot(std::unique_ptr<InputStream>&& state, Term term, Index lastIndex) {
+std::error_code FileStore::saveSnapshot(std::unique_ptr<std::ostream>&& state, Term term, Index lastIndex) {
   return makeErrorCode(Status::NotImplementedError);
 }
 
-std::error_code FileStore::loadSnapshot(std::unique_ptr<OutputStream>&& state, Term* term, Index* lastIndex) {
+std::error_code FileStore::loadSnapshot(std::unique_ptr<std::istream>&& state, Term* term, Index* lastIndex) {
   return makeErrorCode(Status::NotImplementedError);
 }
 // }}}
