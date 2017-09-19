@@ -151,7 +151,6 @@ libXzero_a_SOURCES = \
 	src/xzero/io/MemoryMap.cc \
 	src/xzero/io/OutputStream.cc \
 	src/xzero/io/StringInputStream.cc \
-	src/xzero/io/StringOutputStream.cc \
 	src/xzero/io/SystemPipe.cc \
 	src/xzero/logging/ConsoleLogTarget.cc \
 	src/xzero/logging/FileLogTarget.cc \
@@ -358,7 +357,6 @@ nobase_libXzero_HEADERS = \
 	src/xzero/io/MemoryMap.h \
 	src/xzero/io/OutputStream.h \
 	src/xzero/io/StringInputStream.h \
-	src/xzero/io/StringOutputStream.h \
 	src/xzero/io/SystemPipe.h \
 	src/xzero/logging/ConsoleLogTarget.h \
 	src/xzero/logging/FileLogTarget.h \
