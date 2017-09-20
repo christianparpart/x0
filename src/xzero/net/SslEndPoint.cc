@@ -316,29 +316,41 @@ std::string SslEndPoint::toString() const {
 
 void SslEndPoint::onClientHandshake() {
   int rv = SSL_connect(ssl_);
-  if (rv <= 0) {
-    switch (SSL_get_error(ssl_, rv)) {
-      case SSL_ERROR_WANT_READ:
-        executor_->executeOnReadable(handle_, std::bind(&SslEndPoint::onClientHandshake, this));
-        break;
-      case SSL_ERROR_WANT_WRITE:
-        executor_->executeOnWritable(handle_, std::bind(&SslEndPoint::onClientHandshake, this));
-        break;
-      case SSL_ERROR_SYSCALL:
-      case SSL_ERROR_SSL:
-      default:
-        ;//promise.failure(makeSslError(ERR_get_error()));
-        unref();
-        break;
-    }
-  } else {
-    if (X509* cert = SSL_get_peer_certificate(ssl_)) {
-      // ...
-      X509_free(cert);
-    }
+  switch (SSL_get_error(ssl_, rv)) {
+    case SSL_ERROR_NONE:
+      onClientHandshakeDone();
+      break;
+    case SSL_ERROR_WANT_READ:
+      executor_->executeOnReadable(handle_, std::bind(&SslEndPoint::onClientHandshake, this));
+      break;
+    case SSL_ERROR_WANT_WRITE:
+      executor_->executeOnWritable(handle_, std::bind(&SslEndPoint::onClientHandshake, this));
+      break;
+    case SSL_ERROR_SYSCALL:
+    case SSL_ERROR_SSL:
+    default:
+      //promise.failure(makeSslError(ERR_get_error()));
+      char buf[256];
+      ERR_error_string_n(ERR_get_error(), buf, sizeof(buf));
+      logError("SSL", "Client handshake error. $0", buf);
+      TcpEndPoint::close();
+      break;
+  }
+}
 
-    //promise.success(RefPtr<SslEndPoint>(this));
-    unref();
+void SslEndPoint::onClientHandshakeDone() {
+  if (X509* cert = SSL_get_peer_certificate(ssl_)) {
+    // ...
+    X509_free(cert);
+  }
+
+  // create application connection layer (based on ALPN negotiation)
+  connectionFactory_(applicationProtocolName().str(), this);
+
+  if (connection()) {
+    connection()->onOpen(false);
+  } else {
+    close();
   }
 }
 

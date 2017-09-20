@@ -187,6 +187,7 @@ class SslEndPoint : public TcpEndPoint {
 
  private:
   void onClientHandshake();
+  void onClientHandshakeDone();
   void onServerHandshake();
   void fillable();
   void flushable();
