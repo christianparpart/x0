@@ -10,12 +10,6 @@
 #include <stdexcept>
 
 namespace xzero {
-
-template<>
-std::string StringUtil::toString(http::HttpVersion version) {
-  return http::as_string(version);
-}
-
 namespace http {
 
 #define SRET(slit) { static std::string val(slit); return val; }

@@ -214,8 +214,4 @@ bool SslContext::imatch(const std::string& pattern, const std::string& value) {
   return false;
 }
 
-template<> std::string StringUtil::toString(SslContext* cx) {
-  return StringUtil::format("SslContext/$0", (void*) cx);
-}
-
 } // namespace xzero

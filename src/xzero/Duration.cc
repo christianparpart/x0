@@ -6,7 +6,6 @@
 // the License at: http://opensource.org/licenses/MIT
 
 #include <xzero/Duration.h>
-#include <xzero/StringUtil.h>
 #include <sstream>
 
 namespace xzero {
@@ -59,14 +58,8 @@ std::string inspect(const Duration& value) {
   return sstr.str();
 }
 
-template<>
-std::string StringUtil::toString<Duration>(Duration duration) {
-  return inspect(duration);
-}
-
-template<>
-std::string StringUtil::toString<const Duration&>(const Duration& duration) {
-  return inspect(duration);
+std::ostream& operator<<(std::ostream& os, Duration d) {
+  return os << inspect(d);
 }
 
 }

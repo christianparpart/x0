@@ -1071,10 +1071,4 @@ void Parser::onProtocolError() {
 
 }  // namespace http1
 }  // namespace http
-
-template <>
-std::string StringUtil::toString(http::http1::Parser::State value) {
-  return http::http1::as_string(value);
-}
-
 }  // namespace xzero

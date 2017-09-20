@@ -4,9 +4,7 @@
 // Licensed under the MIT License (the "License"); you may not use this
 // file except in compliance with the License. You may obtain a copy of
 // the License at: http://opensource.org/licenses/MIT
-
-#ifndef _XZERO_DURATION_H
-#define _XZERO_DURATION_H
+#pragma once
 
 #include <ctime>
 #include <inttypes.h>
@@ -35,8 +33,7 @@ public:
    * @param microseconds the duration in microseconds
    */
   constexpr explicit Duration(uint64_t microseconds);
-
-  /**
+/**
    * Creates a new Duration out of a @c timeval struct.
    *
    * @param value duration as @c timeval.
@@ -111,6 +108,8 @@ protected:
 
 std::string inspect(const Duration& value);
 
+std::ostream& operator<<(std::ostream& os, Duration d);
+
 } // namespace xzero
 
 constexpr xzero::Duration operator "" _microseconds(unsigned long long v);
@@ -122,4 +121,3 @@ constexpr xzero::Duration operator "" _days(unsigned long long v);
 constexpr xzero::Duration operator "" _years(unsigned long long v);
 
 #include <xzero/Duration_impl.h>
-#endif

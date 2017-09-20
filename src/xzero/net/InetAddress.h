@@ -36,6 +36,9 @@ class InetAddress {
   int port_;
 };
 
+std::ostream& operator<<(std::ostream& os, const InetAddress& inet);
+std::ostream& operator<<(std::ostream& os, const Option<InetAddress>& inet);
+
 } // namespace xzero
 
 #include <xzero/net/InetAddress-inl.h>

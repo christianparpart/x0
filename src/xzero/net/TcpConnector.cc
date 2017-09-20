@@ -651,8 +651,4 @@ std::string TcpConnector::toString() const {
   return std::string(buf, n);
 }
 
-template<> std::string StringUtil::toString(TcpConnector* c) {
-  return c->toString();
-}
-
 }  // namespace xzero

@@ -7,6 +7,7 @@
 
 #include <string>
 #include <ctime>
+#include <iostream>
 #include <xzero/UnixTime.h>
 #include <xzero/inspect.h>
 #include <xzero/WallClock.h>
@@ -88,16 +89,15 @@ Option<UnixTime> UnixTime::parseString(
 }
 
 template <>
-std::string StringUtil::toString(UnixTime value) {
-  return value.toString();
-}
-
-template <>
 std::string inspect(const UnixTime& value) {
   return value.toString();
 }
 
+std::ostream& operator<<(std::ostream& os, UnixTime value) {
+  return os << value.toString();
 }
+
+} // namespace xzero
 
 xzero::UnixTime
     std::numeric_limits<xzero::UnixTime>::min() {

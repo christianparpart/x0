@@ -8,19 +8,17 @@
 #include <x0d/XzeroState.h>
 #include <xzero/StringUtil.h>
 
-namespace xzero {
+namespace x0d {
 
-using x0d::XzeroState;
-
-template<> std::string StringUtil::toString(XzeroState state) {
+std::ostream& operator<<(std::ostream& os, XzeroState state) {
   switch (state) {
-    case XzeroState::Inactive: return "Inactive";
-    case XzeroState::Initializing: return "Initializing";
-    case XzeroState::Running: return "Running";
-    case XzeroState::Upgrading: return "Upgrading";
-    case XzeroState::GracefullyShuttingdown: return "GracefullyShuttingdown";
-    default: return "UNKNOWN";
+    case XzeroState::Inactive: return os << "Inactive";
+    case XzeroState::Initializing: return os << "Initializing";
+    case XzeroState::Running: return os << "Running";
+    case XzeroState::Upgrading: return os << "Upgrading";
+    case XzeroState::GracefullyShuttingdown: return os << "GracefullyShuttingdown";
+    default: return os << "UNKNOWN";
   }
 }
 
-} // namespace xzero
+} // namespace x0d

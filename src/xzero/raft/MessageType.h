@@ -7,6 +7,7 @@
 #pragma once
 
 #include <cstdint>
+#include <iosfwd>
 
 namespace xzero {
 namespace raft {
@@ -21,6 +22,8 @@ enum class MessageType : uint8_t {
   HelloRequest = 7,
   HelloResponse = 8,
 };
+
+std::ostream& operator<<(std::ostream& os, MessageType type);
 
 } // namespace raft
 } // namespace xzero

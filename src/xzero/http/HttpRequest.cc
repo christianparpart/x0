@@ -126,10 +126,4 @@ const HugeBuffer& HttpRequest::getContent() const {
 }
 
 }  // namespace http
-
-template<>
-std::string StringUtil::toString(http::HttpRequest* value) {
-  return StringUtil::format("HttpRequest[$0]", (void*)value);
-}
-
 }  // namespace xzero

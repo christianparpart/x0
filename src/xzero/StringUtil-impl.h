@@ -13,22 +13,6 @@
 
 namespace xzero {
 
-template <typename H, typename... T>
-void StringUtil::toStringVImpl(
-    std::vector<std::string>* target,
-    H value,
-    T... values) {
-  target->emplace_back(toString(value));
-  toStringVImpl(target, values...);
-}
-
-template <typename... T>
-std::vector<std::string> StringUtil::toStringV(T... values) {
-  std::vector<std::string> target;
-  toStringVImpl(&target, values...);
-  return target;
-}
-
 template <typename ValueType, typename... T>
 void StringUtil::formatImpl(
     std::string* scratch,
@@ -38,7 +22,7 @@ void StringUtil::formatImpl(
   StringUtil::replaceAll(
       scratch,
       "$" + std::to_string(argn),
-      StringUtil::toString(value));
+      to_string(value));
 
   formatImpl(scratch, argn + 1, values...);
 }
@@ -50,8 +34,8 @@ void StringUtil::formatImpl(
     ValueType value) {
   StringUtil::replaceAll(
       scratch,
-      "$" + std::to_string(argn),
-      StringUtil::toString(value));
+      "$" + to_string(argn),
+      to_string(value));
 }
 
 template <typename... T>

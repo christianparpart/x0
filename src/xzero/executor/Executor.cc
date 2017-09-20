@@ -9,6 +9,7 @@
 #include <xzero/UnixSignals.h>
 #include <xzero/StringUtil.h>
 #include <xzero/thread/Wakeup.h>
+#include <iostream>
 
 namespace xzero {
 
@@ -42,12 +43,13 @@ void Executor::safeCall(std::function<void()> callee) noexcept {
   safeCall_.invoke(callee);
 }
 
-template<>
-std::string StringUtil::toString(Executor* executor) {
+std::ostream& operator<<(std::ostream& os, Executor* executor) {
   char buf[256];
   snprintf(buf, sizeof(buf), "Executor@%p <%s>",
            executor, executor->toString().c_str());
-  return buf;
+  os << buf;
+  return os;
 }
+
 
 } // namespace xzero

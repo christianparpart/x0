@@ -159,7 +159,7 @@ Buffer formatLog(XzeroContext* cx, const BufferRef& format) { // {{{
         ++i;
         break;
       case 'I':  // received bytes (transport level)
-        result.push_back(std::to_string(cx->bytesReceived()));
+        result.push_back(to_string(cx->bytesReceived()));
         ++i;
         break;
       case 'l':  // identd user name
@@ -171,11 +171,11 @@ Buffer formatLog(XzeroContext* cx, const BufferRef& format) { // {{{
         ++i;
         break;
       case 'O':  // sent bytes (transport level)
-        result.push_back(std::to_string(cx->bytesTransmitted()));
+        result.push_back(to_string(cx->bytesTransmitted()));
         ++i;
         break;
       case 'o':  // sent bytes (response body)
-        result.push_back(std::to_string(response->contentLength()));
+        result.push_back(to_string(response->contentLength()));
         ++i;
         break;
       case 'p':  // request path
@@ -195,7 +195,7 @@ Buffer formatLog(XzeroContext* cx, const BufferRef& format) { // {{{
         result.push_back(request->unparsedUri());
         result.push_back(' ');
         result.push_back("HTTP/");
-        result.push_back(StringUtil::toString(request->version()));
+        result.push_back(to_string(request->version()));
         ++i;
         break;
       case 'T': {  // request time duration

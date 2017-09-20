@@ -9,6 +9,7 @@
 
 #include <utility>
 #include <memory>
+#include <iosfwd>
 #include <cstdint>
 #include <xzero-flow/Api.h>
 
@@ -136,6 +137,8 @@ class XZERO_FLOW_API FlowTokenTraits {
   static bool isPrimaryOp(FlowToken t);
   static bool isRelOp(FlowToken t);
 };
+
+std::ostream& operator<<(std::ostream& os, FlowToken value);
 
 //!@}
 

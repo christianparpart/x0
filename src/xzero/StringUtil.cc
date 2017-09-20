@@ -16,130 +16,6 @@
 
 namespace xzero {
 
-void StringUtil::toStringVImpl(std::vector<std::string>* target) {}
-
-template <>
-std::string StringUtil::toString(std::string value) {
-  return value;
-}
-
-template <>
-std::string StringUtil::toString(std::errc value) {
-  return std::make_error_code(value).message();
-}
-
-template <>
-std::string StringUtil::toString(const char* value) {
-  return value;
-}
-
-template <>
-std::string StringUtil::toString(char value) {
-  std::string result;
-  result.push_back(value);
-  return result;
-}
-
-template <>
-std::string StringUtil::toString(char* value) {
-  return value;
-}
-
-template <>
-std::string StringUtil::toString(int value) {
-  return std::to_string(value);
-}
-
-template <>
-std::string StringUtil::toString(unsigned value) {
-  return std::to_string(value);
-}
-
-template <>
-std::string StringUtil::toString(unsigned short value) {
-  return std::to_string(value);
-}
-
-
-template <>
-std::string StringUtil::toString(long value) {
-  return std::to_string(value);
-}
-
-template <>
-std::string StringUtil::toString(unsigned long value) {
-  return std::to_string(value);
-}
-
-template <>
-std::string StringUtil::toString(long long value) {
-  return std::to_string(value);
-}
-
-template <>
-std::string StringUtil::toString(unsigned long long value) {
-  return std::to_string(value);
-}
-
-template <>
-std::string StringUtil::toString(unsigned char value) {
-  return std::to_string(value);
-}
-
-template <>
-std::string StringUtil::toString(void* value) {
-  return "<ptr>";
-}
-
-template <>
-std::string StringUtil::toString(const void* value) {
-  return "<ptr>";
-}
-
-template <>
-std::string StringUtil::toString(float value) {
-  char buf[128];
-  *buf = 0;
-
-  auto len = snprintf(buf, sizeof(buf), "%f", value);
-  if (len < 0) {
-    RAISE(RuntimeError, "snprintf() failed");
-  }
-
-  while (len > 2 && buf[len - 1] == '0' && buf[len - 2] != '.') {
-    buf[len--] = 0;
-  }
-
-  return std::string(buf, len);
-}
-
-template <>
-std::string StringUtil::toString(double value) {
-  char buf[128]; // FIXPAUL
-  *buf = 0;
-
-  auto len = snprintf(buf, sizeof(buf), "%f", value);
-  if (len < 0) {
-    RAISE(RuntimeError, "snprintf() failed");
-  }
-
-  while (len > 2 && buf[len - 1] == '0' && buf[len - 2] != '.') {
-    buf[len--] = 0;
-  }
-
-  return std::string(buf, len);
-}
-
-template <>
-std::string StringUtil::toString(bool value) {
-  return value ? "true" : "false";
-}
-
-template<>
-std::string StringUtil::toString(std::error_code ec) {
-  return ec.message();
-}
-
 std::string StringUtil::trim(const std::string& value) {
   std::size_t left = 0;
   while (std::isspace(value[left])) ++left;
@@ -483,7 +359,7 @@ std::string StringUtil::formatv(
     StringUtil::replaceAll(
         &str,
         "$" + std::to_string(i),
-        StringUtil::toString(values[i]));
+        to_string(values[i]));
   }
 
   return str;

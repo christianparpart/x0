@@ -53,9 +53,4 @@ bool Connection::onReadTimeout() {
   return true;
 }
 
-template<>
-std::string StringUtil::toString(Connection* c) {
-  return StringUtil::format("Connection[$0]", c->endpoint()->remoteAddress());
-}
-
 }  // namespace xzero

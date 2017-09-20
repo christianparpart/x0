@@ -9,6 +9,7 @@
 
 #include <xzero/http/Api.h>
 #include <string>
+#include <iosfwd>
 
 namespace xzero {
 namespace http {
@@ -103,6 +104,7 @@ inline HeaderField::HeaderField(const std::string& name,
 // }}}
 
 XZERO_HTTP_API std::string inspect(const HeaderField& field);
+std::ostream& operator<<(std::ostream& os, const HeaderField& field);
 
 }  // namespace http
 }  // namespace xzero

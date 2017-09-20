@@ -7,6 +7,7 @@
 
 #pragma once
 #include <limits>
+#include <iosfwd>
 
 namespace xzero {
 namespace http {
@@ -20,6 +21,9 @@ enum class SettingParameter {
   MaxFrameSize = 5,           //!< max frame *payload* size
   MaxHeaderListSize = 6,
 };
+
+std::ostream& operator<<(std::ostream& os, SettingParameter param);
+std::string as_string(http::http2::SettingParameter parameter);
 
 } // namespace http2
 } // namespace http

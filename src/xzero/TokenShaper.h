@@ -15,6 +15,7 @@
 #include <xzero/executor/Executor.h>
 #include <xzero/logging.h>
 
+#include <iosfwd>
 #include <functional>
 #include <algorithm>
 #include <string>
@@ -255,6 +256,8 @@ class TokenShaper<T>::Node {
  */
 template <class T>
 void dump(const TokenShaper<T>& shaper, const char* title);
+
+std::ostream& operator<<(std::ostream& os, TokenShaperError ec);
 
 }  // namespace xzero
 

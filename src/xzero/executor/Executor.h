@@ -20,6 +20,7 @@
 #include <exception>
 #include <functional>
 #include <string>
+#include <iosfwd>
 
 namespace xzero {
 
@@ -217,6 +218,8 @@ class Executor {
   std::unique_ptr<UnixSignals> unixSignals_;
   std::atomic<int> refs_;
 };
+
+std::ostream& operator<<(std::ostream& os, Executor* executor);
 
 } // namespace xzero
 

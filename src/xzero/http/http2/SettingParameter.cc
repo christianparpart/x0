@@ -9,22 +9,25 @@
 #include <xzero/StringUtil.h>
 #include <stdio.h>
 
-namespace xzero {
+namespace xzero::http::http2 {
 
-template<>
-std::string StringUtil::toString(http::http2::SettingParameter parameter) {
+std::ostream& operator<<(std::ostream& os, SettingParameter param) {
+  return os << as_string(param);
+}
+
+std::string as_string(http::http2::SettingParameter parameter) {
   switch (parameter) {
-    case http::http2::SettingParameter::HeaderTableSize:
+    case SettingParameter::HeaderTableSize:
       return "HeaderTableSize";
-    case http::http2::SettingParameter::EnablePush:
+    case SettingParameter::EnablePush:
       return "EnablePush";
-    case http::http2::SettingParameter::MaxConcurrentStreams:
+    case SettingParameter::MaxConcurrentStreams:
       return "MaxConcurrentStreams";
-    case http::http2::SettingParameter::InitialWindowSize:
+    case SettingParameter::InitialWindowSize:
       return "InitialWindowSize";
-    case http::http2::SettingParameter::MaxFrameSize:
+    case SettingParameter::MaxFrameSize:
       return "MaxFrameSize";
-    case http::http2::SettingParameter::MaxHeaderListSize:
+    case SettingParameter::MaxHeaderListSize:
       return "MaxHeaderListSize";
     default: {
       char buf[128];
@@ -35,5 +38,5 @@ std::string StringUtil::toString(http::http2::SettingParameter parameter) {
   }
 }
 
-} // namespace xzero
+} // namespace xzero::http::http2
 

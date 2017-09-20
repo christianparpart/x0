@@ -8,6 +8,7 @@
 #pragma once
 
 #include <stdint.h>
+#include <iosfwd>
 #include <xzero/Duration.h>
 
 namespace xzero {
@@ -43,6 +44,7 @@ private:
 };
 
 std::string inspect(const MonotonicTime& value);
+std::ostream& operator<<(std::ostream& os, MonotonicTime value);
 
 } // namespace xzero
 

@@ -11,12 +11,6 @@
 #include <string>
 
 namespace xzero {
-
-template<>
-std::string StringUtil::toString(http::HttpMethod value) {
-  return http::as_string(value);
-}
-
 namespace http {
 
 #define SRET(slit) { static std::string val(slit); return val; }

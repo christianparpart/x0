@@ -23,6 +23,7 @@ namespace xzero {
 class Connection;
 class TcpEndPoint;
 class SslEndPoint;
+class Buffer;
 
 /**
  * TCP/IP Internet Connector API

@@ -27,22 +27,15 @@ InetAddress::InetAddress(const std::string& spec) : InetAddress() {
   setPort(std::stoi(spec.substr(n + 1)));
 }
 
-template<>
-std::string StringUtil::toString(InetAddress addr) {
-  return StringUtil::format("$0:$1", addr.ip(), addr.port());
+std::ostream& operator<<(std::ostream& os, const InetAddress& addr) {
+  return os << StringUtil::format("$0:$1", addr.ip(), addr.port());
 }
 
-template<>
-std::string StringUtil::toString(const InetAddress& addr) {
-  return StringUtil::format("$0:$1", addr.ip(), addr.port());
-}
-
-template<>
-std::string StringUtil::toString(Option<InetAddress> addr) {
+std::ostream& operator<<(std::ostream& os, const Option<InetAddress>& addr) {
   if (addr.isSome()) {
-    return StringUtil::format("$0", addr.get());
+    return os << StringUtil::format("$0", addr.get());
   } else {
-    return "NULL";
+    return os << "NONE";
   }
 }
 

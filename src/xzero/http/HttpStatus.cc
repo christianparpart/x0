@@ -93,10 +93,4 @@ std::string HttpStatusCategory::message(int ev) const {
 }
 
 } // namespace http
-
-template <>
-std::string StringUtil::toString(http::HttpStatus value) {
-  return to_string(value);
-}
-
 } // namespace xzero

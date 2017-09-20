@@ -49,14 +49,14 @@ void ConsoleLogTarget::log(LogLevel level,
     fprintf(stderr,
             "%s[%s] [%s] %s\n",
             createTimestamp().c_str(),
-            AnsiColor::colorize(logColor(level), StringUtil::toString(level)).c_str(),
+            AnsiColor::colorize(logColor(level), to_string(level)).c_str(),
             AnsiColor::colorize(componentColor, component).c_str(),
             message.c_str());
   } else {
     fprintf(stderr,
             "%s[%s] [%s] %s\n",
             createTimestamp().c_str(),
-            StringUtil::toString(level).c_str(),
+            to_string(level).c_str(),
             component.c_str(),
             message.c_str());
     fflush(stderr);

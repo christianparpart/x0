@@ -391,8 +391,4 @@ void SslEndPoint::tlsext_debug_cb(
 }
 #endif // !NDEBUG
 
-template<> std::string StringUtil::toString(SslEndPoint* ep) {
-  return StringUtil::format("SslEndPoint/$0", (void*) ep);
-}
-
 } // namespace xzero

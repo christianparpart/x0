@@ -18,6 +18,7 @@
 #include <memory>
 #include <mutex>
 #include <unordered_map>
+#include <iosfwd>
 #include <sys/epoll.h>
 
 namespace xzero {
@@ -180,6 +181,9 @@ class LinuxScheduler : public EventLoop {
 std::string inspect(LinuxScheduler::Mode mode);
 // std::string inspect(const LinuxScheduler::Watcher& w);
 // std::string inspect(const LinuxScheduler& s);
+
+std::ostream& operator<<(std::ostream& os, LinuxScheduler::Mode m);
+std::ostream& operator<<(std::ostream& os, LinuxScheduler::Watcher* w);
 
 } // namespace xzero
 

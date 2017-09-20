@@ -94,9 +94,8 @@ std::string LocalExecutor::toString() const {
   return buf;
 }
 
-template<>
-std::string StringUtil::toString(LocalExecutor* value) {
-  return StringUtil::format("LocalExecutor[$0]", (void*)value);
+std::ostream& operator<<(std::ostream& os, LocalExecutor* e) {
+  return os << e->toString();
 }
 
 } // namespace xzero

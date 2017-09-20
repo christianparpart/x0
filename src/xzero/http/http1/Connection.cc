@@ -372,10 +372,4 @@ void Connection::onInterestFailure(const std::exception& error) {
 
 }  // namespace http1
 }  // namespace http
-
-template<>
-std::string StringUtil::toString(http::http1::Connection* c) {
-  return StringUtil::toString(c->endpoint()->remoteAddress());
-}
-
 }  // namespace xzero

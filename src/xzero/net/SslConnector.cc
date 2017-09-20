@@ -103,12 +103,4 @@ void SslConnector::onEndPointCreated(RefPtr<TcpEndPoint> endpoint) {
   endpoint.weak_as<SslEndPoint>()->onHandshake();
 }
 
-template<> std::string StringUtil::toString(SslConnector* c) {
-  return StringUtil::format("$0", c->name());
-}
-
-template<> std::string StringUtil::toString(const SslConnector* c) {
-  return StringUtil::format("$0", c->name());
-}
-
 } // namespace xzero

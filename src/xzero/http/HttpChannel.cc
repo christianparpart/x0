@@ -407,11 +407,9 @@ void HttpChannel::responseEnd() {
   cb();
 }
 
-}  // namespace http
-
-template<>
-std::string StringUtil::toString(http::HttpChannel* value) {
-  return StringUtil::format("HttpChannel[$0]", (void*)value);
+std::ostream& operator<<(std::ostream& os, HttpChannel* value) {
+  return os << StringUtil::format("HttpChannel[$0]", (void*)value);
 }
 
+}  // namespace http
 }  // namespace xzero

@@ -38,27 +38,23 @@ namespace xzero {
 #define TRACE(msg...) do {} while (0)
 #endif
 
-template<>
-std::string StringUtil::toString<PosixScheduler::Mode>(PosixScheduler::Mode mode) {
-  return inspect(mode);
+std::ostream& operator<<(std::ostream& os, PosixScheduler::Mode mode) {
+  return os << inspect(mode);
 }
 
-template<>
-std::string StringUtil::toString<PosixScheduler::Watcher>(PosixScheduler::Watcher w) {
-  return inspect(w);
+std::ostream& operator<<(std::ostream& os, const PosixScheduler::Watcher& w) {
+  return os << inspect(w);
 }
 
-template<>
-std::string StringUtil::toString<PosixScheduler::Watcher*>(PosixScheduler::Watcher* w) {
-  if (!w)
-    return "nil";
-
-  return inspect(*w);
+std::ostream& operator<<(std::ostream& os, const PosixScheduler::Watcher* w) {
+  if (w)
+    return os << inspect(*w);
+  else
+    return os << "NULL";
 }
 
-template<>
-std::string StringUtil::toString<const PosixScheduler&>(const PosixScheduler& s) {
-  return inspect(s);
+std::ostream& operator<<(std::ostream& os, const PosixScheduler& s) {
+  return os << inspect(s);
 }
 
 std::string inspect(PosixScheduler::Mode mode) {

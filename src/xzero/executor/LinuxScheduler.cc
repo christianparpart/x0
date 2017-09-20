@@ -15,6 +15,7 @@
 #include <xzero/logging.h>
 #include <xzero/sysconfig.h>
 #include <algorithm>
+#include <iostream>
 #include <vector>
 
 #include <sys/epoll.h>
@@ -461,25 +462,23 @@ void LinuxScheduler::Watcher::clear() {
   next = nullptr;
 }
 
-template<>
-std::string StringUtil::toString<>(LinuxScheduler::Mode mode) {
-  switch (mode) {
-    case LinuxScheduler::Mode::READABLE:
-      return "READABLE";
-    case LinuxScheduler::Mode::WRITABLE:
-      return "WRITABLE";
-    default:
-      return StringUtil::format("Mode<$0>", int(mode));
-  }
+std::ostream& operator<<(std::ostream& os, LinuxScheduler::Mode m) {
+  if ((int)m & ((int)LinuxScheduler::Mode::READABLE | (int)LinuxScheduler::Mode::WRITABLE))
+    return os << "READABLE|WRITABLE";
+  else if ((int)m & (int)LinuxScheduler::Mode::READABLE)
+    return os << "READABLE";
+  else if ((int)m & (int)LinuxScheduler::Mode::WRITABLE)
+    return os << "WRITABLE";
+  else
+    return os << "0";
 }
 
-template<>
-std::string StringUtil::toString<>(LinuxScheduler::Watcher* w) {
+std::ostream& operator<<(std::ostream& os, LinuxScheduler::Watcher* w) {
   if (w != nullptr)
-    return StringUtil::format("{fd: $0/$1, timeout: $2}",
-                              w->fd, w->mode, w->timeout);
+    return os << StringUtil::format("{fd: $0/$1, timeout: $2}",
+                                    w->fd, w->mode, w->timeout);
   else
-    return "null";
+    return os << "NULL";
 }
 
 } // namespace xzero

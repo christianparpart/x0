@@ -9,11 +9,11 @@
 #define x0_IPAddress_h
 
 #include <xzero/Api.h>
-#include <xzero/StringUtil.h>
 #include <xzero/Option.h>
 
 #include <functional>  // hash<>
 #include <stdint.h>
+#include <iostream>
 #include <string>
 #include <string.h>      // memset()
 #include <netinet/in.h>  // in_addr, in6_addr
@@ -60,6 +60,9 @@ class XZERO_BASE_API IPAddress {
   friend bool operator==(const IPAddress& a, const IPAddress& b);
   friend bool operator!=(const IPAddress& a, const IPAddress& b);
 };
+
+inline std::ostream& operator<<(std::ostream& os, const IPAddress& ipaddr);
+inline std::ostream& operator<<(std::ostream& os, const Option<IPAddress>& addr);
 
 // {{{ impl
 inline IPAddress::IPAddress() {
@@ -182,27 +185,19 @@ inline bool operator==(const IPAddress& a, const IPAddress& b) {
 inline bool operator!=(const IPAddress& a, const IPAddress& b) {
   return !(a == b);
 }
+
+inline std::ostream& operator<<(std::ostream& os, const IPAddress& ipaddr) {
+  os << ipaddr.str();
+  return os;
+}
+
+inline std::ostream& operator<<(std::ostream& os, const Option<IPAddress>& addr) {
+  if (addr.isSome())
+    return os << addr->str();
+  else
+    return os << "NONE";
+}
 // }}}
-
-template<>
-inline std::string StringUtil::toString(const IPAddress& ipaddr) {
-  return ipaddr.str();
-}
-
-template<>
-inline std::string StringUtil::toString(IPAddress& ipaddr) {
-  return ipaddr.str();
-}
-
-template<>
-inline std::string StringUtil::toString(IPAddress ipaddr) {
-  return ipaddr.str();
-}
-
-template<>
-inline std::string StringUtil::toString(Option<IPAddress> ipaddr) {
-  return ipaddr.isEmpty() ? "None" : ipaddr.get().str();
-}
 
 }  // namespace xzero
 
@@ -215,11 +210,6 @@ struct hash<::xzero::IPAddress>
     return *(uint32_t*)(v.data());
   }
 };
-
-inline ostream& operator<<(ostream& os, const ::xzero::IPAddress& ipaddr) {
-  os << ipaddr.str();
-  return os;
-}
 
 } // namespace std
 

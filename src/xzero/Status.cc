@@ -12,10 +12,6 @@
 
 namespace xzero {
 
-template<> std::string StringUtil::toString(Status value) {
-  return as_string(value);
-}
-
 std::ostream& operator<<(std::ostream& os, Status ec) {
   os << as_string(ec);
   return os;

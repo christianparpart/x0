@@ -16,6 +16,7 @@
 #include <stdint.h>
 #include <unordered_map>
 #include <map>
+#include <iosfwd>
 #include <arpa/inet.h>
 
 namespace xzero {
@@ -34,6 +35,9 @@ enum class FrameType {
   WindowUpdate = 8,
   Continuation = 9,
 };
+
+std::ostream& operator<<(std::ostream& os, FrameType type);
+std::string as_string(FrameType type);
 
 } // namespace http2
 } // namespace http

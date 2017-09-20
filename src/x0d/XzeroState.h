@@ -7,6 +7,8 @@
 
 #pragma once
 
+#include <iosfwd>
+
 namespace x0d {
 
 // TODO: probably call me ServiceState
@@ -17,5 +19,7 @@ enum class XzeroState {
   Upgrading,
   GracefullyShuttingdown
 };
+
+std::ostream& operator<<(std::ostream& os, XzeroState state);
 
 } // namespace x0d

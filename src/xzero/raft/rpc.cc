@@ -8,6 +8,7 @@
 #include <xzero/raft/rpc.h>
 #include <xzero/StringUtil.h>
 #include <string.h>
+#include <iostream>
 
 namespace xzero {
 namespace raft {
@@ -55,61 +56,53 @@ bool LogEntry::isCommand(const BufferRef& cmd) const {
 
 // }}}
 
-} // namespace raft
-
-template<>
-std::string StringUtil::toString(raft::LogType value) {
+std::ostream& operator<<(std::ostream& os, LogType value) {
   switch (value) {
-    case raft::LOG_COMMAND:
-      return "LOG_COMMAND";
-    case raft::LOG_PEER_ADD:
-      return "LOG_PEER_ADD";
-    case raft::LOG_PEER_REMOVE:
-      return "LOG_PEER_REMOVE";
+    case LOG_COMMAND:
+      return os << "LOG_COMMAND";
+    case LOG_PEER_ADD:
+      return os << "LOG_PEER_ADD";
+    case LOG_PEER_REMOVE:
+      return os << "LOG_PEER_REMOVE";
     default: {
       char buf[16];
       int n = snprintf(buf, sizeof(buf), "<%u>", value);
-      return std::string(buf, n);
+      return os << std::string(buf, n);
     }
   }
 }
 
-template<>
-std::string StringUtil::toString(raft::LogEntry msg) {
-  if (msg.type() == raft::LOG_COMMAND) {
-    return StringUtil::format(
+std::ostream& operator<<(std::ostream& os, const LogEntry& msg) {
+  if (msg.type() == LOG_COMMAND) {
+    return os << StringUtil::format(
         "LogEntry<term:$0, command:$1>",
         msg.term(),
         StringUtil::hexPrint(msg.command().data(), msg.command().size()));
   } else {
-    return StringUtil::format(
+    return os << StringUtil::format(
         "LogEntry<term:$0, type:$1>",
         msg.term(),
         msg.type());
   }
 }
 
-template<>
-std::string StringUtil::toString(raft::VoteRequest msg) {
-  return StringUtil::format(
+std::ostream& operator<<(std::ostream& os, const VoteRequest& msg) {
+  return os << StringUtil::format(
       "VoteRequest<term:$0, candidateId:$1, lastLogIndex:$2, lastLogTerm:$3>",
       msg.term,
       msg.candidateId,
       msg.lastLogIndex,
       msg.lastLogTerm);
 }
-
-template<>
-std::string StringUtil::toString(raft::VoteResponse msg) {
-  return StringUtil::format(
+std::ostream& operator<<(std::ostream& os, const VoteResponse& msg) {
+  return os << StringUtil::format(
       "VoteResponse<term:$0, voteGranted:$1>",
       msg.term,
       msg.voteGranted);
 }
 
-template<>
-std::string StringUtil::toString(raft::AppendEntriesRequest msg) {
-  return StringUtil::format(
+std::ostream& operator<<(std::ostream& os, const AppendEntriesRequest& msg) {
+  return os << StringUtil::format(
       "AppendEntriesRequest<term:$0, leaderId:$1, prevLogIndex:$2, prevLogTerm:$3, entries:$4, leaderCommit:$5>",
       msg.term,
       msg.leaderId,
@@ -119,18 +112,16 @@ std::string StringUtil::toString(raft::AppendEntriesRequest msg) {
       msg.leaderCommit);
 }
 
-template<>
-std::string StringUtil::toString(raft::AppendEntriesResponse msg) {
-  return StringUtil::format(
+std::ostream& operator<<(std::ostream& os, const AppendEntriesResponse& msg) {
+  return os << StringUtil::format(
       "AppendEntriesResponse<term:$0, lastLogIndex: $1, success:$2>",
       msg.term,
       msg.lastLogIndex,
       msg.success);
 }
 
-template<>
-std::string StringUtil::toString(raft::InstallSnapshotRequest msg) {
-  return StringUtil::format(
+std::ostream& operator<<(std::ostream& os, const InstallSnapshotRequest& msg) {
+  return os << StringUtil::format(
       "InstallSnapshotRequest<term:$0, leaderId:$1, lastIncludedIndex:$2, lastIncludedTerm:$3, offset:$4, dataSize:$5, done:$6>",
       msg.term,
       msg.leaderId,
@@ -141,11 +132,11 @@ std::string StringUtil::toString(raft::InstallSnapshotRequest msg) {
       msg.done);
 }
 
-template<>
-std::string StringUtil::toString(raft::InstallSnapshotResponse msg) {
-  return StringUtil::format(
+std::ostream& operator<<(std::ostream& os, const InstallSnapshotResponse& msg) {
+  return os << StringUtil::format(
       "InstallSnapshotResponse<term:$0>",
       msg.term);
 }
 
+} // namespace raft
 } // namespace xzero

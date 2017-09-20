@@ -359,11 +359,6 @@ class TcpConnectState {
   }
 };
 
-template<>
-std::string StringUtil::toString(TcpConnectState* obj) {
-  return StringUtil::format("TcpConnectState[$0]", (void*) obj);
-}
-
 void TcpEndPoint::connectAsync(const InetAddress& inet,
                                 Duration connectTimeout,
                                 Duration readTimeout,
@@ -481,11 +476,6 @@ RefPtr<TcpEndPoint> TcpEndPoint::connect(
   ep.as<TcpEndPoint>()->setBlocking(true);
 
   return ep;
-}
-
-template<>
-std::string StringUtil::toString(TcpEndPoint* ep) {
-  return StringUtil::format("$0", ep->remoteAddress());
 }
 
 } // namespace xzero
