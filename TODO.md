@@ -1,22 +1,11 @@
 
 ## Incomplete TODO items
 
-```
-  xzero/net/
-      Cidr
-      IPAddress
-      InetAddress
-  xzero/net/ (TCP)
-      TcpConnector, EndPoint, Connection
-      InetUtil, EndPointWriter, Server
-      SslConnector, SslEndPoint, SslUtil
-      SslClient
-  xzero/net/ (UDP)
-      UdpConnector, UdpEndPoint
-      UdpClient
-  xzero/net/util/
-      DnsClient
-```
+- eliminate DataChainListener and/or greatly simplify DataChain
+- eliminate need of EndPointWriter via DataChain
+- eliminate TcpUtil?
+- eliminate SslUtil?
+- finish SslClient
 
 ### Intermediate 0
 
