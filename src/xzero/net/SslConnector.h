@@ -17,7 +17,6 @@
 namespace xzero {
 
 class SslContext;
-class SslUtil;
 
 /**
  * SSL Connector.
@@ -57,7 +56,7 @@ class SslConnector : public TcpConnector {
 
   void addConnectionFactory(const std::string& protocol, ConnectionFactory factory) override;
 
-  const BufferRef& protocolList() const noexcept { return protocolList_; }
+  BufferRef protocolList() const noexcept;// { return protocolList_; }
 
   /**
    * Adds a new SSL context (certificate & key) pair.
@@ -71,15 +70,16 @@ class SslConnector : public TcpConnector {
   RefPtr<TcpEndPoint> createEndPoint(int cfd, Executor* executor) override;
   void onEndPointCreated(RefPtr<TcpEndPoint> endpoint) override;
 
-  SslContext* selectContext(const char* servername) const;
+  SslContext* getContextByDnsName(const char* servername) const;
   SslContext* defaultContext() const;
+
+  static Buffer makeProtocolList(const std::list<std::string>& protos);
 
  private:
   static int selectContext(SSL* ssl, int* ad, SslConnector* connector);
 
   friend class SslEndPoint;
   friend class SslContext;
-  friend class SslUtil;
 
  private:
   Buffer protocolList_;

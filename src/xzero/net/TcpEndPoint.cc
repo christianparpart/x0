@@ -149,9 +149,8 @@ std::string TcpEndPoint::toString() const {
   return buf;
 }
 
-void TcpEndPoint::startDetectProtocol(
-    bool dataReady,
-    std::function<void(const std::string&, TcpEndPoint*)> createConnection) {
+void TcpEndPoint::startDetectProtocol(bool dataReady,
+                                      ProtocolCallback createConnection) {
   inputBuffer_.reserve(256);
 
   if (dataReady) {
@@ -163,8 +162,7 @@ void TcpEndPoint::startDetectProtocol(
   }
 }
 
-void TcpEndPoint::onDetectProtocol(
-    std::function<void(const std::string&, TcpEndPoint*)> createConnection) {
+void TcpEndPoint::onDetectProtocol(ProtocolCallback createConnection) {
   size_t n = fill(&inputBuffer_);
 
   if (n == 0) {
@@ -185,7 +183,11 @@ void TcpEndPoint::onDetectProtocol(
     createConnection("", this);
   }
 
-  connection()->onOpen(true);
+  if (connection_) {
+    connection_->onOpen(true);
+  } else {
+    close();
+  }
 }
 
 size_t TcpEndPoint::prefill(size_t maxBytes) {
@@ -206,7 +208,6 @@ size_t TcpEndPoint::fill(Buffer* sink) {
 
   return fill(sink, space);
 }
-
 
 size_t TcpEndPoint::fill(Buffer* result, size_t count) {
   assert(count <= result->capacity() - result->size());
@@ -334,9 +335,9 @@ class TcpConnectState {
   std::function<void(std::error_code)> failure_;
 
   TcpConnectState(const InetAddress& inet,
-                   RefPtr<TcpEndPoint> ep,
-                   std::function<void(RefPtr<TcpEndPoint>)> success,
-                   std::function<void(std::error_code)> failure)
+                  RefPtr<TcpEndPoint> ep,
+                  std::function<void(RefPtr<TcpEndPoint>)> success,
+                  std::function<void(std::error_code)> failure)
       : inet_(inet), ep_(std::move(ep)), success_(success), failure_(failure) {
   }
 
@@ -360,12 +361,12 @@ class TcpConnectState {
 };
 
 void TcpEndPoint::connectAsync(const InetAddress& inet,
-                                Duration connectTimeout,
-                                Duration readTimeout,
-                                Duration writeTimeout,
-                                Executor* executor,
-                                std::function<void(RefPtr<TcpEndPoint>)> success,
-                                std::function<void(std::error_code ec)> failure) {
+                               Duration connectTimeout,
+                               Duration readTimeout,
+                               Duration writeTimeout,
+                               Executor* executor,
+                               std::function<void(RefPtr<TcpEndPoint>)> success,
+                               std::function<void(std::error_code ec)> failure) {
   int fd = socket(inet.family(), SOCK_STREAM, IPPROTO_TCP);
   if (fd < 0) {
     failure(std::make_error_code(static_cast<std::errc>(errno)));
@@ -447,10 +448,10 @@ void TcpEndPoint::connectAsync(const InetAddress& inet,
 }
 
 Future<RefPtr<TcpEndPoint>> TcpEndPoint::connectAsync(const InetAddress& inet,
-                                                        Duration connectTimeout,
-                                                        Duration readTimeout,
-                                                        Duration writeTimeout,
-                                                        Executor* executor) {
+                                                      Duration connectTimeout,
+                                                      Duration readTimeout,
+                                                      Duration writeTimeout,
+                                                      Executor* executor) {
   Promise<RefPtr<TcpEndPoint>> promise;
 
   connectAsync(
@@ -461,12 +462,11 @@ Future<RefPtr<TcpEndPoint>> TcpEndPoint::connectAsync(const InetAddress& inet,
   return promise.future();
 }
 
-RefPtr<TcpEndPoint> TcpEndPoint::connect(
-    const InetAddress& inet,
-    Duration connectTimeout,
-    Duration readTimeout,
-    Duration writeTimeout,
-    Executor* executor) {
+RefPtr<TcpEndPoint> TcpEndPoint::connect(const InetAddress& inet,
+                                         Duration connectTimeout,
+                                         Duration readTimeout,
+                                         Duration writeTimeout,
+                                         Executor* executor) {
   Future<RefPtr<TcpEndPoint>> f = connectAsync(
       inet, connectTimeout, readTimeout, writeTimeout, executor);
   f.wait();

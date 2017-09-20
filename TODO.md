@@ -6,6 +6,7 @@
 - eliminate TcpUtil?
 - eliminate SslUtil?
 - finish SslClient
+  - migrate into SslEndPoint
 
 ### Intermediate 0
 

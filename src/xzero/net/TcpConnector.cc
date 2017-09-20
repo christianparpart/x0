@@ -586,7 +586,7 @@ void TcpConnector::addConnectionFactory(const std::string& protocolName,
 }
 
 void TcpConnector::createConnection(const std::string& protocolName,
-                                     TcpEndPoint* endpoint) {
+                                    TcpEndPoint* endpoint) {
   TRACE("createConnection: \"$0\"", protocolName);
   auto factory = connectionFactory(protocolName);
   if (factory) {
@@ -606,11 +606,14 @@ TcpConnector::ConnectionFactory TcpConnector::connectionFactory(
   return nullptr;
 }
 
-std::list<std::string> TcpConnector::connectionFactories() const {
-  std::list<std::string> result;
+std::vector<std::string> TcpConnector::connectionFactories() const {
+  std::vector<std::string> result;
+  result.reserve(connectionFactories_.size());
+
   for (auto& entry: connectionFactories_) {
     result.push_back(entry.first);
   }
+
   return result;
 }
 

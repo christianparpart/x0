@@ -14,6 +14,7 @@
 #include <xzero/Duration.h>
 #include <xzero/RefPtr.h>
 #include <unordered_map>
+#include <vector>
 #include <list>
 #include <deque>
 #include <mutex>
@@ -292,7 +293,7 @@ class TcpConnector {
   void createConnection(const std::string& protocolName, TcpEndPoint* endpoint);
 
   /** Retrieves all registered connection factories. */
-  std::list<std::string> connectionFactories() const;
+  std::vector<std::string> connectionFactories() const;
 
   /** Retrieves number of registered connection factories. */
   size_t connectionFactoryCount() const;
@@ -369,7 +370,6 @@ class TcpConnector {
   void onEndPointClosed(TcpEndPoint* endpoint);
   friend class TcpEndPoint;
   friend class SslConnector;
-  friend class SslUtil;
 
  private:
   std::string name_;

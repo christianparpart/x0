@@ -8,21 +8,23 @@
 #pragma once
 
 #include <xzero/Api.h>
+#include <xzero/Buffer.h>
 #include <string>
+#include <functional>
 #include <openssl/ssl.h>
 
 namespace xzero {
 
-class SslConnector;
-
 /**
  * An SSL context (certificate & keyfile).
  */
-class XZERO_BASE_API SslContext {
+class SslContext {
  public:
-  SslContext(SslConnector* connector,
-             const std::string& crtFile,
-             const std::string& keyFile);
+  SslContext(const std::string& crtFile,
+             const std::string& keyFile,
+             std::function<BufferRef()> getProtocolList,
+             std::function<SslContext*(const char*)> getContext);
+
   ~SslContext();
 
   SSL_CTX* get() const;
@@ -30,6 +32,8 @@ class XZERO_BASE_API SslContext {
   const std::vector<std::string>& dnsNames() const;
 
   bool isValidDnsName(const std::string& servername) const;
+
+  static void initialize();
 
  private:
   static bool imatch(const std::string& pattern, const std::string& value);
@@ -41,9 +45,11 @@ class XZERO_BASE_API SslContext {
       void *pself);
 
  private:
-  SslConnector* connector_;
   SSL_CTX* ctx_;
+
   std::vector<std::string> dnsNames_;
+  std::function<BufferRef()> getProtocolList_;
+  std::function<SslContext*(const char*)> getContext_;
 };
 
 inline SSL_CTX* SslContext::get() const {

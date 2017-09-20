@@ -5,7 +5,6 @@
 // file except in compliance with the License. You may obtain a copy of
 // the License at: http://opensource.org/licenses/MIT
 
-#include <xzero/net/SslUtil.h>
 #include <xzero/net/SslConnector.h>
 #include <xzero/net/SslContext.h>
 #include <xzero/net/Connection.h>
@@ -14,6 +13,7 @@
 #include <xzero/RuntimeError.h>
 #include <openssl/ssl.h>
 #include <algorithm>
+#include <functional>
 
 namespace xzero {
 
@@ -45,15 +45,21 @@ void SslConnector::addConnectionFactory(const std::string& protocol,
 
   // XXX needs update whenever a new protocol-implementation is added.
   // XXX should only happen at startup-time, too
-  protocolList_ = SslUtil::makeProtocolList(connectionFactories());
+  protocolList_ = SslEndPoint::makeProtocolList(connectionFactories());
 }
 
 void SslConnector::addContext(const std::string& crtFilePath,
                               const std::string& keyFilePath) {
-  contexts_.emplace_back(new SslContext(this, crtFilePath, keyFilePath));
+  contexts_.emplace_back(new SslContext(crtFilePath, keyFilePath,
+        std::bind(&SslConnector::protocolList, this),
+        std::bind(&SslConnector::getContextByDnsName, this, std::placeholders::_1)));
 }
 
-SslContext* SslConnector::selectContext(const char* servername) const {
+BufferRef SslConnector::protocolList() const noexcept {
+  return protocolList_;
+}
+
+SslContext* SslConnector::getContextByDnsName(const char* servername) const {
   TRACE("$0 selectContext: servername = '$1'", this, servername);
   if (!servername)
     return nullptr;
@@ -100,7 +106,7 @@ RefPtr<TcpEndPoint> SslConnector::createEndPoint(int cfd, Executor* executor) {
 
 void SslConnector::onEndPointCreated(RefPtr<TcpEndPoint> endpoint) {
   TRACE("onEndPointCreated fd=$0", endpoint->handle());
-  endpoint.weak_as<SslEndPoint>()->onHandshake();
+  endpoint.weak_as<SslEndPoint>()->onServerHandshake();
 }
 
 } // namespace xzero

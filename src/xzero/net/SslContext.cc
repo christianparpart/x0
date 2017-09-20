@@ -5,21 +5,22 @@
 // file except in compliance with the License. You may obtain a copy of
 // the License at: http://opensource.org/licenses/MIT
 
-#include <xzero/net/SslConnector.h>
 #include <xzero/net/SslContext.h>
-#include <xzero/net/SslUtil.h>
+#include <xzero/net/SslEndPoint.h> // for makeProtocolList, SslErrorCategory
 #include <xzero/net/Connection.h>
 #include <xzero/util/BinaryWriter.h>
 #include <xzero/BufferUtil.h>
 #include <xzero/RuntimeError.h>
 #include <xzero/logging.h>
 #include <xzero/sysconfig.h>
+#include <openssl/ssl.h>
 #include <openssl/bio.h>
 #include <openssl/err.h>
 #include <openssl/tls1.h>
 #include <openssl/x509.h>
 #include <openssl/x509v3.h>
 #include <openssl/objects.h>
+#include <openssl/opensslconf.h>
 #include <algorithm>
 
 namespace xzero {
@@ -92,14 +93,17 @@ static std::vector<std::string> collectDnsNames(SSL_CTX* ctx) {
 }
 // }}}
 
-SslContext::SslContext(SslConnector* connector,
-                       const std::string& crtFilePath,
-                       const std::string& keyFilePath) {
+SslContext::SslContext(const std::string& crtFilePath,
+                       const std::string& keyFilePath,
+                       std::function<BufferRef()> getProtocolList,
+                       std::function<SslContext*(const char*)> getContext)
+    : ctx_(nullptr),
+      dnsNames_(),
+      getProtocolList_(getProtocolList),
+      getContext_(getContext) {
   TRACE("$0 SslContext(\"$1\", \"$2\"", this, crtFilePath, keyFilePath);
 
-  connector_ = connector;
-
-  SslUtil::initialize();
+  initialize();
 
 #if defined(SSL_TXT_TLSV1_2)
   ctx_ = SSL_CTX_new(TLSv1_2_server_method());
@@ -150,8 +154,7 @@ int SslContext::onAppLayerProtoNegotiation(
   }
 
   SslContext* self = (SslContext*) pself;
-  SslConnector* connector = self->connector_;
-  const BufferRef& srv = connector->protocolList();
+  BufferRef srv = self->getProtocolList_();
 
   if (SSL_select_next_proto((unsigned char**) out, outlen,
                             (unsigned char*) srv.data(), srv.size(),
@@ -172,7 +175,7 @@ int SslContext::onServerName(SSL* ssl, int* ad, SslContext* self) {
   const char* name = SSL_get_servername(ssl, TLSEXT_NAMETYPE_host_name);
   if (!name) {
     TRACE("$0 onServerName() no SNI given; chosing default context", self);
-    if (SslContext* ctx = self->connector_->defaultContext()) {
+    if (SslContext* ctx = self->getContext_(nullptr)) {
       SSL_set_SSL_CTX(ssl, ctx->get());
       return SSL_TLSEXT_ERR_OK;
     } else {
@@ -182,7 +185,7 @@ int SslContext::onServerName(SSL* ssl, int* ad, SslContext* self) {
 
   TRACE("$0 onServerName(): name=$1", self, name);
 
-  if (SslContext* ctx = self->connector_->selectContext(name)) {
+  if (SslContext* ctx = self->getContext_(name)) {
     SSL_set_SSL_CTX(ssl, ctx->get());
     return SSL_TLSEXT_ERR_OK;
   }
@@ -212,6 +215,25 @@ bool SslContext::imatch(const std::string& pattern, const std::string& value) {
     return true;
 
   return false;
+}
+
+void SslContext::initialize() {
+  static bool initialized = false;
+  if (initialized)
+    return;
+
+  initialized = true;
+
+  SSL_library_init();
+  SSL_load_error_strings();
+  //ERR_load_crypto_strings();
+  //OPENSSL_config(NULL);
+  OpenSSL_add_all_algorithms();
+
+/* Include <openssl/opensslconf.h> to get this define */
+#if defined(OPENSSL_THREADS)
+  logWarning("SSL", "OpenSSL implementation has no thread-locking support");
+#endif
 }
 
 } // namespace xzero

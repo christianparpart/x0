@@ -163,7 +163,6 @@ libXzero_a_SOURCES = \
 	src/xzero/net/SslContext.cc \
 	src/xzero/net/SslClient.cc \
 	src/xzero/net/SslEndPoint.cc \
-	src/xzero/net/SslUtil.cc \
 	src/xzero/net/UdpClient.cc \
 	src/xzero/net/UdpConnector.cc \
 	src/xzero/net/UdpEndPoint.cc \
@@ -365,7 +364,6 @@ nobase_libXzero_HEADERS = \
 	src/xzero/net/SslClient.h \
 	src/xzero/net/SslContext.h \
 	src/xzero/net/SslEndPoint.h \
-	src/xzero/net/SslUtil.h \
 	src/xzero/net/UdpClient.h \
 	src/xzero/net/UdpConnector.h \
 	src/xzero/net/UdpEndPoint.h \
