@@ -220,10 +220,9 @@ void XUrl::query(const Uri& uri) {
     logInfo("xurl", "< $0: $1", field.name(), field.value());
   }
 
-  HttpClient httpClient(
-      &scheduler_, inetAddr,
-      connectTimeout_, readTimeout_, writeTimeout_,
-      keepAlive);
+  HttpClient httpClient(&scheduler_, inetAddr,
+                        connectTimeout_, readTimeout_, writeTimeout_,
+                        keepAlive);
 
   Future<HttpClient::Response> f = httpClient.send(req);
 
