@@ -43,6 +43,36 @@ namespace xzero::http::client {
 class HttpTransport;
 
 /**
+ * HttpChannel represents a single HTTP request/response over an HTTP transport.
+ */
+class HttpChannel : public HttpListener {
+ public:
+  HttpChannel(Executor* executor,
+              HttpTransport* transport,
+              HttpListener* responseHandler);
+
+  void send(HttpRequestInfo& requestInfo, CompletionHandler onComplete);
+  void send(HugeBuffer&& data, CompletionHandler onComplete);
+  void completed();
+
+  virtual void reset();
+
+ protected:
+  void onMessageBegin(HttpVersion version, HttpStatus code, const BufferRef& text) override;
+  void onMessageHeader(const BufferRef& name, const BufferRef& value) override;
+  void onMessageHeaderEnd() override;
+  void onMessageContent(const BufferRef& chunk) override;
+  void onMessageContent(FileView&& chunk) override;
+  void onMessageEnd() override;
+  void onError(std::error_code ec) override;
+
+ private:
+  Executor* executor_;
+  HttpTransport* transport_;
+  HttpListener* responseHandler_;
+};
+
+/**
  * HTTP client API for a single HTTP message exchange.
  *
  * It can process one message-exchange at a time and can be reused after

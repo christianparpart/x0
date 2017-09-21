@@ -47,6 +47,53 @@ template<typename T> static bool isConnectionHeader(const T& name) { // {{{
   return false;
 } // }}}
 
+// {{{ HttpChannel
+HttpChannel::HttpChannel(Executor* executor,
+                         HttpTransport* transport,
+                         HttpListener* responseHandler)
+    : executor_(executor),
+      transport_(transport),
+      responseHandler_(responseHandler) {
+}
+
+void HttpChannel::send(HttpRequestInfo& requestInfo, CompletionHandler onComplete) {
+  transport_->send(std::move(requestInfo), onComplete);
+}
+
+void HttpChannel::send(HugeBuffer&& data, CompletionHandler onComplete) {
+  transport_->send(std::move(data), onComplete);
+}
+
+void HttpChannel::completed() {
+  transport_->completed();
+}
+
+void HttpChannel::reset() {
+}
+
+void HttpChannel::onMessageBegin(HttpVersion version, HttpStatus code, const BufferRef& text) {
+  responseHandler_->onMessageBegin(version, code, text);
+}
+
+void HttpChannel::onMessageHeader(const BufferRef& name, const BufferRef& value) {
+}
+
+void HttpChannel::onMessageHeaderEnd() {
+}
+
+void HttpChannel::onMessageContent(const BufferRef& chunk) {
+}
+
+void HttpChannel::onMessageContent(FileView&& chunk) {
+}
+
+void HttpChannel::onMessageEnd() {
+}
+
+void HttpChannel::onError(std::error_code ec) {
+}
+// }}}
+
 HttpClient::HttpClient(Executor* executor,
                        const InetAddress& upstream)
     : HttpClient(executor,
