@@ -49,6 +49,41 @@ std::error_category& SslErrorCategory::get() {
 }
 // }}}
 
+Future<RefPtr<SslEndPoint>> SslEndPoint::connect(
+      const InetAddress& target,
+      Duration connectTimeout,
+      Duration readTimeout,
+      Duration writeTimeout,
+      Executor* executor,
+      const std::string& sni,
+      const std::vector<std::string>& applicationProtocolsSupported,
+      ProtocolCallback connectionFactory) {
+
+  Promise<RefPtr<SslEndPoint>> promise;
+
+  Future<int> fd = TcpUtil::connect(target, connectTimeout, executor);
+  fd.onFailure(promise);
+
+  fd.onSuccess([=](int& socket) {
+    TRACE("connect: fd $0 connected", socket);
+    auto endpoint = make_ref<SslEndPoint>(FileDescriptor{socket},
+                                          target.family(),
+                                          readTimeout,
+                                          writeTimeout,
+                                          executor,
+                                          sni,
+                                          applicationProtocolsSupported,
+                                          connectionFactory);
+
+    // XXX inc ref to keep it alive during async Ops
+    endpoint->ref();
+
+    endpoint->onClientHandshake(promise);
+  });
+
+  return promise.future();
+}
+
 SslEndPoint::SslEndPoint(FileDescriptor&& fd,
                          int addressFamily,
                          Duration readTimeout,
@@ -314,27 +349,28 @@ std::string SslEndPoint::toString() const {
   return std::string(buf, n);
 }
 
-void SslEndPoint::onClientHandshake() {
+void SslEndPoint::onClientHandshake(Promise<RefPtr<SslEndPoint>> promise) {
   int rv = SSL_connect(ssl_);
   switch (SSL_get_error(ssl_, rv)) {
     case SSL_ERROR_NONE:
       onClientHandshakeDone();
       break;
     case SSL_ERROR_WANT_READ:
-      executor_->executeOnReadable(handle_, std::bind(&SslEndPoint::onClientHandshake, this));
+      executor_->executeOnReadable(handle_, std::bind(&SslEndPoint::onClientHandshake, this, promise));
       break;
     case SSL_ERROR_WANT_WRITE:
-      executor_->executeOnWritable(handle_, std::bind(&SslEndPoint::onClientHandshake, this));
+      executor_->executeOnWritable(handle_, std::bind(&SslEndPoint::onClientHandshake, this, promise));
       break;
     case SSL_ERROR_SYSCALL:
     case SSL_ERROR_SSL:
-    default:
-      //promise.failure(makeSslError(ERR_get_error()));
-      char buf[256];
-      ERR_error_string_n(ERR_get_error(), buf, sizeof(buf));
-      logError("SSL", "Client handshake error. $0", buf);
+    default: {
+      std::error_code ec = makeSslError(ERR_get_error());
+      promise.failure(ec);
+      logError("SSL", "Client handshake error. $0", ec.message());
       TcpEndPoint::close();
+      unref(); // XXX
       break;
+    }
   }
 }
 
@@ -352,6 +388,7 @@ void SslEndPoint::onClientHandshakeDone() {
   } else {
     close();
   }
+  unref();//XXX
 }
 
 void SslEndPoint::onServerHandshake() {

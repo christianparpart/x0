@@ -111,15 +111,14 @@ class SslEndPoint : public TcpEndPoint {
       ProtocolCallback createApplicationConnection);
 
   // client initializer
-  SslEndPoint(
-      FileDescriptor&& fd,
-      int addressFamily,
-      Duration readTimeout,
-      Duration writeTimeout,
-      Executor* executor,
-      const std::string& sni,
-      const std::vector<std::string>& applicationProtocolsSupported,
-      ProtocolCallback createApplicationConnection);
+  SslEndPoint(FileDescriptor&& fd,
+              int addressFamily,
+              Duration readTimeout,
+              Duration writeTimeout,
+              Executor* executor,
+              const std::string& sni,
+              const std::vector<std::string>& applicationProtocolsSupported,
+              ProtocolCallback connectionFactory);
 
   /**
    * Initializes an SSL endpoint.
@@ -186,7 +185,7 @@ class SslEndPoint : public TcpEndPoint {
   static Buffer makeProtocolList(const std::vector<std::string>& protos);
 
  private:
-  void onClientHandshake();
+  void onClientHandshake(Promise<RefPtr<SslEndPoint>> promise);
   void onClientHandshakeDone();
   void onServerHandshake();
   void fillable();
