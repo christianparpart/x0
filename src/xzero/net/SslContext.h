@@ -22,7 +22,7 @@ class SslContext {
  public:
   SslContext(const std::string& crtFile,
              const std::string& keyFile,
-             std::function<BufferRef()> getProtocolList,
+             const BufferRef& alpn,
              std::function<SslContext*(const char*)> getContext);
 
   ~SslContext();
@@ -46,9 +46,9 @@ class SslContext {
 
  private:
   SSL_CTX* ctx_;
+  BufferRef alpn_;
 
   std::vector<std::string> dnsNames_;
-  std::function<BufferRef()> getProtocolList_;
   std::function<SslContext*(const char*)> getContext_;
 };
 

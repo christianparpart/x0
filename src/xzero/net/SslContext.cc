@@ -95,11 +95,11 @@ static std::vector<std::string> collectDnsNames(SSL_CTX* ctx) {
 
 SslContext::SslContext(const std::string& crtFilePath,
                        const std::string& keyFilePath,
-                       std::function<BufferRef()> getProtocolList,
+                       const BufferRef& alpn,
                        std::function<SslContext*(const char*)> getContext)
     : ctx_(nullptr),
+      alpn_(alpn),
       dnsNames_(),
-      getProtocolList_(getProtocolList),
       getContext_(getContext) {
   TRACE("$0 SslContext(\"$1\", \"$2\"", this, crtFilePath, keyFilePath);
 
@@ -154,10 +154,9 @@ int SslContext::onAppLayerProtoNegotiation(
   }
 
   SslContext* self = (SslContext*) pself;
-  BufferRef srv = self->getProtocolList_();
 
   if (SSL_select_next_proto((unsigned char**) out, outlen,
-                            (unsigned char*) srv.data(), srv.size(),
+                            (unsigned char*) self->alpn_.data(), self->alpn_.size(),
                             in, inlen) != OPENSSL_NPN_NEGOTIATED) {
     return SSL_TLSEXT_ERR_NOACK;
   }

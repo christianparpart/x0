@@ -56,7 +56,7 @@ class SslConnector : public TcpConnector {
 
   void addConnectionFactory(const std::string& protocol, ConnectionFactory factory) override;
 
-  BufferRef protocolList() const noexcept;// { return protocolList_; }
+  const BufferRef& protocolList() const noexcept { return protocolList_; }
 
   /**
    * Adds a new SSL context (certificate & key) pair.

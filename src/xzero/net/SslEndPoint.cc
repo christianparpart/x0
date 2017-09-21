@@ -234,7 +234,7 @@ size_t SslEndPoint::fill(Buffer* sink, size_t space) {
       close();
       break;
     default:
-      logError("SSL", "Failed to fill. $0",
+      logDebug("SSL", "Failed to fill. $0",
           SslErrorCategory::get().message(SSL_get_error(ssl_, rv)));
       TRACE("$0 fill(Buffer:$1): SSL_read() -> $2",
             this, space, SSL_get_error(ssl_, rv));
@@ -270,7 +270,7 @@ size_t SslEndPoint::flush(const BufferRef& source) {
       close();
       break;
     default:
-      logError("SSL", "Failed to flush. $0",
+      logDebug("SSL", "Failed to flush. $0",
           SslErrorCategory::get().message(SSL_get_error(ssl_, rv)));
       TRACE("$0 flush(BufferRef, @$1, $2 bytes) failed. error.", this, source.data(), source.size());
       THROW_SSL_ERROR();
@@ -366,7 +366,7 @@ void SslEndPoint::onClientHandshake(Promise<RefPtr<SslEndPoint>> promise) {
     default: {
       std::error_code ec = makeSslError(ERR_get_error());
       promise.failure(ec);
-      logError("SSL", "Client handshake error. $0", ec.message());
+      logDebug("SSL", "Client handshake error. $0", ec.message());
       TcpEndPoint::close();
       unref(); // XXX
       break;
@@ -409,7 +409,7 @@ void SslEndPoint::onServerHandshake() {
       default: {
         char buf[256];
         ERR_error_string_n(ERR_get_error(), buf, sizeof(buf));
-        logError("SSL", "Handshake error. $0", buf);
+        logDebug("SSL", "Handshake error. $0", buf);
 
         TcpEndPoint::close();
         return;
