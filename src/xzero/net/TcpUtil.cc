@@ -113,8 +113,8 @@ int TcpUtil::getLocalPort(int socket, int addressFamily) {
 }
 
 Future<int> TcpUtil::connect(const InetAddress& remote,
-                              Duration timeout,
-                              Executor* executor) {
+                             Duration timeout,
+                             Executor* executor) {
   Promise<int> promise;
 
   int fd = socket(remote.family(), SOCK_STREAM, IPPROTO_TCP);
@@ -128,10 +128,10 @@ Future<int> TcpUtil::connect(const InetAddress& remote,
   std::error_code ec = TcpUtil::connect(fd, remote);
 
   if (!ec) {
-    TRACE("TcpUtil.connect: connected instantly");
+    TRACE("connect: connected instantly");
     promise.success(fd);
   } else if (ec == std::errc::operation_in_progress) {
-    TRACE("TcpUtil.connect: backgrounding");
+    TRACE("connect: backgrounding");
     executor->executeOnWritable(
         fd,
         [promise, fd]() { promise.success(fd); },
@@ -158,8 +158,9 @@ std::error_code TcpUtil::connect(int fd, const InetAddress& remote) {
              remote.ip().data(),
              remote.ip().size());
 
-      TRACE("connectAsync: connect(ipv4)");
+      TRACE("connect: connect(ipv4)");
       rv = ::connect(fd, (const struct sockaddr*) &saddr, sizeof(saddr));
+      break;
     }
     case AF_INET6: {
       struct sockaddr_in6 saddr;
@@ -170,7 +171,7 @@ std::error_code TcpUtil::connect(int fd, const InetAddress& remote) {
              remote.ip().data(),
              remote.ip().size());
 
-      TRACE("connectAsync: connect(ipv6)");
+      TRACE("connect: connect(ipv6)");
       rv = ::connect(fd, (const struct sockaddr*) &saddr, sizeof(saddr));
       break;
     }
@@ -180,7 +181,7 @@ std::error_code TcpUtil::connect(int fd, const InetAddress& remote) {
   }
 
   if (rv < 0)
-    return std::make_error_code(static_cast<std::errc>(errno));
+    return make_error_code(static_cast<std::errc>(errno));
   else
     return std::error_code();
 }

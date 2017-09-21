@@ -373,78 +373,71 @@ void TcpEndPoint::connectAsync(const InetAddress& inet,
     return;
   }
 
-  RefPtr<TcpEndPoint> ep;
+  TRACE("connectAsync: to $0", inet);
+  RefPtr<TcpEndPoint> ep(new TcpEndPoint(
+        FileDescriptor{fd}, inet.family(), readTimeout, writeTimeout,
+        executor, nullptr));
+  ep->setBlocking(false);
 
-  try {
-    TRACE("connectAsync: to $0", inet);
-    ep = new TcpEndPoint(fd, inet.family(), readTimeout, writeTimeout,
-                         executor, nullptr);
-    ep->setBlocking(false);
+  switch (inet.family()) {
+    case AF_INET: {
+      struct sockaddr_in saddr;
+      memset(&saddr, 0, sizeof(saddr));
+      saddr.sin_family = inet.family();
+      saddr.sin_port = htons(inet.port());
+      memcpy(&saddr.sin_addr,
+             inet.ip().data(),
+             inet.ip().size());
 
-    switch (inet.family()) {
-      case AF_INET: {
-        struct sockaddr_in saddr;
-        memset(&saddr, 0, sizeof(saddr));
-        saddr.sin_family = inet.family();
-        saddr.sin_port = htons(inet.port());
-        memcpy(&saddr.sin_addr,
-               inet.ip().data(),
-               inet.ip().size());
-
-        // this connect()-call can block if fd is non-blocking
-        TRACE("connectAsync: connect(ipv4)");
-        if (::connect(fd, (const struct sockaddr*) &saddr, sizeof(saddr)) < 0) {
-          if (errno != EINPROGRESS) {
-            TRACE("connectAsync: connect() error. $0", strerror(errno));
-            failure(std::make_error_code(static_cast<std::errc>(errno)));
-            return;
-          } else {
-            TRACE("connectAsync: backgrounding");
-            executor->executeOnWritable(fd,
-                std::bind(&TcpConnectState::onConnectComplete,
-                          new TcpConnectState(inet, ep, success, failure)));
-            return;
-          }
+      // this connect()-call can block if fd is non-blocking
+      TRACE("connectAsync: connect(ipv4) $0", inet);
+      if (::connect(fd, (const struct sockaddr*) &saddr, sizeof(saddr)) < 0) {
+        if (errno != EINPROGRESS) {
+          TRACE("connectAsync: connect() error. $0", strerror(errno));
+          failure(std::make_error_code(static_cast<std::errc>(errno)));
+          return;
+        } else {
+          TRACE("connectAsync: backgrounding");
+          executor->executeOnWritable(fd,
+              std::bind(&TcpConnectState::onConnectComplete,
+                        new TcpConnectState(inet, ep, success, failure)));
+          return;
         }
-        TRACE("connectAsync: synchronous connect");
-        break;
       }
-      case AF_INET6: {
-        struct sockaddr_in6 saddr;
-        memset(&saddr, 0, sizeof(saddr));
-        saddr.sin6_family = inet.family();
-        saddr.sin6_port = htons(inet.port());
-        memcpy(&saddr.sin6_addr,
-               inet.ip().data(),
-               inet.ip().size());
-
-        // this connect()-call can block if fd is non-blocking
-        if (::connect(fd, (const struct sockaddr*) &saddr, sizeof(saddr)) < 0) {
-          if (errno != EINPROGRESS) {
-            TRACE("connectAsync: connect() error. $0", strerror(errno));
-            RAISE_ERRNO(errno);
-          } else {
-            TRACE("connectAsync: backgrounding");
-            executor->executeOnWritable(fd,
-                std::bind(&TcpConnectState::onConnectComplete,
-                          new TcpConnectState(inet, ep, success, failure)));
-            return;
-          }
-        }
-        break;
-      }
-      default: {
-        RAISE(NotImplementedError);
-      }
+      TRACE("connectAsync: synchronous connect");
+      break;
     }
+    case AF_INET6: {
+      struct sockaddr_in6 saddr;
+      memset(&saddr, 0, sizeof(saddr));
+      saddr.sin6_family = inet.family();
+      saddr.sin6_port = htons(inet.port());
+      memcpy(&saddr.sin6_addr,
+             inet.ip().data(),
+             inet.ip().size());
 
-    TRACE("connectAsync: connected instantly");
-    success(ep.as<TcpEndPoint>());
-    return;
-  } catch (...) {
-    FileUtil::close(fd);
-    throw;
+      // this connect()-call can block if fd is non-blocking
+      if (::connect(fd, (const struct sockaddr*) &saddr, sizeof(saddr)) < 0) {
+        if (errno != EINPROGRESS) {
+          TRACE("connectAsync: connect() error. $0", strerror(errno));
+          RAISE_ERRNO(errno);
+        } else {
+          TRACE("connectAsync: backgrounding");
+          executor->executeOnWritable(fd,
+              std::bind(&TcpConnectState::onConnectComplete,
+                        new TcpConnectState(inet, ep, success, failure)));
+          return;
+        }
+      }
+      break;
+    }
+    default: {
+      RAISE(NotImplementedError);
+    }
   }
+
+  TRACE("connectAsync: connected instantly");
+  success(ep.as<TcpEndPoint>());
 }
 
 Future<RefPtr<TcpEndPoint>> TcpEndPoint::connectAsync(const InetAddress& inet,

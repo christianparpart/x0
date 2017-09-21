@@ -7,7 +7,7 @@
 
 #include <xzero/http/fastcgi/Generator.h>
 #include <xzero/net/EndPointWriter.h>
-#include <xzero/net/ByteArrayEndPoint.h>
+#include <xzero/Buffer.h>
 #include <xzero/logging.h>
 #include <xzero/testing.h>
 
@@ -29,8 +29,8 @@ TEST(http_fastcgi_Generator, simpleRequest) {
   generator.generateBody(content);
   generator.generateEnd();
 
-  ByteArrayEndPoint ep;
-  writer.flush(&ep);
+  Buffer out;
+  writer.flush(&out);
 
   //printf("%s\n", ep.output().hexdump(HexDumpMode::PrettyAscii).c_str());
 
@@ -52,8 +52,8 @@ TEST(http_fastcgi_Generator, simpleResponse) {
   generator.generateBody(content);
   generator.generateEnd();
 
-  ByteArrayEndPoint ep;
-  writer.flush(&ep);
+  Buffer out;
+  writer.flush(&out);
 
   //printf("%s\n", ep.output().hexdump(HexDumpMode::PrettyAscii).c_str());
 

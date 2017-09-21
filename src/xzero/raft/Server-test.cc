@@ -32,8 +32,8 @@ class TestKeyValueStore : public raft::StateMachine { // {{{
  public:
   TestKeyValueStore();
 
-  std::error_code saveSnapshot(std::unique_ptr<OutputStream>&& output) override;
-  std::error_code loadSnapshot(std::unique_ptr<InputStream>&& input) override;
+  std::error_code saveSnapshot(std::unique_ptr<std::ostream>&& output) override;
+  std::error_code loadSnapshot(std::unique_ptr<std::istream>&& input) override;
   raft::Reply applyCommand(const raft::Command& serializedCmd) override;
 
   int get(int key) const;
@@ -49,7 +49,7 @@ TestKeyValueStore::TestKeyValueStore()
       tuples_() {
 }
 
-std::error_code TestKeyValueStore::saveSnapshot(std::unique_ptr<OutputStream>&& output) {
+std::error_code TestKeyValueStore::saveSnapshot(std::unique_ptr<std::ostream>&& output) {
   auto o = [&](const uint8_t* data, size_t len) {
     output->write((const char*) data, len);
   };
@@ -61,15 +61,13 @@ std::error_code TestKeyValueStore::saveSnapshot(std::unique_ptr<OutputStream>&& 
   return std::error_code();
 }
 
-std::error_code TestKeyValueStore::loadSnapshot(std::unique_ptr<InputStream>&& input) {
+std::error_code TestKeyValueStore::loadSnapshot(std::unique_ptr<std::istream>&& input) {
   tuples_.clear();
 
   Buffer buffer;
-  for (;;) {
-    if (input->read(&buffer, 4096) <= 0) {
-      break;
-    }
-  }
+  auto initialOffset = input->tellg();
+  input->read((char*) buffer.data(), 4096);
+  buffer.resize(input->tellg() - initialOffset);
 
   BinaryReader reader((const uint8_t*) buffer.data(), buffer.size());
 

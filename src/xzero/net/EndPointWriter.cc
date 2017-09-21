@@ -47,6 +47,11 @@ bool EndPointWriter::flush(TcpEndPoint* sink) {
   return chain_.transferTo(this);
 }
 
+bool EndPointWriter::flush(Buffer* sink) {
+  TRACE("write: flushing $0 bytes", chain_.size());
+  return chain_.transferTo(sink);
+}
+
 bool EndPointWriter::empty() const {
   return chain_.empty();
 }

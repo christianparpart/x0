@@ -80,6 +80,26 @@ class HttpClient {
   HttpClient(HttpClient&& other);
 
   /**
+   * Requests the resource @p url with custom headers.
+   */
+  Future<Response> send(const std::string& method,
+                        const Uri& url,
+                        const HeaderFieldList& headers = {});
+
+  /**
+   * Sends given @p request and returns a Future<Response>.
+   */
+  Future<Response> send(const Request& request);
+
+  /**
+   * Sends given @p request and invokes @p onSuccess once the full response
+   * received or @p onFailure upon communication any failure.
+   */
+  void send(const Request& request,
+            std::function<void(const Response&)> onSuccess,
+            std::function<void(std::error_code)> onFailure);
+
+  /**
    * Sends given @p request and streams back the response 
    * to @p responseListener.
    *
@@ -91,26 +111,6 @@ class HttpClient {
    */
   void send(const Request& request,
             HttpListener* responseListener);
-
-  /**
-   * Sends given @p request and invokes @p onSuccess once the full response
-   * received or @p onFailure upon communication any failure.
-   */
-  void send(const Request& request,
-            std::function<void(const Response&)> onSuccess,
-            std::function<void(std::error_code)> onFailure);
-
-  /**
-   * Sends given @p request and returns a Future<Response>.
-   */
-  Future<Response> send(const Request& request);
-
-  /**
-   * Requests the resource @p url with custom headers.
-   */
-  Future<Response> send(const std::string& method,
-                        const Uri& url,
-                        const HeaderFieldList& headers = {});
 
  private:
   struct Task {
@@ -125,7 +125,6 @@ class HttpClient {
                                         Duration readTimeout,
                                         Duration writeTimeout);
   bool isClosed() const;
-  void startConnect();
   void setupConnection();
   HttpTransport* getChannel();
   bool tryConsumeTask();

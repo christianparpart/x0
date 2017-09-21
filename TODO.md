@@ -1,12 +1,18 @@
 
 ## Incomplete TODO items
 
+- unit tests: adapt to API changes
+  - raft::InetTransport (<- LocalTransport)
+  - http1::Connection (<- LocalTransport)
+  - HttpClient (<- local HttpServer)
+- SslEndPoint: finalize ssl-client support
+- rename flush/fill to write/read in endpoint APIs, same for
+  - onFlushable -> onWriteReady | onWritable
+  - onFillable -> onReadReady | onReadable
+- rewrite some `throw`'s to `Result<>`|`std::error_code` returns
 - eliminate DataChainListener and/or greatly simplify DataChain
 - eliminate need of EndPointWriter via DataChain
 - eliminate TcpUtil?
-- eliminate SslUtil?
-- finish SslClient
-  - migrate into SslEndPoint
 
 ### Intermediate 0
 

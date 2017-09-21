@@ -11,7 +11,6 @@
 #include <xzero/http/HttpResponseInfo.h>
 #include <xzero/http/http1/Generator.h>
 #include <xzero/net/EndPointWriter.h>
-#include <xzero/net/ByteArrayEndPoint.h>
 #include <xzero/Buffer.h>
 #include <xzero/testing.h>
 
@@ -36,10 +35,10 @@ TEST(http_http1_Generator, generateResponse_empty) {
   generator.generateResponse(info, BufferRef());
   generator.generateTrailer({});
 
-  ByteArrayEndPoint ep;
-  writer.flush(&ep);
+  Buffer out;
+  writer.flush(&out);
 
-  ASSERT_EQ("HTTP/1.1 200 my\r\nContent-Length: 0\r\n\r\n", ep.output());
+  ASSERT_EQ("HTTP/1.1 200 my\r\nContent-Length: 0\r\n\r\n", out);
 }
 
 // XXX some headers, no body.
@@ -58,10 +57,10 @@ TEST(http_http1_Generator, generateResponse_headers) {
   generator.generateResponse(info, BufferRef());
   generator.generateTrailer(trailers);
 
-  ByteArrayEndPoint ep;
-  writer.flush(&ep);
+  Buffer out;
+  writer.flush(&out);
 
-  ASSERT_EQ("HTTP/1.1 200 my\r\nFoo: the-foo\r\nBar: the-bar\r\nContent-Length: 0\r\n\r\n", ep.output());
+  ASSERT_EQ("HTTP/1.1 200 my\r\nFoo: the-foo\r\nBar: the-bar\r\nContent-Length: 0\r\n\r\n", out);
 }
 
 // XXX no headers, static (fixed-size) body.
@@ -78,10 +77,10 @@ TEST(http_http1_Generator, generateResponse_static_body) {
   generator.generateResponse(info, body);
   generator.generateTrailer(trailers);
 
-  ByteArrayEndPoint ep;
-  writer.flush(&ep);
+  Buffer out;
+  writer.flush(&out);
 
-  ASSERT_EQ("HTTP/1.1 200 my\r\nContent-Length: 4\r\n\r\nbody", ep.output());
+  ASSERT_EQ("HTTP/1.1 200 my\r\nContent-Length: 4\r\n\r\nbody", out);
 }
 
 // XXX no headers, dynamic (chunked) body
@@ -98,10 +97,10 @@ TEST(http_http1_Generator, generateResponse_chunked) {
   generator.generateResponse(info, body);
   generator.generateTrailer(trailers);
 
-  ByteArrayEndPoint ep;
-  writer.flush(&ep);
+  Buffer out;
+  writer.flush(&out);
 
-  ASSERT_EQ("HTTP/1.1 200 my\r\nTransfer-Encoding: chunked\r\n\r\n4\r\nbody\r\n0\r\n\r\n", ep.output());
+  ASSERT_EQ("HTTP/1.1 200 my\r\nTransfer-Encoding: chunked\r\n\r\n4\r\nbody\r\n0\r\n\r\n", out);
 }
 
 // XXX no headers, dynamic (chunked) body with trailers
@@ -121,10 +120,10 @@ TEST(http_http1_Generator, generateResponse_chunked_trailer) {
   generator.generateResponse(info, body);
   generator.generateTrailer(trailers);
 
-  ByteArrayEndPoint ep;
-  writer.flush(&ep);
+  Buffer out;
+  writer.flush(&out);
 
-  ASSERT_EQ("HTTP/1.1 200 my\r\nTrailer: Foo, Bar\r\nTransfer-Encoding: chunked\r\n\r\n4\r\nbody\r\n0\r\nFoo: the-foo\r\nBar: the-bar\r\n\r\n", ep.output());
+  ASSERT_EQ("HTTP/1.1 200 my\r\nTrailer: Foo, Bar\r\nTransfer-Encoding: chunked\r\n\r\n4\r\nbody\r\n0\r\nFoo: the-foo\r\nBar: the-bar\r\n\r\n", out);
 }
 
 // XXX no headers, static (fixed-size) body with trailers (triggers chunking)
@@ -144,10 +143,10 @@ TEST(http_http1_Generator, generateResponse_chunked_trailer2) {
   generator.generateResponse(info, body);
   generator.generateTrailer(trailers);
 
-  ByteArrayEndPoint ep;
-  writer.flush(&ep);
+  Buffer out;
+  writer.flush(&out);
 
-  ASSERT_EQ("HTTP/1.1 200 my\r\nTrailer: Foo, Bar\r\nTransfer-Encoding: chunked\r\n\r\n4\r\nbody\r\n0\r\nFoo: the-foo\r\nBar: the-bar\r\n\r\n", ep.output());
+  ASSERT_EQ("HTTP/1.1 200 my\r\nTrailer: Foo, Bar\r\nTransfer-Encoding: chunked\r\n\r\n4\r\nbody\r\n0\r\nFoo: the-foo\r\nBar: the-bar\r\n\r\n", out);
 }
 
 // TEST(http_http1_Generator, generateBody_Buffer) {

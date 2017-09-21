@@ -8,7 +8,6 @@
 #include <xzero/testing.h>
 #include <xzero/HugeBuffer.h>
 #include <xzero/Buffer.h>
-#include <xzero/io/InputStream.h>
 #include <xzero/io/FileView.h>
 #include <xzero/io/FileUtil.h>
 
@@ -126,26 +125,6 @@ TEST(HugeBuffer, getBuffer_file) {
   HugeBuffer hb(0);
   hb.write(BufferRef("Hello"));
   EXPECT_EQ("Hello", hb.getBuffer());
-}
-
-TEST(HugeBuffer, getInputStream_memory) {
-  HugeBuffer hb(5);
-  hb.write(BufferRef("Hello"));
-  auto stream = hb.getInputStream();
-
-  Buffer out;
-  ssize_t readBytes = stream->read(&out, 10);
-  EXPECT_EQ("Hello", out);
-}
-
-TEST(HugeBuffer, getInputStream_file) {
-  HugeBuffer hb(0);
-  hb.write(BufferRef("Hello"));
-  auto stream = hb.getInputStream();
-
-  Buffer out;
-  ssize_t readBytes = stream->read(&out, 10);
-  EXPECT_EQ("Hello", out);
 }
 
 TEST(HugeBuffer, write_Buffer) {

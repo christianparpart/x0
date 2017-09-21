@@ -102,26 +102,6 @@ HttpClient::HttpClient(HttpClient&& other)
       pendingTasks_(std::move(other.pendingTasks_)) {
 }
 
-void HttpClient::send(const Request& request,
-                      HttpListener* responseListener) {
-  pendingTasks_.emplace_back(Task{request, responseListener, false});
-
-  if (endpoint_) {
-    // TODO: maybe idle? then trigger consuming pending tasks
-    return;
-  }
-
-  auto f = createEndPoint_();
-  f.onSuccess([this](RefPtr<TcpEndPoint> ep) {
-    TRACE("endpoint created");
-    endpoint_ = ep;
-    setupConnection();
-  });
-  f.onFailure([this](std::error_code ec) {
-    logError("HttpClient", "Failed to connect. $0", ec.message());
-  });
-}
-
 bool HttpClient::isClosed() const {
   return !endpoint_;
 }
@@ -133,52 +113,83 @@ Future<RefPtr<TcpEndPoint>> HttpClient::createTcp(InetAddress addr,
   Promise<RefPtr<TcpEndPoint>> promise;
 
   Future<int> f = TcpUtil::connect(addr, connectTimeout, executor_);
+
   f.onFailure(promise);
   f.onSuccess([promise, addr, readTimeout, writeTimeout, this](int fd) {
     promise.success(RefPtr<TcpEndPoint>(new TcpEndPoint(fd,
-                                                         addr.family(),
-                                                         readTimeout,
-                                                         writeTimeout,
-                                                         executor_,
-                                                         nullptr)));
+                                                        addr.family(),
+                                                        readTimeout,
+                                                        writeTimeout,
+                                                        executor_,
+                                                        nullptr)));
   });
 
   return promise.future();
 }
 
-void HttpClient::startConnect() {
-}
-
-bool HttpClient::tryConsumeTask() {
-  // TODO
-  // if (HttpTransport* channel = getChannel(); channel != nullptr) {
-  //   channel->setListener(responseListener);
-  //   channel->send(request, nullptr);
-  //   channel->send(request.getContent().getBuffer(), nullptr);
-  //   channel->completed();
-  //   return true;
-  // }
-  return false;
-}
-
-void HttpClient::send(const Request& request,
-            std::function<void(const Response&)> onSuccess,
-            std::function<void(std::error_code)> onFailure) {
-  send(request, new ResponseBuilder(onSuccess, onFailure));
+Future<HttpClient::Response> HttpClient::send(const std::string& method,
+                                              const Uri& url,
+                                              const HeaderFieldList& headers) {
+  return send(Request{HttpVersion::VERSION_1_1,
+                      method,
+                      url.toString(),
+                      headers,
+                      false,
+                      HugeBuffer()});
 }
 
 Future<HttpClient::Response> HttpClient::send(const Request& request) {
   Promise<Response> promise;
   send(request,
        [promise](const Response& response) {
-         printf("HttpClient.send: response received\n");
+         TRACE("send: response received");
          promise.success(std::move(response));
        },
        [promise](std::error_code ec) {
-         printf("HttpClient.send: failure received\n");
+         TRACE("send: failure received");
          promise.failure(ec);
        });
   return promise.future();
+}
+
+void HttpClient::send(const Request& request,
+            std::function<void(const Response&)> onSuccess,
+            std::function<void(std::error_code)> onFailure) {
+  pendingTasks_.emplace_back(Task{request, new ResponseBuilder(onSuccess, onFailure), true});
+  tryConsumeTask();
+}
+
+void HttpClient::send(const Request& request,
+                      HttpListener* responseListener) {
+  pendingTasks_.emplace_back(Task{request, responseListener, false});
+  tryConsumeTask();
+}
+
+bool HttpClient::tryConsumeTask() {
+  if (pendingTasks_.empty())
+    return false;
+
+  auto f = createEndPoint_();
+  f.onSuccess([this](RefPtr<TcpEndPoint> ep) {
+    TRACE("endpoint created");
+    endpoint_ = ep;
+
+    Task task {std::move(pendingTasks_.front())};
+    pendingTasks_.pop_front();
+
+    HttpTransport* channel = endpoint_->setConnection<Http1Connection>(
+        task.listener, endpoint_.get(), executor_);
+
+    channel->setListener(task.listener);
+    channel->send(task.request, nullptr);
+    channel->send(task.request.getContent().getBuffer(), nullptr);
+    channel->completed();
+  });
+  f.onFailure([this](std::error_code ec) {
+    logError("HttpClient", "Failed to connect. $0", ec.message());
+  });
+
+  return true;
 }
 
 void HttpClient::setupConnection() {
@@ -203,12 +214,13 @@ HttpClient::ResponseBuilder::ResponseBuilder(std::function<void(Response&&)> s,
     : success_(s),
       failure_(f),
       response_() {
+  TRACE("ResponseBuilder.ctor");
 }
 
 void HttpClient::ResponseBuilder::onMessageBegin(HttpVersion version,
                                                  HttpStatus code,
                                                  const BufferRef& text) {
-  TRACE("onMessageBegin($0, $1, $2)", version, (int)code, text);
+  TRACE("ResponseBuilder.onMessageBegin($0, $1, $2)", version, (int)code, text);
 
   response_.setVersion(version);
   response_.setStatus(code);
@@ -217,27 +229,27 @@ void HttpClient::ResponseBuilder::onMessageBegin(HttpVersion version,
 
 void HttpClient::ResponseBuilder::onMessageHeader(const BufferRef& name,
                                                   const BufferRef& value) {
-  TRACE("onMessageHeader($0, $1)", name, value);
+  TRACE("ResponseBuilder.onMessageHeader($0, $1)", name, value);
 
   response_.headers().push_back(name.str(), value.str());
 }
 
 void HttpClient::ResponseBuilder::onMessageHeaderEnd() {
-  TRACE("onMessageHeaderEnd()");
+  TRACE("ResponseBuilder.onMessageHeaderEnd()");
 }
 
 void HttpClient::ResponseBuilder::onMessageContent(const BufferRef& chunk) {
-  TRACE("onMessageContent(BufferRef) $0 bytes", chunk.size());
+  TRACE("ResponseBuilder.onMessageContent(BufferRef) $0 bytes", chunk.size());
   response_.content().write(chunk);
 }
 
 void HttpClient::ResponseBuilder::onMessageContent(FileView&& chunk) {
-  TRACE("onMessageContent(FileView) $0 bytes", chunk.size());
+  TRACE("ResponseBuilder.onMessageContent(FileView) $0 bytes", chunk.size());
   response_.content().write(std::move(chunk));
 }
 
 void HttpClient::ResponseBuilder::onMessageEnd() {
-  TRACE("onMessageEnd()");
+  TRACE("ResponseBuilder.onMessageEnd()");
   response_.setContentLength(response_.content().size());
   success_(std::move(response_));
   delete this;

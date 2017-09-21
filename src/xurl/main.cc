@@ -102,9 +102,9 @@ XUrl::XUrl()
   requestHeaders_.push_back("User-Agent", "xurl/" PACKAGE_VERSION);
 
   flags_.defineBool("help", 'h', "Prints this help.");
-  flags_.defineBool("head", 'I', "Performs a HEAD request");
+  flags_.defineBool("head", 'I', "Performs a HEAD request.");
   flags_.defineString("output", 'o', "PATH", "Write response body to given file.");
-  flags_.defineString("log-level", 0, "STRING", "Log level.", "info");
+  flags_.defineString("log-level", 'L', "STRING", "Log level.", "info");
   flags_.defineString("method", 'X', "METHOD", "HTTP method", "GET");
   flags_.defineNumber("connect-timeout", 0, "MS", "TCP connect() timeout", 10_seconds .milliseconds());
   flags_.defineString("upload-file", 'T', "PATH", "Uploads given file.", "");
@@ -186,6 +186,8 @@ void XUrl::query(const Uri& uri) {
   int port = getPort(uri);
   InetAddress inetAddr(ipaddr, port);
   Duration keepAlive = 8_seconds;
+
+  logDebug("xurl", "inet addr: $0", inetAddr);
 
   const bool secure = false; // HTTP ?
 

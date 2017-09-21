@@ -13,11 +13,11 @@
 using namespace xzero;
 
 TEST(StringUtilTest, TestToString) {
-  EXPECT_EQ(StringUtil::toString(123), "123");
-  EXPECT_EQ(StringUtil::toString(1230000000), "1230000000");
-  EXPECT_EQ(StringUtil::toString(24.5), "24.5");
-  EXPECT_EQ(StringUtil::toString("abc"), "abc");
-  EXPECT_EQ(StringUtil::toString(std::string("abc")), "abc");
+  EXPECT_EQ(to_string(123), "123");
+  EXPECT_EQ(to_string(1230000000), "1230000000");
+  EXPECT_EQ(to_string(24.5), "24.5");
+  EXPECT_EQ(to_string("abc"), "abc");
+  EXPECT_EQ(to_string(std::string("abc")), "abc");
 }
 
 TEST(StringUtilTest, TestStripTrailingSlashes) {
@@ -97,7 +97,7 @@ TEST(StringUtilTest, TestFormat) {
       "brown",
       "lazy");
 
-  EXPECT_EQ(str1, "The quick brown fox jumps over the lazy dog");
+  EXPECT_EQ("The quick brown fox jumps over the lazy dog", str1);
 
   auto str2 = StringUtil::format(
       "1 $3 2 $2 3 $1 4 $0 5 $8 6 $9",
@@ -112,16 +112,16 @@ TEST(StringUtilTest, TestFormat) {
       "I",
       "K");
 
-  EXPECT_EQ(str2, "1 D 2 C 3 B 4 A 5 I 6 K");
+  EXPECT_EQ("1 D 2 C 3 B 4 A 5 I 6 K", str2);
 
   auto str3 = StringUtil::format("$0 + $1 = $2", 2.5, 6.5, 9);
-  EXPECT_EQ(str3, "2.5 + 6.5 = 9");
+  EXPECT_EQ("2.5 + 6.5 = 9", str3);
 
-  auto str5 = StringUtil::format("$0, $1", 1.0, 0.0625);
-  EXPECT_EQ(str5, "1.0, 0.0625");
+  auto str5 = StringUtil::format("$0, $1", 1, 0.0625);
+  EXPECT_EQ("1, 0.0625", str5);
 
   auto str4 = StringUtil::format("$1$1$1$1$1 $0", "Batman", "Na");
-  EXPECT_EQ(str4, "NaNaNaNaNa Batman");
+  EXPECT_EQ("NaNaNaNaNa Batman", str4);
 }
 
 TEST(StringUtilTest, splitByAny_empty) {
@@ -150,14 +150,14 @@ TEST(StringUtilTest, splitByAny) {
 
 TEST(StringUtilTest, TestSplit) {
   auto parts1 = StringUtil::split("one,two,three", ",");
-  EXPECT_EQ(parts1.size(), 3);
-  EXPECT_EQ(parts1[0], "one");
-  EXPECT_EQ(parts1[1], "two");
-  EXPECT_EQ(parts1[2], "three");
+  EXPECT_EQ(3, parts1.size());
+  EXPECT_EQ("one", parts1[0]);
+  EXPECT_EQ("two", parts1[1]);
+  EXPECT_EQ("three", parts1[2]);
 
   auto parts2 = StringUtil::split("onexxtwoxxthree", "xx");
-  EXPECT_EQ(parts2.size(), 3);
-  EXPECT_EQ(parts2[0], "one");
-  EXPECT_EQ(parts2[1], "two");
-  EXPECT_EQ(parts2[2], "three");
+  EXPECT_EQ(3, parts2.size());
+  EXPECT_EQ("one", parts2[0]);
+  EXPECT_EQ("two", parts2[1]);
+  EXPECT_EQ("three", parts2[2]);
 }

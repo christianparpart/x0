@@ -22,13 +22,10 @@ class RTest : public xzero::RefCounted {
   int val_;
 };
 
-namespace xzero {
-  template <>
-  std::string StringUtil::toString(RTest* value) {
-    char buf[64];
-    int n = snprintf(buf, sizeof(buf), "@%p", value);
-    return std::string(buf, 0, n);
-  }
+std::string to_string(RTest* value) {
+  char buf[64];
+  int n = snprintf(buf, sizeof(buf), "RTest@%p", value);
+  return std::string(buf, 0, n);
 }
 
 TEST(RefPtr, ctor0) {

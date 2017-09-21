@@ -228,7 +228,7 @@ namespace testing {
     if (failed) {                                                             \
       ::xzero::testing::UnitTest::instance()->reportBinary(                   \
           __FILE__, __LINE__, fatal, #expected, #actual,                      \
-          ::xzero::StringUtil::toString(actualEvaluated), "");                \
+          ::xzero::to_string(actualEvaluated), "");                           \
     } \
   } while (0)
 
@@ -236,7 +236,7 @@ namespace testing {
   do if (!(expected op actual)) {                                             \
     ::xzero::testing::UnitTest::instance()->reportBinary(                     \
         __FILE__, __LINE__, fatal, #expected, #actual,                        \
-        ::xzero::StringUtil::toString(actual), #op);                          \
+        ::xzero::to_string(actual), #op);                                     \
   } while (0)
 
 #define _TEST_CLASS_NAME(testCaseName, testName) \

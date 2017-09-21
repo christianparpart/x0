@@ -70,6 +70,14 @@ TEST(Future, successNow) {
   ASSERT_EQ(42, f.get());
 }
 
+namespace std {
+  // required for xzero::to_string() conversion
+  ostream& operator<<(ostream& os, errc ec) {
+    os << make_error_code(ec).message();
+    return os;
+  }
+}
+
 TEST(Future, failureGetThrows) {
   Promise<int> promise;
   promise.failure(std::errc::io_error);

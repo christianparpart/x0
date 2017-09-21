@@ -8,7 +8,6 @@
 #include <xzero/http/client/HttpClient.h>
 #include <xzero/http/HttpRequest.h>
 #include <xzero/executor/NativeScheduler.h>
-#include <xzero/net/ByteArrayEndPoint.h>
 #include <xzero/logging.h>
 #include <xzero/testing.h>
 
@@ -16,28 +15,11 @@ using namespace xzero;
 using namespace xzero::http;
 using namespace xzero::http::client;
 
-RefPtr<ByteArrayEndPoint> createEndPoint() {
-  RefPtr<ByteArrayEndPoint> ep(new ByteArrayEndPoint());
-
-  ep->setInput("HTTP/1.1 200 Ok\r\n"
-               "Server: unittest\r\n"
-               "Content-Length: 13\r\n"
-               "\r\n"
-               "Hello, World\n");
-
-  return ep;
-};
-
-Future<RefPtr<EndPoint>> createEndPointAsync() {
-  Promise<RefPtr<EndPoint>> promise;
-  promise.success(createEndPoint().as<EndPoint>());
-  return promise.future();
-}
-
+#if 0 // TODO
 TEST(HttpClient, http1_default) {
   NativeScheduler sched;
 
-  HttpClient cli(&sched, createEndPointAsync, 5_seconds);
+  HttpClient cli(&sched, ..., 5_seconds);
 
   HttpRequest req(HttpVersion::VERSION_1_1, "GET", "/", {{"Host", "test"}}, false, {});
 
@@ -57,3 +39,4 @@ TEST(HttpClient, http1_default) {
   // EXPECT_EQ("unittest", cli.responseInfo().headers().get("Server"));
   // EXPECT_EQ("Hello, World\n", cli.responseBody().str());
 }
+#endif

@@ -296,6 +296,10 @@ void FileUtil::write(const std::string& path, const std::string& buffer) {
   write(path, BufferRef(buffer.data(), buffer.size()));
 }
 
+void FileUtil::write(int fd, const char* cstr) {
+  FileUtil::write(fd, BufferRef(cstr, strlen(cstr)));
+}
+
 void FileUtil::write(int fd, const BufferRef& buffer) {
   size_t nwritten = 0;
   do {

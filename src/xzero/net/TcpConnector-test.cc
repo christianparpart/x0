@@ -21,13 +21,13 @@ using namespace xzero;
 
 class EchoServerConnection : public xzero::Connection { // {{{
  public:
-  EchoServerConnection(EndPoint* endpoint, Executor* executor);
+  EchoServerConnection(TcpEndPoint* endpoint, Executor* executor);
   void onOpen(bool dataReady) override;
   void onFillable() override;
   void onFlushable() override;
 };
 
-EchoServerConnection::EchoServerConnection(EndPoint* endpoint, Executor* executor)
+EchoServerConnection::EchoServerConnection(TcpEndPoint* endpoint, Executor* executor)
     : Connection(endpoint, executor) {
 }
 
@@ -59,7 +59,7 @@ void EchoServerConnection::onFlushable() {
 // }}}
 class EchoClientConnection : public xzero::Connection { // {{{
  public:
-  EchoClientConnection(EndPoint* endpoint, Executor* executor,
+  EchoClientConnection(TcpEndPoint* endpoint, Executor* executor,
                        const BufferRef& text,
                        std::function<void(const BufferRef&)> responder);
   void onOpen(bool dataReady) override;
@@ -71,7 +71,7 @@ class EchoClientConnection : public xzero::Connection { // {{{
 };
 
 EchoClientConnection::EchoClientConnection(
-    EndPoint* endpoint,
+    TcpEndPoint* endpoint,
     Executor* executor,
     const BufferRef& text,
     std::function<void(const BufferRef&)> responder)
@@ -102,7 +102,7 @@ auto EH(xzero::testing::Test* test) {
 TEST(TcpConnector, echoServer) {
   PosixScheduler sched(EH(this));
 
-  auto connectionFactory = [&](TcpConnector* connector, EndPoint* ep) -> Connection* {
+  auto connectionFactory = [&](TcpConnector* connector, TcpEndPoint* ep) -> Connection* {
     return ep->setConnection<EchoServerConnection>(ep, &sched);
   };
 
@@ -123,7 +123,7 @@ TEST(TcpConnector, echoServer) {
   connector->start();
   logf("Listening on port $0", connector->port());
 
-  Future<RefPtr<EndPoint>> f = TcpEndPoint::connectAsync(
+  Future<RefPtr<TcpEndPoint>> f = TcpEndPoint::connectAsync(
       InetAddress("127.0.0.1", connector->port()),
       5_seconds, 5_seconds, 5_seconds, &sched);
 
@@ -134,7 +134,7 @@ TEST(TcpConnector, echoServer) {
     connector->stop();
   };
 
-  auto onConnectionEstablished = [&](RefPtr<EndPoint> ep) {
+  auto onConnectionEstablished = [&](RefPtr<TcpEndPoint> ep) {
     ep->setConnection<EchoClientConnection>(ep.get(), &sched, "ping", onClientReceived);
     ep->connection()->onOpen(false);
   };
@@ -166,13 +166,13 @@ TEST(TcpConnector, detectProtocols) {
       false); // reusePort
 
   int echoCreated = 0;
-  auto echoFactory = [&](TcpConnector* connector, EndPoint* ep) -> Connection* {
+  auto echoFactory = [&](TcpConnector* connector, TcpEndPoint* ep) -> Connection* {
     echoCreated++;
     return ep->setConnection<EchoServerConnection>(ep, &sched);
   };
 
   int yeahCreated = 0;
-  auto yeahFactory = [&](TcpConnector* connector, EndPoint* ep) -> Connection* {
+  auto yeahFactory = [&](TcpConnector* connector, TcpEndPoint* ep) -> Connection* {
     yeahCreated++;
     return ep->setConnection<EchoServerConnection>(ep, &sched);
   };
@@ -182,7 +182,7 @@ TEST(TcpConnector, detectProtocols) {
   connector->start();
   logf("Listening on port $0", connector->port());
 
-  Future<RefPtr<EndPoint>> f = TcpEndPoint::connectAsync(
+  Future<RefPtr<TcpEndPoint>> f = TcpEndPoint::connectAsync(
       InetAddress("127.0.0.1", connector->port()),
       5_seconds, 5_seconds, 5_seconds, &sched);
 
@@ -193,7 +193,7 @@ TEST(TcpConnector, detectProtocols) {
     connector->stop();
   };
 
-  auto onConnectionEstablished = [&](RefPtr<EndPoint> ep) {
+  auto onConnectionEstablished = [&](RefPtr<TcpEndPoint> ep) {
     log("onConnectionEstablished");
     Buffer text;
     connector->loadConnectionFactorySelector("yeah", &text);

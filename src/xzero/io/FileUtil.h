@@ -49,6 +49,7 @@ class XZERO_BASE_API FileUtil {
   static Buffer read(const std::string& path);
   static void write(const std::string& path, const BufferRef& buffer);
   static void write(const std::string& path, const std::string& buffer);
+  static void write(int fd, const char* cstr);
   static void write(int fd, const BufferRef& chunk);
   static void write(int fd, const std::string& chunk);
   static void write(int fd, const FileView& chunk);
