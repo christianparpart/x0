@@ -1,5 +1,6 @@
 ## HttpClient Requirements
 
+- properly handle `Expect: 100-continue`, transparently.
 - streaming request
 - streaming response
 - concurrent request processing
@@ -13,7 +14,7 @@
 - [ ] Unit Tests
 - [x] Transport-Layer Transparent Client API
 - [ ] sync, async, nonblocking I/O aware
-- [ ] HTTP/1 Transport Layer
+- [x] HTTP/1 Transport Layer
 - [ ] FastCGI Transport Layer
 - [ ] HTTP/2 Transport Layer
 - [ ] SSL
