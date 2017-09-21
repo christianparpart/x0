@@ -10,6 +10,7 @@
 #include <xzero/inspect.h>
 #include <stdarg.h>
 #include <sstream>
+#include <iostream>
 
 namespace xzero {
 
@@ -47,6 +48,9 @@ void Logger::logException(
           rte->functionName(),
           rte->sourceFile(),
           rte->sourceLine());
+      if (log_level >= LogLevel::Debug) {
+        rte->debugPrint(&std::cerr);
+      }
     } else {
       log(log_level,
           component,

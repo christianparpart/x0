@@ -20,9 +20,7 @@ class XZERO_BASE_API FileRepository {
  public:
   virtual ~FileRepository();
 
-  virtual std::shared_ptr<File> getFile(
-      const std::string& requestPath,
-      const std::string& docroot = "/") = 0;
+  virtual std::shared_ptr<File> getFile(const std::string& requestPath) = 0;
 
   virtual void listFiles(std::function<bool(const std::string&)> callback) = 0;
   virtual void deleteAllFiles() = 0;

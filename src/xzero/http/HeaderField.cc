@@ -39,11 +39,9 @@ std::string inspect(const HeaderField& field) {
                             field.value());
 }
 
-} // namespace http
-
-template <>
-std::string StringUtil::toString(http::HeaderField field) {
-  return StringUtil::format("{\"$0\": \"$1\"}", field.name(), field.value());
+std::ostream& operator<<(std::ostream& os, const HeaderField& field) {
+  return os << StringUtil::format("{\"$0\": \"$1\"}", field.name(), field.value());
 }
 
+} // namespace http
 } // namespace xzero

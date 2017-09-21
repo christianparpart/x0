@@ -8,7 +8,8 @@
 
 #include <xzero/RefPtr.h>
 #include <xzero/thread/Future.h>
-#include <xzero/net/EndPoint.h>
+#include <xzero/executor/Executor.h>
+#include <xzero/net/TcpEndPoint.h>
 #include <xzero/io/FileDescriptor.h>
 #include <functional>
 #include <vector>
@@ -20,9 +21,33 @@ namespace xzero {
 
 class Executor;
 
-class SslClient : public EndPoint {
+class SslClient : public TcpEndPoint {
  public:
+  /**
+   * Callback to create a client connection for the protocol being passed.
+   */
   typedef std::function<Connection*(const std::string&)> ConnectionFactory;
+
+  /**
+   * Connects to @p target and starts SSL on the connected session.
+   *
+   * @param target Target TCP/IP address & port to connect to
+   * @param executor Executor API to use for any underlying I/O task execution.
+   * @param sni Server-Name-Indication string to pass; usually matches the DNS host name
+   * @param applicationProtocolsSupported list of supported application
+   *                                      protocols, such as "http", or "h2"
+   * @param createApplicationConnection Factory method for instanciating the
+   *                                    application protocol
+   */
+  static Future<RefPtr<SslClient>> connect(
+      const InetAddress& target,
+      Executor* executor,
+      const std::string& sni,
+      const std::vector<std::string>& applicationProtocolsSupported,
+      ConnectionFactory createApplicationConnection) {
+    return connect(target, 10_seconds, 60_seconds, 60_seconds,
+        executor, sni, applicationProtocolsSupported, createApplicationConnection);
+  }
 
   /**
    * Connects to @p target and starts SSL on the connected session.
@@ -89,12 +114,12 @@ class SslClient : public EndPoint {
 
   std::string nextProtocolNegotiated() const;
 
-  // EndPoint overrides
+  // TcpEndPoint overrides
   bool isOpen() const override;
   void close() override;
   size_t fill(Buffer* sink, size_t count) override;
   size_t flush(const BufferRef& source) override;
-  size_t flush(int fd, off_t offset, size_t size) override;
+  size_t flush(const FileView& source) override;
   void wantFill() override;
   void wantFlush() override;
   Duration readTimeout() override;
@@ -113,6 +138,9 @@ class SslClient : public EndPoint {
 
  private:
   void onHandshake(Promise<RefPtr<SslClient>> promise);
+  void fillable();
+  void flushable();
+  void onTimeout();
 
  private:
   const SSL_METHOD* method_;
@@ -125,6 +153,8 @@ class SslClient : public EndPoint {
   Duration writeTimeout_;
   Executor* executor_;
   std::function<Connection*(const std::string&)> createApplicationConnection_;
+
+  Executor::HandleRef io_;
 };
 
 } // namespace xzero

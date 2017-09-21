@@ -17,7 +17,6 @@
 #include <functional>
 
 namespace xzero {
-  class Server;
   class Connection;
 
   namespace http {

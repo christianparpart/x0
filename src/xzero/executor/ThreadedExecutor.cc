@@ -36,8 +36,8 @@ static std::mutex m;
 #define TRACE(msg...) do { } while (0)
 #endif
 
-ThreadedExecutor::ThreadedExecutor(std::unique_ptr<xzero::ExceptionHandler> eh)
-    : Executor(std::move(eh)),
+ThreadedExecutor::ThreadedExecutor(ExceptionHandler eh)
+    : Executor(eh),
       threads_() {
 }
 

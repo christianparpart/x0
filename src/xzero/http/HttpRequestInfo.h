@@ -71,7 +71,7 @@ inline HttpRequestInfo::HttpRequestInfo(HttpVersion version,
                                         const std::string& uri,
                                         size_t contentLength,
                                         const HeaderFieldList& headers)
-    : HttpRequestInfo(version, to_string(method), uri, contentLength, headers) {
+    : HttpRequestInfo(version, as_string(method), uri, contentLength, headers) {
 }
 
 inline HttpRequestInfo::HttpRequestInfo(HttpVersion version,

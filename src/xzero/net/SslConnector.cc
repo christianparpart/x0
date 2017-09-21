@@ -13,6 +13,7 @@
 #include <xzero/RuntimeError.h>
 #include <openssl/ssl.h>
 #include <algorithm>
+#include <functional>
 
 namespace xzero {
 
@@ -28,21 +29,37 @@ SslConnector::SslConnector(const std::string& name, Executor* executor,
                            Duration tcpFinTimeout,
                            const IPAddress& ipaddress, int port, int backlog,
                            bool reuseAddr, bool reusePort)
-    : InetConnector(name, executor, clientExecutorSelector,
-                    readTimeout, writeTimeout, tcpFinTimeout,
-                    ipaddress, port, backlog, reuseAddr, reusePort),
+    : TcpConnector(name, executor, clientExecutorSelector,
+                   readTimeout, writeTimeout, tcpFinTimeout,
+                   ipaddress, port, backlog, reuseAddr, reusePort),
+      protocolList_(),
       contexts_() {
 }
 
 SslConnector::~SslConnector() {
 }
 
-void SslConnector::addContext(const std::string& crtFilePath,
-                              const std::string& keyFilePath) {
-  contexts_.emplace_back(new SslContext(this, crtFilePath, keyFilePath));
+void SslConnector::addConnectionFactory(const std::string& protocol,
+                                        ConnectionFactory factory) {
+  TcpConnector::addConnectionFactory(protocol, factory);
+
+  // XXX needs update whenever a new protocol-implementation is added.
+  // XXX should only happen at startup-time, too
+  protocolList_ = SslEndPoint::makeProtocolList(connectionFactories());
 }
 
-SslContext* SslConnector::selectContext(const char* servername) const {
+void SslConnector::addContext(const std::string& crtFilePath,
+                              const std::string& keyFilePath) {
+  contexts_.emplace_back(new SslContext(crtFilePath, keyFilePath,
+        std::bind(&SslConnector::protocolList, this),
+        std::bind(&SslConnector::getContextByDnsName, this, std::placeholders::_1)));
+}
+
+BufferRef SslConnector::protocolList() const noexcept {
+  return protocolList_;
+}
+
+SslContext* SslConnector::getContextByDnsName(const char* servername) const {
   TRACE("$0 selectContext: servername = '$1'", this, servername);
   if (!servername)
     return nullptr;
@@ -74,42 +91,22 @@ int SslConnector::selectContext(
   return SSL_TLSEXT_ERR_OK;
 }
 
-void SslConnector::start() {
-  InetConnector::start();
-}
-
-bool SslConnector::isStarted() const XZERO_NOEXCEPT {
-  return InetConnector::isStarted();
-}
-
-void SslConnector::stop() {
-  InetConnector::stop();
-}
-
-std::list<RefPtr<EndPoint>> SslConnector::connectedEndPoints() {
-  return InetConnector::connectedEndPoints();
-}
-
-RefPtr<EndPoint> SslConnector::createEndPoint(int cfd, Executor* executor) {
+RefPtr<TcpEndPoint> SslConnector::createEndPoint(int cfd, Executor* executor) {
+  TRACE("createEndPoint: cfd=$0", cfd);
   return make_ref<SslEndPoint>(
       FileDescriptor(cfd),
+      addressFamily(),
       readTimeout(),
       writeTimeout(),
       defaultContext(),
+      std::bind(&SslConnector::createConnection, this, std::placeholders::_1, std::placeholders::_2),
       std::bind(&SslConnector::onEndPointClosed, this, std::placeholders::_1),
-      executor).as<EndPoint>();
+      executor).as<TcpEndPoint>();
 }
 
-void SslConnector::onEndPointCreated(const RefPtr<EndPoint>& endpoint) {
-  endpoint.weak_as<SslEndPoint>()->onHandshake();
-}
-
-template<> std::string StringUtil::toString(SslConnector* c) {
-  return StringUtil::format("$0", c->name());
-}
-
-template<> std::string StringUtil::toString(const SslConnector* c) {
-  return StringUtil::format("$0", c->name());
+void SslConnector::onEndPointCreated(RefPtr<TcpEndPoint> endpoint) {
+  TRACE("onEndPointCreated fd=$0", endpoint->handle());
+  endpoint.weak_as<SslEndPoint>()->onServerHandshake();
 }
 
 } // namespace xzero

@@ -54,23 +54,23 @@ TEST(HugeBuffer, fillToMemThenFile) {
   EXPECT_TRUE(hb.isFile());
 }
 
-TEST(HugeBuffer, reset_memory) {
+TEST(HugeBuffer, clear_memory) {
   HugeBuffer hb(5);
 
   hb.write(BufferRef("Hello"));
-  hb.reset();
+  hb.clear();
 
   EXPECT_TRUE(hb.empty());
   EXPECT_EQ(0, hb.size());
   EXPECT_EQ("", hb.getBuffer());
 }
 
-TEST(HugeBuffer, reset_file) {
+TEST(HugeBuffer, clear_file) {
   HugeBuffer hb(0);
 
   hb.write(BufferRef("Hello"));
   EXPECT_EQ("Hello", hb.getBuffer());
-  hb.reset();
+  hb.clear();
 
   EXPECT_TRUE(hb.empty());
   EXPECT_EQ(0, hb.size());

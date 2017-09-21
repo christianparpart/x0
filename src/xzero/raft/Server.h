@@ -23,6 +23,7 @@
 #include <atomic>
 #include <system_error>
 #include <memory>
+#include <iosfwd>
 #include <list>
 
 namespace xzero {
@@ -282,6 +283,8 @@ class Server : public Handler {
   std::function<void(Server* self, ServerState oldState)> onStateChanged;
   std::function<void(Id oldLeader)> onLeaderChanged;
 };
+
+std::ostream& operator<<(std::ostream& os, ServerState s);
 
 } // namespace raft
 } // namespace xzero

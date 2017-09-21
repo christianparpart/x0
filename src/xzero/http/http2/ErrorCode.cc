@@ -7,41 +7,45 @@
 
 #include <xzero/http/http2/ErrorCode.h>
 #include <xzero/StringUtil.h>
+#include <iosfwd>
 #include <string>
 #include <stdio.h>
 
-namespace xzero {
+namespace xzero::http::http2 {
 
-template<>
-std::string StringUtil::toString(http::http2::ErrorCode ec) {
+std::ostream& operator<<(std::ostream& os, ErrorCode ec) {
+  return os << as_string(ec);
+}
+
+std::string as_string(ErrorCode ec) {
   switch (ec) {
-    case http::http2::ErrorCode::NoError:
+    case ErrorCode::NoError:
       return "NoError";
-    case http::http2::ErrorCode::ProtocolError:
+    case ErrorCode::ProtocolError:
       return "ProtocolError";
-    case http::http2::ErrorCode::InternalError:
+    case ErrorCode::InternalError:
       return "InternalError";
-    case http::http2::ErrorCode::FlowControlError:
+    case ErrorCode::FlowControlError:
       return "FlowControlError";
-    case http::http2::ErrorCode::SettingsTimeout:
+    case ErrorCode::SettingsTimeout:
       return "SettingsTimeout";
-    case http::http2::ErrorCode::StreamClosed:
+    case ErrorCode::StreamClosed:
       return "StreamClosed";
-    case http::http2::ErrorCode::FrameSizeError:
+    case ErrorCode::FrameSizeError:
       return "FrameSizeError";
-    case http::http2::ErrorCode::RefusedStream:
+    case ErrorCode::RefusedStream:
       return "RefusedStream";
-    case http::http2::ErrorCode::Cancel:
+    case ErrorCode::Cancel:
       return "Cancel";
-    case http::http2::ErrorCode::CompressionError:
+    case ErrorCode::CompressionError:
       return "CompressionError";
-    case http::http2::ErrorCode::ConnectError:
+    case ErrorCode::ConnectError:
       return "ConnectError";
-    case http::http2::ErrorCode::EnhanceYourCalm:
+    case ErrorCode::EnhanceYourCalm:
       return "EnhanceYourCalm";
-    case http::http2::ErrorCode::InadequateSecurity:
+    case ErrorCode::InadequateSecurity:
       return "InadequateSecurity";
-    case http::http2::ErrorCode::Http11Required:
+    case ErrorCode::Http11Required:
       return "Http11Required";
     default: {
       char buf[128];
@@ -52,4 +56,4 @@ std::string StringUtil::toString(http::http2::ErrorCode ec) {
   }
 }
 
-} // namespace xzero
+} // namespace xzero::http::http2

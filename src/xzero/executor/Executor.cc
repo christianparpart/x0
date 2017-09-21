@@ -9,19 +9,20 @@
 #include <xzero/UnixSignals.h>
 #include <xzero/StringUtil.h>
 #include <xzero/thread/Wakeup.h>
+#include <iostream>
 
 namespace xzero {
 
-Executor::Executor(std::unique_ptr<xzero::ExceptionHandler> eh)
-    : safeCall_(std::move(eh)),
+Executor::Executor(ExceptionHandler eh)
+    : safeCall_(eh),
       refs_(0) {
 }
 
 Executor::~Executor() {
 }
 
-void Executor::setExceptionHandler(std::unique_ptr<ExceptionHandler> eh) {
-  safeCall_.setExceptionHandler(std::move(eh));
+void Executor::setExceptionHandler(ExceptionHandler eh) {
+  safeCall_.setExceptionHandler(eh);
 }
 
 /**
@@ -42,12 +43,13 @@ void Executor::safeCall(std::function<void()> callee) noexcept {
   safeCall_.invoke(callee);
 }
 
-template<>
-std::string StringUtil::toString(Executor* executor) {
+std::ostream& operator<<(std::ostream& os, Executor* executor) {
   char buf[256];
   snprintf(buf, sizeof(buf), "Executor@%p <%s>",
            executor, executor->toString().c_str());
-  return buf;
+  os << buf;
+  return os;
 }
+
 
 } // namespace xzero

@@ -8,21 +8,23 @@
 #pragma once
 
 #include <xzero/Api.h>
+#include <xzero/Buffer.h>
 #include <string>
+#include <functional>
 #include <openssl/ssl.h>
 
 namespace xzero {
 
-class SslConnector;
-
 /**
  * An SSL context (certificate & keyfile).
  */
-class XZERO_BASE_API SslContext {
+class SslContext {
  public:
-  SslContext(SslConnector* connector,
-             const std::string& crtFile,
-             const std::string& keyFile);
+  SslContext(const std::string& crtFile,
+             const std::string& keyFile,
+             std::function<BufferRef()> getProtocolList,
+             std::function<SslContext*(const char*)> getContext);
+
   ~SslContext();
 
   SSL_CTX* get() const;
@@ -31,19 +33,23 @@ class XZERO_BASE_API SslContext {
 
   bool isValidDnsName(const std::string& servername) const;
 
+  static void initialize();
+
  private:
   static bool imatch(const std::string& pattern, const std::string& value);
   static int onServerName(SSL* ssl, int* ad, SslContext* self);
-  static int onNextProtosAdvertised(SSL* ssl,
-      const unsigned char** out, unsigned int* outlen, void* pself);
-  static int onAppLayerProtoNegotiation(SSL* ssl,
+  static int onAppLayerProtoNegotiation(
+      SSL* ssl,
       const unsigned char **out, unsigned char *outlen,
-      const unsigned char *in, unsigned int inlen, void *pself);
+      const unsigned char *in, unsigned int inlen,
+      void *pself);
 
  private:
-  SslConnector* connector_;
   SSL_CTX* ctx_;
+
   std::vector<std::string> dnsNames_;
+  std::function<BufferRef()> getProtocolList_;
+  std::function<SslContext*(const char*)> getContext_;
 };
 
 inline SSL_CTX* SslContext::get() const {

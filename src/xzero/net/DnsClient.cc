@@ -17,6 +17,10 @@
 #include <resolv.h>
 #include <algorithm>
 
+#ifndef NS_MAXMSG
+#define NS_MAXMSG NS_PACKETSZ
+#endif
+
 namespace xzero {
 
 DnsClient::DnsClient()

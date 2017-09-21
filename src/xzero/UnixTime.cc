@@ -7,19 +7,17 @@
 
 #include <string>
 #include <ctime>
+#include <iostream>
 #include <xzero/UnixTime.h>
 #include <xzero/inspect.h>
 #include <xzero/WallClock.h>
 #include <xzero/StringUtil.h>
 #include <xzero/ISO8601.h>
+#include <xzero/time_constants.h>
 
 namespace xzero {
 
-UnixTime::UnixTime() :
-    utc_micros_(WallClock::unixMicros()) {
-}
-
-UnixTime::UnixTime(const CivilTime& civil) {
+inline uint64_t getUnixMicros(const CivilTime& civil) {
   uint64_t days = civil.day() - 1;
 
   for (auto i = 1970; i < civil.year(); ++i) {
@@ -30,13 +28,21 @@ UnixTime::UnixTime(const CivilTime& civil) {
     days += ISO8601::daysInMonth(civil.year(), i);
   }
 
-  utc_micros_ =
+  return
       days * kMicrosPerDay +
       civil.hour() * kMicrosPerHour +
       civil.minute() * kMicrosPerMinute +
       civil.second() * kMicrosPerSecond +
       civil.millisecond() * 1000 +
       civil.offset() * kMicrosPerSecond * -1;
+}
+
+UnixTime::UnixTime() :
+    utc_micros_(WallClock::unixMicros()) {
+}
+
+UnixTime::UnixTime(const CivilTime& civil) :
+    utc_micros_(getUnixMicros(civil)) {
 }
 
 UnixTime& UnixTime::operator=(const UnixTime& other) {
@@ -83,16 +89,15 @@ Option<UnixTime> UnixTime::parseString(
 }
 
 template <>
-std::string StringUtil::toString(UnixTime value) {
-  return value.toString();
-}
-
-template <>
 std::string inspect(const UnixTime& value) {
   return value.toString();
 }
 
+std::ostream& operator<<(std::ostream& os, UnixTime value) {
+  return os << value.toString();
 }
+
+} // namespace xzero
 
 xzero::UnixTime
     std::numeric_limits<xzero::UnixTime>::min() {

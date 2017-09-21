@@ -13,7 +13,7 @@
 #include <xzero/http/HttpRequest.h>
 #include <xzero/http/BadMessage.h>
 #include <xzero/net/Connection.h>
-#include <xzero/net/EndPoint.h>
+#include <xzero/net/TcpEndPoint.h>
 #include <xzero/net/EndPointWriter.h>
 #include <xzero/executor/Executor.h>
 #include <xzero/logging.h>
@@ -207,7 +207,7 @@ HttpFastCgiChannel::~HttpFastCgiChannel() {
 }
 // }}}
 
-Connection::Connection(EndPoint* endpoint,
+Connection::Connection(TcpEndPoint* endpoint,
                        Executor* executor,
                        const HttpHandler& handler,
                        HttpDateGenerator* dateGenerator,
@@ -394,20 +394,4 @@ void Connection::setPersistent(bool enable) {
 
 } // namespace fastcgi
 } // namespace http
-
-template<>
-std::string StringUtil::toString(http::fastcgi::Connection* c) {
-  return "fastcgi::Connection";
-}
-
-template<>
-std::string StringUtil::toString(http::fastcgi::HttpFastCgiTransport* c) {
-  return "fastcgi::Transport";
-}
-
-template<>
-std::string StringUtil::toString(http::fastcgi::HttpFastCgiChannel* c) {
-  return "fastcgi::Channel";
-}
-
 } // namespace xzero

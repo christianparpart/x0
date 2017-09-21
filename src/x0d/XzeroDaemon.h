@@ -9,7 +9,6 @@
 
 #include <x0d/Config.h>
 
-#include <xzero/net/Server.h>
 #include <xzero/Buffer.h>
 #include <xzero/MimeTypes.h>
 #include <xzero/io/LocalFileRepository.h>
@@ -17,7 +16,7 @@
 #include <xzero/UnixTime.h>
 #include <xzero/Duration.h>
 #include <xzero/UnixSignals.h>
-#include <xzero/net/InetConnector.h>
+#include <xzero/net/TcpConnector.h>
 #include <xzero/executor/ThreadedExecutor.h>
 #include <xzero/executor/NativeScheduler.h>
 #include <xzero/http/HttpFileHandler.h>
@@ -97,7 +96,7 @@ class XzeroDaemon : public xzero::flow::vm::Runtime {
 
   template<typename T>
   T* doSetupConnector(xzero::Executor* executor,
-                      xzero::InetConnector::ExecutorSelector clientExecutorSelector,
+                      xzero::TcpConnector::ExecutorSelector clientExecutorSelector,
                       const xzero::IPAddress& ipaddr, int port,
                       int backlog, int multiAccept,
                       bool reuseAddr, bool deferAccept, bool reusePort);
@@ -163,10 +162,17 @@ class XzeroDaemon : public xzero::flow::vm::Runtime {
   xzero::http::HttpFileHandler& fileHandler() noexcept { return fileHandler_; }
 
   Config& config() const { return *config_; }
-  xzero::Server* server() const { return server_.get(); }
 
   template<typename T>
   T* loadModule();
+
+  void start();
+  void stop();
+
+  /**
+   * Removes all TcpConnector instances from this server.
+   */
+  void removeAllConnectors();
 
  private:
   std::unique_ptr<Config> createDefaultConfig();
@@ -191,7 +197,7 @@ class XzeroDaemon : public xzero::flow::vm::Runtime {
   xzero::ThreadedExecutor threadedExecutor_;  //!< non-main worker executor
   std::vector<std::unique_ptr<xzero::EventLoop>> eventLoops_; //!< one for each thread
   std::list<std::unique_ptr<XzeroModule>> modules_; //!< list of loaded modules
-  std::unique_ptr<xzero::Server> server_;     //!< (HTTP) server instance
+  std::list<std::unique_ptr<xzero::TcpConnector>> connectors_; //!< TCP (HTTP) connectors
 
   // Flow configuration
   std::shared_ptr<xzero::flow::vm::Program> program_; // kept to preserve strong reference count

@@ -10,6 +10,7 @@
 
 #include <xzero/Api.h>
 #include <xzero/net/IPAddress.h>
+#include <iosfwd>
 
 namespace xzero {
 
@@ -89,6 +90,8 @@ class XZERO_BASE_API Cidr {
   size_t prefix_;
 };
 
+std::ostream& operator<<(std::ostream& os, const Cidr& cidr);
+
 }  // namespace xzero
 
 namespace std {
@@ -100,11 +103,6 @@ struct hash<xzero::Cidr> : public unary_function<xzero::Cidr, size_t> {
     return *(uint32_t*)(v.address().data()) + v.prefix();
   }
 };
-
-inline std::ostream& operator<<(std::ostream& os, const xzero::Cidr& cidr) {
-  os << cidr.str();
-  return os;
-}
 
 }  // namespace std
 

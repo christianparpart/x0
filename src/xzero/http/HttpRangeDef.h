@@ -49,14 +49,25 @@ class XZERO_HTTP_API HttpRangeDef {
   enum { npos = std::size_t(-1) };
 
  private:
+  BufferRef unitName_;
   vector_type ranges_;
 
  public:
   HttpRangeDef();
   explicit HttpRangeDef(const BufferRef& spec);
 
-  BufferRef unitName;
-
+  /**
+   * Parses an HTTP/1.1 conform Range header \p value.
+   *
+   * @param value the HTTP header field value retrieved from the Range header field.
+   *
+   * The following ranges can be specified:
+   * <ul>
+   *    <li>explicit range, from \em first to \em last (first-last)</li>
+   *    <li>explicit begin to the end of the entity (first-)</li>
+   *    <li>the last N units of the entity (-last)</li>
+   * </ul>
+   */
   bool parse(const BufferRef& value);
 
   /// pushes a new range to the list of ranges
@@ -65,9 +76,12 @@ class XZERO_HTTP_API HttpRangeDef {
   /// pushes a new range to the list of ranges
   void push_back(const std::pair<std::size_t, std::size_t>& range);
 
+  //! Retrieves the number of ranges.
   std::size_t size() const;
 
   bool empty() const;
+
+  const BufferRef& unitName() const noexcept { return unitName_; }
 
   /** retrieves the range element at given \p index. */
   const element_type& operator[](std::size_t index) const;
@@ -88,7 +102,8 @@ class XZERO_HTTP_API HttpRangeDef {
   std::string str() const;
 
  private:
-  inline bool parseRangeSpec(const BufferRef& spec);
+  bool parseByteRangeDef(const BufferRef& range);
+  bool parseByteRangeDef(const char* begin, const char* end);
 };
 
 //@}

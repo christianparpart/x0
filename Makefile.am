@@ -22,6 +22,7 @@ AM_CXXFLAGS = \
 
 AM_LDFLAGS = \
 	$(BASE_LIBS) \
+	$(BASE_LDFLAGS) \
 	$(PLATFORM_LDFLAGS) \
 	$(OPENSSL_LDADD) \
 	$(LIBPCRE_LIBS) \
@@ -49,6 +50,7 @@ libXzero_a_SOURCES = \
 	src/xzero/DeadlineTimer.cc \
 	src/xzero/Duration.cc \
 	src/xzero/ExceptionHandler.cc \
+	src/xzero/Flags.cc \
 	src/xzero/HugeBuffer.cc \
 	src/xzero/IEEE754.cc \
 	src/xzero/ISO8601.cc \
@@ -72,8 +74,6 @@ libXzero_a_SOURCES = \
 	src/xzero/WallClock.cc \
 	src/xzero/base64.cc \
 	src/xzero/base64url.cc \
-	src/xzero/cli/CLI.cc \
-	src/xzero/cli/Flags.cc \
 	src/xzero/executor/Executor.cc \
 	src/xzero/executor/LocalExecutor.cc \
 	src/xzero/executor/PosixScheduler.cc \
@@ -97,6 +97,7 @@ libXzero_a_SOURCES = \
 	src/xzero/http/HttpListener.cc \
 	src/xzero/http/HttpMethod.cc \
 	src/xzero/http/HttpOutputCompressor.cc \
+	src/xzero/http/HttpRangeDef.cc \
 	src/xzero/http/HttpTransport.cc \
 	src/xzero/http/HttpVersion.cc \
 	src/xzero/http/client/Http1Connection.cc \
@@ -130,27 +131,19 @@ libXzero_a_SOURCES = \
 	src/xzero/http/http2/StreamState.cc \
 	src/xzero/http/mock/Transport.cc \
 	src/xzero/inspect.cc \
-	src/xzero/io/BufferInputStream.cc \
-	src/xzero/io/BufferOutputStream.cc \
 	src/xzero/io/DataChain.cc \
 	src/xzero/io/File.cc \
 	src/xzero/io/FileDescriptor.cc \
-	src/xzero/io/FileInputStream.cc \
-	src/xzero/io/FileOutputStream.cc \
 	src/xzero/io/FileRepository.cc \
 	src/xzero/io/FileUtil.cc \
 	src/xzero/io/FileView.cc \
 	src/xzero/io/Filter.cc \
 	src/xzero/io/GzipFilter.cc \
-	src/xzero/io/InputStream.cc \
 	src/xzero/io/LocalFile.cc \
 	src/xzero/io/LocalFileRepository.cc \
 	src/xzero/io/MemoryFile.cc \
 	src/xzero/io/MemoryFileRepository.cc \
 	src/xzero/io/MemoryMap.cc \
-	src/xzero/io/OutputStream.cc \
-	src/xzero/io/StringInputStream.cc \
-	src/xzero/io/StringOutputStream.cc \
 	src/xzero/io/SystemPipe.cc \
 	src/xzero/logging/ConsoleLogTarget.cc \
 	src/xzero/logging/FileLogTarget.cc \
@@ -158,28 +151,18 @@ libXzero_a_SOURCES = \
 	src/xzero/logging/LogTarget.cc \
 	src/xzero/logging/Logger.cc \
 	src/xzero/logging/SyslogTarget.cc \
-	src/xzero/net/ByteArrayEndPoint.cc \
 	src/xzero/net/Cidr.cc \
 	src/xzero/net/Connection.cc \
-	src/xzero/net/Connector.cc \
-	src/xzero/net/DatagramConnector.cc \
-	src/xzero/net/DatagramEndPoint.cc \
 	src/xzero/net/DnsClient.cc \
-	src/xzero/net/EndPoint.cc \
 	src/xzero/net/EndPointWriter.cc \
 	src/xzero/net/InetAddress.cc \
-	src/xzero/net/InetConnector.cc \
-	src/xzero/net/InetEndPoint.cc \
-	src/xzero/net/InetUtil.cc \
-	src/xzero/net/LocalConnector.cc \
-	src/xzero/net/LocalDatagramConnector.cc \
-	src/xzero/net/LocalDatagramEndPoint.cc \
-	src/xzero/net/Server.cc \
+	src/xzero/net/TcpConnector.cc \
+	src/xzero/net/TcpEndPoint.cc \
+	src/xzero/net/TcpUtil.cc \
 	src/xzero/net/SslConnector.cc \
 	src/xzero/net/SslContext.cc \
 	src/xzero/net/SslClient.cc \
 	src/xzero/net/SslEndPoint.cc \
-	src/xzero/net/SslUtil.cc \
 	src/xzero/net/UdpClient.cc \
 	src/xzero/net/UdpConnector.cc \
 	src/xzero/net/UdpEndPoint.cc \
@@ -224,6 +207,7 @@ nobase_libXzero_HEADERS = \
 	src/xzero/Duration.h \
 	src/xzero/Duration_impl.h \
 	src/xzero/ExceptionHandler.h \
+	src/xzero/Flags.h \
 	src/xzero/HugeBuffer.h \
 	src/xzero/IEEE754.h \
 	src/xzero/ISO8601.h \
@@ -272,9 +256,6 @@ nobase_libXzero_HEADERS = \
 	src/xzero/testing.h \
 	src/xzero/time_constants.h \
 	src/xzero/traits.h \
-	src/xzero/cli/CLI.h \
-	src/xzero/cli/FlagType.h \
-	src/xzero/cli/Flags.h \
 	src/xzero/executor/EventLoop.h \
 	src/xzero/executor/Executor-inl.h \
 	src/xzero/executor/Executor.h \
@@ -347,28 +328,20 @@ nobase_libXzero_HEADERS = \
 	src/xzero/http/http2/StreamID.h \
 	src/xzero/http/http2/StreamState.h \
 	src/xzero/http/mock/Transport.h \
-	src/xzero/io/BufferInputStream.h \
-	src/xzero/io/BufferOutputStream.h \
 	src/xzero/io/DataChain.h \
 	src/xzero/io/DataChainListener.h \
 	src/xzero/io/File.h \
 	src/xzero/io/FileDescriptor.h \
-	src/xzero/io/FileInputStream.h \
-	src/xzero/io/FileOutputStream.h \
 	src/xzero/io/FileRepository.h \
 	src/xzero/io/FileUtil.h \
 	src/xzero/io/FileView.h \
 	src/xzero/io/Filter.h \
 	src/xzero/io/GzipFilter.h \
-	src/xzero/io/InputStream.h \
 	src/xzero/io/LocalFile.h \
 	src/xzero/io/LocalFileRepository.h \
 	src/xzero/io/MemoryFile.h \
 	src/xzero/io/MemoryFileRepository.h \
 	src/xzero/io/MemoryMap.h \
-	src/xzero/io/OutputStream.h \
-	src/xzero/io/StringInputStream.h \
-	src/xzero/io/StringOutputStream.h \
 	src/xzero/io/SystemPipe.h \
 	src/xzero/logging/ConsoleLogTarget.h \
 	src/xzero/logging/FileLogTarget.h \
@@ -377,30 +350,20 @@ nobase_libXzero_HEADERS = \
 	src/xzero/logging/Logger.h \
 	src/xzero/logging/Logger_impl.h \
 	src/xzero/logging/SyslogTarget.h \
-	src/xzero/net/ByteArrayEndPoint.h \
 	src/xzero/net/Cidr.h \
 	src/xzero/net/Connection.h \
-	src/xzero/net/Connector.h \
-	src/xzero/net/DatagramConnector.h \
-	src/xzero/net/DatagramEndPoint.h \
 	src/xzero/net/DnsClient.h \
-	src/xzero/net/EndPoint.h \
 	src/xzero/net/EndPointWriter.h \
 	src/xzero/net/IPAddress.h \
 	src/xzero/net/InetAddress-inl.h \
 	src/xzero/net/InetAddress.h \
-	src/xzero/net/InetConnector.h \
-	src/xzero/net/InetEndPoint.h \
-	src/xzero/net/InetUtil.h \
-	src/xzero/net/LocalConnector.h \
-	src/xzero/net/LocalDatagramConnector.h \
-	src/xzero/net/LocalDatagramEndPoint.h \
-	src/xzero/net/Server.h \
+	src/xzero/net/TcpConnector.h \
+	src/xzero/net/TcpEndPoint.h \
+	src/xzero/net/TcpUtil.h \
 	src/xzero/net/SslConnector.h \
 	src/xzero/net/SslClient.h \
 	src/xzero/net/SslContext.h \
 	src/xzero/net/SslEndPoint.h \
-	src/xzero/net/SslUtil.h \
 	src/xzero/net/UdpClient.h \
 	src/xzero/net/UdpConnector.h \
 	src/xzero/net/UdpEndPoint.h \
@@ -588,6 +551,7 @@ xzero_test_SOURCES = \
 	src/xzero/Callback-test.cc \
 	src/xzero/Channel-test.cc \
 	src/xzero/DeadlineTimer-test.cc \
+	src/xzero/Flags-test.cc \
 	src/xzero/HugeBuffer-test.cc \
 	src/xzero/MimeTypes-test.cc \
 	src/xzero/Option-test.cc \
@@ -602,7 +566,6 @@ xzero_test_SOURCES = \
 	src/xzero/TokenShaper-test.cc \
 	src/xzero/Tokenizer-test.cc \
 	src/xzero/Uri-test.cc \
-	src/xzero/cli/CLI-test.cc \
 	src/xzero/executor/PosixScheduler-test.cc \
 	src/xzero/executor/ThreadPool-test.cc \
 	src/xzero/hash/FNV-test.cc \
@@ -631,8 +594,7 @@ xzero_test_SOURCES = \
 	src/xzero/io/DataChain-test.cc \
 	src/xzero/io/MemoryFile-test.cc \
 	src/xzero/io/MemoryMap-test.cc \
-	src/xzero/net/ByteArrayEndPoint-test.cc \
-	src/xzero/net/InetConnector-test.cc \
+	src/xzero/net/TcpConnector-test.cc \
 	src/xzero/net/Cidr-test.cc \
 	src/xzero/net/SslClient-test.cc \
 	src/xzero/thread/Future-test.cc \

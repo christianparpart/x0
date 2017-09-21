@@ -4,41 +4,35 @@
 // Licensed under the MIT License (the "License"); you may not use this
 // file except in compliance with the License. You may obtain a copy of
 // the License at: http://opensource.org/licenses/MIT
+#pragma once
 
-#ifndef _libxzero_UTIL_EXCEPTIONHANDLER_H
-#define _libxzero_UTIL_EXCEPTIONHANDLER_H
-
-#include <mutex>
+#include <functional>
+#include <exception>
 #include <string>
 
 namespace xzero {
 
-class ExceptionHandler {
-public:
-  virtual ~ExceptionHandler() {}
-  virtual void onException(const std::exception& error) const = 0;
+typedef std::function<void(const std::exception&)> ExceptionHandler;
 
-  void operator()(const std::exception& e) const { onException(e); }
-};
-
-class CatchAndLogExceptionHandler : public ExceptionHandler {
+class CatchAndLogExceptionHandler {
 public:
-  CatchAndLogExceptionHandler(const std::string& component);
-  void onException(const std::exception& error) const override;
+  explicit CatchAndLogExceptionHandler(const std::string& component);
+  void onException(const std::exception& error) const;
+  void operator()(const std::exception& e) { onException(e); }
+
 protected:
   std::string component_;
 };
 
-class CatchAndAbortExceptionHandler : public ExceptionHandler {
+class CatchAndAbortExceptionHandler {
 public:
-  CatchAndAbortExceptionHandler(const std::string& message = "Aborting...");
-  void onException(const std::exception& error) const override;
-
+  explicit CatchAndAbortExceptionHandler(const std::string& message = "Aborting...");
+  void onException(const std::exception& error) const;
+  void operator()(const std::exception& e) { onException(e); }
   void installGlobalHandlers();
 
 protected:
   std::string message_;
 };
 
-}
-#endif
+} // namespace xzero

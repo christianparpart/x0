@@ -12,7 +12,7 @@
 #include <xzero/raft/Server.h>
 #include <xzero/raft/Generator.h>
 #include <xzero/raft/Parser.h>
-#include <xzero/net/EndPoint.h>
+#include <xzero/net/TcpEndPoint.h>
 #include <xzero/BufferUtil.h>
 #include <xzero/logging.h>
 
@@ -31,7 +31,7 @@ class PeerConnection
   PeerConnection(InetTransport* mgr,
                  Executor* executor,
                  Handler* handler,
-                 EndPoint* endpoint,
+                 TcpEndPoint* endpoint,
                  Id peerId = 0);
   ~PeerConnection();
 
@@ -63,7 +63,7 @@ class PeerConnection
 PeerConnection::PeerConnection(InetTransport* manager,
                                Executor* executor,
                                Handler* handler,
-                               EndPoint* endpoint,
+                               TcpEndPoint* endpoint,
                                Id peerId)
   : Connection(endpoint, executor),
     manager_(manager),
@@ -193,7 +193,7 @@ void PeerConnection::receive(const InstallSnapshotResponse& res) {
 InetTransport::InetTransport(const Discovery* discovery,
                              Executor* handlerExecutor,
                              EndPointCreator endpointCreator,
-                             std::shared_ptr<Connector> connector)
+                             std::shared_ptr<TcpConnector> connector)
   : discovery_(discovery),
     handler_(nullptr),
     handlerExecutor_(handlerExecutor),
@@ -215,20 +215,20 @@ void InetTransport::setHandler(Handler* handler) {
   handler_ = handler;
 }
 
-Connection* InetTransport::create(Connector* connector,
-                                  EndPoint* endpoint) {
+Connection* InetTransport::create(TcpConnector* connector,
+                                  TcpEndPoint* endpoint) {
   return endpoint->setConnection<PeerConnection>(this,
                                                  connector->executor(),
                                                  handler_,
                                                  endpoint);
 }
 
-RefPtr<EndPoint> InetTransport::getEndPoint(Id target) {
+RefPtr<TcpEndPoint> InetTransport::getEndPoint(Id target) {
   {
     std::lock_guard<decltype(endpointLock_)> lk(endpointLock_);
     auto i = endpoints_.find(target);
     if (i != endpoints_.end()) {
-      RefPtr<EndPoint> ep = i->second;
+      RefPtr<TcpEndPoint> ep = i->second;
       endpoints_.erase(i);
       ep->setBlocking(false);
       return ep;
@@ -239,7 +239,7 @@ RefPtr<EndPoint> InetTransport::getEndPoint(Id target) {
   if (address.isFailure())
     return nullptr;
 
-  RefPtr<EndPoint> ep = endpointCreator_(*address);
+  RefPtr<TcpEndPoint> ep = endpointCreator_(*address);
   if (ep) {
     ep->setConnection<PeerConnection>(this,
                                       handlerExecutor_,
@@ -251,7 +251,7 @@ RefPtr<EndPoint> InetTransport::getEndPoint(Id target) {
   return ep;
 }
 
-void InetTransport::watchEndPoint(Id target, RefPtr<EndPoint> ep) {
+void InetTransport::watchEndPoint(Id target, RefPtr<TcpEndPoint> ep) {
   std::lock_guard<decltype(endpointLock_)> lk(endpointLock_);
 
   endpoints_[target] = ep;
@@ -269,7 +269,7 @@ void InetTransport::onClose(Id target) {
 }
 
 void InetTransport::send(Id target, const VoteRequest& msg) {
-  if (RefPtr<EndPoint> ep = getEndPoint(target)) {
+  if (RefPtr<TcpEndPoint> ep = getEndPoint(target)) {
     Buffer buffer;
     Generator(BufferUtil::writer(&buffer)).generateVoteRequest(msg);
     ep->flush(buffer);
@@ -278,7 +278,7 @@ void InetTransport::send(Id target, const VoteRequest& msg) {
 }
 
 void InetTransport::send(Id target, const AppendEntriesRequest& msg) {
-  if (RefPtr<EndPoint> ep = getEndPoint(target)) {
+  if (RefPtr<TcpEndPoint> ep = getEndPoint(target)) {
     Buffer buffer;
     Generator(BufferUtil::writer(&buffer)).generateAppendEntriesRequest(msg);
     ep->flush(buffer);
@@ -287,7 +287,7 @@ void InetTransport::send(Id target, const AppendEntriesRequest& msg) {
 }
 
 void InetTransport::send(Id target, const InstallSnapshotRequest& msg) {
-  if (RefPtr<EndPoint> ep = getEndPoint(target)) {
+  if (RefPtr<TcpEndPoint> ep = getEndPoint(target)) {
     Buffer buffer;
     Generator(BufferUtil::writer(&buffer)).generateInstallSnapshotRequest(msg);
     ep->flush(buffer);

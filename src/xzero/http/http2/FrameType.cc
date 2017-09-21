@@ -9,37 +9,40 @@
 #include <xzero/StringUtil.h>
 #include <stdio.h>
 
-namespace xzero {
+namespace xzero::http::http2 {
 
-template<>
-std::string StringUtil::toString(http::http2::FrameType value) {
-  switch (value) {
-    case http::http2::FrameType::Data:
+std::ostream& operator<<(std::ostream& os, FrameType type) {
+  return os << as_string(type);
+}
+
+std::string as_string(FrameType type) {
+  switch (type) {
+    case FrameType::Data:
       return "DATA";
-    case http::http2::FrameType::Headers:
+    case FrameType::Headers:
       return "HEADERS";
-    case http::http2::FrameType::Priority:
+    case FrameType::Priority:
       return "PRIORITY";
-    case http::http2::FrameType::ResetStream:
+    case FrameType::ResetStream:
       return "RST_STREAM";
-    case http::http2::FrameType::Settings:
+    case FrameType::Settings:
       return "SETTINGS";
-    case http::http2::FrameType::PushPromise:
+    case FrameType::PushPromise:
       return "PUSH_PROMIS";
-    case http::http2::FrameType::Ping:
+    case FrameType::Ping:
       return "PING";
-    case http::http2::FrameType::GoAway:
+    case FrameType::GoAway:
       return "GO_AWAY";
-    case http::http2::FrameType::WindowUpdate:
+    case FrameType::WindowUpdate:
       return "WINDOW_UPDATE";
-    case http::http2::FrameType::Continuation:
+    case FrameType::Continuation:
       return "CONTINUATION";
     default: {
       char buf[128];
-      int n = snprintf(buf, sizeof(buf), "FRAME_TYPE_%u", (unsigned) value);
+      int n = snprintf(buf, sizeof(buf), "FRAME_TYPE_%u", (unsigned) type);
       return std::string(buf, n);
     }
   }
 }
 
-} // namespace xzero
+} // namespace xzero::http::http2

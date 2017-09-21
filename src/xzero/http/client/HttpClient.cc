@@ -10,11 +10,11 @@
 #include <xzero/http/client/Http1Connection.h>
 #include <xzero/http/HttpRequest.h>
 #include <xzero/http/HttpStatus.h>
-#include <xzero/net/InetEndPoint.h>
+#include <xzero/net/TcpEndPoint.h>
 #include <xzero/net/DnsClient.h>
 #include <xzero/net/InetAddress.h>
 #include <xzero/net/IPAddress.h>
-#include <xzero/net/InetUtil.h>
+#include <xzero/net/TcpUtil.h>
 #include <xzero/io/FileView.h>
 #include <xzero/RuntimeError.h>
 #include <xzero/logging.h>
@@ -122,7 +122,7 @@ HttpClient::HttpClient(Executor* executor,
 }
 
 HttpClient::HttpClient(Executor* executor,
-                       RefPtr<EndPoint> upstream,
+                       RefPtr<TcpEndPoint> upstream,
                        Duration keepAlive)
     : executor_(executor),
       createEndPoint_(),
@@ -159,7 +159,7 @@ void HttpClient::send(const Request& request,
   }
 
   auto f = createEndPoint_();
-  f.onSuccess([this](RefPtr<EndPoint> ep) {
+  f.onSuccess([this](RefPtr<TcpEndPoint> ep) {
     TRACE("endpoint created");
     endpoint_ = ep;
     setupConnection();
@@ -173,20 +173,21 @@ bool HttpClient::isClosed() const {
   return !endpoint_;
 }
 
-Future<RefPtr<EndPoint>> HttpClient::createTcp(InetAddress addr,
-                                               Duration connectTimeout,
-                                               Duration readTimeout,
-                                               Duration writeTimeout) {
-  Promise<RefPtr<EndPoint>> promise;
+Future<RefPtr<TcpEndPoint>> HttpClient::createTcp(InetAddress addr,
+                                                  Duration connectTimeout,
+                                                  Duration readTimeout,
+                                                  Duration writeTimeout) {
+  Promise<RefPtr<TcpEndPoint>> promise;
 
-  Future<int> f = InetUtil::connect(addr, connectTimeout, executor_);
+  Future<int> f = TcpUtil::connect(addr, connectTimeout, executor_);
   f.onFailure(promise);
   f.onSuccess([promise, addr, readTimeout, writeTimeout, this](int fd) {
-    promise.success(RefPtr<EndPoint>(new InetEndPoint(fd,
-                                                      addr.family(),
-                                                      readTimeout,
-                                                      writeTimeout,
-                                                      executor_)));
+    promise.success(RefPtr<TcpEndPoint>(new TcpEndPoint(fd,
+                                                         addr.family(),
+                                                         readTimeout,
+                                                         writeTimeout,
+                                                         executor_,
+                                                         nullptr)));
   });
 
   return promise.future();

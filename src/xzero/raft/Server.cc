@@ -18,23 +18,20 @@
 #include <system_error>
 #include <algorithm>
 
-namespace xzero {
+namespace xzero::raft {
 
-template<>
-std::string StringUtil::toString(raft::ServerState s) {
+std::ostream& operator<<(std::ostream& os, ServerState s) {
   switch (s) {
-    case raft::ServerState::Follower:
-      return "Follower";
-    case raft::ServerState::Candidate:
-      return "Candidate";
-    case raft::ServerState::Leader:
-      return "Leader";
+    case ServerState::Follower:
+      return os << "Follower";
+    case ServerState::Candidate:
+      return os << "Candidate";
+    case ServerState::Leader:
+      return os << "Leader";
     default:
       RAISE_STATUS(InvalidArgumentError);
   }
 }
-
-namespace raft {
 
 Server::Server(Id id,
                Storage* storage,
@@ -59,7 +56,7 @@ Server::Server(Id id,
                Duration heartbeatTimeout,
                Duration electionTimeout,
                Duration commitTimeout)
-    : executor_(std::make_unique<CatchAndLogExceptionHandler>("raft")),
+    : executor_(CatchAndLogExceptionHandler("raft")),
       id_(id),
       currentLeaderId_(0),
       storage_(storage),
@@ -732,5 +729,4 @@ void Server::applyLogs() {
 }
 // }}}
 
-} // namespace raft
-} // namespace xzero
+} // namespace xzero::raft

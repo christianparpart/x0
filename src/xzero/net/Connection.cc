@@ -7,12 +7,12 @@
 
 #include <xzero/StringUtil.h>
 #include <xzero/net/Connection.h>
-#include <xzero/net/EndPoint.h>
+#include <xzero/net/TcpEndPoint.h>
 #include <algorithm>
 
 namespace xzero {
 
-Connection::Connection(EndPoint* endpoint,
+Connection::Connection(TcpEndPoint* endpoint,
                        Executor* executor)
     : endpoint_(endpoint),
       executor_(executor) {
@@ -51,11 +51,6 @@ void Connection::onInterestFailure(const std::exception& error) {
 bool Connection::onReadTimeout() {
   // inform caller to close the endpoint
   return true;
-}
-
-template<>
-std::string StringUtil::toString(Connection* c) {
-  return StringUtil::format("Connection[$0]", c->endpoint()->remoteAddress());
 }
 
 }  // namespace xzero

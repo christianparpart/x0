@@ -208,7 +208,7 @@ struct TestServerPod { // {{{
 };
 
 TestServerPod::TestServerPod()
-  : executor(std::make_unique<CatchAndLogExceptionHandler>("TestServerPod")),
+  : executor(CatchAndLogExceptionHandler("TestServerPod")),
     discovery{ { 1, "127.0.0.1:4201" },
                { 2, "127.0.0.1:4202" },
                { 3, "127.0.0.1:4203" } },

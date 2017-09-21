@@ -21,27 +21,6 @@ namespace xzero {
 
 class StringUtil {
 public:
-
-  /**
-   * Stringify the provided value
-   *
-   * @param value any value
-   * @return a string representation of the value
-   */
-  template <typename T>
-  static std::string toString(T value);
-
-  template <typename... T>
-  static std::vector<std::string> toStringV(T... values);
-
-  template <typename H, typename... T>
-  static void toStringVImpl(
-      std::vector<std::string>* target,
-      H value,
-      T... values);
-
-  static void toStringVImpl(std::vector<std::string>* target);
-
   static std::string trim(const std::string& value);
 
   /**
@@ -403,6 +382,9 @@ protected:
       ValueType value);
 
 };
+
+template<typename T> std::string to_string(const T& value);
+template<typename T> std::string to_string(T&& value);
 
 } // namespace xzero
 

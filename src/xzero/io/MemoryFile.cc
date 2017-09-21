@@ -9,8 +9,6 @@
 #include <xzero/io/MemoryMap.h>
 #include <xzero/io/FileUtil.h>
 #include <xzero/io/FileDescriptor.h>
-#include <xzero/io/FileInputStream.h>
-#include <xzero/io/FileOutputStream.h>
 #include <xzero/Buffer.h>
 #include <xzero/hash/FNV.h>
 #include <xzero/io/FileUtil.h>
@@ -43,8 +41,10 @@ MemoryFile::MemoryFile()
     : File("", ""),
       mtime_(0),
       inode_(0),
+      size_(0),
       etag_(),
-      fspath_() {
+      fspath_(),
+      fd_(-1) {
 }
 
 MemoryFile::MemoryFile(
@@ -134,34 +134,21 @@ bool MemoryFile::isExecutable() const XZERO_NOEXCEPT {
   return false;
 }
 
-int MemoryFile::createPosixChannel(OpenFlags oflags) {
-#if defined(XZERO_MEMORYFILE_USE_TMPFILE)
+int MemoryFile::createPosixChannel(OpenFlags oflags, int mode) {
   if (fd_ < 0) {
     errno = ENOENT;
     return -1;
   }
 
+#if defined(XZERO_MEMORYFILE_USE_TMPFILE)
   // XXX when using dup(fd_) we'd also need to fcntl() the flags.
   // - Both having advantages / disadvantages.
-  return ::open(fspath_.c_str(), to_posix(oflags));
+  if (mode)
+    return ::open(fspath_.c_str(), to_posix(oflags), mode);
+  else
+    return ::open(fspath_.c_str(), to_posix(oflags));
 #else
-  return shm_open(fspath_.c_str(), to_posix(oflags), 0600);
-#endif
-}
-
-std::unique_ptr<InputStream> MemoryFile::createInputChannel() {
-#if defined(XZERO_MEMORYFILE_USE_TMPFILE)
-  return std::unique_ptr<InputStream>(new FileInputStream(fspath_));
-#else
-  RAISE(RuntimeError, "Not implemented.");
-#endif
-}
-
-std::unique_ptr<OutputStream> MemoryFile::createOutputChannel(File::OpenFlags flags, int mode) {
-#if defined(XZERO_MEMORYFILE_USE_TMPFILE)
-  return std::unique_ptr<OutputStream>(new FileOutputStream(fspath_, flags, mode));
-#else
-  RAISE(RuntimeError, "Not implemented.");
+  return shm_open(fspath_.c_str(), to_posix(oflags), mode ? mode : 0600);
 #endif
 }
 

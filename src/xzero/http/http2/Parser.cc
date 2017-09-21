@@ -131,7 +131,7 @@ void Parser::parseFrame(const BufferRef& frame) {
   BufferRef payload = frame.ref(9);
 
   printf("Parser.parseFrame: %s (0x%02x), flags=%02x, sid=%d, len=%zu\n",
-         StringUtil::toString(type).c_str(), (int)type, flags, sid, payload.size());
+         to_string(type).c_str(), (int)type, flags, sid, payload.size());
 
   if (payload.size() > maxFrameSize_) {
     if (sid != 0)

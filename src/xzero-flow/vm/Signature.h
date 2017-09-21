@@ -10,6 +10,7 @@
 #include <xzero-flow/FlowType.h>
 #include <vector>
 #include <string>
+#include <iosfwd>
 
 namespace xzero {
 namespace flow {
@@ -51,6 +52,8 @@ class XZERO_FLOW_API Signature {
 
 FlowType typeSignature(char ch);
 char signatureType(FlowType t);
+
+std::ostream& operator<<(std::ostream& os, const Signature& signature);
 
 }  // namespace vm
 }  // namespace flow

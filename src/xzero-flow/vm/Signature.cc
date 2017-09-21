@@ -154,12 +154,10 @@ char signatureType(FlowType t) {
   }
 }
 
-}  // namespace vm
-}  // namespace flow
-
-template<>
-std::string StringUtil::toString(flow::vm::Signature& signature) {
-  return signature.to_s();
+std::ostream& operator<<(std::ostream& os, const Signature& signature) {
+  return os << signature.to_s();
 }
 
+}  // namespace vm
+}  // namespace flow
 }  // namespace xzero

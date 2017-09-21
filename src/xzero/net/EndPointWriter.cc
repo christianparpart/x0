@@ -6,7 +6,7 @@
 // the License at: http://opensource.org/licenses/MIT
 
 #include <xzero/net/EndPointWriter.h>
-#include <xzero/net/EndPoint.h>
+#include <xzero/net/TcpEndPoint.h>
 #include <xzero/logging.h>
 #include <unistd.h>
 
@@ -41,7 +41,7 @@ void EndPointWriter::write(FileView&& chunk) {
   chain_.write(std::move(chunk));
 }
 
-bool EndPointWriter::flush(EndPoint* sink) {
+bool EndPointWriter::flush(TcpEndPoint* sink) {
   TRACE("write: flushing $0 bytes", chain_.size());
   sink_ = sink;
   return chain_.transferTo(this);
@@ -56,9 +56,9 @@ size_t EndPointWriter::transfer(const BufferRef& chunk) {
   return sink_->flush(chunk);
 }
 
-size_t EndPointWriter::transfer(const FileView& file) {
-  TRACE("transfer(file): $0 bytes, fd $1", file.size(), file.handle());
-  return sink_->flush(file.handle(), file.offset(), file.size());
+size_t EndPointWriter::transfer(const FileView& fileView) {
+  TRACE("transfer(file): $0 bytes, fd $1", fileView.size(), fileView.handle());
+  return sink_->flush(fileView);
 }
 
 } // namespace xzero

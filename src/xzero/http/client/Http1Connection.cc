@@ -8,7 +8,7 @@
 #include <xzero/http/client/Http1Connection.h>
 #include <xzero/http/HttpRequestInfo.h>
 #include <xzero/http/HttpRequestInfo.h>
-#include <xzero/net/EndPoint.h>
+#include <xzero/net/TcpEndPoint.h>
 #include <xzero/logging.h>
 #include <xzero/HugeBuffer.h>
 #include <xzero/Buffer.h>
@@ -24,7 +24,7 @@ namespace client {
 #endif
 
 Http1Connection::Http1Connection(HttpListener* channel,
-                                 EndPoint* endpoint,
+                                 TcpEndPoint* endpoint,
                                  Executor* executor)
     : Connection(endpoint, executor),
       channel_(channel),

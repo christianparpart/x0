@@ -13,7 +13,7 @@ namespace http {
 
 #define SRET(slit) { static std::string val(slit); return val; }
 
-const std::string& to_string(HttpStatus code) {
+const std::string& as_string(HttpStatus code) {
   switch (code) {
     case HttpStatus::ContinueRequest: SRET("Continue Request");
     case HttpStatus::SwitchingProtocols: SRET("Switching Protocols");
@@ -74,6 +74,11 @@ const std::string& to_string(HttpStatus code) {
   }
 }
 
+std::ostream& operator<<(std::ostream& os, HttpStatus code) {
+  os << as_string(code);
+  return os;
+}
+
 std::error_category& HttpStatusCategory::get() {
   static HttpStatusCategory cat;
   return cat;
@@ -88,10 +93,4 @@ std::string HttpStatusCategory::message(int ev) const {
 }
 
 } // namespace http
-
-template <>
-std::string StringUtil::toString(http::HttpStatus value) {
-  return to_string(value);
-}
-
 } // namespace xzero

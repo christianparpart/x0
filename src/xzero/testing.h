@@ -72,6 +72,20 @@ namespace testing {
 
 #define EXPECT_NEAR(expected, actual, diff)       // TODO
 
+#define EXPECT_ERROR_CODE_SUCCESS(errorCode)                                  \
+  if (errorCode) {                                                            \
+    ::xzero::testing::UnitTest::instance()->reportError(                      \
+        __FILE__, __LINE__, false, #errorCode, errorCode);                    \
+  }
+
+#define EXPECT_ERROR_CODE(expected, actual)                                   \
+  if ((actual) != (expected)) {                                               \
+    ::xzero::testing::UnitTest::instance()->reportError(                      \
+        __FILE__, __LINE__, false,                                            \
+        #expected, (expected),                                                \
+        #actual, (actual));                                                   \
+  }
+
 #define EXPECT_THROW_STATUS(status, program)                                  \
   do {                                                                        \
     try {                                                                     \
@@ -144,6 +158,20 @@ namespace testing {
   _EXPECT_BOOLEAN(__FILE__, __LINE__, true, false, actual)
 
 #define ASSERT_NEAR(expected, actual, diff)       // TODO
+
+#define ASSERT_ERROR_CODE_SUCCESS(errorCode)                                  \
+  if (errorCode) {                                                            \
+    ::xzero::testing::UnitTest::instance()->reportError(                      \
+        __FILE__, __LINE__, true, #errorCode, errorCode);                     \
+  }
+
+#define ASSERT_ERROR_CODE(expected, actual)                                   \
+  if ((actual) != (expected)) {                                               \
+    ::xzero::testing::UnitTest::instance()->reportError(                      \
+        __FILE__, __LINE__, true,                                             \
+        #expected, (expected),                                                \
+        #actual, (actual));                                                   \
+  }
 
 #define ASSERT_THROW_STATUS(status, program)                                  \
   do {                                                                        \
@@ -274,6 +302,8 @@ class Test {
 
   template<typename... Args>
   void logf(const char* fmt, Args... args);
+
+  void reportUnhandledException(const std::exception& e);
 };
 
 /**
@@ -336,6 +366,20 @@ class UnitTest {
                     const char* testName,
                     std::unique_ptr<TestFactory>&& testFactory);
 
+  void reportError(const char* fileName,
+                   int lineNo,
+                   bool fatal,
+                   const char* actual,
+                   const std::error_code& ec);
+
+  void reportError(const char* fileName,
+                   int lineNo,
+                   bool fatal,
+                   const char* expected,
+                   const std::error_code& expectedEvaluated,
+                   const char* actual,
+                   const std::error_code& actualEvaluated);
+
   void reportBinary(const char* fileName,
                     int lineNo,
                     bool fatal,
@@ -343,6 +387,8 @@ class UnitTest {
                     const char* actual,
                     const std::string& actualEvaluated,
                     const char* op);
+
+  void reportUnhandledException(const std::exception& e);
 
   void reportEH(const char* fileName,
                 int lineNo,
@@ -377,6 +423,7 @@ class UnitTest {
   //! ordered list of tests as offsets into testCases_
   std::vector<size_t> activeTests_;
 
+  std::string exclude_;
   std::string filter_;
   int repeats_;
   bool printProgress_;

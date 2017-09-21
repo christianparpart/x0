@@ -7,10 +7,11 @@
 
 #include <xzero/net/SslEndPoint.h>
 #include <xzero/net/SslContext.h>
-#include <xzero/net/SslConnector.h>
-#include <xzero/net/SslUtil.h>
 #include <xzero/net/Connection.h>
+#include <xzero/net/TcpUtil.h>
 #include <xzero/io/FileUtil.h>
+#include <xzero/util/BinaryWriter.h>
+#include <xzero/BufferUtil.h>
 #include <xzero/RuntimeError.h>
 #include <xzero/logging.h>
 #include <openssl/ssl.h>
@@ -31,28 +32,89 @@ namespace xzero {
   RAISE_CATEGORY(ERR_get_error(), SslErrorCategory::get());                      \
 }
 
+// {{{ SslErrorCategory
+const char* SslErrorCategory::name() const noexcept {
+  return "ssl";
+}
+
+std::string SslErrorCategory::message(int ev) const {
+  char buf[256];
+  ERR_error_string_n(ev, buf, sizeof(buf));
+  return buf;
+}
+
+std::error_category& SslErrorCategory::get() {
+  static SslErrorCategory ec;
+  return ec;
+}
+// }}}
+
 SslEndPoint::SslEndPoint(FileDescriptor&& fd,
+                         int addressFamily,
+                         Duration readTimeout,
+                         Duration writeTimeout,
+                         Executor* executor,
+                         const std::string& sni,
+                         const std::vector<std::string>& applicationProtocolsSupported,
+                         ProtocolCallback connectionFactory)
+    : TcpEndPoint(fd.release(), addressFamily,
+                  readTimeout, writeTimeout,
+                  executor, /*onEndPointClosed*/ nullptr),
+      ssl_(nullptr),
+      bioDesire_(Desire::None),
+      connectionFactory_(connectionFactory)
+{
+  TRACE("$0 SslEndPoint() ctor, cfd=$1", this, handle());
+  SslContext::initialize();
+
+  SSL_CTX* ctx;
+#if defined(SSL_TXT_TLSV1_2)
+  ctx = SSL_CTX_new(TLSv1_2_client_method());
+#elif defined(SSL_TXT_TLSV1_1)
+  ctx = SSL_CTX_new(TLSv1_1_client_method());
+#else
+  ctx = SSL_CTX_new(TLSv1_client_method());
+#endif
+
+  // setup ALPN
+  Buffer alpn = makeProtocolList(applicationProtocolsSupported);
+  SSL_CTX_set_alpn_protos(ctx, (unsigned char*) alpn.data(), alpn.size());
+
+  int verify = SSL_VERIFY_NONE; // or SSL_VERIFY_PEER
+  SSL_CTX_set_verify(ctx, verify, &SslEndPoint::onVerifyCallback);
+
+  //.
+  ssl_ = SSL_new(ctx);
+  SSL_set_fd(ssl_, handle());
+
+  if (!sni.empty()) {
+    SSL_set_tlsext_host_name(ssl_, sni.c_str());
+  }
+
+#if !defined(NDEBUG)
+  SSL_set_tlsext_debug_callback(ssl_, &SslEndPoint::tlsext_debug_cb);
+  SSL_set_tlsext_debug_arg(ssl_, this);
+#endif
+}
+
+SslEndPoint::SslEndPoint(FileDescriptor&& fd,
+                         int addressFamily,
                          Duration readTimeout,
                          Duration writeTimeout,
                          SslContext* defaultContext,
-                         std::function<void(EndPoint*)> onEndPointClosed,
+                         ProtocolCallback connectionFactory,
+                         std::function<void(TcpEndPoint*)> onEndPointClosed,
                          Executor* executor)
-    : handle_(fd.release()),
-      isCorking_(false),
-      onEndPointClosed_(onEndPointClosed),
-      executor_(executor),
+    : TcpEndPoint(fd.release(), addressFamily,
+                  readTimeout, writeTimeout,
+                  executor, onEndPointClosed),
       ssl_(nullptr),
       bioDesire_(Desire::None),
-      io_(),
-      readTimeout_(readTimeout),
-      writeTimeout_(writeTimeout),
-      idleTimeout_(executor) {
-  TRACE("$0 SslEndPoint() ctor", this);
-
-  idleTimeout_.setCallback(std::bind(&SslEndPoint::onTimeout, this));
+      connectionFactory_(connectionFactory) {
+  TRACE("$0 SslEndPoint() ctor, cfd=$1", this, handle());
 
   ssl_ = SSL_new(defaultContext->get());
-  SSL_set_fd(ssl_, fd);
+  SSL_set_fd(ssl_, handle());
 
 #if !defined(NDEBUG)
   SSL_set_tlsext_debug_callback(ssl_, &SslEndPoint::tlsext_debug_cb);
@@ -63,19 +125,18 @@ SslEndPoint::SslEndPoint(FileDescriptor&& fd,
 SslEndPoint::~SslEndPoint() {
   TRACE("$0 ~SslEndPoint() dtor", this);
 
+  close();
   SSL_free(ssl_);
-  FileUtil::close(handle());
-}
-
-bool SslEndPoint::isOpen() const {
-  return SSL_get_shutdown(ssl_) == 0;
 }
 
 void SslEndPoint::close() {
-  if (!isOpen())
-    return;
-
+#if 0
+  // pretend we did a full shutdown
+  SSL_set_shutdown(ssl_, SSL_SENT_SHUTDOWN | SSL_RECEIVED_SHUTDOWN);
   shutdown();
+#else
+  TcpEndPoint::close();
+#endif
 }
 
 void SslEndPoint::shutdown() {
@@ -83,12 +144,16 @@ void SslEndPoint::shutdown() {
 
   TRACE("$0 close: SSL_shutdown -> $1", this, rv);
   if (rv == 1) {
-    onEndPointClosed_(this);
+    TcpEndPoint::close();
   } else if (rv == 0) {
     // call again
     shutdown();
   } else {
     switch (SSL_get_error(ssl_, rv)) {
+      case SSL_ERROR_SYSCALL:
+        // consider done
+        TcpEndPoint::close();
+        break;
       case SSL_ERROR_WANT_READ:
         io_ = executor_->executeOnReadable(
             handle(),
@@ -105,16 +170,6 @@ void SslEndPoint::shutdown() {
   }
 }
 
-void SslEndPoint::abort() {
-#if 0
-  // pretend we did a full shutdown
-  SSL_set_shutdown(ssl_, SSL_SENT_SHUTDOWN | SSL_RECEIVED_SHUTDOWN);
-  shutdown();
-#else
-  onEndPointClosed_(this);
-#endif
-}
-
 size_t SslEndPoint::fill(Buffer* sink, size_t space) {
   int rv = SSL_read(ssl_, sink->end(), space);
   if (rv > 0) {
@@ -125,6 +180,12 @@ size_t SslEndPoint::fill(Buffer* sink, size_t space) {
   }
 
   switch (SSL_get_error(ssl_, rv)) {
+    case SSL_ERROR_SYSCALL:
+      if (errno != 0) {
+        RAISE_ERRNO(errno);
+      } else {
+        return 0; // XXX treat as EOF
+      }
     case SSL_ERROR_WANT_READ:
       TRACE("$0 fill(Buffer:$1) -> want read", this, space);
       bioDesire_ = Desire::Read;
@@ -135,9 +196,11 @@ size_t SslEndPoint::fill(Buffer* sink, size_t space) {
       break;
     case SSL_ERROR_ZERO_RETURN:
       TRACE("$0 fill(Buffer:$1) -> remote endpoint closed", this, space);
-      abort();
+      close();
       break;
     default:
+      logError("SSL", "Failed to fill. $0",
+          SslErrorCategory::get().message(SSL_get_error(ssl_, rv)));
       TRACE("$0 fill(Buffer:$1): SSL_read() -> $2",
             this, space, SSL_get_error(ssl_, rv));
       THROW_SSL_ERROR();
@@ -157,6 +220,8 @@ size_t SslEndPoint::flush(const BufferRef& source) {
   }
 
   switch (SSL_get_error(ssl_, rv)) {
+    case SSL_ERROR_SYSCALL:
+      RAISE_ERRNO(errno);
     case SSL_ERROR_WANT_READ:
       TRACE("$0 flush(BufferRef, @$1, $2 bytes) failed -> want read.", this, source.data(), source.size());
       bioDesire_ = Desire::Read;
@@ -167,9 +232,11 @@ size_t SslEndPoint::flush(const BufferRef& source) {
       break;
     case SSL_ERROR_ZERO_RETURN:
       TRACE("$0 flush(BufferRef, @$1, $2 bytes) failed -> remote endpoint closed.", this, source.data(), source.size());
-      abort();
+      close();
       break;
     default:
+      logError("SSL", "Failed to flush. $0",
+          SslErrorCategory::get().message(SSL_get_error(ssl_, rv)));
       TRACE("$0 flush(BufferRef, @$1, $2 bytes) failed. error.", this, source.data(), source.size());
       THROW_SSL_ERROR();
   }
@@ -177,24 +244,9 @@ size_t SslEndPoint::flush(const BufferRef& source) {
   return 0;
 }
 
-size_t SslEndPoint::flush(int fd, off_t offset, size_t size) {
+size_t SslEndPoint::flush(const FileView& view) {
   Buffer buf;
-  buf.reserve(size);
-  ssize_t rv = ::read(fd, buf.data(), buf.capacity());
-  if (rv < 0) {
-    switch (errno) {
-      case EBUSY:
-      case EAGAIN:
-#if defined(EWOULDBLOCK) && (EWOULDBLOCK != EAGAIN)
-      case EWOULDBLOCK:
-#endif
-        return 0;
-      default:
-        RAISE_ERRNO(errno);
-    }
-  }
-
-  buf.resize(static_cast<size_t>(rv));
+  FileUtil::read(view, &buf);
   return flush(buf);
 }
 
@@ -223,7 +275,7 @@ void SslEndPoint::wantFill() {
 
 void SslEndPoint::fillable() {
   TRACE("$0 fillable()", this);
-  RefPtr<EndPoint> _guard(this);
+  RefPtr<TcpEndPoint> _guard(this);
   try {
     io_.reset();
     bioDesire_ = Desire::None;
@@ -246,85 +298,14 @@ void SslEndPoint::wantFlush() {
   switch (bioDesire_) {
     case Desire::Read:
       TRACE("$0 wantFlush: read", this);
-      io_ = executor_->executeOnReadable(
-          handle(),
-          std::bind(&SslEndPoint::flushable, this));
+      TcpEndPoint::wantFill();
       break;
     case Desire::None:
     case Desire::Write:
       TRACE("$0 wantFlush: write", this);
-      io_ = executor_->executeOnWritable(
-          handle(),
-          std::bind(&SslEndPoint::flushable, this));
+      TcpEndPoint::wantFlush();
       break;
   }
-}
-
-Duration SslEndPoint::readTimeout() {
-  return readTimeout_;
-}
-
-Duration SslEndPoint::writeTimeout() {
-  return writeTimeout_;
-}
-
-void SslEndPoint::setReadTimeout(Duration timeout) {
-  readTimeout_ = timeout;
-}
-
-void SslEndPoint::setWriteTimeout(Duration timeout) {
-  writeTimeout_ = timeout;
-}
-
-bool SslEndPoint::isBlocking() const {
-  return !(fcntl(handle(), F_GETFL) & O_NONBLOCK);
-}
-
-void SslEndPoint::setBlocking(bool enable) {
-  TRACE("$0 setBlocking($1)", this, enable);
-#if 1
-  unsigned current = fcntl(handle(), F_GETFL);
-  unsigned flags = enable ? (current & ~O_NONBLOCK)
-                          : (current | O_NONBLOCK);
-#else
-  unsigned flags = enable ? fcntl(handle(), F_GETFL) & ~O_NONBLOCK
-                          : fcntl(handle(), F_GETFL) | O_NONBLOCK;
-#endif
-
-  if (fcntl(handle(), F_SETFL, flags) < 0) {
-    RAISE_ERRNO(errno);
-  }
-}
-
-bool SslEndPoint::isCorking() const {
-  return isCorking_;
-}
-
-void SslEndPoint::setCorking(bool enable) {
-#if defined(TCP_CORK)
-  if (isCorking_ != enable) {
-    int flag = enable ? 1 : 0;
-    if (setsockopt(handle(), IPPROTO_TCP, TCP_CORK, &flag, sizeof(flag)) < 0)
-      RAISE_ERRNO(errno);
-
-    isCorking_ = enable;
-  }
-#endif
-}
-
-bool SslEndPoint::isTcpNoDelay() const {
-  int result = 0;
-  socklen_t sz = sizeof(result);
-  if (getsockopt(handle_, IPPROTO_TCP, TCP_NODELAY, &result, &sz) < 0)
-    RAISE_ERRNO(errno);
-
-  return result;
-}
-
-void SslEndPoint::setTcpNoDelay(bool enable) {
-  int flag = enable ? 1 : 0;
-  if (setsockopt(handle_, IPPROTO_TCP, TCP_NODELAY, &flag, sizeof(flag)) < 0)
-    RAISE_ERRNO(errno);
 }
 
 std::string SslEndPoint::toString() const {
@@ -333,46 +314,89 @@ std::string SslEndPoint::toString() const {
   return std::string(buf, n);
 }
 
-void SslEndPoint::onHandshake() {
-  TRACE("$0 onHandshake begin...", this);
+void SslEndPoint::onClientHandshake() {
+  int rv = SSL_connect(ssl_);
+  switch (SSL_get_error(ssl_, rv)) {
+    case SSL_ERROR_NONE:
+      onClientHandshakeDone();
+      break;
+    case SSL_ERROR_WANT_READ:
+      executor_->executeOnReadable(handle_, std::bind(&SslEndPoint::onClientHandshake, this));
+      break;
+    case SSL_ERROR_WANT_WRITE:
+      executor_->executeOnWritable(handle_, std::bind(&SslEndPoint::onClientHandshake, this));
+      break;
+    case SSL_ERROR_SYSCALL:
+    case SSL_ERROR_SSL:
+    default:
+      //promise.failure(makeSslError(ERR_get_error()));
+      char buf[256];
+      ERR_error_string_n(ERR_get_error(), buf, sizeof(buf));
+      logError("SSL", "Client handshake error. $0", buf);
+      TcpEndPoint::close();
+      break;
+  }
+}
+
+void SslEndPoint::onClientHandshakeDone() {
+  if (X509* cert = SSL_get_peer_certificate(ssl_)) {
+    // ...
+    X509_free(cert);
+  }
+
+  // create application connection layer (based on ALPN negotiation)
+  connectionFactory_(applicationProtocolName().str(), this);
+
+  if (connection()) {
+    connection()->onOpen(false);
+  } else {
+    close();
+  }
+}
+
+void SslEndPoint::onServerHandshake() {
+  TRACE("$0 onServerHandshake begin...", this);
   int rv = SSL_accept(ssl_);
   if (rv <= 0) {
     switch (SSL_get_error(ssl_, rv)) {
       case SSL_ERROR_WANT_READ:
-        TRACE("$0 onHandshake (want read)", this);
-        executor_->executeOnReadable(
-            handle(), std::bind(&SslEndPoint::onHandshake, this));
+        TRACE("$0 onServerHandshake (want read)", this);
+        io_ = executor_->executeOnReadable(
+            handle(), std::bind(&SslEndPoint::onServerHandshake, this));
         break;
       case SSL_ERROR_WANT_WRITE:
-        TRACE("$0 onHandshake (want write)", this);
-        executor_->executeOnWritable(
-            handle(), std::bind(&SslEndPoint::onHandshake, this));
+        TRACE("$0 onServerHandshake (want write)", this);
+        io_ = executor_->executeOnWritable(
+            handle(), std::bind(&SslEndPoint::onServerHandshake, this));
         break;
       default: {
-        TRACE("$0 onHandshake (error)", this);
         char buf[256];
         ERR_error_string_n(ERR_get_error(), buf, sizeof(buf));
-        RAISE_ERRNO(errno);
+        logError("SSL", "Handshake error. $0", buf);
+
+        TcpEndPoint::close();
+        return;
       }
     }
   } else {
     // create associated Connection object and run it
     bioDesire_ = Desire::None;
-    RefPtr<EndPoint> _guard(this);
-    TRACE("$0 handshake complete (next protocol: \"$1\")", this, nextProtocolNegotiated().str().c_str());
+    RefPtr<TcpEndPoint> _guard(this);
+    std::string protocolName = applicationProtocolName().str();
+    TRACE("$0 handshake complete (next protocol: \"$1\")", this, protocolName.c_str());
 
-    std::string protocol = nextProtocolNegotiated().str();
-    // TODO FIXME getting connectionFactory_
-    // std::unique_ptr<Connection> conn(connectionFactory_(protocol));
-    // setConnection(std::move(conn));
-
-    connection()->onOpen(false);
+    connectionFactory_(protocolName, this);
+    if (connection()) {
+      connection()->onOpen(false);
+    } else {
+      close();
+    }
   }
 }
 
 void SslEndPoint::flushable() {
   TRACE("$0 flushable()", this);
-  RefPtr<EndPoint> _guard(this);
+  RefPtr<TcpEndPoint> _guard(this);
   try {
     io_.reset();
     bioDesire_ = Desire::None;
@@ -391,12 +415,12 @@ void SslEndPoint::onTimeout() {
     bool finalize = connection()->onReadTimeout();
 
     if (finalize) {
-      this->abort();
+      close();
     }
   }
 }
 
-BufferRef SslEndPoint::nextProtocolNegotiated() const {
+BufferRef SslEndPoint::applicationProtocolName() const {
   const unsigned char* data = nullptr;
   unsigned int len = 0;
 
@@ -407,14 +431,34 @@ BufferRef SslEndPoint::nextProtocolNegotiated() const {
   }
 #endif
 
-#ifdef TLSEXT_TYPE_next_proto_neg // NPN
-  SSL_get0_next_proto_negotiated(ssl_, &data, &len);
-  if (len > 0) {
-    return BufferRef((const char*) data, len);
-  }
-#endif
-
   return BufferRef();
+}
+
+Buffer SslEndPoint::makeProtocolList(const std::vector<std::string>& protos) {
+  Buffer out;
+
+  size_t capacity = 0;
+  for (const auto& proto: protos) {
+    capacity += proto.size() + 1;
+  }
+  out.reserve(capacity);
+
+  BinaryWriter writer(BufferUtil::writer(&out));
+  for (const auto& proto: protos) {
+    assert(proto.size() < 0xFF);
+    writer.writeString(proto);
+  }
+
+  return out;
+}
+
+int SslEndPoint::onVerifyCallback(int ok, X509_STORE_CTX *ctx) {
+  if (ok) {
+    //
+  } else {
+    //
+  }
+  return 1; // TODO, like a bool
 }
 
 #if !defined(NDEBUG)
@@ -481,9 +525,5 @@ void SslEndPoint::tlsext_debug_cb(
         len);
 }
 #endif // !NDEBUG
-
-template<> std::string StringUtil::toString(SslEndPoint* ep) {
-  return StringUtil::format("SslEndPoint/$0", (void*) ep);
-}
 
 } // namespace xzero

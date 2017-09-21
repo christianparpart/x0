@@ -9,19 +9,22 @@
 
 #include <xzero/Api.h>
 #include <xzero/executor/Executor.h>
-#include <xzero/net/DatagramConnector.h>
 #include <xzero/net/IPAddress.h>
 #include <functional>
 
 namespace xzero {
 
+class UdpEndPoint;
+
 /**
  * Datagram Connector for UDP protocol.
  *
- * @see DatagramConnector, DatagramEndPoint
+ * @see UdpEndPoint
  */
-class XZERO_BASE_API UdpConnector : public DatagramConnector {
+class UdpConnector {
  public:
+  typedef std::function<void(RefPtr<UdpEndPoint>)> Handler;
+
   /**
    * Initializes the UDP connector.
    *
@@ -33,20 +36,34 @@ class XZERO_BASE_API UdpConnector : public DatagramConnector {
    * @param reuseAddr Whether or not to enable @c SO_REUSEADDR.
    * @param reusePort Whether or not to enable @c SO_REUSEPORT.
    */
-  UdpConnector(
-      const std::string& name,
-      DatagramHandler handler,
-      Executor* executor,
-      const IPAddress& ipaddress, int port,
-      bool reuseAddr, bool reusePort);
+  UdpConnector(const std::string& name,
+               Handler handler,
+               Executor* executor,
+               const IPAddress& ipaddress, int port,
+               bool reuseAddr, bool reusePort);
 
   ~UdpConnector();
 
+  Handler handler() const;
+
   int handle() const noexcept { return socket_; }
 
-  void start() override;
-  bool isStarted() const override;
-  void stop() override;
+  /**
+   * Starts handling incoming messages.
+   */
+  void start();
+
+  /**
+   * Whether or not incoming messages are being handled.
+   */
+  bool isStarted() const;
+
+  /**
+   * Stops handling incoming messages.
+   */
+  void stop();
+
+  Executor* executor() const noexcept;
 
  private:
   void open(const IPAddress& bind, int port, bool reuseAddr, bool reusePort);
@@ -55,9 +72,17 @@ class XZERO_BASE_API UdpConnector : public DatagramConnector {
   void onMessage();
 
  private:
+  std::string name_;
+  Handler handler_;
+  Executor* executor_;
+
   Executor::HandleRef io_;
   int socket_;
   int addressFamily_;
 };
+
+inline Executor* UdpConnector::executor() const noexcept {
+  return executor_;
+}
 
 } // namespace xzero

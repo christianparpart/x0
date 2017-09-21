@@ -203,6 +203,7 @@ void XzeroContext::sendSimpleStatusPage(HttpStatus status, const std::string& re
           "  </body>\n"
           "</html>\n";
 
+  response_->setStatus(status);
   response_->setHeader("Cache-Control", "must-revalidate,no-cache,no-store");
   response_->setHeader("Content-Type", "text/html");
   response_->setContentLength(body.size());

@@ -44,18 +44,18 @@ namespace x0d {
 // {{{ LogFile impl LogFile impl LogFile impl LogFile impl
 LogFile::LogFile(std::shared_ptr<File> file)
     : file_(file),
-      output_(file_->createOutputChannel()) {
+      fd_(file_->createPosixChannel(File::Write | File::Append)) {
 }
 
 LogFile::~LogFile() {
 }
 
 void LogFile::write(Buffer&& message) {
-  output_->write(message.data(), message.size());
+  FileUtil::write(fd_, message);
 }
 
 void LogFile::cycle() {
-  output_ = file_->createOutputChannel();
+  fd_ = file_->createPosixChannel(File::Write | File::Append);
 }
 // }}}
 template <typename iterator> inline BufferRef getFormatName(iterator& i, iterator e) { // {{{
@@ -151,11 +151,15 @@ Buffer formatLog(XzeroContext* cx, const BufferRef& format) { // {{{
         ++i;
         break;
       case 'h':  // remote addr
-        result.push_back(cx->remoteIP().c_str());
+        if (request->remoteAddress().isSome())
+          result.push_back(request->remoteAddress()->ip().c_str());
+        else
+          result.push_back("none");
+
         ++i;
         break;
       case 'I':  // received bytes (transport level)
-        result.push_back(std::to_string(cx->bytesReceived()));
+        result.push_back(to_string(cx->bytesReceived()));
         ++i;
         break;
       case 'l':  // identd user name
@@ -167,11 +171,11 @@ Buffer formatLog(XzeroContext* cx, const BufferRef& format) { // {{{
         ++i;
         break;
       case 'O':  // sent bytes (transport level)
-        result.push_back(std::to_string(cx->bytesTransmitted()));
+        result.push_back(to_string(cx->bytesTransmitted()));
         ++i;
         break;
       case 'o':  // sent bytes (response body)
-        result.push_back(std::to_string(response->contentLength()));
+        result.push_back(to_string(response->contentLength()));
         ++i;
         break;
       case 'p':  // request path
@@ -191,7 +195,7 @@ Buffer formatLog(XzeroContext* cx, const BufferRef& format) { // {{{
         result.push_back(request->unparsedUri());
         result.push_back(' ');
         result.push_back("HTTP/");
-        result.push_back(StringUtil::toString(request->version()));
+        result.push_back(to_string(request->version()));
         ++i;
         break;
       case 'T': {  // request time duration

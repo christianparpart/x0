@@ -8,12 +8,13 @@
 #pragma once
 
 #include <xzero/Api.h>
-#include <xzero/net/Connector.h>
 #include <xzero/net/IPAddress.h>
 #include <xzero/io/FileDescriptor.h>
 #include <xzero/executor/Executor.h> // for Executor::HandleRef
 #include <xzero/Duration.h>
 #include <xzero/RefPtr.h>
+#include <unordered_map>
+#include <vector>
 #include <list>
 #include <deque>
 #include <mutex>
@@ -21,17 +22,34 @@
 namespace xzero {
 
 class Connection;
-class InetEndPoint;
+class TcpEndPoint;
 class SslEndPoint;
+class Buffer;
 
 /**
  * TCP/IP Internet Connector API
  */
-class XZERO_BASE_API InetConnector : public Connector {
+class TcpConnector {
  public:
-  typedef std::function<Executor*()> ExecutorSelector;
+  //! Must be a non-printable ASCII byte.
+  enum { MagicProtocolSwitchByte = 0x01 };
 
   enum { RandomPort = 0 };
+
+  typedef std::function<Executor*()> ExecutorSelector;
+
+  /**
+   * Creates a new Connection instance for the given @p connector
+   * and @p endpoint.
+   *
+   * @param connector the Connector that accepted the incoming connection.
+   * @param endpoint the endpoint that corresponds to this connection.
+   *
+   * @return pointer to the newly created Connection instance.
+   *
+   * The newly created Connection instance will be owned by its TcpEndPoint.
+   */
+  typedef std::function<Connection*(TcpConnector*, TcpEndPoint*)> ConnectionFactory;
 
   /**
    * Initializes this connector.
@@ -53,14 +71,14 @@ class XZERO_BASE_API InetConnector : public Connector {
    *
    * @throw std::runtime_error on any kind of runtime error.
    */
-  InetConnector(const std::string& name,
-                Executor* executor,
-                ExecutorSelector clientExecutorSelector,
-                Duration readTimeout,
-                Duration writeTimeout,
-                Duration tcpFinTimeout,
-                const IPAddress& ipaddress, int port, int backlog,
-                bool reuseAddr, bool reusePort);
+  TcpConnector(const std::string& name,
+               Executor* executor,
+               ExecutorSelector clientExecutorSelector,
+               Duration readTimeout,
+               Duration writeTimeout,
+               Duration tcpFinTimeout,
+               const IPAddress& ipaddress, int port, int backlog,
+               bool reuseAddr, bool reusePort);
 
   /**
    * Minimal initializer.
@@ -75,16 +93,21 @@ class XZERO_BASE_API InetConnector : public Connector {
    *                      A value of 0 means to leave it at system default.
    * @param eh exception handler for errors in hooks or during events.
    */
-  InetConnector(const std::string& name,
-                Executor* executor,
-                ExecutorSelector clientExecutorSelector,
-                Duration readTimeout,
-                Duration writeTimeout,
-                Duration tcpFinTimeout);
+  TcpConnector(const std::string& name,
+               Executor* executor,
+               ExecutorSelector clientExecutorSelector,
+               Duration readTimeout,
+               Duration writeTimeout,
+               Duration tcpFinTimeout);
 
-  ~InetConnector();
+  virtual ~TcpConnector();
 
-  Executor* scheduler() const XZERO_NOEXCEPT;
+  Executor* scheduler() const noexcept;
+
+  /**
+   * Retrieves the describing name for this connector.
+   */
+  const std::string& name() const;
 
   /**
    * Opens this connector by binding to the given @p ipaddress and @p port.
@@ -103,12 +126,12 @@ class XZERO_BASE_API InetConnector : public Connector {
   /**
    * Tests whether this connector is open.
    */
-  bool isOpen() const XZERO_NOEXCEPT;
+  bool isOpen() const noexcept;
 
   /**
    * Retrieves the underlying system socket handle.
    */
-  int handle() const XZERO_NOEXCEPT;
+  int handle() const noexcept;
 
   /**
    * Returns the IP address family, such as @c IPAddress::V4 or @c IPAddress::V6.
@@ -120,7 +143,7 @@ class XZERO_BASE_API InetConnector : public Connector {
    */
   void setSocket(FileDescriptor&& socket);
 
-  size_t backlog() const XZERO_NOEXCEPT;
+  size_t backlog() const noexcept;
   void setBacklog(size_t enable);
 
   /** Tests wether this connector is blocking on accepting new clients. */
@@ -137,7 +160,7 @@ class XZERO_BASE_API InetConnector : public Connector {
    * That is, a non-blocking connector will create non-blocking endpoints
    * for the newly accepted clients.
    *
-   * @see EndPoint::setBlocking(bool enable)
+   * @see TcpEndPoint::setBlocking(bool enable)
    */
   void setBlocking(bool enable);
 
@@ -187,22 +210,22 @@ class XZERO_BASE_API InetConnector : public Connector {
   /**
    * Retrieves the number of maximum attempts to accept a new clients in a row.
    */
-  size_t multiAcceptCount() const XZERO_NOEXCEPT;
+  size_t multiAcceptCount() const noexcept;
 
   /**
    * Sets the number of attempts to accept a new client in a row.
    */
-  void setMultiAcceptCount(size_t value) XZERO_NOEXCEPT;
+  void setMultiAcceptCount(size_t value) noexcept;
 
   /**
    * Retrieves the timespan a connection may be idle within an I/O operation.
    */
-  Duration readTimeout() const XZERO_NOEXCEPT;
+  Duration readTimeout() const noexcept;
 
   /**
    * Retrieves the timespan a connection may be idle within an I/O operation.
    */
-  Duration writeTimeout() const XZERO_NOEXCEPT;
+  Duration writeTimeout() const noexcept;
 
   /**
    * Sets the timespan a connection may be idle within a read-operation.
@@ -219,7 +242,7 @@ class XZERO_BASE_API InetConnector : public Connector {
    *
    * A value of 0 means to use the system default.
    */
-  Duration tcpFinTimeout() const XZERO_NOEXCEPT;
+  Duration tcpFinTimeout() const noexcept;
 
   /**
    * Sets the timespan to leave a closing client connection in FIN_WAIT2 state.
@@ -228,16 +251,80 @@ class XZERO_BASE_API InetConnector : public Connector {
    */
   void setTcpFinTimeout(Duration value);
 
-  void start() override;
-  bool isStarted() const XZERO_NOEXCEPT override;
-  void stop() override;
-  std::list<RefPtr<EndPoint>> connectedEndPoints() override;
+  /**
+   * Starts given connector.
+   *
+   * @throw std::runtime_error on runtime errors
+   */
+  void start();
+
+  /**
+   * Tests whether this connector has been started.
+   */
+  bool isStarted() const noexcept;
+
+  /**
+   * Stops given connector.
+   */
+  void stop();
+
+  /**
+   * Retrieves list of currently connected endpoints.
+   */
+  std::list<RefPtr<TcpEndPoint>> connectedEndPoints();
+
+  /**
+   * Registeres a new connection factory.
+   */
+  virtual void addConnectionFactory(const std::string& protocol, ConnectionFactory factory);
 
   const IPAddress& bindAddress() const noexcept;
   int port() const noexcept;
 
-  std::string toString() const override;
+  /**
+   * Creates a Connection object and assigns it to the @p endpoint.
+   *
+   * When no connection factory is matching the @p protocolName, then
+   * the default connection factory will be used instead.
+   *
+   * @param protocolName The connection's protoclName.
+   * @param endpoint The endpoint to assign the newly created connection to.
+   */
+  void createConnection(const std::string& protocolName, TcpEndPoint* endpoint);
+
+  /** Retrieves all registered connection factories. */
+  std::vector<std::string> connectionFactories() const;
+
+  /** Retrieves number of registered connection factories. */
+  size_t connectionFactoryCount() const;
+
+  /**
+   * Sets the default connection factory.
+   */
+  void setDefaultConnectionFactory(const std::string& protocolName);
+
+  /**
+   * Retrieves the default connection factory.
+   */
+  ConnectionFactory defaultConnectionFactory() const;
+
+  void loadConnectionFactorySelector(const std::string& protocolName, Buffer* sink);
+
+  /**
+   * Retrieves the default task executor service.
+   */
+  Executor* executor() const { return executor_; }
+
+  std::string toString() const;
+
  private:
+  /**
+   * Retrieves associated connection factory by @p protocolName.
+   *
+   * @param protocolName protocol name for the connection factory to retrieve.
+   */
+  ConnectionFactory connectionFactory(const std::string& protocolName) const;
+
   /**
    * Registers to the Executor API for new incoming connections.
    */
@@ -255,19 +342,19 @@ class XZERO_BASE_API InetConnector : public Connector {
   int acceptOne();
 
   /**
-   * Creates an EndPoint instance for given client file descriptor.
+   * Creates an TcpEndPoint instance for given client file descriptor.
    *
    * @param cfd       client's file descriptor
    * @param executor  client's designated I/O scheduler
    */
-  virtual RefPtr<EndPoint> createEndPoint(int cfd, Executor* executor);
+  virtual RefPtr<TcpEndPoint> createEndPoint(int cfd, Executor* executor);
 
   /**
    * By default, creates Connection from default connection factory and initiates it.
    *
    * Initiated via @c Connection::onOpen().
    */
-  virtual void onEndPointCreated(const RefPtr<EndPoint>& endpoint);
+  virtual void onEndPointCreated(RefPtr<TcpEndPoint> endpoint);
 
   /**
    * Accepts as many pending connections as possible.
@@ -278,21 +365,26 @@ class XZERO_BASE_API InetConnector : public Connector {
   void listen(int backlog);
 
   /**
-   * Invoked by InetEndPoint to inform its creator that it got close()'d.
+   * Invoked by TcpEndPoint to inform its creator that it got close()'d.
    */
-  void onEndPointClosed(EndPoint* endpoint);
-  friend class InetEndPoint;
+  void onEndPointClosed(TcpEndPoint* endpoint);
+  friend class TcpEndPoint;
   friend class SslConnector;
-  friend class SslUtil;
 
  private:
+  std::string name_;
+  Executor* executor_;
+
+  std::unordered_map<std::string, ConnectionFactory> connectionFactories_;
+  std::string defaultConnectionFactory_;
+
   Executor::HandleRef io_;
   ExecutorSelector selectClientExecutor_;
 
   IPAddress bindAddress_;
   int port_;
 
-  std::list<RefPtr<EndPoint>> connectedEndPoints_;
+  std::list<RefPtr<TcpEndPoint>> connectedEndPoints_;
   std::mutex mutex_;
   FileDescriptor socket_;
   int addressFamily_;
@@ -308,23 +400,23 @@ class XZERO_BASE_API InetConnector : public Connector {
   bool isStarted_;
 };
 
-inline const IPAddress& InetConnector::bindAddress() const noexcept {
+inline const IPAddress& TcpConnector::bindAddress() const noexcept {
   return bindAddress_;
 }
 
-inline int InetConnector::port() const noexcept {
+inline int TcpConnector::port() const noexcept {
   return port_;
 }
 
-inline Duration InetConnector::readTimeout() const XZERO_NOEXCEPT {
+inline Duration TcpConnector::readTimeout() const noexcept {
   return readTimeout_;
 }
 
-inline Duration InetConnector::writeTimeout() const XZERO_NOEXCEPT {
+inline Duration TcpConnector::writeTimeout() const noexcept {
   return writeTimeout_;
 }
 
-inline Duration InetConnector::tcpFinTimeout() const XZERO_NOEXCEPT {
+inline Duration TcpConnector::tcpFinTimeout() const noexcept {
   return tcpFinTimeout_;
 }
 

@@ -13,7 +13,7 @@
 #include <xzero/http/HttpRequest.h>
 #include <xzero/http/BadMessage.h>
 #include <xzero/net/Connection.h>
-#include <xzero/net/EndPoint.h>
+#include <xzero/net/TcpEndPoint.h>
 #include <xzero/net/EndPointWriter.h>
 #include <xzero/executor/Executor.h>
 #include <xzero/logging.h>
@@ -35,7 +35,7 @@ namespace http1 {
 #define TRACE(msg...) do {} while (0)
 #endif
 
-Connection::Connection(EndPoint* endpoint,
+Connection::Connection(TcpEndPoint* endpoint,
                        Executor* executor,
                        const HttpHandler& handler,
                        HttpDateGenerator* dateGenerator,
@@ -112,7 +112,7 @@ void Connection::completed() {
 }
 
 void Connection::upgrade(const std::string& protocol,
-                         std::function<void(EndPoint*)> callback) {
+                         std::function<void(TcpEndPoint*)> callback) {
   TRACE("upgrade: $0", protocol);
   upgradeCallback_ = callback;
 }
@@ -372,10 +372,4 @@ void Connection::onInterestFailure(const std::exception& error) {
 
 }  // namespace http1
 }  // namespace http
-
-template<>
-std::string StringUtil::toString(http::http1::Connection* c) {
-  return StringUtil::toString(c->endpoint()->remoteAddress());
-}
-
 }  // namespace xzero

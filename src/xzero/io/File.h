@@ -12,13 +12,12 @@
 #include <functional>
 #include <string>
 #include <memory>
+#include <iosfwd>
 #include <fcntl.h> // O_* flags for createPosixChannel()
 
 namespace xzero {
 
 class MemoryMap;
-class InputStream;
-class OutputStream;
 
 /**
  * HTTP servable file.
@@ -27,7 +26,7 @@ class OutputStream;
  * @see LocalFile, MemoryFile
  * @see FileRepository
  */
-class XZERO_BASE_API File {
+class File {
  public:
   File(const File&) = delete;
   File& operator=(const File&) = delete;
@@ -43,12 +42,12 @@ class XZERO_BASE_API File {
 
   virtual const std::string& etag() const = 0;
 
-  virtual size_t size() const XZERO_NOEXCEPT = 0;
-  virtual time_t mtime() const XZERO_NOEXCEPT = 0;
-  virtual size_t inode() const XZERO_NOEXCEPT = 0;
-  virtual bool isRegular() const XZERO_NOEXCEPT = 0;
-  virtual bool isDirectory() const XZERO_NOEXCEPT = 0;
-  virtual bool isExecutable() const XZERO_NOEXCEPT = 0;
+  virtual size_t size() const noexcept = 0;
+  virtual time_t mtime() const noexcept = 0;
+  virtual size_t inode() const noexcept = 0;
+  virtual bool isRegular() const noexcept = 0;
+  virtual bool isDirectory() const noexcept = 0;
+  virtual bool isExecutable() const noexcept = 0;
 
   /**
    * Flags that can be passed when creating a system file handle.
@@ -77,20 +76,7 @@ class XZERO_BASE_API File {
    *
    * @param oflags such as O_RDONLY or O_NONBLOCK, etc (from <fcntl.h>)
    */
-  virtual int createPosixChannel(OpenFlags oflags) = 0;
-
-  /** Creates an input stream for given file. */
-  virtual std::unique_ptr<InputStream> createInputChannel() = 0;
-
-  /**
-   * Creates an output stream for given file.
-   *
-   * @param flags open-flags
-   * @param mode create mode
-   */
-  virtual std::unique_ptr<OutputStream> createOutputChannel(
-      OpenFlags flags = static_cast<OpenFlags>(File::Write | File::Create),
-      int mode = 0666) = 0;
+  virtual int createPosixChannel(OpenFlags oflags, int mode = 0) = 0;
 
   /** Creates a memory-map for a given file.
    *
@@ -106,7 +92,7 @@ class XZERO_BASE_API File {
   /**
    * Retrieves errno-compatible error code for the validity of the entity.
    */
-  int errorCode() const XZERO_NOEXCEPT { return errno_; }
+  int errorCode() const noexcept { return errno_; }
 
   /**
    * Tests wheather this file exists, that is, no error had occurred during

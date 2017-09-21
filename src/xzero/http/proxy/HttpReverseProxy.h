@@ -27,7 +27,7 @@ namespace xzero::http::client {
 class HttpReverseProxy {
  public:
   typedef std::function<void(HttpStatus, HttpRequest*, HttpResponse*)> ErrorPageHandler;
-  typedef std::function<EndPoint*()> EndPointFactory;
+  typedef std::function<TcpEndPoint*()> EndPointFactory;
 
   explicit HttpReverseProxy(const InetAddress& upstream);
 

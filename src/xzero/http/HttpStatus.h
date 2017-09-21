@@ -10,6 +10,7 @@
 #include <xzero/http/Api.h>
 #include <system_error>
 #include <string>
+#include <iosfwd>
 
 namespace xzero {
 namespace http {
@@ -128,7 +129,10 @@ constexpr HttpStatusGroup toStatusGroup(HttpStatus status) {
 }
 
 /** Retrieves the human readable text of the HTTP status @p code. */
-XZERO_HTTP_API const std::string& to_string(HttpStatus code);
+XZERO_HTTP_API const std::string& as_string(HttpStatus code);
+
+/** Write human readable text of the HTTP status @p code into @p os. */
+std::ostream& operator<<(std::ostream& os, HttpStatus code);
 
 /** Tests whether given status @p code MUST NOT have a message body. */
 constexpr bool isContentForbidden(HttpStatus code);

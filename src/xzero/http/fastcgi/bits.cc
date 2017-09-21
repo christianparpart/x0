@@ -12,7 +12,7 @@ namespace xzero {
 namespace http {
 namespace fastcgi {
 
-XZERO_HTTP_API std::string to_string(Type t) {
+XZERO_HTTP_API std::string as_string(Type t) {
   switch (t) {
     case Type::BeginRequest: return "BeginRequest";
     case Type::AbortRequest: return "AbortRequest";
@@ -27,6 +27,11 @@ XZERO_HTTP_API std::string to_string(Type t) {
     case Type::UnknownType: return "UnknownType";
     default: return std::to_string(static_cast<int>(t));
   }
+}
+
+std::ostream& operator<<(std::ostream& os, Type t) {
+  os << as_string(t);
+  return os;
 }
 
 void CgiParamStreamReader::processParams(const char *buf,

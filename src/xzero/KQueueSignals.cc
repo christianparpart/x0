@@ -6,9 +6,12 @@
 // the License at: http://opensource.org/licenses/MIT
 
 #include <xzero/KQueueSignals.h>
+#include <xzero/logging.h>
 #include <sys/types.h>
 #include <sys/event.h>
 #include <sys/time.h>
+
+namespace xzero {
 
 KQueueSignals::KQueueSignals(Executor* executor)
     : executor_(executor),
@@ -105,6 +108,9 @@ void KQueueSignals::onSignal() {
   }
 
   // notify interests
-  for (RefPtr<SignalWatcher>& hr: pending)
-    safeCall_.invoke(std::bind(&SignalWatcher::fire, hr));
+  for (RefPtr<SignalWatcher>& hr: pending) {
+    executor_->execute(std::bind(&SignalWatcher::fire, hr));
+  }
 }
+
+} // namespace xzero

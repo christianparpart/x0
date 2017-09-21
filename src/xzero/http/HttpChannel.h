@@ -16,6 +16,7 @@
 #include <xzero/io/Filter.h>
 #include <list>
 #include <memory>
+#include <iosfwd>
 
 namespace xzero {
 
@@ -38,7 +39,8 @@ enum class HttpChannelState {
   SENDING,  //!< currently sending data
 };
 
-XZERO_HTTP_API std::string to_string(HttpChannelState state);
+XZERO_HTTP_API std::string as_string(HttpChannelState state);
+std::ostream& operator<<(std::ostream& os, HttpChannelState state);
 
 /**
  * Semantic HTTP message exchange layer.
@@ -202,6 +204,8 @@ class XZERO_HTTP_API HttpChannel : public HttpListener {
 inline Executor* HttpChannel::executor() const noexcept {
   return executor_;
 }
+
+std::ostream& operator<<(std::ostream& os, HttpChannel* value);
 
 }  // namespace http
 }  // namespace xzero

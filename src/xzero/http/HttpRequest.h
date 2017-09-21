@@ -92,9 +92,6 @@ class XZERO_HTTP_API HttpRequest : public HttpRequestInfo {
 
   HugeBuffer& getContent();
   const HugeBuffer& getContent() const;
-
-  [[deprecated]] std::unique_ptr<InputStream> getContentStream();
-  [[deprecated]] BufferRef getContentBuffer();
   // }}}
 
  private:

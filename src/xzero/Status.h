@@ -47,11 +47,6 @@ enum class Status {
   InvalidArgumentError,
   InternalError,
   InvalidUriPortError,
-  CliTypeMismatchError,
-  CliUnknownOptionError,
-  CliMissingOptionError,
-  CliMissingOptionValueError,
-  CliFlagNotFoundError,
   SslPrivateKeyCheckError,
   OptionUncheckedAccessToInstance,
   CaughtUnknownExceptionError,
@@ -69,7 +64,8 @@ class StatusCategory : public std::error_category {
   std::string message(int ec) const override;
 };
 
-XZERO_BASE_API std::string to_string(Status ec);
+XZERO_BASE_API std::string as_string(Status ec);
+std::ostream& operator<<(std::ostream& os, Status ec);
 XZERO_BASE_API std::error_code makeErrorCode(Status ec);
 XZERO_BASE_API void raiseIfError(Status status);
 

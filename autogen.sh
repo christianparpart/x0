@@ -34,6 +34,14 @@ findexe() {
   echo $1
 }
 
+# Mac OS/X has `brew install zlib`'d its zlib.pc somewhere non-standard ;-)
+pkgdirs=( "/usr/local/opt/zlib/lib/pkgconfig" )
+for pkgdir in ${pkgdirs[*]}; do
+  if [[ -d "${pkgdir}" ]]; then
+    export PKG_CONFIG_PATH=${PKG_CONFIG_PATH}${PKG_CONFIG_PATH:+:}${pkgdir}
+  fi
+done
+
 export CXX=$(findexe $CXX clang++-4.0 clang++ g++)
 export CC=$(findexe $CC clang-4.0 clang gcc)
 export CXXFLAGS="-O0 -g"
@@ -41,6 +49,7 @@ export CXXFLAGS="-O0 -g"
 echo CXX = $CXX
 echo CC = $CC
 echo CXXFLAGS = $CXXFLAGS
+echo PKG_CONFIG_PATH = $PKG_CONFIG_PATH
 
 [[ "${1}" != "--help" ]] && autoreconf --verbose --force --install ${ROOT}
 

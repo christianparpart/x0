@@ -20,6 +20,7 @@
 #include <exception>
 #include <functional>
 #include <string>
+#include <iosfwd>
 
 namespace xzero {
 
@@ -68,11 +69,11 @@ class Executor {
   }; // }}}
   typedef RefPtr<Handle> HandleRef;
 
-  explicit Executor(std::unique_ptr<xzero::ExceptionHandler> eh);
+  explicit Executor(ExceptionHandler eh);
 
   virtual ~Executor();
 
-  void setExceptionHandler(std::unique_ptr<ExceptionHandler> eh);
+  void setExceptionHandler(ExceptionHandler eh);
 
   /**
    * Retrieves a human readable name of this executor (for introspection only).
@@ -217,6 +218,8 @@ class Executor {
   std::unique_ptr<UnixSignals> unixSignals_;
   std::atomic<int> refs_;
 };
+
+std::ostream& operator<<(std::ostream& os, Executor* executor);
 
 } // namespace xzero
 

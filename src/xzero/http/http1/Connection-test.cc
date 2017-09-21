@@ -64,7 +64,7 @@ ResponseParser::ResponseParser()
 size_t ResponseParser::parse(const BufferRef& response) {
   http1::Parser parser(Parser::RESPONSE, this);
   responseInfo_.reset();
-  responseBody_.reset();
+  responseBody_.clear();
   return parser.parseFragment(response);
 }
 
@@ -120,10 +120,10 @@ static const size_t maxRequestCount = 5;
 static const Duration maxKeepAlive = 30_seconds;
 
 #define SCOPED_LOGGER() ScopedLogger _scoped_logger_;
-#define MOCK_HTTP1_SERVER(server, localConnector, executor)                     \
-  xzero::Server server;                                                        \
+#define MOCK_HTTP1_SERVER(connector, executor)                                \
   xzero::LocalExecutor executor(false);                                       \
-  auto localConnector = server.addConnector<xzero::LocalConnector>(&executor); \
+  xzero::TcpConnector connector(&executor); \
+  \
   auto http = std::make_unique<xzero::http::http1::ConnectionFactory>(         \
       requestHeaderBufferSize, requestBodyBufferSize,                          \
       maxRequestUriLength, maxRequestBodyLength, maxRequestCount,              \
@@ -135,21 +135,21 @@ static const Duration maxKeepAlive = 30_seconds;
       response->write(Buffer(request->path() + "\n"),                          \
           std::bind(&HttpResponse::completed, response));                       \
   });                                                                           \
-  localConnector->addConnectionFactory(http->protocolName(),                  \
+  connector.addConnectionFactory(http->protocolName(),                  \
       std::bind(&HttpConnectionFactory::create, http.get(),                   \
                 std::placeholders::_1,                                        \
                 std::placeholders::_2));                                      \
   server.start();
 
 TEST(http_http1_Connection, ConnectionClose_1_1) {
-  MOCK_HTTP1_SERVER(server, connector, executor);
+  MOCK_HTTP1_SERVER(connector, executor);
 
   xzero::RefPtr<LocalEndPoint> ep;
   executor.execute([&] {
-    ep = connector->createClient("GET / HTTP/1.1\r\n"
-                                 "Host: test\r\n"
-                                 "Connection: close\r\n"
-                                 "\r\n");
+    ep = connector.createClient("GET / HTTP/1.1\r\n"
+                                "Host: test\r\n"
+                                "Connection: close\r\n"
+                                "\r\n");
   });
 
   Buffer output = ep->output();
@@ -161,12 +161,12 @@ TEST(http_http1_Connection, ConnectionClose_1_1) {
 }
 
 TEST(http_http1_Connection, ConnectionClose_1_0) {
-  MOCK_HTTP1_SERVER(server, connector, executor);
+  MOCK_HTTP1_SERVER(connector, executor);
 
   xzero::RefPtr<LocalEndPoint> ep;
   executor.execute([&] {
-    ep = connector->createClient("GET / HTTP/1.0\r\n"
-                                 "\r\n");
+    ep = connector.createClient("GET / HTTP/1.0\r\n"
+                                "\r\n");
   });
 
   Buffer output = ep->output();
@@ -179,13 +179,13 @@ TEST(http_http1_Connection, ConnectionClose_1_0) {
 
 // sends one single request
 TEST(http_http1_Connection, ConnectionKeepAlive_1_0) {
-  MOCK_HTTP1_SERVER(server, connector, executor);
+  MOCK_HTTP1_SERVER(connector, executor);
 
   xzero::RefPtr<LocalEndPoint> ep;
   executor.execute([&] {
-    ep = connector->createClient("GET /hello HTTP/1.0\r\n"
-                                 "Connection: Keep-Alive\r\n"
-                                 "\r\n");
+    ep = connector.createClient("GET /hello HTTP/1.0\r\n"
+                                "Connection: Keep-Alive\r\n"
+                                "\r\n");
   });
 
   Buffer output = ep->output();
@@ -199,13 +199,13 @@ TEST(http_http1_Connection, ConnectionKeepAlive_1_0) {
 
 // sends one single request
 TEST(http_http1_Connection, ConnectionKeepAlive_1_1) {
-  MOCK_HTTP1_SERVER(server, connector, executor);
+  MOCK_HTTP1_SERVER(connector, executor);
 
   xzero::RefPtr<LocalEndPoint> ep;
   executor.execute([&] {
-    ep = connector->createClient("GET /hello HTTP/1.1\r\n"
-                                 "Host: test\r\n"
-                                 "\r\n");
+    ep = connector.createClient("GET /hello HTTP/1.1\r\n"
+                                "Host: test\r\n"
+                                "\r\n");
     //printf("%s\n", ep->output().str().c_str());
   });
 
@@ -225,12 +225,12 @@ TEST(http_http1_Connection, ConnectionKeepAlive_1_1) {
 // sends 3 requests pipelined all at once. receives responses in order
 TEST(http_http1_Connection, ConnectionKeepAlive3_pipelined) {
   //SCOPED_LOGGER();
-  MOCK_HTTP1_SERVER(server, connector, executor);
+  MOCK_HTTP1_SERVER(connector, executor);
   xzero::RefPtr<LocalEndPoint> ep;
   executor.execute([&] {
-    ep = connector->createClient("GET /one HTTP/1.1\r\nHost: test\r\n\r\n"
-                                 "GET /two HTTP/1.1\r\nHost: test\r\n\r\n"
-                                 "GET /three HTTP/1.1\r\nHost: test\r\n\r\n");
+    ep = connector.createClient("GET /one HTTP/1.1\r\nHost: test\r\n\r\n"
+                                "GET /two HTTP/1.1\r\nHost: test\r\n\r\n"
+                                "GET /three HTTP/1.1\r\nHost: test\r\n\r\n");
   });
 
   Buffer output = ep->output();
@@ -261,11 +261,11 @@ TEST(http_http1_Connection, ConnectionKeepAlive3_pipelined) {
 // ensure proper error code on bad request line
 TEST(http_http1_Connection, protocolErrorShouldRaise400) {
   // SCOPED_LOGGER();
-  MOCK_HTTP1_SERVER(server, connector, executor);
-  xzero::RefPtr<LocalEndPoint> ep;
+  MOCK_HTTP1_SERVER(connector, executor);
+  xzero::RefPtr<TcpEndPoint> ep;
   executor.execute([&] {
     // FIXME HTTP/1.1 (due to keep-alive) SEGV's on LocalEndPoint.
-    ep = connector->createClient("GET\r\n\r\n");
+    ep = connector.createClient("GET\r\n\r\n");
   });
 
   Buffer output = ep->output();

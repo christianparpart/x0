@@ -10,9 +10,7 @@
 #include <xzero/http/HttpResponse.h>
 #include <xzero/http/http1/ConnectionFactory.h>
 #include <xzero/http/fastcgi/ConnectionFactory.h>
-#include <xzero/net/LocalConnector.h>
-#include <xzero/net/InetConnector.h>
-#include <xzero/net/Server.h>
+#include <xzero/net/TcpConnector.h>
 #include <xzero/RuntimeError.h>
 #include <xzero/WallClock.h>
 #include <algorithm>
@@ -49,49 +47,35 @@ HttpService::Protocol HttpService::getDefaultProtocol() {
 
 HttpService::HttpService(Protocol protocol)
     : protocol_(protocol),
-      server_(new Server()),
-      localConnector_(nullptr),
       inetConnector_(nullptr),
       handlers_() {
 }
 
 HttpService::~HttpService() {
-  delete server_;
 }
 
-LocalConnector* HttpService::configureLocal() {
-  if (localConnector_ != nullptr)
-    throw std::runtime_error("Multiple local connectors not supported.");
-
-  localConnector_ = server_->addConnector<LocalConnector>();
-
-  attachProtocol(localConnector_);
-
-  return localConnector_;
-}
-
-InetConnector* HttpService::configureInet(Executor* executor,
-                                          Executor* clientExecutor,
-                                          Duration readTimeout,
-                                          Duration writeTimeout,
-                                          Duration tcpFinTimeout,
-                                          const IPAddress& ipaddress,
-                                          int port, int backlog) {
+TcpConnector* HttpService::configureTcp(Executor* executor,
+                                        Executor* clientExecutor,
+                                        Duration readTimeout,
+                                        Duration writeTimeout,
+                                        Duration tcpFinTimeout,
+                                        const IPAddress& ipaddress,
+                                        int port, int backlog) {
   if (inetConnector_ != nullptr)
     RAISE(RuntimeError, "Multiple inet connectors not yet supported.");
 
-  inetConnector_ = server_->addConnector<InetConnector>(
+  inetConnector_ = std::make_unique<TcpConnector>(
       "http", executor,
       [clientExecutor]() { return clientExecutor; },
       readTimeout, writeTimeout,
       tcpFinTimeout, ipaddress, port, backlog, true, false);
 
-  attachProtocol(inetConnector_);
+  attachProtocol(inetConnector_.get());
 
-  return inetConnector_;
+  return inetConnector_.get();
 }
 
-void HttpService::attachProtocol(Connector* connector) {
+void HttpService::attachProtocol(TcpConnector* connector) {
   switch (protocol_) {
     case HTTP1:
       attachHttp1(connector);
@@ -102,7 +86,7 @@ void HttpService::attachProtocol(Connector* connector) {
   }
 }
 
-void HttpService::attachHttp1(Connector* connector) {
+void HttpService::attachHttp1(TcpConnector* connector) {
   // TODO: make them configurable via ctor
   size_t requestHeaderBufferSize = 8 * 1024;
   size_t requestBodyBufferSize = 8 * 1024;
@@ -136,7 +120,7 @@ void HttpService::attachHttp1(Connector* connector) {
   httpFactories_.emplace_back(std::move(http1));
 }
 
-void HttpService::attachFCGI(Connector* connector) {
+void HttpService::attachFCGI(TcpConnector* connector) {
   size_t maxRequestUriLength = 1024;
   size_t maxRequestBodyLength = 64 * 1024 * 1024;
   Duration maxKeepAlive = 8_seconds;
@@ -167,11 +151,13 @@ void HttpService::removeHandler(Handler* handler) {
 }
 
 void HttpService::start() {
-  server_->start();
+  if (inetConnector_)
+    inetConnector_->start();
 }
 
 void HttpService::stop() {
-  server_->stop();
+  if (inetConnector_)
+    inetConnector_->stop();
 }
 
 void HttpService::handleRequest(HttpRequest* request, HttpResponse* response) {

@@ -9,24 +9,9 @@
 #include <stdlib.h>
 #include <stdint.h>
 #include <string>
+#include <sstream>
 
 namespace xzero {
-
-template <typename H, typename... T>
-void StringUtil::toStringVImpl(
-    std::vector<std::string>* target,
-    H value,
-    T... values) {
-  target->emplace_back(toString(value));
-  toStringVImpl(target, values...);
-}
-
-template <typename... T>
-std::vector<std::string> StringUtil::toStringV(T... values) {
-  std::vector<std::string> target;
-  toStringVImpl(&target, values...);
-  return target;
-}
 
 template <typename ValueType, typename... T>
 void StringUtil::formatImpl(
@@ -37,7 +22,7 @@ void StringUtil::formatImpl(
   StringUtil::replaceAll(
       scratch,
       "$" + std::to_string(argn),
-      StringUtil::toString(value));
+      to_string(value));
 
   formatImpl(scratch, argn + 1, values...);
 }
@@ -49,8 +34,8 @@ void StringUtil::formatImpl(
     ValueType value) {
   StringUtil::replaceAll(
       scratch,
-      "$" + std::to_string(argn),
-      StringUtil::toString(value));
+      "$" + to_string(argn),
+      to_string(value));
 }
 
 template <typename... T>
@@ -119,6 +104,20 @@ std::string StringUtil::formatNumberMetric(T orig_value) {
   }
 
   return std::string(buf, len);
+}
+
+template<typename T>
+inline std::string to_string(const T& value) {
+  std::stringstream sstr;
+  sstr << value;
+  return sstr.str();
+}
+
+template<typename T>
+inline std::string to_string(T&& value) {
+  std::stringstream sstr;
+  sstr << value;
+  return sstr.str();
 }
 
 } // namespace xzero

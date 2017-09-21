@@ -8,7 +8,7 @@
 #pragma once
 
 #include <xzero/Api.h>
-#include <xzero/net/InetConnector.h>
+#include <xzero/net/TcpConnector.h>
 #include <xzero/net/SslEndPoint.h>
 #include <list>
 #include <memory>
@@ -17,15 +17,14 @@
 namespace xzero {
 
 class SslContext;
-class SslUtil;
 
 /**
  * SSL Connector.
  *
- * @see InetConnector
+ * @see TcpConnector
  * @see SslEndPoint
  */
-class XZERO_BASE_API SslConnector : public InetConnector {
+class SslConnector : public TcpConnector {
  public:
   /**
    * Initializes this connector.
@@ -55,6 +54,10 @@ class XZERO_BASE_API SslConnector : public InetConnector {
                bool reuseAddr, bool reusePort);
   ~SslConnector();
 
+  void addConnectionFactory(const std::string& protocol, ConnectionFactory factory) override;
+
+  BufferRef protocolList() const noexcept;// { return protocolList_; }
+
   /**
    * Adds a new SSL context (certificate & key) pair.
    *
@@ -64,25 +67,22 @@ class XZERO_BASE_API SslConnector : public InetConnector {
   void addContext(const std::string& crtFilePath,
                   const std::string& keyFilePath);
 
-  void start() override;
-  bool isStarted() const XZERO_NOEXCEPT override;
-  void stop() override;
-  std::list<RefPtr<EndPoint>> connectedEndPoints() override;
+  RefPtr<TcpEndPoint> createEndPoint(int cfd, Executor* executor) override;
+  void onEndPointCreated(RefPtr<TcpEndPoint> endpoint) override;
 
-  RefPtr<EndPoint> createEndPoint(int cfd, Executor* executor) override;
-  void onEndPointCreated(const RefPtr<EndPoint>& endpoint) override;
-
-  SslContext* selectContext(const char* servername) const;
+  SslContext* getContextByDnsName(const char* servername) const;
   SslContext* defaultContext() const;
+
+  static Buffer makeProtocolList(const std::list<std::string>& protos);
 
  private:
   static int selectContext(SSL* ssl, int* ad, SslConnector* connector);
 
   friend class SslEndPoint;
   friend class SslContext;
-  friend class SslUtil;
 
  private:
+  Buffer protocolList_;
   std::list<std::unique_ptr<SslContext>> contexts_;
 };
 

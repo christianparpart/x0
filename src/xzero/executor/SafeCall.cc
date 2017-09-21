@@ -13,15 +13,15 @@
 namespace xzero {
 
 SafeCall::SafeCall()
-    : SafeCall(std::unique_ptr<ExceptionHandler>(new CatchAndLogExceptionHandler("SafeCall"))) {
+    : SafeCall(CatchAndLogExceptionHandler("SafeCall")) {
 }
 
-SafeCall::SafeCall(std::unique_ptr<ExceptionHandler> eh)
-    : exceptionHandler_(std::move(eh)) {
+SafeCall::SafeCall(ExceptionHandler eh)
+    : exceptionHandler_(eh) {
 }
 
-void SafeCall::setExceptionHandler(std::unique_ptr<ExceptionHandler> eh) {
-  exceptionHandler_ = std::move(eh);
+void SafeCall::setExceptionHandler(ExceptionHandler eh) {
+  exceptionHandler_ = eh;
 }
 
 void SafeCall::invoke(std::function<void()> task) noexcept {
@@ -38,7 +38,7 @@ void SafeCall::invoke(std::function<void()> task) noexcept {
 void SafeCall::handleException(const std::exception& e) noexcept {
   if (exceptionHandler_) {
     try {
-      exceptionHandler_->onException(e);
+      exceptionHandler_(e);
     } catch (...) {
     }
   }

@@ -73,9 +73,8 @@ bool operator==(const Cidr& a, const Cidr& b) {
 
 bool operator!=(const Cidr& a, const Cidr& b) { return !(a == b); }
 
-template <>
-std::string StringUtil::toString(Cidr value) {
-  return value.str();
+std::ostream& operator<<(std::ostream& os, const Cidr& cidr) {
+  return os << cidr.str();
 }
 
 }  // namespace xzero

@@ -24,20 +24,17 @@ class XZERO_BASE_API MemoryFile : public File {
              const std::string& mimetype,
              const BufferRef& data,
              UnixTime mtime);
+
   ~MemoryFile();
 
   const std::string& etag() const override;
-  size_t size() const XZERO_NOEXCEPT override;
-  time_t mtime() const XZERO_NOEXCEPT override;
-  size_t inode() const XZERO_NOEXCEPT override;
-  bool isRegular() const XZERO_NOEXCEPT override;
-  bool isDirectory() const XZERO_NOEXCEPT override;
-  bool isExecutable() const XZERO_NOEXCEPT override;
-  int createPosixChannel(OpenFlags flags) override;
-  std::unique_ptr<InputStream> createInputChannel() override;
-  std::unique_ptr<OutputStream> createOutputChannel(
-      OpenFlags flags = File::Write | File::Create,
-      int mode = 0666) override;
+  size_t size() const noexcept override;
+  time_t mtime() const noexcept override;
+  size_t inode() const noexcept override;
+  bool isRegular() const noexcept override;
+  bool isDirectory() const noexcept override;
+  bool isExecutable() const noexcept override;
+  int createPosixChannel(OpenFlags flags, int mode = 0) override;
   std::unique_ptr<MemoryMap> createMemoryMap(bool rw = true) override;
 
  private:

@@ -42,7 +42,7 @@ class XZERO_HTTP_API HttpFileHandler {
    * @param generateBoundaryID boundary-ID generator function that generates
    *                           response-local unique boundary IDs.
    */
-  HttpFileHandler(std::function<std::string()> generateBoundaryID);
+  explicit HttpFileHandler(std::function<std::string()> generateBoundaryID);
 
   ~HttpFileHandler();
 
@@ -65,11 +65,13 @@ class XZERO_HTTP_API HttpFileHandler {
    * @retval HttpStatus::NotFound HTTP request not handled, most probably
    * because the underlying file was not found or is not a file.
    * No response was generated.
+   * @retval HttpStatus::Forbidden HTTP request not handled, as access to the
+   * underlying file is forbidden.
    * @retval HttpStatus::MethodNotAllowed Unsupported method detected. No response was generated.
    */
-  HttpStatus handle(HttpRequest* request,
-                    HttpResponse* response,
-                    std::shared_ptr<File> transferFile);
+  XZERO_NODISCARD HttpStatus handle(HttpRequest* request,
+                                    HttpResponse* response,
+                                    std::shared_ptr<File> transferFile);
 
  private:
   /**
@@ -80,7 +82,7 @@ class XZERO_HTTP_API HttpFileHandler {
    * @param response HTTP response handle.
    *
    * @retval HttpStatus::NotModified if client cache is valid
-   * @retval HttpStatus::Precondition HTTP client's precondition failed.
+   * @retval HttpStatus::PreconditionFailed HTTP client's precondition failed.
    * @retval HttpStatus::Undefined if client cache is invalid or inexistent.
    *
    * This method tests whether the @p request is conditional.
@@ -91,9 +93,9 @@ class XZERO_HTTP_API HttpFileHandler {
    *
    * If the conditionas fail then no operations has been made to the @p response.
    */
-  HttpStatus handleClientCache(const File& transferFile,
-                               HttpRequest* request,
-                               HttpResponse* response);
+  XZERO_NODISCARD HttpStatus handleClientCache(const File& transferFile,
+                                               HttpRequest* request,
+                                               HttpResponse* response);
 
   /**
    * Fully processes the ranged requests, if one, or does nothing.
@@ -109,8 +111,10 @@ class XZERO_HTTP_API HttpFileHandler {
    *
    * @note if this is no ranged request then nothing is done on it.
    */
-  bool handleRangeRequest(const File& transferFile, int fd,
-                          HttpRequest* request, HttpResponse* response);
+  XZERO_NODISCARD bool handleRangeRequest(const File& transferFile,
+                                          int fd,
+                                          HttpRequest* request,
+                                          HttpResponse* response);
 
  private:
   std::function<std::string()> generateBoundaryID_;

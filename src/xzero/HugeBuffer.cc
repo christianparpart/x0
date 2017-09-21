@@ -8,8 +8,6 @@
 #include <xzero/HugeBuffer.h>
 #include <xzero/Application.h>
 #include <xzero/io/FileUtil.h>
-#include <xzero/io/FileInputStream.h>
-#include <xzero/io/BufferInputStream.h>
 
 namespace xzero {
 
@@ -110,18 +108,6 @@ Buffer&& HugeBuffer::takeBuffer() {
   return std::move(buffer_);
 }
 
-std::unique_ptr<InputStream> HugeBuffer::getInputStream() {
-  if (fd_.isOpen()) {
-    // TODO: provide a PositionalFileInputStream (pread's) to get rid of this side-effect
-    FileUtil::seek(fd_, 0);
-  }
-
-  return std::unique_ptr<InputStream>(
-      fd_.isClosed()
-          ? static_cast<InputStream*>(new BufferInputStream(&buffer_))
-          : static_cast<InputStream*>(new FileInputStream(fd_, false)));
-}
-
 void HugeBuffer::tryDisplaceBufferToFile() {
   if (fd_.isClosed()) {
     fd_ = FileUtil::createTempFile();
@@ -133,7 +119,7 @@ void HugeBuffer::tryDisplaceBufferToFile() {
   }
 }
 
-void HugeBuffer::reset() {
+void HugeBuffer::clear() {
   buffer_.clear();
   actualSize_ = 0;
   fd_.close();

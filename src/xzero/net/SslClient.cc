@@ -1,14 +1,14 @@
-#if 0
 // This file is part of the "x0" project, http://github.com/christianparpart/x0>
 //   (c) 2009-2017 Christian Parpart <christian@parpart.family>
 //
 // Licensed under the MIT License (the "License"); you may not use this
 // file except in compliance with the License. You may obtain a copy of
 // the License at: http://opensource.org/licenses/MIT
-
+#if 1 == 0
 #include <xzero/net/SslClient.h>
-#include <xzero/net/SslUtil.h>
-#include <xzero/net/InetUtil.h>
+
+#include <xzero/io/FileUtil.h>
+#include <xzero/net/TcpUtil.h>
 #include <xzero/executor/Executor.h>
 #include <xzero/logging.h>
 
@@ -32,7 +32,7 @@ Future<RefPtr<SslClient>> SslClient::connect(
     const std::vector<std::string>& applicationProtocolsSupported,
     std::function<Connection*(const std::string&)> createApplicationConnection) {
 
-  return InetUtil::connect(target, connectTimeout, executor).
+  return TcpUtil::connect(target, connectTimeout, executor).
       chain(std::bind(&SslClient::start,
                       std::placeholders::_1,
                       target.family(),
@@ -87,7 +87,7 @@ void SslClient::onHandshake(Promise<RefPtr<SslClient>> promise) {
         break;
       case SSL_ERROR_SYSCALL:
       case SSL_ERROR_SSL:
-        promise.failure(SslUtil::error(ERR_get_error()));
+        promise.failure(makeSslError(ERR_get_error()));
         unref();
         break;
       default:
@@ -136,7 +136,8 @@ SslClient::SslClient(
       readTimeout_(readTimeout),
       writeTimeout_(writeTimeout),
       executor_(executor),
-      createApplicationConnection_(createApplicationConnection) {
+      createApplicationConnection_(createApplicationConnection),
+      io_() {
 
   //SSL_CTX_set_verify(ctx_, SSL_VERIFY_PEER, verify_callback);
   //SSL_CTX_set_verify_depth(ctx_, 4);
@@ -166,7 +167,13 @@ bool SslClient::isOpen() const {
 void SslClient::close() {
 }
 
-// int SSL_read(SSL *ssl, void *buf, int num);
+std::string makeSslErrorString(int ec) {
+  char buf[1024];
+  buf[0] = '\0';
+  ERR_error_string_n(ec, buf, sizeof(buf));
+  return buf;
+}
+
 size_t SslClient::fill(Buffer* sink, size_t count) {
   for (;;) {
     int n = SSL_read(ssl_, sink->end(), count);
@@ -176,7 +183,7 @@ size_t SslClient::fill(Buffer* sink, size_t count) {
 
     int err = SSL_get_error(ssl_, n);
     if (err != SSL_ERROR_WANT_READ && err != SSL_ERROR_WANT_WRITE) {
-      logError("SslClient", "SSL_read error $0", err);
+      logError("SslClient", "SSL_read error $0", makeSslErrorString(err));
       errno = EIO;
       return -1;
     }
@@ -184,45 +191,85 @@ size_t SslClient::fill(Buffer* sink, size_t count) {
 }
 
 size_t SslClient::flush(const BufferRef& source) {
+  for (;;) {
+    int n = SSL_write(ssl_, source.data(), source.size());
+    if (n >= 0) {
+      return n;
+    }
+
+    int err = SSL_get_error(ssl_, n);
+    if (err != SSL_ERROR_WANT_READ && err != SSL_ERROR_WANT_WRITE) {
+      logError("SslClient", "SSL_write error $0", makeSslErrorString(err));
+      errno = EIO;
+      return -1;
+    }
+  }
 }
 
-size_t SslClient::flush(int fd, off_t offset, size_t size) {
+size_t SslClient::flush(const FileView& fileView) {
+  Buffer buf;
+  FileUtil::read(fileView, &buf);
+  return flush(buf);
 }
 
 void SslClient::wantFill() {
+  if (io_)
+    return;
+
+  io_ = executor_->executeOnReadable(fd_,
+      std::bind(&SslClient::fillable, this),
+      readTimeout_,
+      std::bind(&SslClient::onTimeout, this));
 }
 
 void SslClient::wantFlush() {
+  if (io_)
+    return;
+
+  io_ = executor_->executeOnWritable(fd_,
+      std::bind(&SslClient::flushable, this),
+      writeTimeout_,
+      std::bind(&SslClient::onTimeout, this));
 }
 
 Duration SslClient::readTimeout() {
+  return readTimeout_;
 }
 
 Duration SslClient::writeTimeout() {
+  return writeTimeout_;
 }
 
 void SslClient::setReadTimeout(Duration timeout) {
+  readTimeout_ = timeout;
 }
 
 void SslClient::setWriteTimeout(Duration timeout) {
+  writeTimeout_ = timeout;
 }
 
 bool SslClient::isBlocking() const {
+  return FileUtil::isBlocking(fd_);
 }
 
 void SslClient::setBlocking(bool enable) {
+  FileUtil::setBlocking(fd_, enable);
 }
 
 bool SslClient::isCorking() const {
+  return TcpUtil::isCorking(fd_);
 }
 
 void SslClient::setCorking(bool enable) {
+  TcpUtil::setCorking(fd_, enable);
 }
 
 bool SslClient::isTcpNoDelay() const {
+  return TcpUtil::isTcpNoDelay(fd_);
 }
 
 void SslClient::setTcpNoDelay(bool enable) {
+  TcpUtil::setTcpNoDelay(fd_, enable);
 }
 
 std::string SslClient::toString() const {
@@ -230,11 +277,19 @@ std::string SslClient::toString() const {
 }
 
 Option<InetAddress> SslClient::remoteAddress() const {
-  return InetUtil::getRemoteAddress(fd_, addressFamily_);
+  Result<InetAddress> addr = TcpUtil::getRemoteAddress(fd_, addressFamily_);
+  if (addr.isSuccess())
+    return Some(*addr);
+  else
+    return None();
 }
 
 Option<InetAddress> SslClient::localAddress() const {
-  return InetUtil::getLocalAddress(fd_, addressFamily_);
+  Result<InetAddress> addr = TcpUtil::getLocalAddress(fd_, addressFamily_);
+  if (addr.isSuccess())
+    return Some(*addr);
+  else
+    return None();
 }
 
 } // namespace xzero

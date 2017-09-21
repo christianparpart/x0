@@ -21,8 +21,8 @@ namespace xzero {
 
 LocalExecutor::LocalExecutor(
     bool recursive,
-    std::unique_ptr<xzero::ExceptionHandler> eh)
-    : Executor(std::move(eh)),
+    ExceptionHandler eh)
+    : Executor(eh),
       recursive_(recursive),
       running_(0),
       deferred_() {
@@ -94,9 +94,8 @@ std::string LocalExecutor::toString() const {
   return buf;
 }
 
-template<>
-std::string StringUtil::toString(LocalExecutor* value) {
-  return StringUtil::format("LocalExecutor[$0]", (void*)value);
+std::ostream& operator<<(std::ostream& os, LocalExecutor* e) {
+  return os << e->toString();
 }
 
 } // namespace xzero

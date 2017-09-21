@@ -32,10 +32,7 @@
 #include <xzero/io/LocalFileRepository.h>
 #include <xzero/executor/NativeScheduler.h>
 #include <xzero/net/SslConnector.h>
-#include <xzero/net/InetConnector.h>
-#include <xzero/net/Server.h>
-#include <xzero/cli/CLI.h>
-#include <xzero/cli/Flags.h>
+#include <xzero/net/TcpConnector.h>
 #include <xzero/RuntimeError.h>
 #include <xzero/MimeTypes.h>
 #include <xzero/Application.h>
@@ -85,7 +82,7 @@ XzeroDaemon::XzeroDaemon()
       lastWorker_(0),
       eventLoops_(),
       modules_(),
-      server_(new Server()),
+      connectors_(),
       program_(),
       main_(),
       setupApi_(),
@@ -296,6 +293,24 @@ bool XzeroDaemon::applyConfiguration(std::shared_ptr<flow::vm::Program> program)
   }
 }
 
+void XzeroDaemon::start() {
+  for (auto& connector: connectors_) {
+    connector->start();
+  }
+}
+
+void XzeroDaemon::stop() {
+  for (auto& connector: connectors_) {
+    connector->stop();
+  }
+}
+
+void XzeroDaemon::removeAllConnectors() {
+  while (!connectors_.empty()) {
+    connectors_.erase(std::prev(connectors_.end()));
+  }
+}
+
 std::unique_ptr<Config> XzeroDaemon::createDefaultConfig() {
   std::unique_ptr<Config> config(new Config);
 
@@ -335,7 +350,7 @@ void XzeroDaemon::reloadConfiguration() {
     std::shared_ptr<flow::vm::Program> program = loadConfigFile(configFilePath_);
 
     threadedExecutor_.joinAll();
-    server_->stop();
+    stop();
 
     applyConfiguration(program);
   } catch (const std::exception& e) {
@@ -413,7 +428,7 @@ void XzeroDaemon::postConfig() {
     eventLoops_.erase(std::prev(eventLoops_.end()));
 
   // listeners
-  server_->removeAllConnectors();
+  removeAllConnectors();
   for (const ListenerConfig& l: config_->listeners) {
     if (l.ssl) {
       if (config_->sslContexts.empty()) {
@@ -432,7 +447,7 @@ void XzeroDaemon::postConfig() {
       );
     } else {
       logNotice("x0d", "Starting HTTP listener on $0:$1", l.bindAddress, l.port);
-      setupConnector<InetConnector>(
+      setupConnector<TcpConnector>(
           l.bindAddress, l.port, l.backlog,
           l.multiAcceptCount, l.reuseAddr, l.deferAccept, l.reusePort,
           nullptr);
@@ -443,7 +458,7 @@ void XzeroDaemon::postConfig() {
     module->onPostConfig();
   }
 
-  server_->start();
+  start();
   startThreads();
 }
 
@@ -451,8 +466,7 @@ std::unique_ptr<EventLoop> XzeroDaemon::createEventLoop() {
   size_t i = eventLoops_.size();
 
   return std::unique_ptr<EventLoop>(new NativeScheduler(
-        std::unique_ptr<xzero::ExceptionHandler>(
-              new CatchAndLogExceptionHandler(StringUtil::format("x0d/$0", i))),
+        CatchAndLogExceptionHandler(StringUtil::format("x0d/$0", i)),
         nullptr /* preInvoke */,
         nullptr /* postInvoke */));
 }
@@ -517,7 +531,7 @@ void XzeroDaemon::run() {
   eventHandler_.reset(new XzeroEventHandler(this, eventLoops_[0].get()));
   runOneThread(0);
   TRACE("Main loop quit. Shutting down.");
-  server_->stop();
+  stop();
 }
 
 void XzeroDaemon::runOneThread(size_t index) {
@@ -580,13 +594,13 @@ void XzeroDaemon::setupConnector(
     int multiAcceptCount, bool reuseAddr, bool deferAccept, bool reusePort,
     std::function<void(T*)> connectorVisitor) {
 
-  if (reusePort && !InetConnector::isReusePortSupported()) {
+  if (reusePort && !TcpConnector::isReusePortSupported()) {
     logWarning("x0d", "Your platform does not support SO_REUSEPORT. "
                       "Falling back to traditional connection scheduling.");
     reusePort = false;
   }
 
-  if (deferAccept && !InetConnector::isDeferAcceptSupported()) {
+  if (deferAccept && !TcpConnector::isDeferAcceptSupported()) {
     logWarning("x0d", "Your platform does not support TCP_DEFER_ACCEPT. "
                       "Disabling.");
     deferAccept = false;
@@ -619,11 +633,11 @@ void XzeroDaemon::setupConnector(
 template<typename T>
 T* XzeroDaemon::doSetupConnector(
     xzero::Executor* executor,
-    xzero::InetConnector::ExecutorSelector clientExecutorSelector,
+    xzero::TcpConnector::ExecutorSelector clientExecutorSelector,
     const xzero::IPAddress& ipaddr, int port, int backlog,
     int multiAccept, bool reuseAddr, bool deferAccept, bool reusePort) {
 
-  auto inet = server_->addConnector<T>(
+  std::unique_ptr<T> inet = std::make_unique<T>(
       "inet",
       executor,
       clientExecutorSelector,
@@ -634,8 +648,7 @@ T* XzeroDaemon::doSetupConnector(
       port,
       backlog,
       reuseAddr,
-      reusePort
-  );
+      reusePort);
 
   if (deferAccept)
     inet->setDeferAccept(deferAccept);
@@ -646,7 +659,8 @@ T* XzeroDaemon::doSetupConnector(
                 std::placeholders::_1,
                 std::placeholders::_2));
 
-  return inet;
+  connectors_.emplace_back(std::move(inet));
+  return static_cast<T*>(connectors_.back().get());
 }
 
 } // namespace x0d

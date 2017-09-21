@@ -21,7 +21,7 @@ class LocalExecutor : public Executor {
  public:
   LocalExecutor(
     bool recursive = false,
-    std::unique_ptr<xzero::ExceptionHandler> eh = nullptr);
+    ExceptionHandler eh = nullptr);
 
   std::string toString() const override;
   void execute(Task task) override;

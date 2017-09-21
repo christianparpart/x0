@@ -28,17 +28,14 @@ class XZERO_BASE_API MemoryFileRepository : public FileRepository {
  public:
   explicit MemoryFileRepository(MimeTypes& mimetypes);
 
-  std::shared_ptr<File> getFile(
-      const std::string& requestPath,
-      const std::string& docroot = "/") override;
+  std::shared_ptr<File> getFile(const std::string& requestPath) override;
 
   void listFiles(std::function<bool(const std::string&)> callback) override;
   void deleteAllFiles() override;
   int createTempFile(std::string* filename = nullptr) override;
 
-  void insert(const std::string& path, const BufferRef& data, UnixTime mtime);
-
-  void insert(const std::string& path, const BufferRef& data);
+  void insert(const std::string& path, UnixTime mtime, const BufferRef& data);
+  void insert(const std::string& path, UnixTime mtime, int errc);
 
  private:
   MimeTypes& mimetypes_;

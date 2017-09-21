@@ -25,8 +25,6 @@ class XzeroEventHandler {
 
   xzero::Executor* executor() const { return executor_; }
 
-  xzero::HttpServer* server() const;
-
   XzeroState state() const { return state_; }
   void setState(XzeroState newState);
 

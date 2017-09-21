@@ -161,17 +161,6 @@ HttpStatus HttpFileHandler::handleClientCache(const File& transferFile,
                                               HttpResponse* response) {
   static const char* timeFormat = "%a, %d %b %Y %H:%M:%S GMT";
 
-  // If-None-Match
-  do {
-    const std::string& value = request->headers().get("If-None-Match");
-    if (value.empty()) continue;
-
-    // XXX: on static files we probably don't need the token-list support
-    if (value != transferFile.etag()) continue;
-
-    return HttpStatus::NotModified;
-  } while (0);
-
   // If-Modified-Since
   do {
     const std::string& value = request->headers().get("If-Modified-Since");
@@ -182,6 +171,18 @@ HttpStatus HttpFileHandler::handleClientCache(const File& transferFile,
     if (transferFile.mtime() > dt.unixtime()) continue;
 
     return HttpStatus::NotModified;
+  } while (0);
+
+  // If-Unmodified-Since
+  do {
+    const std::string& value = request->headers().get("If-Unmodified-Since");
+    if (value.empty()) continue;
+
+    UnixTime dt(UnixTime::parseString(value, timeFormat).get());
+
+    if (transferFile.mtime() <= dt.unixtime()) continue;
+
+    return HttpStatus::PreconditionFailed;
   } while (0);
 
   // If-Match
@@ -197,14 +198,13 @@ HttpStatus HttpFileHandler::handleClientCache(const File& transferFile,
     return HttpStatus::PreconditionFailed;
   } while (0);
 
-  // If-Unmodified-Since
+  // If-None-Match
   do {
-    const std::string& value = request->headers().get("If-Unmodified-Since");
+    const std::string& value = request->headers().get("If-None-Match");
     if (value.empty()) continue;
 
-    UnixTime dt(UnixTime::parseString(value, timeFormat).get());
-
-    if (transferFile.mtime() <= dt.unixtime()) continue;
+    // XXX: on static files we probably don't need the token-list support
+    if (value != transferFile.etag()) continue;
 
     return HttpStatus::PreconditionFailed;
   } while (0);

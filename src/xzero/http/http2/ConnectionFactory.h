@@ -26,7 +26,7 @@ class XZERO_HTTP_API ConnectionFactory : public HttpConnectionFactory {
       size_t maxRequestUriLength,
       size_t maxRequestBodyLength);
 
-  xzero::Connection* create(Connector* connector, EndPoint* endpoint) override;
+  xzero::Connection* create(TcpConnector* connector, TcpEndPoint* endpoint) override;
 };
 
 }  // namespace http1

@@ -6,18 +6,17 @@
 // the License at: http://opensource.org/licenses/MIT
 
 #include <xzero/TokenShaper.h>
-#include <xzero/StringUtil.h>
+#include <iostream>
 
 namespace xzero {
 
-template<>
-std::string StringUtil::toString(TokenShaperError ec) {
+std::ostream& operator<<(std::ostream& os, TokenShaperError ec) {
   switch (ec) {
-    case TokenShaperError::Success: return "Success";
-    case TokenShaperError::RateLimitOverflow: return "Rate Limit Overflow";
-    case TokenShaperError::CeilLimitOverflow: return "Ceil Limit Overflow";
-    case TokenShaperError::NameConflict: return "Name Conflict";
-    case TokenShaperError::InvalidChildNode: return "Invalid Child Node";
+    case TokenShaperError::Success: return os << "Success";
+    case TokenShaperError::RateLimitOverflow: return os << "Rate Limit Overflow";
+    case TokenShaperError::CeilLimitOverflow: return os << "Ceil Limit Overflow";
+    case TokenShaperError::NameConflict: return os << "Name Conflict";
+    case TokenShaperError::InvalidChildNode: return os << "Invalid Child Node";
   }
 }
 

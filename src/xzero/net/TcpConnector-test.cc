@@ -6,8 +6,8 @@
 // the License at: http://opensource.org/licenses/MIT
 
 #include <xzero/testing.h>
-#include <xzero/net/InetConnector.h>
-#include <xzero/net/InetEndPoint.h>
+#include <xzero/net/TcpConnector.h>
+#include <xzero/net/TcpEndPoint.h>
 #include <xzero/net/InetAddress.h>
 #include <xzero/net/Connection.h>
 #include <xzero/net/IPAddress.h>
@@ -93,14 +93,20 @@ void EchoClientConnection::onFillable() {
 }
 // }}}
 
-TEST(InetConnector, echoServer) {
-  PosixScheduler sched;
+auto EH(xzero::testing::Test* test) {
+  return [test](const std::exception& e) {
+    test->reportUnhandledException(e);
+  };
+}
 
-  auto connectionFactory = [&](Connector* connector, EndPoint* ep) -> Connection* {
+TEST(TcpConnector, echoServer) {
+  PosixScheduler sched(EH(this));
+
+  auto connectionFactory = [&](TcpConnector* connector, EndPoint* ep) -> Connection* {
     return ep->setConnection<EchoServerConnection>(ep, &sched);
   };
 
-  std::shared_ptr<InetConnector> connector = std::make_shared<InetConnector>(
+  std::shared_ptr<TcpConnector> connector = std::make_shared<TcpConnector>(
       "inet",
       &sched,
       nullptr,
@@ -108,7 +114,7 @@ TEST(InetConnector, echoServer) {
       5_seconds, // write timeout
       0_seconds, // TCP_FIN timeout
       IPAddress("127.0.0.1"),
-      InetConnector::RandomPort,
+      TcpConnector::RandomPort,
       128, // backlog
       false, // reuseAddr
       false); // reusePort
@@ -117,7 +123,7 @@ TEST(InetConnector, echoServer) {
   connector->start();
   logf("Listening on port $0", connector->port());
 
-  Future<RefPtr<EndPoint>> f = InetEndPoint::connectAsync(
+  Future<RefPtr<EndPoint>> f = TcpEndPoint::connectAsync(
       InetAddress("127.0.0.1", connector->port()),
       5_seconds, 5_seconds, 5_seconds, &sched);
 
@@ -143,10 +149,10 @@ TEST(InetConnector, echoServer) {
   EXPECT_EQ("ping", response);
 }
 
-TEST(InetConnector, detectProtocols) {
+TEST(TcpConnector, detectProtocols) {
   PosixScheduler sched;
 
-  std::shared_ptr<InetConnector> connector = std::make_shared<InetConnector>(
+  std::shared_ptr<TcpConnector> connector = std::make_shared<TcpConnector>(
       "inet",
       &sched,
       nullptr,
@@ -154,19 +160,19 @@ TEST(InetConnector, detectProtocols) {
       5_seconds, // write timeout
       0_seconds, // TCP_FIN timeout
       IPAddress("127.0.0.1"),
-      InetConnector::RandomPort,
+      TcpConnector::RandomPort,
       128, // backlog
       false, // reuseAddr
       false); // reusePort
 
   int echoCreated = 0;
-  auto echoFactory = [&](Connector* connector, EndPoint* ep) -> Connection* {
+  auto echoFactory = [&](TcpConnector* connector, EndPoint* ep) -> Connection* {
     echoCreated++;
     return ep->setConnection<EchoServerConnection>(ep, &sched);
   };
 
   int yeahCreated = 0;
-  auto yeahFactory = [&](Connector* connector, EndPoint* ep) -> Connection* {
+  auto yeahFactory = [&](TcpConnector* connector, EndPoint* ep) -> Connection* {
     yeahCreated++;
     return ep->setConnection<EchoServerConnection>(ep, &sched);
   };
@@ -176,7 +182,7 @@ TEST(InetConnector, detectProtocols) {
   connector->start();
   logf("Listening on port $0", connector->port());
 
-  Future<RefPtr<EndPoint>> f = InetEndPoint::connectAsync(
+  Future<RefPtr<EndPoint>> f = TcpEndPoint::connectAsync(
       InetAddress("127.0.0.1", connector->port()),
       5_seconds, 5_seconds, 5_seconds, &sched);
 
@@ -188,6 +194,7 @@ TEST(InetConnector, detectProtocols) {
   };
 
   auto onConnectionEstablished = [&](RefPtr<EndPoint> ep) {
+    log("onConnectionEstablished");
     Buffer text;
     connector->loadConnectionFactorySelector("yeah", &text);
     text.push_back("blurrrb");

@@ -17,10 +17,7 @@
 
 namespace xzero {
 
-class Server;
-class Connector;
-class LocalConnector;
-class InetConnector;
+class TcpConnector;
 class Executor;
 class WallClock;
 class Scheduler;
@@ -67,17 +64,14 @@ class XZERO_HTTP_API HttpService {
    * @param backlog the number of connections allowed to be queued in kernel.
    *
    */
-  InetConnector* configureInet(Executor* executor,
-                               Executor* clientExecutor,
-                               Duration readTimeout,
-                               Duration writeTimeout,
-                               Duration tcpFinTimeout,
-                               const IPAddress& ipaddress,
-                               int port,
-                               int backlog = 128);
-
-  /** Configures a local connector. */
-  LocalConnector* configureLocal();
+  TcpConnector* configureTcp(Executor* executor,
+                             Executor* clientExecutor,
+                             Duration readTimeout,
+                             Duration writeTimeout,
+                             Duration tcpFinTimeout,
+                             const IPAddress& ipaddress,
+                             int port,
+                             int backlog = 128);
 
   /** Registers a new @p handler. */
   void addHandler(Handler* handler);
@@ -105,18 +99,16 @@ class XZERO_HTTP_API HttpService {
 
  private:
   static Protocol getDefaultProtocol();
-  void attachProtocol(Connector* connector);
-  void attachHttp1(Connector* connector);
-  void attachFCGI(Connector* connector);
+  void attachProtocol(TcpConnector* connector);
+  void attachHttp1(TcpConnector* connector);
+  void attachFCGI(TcpConnector* connector);
   void handleRequest(HttpRequest* request, HttpResponse* response);
   void onAllDataRead(HttpRequest* request, HttpResponse* response);
 
  private:
   Protocol protocol_;
-  Server* server_;
   std::vector<std::unique_ptr<HttpConnectionFactory>> httpFactories_;
-  LocalConnector* localConnector_;
-  InetConnector* inetConnector_;
+  std::unique_ptr<TcpConnector> inetConnector_;
   std::vector<Handler*> handlers_;
 };
 

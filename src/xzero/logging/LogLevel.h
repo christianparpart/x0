@@ -37,6 +37,9 @@ enum class LogLevel {
 
 LogLevel make_loglevel(const std::string& value);
 
+std::ostream& operator<<(std::ostream& os, LogLevel value);
+std::string as_string(LogLevel value);
+
 } // namespace xzero
 
 #endif

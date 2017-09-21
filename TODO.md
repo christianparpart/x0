@@ -1,16 +1,20 @@
 
 ## Incomplete TODO items
 
+- eliminate DataChainListener and/or greatly simplify DataChain
+- eliminate need of EndPointWriter via DataChain
+- eliminate TcpUtil?
+- eliminate SslUtil?
+- finish SslClient
+  - migrate into SslEndPoint
+
 ### Intermediate 0
 
 - [ ] HttpListener: onMessagecontent(HugeBuffer&&) instead
-
-- [ ] test: ensure `HttpStatus::NoResponse` actually terminates the transport instant
-- [ ] BUG: testing: EXPECTxx failures do also increment success count?
 - [ ] extend FCGI connector to tweak maxKeepAlive (just like in HTTP/1)
   - make sure the keepalive-timeout is fired correctly
     - test cancellation (due to io) and fire (due to timeout).
-- [ ] use wireshark to get binary expected data for the Parser & Generator tests
+- [ ] http2: use wireshark to get binary expected data for the Parser & Generator tests
 - [ ] easy enablement of FCGI in all http examples.
 
 ### General
@@ -45,13 +49,14 @@
 - [ ] `HttpTransport::onInterestFailure()` => `(factory || connector)->report(this, error);`
 - [ ] http: chunked request trailer support & unit test
 - [ ] doc: doxygen: how to document a group of functions all at once (or, how to copydoc)
-- [ ] test: write full tests for HttpFileHandler using MockTransport
 - [ ] test: call completed() before contentLength is satisfied in non-chunked mode (shall be transport generic)
 - [ ] test: attempt to write more data than contentLength in non-chunked mode (shall be transport generic)
 - [ ] logging: improve (debug) logging facility
 
 ### ALREADY DONE
 
+- [x] BUG: testing: EXPECTxx failures do also increment success count?
+- [x] test: ensure `HttpStatus::NoResponse` actually terminates the transport instant
 - [x] redesigned error handling
 - [x] LinuxScheduler (`epoll`, `signalfd`, `eventfd`)
 - [x] FCGI transport
@@ -63,4 +68,5 @@
 - [x] UdpConnector
 - [x] improve timeout management (ideally testable)
 - [x] `InetEndPoint::wantFill()` to honor `TCP_DEFER_ACCEPT`
+- [x] test: write full tests for HttpFileHandler using MockTransport
 

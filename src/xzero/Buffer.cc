@@ -6,7 +6,6 @@
 // the License at: http://opensource.org/licenses/MIT
 
 #include <xzero/Buffer.h>
-#include <xzero/StringUtil.h>
 #include <xzero/hash/FNV.h>
 #include <xzero/RuntimeError.h>
 #include <sstream>
@@ -192,33 +191,6 @@ std::string BufferRef::hexdumpPrettyAscii(const void* bytes, size_t length) {
   }
 
   return sstr.str();
-}
-
-template<> std::string StringUtil::toString(BufferRef value) {
-  return StringUtil::sanitizedStr(value);
-}
-
-template<> std::string StringUtil::toString(const BufferRef& value) {
-  return StringUtil::sanitizedStr(value);
-}
-
-template<> std::string StringUtil::toString(const Buffer& value) {
-  return StringUtil::sanitizedStr(value);
-}
-
-template <>
-std::string StringUtil::toString(const FixedBuffer& value) {
-  return StringUtil::sanitizedStr(value);
-}
-
-template <>
-std::string StringUtil::toString(FixedBuffer value) {
-  return StringUtil::sanitizedStr(value);
-}
-
-template <>
-std::string StringUtil::toString(Buffer value) {
-  return StringUtil::sanitizedStr(value);
 }
 
 }  // namespace xzero

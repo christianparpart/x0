@@ -9,6 +9,7 @@
 #include <xzero/Buffer.h>
 #include <string>
 #include <vector>
+#include <iosfwd>
 #include <cstdint>
 
 namespace xzero {
@@ -110,6 +111,15 @@ struct InstallSnapshotRequest {
 struct InstallSnapshotResponse {
   Term term;
 };
+
+std::ostream& operator<<(std::ostream& os, LogType value);
+std::ostream& operator<<(std::ostream& os, const LogEntry& msg);
+std::ostream& operator<<(std::ostream& os, const VoteRequest& msg);
+std::ostream& operator<<(std::ostream& os, const VoteResponse& msg);
+std::ostream& operator<<(std::ostream& os, const AppendEntriesRequest& msg);
+std::ostream& operator<<(std::ostream& os, const AppendEntriesResponse& msg);
+std::ostream& operator<<(std::ostream& os, const InstallSnapshotRequest& msg);
+std::ostream& operator<<(std::ostream& os, const InstallSnapshotResponse& msg);
 
 } // namespace raft
 } // namespace xzero

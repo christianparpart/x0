@@ -8,7 +8,6 @@
 #include <xzero/http/proxy/HttpClusterMember.h>
 #include <xzero/http/proxy/HttpClusterRequest.h>
 #include <xzero/http/proxy/HttpHealthMonitor.h>
-#include <xzero/net/InetEndPoint.h>
 #include <xzero/io/FileView.h>
 #include <xzero/JsonWriter.h>
 #include <xzero/logging.h>

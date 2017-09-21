@@ -6,8 +6,7 @@
 // the License at: http://opensource.org/licenses/MIT
 
 #include <xzero/testing.h>
-#include <xzero/cli/CLI.h>
-#include <xzero/cli/Flags.h>
+#include <xzero/Flags.h>
 #include <xzero/logging/Logger.h>
 #include <xzero/Application.h>
 #include <xzero/AnsiColor.h>
@@ -59,6 +58,10 @@ void Test::log(const std::string& message) {
   UnitTest::instance()->log(message);
 }
 
+void Test::reportUnhandledException(const std::exception& e) {
+  UnitTest::instance()->reportUnhandledException(e);
+}
+
 // ############################################################################
 
 TestInfo::TestInfo(const std::string& testCaseName, 
@@ -82,6 +85,7 @@ UnitTest::UnitTest()
   : environments_(),
     testCases_(),
     activeTests_(),
+    exclude_(),
     filter_("*"),
     repeats_(1),
     printProgress_(false),
@@ -130,43 +134,55 @@ int UnitTest::main(int argc, const char* argv[]) {
   //
   // --no-color | --color   explicitely enable/disable color output
   // --filter=REGEX         filter tests by regular expression
+  // --exclude=REGEX        excludes tests by regular expressions
   // --randomize            randomize test order
   // --repeats=NUMBER        repeats tests given number of times
   // --list[-tests]         Just list the tests and exit.
 
   Application::init();
 
-  CLI cli;
-  cli.defineBool("help", 'h', "Prints this help and terminates.")
-     .defineBool("verbose", 'v', "Prints to console in debug log level.")
-     .defineString("log-level", 'L', "ENUM", "Defines the minimum log level.", "info")
-     .defineString("log-target", 0, "ENUM", "Specifies logging target. One of syslog, file, systemd, console.", "")
-     .defineString("filter", 'f', "GLOB", "Filters tests by given glob.", "*")
-     .defineBool("list", 'l', "Prints all tests and exits.")
-     .defineBool("randomize", 'R', "Randomizes test order.")
-     .defineBool("sort", 's', "Sorts tests alphabetically ascending.")
-     .defineBool("no-progress", 0, "Avoids printing progress.")
-     .defineNumber("repeat", 'r', "COUNT", "Repeat tests given number of times.", 1)
-     ;
+  Flags flags;
+  flags.defineBool("help", 'h', "Prints this help and terminates.")
+       .defineBool("verbose", 'v', "Prints to console in debug log level.")
+       .defineString("log-level", 'L', "ENUM", "Defines the minimum log level.", "info")
+       .defineString("log-target", 0, "ENUM", "Specifies logging target. One of syslog, file, systemd, console.", "")
+       .defineString("filter", 'f', "GLOB", "Filters tests by given glob.", "*")
+       .defineString("exclude", 'e', "GLOB", "Excludes tests by given glob.", "")
+       .defineBool("list", 'l', "Prints all tests and exits.")
+       .defineBool("randomize", 'R', "Randomizes test order.")
+       .defineBool("sort", 's', "Sorts tests alphabetically ascending.")
+       .defineBool("no-progress", 0, "Avoids printing progress.")
+       .defineNumber("repeat", 'r', "COUNT", "Repeat tests given number of times.", 1)
+       ;
 
-  Flags flags = cli.evaluate(argc, argv);
+  std::error_code ec = flags.parse(argc, argv);
+  if (ec) {
+    fprintf(stderr, "Failed to parse flags. %s\n", ec.message().c_str());
+    return 1;
+  }
 
   if (flags.getBool("help")) {
-    printf("%s\n", cli.helpText().c_str());
+    printf("%s\n", flags.helpText().c_str());
     return 0;
   }
 
-  if (flags.getBool("verbose")) {
-    Application::logToStderr(LogLevel::Debug);
-  }
-
   Logger::get()->setMinimumLogLevel(make_loglevel(flags.getString("log-level")));
+
+  if (flags.getBool("verbose")) {
+    LogLevel logLevel = Logger::get()->getMinimumLogLevel();
+
+    if (logLevel > LogLevel::Debug) // XXX trace is having a smaller number
+      logLevel = LogLevel::Debug;
+
+    Application::logToStderr(logLevel);
+  }
 
   if (flags.isSet("log-target")) {
     std::string logTargetStr = flags.getString("log-target");
     // TODO: log-target
   }
 
+  exclude_ = flags.getString("exclude");
   filter_ = flags.getString("filter");
   repeats_ = flags.getNumber("repeat");
   printProgress_ = !flags.getBool("no-progress");
@@ -182,7 +198,11 @@ int UnitTest::main(int argc, const char* argv[]) {
       TestInfo* testInfo = testCases_[activeTests_[i]].get();
       std::string matchName = StringUtil::format("$0.$1",
           testInfo->testCaseName(), testInfo->testName());
+
       const int flags = 0;
+
+      if (!exclude_.empty() && fnmatch(exclude_.c_str(), matchName.c_str(), flags) == 0)
+        continue; // exclude this one
 
       if (fnmatch(filter_.c_str(), matchName.c_str(), flags) == 0) {
         filtered.push_back(activeTests_[i]);
@@ -229,11 +249,11 @@ void UnitTest::printTestList() {
 
 void UnitTest::printSummary() {
   // print summary
-  printf("%sFinished running %d repeats, %zu tests. %zu success, %d failed, %zu disabled.%s\n",
+  printf("%sFinished running %zu tests (%d repeats). %zu success, %d failed, %zu disabled.%s\n",
       failCount_ ? colorsError.c_str()
                 : colorsOk.c_str(),
+      repeats_ * activeTests_.size(),
       repeats_,
-      activeTests_.size(),
       successCount_,
       failCount_,
       disabledCount(),
@@ -319,20 +339,8 @@ void UnitTest::runAllTestsOnce() {
       } catch (const BailOutException&) {
         // no-op
         failed++;
-      } catch (const RuntimeError& ex) {
-        reportMessage(
-            StringUtil::format(
-              "Unhandled exception caught in test. $0 ($1:$2 $3)",
-              ex.what(),
-              ex.sourceFile(),
-              ex.sourceLine(),
-              ex.functionName()),
-            false);
-        failed++;
       } catch (const std::exception& ex) {
-        reportMessage(
-            StringUtil::format("Unhandled exception caught in test. $0", ex.what()),
-            false);
+        reportUnhandledException(ex);
         failed++;
       } catch (...) {
         reportMessage("Unhandled exception caught in test.", false);
@@ -356,6 +364,44 @@ void UnitTest::runAllTestsOnce() {
   }
 }
 
+void UnitTest::reportError(const char* fileName,
+                           int lineNo,
+                           bool fatal,
+                           const char* actual,
+                           const std::error_code& ec) {
+  std::string message = StringUtil::format(
+      "$0:$1: Failure\n"
+      "  Value of: $2\n"
+      "  Expected: success\n"
+      "    Actual: ($3) $4\n",
+      fileName, lineNo,
+      actual,
+      ec.category().name(),
+      ec.message());
+
+  reportMessage(message, fatal);
+}
+
+void UnitTest::reportError(const char* fileName,
+                           int lineNo,
+                           bool fatal,
+                           const char* expected,
+                           const std::error_code& expectedEvaluated,
+                           const char* actual,
+                           const std::error_code& actualEvaluated) {
+  std::string message = StringUtil::format(
+      "$0:$1: Failure\n"
+      "  Value of: $2\n"
+      "  Expected: ($3) $4\n"
+      "    Actual: ($5) $6\n",
+      fileName, lineNo,
+      actual,
+      expectedEvaluated.category().name(), expectedEvaluated.message(),
+      actualEvaluated.category().name(), actualEvaluated.message());
+
+  reportMessage(message, fatal);
+}
+
 void UnitTest::reportBinary(const char* fileName,
                             int lineNo,
                             bool fatal,
@@ -374,6 +420,32 @@ void UnitTest::reportBinary(const char* fileName,
       actualEvaluated);
 
   reportMessage(message, fatal);
+}
+
+void UnitTest::reportUnhandledException(const std::exception& e) {
+  if (const RuntimeError* rte = dynamic_cast<const RuntimeError*>(&e)) {
+    std::string message = StringUtil::format(
+        "Unhandled Exception\n"
+          "  Type: $0\n"
+          "  What: $1\n"
+          "  Function: $2\n"
+          "  Source File: $3\n"
+          "  Source Line: $4\n",
+        typeid(*rte).name(),
+        rte->what(),
+        rte->functionName(),
+        rte->sourceFile(),
+        rte->sourceLine());
+    reportMessage(message, false);
+  } else {
+    std::string message = StringUtil::format(
+        "Unhandled Exception\n"
+          "  Type: $0\n"
+          "  What: $1\n",
+        typeid(e).name(),
+        e.what());
+    reportMessage(message, false);
+  }
 }
 
 void UnitTest::reportEH(const char* fileName,

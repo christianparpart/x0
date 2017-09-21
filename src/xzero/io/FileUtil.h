@@ -8,6 +8,7 @@
 #pragma once
 
 #include <xzero/Api.h>
+#include <xzero/Result.h>
 #include <functional>
 #include <string>
 #include <stdint.h>
@@ -26,7 +27,7 @@ class XZERO_BASE_API FileUtil {
   static std::string currentWorkingDirectory();
 
   static std::string absolutePath(const std::string& relpath);
-  static std::string realpath(const std::string& relpath);
+  static Result<std::string> realpath(const std::string& relpath);
   static bool exists(const std::string& path);
   static bool isDirectory(const std::string& path);
   static bool isRegular(const std::string& path);
@@ -46,8 +47,10 @@ class XZERO_BASE_API FileUtil {
   static Buffer read(File& file);
   static Buffer read(const FileView& file);
   static Buffer read(const std::string& path);
-  static void write(const std::string& path, const Buffer& buffer);
+  static void write(const std::string& path, const BufferRef& buffer);
+  static void write(const std::string& path, const std::string& buffer);
   static void write(int fd, const BufferRef& chunk);
+  static void write(int fd, const std::string& chunk);
   static void write(int fd, const FileView& chunk);
   static void copy(const std::string& from, const std::string& to);
   static void truncate(const std::string& path, size_t size);

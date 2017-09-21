@@ -17,22 +17,19 @@
 #include <cstdio>
 
 namespace xzero {
+namespace flow {
 
-template<>
-std::string StringUtil::toString(flow::SymbolTable* st) {
-  return StringUtil::format("SymbolTable:$0", st->name());
+std::ostream& operator<<(std::ostream& os, SymbolTable* st) {
+  return os << st->name();
 }
 
-template<>
-std::string StringUtil::toString(flow::Symbol* sym) {
+std::ostream& operator<<(std::ostream& os, Symbol* sym) {
   if (sym != nullptr) {
-    return StringUtil::format("Symbol:$0", sym->name());
+    return os << StringUtil::format("Symbol:$0", sym->name());
   } else {
-    return "NULL";
+    return os << "NULL";
   }
 }
-
-namespace flow {
 
 // {{{ SymbolTable
 SymbolTable::SymbolTable(SymbolTable* outer, const std::string& name)

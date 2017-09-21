@@ -13,7 +13,11 @@
 
 namespace xzero {
 
-template<> std::string StringUtil::toString(LogLevel value) {
+std::ostream& operator<<(std::ostream& os, LogLevel value) {
+  return os << as_string(value);
+}
+
+std::string as_string(LogLevel value) {
   switch (value) {
     case LogLevel::None:
       return "none";

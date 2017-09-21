@@ -20,15 +20,15 @@ namespace xzero {
 class Buffer;
 class BufferRef;
 class FileView;
-class EndPoint;
+class TcpEndPoint;
 
 /**
- * Composable EndPoint Writer API.
+ * Composable TcpEndPoint Writer API.
  *
  * @todo 2 consecutive buffer writes should merge.
  * @todo consider managing its own BufferPool
  */
-class XZERO_BASE_API EndPointWriter : public DataChainListener {
+class EndPointWriter : public DataChainListener {
  public:
   EndPointWriter();
   ~EndPointWriter();
@@ -51,12 +51,12 @@ class XZERO_BASE_API EndPointWriter : public DataChainListener {
   void write(FileView&& file);
 
   /**
-   * Transfers as much data as possible into the given EndPoint @p sink.
+   * Transfers as much data as possible into the given TcpEndPoint @p sink.
    *
    * @retval true all data has been transferred.
    * @retval false data transfer incomplete and data is pending.
    */
-  bool flush(EndPoint* sink);
+  bool flush(TcpEndPoint* sink);
 
   /** Tests whether there are pending bytes to be flushed.
    *
@@ -73,7 +73,7 @@ class XZERO_BASE_API EndPointWriter : public DataChainListener {
 
  private:
   DataChain chain_;
-  EndPoint* sink_;
+  TcpEndPoint* sink_;
 };
 
 } // namespace xzero

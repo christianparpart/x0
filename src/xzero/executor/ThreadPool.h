@@ -36,15 +36,14 @@ class ThreadPool : public Executor {
   /**
    * Initializes this thread pool as many threads as CPU cores are available.
    */
-  explicit ThreadPool(std::unique_ptr<xzero::ExceptionHandler> eh);
+  explicit ThreadPool(ExceptionHandler eh);
 
   /**
    * Initializes this thread pool.
    *
    * @param num_threads number of threads to allocate.
    */
-  ThreadPool(size_t num_threads,
-             std::unique_ptr<xzero::ExceptionHandler> error_handler);
+  ThreadPool(size_t num_threads, ExceptionHandler error_handler);
 
   ~ThreadPool();
 

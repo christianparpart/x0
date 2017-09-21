@@ -6,36 +6,34 @@
 // the License at: http://opensource.org/licenses/MIT
 #include <xzero/raft/MessageType.h>
 #include <xzero/StringUtil.h>
+#include <iostream>
 
-namespace xzero {
+namespace xzero::raft {
 
-using raft::MessageType;
-
-template<>
-std::string StringUtil::toString<>(const MessageType type) {
+std::ostream& operator<<(std::ostream& os, MessageType type) {
   switch (type) {
     case MessageType::VoteRequest:
-      return "VoteRequest";
+      return os << "VoteRequest";
     case MessageType::VoteResponse:
-      return "VoteResponse";
+      return os << "VoteResponse";
     case MessageType::AppendEntriesRequest:
-      return "AppendEntriesRequest";
+      return os << "AppendEntriesRequest";
     case MessageType::AppendEntriesResponse:
-      return "AppendEntriesResponse";
+      return os << "AppendEntriesResponse";
     case MessageType::InstallSnapshotRequest:
-      return "InstallSnapshotRequest";
+      return os << "InstallSnapshotRequest";
     case MessageType::InstallSnapshotResponse:
-      return "InstallSnapshotResponse";
+      return os << "InstallSnapshotResponse";
     case MessageType::HelloRequest:
-      return "HelloRequest";
+      return os << "HelloRequest";
     case MessageType::HelloResponse:
-      return "HelloResponse";
+      return os << "HelloResponse";
     default: {
       char buf[5];
       snprintf(buf, sizeof(buf), "0x%02x", (unsigned) type);
-      return std::string(buf);
+      return os << std::string(buf);
     }
   }
 }
 
-} // namespace xzero
+} // namespace xzero::raft

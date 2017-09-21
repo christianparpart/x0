@@ -8,7 +8,7 @@
 #include <xzero/http/http2/Connection.h>
 #include <xzero/http/HttpRequestInfo.h>
 #include <xzero/http/HttpResponseInfo.h>
-#include <xzero/net/EndPoint.h>
+#include <xzero/net/TcpEndPoint.h>
 #include <xzero/HugeBuffer.h>
 #include <xzero/logging.h>
 
@@ -18,7 +18,7 @@ namespace http2 {
 
 #define TRACE(msg...) logNotice("http2.Connection", msg)
 
-Connection::Connection(EndPoint* endpoint,
+Connection::Connection(TcpEndPoint* endpoint,
                        Executor* executor,
                        const HttpHandler& handler,
                        HttpDateGenerator* dateGenerator,
@@ -48,7 +48,7 @@ Connection::Connection(EndPoint* endpoint,
   TRACE("ctor");
 }
 
-Connection::Connection(EndPoint* endpoint,
+Connection::Connection(TcpEndPoint* endpoint,
                        Executor* executor,
                        const HttpHandler& handler,
                        HttpDateGenerator* dateGenerator,

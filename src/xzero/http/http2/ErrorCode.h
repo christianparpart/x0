@@ -7,6 +7,8 @@
 
 #pragma once
 
+#include <iosfwd>
+
 namespace xzero {
 namespace http {
 namespace http2 {
@@ -96,6 +98,9 @@ enum class ErrorCode {
    */
   Http11Required = 13,
 };
+
+std::string as_string(ErrorCode ec);
+std::ostream& operator<<(std::ostream& os, ErrorCode ec);
 
 } // namespace http2
 } // namespace http

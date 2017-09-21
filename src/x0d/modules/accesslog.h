@@ -9,9 +9,7 @@
 
 #include <x0d/XzeroModule.h>
 #include <xzero/io/File.h>
-#include <xzero/io/LocalFile.h>
-#include <xzero/io/LocalFileRepository.h>
-#include <xzero/io/OutputStream.h>
+#include <xzero/io/FileDescriptor.h>
 #include <xzero/Option.h>
 #include <ostream>
 
@@ -27,7 +25,7 @@ class LogFile {
 
  private:
   std::shared_ptr<xzero::File> file_;
-  std::unique_ptr<xzero::OutputStream> output_;
+  xzero::FileDescriptor fd_;
 };
 
 class AccesslogModule : public XzeroModule {

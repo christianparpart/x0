@@ -7,19 +7,18 @@
 #pragma once
 
 #include <xzero/logging/LogTarget.h>
-#include <xzero/io/OutputStream.h>
+#include <xzero/io/FileDescriptor.h>
 #include <memory>
 
 namespace xzero {
 
 class FileLogTarget : public LogTarget {
 public:
-  explicit FileLogTarget(std::unique_ptr<OutputStream>&& output);
+  explicit FileLogTarget(FileDescriptor&& fd);
 
-  void log(
-      LogLevel level,
-      const std::string& component,
-      const std::string& message) override;
+  void log(LogLevel level,
+           const std::string& component,
+           const std::string& message) override;
 
   void setTimestampEnabled(bool value) { timestampEnabled_ = value; }
   bool isTimestampEnabled() const noexcept { return timestampEnabled_; }
@@ -28,7 +27,7 @@ private:
   std::string createTimestamp() const;
 
 private:
-  std::unique_ptr<OutputStream> output_;
+  FileDescriptor fd_;
   bool timestampEnabled_;
 };
 

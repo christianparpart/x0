@@ -137,14 +137,4 @@ bool DeadlineTimer::isActive() const {
   return active_.load();
 }
 
-template<>
-std::string StringUtil::toString(DeadlineTimer& timeout) {
-  return StringUtil::format("DeadlineTimer[$0]", timeout.timeout());
-}
-
-template<>
-std::string StringUtil::toString(DeadlineTimer* timeout) {
-  return StringUtil::format("DeadlineTimer[$0]", timeout->timeout());
-}
-
 } // namespace xzero

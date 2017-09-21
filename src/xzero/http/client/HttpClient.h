@@ -27,7 +27,7 @@
 #include <deque>
 
 namespace xzero {
-  class EndPoint;
+  class TcpEndPoint;
   class InetAddress;
   class Executor;
   class FileView;
@@ -98,10 +98,10 @@ class HttpClient {
              Duration keepAlive);
 
   HttpClient(Executor* executor,
-             RefPtr<EndPoint> upstream,
+             RefPtr<TcpEndPoint> upstream,
              Duration keepAlive);
 
-  using CreateEndPoint = std::function<Future<RefPtr<EndPoint>>()>;
+  using CreateEndPoint = std::function<Future<RefPtr<TcpEndPoint>>()>;
 
   HttpClient(Executor* executor,
              CreateEndPoint endpointCreator,
@@ -150,10 +150,10 @@ class HttpClient {
   };
 
  private:
-  Future<RefPtr<EndPoint>> createTcp(InetAddress addr,
-                                     Duration connectTimeout,
-                                     Duration readTimeout,
-                                     Duration writeTimeout);
+  Future<RefPtr<TcpEndPoint>> createTcp(InetAddress addr,
+                                        Duration connectTimeout,
+                                        Duration readTimeout,
+                                        Duration writeTimeout);
   bool isClosed() const;
   void startConnect();
   void setupConnection();
@@ -166,7 +166,7 @@ class HttpClient {
   Executor* executor_;
   CreateEndPoint createEndPoint_;
   Duration keepAlive_;
-  RefPtr<EndPoint> endpoint_;
+  RefPtr<TcpEndPoint> endpoint_;
   std::deque<Task> pendingTasks_;
 };
 
