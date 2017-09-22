@@ -168,6 +168,9 @@ SslEndPoint::~SslEndPoint() {
 }
 
 void SslEndPoint::close() {
+  if (io_) {
+    io_->cancel();
+  }
 #if 0
   // pretend we did a full shutdown
   SSL_set_shutdown(ssl_, SSL_SENT_SHUTDOWN | SSL_RECEIVED_SHUTDOWN);
