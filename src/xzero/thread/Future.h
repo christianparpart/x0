@@ -79,7 +79,7 @@ class PromiseState<void> : public RefCounted {
 };
 
 template <typename T>
-class XZERO_BASE_API Future {
+class Future {
  public:
   typedef T value_type;
 
@@ -94,10 +94,11 @@ class XZERO_BASE_API Future {
   bool isFailure() const;
   bool isSuccess() const;
 
-  template<typename U>
-  void onFailure(Promise<U> forward);
-  void onFailure(std::function<void (std::error_code ec)> fn);
   void onSuccess(std::function<void (T& value)> fn);
+  void onFailure(std::function<void (std::error_code ec)> fn);
+
+  template<typename U> void onFailure(Promise<U> forward);
+  template<typename U> void onSuccess(Promise<U> forward);
 
   void wait() const;
   void wait(const Duration& timeout) const;
@@ -140,7 +141,7 @@ class XZERO_BASE_API Future {
   RefPtr<PromiseState<T>> state_;
 };
 
-template <>
+template<>
 class Future<void> {
  public:
   typedef void value_type;
@@ -156,10 +157,11 @@ class Future<void> {
   bool isFailure() const;
   bool isSuccess() const;
 
-  template<typename U>
-  void onFailure(Promise<U> forward);
-  void onFailure(std::function<void (std::error_code ec)> fn);
-  void onSuccess(std::function<void ()> fn);
+  void onSuccess(std::function<void()> fn);
+  void onFailure(std::function<void(std::error_code ec)> fn);
+
+  template<typename U> void onSuccess(Promise<U> forward);
+  template<typename U> void onFailure(Promise<U> forward);
 
   void wait() const;
   void wait(const Duration& timeout) const;

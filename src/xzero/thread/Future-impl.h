@@ -56,12 +56,15 @@ void Future<T>::wait() const {
   state_->wakeup.waitForFirstWakeup();
 }
 
-template<typename T>
-template<typename U>
-void Future<T>::onFailure(Promise<U> forward) {
-  onFailure([this, forward](std::error_code ec) {
-    forward.failure(ec);
-  });
+template <typename T>
+void Future<T>::onSuccess(std::function<void(T& value)> fn) {
+  std::unique_lock<std::mutex> lk(state_->mutex);
+
+  if (!state_->status) {
+    state_->on_success = fn;
+  } else if (!state_->error) {
+    fn(state_->value());
+  }
 }
 
 template <typename T>
@@ -75,15 +78,20 @@ void Future<T>::onFailure(std::function<void(std::error_code)> fn) {
   }
 }
 
-template <typename T>
-void Future<T>::onSuccess(std::function<void (T& value)> fn) {
-  std::unique_lock<std::mutex> lk(state_->mutex);
+template<typename T>
+template<typename U>
+void Future<T>::onFailure(Promise<U> forward) {
+  onFailure([this, forward](std::error_code ec) {
+    forward.failure(ec);
+  });
+}
 
-  if (!state_->status) {
-    state_->on_success = fn;
-  } else if (!state_->error) {
-    fn(state_->value());
-  }
+template<typename T>
+template<typename U>
+void Future<T>::onSuccess(Promise<U> forward) {
+  onSuccess([this, forward](T& value) {
+    forward.success(value);
+  });
 }
 
 template <typename T>
@@ -289,13 +297,16 @@ inline void Future<void>::wait() const {
   state_->wakeup.waitForFirstWakeup();
 }
 
-template<typename U>
-inline void Future<void>::onFailure(Promise<U> forward) {
-  onFailure([this, forward](const std::error_code& ec) {
-    forward.failure(ec);
-  });
-}
 
+inline void Future<void>::onSuccess(std::function<void ()> fn) {
+  std::unique_lock<std::mutex> lk(state_->mutex);
+
+  if (!state_->status) {
+    state_->on_success = fn;
+  } else if (!state_->error) {
+    fn();
+  }
+}
 inline void Future<void>::onFailure(std::function<void(std::error_code)> fn) {
   std::unique_lock<std::mutex> lk(state_->mutex);
 
@@ -306,14 +317,11 @@ inline void Future<void>::onFailure(std::function<void(std::error_code)> fn) {
   }
 }
 
-inline void Future<void>::onSuccess(std::function<void ()> fn) {
-  std::unique_lock<std::mutex> lk(state_->mutex);
-
-  if (!state_->status) {
-    state_->on_success = fn;
-  } else if (!state_->error) {
-    fn();
-  }
+template<typename U>
+inline void Future<void>::onFailure(Promise<U> forward) {
+  onFailure([this, forward](const std::error_code& ec) {
+    forward.failure(ec);
+  });
 }
 
 inline bool Future<void>::isReady() const {
