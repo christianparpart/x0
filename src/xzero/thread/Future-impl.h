@@ -24,7 +24,7 @@ template <typename T>
 PromiseState<T>::~PromiseState() {
   switch (status) {
   case PromiseStatus::UNDEFINED:
-    RAISE_STATUS(FutureError);
+    //RAISE_STATUS(FutureError);
     break;
   case PromiseStatus::SUCCESS:
     value().~T();

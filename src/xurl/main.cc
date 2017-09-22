@@ -97,6 +97,7 @@ XUrl::XUrl()
       readTimeout_(60_seconds),
       writeTimeout_(10_seconds)
 {
+  Application::init();
   Application::logToStderr(LogLevel::Info);
 
   requestHeaders_.push_back("User-Agent", "xurl/" PACKAGE_VERSION);
@@ -187,9 +188,7 @@ void XUrl::query(const Uri& uri) {
   InetAddress inetAddr(ipaddr, port);
   Duration keepAlive = 8_seconds;
 
-  logDebug("xurl", "inet addr: $0", inetAddr);
-
-  const bool secure = false; // HTTP ?
+  logDebug("xurl", "inet addr: $0, uri: $1", inetAddr, uri.toString());
 
   TRACE("getting request method");
   std::string method = flags_.getString("method");
@@ -212,8 +211,9 @@ void XUrl::query(const Uri& uri) {
                   method,
                   uri.pathAndQuery(),
                   requestHeaders_,
-                  secure,
+                  uri.scheme() == "https",
                   std::move(body));
+  req.setScheme(uri.scheme());
 
   logInfo("xurl", "$0 $1 HTTP/$2",
           req.unparsedMethod(), req.unparsedUri(), req.version());

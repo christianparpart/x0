@@ -123,7 +123,10 @@ SslEndPoint::SslEndPoint(FileDescriptor&& fd,
   SSL_set_fd(ssl_, handle());
 
   if (!sni.empty()) {
+    TRACE("SSL TLS ext host_name: '$0'", sni);
     SSL_set_tlsext_host_name(ssl_, sni.c_str());
+  } else {
+    TRACE("No SNI provided.");
   }
 
 #if !defined(NDEBUG)
@@ -172,6 +175,7 @@ void SslEndPoint::close() {
 #else
   TcpEndPoint::close();
 #endif
+  unref(); // XXX
 }
 
 void SslEndPoint::shutdown() {
@@ -180,6 +184,7 @@ void SslEndPoint::shutdown() {
   TRACE("$0 close: SSL_shutdown -> $1", this, rv);
   if (rv == 1) {
     TcpEndPoint::close();
+    unref(); // XXX
   } else if (rv == 0) {
     // call again
     shutdown();
@@ -188,6 +193,7 @@ void SslEndPoint::shutdown() {
       case SSL_ERROR_SYSCALL:
         // consider done
         TcpEndPoint::close();
+        unref(); // XXX
         break;
       case SSL_ERROR_WANT_READ:
         io_ = executor_->executeOnReadable(
@@ -350,6 +356,7 @@ std::string SslEndPoint::toString() const {
 }
 
 void SslEndPoint::onClientHandshake(Promise<RefPtr<SslEndPoint>> promise) {
+  TRACE("onClientHandshake");
   int rv = SSL_connect(ssl_);
   switch (SSL_get_error(ssl_, rv)) {
     case SSL_ERROR_NONE:
@@ -375,6 +382,7 @@ void SslEndPoint::onClientHandshake(Promise<RefPtr<SslEndPoint>> promise) {
 }
 
 void SslEndPoint::onClientHandshakeDone() {
+  TRACE("onClientHandshakeDone");
   if (X509* cert = SSL_get_peer_certificate(ssl_)) {
     // ...
     X509_free(cert);
@@ -388,7 +396,6 @@ void SslEndPoint::onClientHandshakeDone() {
   } else {
     close();
   }
-  unref();//XXX
 }
 
 void SslEndPoint::onServerHandshake() {
@@ -498,7 +505,7 @@ int SslEndPoint::onVerifyCallback(int ok, X509_STORE_CTX *ctx) {
   return 1; // TODO, like a bool
 }
 
-#if !defined(NDEBUG)
+#if !defined(NDEBUG) // {{{
 static inline std::string tlsext_type_to_string(int type) {
   switch (type) {
     case TLSEXT_TYPE_server_name: return "server name";
@@ -554,13 +561,12 @@ static inline std::string tlsext_type_to_string(int type) {
 void SslEndPoint::tlsext_debug_cb(
     SSL* ssl, int client_server, int type,
     unsigned char* data, int len, SslEndPoint* self) {
-  TRACE("$0 TLS $1 extension \"$2\" (id=$3), len=$4",
-        self,
-        client_server ? "server" : "client",
-        tlsext_type_to_string(type),
-        type,
-        len);
+  logDebug("ssl", "TLS $1 extension \"$2\" (id=$3), len=$4",
+           client_server ? "server" : "client",
+           tlsext_type_to_string(type),
+           type,
+           len);
 }
-#endif // !NDEBUG
+#endif // }}} !NDEBUG
 
 } // namespace xzero

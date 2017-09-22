@@ -116,6 +116,7 @@ Future<RefPtr<TcpEndPoint>> HttpClient::createTcp(InetAddress address,
                                                   Duration connectTimeout,
                                                   Duration readTimeout,
                                                   Duration writeTimeout) {
+  TRACE("createTcp: scheme = '$0'", request_.scheme());
   if (request_.scheme() == "https") {
     TRACE("createTcp: https");
     auto createApplicationConnection = [this](const std::string& protocolName,
@@ -125,12 +126,17 @@ Future<RefPtr<TcpEndPoint>> HttpClient::createTcp(InetAddress address,
                                                executor_);
     };
     Promise<RefPtr<TcpEndPoint>> promise;
+    std::string sni = request_.headers().get("Host");
+    size_t i = sni.find(':');
+    if (i != std::string::npos) {
+      sni = sni.substr(0, i);
+    }
     Future<RefPtr<SslEndPoint>> f = SslEndPoint::connect(address, 
                                             connectTimeout,
                                             readTimeout,
                                             writeTimeout,
                                             executor_,
-                                            request_.headers().get("Host"),
+                                            sni,
                                             {"http/1.1"},
                                             createApplicationConnection);
     f.onSuccess(promise);
