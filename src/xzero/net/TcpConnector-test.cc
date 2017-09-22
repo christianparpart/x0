@@ -123,7 +123,7 @@ TEST(TcpConnector, echoServer) {
   connector->start();
   logf("Listening on port $0", connector->port());
 
-  Future<RefPtr<TcpEndPoint>> f = TcpEndPoint::connectAsync(
+  Future<RefPtr<TcpEndPoint>> f = TcpEndPoint::connect(
       InetAddress("127.0.0.1", connector->port()),
       5_seconds, 5_seconds, 5_seconds, &sched);
 
@@ -182,7 +182,7 @@ TEST(TcpConnector, detectProtocols) {
   connector->start();
   logf("Listening on port $0", connector->port());
 
-  Future<RefPtr<TcpEndPoint>> f = TcpEndPoint::connectAsync(
+  Future<RefPtr<TcpEndPoint>> f = TcpEndPoint::connect(
       InetAddress("127.0.0.1", connector->port()),
       5_seconds, 5_seconds, 5_seconds, &sched);
 
