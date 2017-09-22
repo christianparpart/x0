@@ -81,7 +81,6 @@ static void globalEHandler() {
 void CatchAndAbortExceptionHandler::installGlobalHandlers() {
   globalEHandlerMessage = message_;
   std::set_terminate(&globalEHandler);
-  std::set_unexpected(&globalEHandler);
 
   struct sigaction sigact;
   memset(&sigact, 0, sizeof(sigact));

@@ -87,7 +87,6 @@ static void globalEH() {
 
 void Application::installGlobalExceptionHandler() {
   std::set_terminate(&globalEH);
-  std::set_unexpected(&globalEH);
 }
 
 std::string Application::userName() {
