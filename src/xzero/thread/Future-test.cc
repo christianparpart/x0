@@ -100,6 +100,24 @@ TEST(Future, failureGetThrows) {
   }(), RuntimeError);
 }
 
+TEST(Future, promiseChain) {
+  Promise<int> p;
+  Future<int> fp = p.future();
+
+  Promise<int> u;
+  fp.onSuccess(u);
+  fp.onFailure(u);
+
+  Future<int> fu = u.future();
+
+  p.success(42);
+
+  fu.onSuccess([this](auto i) { logf("fu.onSuccess: $0", i); });
+  fu.onFailure([this](auto e) { logf("fu.onFailure: $0", e); });
+
+  ASSERT_EQ(42, fu.get());
+}
+
 TEST(Future, testAsyncResult) {
   // TODO FIXME FIXPAUL FIXCHRIS d'oh FIXOVERFLOW
 }
