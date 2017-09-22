@@ -11,6 +11,7 @@
 #include <xzero/http/HttpRequest.h>
 #include <xzero/http/HttpStatus.h>
 #include <xzero/net/TcpEndPoint.h>
+#include <xzero/net/SslEndPoint.h>
 #include <xzero/net/DnsClient.h>
 #include <xzero/net/InetAddress.h>
 #include <xzero/net/IPAddress.h>
@@ -47,53 +48,6 @@ template<typename T> static bool isConnectionHeader(const T& name) { // {{{
   return false;
 } // }}}
 
-// {{{ HttpChannel
-HttpChannel::HttpChannel(Executor* executor,
-                         HttpTransport* transport,
-                         HttpListener* responseHandler)
-    : executor_(executor),
-      transport_(transport),
-      responseHandler_(responseHandler) {
-}
-
-void HttpChannel::send(HttpRequestInfo& requestInfo, CompletionHandler onComplete) {
-  transport_->send(std::move(requestInfo), onComplete);
-}
-
-void HttpChannel::send(HugeBuffer&& data, CompletionHandler onComplete) {
-  transport_->send(std::move(data), onComplete);
-}
-
-void HttpChannel::completed() {
-  transport_->completed();
-}
-
-void HttpChannel::reset() {
-}
-
-void HttpChannel::onMessageBegin(HttpVersion version, HttpStatus code, const BufferRef& text) {
-  responseHandler_->onMessageBegin(version, code, text);
-}
-
-void HttpChannel::onMessageHeader(const BufferRef& name, const BufferRef& value) {
-}
-
-void HttpChannel::onMessageHeaderEnd() {
-}
-
-void HttpChannel::onMessageContent(const BufferRef& chunk) {
-}
-
-void HttpChannel::onMessageContent(FileView&& chunk) {
-}
-
-void HttpChannel::onMessageEnd() {
-}
-
-void HttpChannel::onError(std::error_code ec) {
-}
-// }}}
-
 HttpClient::HttpClient(Executor* executor,
                        const InetAddress& upstream)
     : HttpClient(executor,
@@ -118,7 +72,9 @@ HttpClient::HttpClient(Executor* executor,
             writeTimeout)),
       keepAlive_(keepAlive),
       endpoint_(),
-      pendingTasks_() {
+      request_(),
+      listener_(),
+      isListenerOwned_(false) {
 }
 
 HttpClient::HttpClient(Executor* executor,
@@ -128,7 +84,9 @@ HttpClient::HttpClient(Executor* executor,
       createEndPoint_(),
       keepAlive_(keepAlive),
       endpoint_(upstream),
-      pendingTasks_() {
+      request_(),
+      listener_(),
+      isListenerOwned_(false) {
 }
 
 HttpClient::HttpClient(Executor* executor,
@@ -138,7 +96,9 @@ HttpClient::HttpClient(Executor* executor,
       createEndPoint_(endpointCreator),
       keepAlive_(keepAlive),
       endpoint_(),
-      pendingTasks_() {
+      request_(),
+      listener_(),
+      isListenerOwned_(false) {
 }
 
 HttpClient::HttpClient(HttpClient&& other)
@@ -146,32 +106,39 @@ HttpClient::HttpClient(HttpClient&& other)
       createEndPoint_(std::move(other.createEndPoint_)),
       keepAlive_(std::move(other.keepAlive_)),
       endpoint_(std::move(other.endpoint_)),
-      pendingTasks_(std::move(other.pendingTasks_)) {
+      request_(std::move(other.request_)),
+      listener_(other.listener_),
+      isListenerOwned_(other.isListenerOwned_) {
+  other.isListenerOwned_ = false;
 }
 
-bool HttpClient::isClosed() const {
-  return !endpoint_;
-}
-
-Future<RefPtr<TcpEndPoint>> HttpClient::createTcp(InetAddress addr,
+Future<RefPtr<TcpEndPoint>> HttpClient::createTcp(InetAddress address,
                                                   Duration connectTimeout,
                                                   Duration readTimeout,
                                                   Duration writeTimeout) {
-  Promise<RefPtr<TcpEndPoint>> promise;
-
-  Future<int> f = TcpUtil::connect(addr, connectTimeout, executor_);
-
-  f.onFailure(promise);
-  f.onSuccess([promise, addr, readTimeout, writeTimeout, this](int fd) {
-    promise.success(RefPtr<TcpEndPoint>(new TcpEndPoint(fd,
-                                                        addr.family(),
-                                                        readTimeout,
-                                                        writeTimeout,
-                                                        executor_,
-                                                        nullptr)));
-  });
-
-  return promise.future();
+  if (request_.scheme() == "https") {
+    auto createApplicationConnection = [this](const std::string& protocolName,
+                                              TcpEndPoint* endpoint) {
+      endpoint->setConnection<Http1Connection>(listener_,
+                                               endpoint,
+                                               executor_);
+    };
+    Future<RefPtr<SslEndPoint>> f = SslEndPoint::connect(address, 
+                                            connectTimeout,
+                                            readTimeout,
+                                            writeTimeout,
+                                            executor_,
+                                            request_.headers().get("Host"),
+                                            {"http/1.1"},
+                                            createApplicationConnection);
+    return f.as<TcpEndPoint>();
+  } else {
+    return TcpEndPoint::connect(address,
+                                connectTimeout,
+                                readTimeout,
+                                writeTimeout,
+                                executor_);
+  }
 }
 
 Future<HttpClient::Response> HttpClient::send(const std::string& method,
@@ -187,79 +154,51 @@ Future<HttpClient::Response> HttpClient::send(const std::string& method,
 
 Future<HttpClient::Response> HttpClient::send(const Request& request) {
   Promise<Response> promise;
-  send(request,
-       [promise](const Response& response) {
-         TRACE("send: response received");
-         promise.success(std::move(response));
-       },
-       [promise](std::error_code ec) {
-         TRACE("send: failure received");
-         promise.failure(ec);
-       });
+
+  request_ = request;
+  listener_ = new ResponseBuilder(promise);
+  isListenerOwned_ = true;
+
+  execute();
+
   return promise.future();
 }
 
 void HttpClient::send(const Request& request,
-            std::function<void(const Response&)> onSuccess,
-            std::function<void(std::error_code)> onFailure) {
-  pendingTasks_.emplace_back(Task{request, new ResponseBuilder(onSuccess, onFailure), true});
-  tryConsumeTask();
-}
-
-void HttpClient::send(const Request& request,
                       HttpListener* responseListener) {
-  pendingTasks_.emplace_back(Task{request, responseListener, false});
-  tryConsumeTask();
+  request_ = request;
+  listener_ = responseListener;
+  isListenerOwned_ = false;
+
+  execute();
 }
 
-bool HttpClient::tryConsumeTask() {
-  if (pendingTasks_.empty())
-    return false;
+void HttpClient::execute() {
+  Future<RefPtr<TcpEndPoint>> f = createEndPoint_();
 
-  auto f = createEndPoint_();
   f.onSuccess([this](RefPtr<TcpEndPoint> ep) {
     TRACE("endpoint created");
     endpoint_ = ep;
 
-    Task task {std::move(pendingTasks_.front())};
-    pendingTasks_.pop_front();
+    if (!endpoint_->connection()) {
+      endpoint_->setConnection<Http1Connection>(listener_, endpoint_.get(), executor_);
+    }
 
-    HttpTransport* channel = endpoint_->setConnection<Http1Connection>(
-        task.listener, endpoint_.get(), executor_);
-
-    channel->setListener(task.listener);
-    channel->send(task.request, nullptr);
-    channel->send(task.request.getContent().getBuffer(), nullptr);
+    HttpTransport* channel = static_cast<HttpTransport*>(endpoint_->connection());
+    channel->setListener(listener_);
+    channel->send(request_, nullptr);
+    channel->send(request_.getContent().getBuffer(), nullptr);
     channel->completed();
   });
+
   f.onFailure([this](std::error_code ec) {
     logError("HttpClient", "Failed to connect. $0", ec.message());
   });
-
-  return true;
 }
 
-void HttpClient::setupConnection() {
-  TRACE("setting up connection");
-  // XXX I am not happy. looks like I'll need a channel abstraction in the client-code, too
-  const Task& task = pendingTasks_.front();
-
-  HttpTransport* transport = endpoint_->setConnection<Http1Connection>(
-      task.listener, endpoint_.get(), executor_);
-
-  transport->send(task.request, nullptr);
-  //TODO: transport->send(task.request.getContent(), nullptr);
-}
-
-HttpTransport* HttpClient::getChannel() {
-  return (HttpTransport*) (endpoint_->connection());
-}
-
-// ----------------------------------------------------------------------------
-HttpClient::ResponseBuilder::ResponseBuilder(std::function<void(Response&&)> s,
-                                             std::function<void(std::error_code)> f)
-    : success_(s),
-      failure_(f),
+// {{{ ResponseBuilder
+HttpClient::ResponseBuilder::ResponseBuilder(Promise<Response> promise)
+    : promise_(promise),
       response_() {
   TRACE("ResponseBuilder.ctor");
 }
@@ -298,14 +237,15 @@ void HttpClient::ResponseBuilder::onMessageContent(FileView&& chunk) {
 void HttpClient::ResponseBuilder::onMessageEnd() {
   TRACE("ResponseBuilder.onMessageEnd()");
   response_.setContentLength(response_.content().size());
-  success_(std::move(response_));
+  promise_.success(response_);
   delete this;
 }
 
 void HttpClient::ResponseBuilder::onError(std::error_code ec) {
   logError("ResponseBuilder", "Error. $0; $1", ec.message());
-  failure_(ec);
+  promise_.failure(ec);
   delete this;
 }
+// }}}
 
 } // namespace xzero::http::client

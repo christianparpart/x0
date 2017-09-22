@@ -25,11 +25,9 @@
 
 namespace xzero {
 
-#define ERROR(msg...) logError("net.TcpEndPoint", msg)
-
 #if !defined(NDEBUG)
-#define TRACE(msg...) logTrace("net.TcpEndPoint", msg)
-#define DEBUG(msg...) logDebug("net.TcpEndPoint", msg)
+#define TRACE(msg...) logTrace("TcpEndPoint", msg)
+#define DEBUG(msg...) logDebug("TcpEndPoint", msg)
 #else
 #define TRACE(msg...) do {} while (0)
 #define DEBUG(msg...) do {} while (0)
@@ -329,146 +327,90 @@ Duration TcpEndPoint::writeTimeout() const noexcept {
 
 class TcpConnectState {
  public:
-  InetAddress inet_;
-  RefPtr<TcpEndPoint> ep_;
-  std::function<void(RefPtr<TcpEndPoint>)> success_;
-  std::function<void(std::error_code)> failure_;
+  InetAddress address;
+  int fd;
+  Duration readTimeout;
+  Duration writeTimeout;
+  Executor* executor;
+  Promise<RefPtr<TcpEndPoint>> promise;
 
-  TcpConnectState(const InetAddress& inet,
-                  RefPtr<TcpEndPoint> ep,
-                  std::function<void(RefPtr<TcpEndPoint>)> success,
-                  std::function<void(std::error_code)> failure)
-      : inet_(inet), ep_(std::move(ep)), success_(success), failure_(failure) {
+  void onTimeout() {
+    TRACE("$0 onTimeout: connecting timed out", this);
+    promise.failure(std::errc::timed_out);
+    delete this;
   }
 
   void onConnectComplete() {
     int val = 0;
     socklen_t vlen = sizeof(val);
-    if (getsockopt(ep_->handle(), SOL_SOCKET, SO_ERROR, &val, &vlen) == 0) {
+    if (getsockopt(fd, SOL_SOCKET, SO_ERROR, &val, &vlen) == 0) {
       if (val == 0) {
         TRACE("$0 onConnectComplete: connected $1. $2", this, val, strerror(val));
-        success_(ep_.as<TcpEndPoint>());
+        promise.success(make_ref<TcpEndPoint>(FileDescriptor{fd},
+                                              address.family(),
+                                              readTimeout,
+                                              writeTimeout,
+                                              executor,
+                                              nullptr));
       } else {
-        DEBUG("Connecting to $0 failed. $1", inet_, strerror(val));
-        failure_(std::make_error_code(static_cast<std::errc>(val)));
+        DEBUG("Connecting to $0 failed. $1", address, strerror(val));
+        promise.failure(std::make_error_code(static_cast<std::errc>(val)));
       }
     } else {
-      DEBUG("Connecting to $0 failed. $1", inet_, strerror(val));
-      failure_(std::make_error_code(static_cast<std::errc>(val)));
+      DEBUG("Connecting to $0 failed. $1", address, strerror(val));
+      promise.failure(std::make_error_code(static_cast<std::errc>(val)));
     }
     delete this;
   }
 };
 
-void TcpEndPoint::connectAsync(const InetAddress& inet,
-                               Duration connectTimeout,
-                               Duration readTimeout,
-                               Duration writeTimeout,
-                               Executor* executor,
-                               std::function<void(RefPtr<TcpEndPoint>)> success,
-                               std::function<void(std::error_code ec)> failure) {
-  int fd = socket(inet.family(), SOCK_STREAM, IPPROTO_TCP);
-  if (fd < 0) {
-    failure(std::make_error_code(static_cast<std::errc>(errno)));
-    return;
-  }
+Future<RefPtr<TcpEndPoint>> TcpEndPoint::connect(const InetAddress& address,
+                                                 Duration connectTimeout,
+                                                 Duration readTimeout,
+                                                 Duration writeTimeout,
+                                                 Executor* executor) {
+  int flags = 0;
+#if defined(SOCK_CLOEXEC)
+  flags |= SOCK_CLOEXEC;
+#endif
+#if defined(SOCK_NONBLOCK)
+  flags |= SOCK_NONBLOCK;
+#endif
 
-  TRACE("connectAsync: to $0", inet);
-  RefPtr<TcpEndPoint> ep(new TcpEndPoint(
-        FileDescriptor{fd}, inet.family(), readTimeout, writeTimeout,
-        executor, nullptr));
-  ep->setBlocking(false);
-
-  switch (inet.family()) {
-    case AF_INET: {
-      struct sockaddr_in saddr;
-      memset(&saddr, 0, sizeof(saddr));
-      saddr.sin_family = inet.family();
-      saddr.sin_port = htons(inet.port());
-      memcpy(&saddr.sin_addr,
-             inet.ip().data(),
-             inet.ip().size());
-
-      // this connect()-call can block if fd is non-blocking
-      TRACE("connectAsync: connect(ipv4) $0", inet);
-      if (::connect(fd, (const struct sockaddr*) &saddr, sizeof(saddr)) < 0) {
-        if (errno != EINPROGRESS) {
-          TRACE("connectAsync: connect() error. $0", strerror(errno));
-          failure(std::make_error_code(static_cast<std::errc>(errno)));
-          return;
-        } else {
-          TRACE("connectAsync: backgrounding");
-          executor->executeOnWritable(fd,
-              std::bind(&TcpConnectState::onConnectComplete,
-                        new TcpConnectState(inet, ep, success, failure)));
-          return;
-        }
-      }
-      TRACE("connectAsync: synchronous connect");
-      break;
-    }
-    case AF_INET6: {
-      struct sockaddr_in6 saddr;
-      memset(&saddr, 0, sizeof(saddr));
-      saddr.sin6_family = inet.family();
-      saddr.sin6_port = htons(inet.port());
-      memcpy(&saddr.sin6_addr,
-             inet.ip().data(),
-             inet.ip().size());
-
-      // this connect()-call can block if fd is non-blocking
-      if (::connect(fd, (const struct sockaddr*) &saddr, sizeof(saddr)) < 0) {
-        if (errno != EINPROGRESS) {
-          TRACE("connectAsync: connect() error. $0", strerror(errno));
-          RAISE_ERRNO(errno);
-        } else {
-          TRACE("connectAsync: backgrounding");
-          executor->executeOnWritable(fd,
-              std::bind(&TcpConnectState::onConnectComplete,
-                        new TcpConnectState(inet, ep, success, failure)));
-          return;
-        }
-      }
-      break;
-    }
-    default: {
-      RAISE(NotImplementedError);
-    }
-  }
-
-  TRACE("connectAsync: connected instantly");
-  success(ep.as<TcpEndPoint>());
-}
-
-Future<RefPtr<TcpEndPoint>> TcpEndPoint::connectAsync(const InetAddress& inet,
-                                                      Duration connectTimeout,
-                                                      Duration readTimeout,
-                                                      Duration writeTimeout,
-                                                      Executor* executor) {
   Promise<RefPtr<TcpEndPoint>> promise;
 
-  connectAsync(
-      inet, connectTimeout, readTimeout, writeTimeout, executor,
-      [=](auto ep) { promise.success(ep); },
-      [=](auto ec) { promise.failure(ec); });
+  int fd = socket(address.family(), SOCK_STREAM | flags, IPPROTO_TCP);
+  if (fd < 0) {
+    promise.failure(std::make_error_code(static_cast<std::errc>(errno)));
+    return promise.future();
+  }
 
+#if !defined(SOCK_NONBLOCK)
+  FileUtil::setBlocking(false);
+#endif
+
+  std::error_code ec = TcpUtil::connect(fd, address);
+  if (!ec) {
+    TRACE("connect: connected instantly");
+    promise.success(make_ref<TcpEndPoint>(FileDescriptor{fd},
+                                          address.family(),
+                                          readTimeout,
+                                          writeTimeout,
+                                          executor,
+                                          nullptr));
+  } else if (ec == std::errc::operation_in_progress) {
+    TRACE("connect: backgrounding");
+    auto state = new TcpConnectState{address, fd, readTimeout, writeTimeout,
+                                     executor, promise};
+    executor->executeOnWritable(fd,
+        std::bind(&TcpConnectState::onConnectComplete, state),
+        connectTimeout,
+        std::bind(&TcpConnectState::onTimeout, state));
+  } else {
+    TRACE("connect: connect() error. $0", strerror(errno));
+    promise.failure(std::make_error_code(static_cast<std::errc>(errno)));
+  }
   return promise.future();
-}
-
-RefPtr<TcpEndPoint> TcpEndPoint::connect(const InetAddress& inet,
-                                         Duration connectTimeout,
-                                         Duration readTimeout,
-                                         Duration writeTimeout,
-                                         Executor* executor) {
-  Future<RefPtr<TcpEndPoint>> f = connectAsync(
-      inet, connectTimeout, readTimeout, writeTimeout, executor);
-  f.wait();
-
-  RefPtr<TcpEndPoint> ep = f.get();
-
-  ep.as<TcpEndPoint>()->setBlocking(true);
-
-  return ep;
 }
 
 } // namespace xzero

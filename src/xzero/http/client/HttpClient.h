@@ -43,36 +43,6 @@ namespace xzero::http::client {
 class HttpTransport;
 
 /**
- * HttpChannel represents a single HTTP request/response over an HTTP transport.
- */
-class HttpChannel : public HttpListener {
- public:
-  HttpChannel(Executor* executor,
-              HttpTransport* transport,
-              HttpListener* responseHandler);
-
-  void send(HttpRequestInfo& requestInfo, CompletionHandler onComplete);
-  void send(HugeBuffer&& data, CompletionHandler onComplete);
-  void completed();
-
-  virtual void reset();
-
- protected:
-  void onMessageBegin(HttpVersion version, HttpStatus code, const BufferRef& text) override;
-  void onMessageHeader(const BufferRef& name, const BufferRef& value) override;
-  void onMessageHeaderEnd() override;
-  void onMessageContent(const BufferRef& chunk) override;
-  void onMessageContent(FileView&& chunk) override;
-  void onMessageEnd() override;
-  void onError(std::error_code ec) override;
-
- private:
-  Executor* executor_;
-  HttpTransport* transport_;
-  HttpListener* responseHandler_;
-};
-
-/**
  * HTTP client API for a single HTTP message exchange.
  *
  * It can process one message-exchange at a time and can be reused after
@@ -122,14 +92,6 @@ class HttpClient {
   Future<Response> send(const Request& request);
 
   /**
-   * Sends given @p request and invokes @p onSuccess once the full response
-   * received or @p onFailure upon communication any failure.
-   */
-  void send(const Request& request,
-            std::function<void(const Response&)> onSuccess,
-            std::function<void(std::error_code)> onFailure);
-
-  /**
    * Sends given @p request and streams back the response 
    * to @p responseListener.
    *
@@ -143,21 +105,11 @@ class HttpClient {
             HttpListener* responseListener);
 
  private:
-  struct Task {
-    HttpClient::Request request;
-    HttpListener* listener;
-    bool isListenerOwned;
-  };
-
- private:
   Future<RefPtr<TcpEndPoint>> createTcp(InetAddress addr,
                                         Duration connectTimeout,
                                         Duration readTimeout,
                                         Duration writeTimeout);
-  bool isClosed() const;
-  void setupConnection();
-  HttpTransport* getChannel();
-  bool tryConsumeTask();
+  void execute();
 
   class ResponseBuilder;
 
@@ -166,7 +118,10 @@ class HttpClient {
   CreateEndPoint createEndPoint_;
   Duration keepAlive_;
   RefPtr<TcpEndPoint> endpoint_;
-  std::deque<Task> pendingTasks_;
+
+  Request request_;
+  HttpListener* listener_;
+  bool isListenerOwned_;
 };
 
 class HttpClient::Response : public HttpResponseInfo {
@@ -184,7 +139,7 @@ class HttpClient::Response : public HttpResponseInfo {
 
 class HttpClient::ResponseBuilder : public HttpListener {
  public:
-  ResponseBuilder(std::function<void(Response&&)> s, std::function<void(std::error_code)> e);
+  ResponseBuilder(Promise<Response> promise);
 
   void onMessageBegin(HttpVersion version, HttpStatus code, const BufferRef& text) override;
   void onMessageHeader(const BufferRef& name, const BufferRef& value) override;
@@ -195,8 +150,7 @@ class HttpClient::ResponseBuilder : public HttpListener {
   void onError(std::error_code ec) override;
 
  private:
-  std::function<void(Response&&)> success_;
-  std::function<void(std::error_code)> failure_;
+  Promise<Response> promise_;
   Response response_;
 };
 

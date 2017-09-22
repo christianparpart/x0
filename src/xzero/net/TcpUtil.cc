@@ -112,12 +112,12 @@ int TcpUtil::getLocalPort(int socket, int addressFamily) {
   }
 }
 
-Future<int> TcpUtil::connect(const InetAddress& remote,
+Future<int> TcpUtil::connect(const InetAddress& address,
                              Duration timeout,
                              Executor* executor) {
   Promise<int> promise;
 
-  int fd = socket(remote.family(), SOCK_STREAM, IPPROTO_TCP);
+  int fd = socket(address.family(), SOCK_STREAM, IPPROTO_TCP);
   if (fd < 0) {
     promise.failure(static_cast<std::errc>(errno));
     return promise.future();
@@ -125,7 +125,7 @@ Future<int> TcpUtil::connect(const InetAddress& remote,
 
   FileUtil::setBlocking(fd, false);
 
-  std::error_code ec = TcpUtil::connect(fd, remote);
+  std::error_code ec = TcpUtil::connect(fd, address);
 
   if (!ec) {
     TRACE("connect: connected instantly");
@@ -146,17 +146,17 @@ Future<int> TcpUtil::connect(const InetAddress& remote,
   return promise.future();
 }
 
-std::error_code TcpUtil::connect(int fd, const InetAddress& remote) {
+std::error_code TcpUtil::connect(int fd, const InetAddress& address) {
   int rv;
-  switch (remote.family()) {
+  switch (address.family()) {
     case AF_INET: {
       struct sockaddr_in saddr;
       memset(&saddr, 0, sizeof(saddr));
-      saddr.sin_family = remote.family();
-      saddr.sin_port = htons(remote.port());
+      saddr.sin_family = address.family();
+      saddr.sin_port = htons(address.port());
       memcpy(&saddr.sin_addr,
-             remote.ip().data(),
-             remote.ip().size());
+             address.ip().data(),
+             address.ip().size());
 
       TRACE("connect: connect(ipv4)");
       rv = ::connect(fd, (const struct sockaddr*) &saddr, sizeof(saddr));
@@ -165,11 +165,11 @@ std::error_code TcpUtil::connect(int fd, const InetAddress& remote) {
     case AF_INET6: {
       struct sockaddr_in6 saddr;
       memset(&saddr, 0, sizeof(saddr));
-      saddr.sin6_family = remote.family();
-      saddr.sin6_port = htons(remote.port());
+      saddr.sin6_family = address.family();
+      saddr.sin6_port = htons(address.port());
       memcpy(&saddr.sin6_addr,
-             remote.ip().data(),
-             remote.ip().size());
+             address.ip().data(),
+             address.ip().size());
 
       TRACE("connect: connect(ipv6)");
       rv = ::connect(fd, (const struct sockaddr*) &saddr, sizeof(saddr));

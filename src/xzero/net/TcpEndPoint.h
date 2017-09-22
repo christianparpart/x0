@@ -56,56 +56,17 @@ class TcpEndPoint : public RefCounted {
    *
    * The callee does not block.
    *
-   * @param inet TCP/IP server address and port.
-   * @param connectTimeout timeout until the connect must have been completed.
-   * @param readTimeout TcpEndPoint-read timeout.
-   * @param writeTimeout TcpEndPoint-write timeout.
-   * @param executor Task scheduler used for I/O.
-   * @param success Callback to be invoked upon success.
-   * @param failure Callback to be invoked upon failure.
-   */
-  static void connectAsync(
-      const InetAddress& inet,
-      Duration connectTimeout, Duration readTimeout, Duration writeTimeout,
-      Executor* executor,
-      std::function<void(RefPtr<TcpEndPoint>)> onSuccess,
-      std::function<void(std::error_code)> onError);
-
-  /**
-   * Asynchronousely connects to a remote TCP/IP server.
-   *
-   * The callee does not block.
-   *
-   * @return A future to the yet to be created TcpEndPoint.
-   *
-   * @param inet TCP/IP server address and port.
-   * @param connectTimeout timeout until the connect must have been completed.
-   * @param readTimeout TcpEndPoint-read timeout.
-   * @param writeTimeout TcpEndPoint-write timeout.
-   * @param executor Task scheduler used I/O.
-   */
-  static Future<RefPtr<TcpEndPoint>> connectAsync(
-      const InetAddress& inet,
-      Duration connectTimeout, Duration readTimeout, Duration writeTimeout,
-      Executor* executor);
-
-  /**
-   * Synchronousely connects to a remote TCP/IP server.
-   *
-   * The callee does not block.
-   *
-   * @return A future to the yet to be created TcpEndPoint.
-   *
-   * @param inet TCP/IP server address and port.
+   * @param address TCP/IP server address and port.
    * @param connectTimeout timeout until the connect must have been completed.
    * @param readTimeout TcpEndPoint-read timeout.
    * @param writeTimeout TcpEndPoint-write timeout.
    * @param executor Task scheduler used for I/O.
    */
-  static RefPtr<TcpEndPoint> connect(
-      const InetAddress& inet,
-      Duration connectTimeout, Duration readTimeout, Duration writeTimeout,
-      Executor* executor);
+  static Future<RefPtr<TcpEndPoint>> connect(const InetAddress& address,
+                                             Duration connectTimeout,
+                                             Duration readTimeout,
+                                             Duration writeTimeout,
+                                             Executor* executor);
 
   /**
    * Native operating system handle to the file descriptor.
