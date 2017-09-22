@@ -190,14 +190,13 @@ void HttpClient::execute() {
       endpoint_->setConnection<Http1Connection>(listener_, endpoint_.get(), executor_);
     }
 
-    TRACE("getting channel");
-    HttpTransport* channel = reinterpret_cast<HttpTransport*>(endpoint_->connection());
+    // dynamic_cast, as we're having most-likely multiple inheritance here
+    HttpTransport* channel = dynamic_cast<HttpTransport*>(endpoint_->connection());
+    assert(channel != nullptr);
+
     channel->setListener(listener_);
-    TRACE("sending request");
     channel->send(request_, nullptr);
-    TRACE("sending request body");
     channel->send(request_.getContent().getBuffer(), nullptr);
-    TRACE("mark completed!");
     channel->completed();
   });
 
