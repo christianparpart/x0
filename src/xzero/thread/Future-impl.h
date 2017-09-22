@@ -81,7 +81,7 @@ void Future<T>::onFailure(std::function<void(std::error_code)> fn) {
 template<typename T>
 template<typename U>
 void Future<T>::onFailure(Promise<U> forward) {
-  onFailure([this, forward](std::error_code ec) {
+  onFailure([forward](std::error_code ec) {
     forward.failure(ec);
   });
 }
@@ -89,7 +89,7 @@ void Future<T>::onFailure(Promise<U> forward) {
 template<typename T>
 template<typename U>
 void Future<T>::onSuccess(Promise<U> forward) {
-  onSuccess([this, forward](T& value) {
+  onSuccess([forward](T& value) {
     forward.success(value);
   });
 }
