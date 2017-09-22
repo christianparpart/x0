@@ -178,7 +178,7 @@ void SslEndPoint::close() {
 #else
   TcpEndPoint::close();
 #endif
-  unref(); // XXX
+  unref(); // XXX: <- incremented in client connect
 }
 
 void SslEndPoint::shutdown() {
@@ -187,7 +187,7 @@ void SslEndPoint::shutdown() {
   TRACE("$0 close: SSL_shutdown -> $1", this, rv);
   if (rv == 1) {
     TcpEndPoint::close();
-    unref(); // XXX
+    unref(); // XXX: <- incremented in client connect
   } else if (rv == 0) {
     // call again
     shutdown();
@@ -196,7 +196,7 @@ void SslEndPoint::shutdown() {
       case SSL_ERROR_SYSCALL:
         // consider done
         TcpEndPoint::close();
-        unref(); // XXX
+        unref(); // XXX: <- incremented in client connect
         break;
       case SSL_ERROR_WANT_READ:
         io_ = executor_->executeOnReadable(
@@ -359,19 +359,15 @@ std::string SslEndPoint::toString() const {
 }
 
 void SslEndPoint::onClientHandshake(Promise<RefPtr<SslEndPoint>> promise) {
-  TRACE("onClientHandshake");
   int rv = SSL_connect(ssl_);
   switch (SSL_get_error(ssl_, rv)) {
     case SSL_ERROR_NONE:
-      TRACE("onClientHandshake: succeed");
-      onClientHandshakeDone();
+      onClientHandshakeDone(promise);
       break;
     case SSL_ERROR_WANT_READ:
-      TRACE("onClientHandshake: wait for read");
       executor_->executeOnReadable(handle_, std::bind(&SslEndPoint::onClientHandshake, this, promise));
       break;
     case SSL_ERROR_WANT_WRITE:
-      TRACE("onClientHandshake: wait for write");
       executor_->executeOnWritable(handle_, std::bind(&SslEndPoint::onClientHandshake, this, promise));
       break;
     case SSL_ERROR_SYSCALL:
@@ -381,13 +377,13 @@ void SslEndPoint::onClientHandshake(Promise<RefPtr<SslEndPoint>> promise) {
       promise.failure(ec);
       logDebug("SSL", "Client handshake error. $0", ec.message());
       TcpEndPoint::close();
-      unref(); // XXX
+      unref(); // XXX: <- incremented in client connect
       break;
     }
   }
 }
 
-void SslEndPoint::onClientHandshakeDone() {
+void SslEndPoint::onClientHandshakeDone(Promise<RefPtr<SslEndPoint>> promise) {
   if (X509* cert = SSL_get_peer_certificate(ssl_)) {
     // ...
     X509_free(cert);
@@ -397,8 +393,8 @@ void SslEndPoint::onClientHandshakeDone() {
   connectionFactory_(applicationProtocolName().str(), this);
 
   if (connection()) {
-    TRACE("Initializing application protocol.");
     connection()->onOpen(false);
+    promise.success(RefPtr<SslEndPoint>(this));
   } else {
     TRACE("Couldn't create application protocol layer. closing.");
     close();

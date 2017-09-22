@@ -186,7 +186,7 @@ class SslEndPoint : public TcpEndPoint {
 
  private:
   void onClientHandshake(Promise<RefPtr<SslEndPoint>> promise);
-  void onClientHandshakeDone();
+  void onClientHandshakeDone(Promise<RefPtr<SslEndPoint>> promise);
   void onServerHandshake();
   void fillable();
   void flushable();
