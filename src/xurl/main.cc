@@ -66,6 +66,24 @@ int ServicePortMapping::tcp(const std::string& name) {
 }
 // }}}
 
+class TerminalLogTarget : public ::xzero::LogTarget { // {{{
+ public:
+  void log(LogLevel level,
+           const std::string& component,
+           const std::string& message) override;
+};
+
+void TerminalLogTarget::log(LogLevel level,
+                            const std::string& component,
+                            const std::string& message) {
+  if (component == "xurl") {
+    printf("%s\n", message.c_str());
+  } else {
+    printf("[%s] %s\n", component.c_str(), message.c_str());
+  }
+}
+// }}}
+
 class XUrl {
  public:
   XUrl();
@@ -86,6 +104,7 @@ class XUrl {
   Duration connectTimeout_;
   Duration readTimeout_;
   Duration writeTimeout_;
+  TerminalLogTarget logTarget_;
   http::HeaderFieldList requestHeaders_;
 };
 
@@ -95,17 +114,21 @@ XUrl::XUrl()
       dns_(),
       connectTimeout_(4_seconds),
       readTimeout_(60_seconds),
-      writeTimeout_(10_seconds)
+      writeTimeout_(10_seconds),
+      logTarget_(),
+      requestHeaders_()
 {
   Application::init();
-  Application::logToStderr(LogLevel::Info);
+  //Application::logToStderr(LogLevel::Info);
+  Logger::get()->addTarget(&logTarget_);
 
   requestHeaders_.push_back("User-Agent", "xurl/" PACKAGE_VERSION);
 
   flags_.defineBool("help", 'h', "Prints this help.");
   flags_.defineBool("head", 'I', "Performs a HEAD request.");
+  flags_.defineBool("verbose", 'v', "Be verbose (log level: info)");
   flags_.defineString("output", 'o', "PATH", "Write response body to given file.");
-  flags_.defineString("log-level", 'L', "STRING", "Log level.", "info");
+  flags_.defineString("log-level", 'L', "STRING", "Log level.", "warning");
   flags_.defineString("method", 'X', "METHOD", "HTTP method", "GET");
   flags_.defineNumber("connect-timeout", 0, "MS", "TCP connect() timeout", 10_seconds .milliseconds());
   flags_.defineString("upload-file", 'T', "PATH", "Uploads given file.", "");
@@ -128,7 +151,11 @@ int XUrl::run(int argc, const char* argv[]) {
     return 1;
   }
 
-  Logger::get()->setMinimumLogLevel(make_loglevel(flags_.getString("log-level")));
+  if (flags_.isSet("log-level"))
+    Logger::get()->setMinimumLogLevel(make_loglevel(flags_.getString("log-level")));
+
+  if (flags_.getBool("verbose"))
+    Logger::get()->setMinimumLogLevel(make_loglevel("info"));
 
   if (flags_.getBool("help")) {
     std::cerr
@@ -215,12 +242,16 @@ void XUrl::query(const Uri& uri) {
                   std::move(body));
   req.setScheme(uri.scheme());
 
-  logInfo("xurl", "$0 $1 HTTP/$2",
-          req.unparsedMethod(), req.unparsedUri(), req.version());
+  logInfo("xurl", "> $0 $1 HTTP/$2", req.unparsedMethod(),
+                                     req.unparsedUri(),
+                                     req.version());
 
   for (const HeaderField& field: req.headers()) {
-    logInfo("xurl", "< $0: $1", field.name(), field.value());
+    if (field.name()[0] != ':') {
+      logInfo("xurl", "> $0: $1", field.name(), field.value());
+    }
   }
+  logInfo("xurl", ">");
 
   HttpClient httpClient(&scheduler_, inetAddr,
                         connectTimeout_, readTimeout_, writeTimeout_,
@@ -229,13 +260,14 @@ void XUrl::query(const Uri& uri) {
   Future<HttpClient::Response> f = httpClient.send(req);
 
   f.onSuccess([](HttpClient::Response& response) {
-    logInfo("xurl", "HTTP/$0 $1 $2", response.version(),
-                                     (int) response.status(),
-                                     response.reason());
+    logInfo("xurl", "< HTTP/$0 $1 $2", response.version(),
+                                       (int) response.status(),
+                                       response.reason());
 
     for (const HeaderField& field: response.headers()) {
-      logInfo("xurl", "> $0: $1", field.name(), field.value());
+      logInfo("xurl", "< $0: $1", field.name(), field.value());
     }
+    logInfo("xurl", "<");
 
     const BufferRef& content = response.content().getBuffer();
     write(STDOUT_FILENO, content.data(), content.size());
