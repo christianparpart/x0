@@ -117,12 +117,14 @@ Future<RefPtr<TcpEndPoint>> HttpClient::createTcp(InetAddress address,
                                                   Duration readTimeout,
                                                   Duration writeTimeout) {
   if (request_.scheme() == "https") {
+    TRACE("createTcp: https");
     auto createApplicationConnection = [this](const std::string& protocolName,
                                               TcpEndPoint* endpoint) {
       endpoint->setConnection<Http1Connection>(listener_,
                                                endpoint,
                                                executor_);
     };
+    Promise<RefPtr<TcpEndPoint>> promise;
     Future<RefPtr<SslEndPoint>> f = SslEndPoint::connect(address, 
                                             connectTimeout,
                                             readTimeout,
@@ -131,8 +133,11 @@ Future<RefPtr<TcpEndPoint>> HttpClient::createTcp(InetAddress address,
                                             request_.headers().get("Host"),
                                             {"http/1.1"},
                                             createApplicationConnection);
-    return f.as<TcpEndPoint>();
+    f.onSuccess(promise);
+    f.onFailure(promise);
+    return promise.future();
   } else {
+    TRACE("createTcp: http");
     return TcpEndPoint::connect(address,
                                 connectTimeout,
                                 readTimeout,
@@ -181,13 +186,18 @@ void HttpClient::execute() {
     endpoint_ = ep;
 
     if (!endpoint_->connection()) {
+      TRACE("creating connection: http/1.1");
       endpoint_->setConnection<Http1Connection>(listener_, endpoint_.get(), executor_);
     }
 
-    HttpTransport* channel = static_cast<HttpTransport*>(endpoint_->connection());
+    TRACE("getting channel");
+    HttpTransport* channel = reinterpret_cast<HttpTransport*>(endpoint_->connection());
     channel->setListener(listener_);
+    TRACE("sending request");
     channel->send(request_, nullptr);
+    TRACE("sending request body");
     channel->send(request_.getContent().getBuffer(), nullptr);
+    TRACE("mark completed!");
     channel->completed();
   });
 
