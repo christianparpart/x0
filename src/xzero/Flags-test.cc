@@ -313,3 +313,74 @@ TEST(Flags, argc_argv_to_vector) {
   ASSERT_TRUE(flags.getBool("help"));
   ASSERT_TRUE(flags.getBool("bool"));
 }
+
+TEST(Flags, params_end) {
+  Flags flags;
+  flags.defineNumber("number-a", 'a', "<number>", "The Number A");
+  flags.enableParameters("TEXT", "some text");
+
+  std::error_code ec = flags.parse({"-a", "1", "foo", "bar"});
+  ASSERT_ERROR_CODE_SUCCESS(ec);
+
+  EXPECT_EQ(1, flags.getNumber("number-a"));
+
+  ASSERT_EQ(2, flags.parameters().size());
+  EXPECT_EQ("foo", flags.parameters()[0]);
+  EXPECT_EQ("bar", flags.parameters()[1]);
+}
+
+TEST(Flags, params_end_fail) {
+  Flags flags;
+  flags.defineNumber("number-a", 'a', "<number>", "The Number A");
+
+  std::error_code ec = flags.parse({"-a", "1", "foo", "bar"});
+  ASSERT_ERROR_CODE(Flags::Error::UnknownOption, ec);
+}
+
+TEST(Flags, params_mid) {
+  Flags flags;
+  flags.defineNumber("number-a", 'a', "<number>", "The Number A");
+  flags.defineNumber("number-b", 'b', "<number>", "The Number B");
+  flags.enableParameters("TEXT", "some text");
+
+  std::error_code ec = flags.parse({"-a", "1", "foo", "-b", "2"});
+  ASSERT_ERROR_CODE_SUCCESS(ec);
+
+  EXPECT_EQ(1, flags.getNumber("number-a"));
+  EXPECT_EQ(2, flags.getNumber("number-b"));
+
+  ASSERT_EQ(1, flags.parameters().size());
+  EXPECT_EQ("foo", flags.parameters()[0]);
+}
+
+TEST(Flags, params_mid_fail) {
+  Flags flags;
+  flags.defineNumber("number-a", 'a', "<number>", "The Number A");
+  flags.defineNumber("number-b", 'b', "<number>", "The Number B");
+
+  std::error_code ec = flags.parse({"-a", "1", "foo", "-b", "2"});
+  ASSERT_ERROR_CODE(Flags::Error::UnknownOption, ec);
+}
+
+TEST(Flags, params_special) {
+  Flags flags;
+  flags.defineNumber("number-a", 'a', "<number>", "The Number A");
+  flags.enableParameters("TEXT", "some text");
+
+  std::error_code ec = flags.parse({"-a", "1", "--", "-a", "2"});
+  ASSERT_ERROR_CODE_SUCCESS(ec);
+
+  EXPECT_EQ(1, flags.getNumber("number-a"));
+
+  ASSERT_EQ(2, flags.parameters().size());
+  EXPECT_EQ("-a", flags.parameters()[0]);
+  EXPECT_EQ("2", flags.parameters()[1]);
+}
+
+TEST(Flags, params_special_fail) {
+  Flags flags;
+  flags.defineNumber("number-a", 'a', "<number>", "The Number A");
+
+  std::error_code ec = flags.parse({"-a", "1", "--", "-a", "2"});
+  ASSERT_ERROR_CODE(Flags::Error::UnknownOption, ec);
+}

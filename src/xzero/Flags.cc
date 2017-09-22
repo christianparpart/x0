@@ -326,7 +326,11 @@ std::error_code Flags::parse(const std::vector<std::string>& args) {
     if (pstate == ParsingState::Parameters) {
       params.push_back(arg);
     } else if (arg == "--") {
-      pstate = ParsingState::Parameters;
+      if (parametersEnabled_) {
+        pstate = ParsingState::Parameters;
+      } else {
+        return Error::UnknownOption;
+      }
     } else if (arg.size() > 2 && arg[0] == '-' && arg[1] == '-') {
       // longopt
       arg = arg.substr(2);
