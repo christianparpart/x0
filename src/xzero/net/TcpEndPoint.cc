@@ -345,7 +345,7 @@ class TcpConnectState {
     socklen_t vlen = sizeof(val);
     if (getsockopt(fd, SOL_SOCKET, SO_ERROR, &val, &vlen) == 0) {
       if (val == 0) {
-        TRACE("$0 onConnectComplete: connected $1. $2", this, val, strerror(val));
+        TRACE("$0 onConnectComplete: Connected.", this);
         promise.success(make_ref<TcpEndPoint>(FileDescriptor{fd},
                                               address.family(),
                                               readTimeout,
