@@ -10,6 +10,7 @@
 #include <xzero/Api.h>
 #include <utility>
 #include <atomic>
+#include <type_traits>
 
 namespace xzero {
 
@@ -24,6 +25,10 @@ class XZERO_BASE_API RefPtr {
   RefPtr<T>& operator=(RefPtr<T>&& other);
   RefPtr<T>& operator=(const RefPtr<T>& other);
   ~RefPtr();
+
+  template<typename U> RefPtr(U* obj) noexcept;
+  template<typename U> RefPtr(const RefPtr<U>& other) noexcept;
+  template<typename U> RefPtr<T>& operator=(const RefPtr<U>& other);
 
   operator bool () const noexcept { return !empty(); }
 
@@ -76,8 +81,29 @@ inline RefPtr<T>::RefPtr(T* obj) noexcept
 }
 
 template<typename T>
+template<typename U>
+inline RefPtr<T>::RefPtr(U* obj) noexcept
+    : obj_(obj) {
+  static_assert(std::is_convertible<U*, T*>::value, "U must be down-castable to T");
+  if (obj_) {
+    obj_->ref();
+  }
+}
+
+template<typename T>
 inline RefPtr<T>::RefPtr(const RefPtr<T>& other) noexcept
     : obj_(other.get()) {
+  if (obj_) {
+    obj_->ref();
+  }
+}
+
+template<typename T>
+template<typename U>
+inline RefPtr<T>::RefPtr(const RefPtr<U>& other) noexcept
+    : obj_(other.get()) {
+  static_assert(std::is_convertible<U*, T*>::value, "U must be down-castable to T");
+
   if (obj_) {
     obj_->ref();
   }
@@ -100,6 +126,22 @@ inline RefPtr<T>& RefPtr<T>::operator=(RefPtr<T>&& other) {
 
 template<typename T>
 inline RefPtr<T>& RefPtr<T>::operator=(const RefPtr<T>& other) {
+  if (obj_)
+    obj_->unref();
+
+  obj_ = other.obj_;
+
+  if (obj_)
+    obj_->ref();
+
+  return *this;
+}
+
+template<typename T>
+template<typename U>
+inline RefPtr<T>& RefPtr<T>::operator=(const RefPtr<U>& other) {
+  static_assert(std::is_convertible<U*, T*>::value, "U must be down-castable to T");
+
   if (obj_)
     obj_->unref();
 
