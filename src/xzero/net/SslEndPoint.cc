@@ -360,12 +360,15 @@ void SslEndPoint::onClientHandshake(Promise<RefPtr<SslEndPoint>> promise) {
   int rv = SSL_connect(ssl_);
   switch (SSL_get_error(ssl_, rv)) {
     case SSL_ERROR_NONE:
+      TRACE("onClientHandshake: succeed");
       onClientHandshakeDone();
       break;
     case SSL_ERROR_WANT_READ:
+      TRACE("onClientHandshake: wait for read");
       executor_->executeOnReadable(handle_, std::bind(&SslEndPoint::onClientHandshake, this, promise));
       break;
     case SSL_ERROR_WANT_WRITE:
+      TRACE("onClientHandshake: wait for write");
       executor_->executeOnWritable(handle_, std::bind(&SslEndPoint::onClientHandshake, this, promise));
       break;
     case SSL_ERROR_SYSCALL:
@@ -382,7 +385,6 @@ void SslEndPoint::onClientHandshake(Promise<RefPtr<SslEndPoint>> promise) {
 }
 
 void SslEndPoint::onClientHandshakeDone() {
-  TRACE("onClientHandshakeDone");
   if (X509* cert = SSL_get_peer_certificate(ssl_)) {
     // ...
     X509_free(cert);
@@ -392,8 +394,10 @@ void SslEndPoint::onClientHandshakeDone() {
   connectionFactory_(applicationProtocolName().str(), this);
 
   if (connection()) {
+    TRACE("Initializing application protocol.");
     connection()->onOpen(false);
   } else {
+    TRACE("Couldn't create application protocol layer. closing.");
     close();
   }
 }
