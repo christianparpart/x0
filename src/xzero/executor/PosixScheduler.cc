@@ -474,10 +474,6 @@ void PosixScheduler::runLoop() {
       watcherCount++;
     TRACE("runLoop at exit: tasks=$0, timers=$1, watchers=$2, refs=$3, breakLoop=$4",
         tasks_.size(), timers_.size(), watcherCount, referenceCount(), breakLoopCounter_.load());
-    logNotice(
-        "PosixScheduler",
-        "runLoop at exit: tasks=$0, timers=$1, watchers=$2, refs=$3, breakLoop=$4",
-        tasks_.size(), timers_.size(), watcherCount, referenceCount(), breakLoopCounter_.load());
   }
 }
 
