@@ -9,7 +9,7 @@
 #include <xzero/http/HttpRequest.h>
 #include <xzero/http/HeaderFieldList.h>
 #include <xzero/net/TcpEndPoint.h>
-#include <xzero/executor/NativeScheduler.h>
+#include <xzero/executor/PosixScheduler.h>
 #include <xzero/net/DnsClient.h>
 #include <xzero/io/FileUtil.h>
 #include <xzero/Application.h>
@@ -80,7 +80,7 @@ class XUrl {
   void query(const Uri& uri);
 
  private:
-  NativeScheduler scheduler_;
+  PosixScheduler scheduler_;
   Flags flags_;
   DnsClient dns_;
   Duration connectTimeout_;
