@@ -386,7 +386,7 @@ Future<RefPtr<TcpEndPoint>> TcpEndPoint::connect(const InetAddress& address,
   }
 
 #if !defined(SOCK_NONBLOCK)
-  FileUtil::setBlocking(false);
+  FileUtil::setBlocking(fd, false);
 #endif
 
   std::error_code ec = TcpUtil::connect(fd, address);
