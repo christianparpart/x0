@@ -24,10 +24,15 @@ if test "$1" == "clean"; then
   exit 0
 fi
 
+if [[ -d "/usr/local/opt/llvm/bin" ]]; then
+  export PATH="/usr/local/opt/llvm/bin:${PATH}"
+  export CXXFLAGS="$CXXFLAGS -nostdinc++ -I/usr/local/opt/llvm/include/c++/v1"
+  export LDFLAGS="$LDFLAGS -L/usr/local/opt/llvm/lib"
+fi
+
 findexe() {
   for exe in ${@}; do
-    if which $exe &>/dev/null; then
-      echo $exe
+    if which $exe 2>/dev/null; then
       return
     fi
   done
