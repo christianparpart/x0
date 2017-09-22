@@ -230,8 +230,8 @@ void SslContext::initialize() {
   OpenSSL_add_all_algorithms();
 
 /* Include <openssl/opensslconf.h> to get this define */
-#if defined(OPENSSL_THREADS)
-  logWarning("SSL", "OpenSSL implementation has no thread-locking support");
+#if !defined(OPENSSL_THREADS)
+  logDebug("SSL", "OpenSSL implementation has no thread-locking support");
 #endif
 }
 
