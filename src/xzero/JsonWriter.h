@@ -81,7 +81,7 @@ class JsonWriter {
   JsonWriter& beginObject(const std::string& name = std::string());
   JsonWriter& endObject();
 
-  JsonWriter& beginArray(const std::string& name);
+  JsonWriter& beginArray(const std::string& name = std::string());
   JsonWriter& endArray();
 
   template <typename T>

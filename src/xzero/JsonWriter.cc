@@ -94,7 +94,10 @@ JsonWriter& JsonWriter::endObject() {
 JsonWriter& JsonWriter::beginArray(const std::string& name)  // [ ... ]
 {
   begin(Type::Array);
-  output_ << "\"" << name << "\": [";
+  if (!name.empty())
+    output_ << "\"" << name << "\": [";
+  else
+    output_ << "[";
 
   return *this;
 }
@@ -208,12 +211,12 @@ JsonWriter& JsonWriter::value(const BufferRef& value) {
   return *this;
 }
 
-// template<>
-// JsonWriter& JsonWriter::value(const char* value) {
-//   buffer() << '"' << value << '"';
-//   postValue();
-//   return *this;
-// }
+template<>
+JsonWriter& JsonWriter::value(const char* const& value) {
+  buffer() << '"' << value << '"';
+  postValue();
+  return *this;
+}
 
 template<>
 JsonWriter& JsonWriter::value(const std::atomic<unsigned long long>& value) {
