@@ -10,13 +10,132 @@
 #include <xzero/http/HttpResponse.h>
 #include <xzero/io/FileUtil.h>
 #include <xzero/io/File.h>
+#include <xzero/JsonWriter.h>
 #include <xzero/logging.h>
 
 using namespace xzero;
 using namespace xzero::http;
-using namespace xzero::flow;
 
 namespace x0d {
+
+class OutputFormatter {
+ public:
+  virtual ~OutputFormatter() {}
+
+  virtual void generateHeader(const std::string& path) = 0;
+  virtual void generateEntry(std::shared_ptr<File> file) = 0;
+  virtual void generateTrailer() = 0;
+};
+
+class JsonFormatter : public OutputFormatter { // {{{
+ public:
+  HttpResponse* response_;
+  Buffer buffer_;
+  JsonWriter writer_;
+
+  explicit JsonFormatter(HttpResponse* resp)
+      : response_(resp), buffer_(), writer_(&buffer_) {}
+
+  void generateHeader(const std::string& path) override {
+    writer_.beginArray("");
+  }
+
+  void generateEntry(std::shared_ptr<File> file) override {
+    writer_.beginObject();
+
+    writer_.name("filename").value(file->filename());
+    writer_.name("type").value(file->isDirectory() ? "directory"
+                                                   : "file");
+    writer_.name("mimetype").value(file->mimetype());
+    writer_.name("last-modified").value(file->lastModified());
+    writer_.name("mtime").value(file->mtime());
+    writer_.name("size").value(file->isDirectory() ? 0 : file->size());
+    writer_.endObject();
+  }
+
+  void generateTrailer() override {
+    writer_.endArray();
+
+    response_->setContentLength(buffer_.size());
+    response_->setHeader("Content-Type", "application/json");
+    response_->write(std::move(buffer_));
+  }
+};
+// }}}
+
+class HtmlFormatter : public OutputFormatter { // {{{
+ public:
+  Buffer buffer_;
+  HttpResponse* response_;
+
+  explicit HtmlFormatter(HttpResponse* resp) : response_(resp) {}
+
+  void generateEntry(std::shared_ptr<File> file) override {
+    if (file->isDirectory()) {
+      appendDirectory(file->filename());
+    } else if (file->isRegular()) {
+      appendFile(file);
+    }
+  }
+
+  void generateHeader(const std::string& path) override {
+    buffer_ << "<html><head>"
+            << "<title>Directory: " << path << "</title>"
+            << "<style>\n"
+               "\tthead { font-weight: bold; }\n"
+               "\ttd.name { width: 200px; }\n"
+               "\ttd.size { width: 80px; }\n"
+               "\ttd.subdir { width: 280px; }\n"
+               "\ttd.mimetype { }\n"
+               "\ttr:hover { background-color: #EEE; }\n"
+               "</style>\n";
+    buffer_ << "</head>\n";
+    buffer_ << "<body>\n";
+
+    buffer_ << "<h2 style='font-family: Courier New, monospace;'>Index of "
+            << path << "</h2>\n";
+    buffer_ << "<br/>";
+    buffer_ << "<table>\n";
+
+    buffer_ << "<thead>"
+               "<td class='name'>Name</td>"
+               "<td class='size'>Size</td>"
+               "<td class='mimetype'>Mime type</td>"
+               "</thead>\n";
+
+    if (path != "/") {
+      appendDirectory("..");
+    }
+  }
+
+  void appendDirectory(const std::string& filename) {
+    buffer_ << "\t<tr>\n";
+    buffer_ << "\t\t<td class='subdir' colspan='2'><a href='"
+            << filename << "/'>" << filename << "/</a></td>\n"
+            << "\t\t<td class='mimetype'>directory</td>"
+            << "</td>\n";
+    buffer_ << "\t</tr>\n";
+  }
+
+  void appendFile(std::shared_ptr<File> file) {
+    buffer_ << "\t<tr>\n";
+    buffer_ << "\t\t<td class='name'><a href='" << file->filename() << "'>"
+            << file->filename() << "</a></td>\n";
+    buffer_ << "\t\t<td class='size'>" << file->size() << "</td>\n";
+    buffer_ << "\t\t<td class='mimetype'>" << file->mimetype() << "</td>\n";
+    buffer_ << "\t</tr>\n";
+  }
+
+  void generateTrailer() override {
+    buffer_ << "</table>\n";
+    buffer_ << "<hr/>\n";
+    buffer_ << "</body></html>\n";
+
+    response_->setContentLength(buffer_.size());
+    response_->setHeader("Content-Type", "text/html");
+    response_->write(std::move(buffer_));
+  }
+}; // }}}
 
 DirlistingModule::DirlistingModule(x0d::XzeroDaemon* d)
     : XzeroModule(d, "dirlisting") {
@@ -36,81 +155,30 @@ bool DirlistingModule::dirlisting(XzeroContext* cx, Params& args) {
   if (!cx->file()->isDirectory())
     return false;
 
-  Buffer sstr;
+  std::unique_ptr<OutputFormatter> formatter;
 
-  appendHeader(sstr, cx->request()->path());
+  // TODO: properly parse Accept header (but yeah)
+  std::string accept = cx->request()->getHeader("Accept");
 
-  if (cx->request()->path() != "/")
-    appendDirectory(sstr, "..");
+  if (accept == "application/json") {
+    formatter = std::make_unique<JsonFormatter>(cx->response());
+  } else {
+    // default to text/html
+    formatter = std::make_unique<HtmlFormatter>(cx->response());
+  }
+
+  formatter->generateHeader(cx->request()->path());
 
   FileUtil::ls(cx->file()->path(), [&](const std::string& path) -> bool {
-    std::shared_ptr<File> file = daemon().vfs().getFile(path);
-    if (file->isDirectory()) {
-      appendDirectory(sstr, file->filename());
-    } else {
-      appendFile(sstr, file);
-    }
+    formatter->generateEntry(daemon().vfs().getFile(path));
     return true;
   });
-  appendTrailer(sstr);
 
   cx->response()->setStatus(HttpStatus::Ok);
-  cx->response()->setContentLength(sstr.size());
-  cx->response()->setHeader("Content-Type", "text/html");
-  cx->response()->write(std::move(sstr));
+  formatter->generateTrailer();
   cx->response()->completed();
 
   return true;
-}
-
-void DirlistingModule::appendHeader(Buffer& sstr, const std::string& path) {
-  sstr << "<html><head>"
-       << "<title>Directory: " << path << "</title>"
-       << "<style>\n"
-          "\tthead { font-weight: bold; }\n"
-          "\ttd.name { width: 200px; }\n"
-          "\ttd.size { width: 80px; }\n"
-          "\ttd.subdir { width: 280px; }\n"
-          "\ttd.mimetype { }\n"
-          "\ttr:hover { background-color: #EEE; }\n"
-          "</style>\n";
-  sstr << "</head>\n";
-  sstr << "<body>\n";
-
-  sstr << "<h2 style='font-family: Courier New, monospace;'>Index of "
-       << path << "</h2>\n";
-  sstr << "<br/>";
-  sstr << "<table>\n";
-
-  sstr << "<thead>"
-          "<td class='name'>Name</td>"
-          "<td class='size'>Size</td>"
-          "<td class='mimetype'>Mime type</td>"
-          "</thead>\n";
-}
-
-void DirlistingModule::appendDirectory(Buffer& sstr, const std::string& filename) {
-  sstr << "\t<tr>\n";
-  sstr << "\t\t<td class='subdir' colspan='2'><a href='"
-       << filename << "/'>" << filename << "/</a></td>\n"
-       << "\t\t<td class='mimetype'>directory</td>"
-       << "</td>\n";
-  sstr << "\t</tr>\n";
-}
-
-void DirlistingModule::appendFile(Buffer& sstr, std::shared_ptr<File> file) {
-  sstr << "\t<tr>\n";
-  sstr << "\t\t<td class='name'><a href='" << file->filename() << "'>"
-       << file->filename() << "</a></td>\n";
-  sstr << "\t\t<td class='size'>" << file->size() << "</td>\n";
-  sstr << "\t\t<td class='mimetype'>" << file->mimetype() << "</td>\n";
-  sstr << "\t</tr>\n";
-}
-
-void DirlistingModule::appendTrailer(Buffer& sstr) {
-  sstr << "</table>\n";
-  sstr << "<hr/>\n";
-  sstr << "</body></html>\n";
 }
 
 } // namespace x0d
