@@ -100,6 +100,7 @@ libXzero_a_SOURCES = \
 	src/xzero/http/HttpRangeDef.cc \
 	src/xzero/http/HttpTransport.cc \
 	src/xzero/http/HttpVersion.cc \
+	src/xzero/http/MediaRange.cc \
 	src/xzero/http/client/Http1Connection.cc \
 	src/xzero/http/client/HttpClient.cc \
 	src/xzero/http/client/HttpTransport.cc \
@@ -289,6 +290,7 @@ nobase_libXzero_HEADERS = \
 	src/xzero/http/HttpStatus.h \
 	src/xzero/http/HttpTransport.h \
 	src/xzero/http/HttpVersion.h \
+	src/xzero/http/MediaRange.h \
 	src/xzero/http/client/Http1Connection.h \
 	src/xzero/http/client/HttpClient.h \
 	src/xzero/http/client/HttpTransport.h \
@@ -573,6 +575,7 @@ xzero_test_SOURCES = \
 	src/xzero/http/HttpFileHandler-test.cc \
 	src/xzero/http/HttpRangeDef-test.cc \
 	src/xzero/http/HttpRequestInfo-test.cc \
+	src/xzero/http/MediaRange-test.cc \
 	src/xzero/http/client/HttpClient-test.cc \
 	src/xzero/http/fastcgi/Generator-test.cc \
 	src/xzero/http/fastcgi/RequestParser-test.cc \

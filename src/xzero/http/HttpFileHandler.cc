@@ -25,7 +25,7 @@
 #if 1 //!defined(NDEBUG)
 #define TRACE(msg...) logTrace("http.FileHandler", msg)
 #else
-#define TRACE(level, msg...) do {} while (0)
+#define TRACE(msg...) do {} while (0)
 #endif
 
 namespace xzero {

@@ -51,13 +51,13 @@ LogLevel make_loglevel(const std::string& str) {
   if (value == "alert")
     return LogLevel::Alert;
 
-  if (value == "critical")
+  if (value == "critical" || value == "crit")
     return LogLevel::Critical;
 
-  if (value == "error")
+  if (value == "error" || value == "err")
     return LogLevel::Error;
 
-  if (value == "warning")
+  if (value == "warning" || value == "warn")
     return LogLevel::Warning;
 
   if (value == "notice")

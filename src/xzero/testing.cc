@@ -166,16 +166,19 @@ int UnitTest::main(int argc, const char* argv[]) {
     return 0;
   }
 
-  Logger::get()->setMinimumLogLevel(make_loglevel(flags.getString("log-level")));
+  LogLevel logLevel = Logger::get()->getMinimumLogLevel();
+
+  if (flags.isSet("log-level")) {
+    logLevel = make_loglevel(flags.getString("log-level"));
+  }
 
   if (flags.getBool("verbose")) {
-    LogLevel logLevel = Logger::get()->getMinimumLogLevel();
-
-    if (logLevel > LogLevel::Debug) // XXX trace is having a smaller number
+    if (logLevel > LogLevel::Debug) { // XXX trace is having a smaller number
       logLevel = LogLevel::Debug;
-
-    Application::logToStderr(logLevel);
+    }
   }
+
+  Application::logToStderr(logLevel);
 
   if (flags.isSet("log-target")) {
     std::string logTargetStr = flags.getString("log-target");
