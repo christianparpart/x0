@@ -71,6 +71,7 @@ int main(int argc, const char* argv[]) {
   Flags flags;
   flags.defineBool("help", 'h', "Prints this help and exits.")
        .defineBool("version", 'v', "Prints software version and exits.")
+       .defineBool("webfile", 'w', "Looks out for a Webfile in current working directory as configuration file and uses that instead.")
        .defineString("config", 'c', "PATH", "Specify a custom configuration file.", X0D_CONFIGFILE, nullptr)
        .defineString("user", 'u', "NAME", "User privileges to drop down to.", Application::userName())
        .defineString("group", 'g', "NAME", "Group privileges to drop down to.", Application::groupName())
@@ -137,9 +138,18 @@ int main(int argc, const char* argv[]) {
   bool dumpAST = flags.getBool("dump-ast");
   bool dumpIR = flags.getBool("dump-ir");
   bool dumpTC = flags.getBool("dump-tc");
+  bool webfile = flags.getBool("webfile");
+
+  std::string configFileName = webfile ? "Webfile"
+                                       : flags.getString("config");
+
+  if (webfile && flags.getString("config") != X0D_CONFIGFILE) {
+    logError("x0d", "Do not use --webfile and --config options at once.");
+    return 1;
+  }
 
   std::shared_ptr<xzero::flow::vm::Program> config =
-      x0d.loadConfigFile(flags.getString("config"), dumpAST, dumpIR, dumpTC);
+      x0d.loadConfigFile(configFileName, dumpAST, dumpIR, dumpTC);
 
   bool exitBeforeRun = dumpAST || dumpIR || dumpTC;
   if (exitBeforeRun)
