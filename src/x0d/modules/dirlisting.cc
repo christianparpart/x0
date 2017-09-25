@@ -8,6 +8,7 @@
 #include "dirlisting.h"
 #include <xzero/http/HttpRequest.h>
 #include <xzero/http/HttpResponse.h>
+#include <xzero/http/MediaRange.h>
 #include <xzero/io/FileUtil.h>
 #include <xzero/io/File.h>
 #include <xzero/JsonWriter.h>
@@ -55,6 +56,7 @@ class JsonFormatter : public OutputFormatter { // {{{
 
   void generateTrailer() override {
     writer_.endArray();
+    buffer_.push_back('\n');
 
     response_->setContentLength(buffer_.size());
     response_->setHeader("Content-Type", "application/json");
@@ -157,8 +159,8 @@ bool DirlistingModule::dirlisting(XzeroContext* cx, Params& args) {
 
   std::unique_ptr<OutputFormatter> formatter;
 
-  // TODO: properly parse Accept header (but yeah)
-  std::string accept = cx->request()->getHeader("Accept");
+  std::string accept = MediaRange::match(cx->request()->getHeader("Accept"),
+                                         {"text/html", "application/json"});
 
   if (accept == "application/json") {
     formatter = std::make_unique<JsonFormatter>(cx->response());
