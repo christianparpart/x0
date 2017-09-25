@@ -23,15 +23,20 @@ MediaRange::MediaRange(const std::string& type,
              const std::unordered_map<std::string, std::string>& parameters)
     : type_(type),
       subtype_(subtype),
+      qualityCache_(-1),
       parameters_(parameters) {
 }
 
 double MediaRange::quality() const {
-  auto i = parameters_.find("q");
-  if (i == parameters_.end())
-    return 1.0;
+  if (qualityCache_ < 0) {
+    auto i = parameters_.find("q");
+    if (i == parameters_.end())
+      return 1.0;
 
-  return strtod(i->second.c_str(), nullptr);
+    qualityCache_ = strtod(i->second.c_str(), nullptr);
+  }
+
+  return qualityCache_;
 }
 
 const std::string* MediaRange::getParameter(const std::string& name) const {

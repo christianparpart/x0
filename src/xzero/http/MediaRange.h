@@ -63,6 +63,7 @@ class MediaRange {
  private:
   std::string type_;
   std::string subtype_;
+  mutable double qualityCache_;
   std::unordered_map<std::string, std::string> parameters_;
 };
 
