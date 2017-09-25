@@ -25,6 +25,7 @@
 // #define PACKAGE_VERSION X0_VERSION
 #define PACKAGE_HOMEPAGE_URL "https://xzero.io"
 
+#define VERBOSE(msg...) logInfo("xurl", msg)
 #define DEBUG(msg...) logDebug("xurl", msg)
 #define TRACE(msg...) logTrace("xurl", msg)
 
@@ -177,6 +178,7 @@ int XUrl::run(int argc, const char* argv[]) {
 
   if (flags_.parameters().size() != 1) {
     logError("xurl", "Too many URLs given.");
+    return 1;
   }
 
   Uri uri = makeUri(flags_.parameters()[0]);
@@ -217,15 +219,12 @@ void XUrl::query(const Uri& uri) {
 
   logDebug("xurl", "inet addr: $0, uri: $1", inetAddr, uri.toString());
 
-  TRACE("getting request method");
   std::string method = flags_.getString("method");
 
-  TRACE("getting request head?");
   if (flags_.getBool("head")) {
     method = "HEAD";
   }
 
-  TRACE("getting request body");
   HugeBuffer body;
   if (!flags_.getString("upload-file").empty()) {
     method = "PUT";
@@ -242,16 +241,15 @@ void XUrl::query(const Uri& uri) {
                   std::move(body));
   req.setScheme(uri.scheme());
 
-  logInfo("xurl", "> $0 $1 HTTP/$2", req.unparsedMethod(),
-                                     req.unparsedUri(),
-                                     req.version());
+  VERBOSE("> $0 $1 HTTP/$2", req.unparsedMethod(),
+                             req.unparsedUri(),
+                             req.version());
 
-  for (const HeaderField& field: req.headers()) {
-    if (field.name()[0] != ':') {
-      logInfo("xurl", "> $0: $1", field.name(), field.value());
-    }
-  }
-  logInfo("xurl", ">");
+  for (const HeaderField& field: req.headers())
+    if (field.name()[0] != ':')
+      VERBOSE("> $0: $1", field.name(), field.value());
+
+  VERBOSE(">");
 
   HttpClient httpClient(&scheduler_, inetAddr,
                         connectTimeout_, readTimeout_, writeTimeout_,
@@ -260,14 +258,14 @@ void XUrl::query(const Uri& uri) {
   Future<HttpClient::Response> f = httpClient.send(req);
 
   f.onSuccess([](HttpClient::Response& response) {
-    logInfo("xurl", "< HTTP/$0 $1 $2", response.version(),
-                                       (int) response.status(),
-                                       response.reason());
+    VERBOSE("< HTTP/$0 $1 $2", response.version(),
+                               (int) response.status(),
+                               response.reason());
 
-    for (const HeaderField& field: response.headers()) {
-      logInfo("xurl", "< $0: $1", field.name(), field.value());
-    }
-    logInfo("xurl", "<");
+    for (const HeaderField& field: response.headers())
+      VERBOSE("< $0: $1", field.name(), field.value());
+
+    VERBOSE("<");
 
     const BufferRef& content = response.content().getBuffer();
     write(STDOUT_FILENO, content.data(), content.size());
