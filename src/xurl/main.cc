@@ -67,14 +67,14 @@ int ServicePortMapping::tcp(const std::string& name) {
 }
 // }}}
 
-class TerminalLogTarget : public ::xzero::LogTarget { // {{{
+class XurlLogTarget : public ::xzero::LogTarget { // {{{
  public:
   void log(LogLevel level,
            const std::string& component,
            const std::string& message) override;
 };
 
-void TerminalLogTarget::log(LogLevel level,
+void XurlLogTarget::log(LogLevel level,
                             const std::string& component,
                             const std::string& message) {
   if (component == "xurl") {
@@ -105,7 +105,7 @@ class XUrl {
   Duration connectTimeout_;
   Duration readTimeout_;
   Duration writeTimeout_;
-  TerminalLogTarget logTarget_;
+  XurlLogTarget logTarget_;
   http::HeaderFieldList requestHeaders_;
 };
 
@@ -181,8 +181,7 @@ int XUrl::run(int argc, const char* argv[]) {
     return 1;
   }
 
-  Uri uri = makeUri(flags_.parameters()[0]);
-  query(uri);
+  query(makeUri(flags_.parameters()[0]));
 
   return 0;
 }
@@ -217,8 +216,6 @@ void XUrl::query(const Uri& uri) {
   InetAddress inetAddr(ipaddr, port);
   Duration keepAlive = 8_seconds;
 
-  logDebug("xurl", "inet addr: $0, uri: $1", inetAddr, uri.toString());
-
   std::string method = flags_.getString("method");
 
   if (flags_.getBool("head")) {
@@ -240,6 +237,8 @@ void XUrl::query(const Uri& uri) {
                   uri.scheme() == "https",
                   std::move(body));
   req.setScheme(uri.scheme());
+
+  VERBOSE("* connecting to $0", inetAddr);
 
   VERBOSE("> $0 $1 HTTP/$2", req.unparsedMethod(),
                              req.unparsedUri(),
