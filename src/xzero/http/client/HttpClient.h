@@ -137,21 +137,4 @@ class HttpClient::Response : public HttpResponseInfo {
   HugeBuffer content_;
 };
 
-class HttpClient::ResponseBuilder : public HttpListener {
- public:
-  ResponseBuilder(Promise<Response> promise);
-
-  void onMessageBegin(HttpVersion version, HttpStatus code, const BufferRef& text) override;
-  void onMessageHeader(const BufferRef& name, const BufferRef& value) override;
-  void onMessageHeaderEnd() override;
-  void onMessageContent(const BufferRef& chunk) override;
-  void onMessageContent(FileView&& chunk) override;
-  void onMessageEnd() override;
-  void onError(std::error_code ec) override;
-
- private:
-  Promise<Response> promise_;
-  Response response_;
-};
-
 } // namespace xzero::http::client

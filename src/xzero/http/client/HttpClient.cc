@@ -29,6 +29,75 @@
 
 namespace xzero::http::client {
 
+// {{{ ResponseBuilder
+class HttpClient::ResponseBuilder : public HttpListener {
+ public:
+  ResponseBuilder(Promise<Response> promise);
+
+  void onMessageBegin(HttpVersion version, HttpStatus code, const BufferRef& text) override;
+  void onMessageHeader(const BufferRef& name, const BufferRef& value) override;
+  void onMessageHeaderEnd() override;
+  void onMessageContent(const BufferRef& chunk) override;
+  void onMessageContent(FileView&& chunk) override;
+  void onMessageEnd() override;
+  void onError(std::error_code ec) override;
+
+ private:
+  Promise<Response> promise_;
+  Response response_;
+};
+
+HttpClient::ResponseBuilder::ResponseBuilder(Promise<Response> promise)
+    : promise_(promise),
+      response_() {
+  TRACE("ResponseBuilder.ctor");
+}
+
+void HttpClient::ResponseBuilder::onMessageBegin(HttpVersion version,
+                                                 HttpStatus code,
+                                                 const BufferRef& text) {
+  TRACE("ResponseBuilder.onMessageBegin($0, $1, $2)", version, (int)code, text);
+
+  response_.setVersion(version);
+  response_.setStatus(code);
+  response_.setReason(text.str());
+}
+
+void HttpClient::ResponseBuilder::onMessageHeader(const BufferRef& name,
+                                                  const BufferRef& value) {
+  TRACE("ResponseBuilder.onMessageHeader($0, $1)", name, value);
+
+  response_.headers().push_back(name.str(), value.str());
+}
+
+void HttpClient::ResponseBuilder::onMessageHeaderEnd() {
+  TRACE("ResponseBuilder.onMessageHeaderEnd()");
+}
+
+void HttpClient::ResponseBuilder::onMessageContent(const BufferRef& chunk) {
+  TRACE("ResponseBuilder.onMessageContent(BufferRef) $0 bytes", chunk.size());
+  response_.content().write(chunk);
+}
+
+void HttpClient::ResponseBuilder::onMessageContent(FileView&& chunk) {
+  TRACE("ResponseBuilder.onMessageContent(FileView) $0 bytes", chunk.size());
+  response_.content().write(std::move(chunk));
+}
+
+void HttpClient::ResponseBuilder::onMessageEnd() {
+  TRACE("ResponseBuilder.onMessageEnd()");
+  response_.setContentLength(response_.content().size());
+  promise_.success(response_);
+  delete this;
+}
+
+void HttpClient::ResponseBuilder::onError(std::error_code ec) {
+  logError("ResponseBuilder", "Error. $0; $1", ec.message());
+  promise_.failure(ec);
+  delete this;
+}
+// }}}
+
 template<typename T> static bool isConnectionHeader(const T& name) { // {{{
   static const std::vector<T> connectionHeaderFields = {
     "Connection",
@@ -210,57 +279,5 @@ void HttpClient::execute() {
     logError("HttpClient", "Failed to connect. $0", ec.message());
   });
 }
-
-// {{{ ResponseBuilder
-HttpClient::ResponseBuilder::ResponseBuilder(Promise<Response> promise)
-    : promise_(promise),
-      response_() {
-  TRACE("ResponseBuilder.ctor");
-}
-
-void HttpClient::ResponseBuilder::onMessageBegin(HttpVersion version,
-                                                 HttpStatus code,
-                                                 const BufferRef& text) {
-  TRACE("ResponseBuilder.onMessageBegin($0, $1, $2)", version, (int)code, text);
-
-  response_.setVersion(version);
-  response_.setStatus(code);
-  response_.setReason(text.str());
-}
-
-void HttpClient::ResponseBuilder::onMessageHeader(const BufferRef& name,
-                                                  const BufferRef& value) {
-  TRACE("ResponseBuilder.onMessageHeader($0, $1)", name, value);
-
-  response_.headers().push_back(name.str(), value.str());
-}
-
-void HttpClient::ResponseBuilder::onMessageHeaderEnd() {
-  TRACE("ResponseBuilder.onMessageHeaderEnd()");
-}
-
-void HttpClient::ResponseBuilder::onMessageContent(const BufferRef& chunk) {
-  TRACE("ResponseBuilder.onMessageContent(BufferRef) $0 bytes", chunk.size());
-  response_.content().write(chunk);
-}
-
-void HttpClient::ResponseBuilder::onMessageContent(FileView&& chunk) {
-  TRACE("ResponseBuilder.onMessageContent(FileView) $0 bytes", chunk.size());
-  response_.content().write(std::move(chunk));
-}
-
-void HttpClient::ResponseBuilder::onMessageEnd() {
-  TRACE("ResponseBuilder.onMessageEnd()");
-  response_.setContentLength(response_.content().size());
-  promise_.success(response_);
-  delete this;
-}
-
-void HttpClient::ResponseBuilder::onError(std::error_code ec) {
-  logError("ResponseBuilder", "Error. $0; $1", ec.message());
-  promise_.failure(ec);
-  delete this;
-}
-// }}}
 
 } // namespace xzero::http::client
