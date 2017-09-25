@@ -7,6 +7,7 @@
 #include <xzero/http/MediaRange.h>
 #include <xzero/StringUtil.h>
 #include <xzero/logging.h>
+#include <list>
 #include <stdlib.h>
 
 #if !defined(NDEBUG)
@@ -146,9 +147,23 @@ const MediaRange* MediaRange::match(const std::vector<MediaRange>& accepts,
   if (matched.empty())
     return nullptr;
 
-  // TODO: find best quality
+  // find best quality
+  const MediaRange* bestMatch = matched.front();
+  matched.pop_front();
+  for (const MediaRange* match: matched)
+    if (match->quality() > bestMatch->quality())
+      bestMatch = match;
 
-  return matched.front();
+  return bestMatch;
+}
+
+std::string MediaRange::match(const std::string& acceptsStr,
+                              const std::vector<std::string>& available) {
+  std::vector<MediaRange> accepts = *MediaRange::parseMany(acceptsStr);
+  if (auto best = MediaRange::match(accepts, available))
+    return std::string(best->type() + "/" + best->subtype());
+  else
+    return std::string();
 }
 
 } // namespace xzero::http

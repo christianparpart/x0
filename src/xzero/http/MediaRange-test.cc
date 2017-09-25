@@ -88,11 +88,38 @@ TEST(http_MediaRange, parseMany) {
   EXPECT_EQ(1.0, accepts[3].quality());
 }
 
-TEST(http_MediaRange, match1) {
+TEST(http_MediaRange, match_vector) {
   // input taken from RFC 7231, section 5.3.2
   std::vector<MediaRange> accepts = *MediaRange::parseMany(
       "text/plain; q=0.5, text/html, text/x-dvi; q=0.8, text/x-c");
 
-  //std::vector<const MediaRange*> matches;
-  //MediaRange::match(accepts, {"text/plain", "text/html"}, &matches);
+  auto best = MediaRange::match(accepts, {"text/plain", "text/html"});
+  ASSERT_TRUE(best != nullptr);
+  EXPECT_TRUE(best->contains("text/html"));
+
+  best = MediaRange::match(accepts, {"text/plain", "application/json"});
+  ASSERT_TRUE(best != nullptr);
+  EXPECT_TRUE(best->contains("text/plain"));
+}
+
+TEST(http_MediaRange, match_q1_0) {
+  // input taken from RFC 7231, section 5.3.2
+  auto best = MediaRange::match(
+      "text/plain; q=0.5, text/html, text/x-dvi; q=0.8, text/x-c",
+      {"text/plain", "text/html"});
+  EXPECT_EQ("text/html", best);
+}
+
+TEST(http_MediaRange, match_q0_5) {
+  auto best = MediaRange::match(
+      "text/plain; q=0.5, text/html, text/x-dvi; q=0.8, text/x-c",
+      {"text/plain", "application/json"});
+  EXPECT_EQ("text/plain", best);
+}
+
+TEST(http_MediaRange, match_q0_0) {
+  auto best = MediaRange::match(
+      "text/plain; q=0.5, text/html, text/x-dvi; q=0.8, text/x-c",
+      {"application/json"});
+  EXPECT_EQ("", best);
 }

@@ -11,7 +11,6 @@
 #include <list>
 #include <unordered_map>
 #include <xzero/Result.h>
-//#include <string_view>
 
 namespace xzero::http {
 
@@ -49,6 +48,17 @@ class MediaRange {
    */
   static const MediaRange* match(const std::vector<MediaRange>& accept,
                                  const std::vector<std::string>& available);
+
+  /**
+   * Matches available media ranges against @p accept'ed media types.
+   *
+   * @param accept Comma seperated list of media ranges.
+   * @param available List of supported media types.
+   *
+   * @return media-type that matched the best or an empty string if none.
+   */
+  static std::string match(const std::string& accept,
+                           const std::vector<std::string>& available);
 
  private:
   std::string type_;
