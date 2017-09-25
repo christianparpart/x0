@@ -364,8 +364,8 @@ The input value must always be a string.
 
 =head3 Syntax
 
-  matchStmt      ::= 'match' expression [MATCH_OPERATOR] '{' matchCase* ['else' stmt] '}'
-  matchCase      ::= 'on' LITERAL (',' 'on' LITERAL)* stmt
+  MatchStmt      ::= 'match' expression [MATCH_OPERATOR] '{' matchCase* ['else' stmt] '}'
+  MatchCase      ::= 'on' LITERAL (',' 'on' LITERAL)* stmt
   MATCH_OPERATOR ::= '==' | '=^' | '=$' | '=~'
 
 =head3 Supported match operations are:
@@ -423,7 +423,7 @@ Selects the branch whose case label "suffix" matches the input value.
 The case label with the longest match will be preferred.
 
   handler main {
-    match phys.path  =$ {
+    match phys.path =$ {
       on '.torrent' {
         respond 403;
       }
@@ -464,8 +464,6 @@ The case label that matches the first will be the selected branch of execution.
 =over 6
 
 =item C-style comments /* ... */
-
-=item C++-style comments // ...
 
 =item Shell-style comments # ...
 

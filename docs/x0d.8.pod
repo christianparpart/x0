@@ -5,16 +5,16 @@ x0d - high performance HTTP web server
 
 =head1 SYNOPSIS
 
-x0d [B<-c>|B<--config> PATH] [B<-X>|B<--no-fork>] [B<-G>|B<--guard>] [B<--systemd>] \
-    [B<-G>|B<--guard>] [B<-p>|B<--pid-file> PATH] \
-    [B<-u>|B<--user> USER] [B<-g>|B<--group> GROUP] \
-    [B<-L>|B<--log-severity> error|warning|notice|info|diag|debug] \
-    [B<-l>|B<--log-target> syslog|file|systemd|console] \
-    [B<-l>|B<--log-file> PATH] \
-    [B<-i>|B<--instant> PATH[,PORT]] \
+x0d [B<-c>|B<--config> I<PATH>] [B<-X>|B<--no-fork>] [B<-G>|B<--guard>] [B<--systemd>] \
+    [B<-G>|B<--guard>] [B<-p>|B<--pid-file> I<PATH>] \
+    [B<-u>|B<--user> I<USER>] [B<-g>|B<--group> I<GROUP>] \
+    [B<-L>|B<--log-severity> I<error>|I<warning>|I<notice>|I<info>|I<diag>|I<debug>] \
+    [B<-l>|B<--log-target> I<syslog>|I<file>|I<systemd>|I<console>] \
+    [B<-l>|B<--log-file> I<PATH>] \
+    [B<-i>|B<--instant> I<PATH>[,I<PORT>]] \
     [B<-k>|B<--crash-handler>] \
     [B<--dump-ast>] [B<--dump-ir>] [B<--dump-tc>] \
-    [B<-v>|B<--version>] [B<-y>|B<--copyright>] [B<--splash>] \
+    [B<-v>|B<--version>] [B<-y>|B<--copyright>] \
     [B<-V>|B<--info>] [B<-h>|B<--help>]
 
 =head1 DESCRIPTION
