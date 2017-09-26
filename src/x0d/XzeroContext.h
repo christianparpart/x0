@@ -12,6 +12,7 @@
 #include <xzero/Duration.h>
 #include <xzero/io/File.h>
 #include <xzero/CustomDataMgr.h>
+#include <xzero/logging.h>
 #include <xzero/http/HttpStatus.h>
 #include <xzero-flow/vm/Params.h>
 #include <xzero-flow/vm/Runner.h>
@@ -107,13 +108,49 @@ class XzeroContext {
       xzero::http::HttpStatus overrideStatus = xzero::http::HttpStatus::Undefined);
 
   /**
-   * Sends a status page with simple content (if not forbidden).
+   * Sends a trivial response, with simple content if content not forbidden.
+   *
+   * A trivial response is having set the HTTP response status code with
+   * (if allowed) static content as descriptive content.
    *
    * @param status HTTP status to send
    * @param reason reason associated with that status; the text version of the
    *               HTTP status will be used if this string is empty.
    */
-  void sendSimpleStatusPage(xzero::http::HttpStatus status, const std::string& reason = std::string());
+  void sendTrivialResponse(xzero::http::HttpStatus status, const std::string& reason = std::string());
+
+  // {{{ Logging API
+  template<typename... Args>
+  inline void logError(const std::string& fmt, Args&&... args) {
+    logf(::xzero::LogLevel::Error, fmt, args...);
+  }
+
+  template<typename... Args>
+  inline void logWarning(const std::string& fmt, Args&&... args) {
+    logf(::xzero::LogLevel::Warning, fmt, args...);
+  }
+
+  template<typename... Args>
+  inline void logNotice(const std::string& fmt, Args&&... args) {
+    logf(::xzero::LogLevel::Notice, fmt, args...);
+  }
+
+  template<typename... Args>
+  inline void logInfo(const std::string& fmt, Args&&... args) {
+    logf(::xzero::LogLevel::Info, fmt, args...);
+  }
+
+  template<typename... Args>
+  inline void logDebug(const std::string& fmt, Args&&... args) {
+    logf(::xzero::LogLevel::Debug, fmt, args...);
+  }
+
+  template<typename... Args>
+  inline void logf(::xzero::LogLevel logLevel, const std::string& fmt, Args&&... args) {
+    ::xzero::Logger::get()->log(logLevel, "x0d",
+        ::xzero::StringUtil::format("$0: $1", remoteIP(), fmt), args...);
+  }
+  // }}}
 
  private:
   std::unique_ptr<xzero::flow::vm::Runner> runner_; //!< Flow VM execution unit.

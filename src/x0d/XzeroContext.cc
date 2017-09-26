@@ -171,20 +171,22 @@ bool XzeroContext::sendErrorPage(xzero::http::HttpStatus status,
       return false;
     } else {
       logError("x0d", "Too many internal redirects.");
-      sendSimpleStatusPage(HttpStatus::InternalServerError, "Too many internal redirects.");
+      sendTrivialResponse(HttpStatus::InternalServerError, "Too many internal redirects.");
       return true;
     }
-  } else if (!isContentForbidden(status)) {
-    sendSimpleStatusPage(status);
-    return true;
   } else {
-    response_->setStatus(status);
-    response_->completed();
+    sendTrivialResponse(status);
     return true;
   }
 }
 
-void XzeroContext::sendSimpleStatusPage(HttpStatus status, const std::string& reason) {
+void XzeroContext::sendTrivialResponse(HttpStatus status, const std::string& reason) {
+  if (isContentForbidden(status)) {
+    response_->setStatus(status);
+    response_->completed();
+    return;
+  }
+
   Buffer body(2048);
 
   Buffer htmlMessage = reason.empty() ? to_string(status) : reason;
