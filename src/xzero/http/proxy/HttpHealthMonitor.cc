@@ -6,7 +6,7 @@
 // the License at: http://opensource.org/licenses/MIT
 
 #include <xzero/http/proxy/HttpHealthMonitor.h>
-#include <xzero/io/InputStream.h>
+#include <xzero/net/TcpEndPoint.h>
 #include <xzero/StringUtil.h>
 #include <xzero/logging.h>
 #include <xzero/JsonWriter.h>
@@ -21,21 +21,19 @@
 #endif
 
 namespace xzero {
-
-template<>
-std::string StringUtil::toString(http::client::HttpHealthMonitor::State state) {
-  switch (state) {
-    case http::client::HttpHealthMonitor::State::Undefined:
-      return "undefined";
-    case http::client::HttpHealthMonitor::State::Offline:
-      return "offline";
-    case http::client::HttpHealthMonitor::State::Online:
-      return "online";
-  }
-}
-
 namespace http {
 namespace client {
+
+std::ostream& operator<<(std::ostream& os, HttpHealthMonitor::State state) {
+  switch (state) {
+    case http::client::HttpHealthMonitor::State::Undefined:
+      return os << "undefined";
+    case http::client::HttpHealthMonitor::State::Offline:
+      return os << "offline";
+    case http::client::HttpHealthMonitor::State::Online:
+      return os << "online";
+  }
+}
 
 HttpHealthMonitor::HttpHealthMonitor(Executor* executor,
                                      const InetAddress& inetAddress,
@@ -187,7 +185,7 @@ void HttpHealthMonitor::onResponseReceived(const HttpClient::Response& response)
 
 void HttpHealthMonitor::serialize(JsonWriter& json) const {
   json.beginObject()
-      .name("state")(StringUtil::toString(state()))
+      .name("state")(to_string(state()))
       .name("interval")(interval().milliseconds())
       .endObject();
 }

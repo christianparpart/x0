@@ -12,12 +12,7 @@
 #include <xzero/executor/Executor.h>
 #include <xzero/CustomDataMgr.h>
 #include <xzero/TokenShaper.h>
-#include <xzero/io/InputStream.h>
 #include <memory>
-
-namespace xzero {
-  class InputStream;
-}
 
 namespace xzero::http::client {
   class HttpClient;

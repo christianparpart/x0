@@ -9,8 +9,6 @@
 #include <xzero/http/proxy/HttpClusterRequest.h>
 #include <xzero/http/proxy/HttpClusterMember.h>
 #include <xzero/http/proxy/HttpHealthMonitor.h>
-#include <xzero/io/StringInputStream.h>
-#include <xzero/io/InputStream.h>
 #include <xzero/io/FileUtil.h>
 #include <xzero/text/IniFile.h>
 #include <xzero/JsonWriter.h>
@@ -18,18 +16,6 @@
 #include <xzero/sysconfig.h>
 #include <algorithm>
 #include <sstream>
-
-namespace xzero {
-  using http::client::HttpClusterSchedulerStatus;
-
-  template<> std::string StringUtil::toString(HttpClusterSchedulerStatus value) {
-    switch (value) {
-      case HttpClusterSchedulerStatus::Unavailable: return "Unavailable";
-      case HttpClusterSchedulerStatus::Success: return "Success";
-      case HttpClusterSchedulerStatus::Overloaded: return "Overloaded";
-    }
-  }
-}
 
 namespace xzero {
 namespace http {
@@ -42,6 +28,14 @@ namespace client {
 # define DEBUG(msg...) do {} while (0)
 # define TRACE(msg...) do {} while (0)
 #endif
+
+std::ostream& operator<<(std::ostream& os, HttpClusterSchedulerStatus value) {
+  switch (value) {
+    case HttpClusterSchedulerStatus::Unavailable: return os << "Unavailable";
+    case HttpClusterSchedulerStatus::Success: return os << "Success";
+    case HttpClusterSchedulerStatus::Overloaded: return os << "Overloaded";
+  }
+}
 
 HttpCluster::HttpCluster(const std::string& name,
                          const std::string& storagePath,
@@ -776,7 +770,7 @@ void HttpCluster::serviceUnavailable(HttpClusterRequest* cr, HttpStatus status) 
   cr->onMessageBegin(
       HttpVersion::VERSION_1_1,
       status,
-      BufferRef(StringUtil::toString(HttpStatus::ServiceUnavailable)));
+      BufferRef(to_string(HttpStatus::ServiceUnavailable)));
 
   // TODO: put into a more generic place where it affects all responses.
   //
@@ -788,7 +782,7 @@ void HttpCluster::serviceUnavailable(HttpClusterRequest* cr, HttpStatus status) 
   if (retryAfter() != Duration::Zero) {
     cr->onMessageHeader(
         BufferRef("Retry-After"),
-        BufferRef(StringUtil::toString(retryAfter().seconds())));
+        BufferRef(to_string(retryAfter().seconds())));
   }
 
   cr->onMessageHeaderEnd();

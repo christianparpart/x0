@@ -16,6 +16,7 @@
 #include <xzero/Duration.h>
 #include <utility>
 #include <vector>
+#include <iosfwd>
 
 namespace xzero {
   class JsonWriter;
@@ -134,5 +135,7 @@ class HttpHealthMonitor {
 
   HttpClient client_;
 };
+
+std::ostream& operator<<(std::ostream& os, HttpHealthMonitor::State state);
 
 } // namespace xzero::http::client

@@ -696,7 +696,7 @@ void HttpClusterApiHandler::createBucket(HttpCluster* cluster,
   if (ec == TokenShaperError::Success) {
     generateResponse(HttpStatus::NoContent);
   } else {
-    generateResponse(HttpStatus::BadRequest, StringUtil::toString(ec));
+    generateResponse(HttpStatus::BadRequest, to_string(ec));
   }
 }
 
@@ -725,7 +725,7 @@ void HttpClusterApiHandler::updateBucket(HttpCluster* cluster,
   if (ec == TokenShaperError::Success) {
     generateResponse(HttpStatus::NoContent);
   } else {
-    generateResponse(HttpStatus::BadRequest, StringUtil::toString(ec));
+    generateResponse(HttpStatus::BadRequest, to_string(ec));
   }
 }
 
