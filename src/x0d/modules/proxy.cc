@@ -23,10 +23,8 @@
 #include <xzero/http/http1/Generator.h>
 #include <xzero/http/HeaderFieldList.h>
 #include <xzero/net/EndPointWriter.h>
-#include <xzero/net/ByteArrayEndPoint.h>
-#include <xzero/io/FileUtil.h>
-#include <xzero/io/BufferInputStream.h>
 #include <xzero/net/TcpEndPoint.h>
+#include <xzero/io/FileUtil.h>
 #include <xzero/WallClock.h>
 #include <xzero/StringUtil.h>
 #include <xzero/RuntimeError.h>
@@ -392,7 +390,7 @@ void ProxyModule::addVia(XzeroContext* cx) {
 void ProxyModule::addVia(const HttpRequestInfo* in, HttpResponse* out) {
   char buf[128];
   snprintf(buf, sizeof(buf), "%s %s",
-           StringUtil::toString(in->version()).c_str(),
+           to_string(in->version()).c_str(),
            pseudonym_.c_str());
 
   // RFC 7230, section 5.7.1: makes it clear, that we put ourselfs into the
@@ -471,7 +469,7 @@ bool ProxyModule::tryHandleTrace(XzeroContext* cx) {
   int maxForwards = std::stoi(cx->request()->getHeader("Max-Forwards"));
   if (maxForwards != 0) {
     cx->request()->headers().overwrite("Max-Forwards",
-                                       StringUtil::toString(maxForwards - 1));
+                                       to_string(maxForwards - 1));
     return false;
   }
 
@@ -491,10 +489,8 @@ bool ProxyModule::tryHandleTrace(XzeroContext* cx) {
   generator.generateBody(body);
   generator.generateTrailer(trailers);
 
-  ByteArrayEndPoint ep;
-  writer.flush(&ep);
-
-  Buffer message = ep.output();
+  Buffer message;
+  writer.flush(&message);
 
   cx->response()->setStatus(HttpStatus::Ok);
   cx->response()->addHeader("Content-Type", "message/http");
