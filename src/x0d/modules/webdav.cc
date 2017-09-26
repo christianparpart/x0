@@ -65,8 +65,10 @@ bool WebdavModule::webdav_mkcol(XzeroContext* cx) {
   if (!cx->file())
     return false;
 
-  if (!cx->verifyDirectoryDepth())
-    return true;
+  if (cx->request()->directoryDepth() < 0) {
+    cx->logError("Directory traversal detected: $0", cx->request()->path());
+    return cx->sendErrorPage(HttpStatus::BadRequest);
+  }
 
   if (cx->file()->isDirectory()) {
     cx->response()->setStatus(HttpStatus::Ok);
@@ -90,8 +92,10 @@ bool WebdavModule::webdav_mkcol(XzeroContext* cx) {
 }
 
 bool WebdavModule::webdav_get(XzeroContext* cx) {
-  if (!cx->verifyDirectoryDepth())
-    return true;
+  if (cx->request()->directoryDepth() < 0) {
+    cx->logError("Directory traversal detected: $0", cx->request()->path());
+    return cx->sendErrorPage(HttpStatus::BadRequest);
+  }
 
   HttpStatus status = daemon().fileHandler().handle(cx->request(),
                                                     cx->response(),
@@ -117,8 +121,10 @@ bool WebdavModule::webdav_put(XzeroContext* cx, Params& args) {
     return true;
   }
 
-  if (!cx->verifyDirectoryDepth())
-    return true;
+  if (cx->request()->directoryDepth() < 0) {
+    cx->logError("Directory traversal detected: $0", cx->request()->path());
+    return cx->sendErrorPage(HttpStatus::BadRequest);
+  }
 
   BufferRef content = cx->request()->getContent().getBuffer();
 

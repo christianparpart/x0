@@ -146,12 +146,14 @@ DirlistingModule::DirlistingModule(x0d::XzeroDaemon* d)
 }
 
 bool DirlistingModule::dirlisting(XzeroContext* cx, Params& args) {
-  if (!cx->verifyDirectoryDepth())
-    return true;
+  if (cx->request()->directoryDepth() < 0) {
+    cx->logError("Directory traversal detected: $0", cx->request()->path());
+    return cx->sendErrorPage(HttpStatus::BadRequest);
+  }
 
   if (!cx->file()) {
-    logError("dirlisting", "Requesth path not mapped to a physical location yet.");
-    return false;
+    cx->logError("dirlisting: Requesth path not mapped to a physical location yet.");
+    return cx->sendErrorPage(HttpStatus::InternalServerError);
   }
 
   if (!cx->file()->isDirectory())

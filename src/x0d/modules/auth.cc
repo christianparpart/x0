@@ -264,10 +264,8 @@ void AuthModule::auth_pam(XzeroContext* cx, flow::vm::Params& args) {
 bool AuthModule::auth_require(XzeroContext* cx, flow::vm::Params& args) {
   AuthBasic* auth = cx->customData<AuthBasic>(this);
   if (!auth || !auth->backend) {
-    logError("auth", "'auth.require()' used without specifying a backend");
-    cx->response()->setStatus(HttpStatus::InternalServerError);
-    cx->response()->completed();
-    return true;
+    cx->logError("auth: auth.require: used without specifying a backend");
+    return cx->sendErrorPage(HttpStatus::InternalServerError);
   }
 
   std::string authorization = cx->request()->headers().get("Authorization");
@@ -289,7 +287,7 @@ bool AuthModule::auth_require(XzeroContext* cx, flow::vm::Params& args) {
 
     cx->request()->setUserName(user);
 
-    logTrace("x0d.auth", "auth.require: '$0' -> '$1'", authcode, plain.c_str());
+    cx->logDebug("auth: auth.require: '$0' -> '$1'", authcode, plain);
 
     if (auth->verify(user, pass)) {
       // authentification succeed, so do not intercept request processing

@@ -336,11 +336,10 @@ void AccesslogModule::accesslog_syslog(XzeroContext* cx, Params& args) {
   FlowString id = args.getString(1);
   Option<FlowString> format = lookupFormat(id);
   if (format.isNone()) {
-    logError("x0d",
-             "Could not write to accesslog.syslog with format id '%*s'. %s",
-             id.size(),
-             id.data(),
-             "Accesslog format not found.");
+    cx->logError(
+         "Could not write to accesslog.syslog with format id '$0'. $1",
+         BufferRef(id.data(), id.size()),
+         "Accesslog format not found.");
     return;
   }
 
@@ -359,13 +358,11 @@ void AccesslogModule::accesslog_file(XzeroContext* cx, Params& args) {
 
   Option<FlowString> format = lookupFormat(id);
   if (format.isNone()) {
-    logError("x0d",
-             "Could not write to accesslog '%*s' with format id '%*s'. %s",
-             filename.size(),
-             filename.data(),
-             id.size(),
-             id.data(),
-             "Accesslog format not found.");
+    cx->logError(
+         "Could not write to accesslog '$0' with format id '$1'. $2",
+         BufferRef(filename),
+         BufferRef(id),
+         "Accesslog format not found.");
     return;
   }
 

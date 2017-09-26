@@ -106,7 +106,7 @@ size_t CoreModule::cpuCount() {
   if (numCPU_ < 0) {
     numCPU_ = sysconf(_SC_NPROCESSORS_ONLN);
     if (numCPU_ < 0) {
-      logError("Could not retrieve processor count. $0", strerror(errno));
+      logError("x0d", "Could not retrieve processor count. $0", strerror(errno));
       numCPU_ = 1;
     }
   }
@@ -637,29 +637,29 @@ void CoreModule::sys_domainname(XzeroContext* cx, Params& args) {
   if (getdomainname(buf, sizeof(buf)) == 0) {
     args.setResult(buf);
   } else {
-    logError("sys.domainname: getdomainname() failed. $0", strerror(errno));
+    cx->logError("sys.domainname: getdomainname() failed. $0", strerror(errno));
     args.setResult("");
   }
 }
 
 void CoreModule::log_err(XzeroContext* cx, Params& args) {
-  logError("x0d", "$0", args.getString(1).str());
+  cx->logError("$0", args.getString(1).str());
 }
 
 void CoreModule::log_warn(XzeroContext* cx, Params& args) {
-  logWarning("x0d", "$0", args.getString(1).str());
+  cx->logWarning("$0", args.getString(1).str());
 }
 
 void CoreModule::log_notice(XzeroContext* cx, Params& args) {
-  logNotice("x0d", "$0", args.getString(1).str());
+  cx->logNotice("$0", args.getString(1).str());
 }
 
 void CoreModule::log_info(XzeroContext* cx, Params& args) {
-  logInfo("x0d", "$0", args.getString(1).str());
+  cx->logInfo("$0", args.getString(1).str());
 }
 
 void CoreModule::log_debug(XzeroContext* cx, Params& args) {
-  logDebug("x0d", "$0", args.getString(1).str());
+  cx->logDebug("$0", args.getString(1).str());
 }
 
 void CoreModule::rand(XzeroContext* cx, Params& args) {
@@ -772,7 +772,7 @@ bool CoreModule::docroot(XzeroContext* cx, Params& args) {
   std::string path = args.getString(1).str();
   Result<std::string> realpath = FileUtil::realpath(path);
   if (realpath.isFailure()) {
-    logError("x0d", "docroot: Could not find docroot '$0'. ($1) $2",
+    cx->logError("docroot: Could not find docroot '$0'. ($1) $2",
         path,
         realpath.error().category().name(),
         realpath.error().message());
@@ -818,9 +818,7 @@ bool CoreModule::redirect_with_to(XzeroContext* cx, Params& args) {
     cx->response()->setHeader("Location", location.str());
   } else {
     cx->response()->setStatus(HttpStatus::InternalServerError);
-    logError("x0d", 
-        "Status code is out of range. %s should be between 300 and 308.",
-        status);
+    cx->logError("Status code is out of range. %s should be between 300 and 308.", status);
   }
   cx->response()->completed();
 
@@ -856,8 +854,10 @@ bool CoreModule::blank(XzeroContext* cx, Params& args) {
 }
 
 bool CoreModule::staticfile(XzeroContext* cx, Params& args) {
-  if (!cx->verifyDirectoryDepth())
-    return true;
+  if (cx->request()->directoryDepth() < 0) {
+    cx->logError("Directory traversal detected: $0", cx->request()->path());
+    return cx->sendErrorPage(HttpStatus::BadRequest);
+  }
 
   HttpStatus status = daemon().fileHandler().handle(cx->request(),
                                                     cx->response(),
@@ -872,8 +872,10 @@ bool CoreModule::staticfile(XzeroContext* cx, Params& args) {
 }
 
 bool CoreModule::precompressed(XzeroContext* cx, Params& args) {
-  if (!cx->verifyDirectoryDepth())
-    return true;
+  if (cx->request()->directoryDepth() < 0) {
+    cx->logError("Directory traversal detected: $0", cx->request()->path());
+    return cx->sendErrorPage(HttpStatus::BadRequest);
+  }
 
   if (!cx->file())
     return false;
@@ -933,13 +935,13 @@ bool CoreModule::precompressed(XzeroContext* cx, Params& args) {
 
 void CoreModule::autoindex(XzeroContext* cx, Params& args) {
   if (cx->documentRoot().empty()) {
-    logError("x0d", "autoindex: No document root set yet. Skipping.");
+    cx->logError("autoindex: No document root set yet. Skipping.");
     // error: must have a document-root set first.
     return;
   }
 
   if (!cx->file()) {
-    logDebug("x0d", "autoindex: No file mapped. Skipping.");
+    cx->logDebug("autoindex: No file mapped. Skipping.");
     return;
   }
 
@@ -978,9 +980,8 @@ void CoreModule::rewrite(XzeroContext* cx, Params& args) {
 
 void CoreModule::pathinfo(XzeroContext* cx, Params& args) {
   if (!cx->file()) {
-    logError("x0d",
-        "pathinfo: no file information available. "
-        "Please set document root first.");
+    cx->logError("pathinfo: no file information available. "
+                 "Please set document root first.");
     return;
   }
 
@@ -1275,8 +1276,7 @@ bool CoreModule::verify_req_accept_language(xzero::flow::Instr* call, xzero::flo
   // empty-arrays aren't currently supported, but write the test in case I
   // changed my mind on the other side. ;)
   if (arg->get().size() == 0) {
-    logError("x0d",
-        "req.accept_language() requires a non-empty array argument.");
+    logError("x0d", "req.accept_language() requires a non-empty array argument.");
     return false;
   }
 

@@ -79,8 +79,6 @@ class XzeroContext {
   size_t bytesReceived() const;
   size_t bytesTransmitted() const;
 
-  bool verifyDirectoryDepth();
-
   void setErrorPage(xzero::http::HttpStatus status, const std::string& uri);
   bool getErrorPage(xzero::http::HttpStatus status, std::string* uri) const;
 
