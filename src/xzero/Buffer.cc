@@ -8,6 +8,7 @@
 #include <xzero/Buffer.h>
 #include <xzero/hash/FNV.h>
 #include <xzero/RuntimeError.h>
+#include <iostream>
 #include <sstream>
 #include <iomanip>
 #include <cstdlib>
@@ -191,6 +192,17 @@ std::string BufferRef::hexdumpPrettyAscii(const void* bytes, size_t length) {
   }
 
   return sstr.str();
+}
+
+std::ostream& operator<<(std::ostream& os, const xzero::BufferRef& b) {
+  os.write(b.data(), b.size());
+  return os;
+}
+
+std::ostream& operator<<(std::ostream& os, const xzero::Buffer& b) {
+  // os << b.str();
+  os.write(b.data(), b.size());
+  return os;
 }
 
 }  // namespace xzero

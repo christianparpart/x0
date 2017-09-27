@@ -17,6 +17,7 @@
 #include <cassert>
 #include <string>
 #include <stdexcept>
+#include <iosfwd>
 #include <new>
 
 namespace xzero {
@@ -29,7 +30,6 @@ class BufferBase;
 template <void (*ensure)(void*, size_t)>
 class MutableBuffer;
 class BufferRef;
-class BufferSlice;
 class FixedBuffer;
 class Buffer;
 
@@ -470,9 +470,6 @@ class XZERO_BASE_API Buffer : public MutableBuffer<mutableEnsure> {
   size_t mark() const noexcept;
   void setMark(size_t value);
 
-  BufferSlice slice(size_t offset = 0) const;
-  BufferSlice slice(size_t offset, size_t size) const;
-
   void setCapacity(size_t value);
 
   //	operator bool () const;
@@ -482,32 +479,6 @@ class XZERO_BASE_API Buffer : public MutableBuffer<mutableEnsure> {
 
  private:
   size_t mark_;
-};
-// }}}
-// {{{ BufferSlice
-/** Holds a reference to a slice (region) of a managed mutable buffer.
- */
-class XZERO_BASE_API BufferSlice : public BufferBase<Buffer> {
- public:
-  BufferSlice();
-  BufferSlice(Buffer& buffer, size_t offset, size_t _size);
-  BufferSlice(const BufferSlice& v);
-
-  BufferSlice& operator=(const BufferSlice& v);
-
-  BufferSlice slice(size_t offset = 0) const;
-  BufferSlice slice(size_t offset, size_t size) const;
-
-  void shl(ssize_t offset = 1);
-  void shr(ssize_t offset = 1);
-
-  // random access
-  reference_type operator[](size_t offset) { return data()[offset]; }
-  const_reference_type operator[](size_t offset) const {
-    return data()[offset];
-  }
-
-  Buffer* buffer() const { return data_.buffer(); }
 };
 // }}}
 // {{{ free functions API
@@ -541,13 +512,13 @@ XZERO_BASE_API Buffer operator+(const BufferRef& a, const BufferRef& b);
 // {{{ BufferTraits helper impl
 inline BufferOffset::operator char*() {
   assert(buffer_ != nullptr &&
-         "BufferSlice must not be empty when accessing data.");
+         "Buffer must not be empty when accessing data.");
   return buffer_->data() + offset_;
 }
 
 inline BufferOffset::operator const char*() const {
   assert(buffer_ != nullptr &&
-         "BufferSlice must not be empty when accessing data.");
+         "Buffer must not be empty when accessing data.");
   return const_cast<BufferOffset*>(this)->buffer_->data() + offset_;
 }
 // }}}
@@ -1575,72 +1546,10 @@ inline void Buffer::setMark(size_t value) {
   mark_ = value;
 }
 
-inline BufferSlice Buffer::slice(size_t offset) const {
-  assert(offset <= size());
-  return BufferSlice(*(Buffer*)this, offset, size() - offset);
-}
-
-inline BufferSlice Buffer::slice(size_t offset, size_t count) const {
-  assert(offset <= size());
-  assert(count == npos || offset + count <= size());
-
-  return count != npos ? BufferSlice(*(Buffer*)this, offset, count)
-                       : BufferSlice(*(Buffer*)this, offset, size() - offset);
-}
-
 inline Buffer Buffer::fromCopy(const value_type* data, size_t count) {
   Buffer result(count);
   result.push_back(data, count);
   return result;
-}
-// }}}
-// {{{ BufferSlice impl
-inline BufferSlice::BufferSlice() : BufferBase<Buffer>() {
-}
-
-inline BufferSlice::BufferSlice(Buffer& buffer, size_t offset, size_t size)
-    : BufferBase<Buffer>(data_type(&buffer, offset), size) {
-}
-
-inline BufferSlice::BufferSlice(const BufferSlice& v)
-    : BufferBase<Buffer>(v) {
-}
-
-inline BufferSlice& BufferSlice::operator=(const BufferSlice& v) {
-  data_ = v.data_;
-  size_ = v.size_;
-
-  return *this;
-}
-
-inline BufferSlice BufferSlice::slice(size_t offset) const {
-  assert(offset <= size());
-  return BufferSlice(*data_.buffer(), data_.offset() + offset, size() - offset);
-}
-
-inline BufferSlice BufferSlice::slice(size_t offset, size_t count) const {
-  assert(offset <= size());
-  assert(count == npos || offset + count <= size());
-
-  return count != npos
-             ? BufferSlice(*data_.buffer(), data_.offset() + offset, count)
-             : BufferSlice(*data_.buffer(), data_.offset() + offset,
-                           size() - offset);
-}
-
-/** Shifts view's left margin by given bytes to the left, thus, increasing
- *  view's size.
- */
-inline void BufferSlice::shl(ssize_t value) {
-  assert(static_cast<ssize_t>(data_.offset_) >= value);
-  data_.offset_ -= value;
-}
-
-/** Shifts view's right margin by given bytes to the right, thus, increasing
- *  view's size.
- */
-inline void BufferSlice::shr(ssize_t value) {
-  size_ += value;
 }
 // }}}
 // {{{ free functions (concatenation) impl
@@ -1659,6 +1568,10 @@ inline void swap(xzero::BufferRef& left, xzero::BufferRef& right) {
   left.swap(right);
 }
 // }}}
+
+std::ostream& operator<<(std::ostream& os, const xzero::BufferRef& b);
+std::ostream& operator<<(std::ostream& os, const xzero::Buffer& b);
+
 }  // namespace xzero
 
 // {{{ std::hash<BufferBase<T>>
@@ -1678,15 +1591,6 @@ namespace xzero {
 }
 
 namespace std {
-template <>
-struct hash<xzero::BufferSlice> {
-  typedef xzero::BufferSlice argument_type;
-  typedef uint32_t result_type;
-
-  result_type operator()(const argument_type& value) const noexcept {
-    return xzero::_hash(value);
-  }
-};
 
 template <>
 struct hash<xzero::BufferRef> {
@@ -1708,14 +1612,5 @@ struct hash<xzero::Buffer> {
   }
 };
 
-inline ostream& operator<<(ostream& os, const xzero::BufferRef& b) {
-  os << b.str();
-  return os;
-}
-
-inline ostream& operator<<(ostream& os, const xzero::Buffer& b) {
-  os << b.str();
-  return os;
-}
 }
 // }}}
