@@ -92,7 +92,6 @@ void HttpClient::ResponseBuilder::onMessageEnd() {
 }
 
 void HttpClient::ResponseBuilder::onError(std::error_code ec) {
-  logError("ResponseBuilder", "Error. $0; $1", ec.message());
   promise_.failure(ec);
   delete this;
 }
@@ -276,7 +275,8 @@ void HttpClient::execute() {
   });
 
   f.onFailure([this](std::error_code ec) {
-    logError("HttpClient", "Failed to connect. $0", ec.message());
+    TRACE("Failed to connect. $0: $1", ec.category().name(), ec.message());
+    listener_->onError(ec);
   });
 }
 
