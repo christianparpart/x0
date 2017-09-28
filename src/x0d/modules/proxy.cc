@@ -105,9 +105,6 @@ ProxyModule::ProxyModule(XzeroDaemon* d)
       .param<int>("port")
       .param<FlowString>("on_client_abort", "close");
 
-  mainHandler("proxy.haproxy_stats", &ProxyModule::proxy_haproxy_stats)
-      .param<FlowString>("prefix", "/");
-
   mainFunction("proxy.cache", &ProxyModule::proxy_cache)
       .param<bool>("enabled", true)
       .param<FlowString>("key", "")
@@ -224,8 +221,6 @@ void HttpResponseBuilder::onMessageEnd() {
 }
 
 void HttpResponseBuilder::onError(std::error_code ec) {
-  // TODO used? sufficient? resistent? chocolate?
-
   if (ec.category() == HttpStatusCategory::get()) {
     response_->sendError(static_cast<HttpStatus>(ec.value()));
   } else {
@@ -335,6 +330,7 @@ bool ProxyModule::proxy_api(XzeroContext* cx, xzero::flow::vm::Params& args) {
 }
 
 bool ProxyModule::proxy_fcgi(XzeroContext* cx, xzero::flow::vm::Params& args) {
+  cx->logError("proxy.fcgi: Not yet reimplemented");
   return false; // TODO
 }
 
@@ -448,10 +444,6 @@ void ProxyModule::destroyCluster(const std::string& name) {
   if (i != clusterMap_.end()) {
     clusterMap_.erase(i);
   }
-}
-
-bool ProxyModule::proxy_haproxy_stats(XzeroContext* cx, xzero::flow::vm::Params& args) {
-  return false; // TODO
 }
 
 bool ProxyModule::proxy_roadwarrior_verify(xzero::flow::Instr* instr, xzero::flow::IRBuilder* builder) {

@@ -63,7 +63,6 @@ class ProxyModule : public XzeroModule,
   bool proxy_api(XzeroContext* cx, xzero::flow::vm::Params& args);
   bool proxy_fcgi(XzeroContext* cx, xzero::flow::vm::Params& args);
   bool proxy_http(XzeroContext* cx, xzero::flow::vm::Params& args);
-  bool proxy_haproxy_stats(XzeroContext* cx, xzero::flow::vm::Params& args);
   bool proxy_roadwarrior_verify(xzero::flow::Instr* instr, xzero::flow::IRBuilder* builder);
   void proxy_cache(XzeroContext* cx, xzero::flow::vm::Params& args);
   bool tryHandleTrace(XzeroContext* cx);
