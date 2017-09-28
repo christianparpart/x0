@@ -730,7 +730,7 @@ bool Runner::loop() {
     handler_->program()->nativeFunction(id)->invoke(args);
 
     if (state_ == Suspended) {
-      logNotice("flow", "vm suspended. returning (false)");
+      logDebug("flow", "vm suspended in function. returning (false)");
       return false;
     }
 
@@ -753,6 +753,7 @@ bool Runner::loop() {
     const bool handled = (bool)argv[0];
 
     if (state_ == Suspended) {
+      logDebug("flow", "vm suspended in handler. returning (false)");
       return false;
     }
 
