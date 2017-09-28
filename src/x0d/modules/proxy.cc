@@ -357,10 +357,14 @@ bool ProxyModule::proxy_http(XzeroContext* cx, xzero::flow::vm::Params& args) {
 
   f.onFailure([client, cx, upstreamAddr] (std::error_code ec) {
     logError("proxy", "Failed to proxy to $0. $1", upstreamAddr, ec.message());
+    delete client;
     bool internalRedirect = false;
     cx->sendErrorPage(HttpStatus::ServiceUnavailable, &internalRedirect);
-    delete client;
+    if (internalRedirect) {
+      cx->runner()->resume();
+    }
   });
+
   f.onSuccess([client, cx, this] (HttpClient::Response& response) {
     for (const HeaderField& field: response.headers()) {
       if (!isConnectionHeader(field.name())) {
