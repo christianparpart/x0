@@ -180,7 +180,6 @@ libXzero_a_SOURCES = \
 	src/xzero/raft/Transport.cc \
 	src/xzero/testing.cc \
 	src/xzero/text/IniFile.cc \
-	src/xzero/thread/Future.cc \
 	src/xzero/thread/Wakeup.cc \
 	src/xzero/thread/Queue.cc \
 	src/xzero/thread/SignalHandler.cc \
