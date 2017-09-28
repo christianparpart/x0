@@ -31,9 +31,7 @@
 #define TRACE(msg...) do {} while (0)
 #endif
 
-namespace xzero {
-namespace flow {
-namespace vm {
+namespace xzero::flow::vm {
 
 // {{{ VM helper preprocessor definitions
 #define OP opcode((Instruction) * pc)
@@ -768,6 +766,20 @@ bool Runner::loop() {
   // }}}
 }
 
-}  // namespace vm
-}  // namespace flow
-}  // namespace xzero
+std::ostream& operator<<(std::ostream& os, Runner::State state) {
+  switch (state) {
+    case Runner::Inactive:
+      return os << "Inactive";
+    case Runner::Running:
+      return os << "Running";
+    case Runner::Suspended:
+      return os << "Suspended";
+  }
+}
+
+std::ostream& operator<<(std::ostream& os, const Runner& vm) {
+  os << "{" << vm.state() << "@" << vm.instructionOffset() << "}";
+  return os;
+}
+
+}  // namespace xzero::flow::vm

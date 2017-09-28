@@ -21,6 +21,7 @@
 #include <cstdio>
 #include <cmath>
 #include <string>
+#include <iosfwd>
 
 namespace xzero {
 namespace flow {
@@ -70,6 +71,7 @@ class XZERO_FLOW_API Runner : public CustomData {
   bool resume();
   void rewind();
 
+  size_t instructionOffset() const { return pc_; }
   State state() const { return state_; }
   bool isInactive() const { return state_ == Inactive; }
   bool isRunning() const { return state_ == Running; }
@@ -107,6 +109,9 @@ class XZERO_FLOW_API Runner : public CustomData {
   Runner(Runner&) = delete;
   Runner& operator=(Runner&) = delete;
 };
+
+std::ostream& operator<<(std::ostream& os, Runner::State state);
+std::ostream& operator<<(std::ostream& os, const Runner& vm);
 
 }  // namespace vm
 }  // namespace flow
