@@ -490,7 +490,7 @@ bool ProxyModule::tryHandleTrace(XzeroContext* cx) {
   generator.generateTrailer(trailers);
 
   Buffer message;
-  writer.flush(&message);
+  writer.flushTo(&message);
 
   cx->response()->setStatus(HttpStatus::Ok);
   cx->response()->addHeader("Content-Type", "message/http");

@@ -91,8 +91,8 @@ class Connection
 
   // Connection overrides
   void onOpen(bool dataReady) override;
-  void onFillable() override;
-  void onFlushable() override;
+  void onReadable() override;
+  void onWriteable() override;
   void onInterestFailure(const std::exception& error) override;
 
   // FrameListener overrides

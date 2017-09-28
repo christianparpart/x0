@@ -52,30 +52,30 @@ class XZERO_BASE_API Connection {
   virtual void close();
 
   /**
-   * Ensures onFillable() is invoked when data is available for
+   * Ensures onReadable() is invoked when data is available for
    * read.
    *
    * In any case of an error, onInterestFailure(const std::exception&) is invoked.
    */
-  void wantFill();
+  void wantRead();
 
   /**
-   * Ensures onFlushable() is invoked when underlying endpoint is ready
+   * Ensures onWriteable() is invoked when underlying endpoint is ready
    * to write.
    *
    * In any case of an error, onInterestFailure(const std::exception&) is invoked.
    */
-  void wantFlush();
+  void wantWrite();
 
   /**
    * Event callback being invoked when data is available for read.
    */
-  virtual void onFillable();
+  virtual void onReadable();
 
   /**
    * Event callback being invoked when underlying endpoint ready for write.
    */
-  virtual void onFlushable();
+  virtual void onWriteable();
 
   /**
    * Event callback being invoked on any errors while waiting for data.

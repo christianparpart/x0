@@ -214,10 +214,10 @@ void SslEndPoint::shutdown() {
   }
 }
 
-size_t SslEndPoint::fill(Buffer* sink, size_t space) {
+size_t SslEndPoint::read(Buffer* sink, size_t space) {
   int rv = SSL_read(ssl_, sink->end(), space);
   if (rv > 0) {
-    TRACE("$0 fill(Buffer:$1) -> $2", this, space, rv);
+    TRACE("$0 read(Buffer:$1) -> $2", this, space, rv);
     bioDesire_ = Desire::None;
     sink->resize(sink->size() + rv);
     return rv;
@@ -231,21 +231,21 @@ size_t SslEndPoint::fill(Buffer* sink, size_t space) {
         return 0; // XXX treat as EOF
       }
     case SSL_ERROR_WANT_READ:
-      TRACE("$0 fill(Buffer:$1) -> want read", this, space);
+      TRACE("$0 read(Buffer:$1) -> want read", this, space);
       bioDesire_ = Desire::Read;
       break;
     case SSL_ERROR_WANT_WRITE:
-      TRACE("$0 fill(Buffer:$1) -> want write", this, space);
+      TRACE("$0 read(Buffer:$1) -> want write", this, space);
       bioDesire_ = Desire::Write;
       break;
     case SSL_ERROR_ZERO_RETURN:
-      TRACE("$0 fill(Buffer:$1) -> remote endpoint closed", this, space);
+      TRACE("$0 read(Buffer:$1) -> remote endpoint closed", this, space);
       close();
       break;
     default:
       logDebug("SSL", "Failed to fill. $0",
           SslErrorCategory::get().message(SSL_get_error(ssl_, rv)));
-      TRACE("$0 fill(Buffer:$1): SSL_read() -> $2",
+      TRACE("$0 read(Buffer:$1): SSL_read() -> $2",
             this, space, SSL_get_error(ssl_, rv));
       THROW_SSL_ERROR();
   }
@@ -253,11 +253,11 @@ size_t SslEndPoint::fill(Buffer* sink, size_t space) {
   return 0;
 }
 
-size_t SslEndPoint::flush(const BufferRef& source) {
+size_t SslEndPoint::write(const BufferRef& source) {
   int rv = SSL_write(ssl_, source.data(), source.size());
   if (rv > 0) {
     bioDesire_ = Desire::None;
-    TRACE("$0 flush(BufferRef, $1, $2/$3 bytes)",
+    TRACE("$0 write(BufferRef, $1, $2/$3 bytes)",
           this, source.data(), rv, source.size());
 
     return rv;
@@ -267,49 +267,49 @@ size_t SslEndPoint::flush(const BufferRef& source) {
     case SSL_ERROR_SYSCALL:
       RAISE_ERRNO(errno);
     case SSL_ERROR_WANT_READ:
-      TRACE("$0 flush(BufferRef, @$1, $2 bytes) failed -> want read.", this, source.data(), source.size());
+      TRACE("$0 write(BufferRef, @$1, $2 bytes) failed -> want read.", this, source.data(), source.size());
       bioDesire_ = Desire::Read;
       break;
     case SSL_ERROR_WANT_WRITE:
-      TRACE("$0 flush(BufferRef, @$1, $2 bytes) failed -> want write.", this, source.data(), source.size());
+      TRACE("$0 write(BufferRef, @$1, $2 bytes) failed -> want write.", this, source.data(), source.size());
       bioDesire_ = Desire::Read;
       break;
     case SSL_ERROR_ZERO_RETURN:
-      TRACE("$0 flush(BufferRef, @$1, $2 bytes) failed -> remote endpoint closed.", this, source.data(), source.size());
+      TRACE("$0 write(BufferRef, @$1, $2 bytes) failed -> remote endpoint closed.", this, source.data(), source.size());
       close();
       break;
     default:
       logDebug("SSL", "Failed to flush. $0",
           SslErrorCategory::get().message(SSL_get_error(ssl_, rv)));
-      TRACE("$0 flush(BufferRef, @$1, $2 bytes) failed. error.", this, source.data(), source.size());
+      TRACE("$0 write(BufferRef, @$1, $2 bytes) failed. error.", this, source.data(), source.size());
       THROW_SSL_ERROR();
   }
   errno = EAGAIN;
   return 0;
 }
 
-size_t SslEndPoint::flush(const FileView& view) {
+size_t SslEndPoint::write(const FileView& view) {
   Buffer buf;
   FileUtil::read(view, &buf);
-  return flush(buf);
+  return write(buf);
 }
 
-void SslEndPoint::wantFill() {
+void SslEndPoint::wantRead() {
   if (io_) {
-    TRACE("$0 wantFill: ignored due to active io", this);
+    TRACE("$0 wantRead: ignored due to active io", this);
     return;
   }
 
   switch (bioDesire_) {
     case Desire::None:
     case Desire::Read:
-      TRACE("$0 wantFill: read", this);
+      TRACE("$0 wantRead: read", this);
       io_ = executor_->executeOnReadable(
           handle(),
           std::bind(&SslEndPoint::fillable, this));
       break;
     case Desire::Write:
-      TRACE("$0 wantFill: write", this);
+      TRACE("$0 wantRead: write", this);
       io_ = executor_->executeOnWritable(
           handle(),
           std::bind(&SslEndPoint::fillable, this));
@@ -323,7 +323,7 @@ void SslEndPoint::fillable() {
   try {
     io_.reset();
     bioDesire_ = Desire::None;
-    connection()->onFillable();
+    connection()->onReadable();
   } catch (const std::exception& e) {
     connection()->onInterestFailure(e);
   } catch (...) {
@@ -333,21 +333,21 @@ void SslEndPoint::fillable() {
   }
 }
 
-void SslEndPoint::wantFlush() {
+void SslEndPoint::wantWrite() {
   if (io_) {
-    TRACE("$0 wantFlush: ignored due to active io", this);
+    TRACE("$0 wantWrite: ignored due to active io", this);
     return;
   }
 
   switch (bioDesire_) {
     case Desire::Read:
-      TRACE("$0 wantFlush: read", this);
-      TcpEndPoint::wantFill();
+      TRACE("$0 wantWrite: read", this);
+      TcpEndPoint::wantRead();
       break;
     case Desire::None:
     case Desire::Write:
-      TRACE("$0 wantFlush: write", this);
-      TcpEndPoint::wantFlush();
+      TRACE("$0 wantWrite: write", this);
+      TcpEndPoint::wantWrite();
       break;
   }
 }
@@ -447,7 +447,7 @@ void SslEndPoint::flushable() {
   try {
     io_.reset();
     bioDesire_ = Desire::None;
-    connection()->onFlushable();
+    connection()->onWriteable();
   } catch (const std::exception& e) {
     connection()->onInterestFailure(e);
   } catch (...) {

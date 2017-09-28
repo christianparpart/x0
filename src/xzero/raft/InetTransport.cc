@@ -37,8 +37,8 @@ class PeerConnection
 
   // Connection override (connection-endpoint hooks)
   void onOpen(bool dataReady) override;
-  void onFillable() override;
-  void onFlushable() override;
+  void onReadable() override;
+  void onWriteable() override;
 
   // Listener overrides for parser
   void receive(const HelloRequest& message) override;
@@ -87,15 +87,15 @@ void PeerConnection::onOpen(bool dataReady) {
   if (peerId_ == 0) {
     // XXX this is an incoming connection.
     if (dataReady) {
-      onFillable();
+      onReadable();
     } else {
-      wantFill();
+      wantRead();
     }
   }
 }
 
-void PeerConnection::onFillable() {
-  size_t n = endpoint()->fill(&inputBuffer_);
+void PeerConnection::onReadable() {
+  size_t n = endpoint()->read(&inputBuffer_);
   if (n == 0) {
     close();
     return; // EOF
@@ -106,21 +106,21 @@ void PeerConnection::onFillable() {
 
   if (n == 0) {
     // no message passed => need more input
-    wantFill();
+    wantRead();
   } else if (outputOffset_ < outputBuffer_.size()) {
-    wantFlush();
+    wantWrite();
   }
 }
 
-void PeerConnection::onFlushable() {
-  size_t n = endpoint()->flush(outputBuffer_.ref(outputOffset_));
+void PeerConnection::onWriteable() {
+  size_t n = endpoint()->write(outputBuffer_.ref(outputOffset_));
   outputOffset_ += n;
   if (outputOffset_ < outputBuffer_.size()) {
-    wantFlush();
+    wantWrite();
   } else {
     outputBuffer_.clear();
     outputOffset_ = 0;
-    wantFill();
+    wantRead();
   }
 }
 
@@ -256,7 +256,7 @@ void InetTransport::watchEndPoint(Id target, RefPtr<TcpEndPoint> ep) {
 
   endpoints_[target] = ep;
   ep->setBlocking(false);
-  ep->wantFill();
+  ep->wantRead();
 }
 
 void InetTransport::onClose(Id target) {
@@ -272,7 +272,7 @@ void InetTransport::send(Id target, const VoteRequest& msg) {
   if (RefPtr<TcpEndPoint> ep = getEndPoint(target)) {
     Buffer buffer;
     Generator(BufferUtil::writer(&buffer)).generateVoteRequest(msg);
-    ep->flush(buffer);
+    ep->write(buffer);
     watchEndPoint(target, ep);
   }
 }
@@ -281,7 +281,7 @@ void InetTransport::send(Id target, const AppendEntriesRequest& msg) {
   if (RefPtr<TcpEndPoint> ep = getEndPoint(target)) {
     Buffer buffer;
     Generator(BufferUtil::writer(&buffer)).generateAppendEntriesRequest(msg);
-    ep->flush(buffer);
+    ep->write(buffer);
     watchEndPoint(target, ep);
   }
 }
@@ -290,7 +290,7 @@ void InetTransport::send(Id target, const InstallSnapshotRequest& msg) {
   if (RefPtr<TcpEndPoint> ep = getEndPoint(target)) {
     Buffer buffer;
     Generator(BufferUtil::writer(&buffer)).generateInstallSnapshotRequest(msg);
-    ep->flush(buffer);
+    ep->write(buffer);
     watchEndPoint(target, ep);
   }
 }

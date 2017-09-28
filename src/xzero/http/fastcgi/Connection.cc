@@ -94,7 +94,7 @@ void HttpFastCgiTransport::setCompleter(CompletionHandler onComplete) {
   });
 
   generator_.flushBuffer();
-  connection_->wantFlush();
+  connection_->wantWrite();
 }
 
 HttpFastCgiTransport::HttpFastCgiTransport(Connection* connection,
@@ -245,17 +245,17 @@ void Connection::onOpen(bool dataReady) {
   xzero::Connection::onOpen(dataReady);
 
   if (dataReady)
-    onFillable();
+    onReadable();
   else
-    wantFill();
+    wantRead();
 }
 
-void Connection::onFillable() {
-  TRACE_CONN("$0 onFillable", this);
+void Connection::onReadable() {
+  TRACE_CONN("$0 onReadable", this);
 
-  TRACE_CONN("$0 onFillable: calling fill()", this);
-  if (endpoint()->fill(&inputBuffer_) == 0) {
-    TRACE_CONN("$0 onFillable: fill() returned 0", this);
+  TRACE_CONN("$0 onReadable: calling read()", this);
+  if (endpoint()->read(&inputBuffer_) == 0) {
+    TRACE_CONN("$0 onReadable: read() returned 0", this);
     // RAISE("client EOF");
     endpoint()->close();
     return;
@@ -273,28 +273,28 @@ void Connection::parseFragment() {
   inputOffset_ += n;
 }
 
-void Connection::onFlushable() {
-  TRACE_CONN("$0 onFlushable", this);
+void Connection::onWriteable() {
+  TRACE_CONN("$0 onWriteable", this);
 
-  const bool complete = writer_.flush(endpoint());
+  const bool complete = writer_.flushTo(endpoint());
 
   if (complete) {
-    TRACE_CONN("$0 onFlushable: completed. ($1)",
+    TRACE_CONN("$0 onWriteable: completed. ($1)",
           this,
           (!onComplete_.empty() ? "onComplete cb set" : "onComplete cb not set"));
 
     if (!onComplete_.empty()) {
-      TRACE_CONN("$0 onFlushable: invoking completion $1 callback(s)", this, onComplete_.size());
+      TRACE_CONN("$0 onWriteable: invoking completion $1 callback(s)", this, onComplete_.size());
       auto callbacks = std::move(onComplete_);
       onComplete_.clear();
       for (const auto& hook: callbacks) {
-        TRACE_CONN("$0 onFlushable: invoking one cb", this);
+        TRACE_CONN("$0 onWriteable: invoking one cb", this);
         hook(true);
       }
     }
   } else {
     // continue flushing as we still have data pending
-    wantFlush();
+    wantWrite();
   }
 }
 
@@ -376,7 +376,7 @@ void Connection::removeChannel(int request) {
   parser_.removeStreamState(request);
 
   if (isPersistent()) {
-    wantFill();
+    wantRead();
   } else if (channels_.empty()) {
     endpoint()->close();
   }

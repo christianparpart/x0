@@ -60,8 +60,8 @@ class XZERO_HTTP_API Connection : public ::xzero::Connection {
  private:
   void parseFragment();
 
-  void onFillable() override;
-  void onFlushable() override;
+  void onReadable() override;
+  void onWriteable() override;
   void onInterestFailure(const std::exception& error) override;
   void onResponseComplete(bool succeed);
 

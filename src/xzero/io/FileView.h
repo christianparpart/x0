@@ -71,7 +71,7 @@ class FileView {
   size_t size() const noexcept { return size_; }
   void setSize(size_t n) { size_ = n; }
 
-  void fill(Buffer* output) const;
+  void read(Buffer* output) const;
 
   FileView view(size_t offset, size_t n) const;
 

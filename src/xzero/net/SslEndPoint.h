@@ -147,10 +147,10 @@ class SslEndPoint : public TcpEndPoint {
 
   void shutdown();
 
-  using TcpEndPoint::fill;
-  size_t fill(Buffer* sink, size_t count) override;
-  size_t flush(const BufferRef& source) override;
-  size_t flush(const FileView& source) override;
+  using TcpEndPoint::read;
+  size_t read(Buffer* sink, size_t count) override;
+  size_t write(const BufferRef& source) override;
+  size_t write(const FileView& source) override;
 
   /**
    * Ensures that the SSL socket is ready for receiving data.
@@ -160,7 +160,7 @@ class SslEndPoint : public TcpEndPoint {
    * This might internally cause write <b>and</b> read operations
    * through the SSL layer.
    */
-  void wantFill() override;
+  void wantRead() override;
 
   /** Ensures that the SSL socket is ready for more flush operations.
    *
@@ -170,7 +170,7 @@ class SslEndPoint : public TcpEndPoint {
    * This might internally cause write <b>and</b> read operations
    * through the SSL layer.
    */
-  void wantFlush() override;
+  void wantWrite() override;
 
   std::string toString() const override;
 

@@ -93,7 +93,7 @@ class DataChainBufferSink : public DataChainListener { // {{{
   }
 
   size_t transfer(const FileView& chunk) override {
-    chunk.fill(buffer_);
+    chunk.read(buffer_);
     return chunk.size();
   }
 

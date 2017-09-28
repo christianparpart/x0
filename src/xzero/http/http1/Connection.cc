@@ -77,9 +77,9 @@ void Connection::onOpen(bool dataReady) {
   ::xzero::Connection::onOpen(dataReady);
 
   if (dataReady)
-    onFillable();
+    onReadable();
   else
-    wantFill();
+    wantRead();
 }
 
 void Connection::abort() {
@@ -107,7 +107,7 @@ void Connection::completed() {
     setCompleter(std::bind(&Connection::onResponseComplete, this,
                            std::placeholders::_1));
 
-    wantFlush();
+    wantWrite();
   }
 }
 
@@ -160,7 +160,7 @@ void Connection::onResponseComplete(bool succeed) {
     } else {
       // wait for next request
       TRACE("$0 completed.onComplete: keep-alive read", this);
-      wantFill();
+      wantRead();
     }
   } else {
     endpoint()->close();
@@ -182,7 +182,7 @@ void Connection::send(HttpResponseInfo& responseInfo,
     endpoint()->setCorking(true);
 
   generator_.generateResponse(responseInfo, chunk);
-  wantFlush();
+  wantWrite();
 }
 
 void Connection::send(HttpResponseInfo& responseInfo,
@@ -200,7 +200,7 @@ void Connection::send(HttpResponseInfo& responseInfo,
     endpoint()->setCorking(true);
 
   generator_.generateResponse(responseInfo, std::move(chunk));
-  wantFlush();
+  wantWrite();
 }
 
 void Connection::send(HttpResponseInfo& responseInfo,
@@ -218,7 +218,7 @@ void Connection::send(HttpResponseInfo& responseInfo,
     endpoint()->setCorking(true);
 
   generator_.generateResponse(responseInfo, std::move(chunk));
-  wantFlush();
+  wantWrite();
 }
 
 void Connection::setCompleter(CompletionHandler cb) {
@@ -236,7 +236,7 @@ void Connection::setCompleter(CompletionHandler onComplete, HttpStatus status) {
     setCompleter(onComplete);
   } else {
     setCompleter([this, onComplete](bool s) {
-      wantFill();
+      wantRead();
       if (onComplete) {
         onComplete(s);
       }
@@ -277,7 +277,7 @@ void Connection::send(Buffer&& chunk, CompletionHandler onComplete) {
   setCompleter(onComplete);
   TRACE("$0 send(Buffer, chunkSize=$1)", this, chunk.size());
   generator_.generateBody(std::move(chunk));
-  wantFlush();
+  wantWrite();
 }
 
 void Connection::send(const BufferRef& chunk,
@@ -285,22 +285,22 @@ void Connection::send(const BufferRef& chunk,
   setCompleter(onComplete);
   TRACE("$0 send(BufferRef, chunkSize=$1)", this, chunk.size());
   generator_.generateBody(chunk);
-  wantFlush();
+  wantWrite();
 }
 
 void Connection::send(FileView&& chunk, CompletionHandler onComplete) {
   setCompleter(onComplete);
   TRACE("$0 send(FileView, chunkSize=$1)", this, chunk.size());
   generator_.generateBody(std::move(chunk));
-  wantFlush();
+  wantWrite();
 }
 
-void Connection::onFillable() {
-  TRACE("$0 onFillable", this);
+void Connection::onReadable() {
+  TRACE("$0 onReadable", this);
 
-  TRACE("$0 onFillable: calling fill()", this);
-  if (endpoint()->fill(&inputBuffer_) == 0) {
-    TRACE("$0 onFillable: fill() returned 0", this);
+  TRACE("$0 onReadable: calling read()", this);
+  if (endpoint()->read(&inputBuffer_) == 0) {
+    TRACE("$0 onReadable: read() returned 0", this);
     // RAISE("client EOF");
     abort();
     return;
@@ -322,7 +322,7 @@ void Connection::parseFragment() {
 
     // on a partial read we must make sure that we wait for more input
     if (parser_.state() != Parser::MESSAGE_BEGIN) {
-      wantFill();
+      wantRead();
     }
   } catch (const BadMessage& e) {
     TRACE("$0 parseFragment: BadMessage caught (while in state $1). $2",
@@ -338,16 +338,16 @@ void Connection::parseFragment() {
   }
 }
 
-void Connection::onFlushable() {
-  TRACE("$0 onFlushable", this);
+void Connection::onWriteable() {
+  TRACE("$0 onWriteable", this);
 
   if (channel_->state() != HttpChannelState::SENDING)
     channel_->setState(HttpChannelState::SENDING);
 
-  const bool complete = writer_.flush(endpoint());
+  const bool complete = writer_.flushTo(endpoint());
 
   if (complete) {
-    TRACE("$0 onFlushable: completed. ($1)",
+    TRACE("$0 onWriteable: completed. ($1)",
           this,
           (onComplete_ ? "onComplete cb set" : "onComplete cb not set"));
     channel_->setState(HttpChannelState::HANDLING);
@@ -355,7 +355,7 @@ void Connection::onFlushable() {
     invokeCompleter(true);
   } else {
     // continue flushing as we still have data pending
-    wantFlush();
+    wantWrite();
   }
 }
 

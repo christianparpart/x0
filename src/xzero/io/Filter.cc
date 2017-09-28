@@ -40,7 +40,7 @@ void Filter::applyFilters(
     const FileView& file, Buffer* output, bool last) {
 
   Buffer input;
-  file.fill(&input);
+  file.read(&input);
 
   if (input.size() != file.size())
     throw std::runtime_error("Could not read full input file.");

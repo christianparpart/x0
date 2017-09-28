@@ -23,8 +23,8 @@ class EchoServerConnection : public xzero::Connection { // {{{
  public:
   EchoServerConnection(TcpEndPoint* endpoint, Executor* executor);
   void onOpen(bool dataReady) override;
-  void onFillable() override;
-  void onFlushable() override;
+  void onReadable() override;
+  void onWriteable() override;
 };
 
 EchoServerConnection::EchoServerConnection(TcpEndPoint* endpoint, Executor* executor)
@@ -35,25 +35,25 @@ void EchoServerConnection::onOpen(bool dataReady) {
   Connection::onOpen(dataReady);
 
   if (dataReady)
-    onFillable();
+    onReadable();
   else
-    wantFill();
+    wantRead();
 }
 
-void EchoServerConnection::onFillable() {
+void EchoServerConnection::onReadable() {
   Buffer inputBuffer;
-  size_t n = endpoint()->fill(&inputBuffer);
+  size_t n = endpoint()->read(&inputBuffer);
   if (n == 0) {
     close();
   } else {
     endpoint()->setBlocking(true);
-    endpoint()->flush(inputBuffer);
+    endpoint()->write(inputBuffer);
     endpoint()->setBlocking(false);
-    wantFill();
+    wantRead();
   }
 }
 
-void EchoServerConnection::onFlushable() {
+void EchoServerConnection::onWriteable() {
   // not needed, as we're doing blocking writes
 }
 // }}}
@@ -63,7 +63,7 @@ class EchoClientConnection : public xzero::Connection { // {{{
                        const BufferRef& text,
                        std::function<void(const BufferRef&)> responder);
   void onOpen(bool dataReady) override;
-  void onFillable() override;
+  void onReadable() override;
 
  private:
   BufferRef text_;
@@ -81,13 +81,13 @@ EchoClientConnection::EchoClientConnection(
 }
 
 void EchoClientConnection::onOpen(bool dataReady) {
-  size_t n = endpoint()->flush(text_);
-  wantFill();
+  size_t n = endpoint()->write(text_);
+  wantRead();
 }
 
-void EchoClientConnection::onFillable() {
+void EchoClientConnection::onReadable() {
   Buffer inputBuffer;
-  size_t n = endpoint()->fill(&inputBuffer);
+  size_t n = endpoint()->read(&inputBuffer);
   close();
   responder_(inputBuffer);
 }

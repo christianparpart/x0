@@ -594,7 +594,7 @@ void TcpConnector::createConnection(const std::string& protocolName,
   } else {
     defaultConnectionFactory()(this, endpoint);
   }
-  endpoint->connection()->onOpen(endpoint->prefilled() > 0);
+  endpoint->connection()->onOpen(endpoint->readBufferSize() > 0);
 }
 
 TcpConnector::ConnectionFactory TcpConnector::connectionFactory(

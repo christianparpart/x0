@@ -147,10 +147,10 @@ class TcpEndPoint : public RefCounted {
    * @return Number of bytes received from this endpoint and written
    *         to this sink.
    */
-  virtual size_t fill(Buffer* sink);
+  virtual size_t read(Buffer* sink);
 
-  size_t prefill(size_t maxBytes);
-  size_t prefilled() const;
+  size_t readahead(size_t maxBytes);
+  size_t readBufferSize() const;
 
   /**
    * Fills given @p sink with what we can retrieve from this endpoint.
@@ -161,7 +161,7 @@ class TcpEndPoint : public RefCounted {
    * @return Number of bytes received from this endpoint and written
    *         to this sink.
    */
-  virtual size_t fill(Buffer* sink, size_t count);
+  virtual size_t read(Buffer* sink, size_t count);
 
   /**
    * Flushes given buffer @p source into this endpoint.
@@ -170,7 +170,7 @@ class TcpEndPoint : public RefCounted {
    *
    * @return Number of actual bytes flushed.
    */
-  virtual size_t flush(const BufferRef& source);
+  virtual size_t write(const BufferRef& source);
 
   /**
    * Flushes file contents behind filedescriptor @p fd into this endpoint.
@@ -179,7 +179,7 @@ class TcpEndPoint : public RefCounted {
    *
    * @return Number of actual bytes flushed.
    */
-  virtual size_t flush(const FileView& source);
+  virtual size_t write(const FileView& source);
 
   /**
    * Registers an interest on reading input data.
@@ -189,7 +189,7 @@ class TcpEndPoint : public RefCounted {
    *
    * @see Connection::onSelectable()
    */
-  virtual void wantFill();
+  virtual void wantRead();
 
   /**
    * Registers an interest on writing output data.
@@ -199,7 +199,7 @@ class TcpEndPoint : public RefCounted {
    *
    * @see Connection::onSelectable()
    */
-  virtual void wantFlush();
+  virtual void wantWrite();
 
   /**
    * Retrieves the timeout before a TimeoutError is thrown when I/O
@@ -246,7 +246,7 @@ class TcpEndPoint : public RefCounted {
   std::unique_ptr<Connection> connection_;
 };
 
-inline size_t TcpEndPoint::prefilled() const {
+inline size_t TcpEndPoint::readBufferSize() const {
   return inputBuffer_.size() - inputOffset_;
 }
 

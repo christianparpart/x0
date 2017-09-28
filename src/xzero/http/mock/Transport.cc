@@ -147,7 +147,7 @@ void Transport::send(HttpResponseInfo& responseInfo,
                      CompletionHandler onComplete) {
   setResponseInfo(responseInfo);
 
-  chunk.fill(&responseBody_);
+  chunk.read(&responseBody_);
 
   if (onComplete) {
     executor()->execute([onComplete]() {
@@ -177,7 +177,7 @@ void Transport::send(Buffer&& chunk, CompletionHandler onComplete) {
 }
 
 void Transport::send(FileView&& chunk, CompletionHandler onComplete) {
-  chunk.fill(&responseBody_);
+  chunk.read(&responseBody_);
 
   if (onComplete) {
     executor()->execute([onComplete]() {

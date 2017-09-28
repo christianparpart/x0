@@ -56,14 +56,14 @@ class EndPointWriter : public DataChainListener {
    * @retval true all data has been transferred.
    * @retval false data transfer incomplete and data is pending.
    */
-  bool flush(TcpEndPoint* sink);
+  bool flushTo(TcpEndPoint* sink);
 
   /**
    * Transfers all data into @p sink.
    *
    * @retval true all data has been transferred.
    */
-  bool flush(Buffer* sink);
+  bool flushTo(Buffer* sink);
 
   /** Tests whether there are pending bytes to be flushed.
    *

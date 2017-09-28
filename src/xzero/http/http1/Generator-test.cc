@@ -36,7 +36,7 @@ TEST(http_http1_Generator, generateResponse_empty) {
   generator.generateTrailer({});
 
   Buffer out;
-  writer.flush(&out);
+  writer.flushTo(&out);
 
   ASSERT_EQ("HTTP/1.1 200 my\r\nContent-Length: 0\r\n\r\n", out);
 }
@@ -58,7 +58,7 @@ TEST(http_http1_Generator, generateResponse_headers) {
   generator.generateTrailer(trailers);
 
   Buffer out;
-  writer.flush(&out);
+  writer.flushTo(&out);
 
   ASSERT_EQ("HTTP/1.1 200 my\r\nFoo: the-foo\r\nBar: the-bar\r\nContent-Length: 0\r\n\r\n", out);
 }
@@ -78,7 +78,7 @@ TEST(http_http1_Generator, generateResponse_static_body) {
   generator.generateTrailer(trailers);
 
   Buffer out;
-  writer.flush(&out);
+  writer.flushTo(&out);
 
   ASSERT_EQ("HTTP/1.1 200 my\r\nContent-Length: 4\r\n\r\nbody", out);
 }
@@ -98,7 +98,7 @@ TEST(http_http1_Generator, generateResponse_chunked) {
   generator.generateTrailer(trailers);
 
   Buffer out;
-  writer.flush(&out);
+  writer.flushTo(&out);
 
   ASSERT_EQ("HTTP/1.1 200 my\r\nTransfer-Encoding: chunked\r\n\r\n4\r\nbody\r\n0\r\n\r\n", out);
 }
@@ -121,7 +121,7 @@ TEST(http_http1_Generator, generateResponse_chunked_trailer) {
   generator.generateTrailer(trailers);
 
   Buffer out;
-  writer.flush(&out);
+  writer.flushTo(&out);
 
   ASSERT_EQ("HTTP/1.1 200 my\r\nTrailer: Foo, Bar\r\nTransfer-Encoding: chunked\r\n\r\n4\r\nbody\r\n0\r\nFoo: the-foo\r\nBar: the-bar\r\n\r\n", out);
 }
@@ -144,7 +144,7 @@ TEST(http_http1_Generator, generateResponse_chunked_trailer2) {
   generator.generateTrailer(trailers);
 
   Buffer out;
-  writer.flush(&out);
+  writer.flushTo(&out);
 
   ASSERT_EQ("HTTP/1.1 200 my\r\nTrailer: Foo, Bar\r\nTransfer-Encoding: chunked\r\n\r\n4\r\nbody\r\n0\r\nFoo: the-foo\r\nBar: the-bar\r\n\r\n", out);
 }

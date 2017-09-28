@@ -30,7 +30,7 @@ TEST(http_fastcgi_Generator, simpleRequest) {
   generator.generateEnd();
 
   Buffer out;
-  writer.flush(&out);
+  writer.flushTo(&out);
 
   //printf("%s\n", ep.output().hexdump(HexDumpMode::PrettyAscii).c_str());
 
@@ -53,7 +53,7 @@ TEST(http_fastcgi_Generator, simpleResponse) {
   generator.generateEnd();
 
   Buffer out;
-  writer.flush(&out);
+  writer.flushTo(&out);
 
   //printf("%s\n", ep.output().hexdump(HexDumpMode::PrettyAscii).c_str());
 

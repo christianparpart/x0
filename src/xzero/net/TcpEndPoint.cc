@@ -161,7 +161,7 @@ void TcpEndPoint::startDetectProtocol(bool dataReady,
 }
 
 void TcpEndPoint::onDetectProtocol(ProtocolCallback createConnection) {
-  size_t n = fill(&inputBuffer_);
+  size_t n = read(&inputBuffer_);
 
   if (n == 0) {
     close();
@@ -188,26 +188,26 @@ void TcpEndPoint::onDetectProtocol(ProtocolCallback createConnection) {
   }
 }
 
-size_t TcpEndPoint::prefill(size_t maxBytes) {
-  const size_t nprefilled = prefilled();
+size_t TcpEndPoint::readahead(size_t maxBytes) {
+  const size_t nprefilled = readBufferSize();
   if (nprefilled > 0)
     return nprefilled;
 
   inputBuffer_.reserve(maxBytes);
-  return fill(&inputBuffer_);
+  return read(&inputBuffer_);
 }
 
-size_t TcpEndPoint::fill(Buffer* sink) {
+size_t TcpEndPoint::read(Buffer* sink) {
   int space = sink->capacity() - sink->size();
   if (space < 4 * 1024) {
     sink->reserve(sink->capacity() + 8 * 1024);
     space = sink->capacity() - sink->size();
   }
 
-  return fill(sink, space);
+  return read(sink, space);
 }
 
-size_t TcpEndPoint::fill(Buffer* result, size_t count) {
+size_t TcpEndPoint::read(Buffer* result, size_t count) {
   assert(count <= result->capacity() - result->size());
 
   if (inputOffset_ < inputBuffer_.size()) {
@@ -223,7 +223,7 @@ size_t TcpEndPoint::fill(Buffer* result, size_t count) {
     return count;
   }
 
-  ssize_t n = read(handle(), result->end(), count);
+  ssize_t n = ::read(handle(), result->end(), count);
   TRACE("read($0 bytes) -> $1", result->capacity() - result->size(), n);
 
   if (n < 0) {
@@ -245,10 +245,10 @@ size_t TcpEndPoint::fill(Buffer* result, size_t count) {
   return n;
 }
 
-size_t TcpEndPoint::flush(const BufferRef& source) {
-  ssize_t rv = write(handle(), source.data(), source.size());
+size_t TcpEndPoint::write(const BufferRef& source) {
+  ssize_t rv = ::write(handle(), source.data(), source.size());
 
-  TRACE("flush($0 bytes) -> $1", source.size(), rv);
+  TRACE("write($0 bytes) -> $1", source.size(), rv);
 
   if (rv < 0)
     RAISE_ERRNO(errno);
@@ -258,12 +258,12 @@ size_t TcpEndPoint::flush(const BufferRef& source) {
   return rv;
 }
 
-size_t TcpEndPoint::flush(const FileView& view) {
+size_t TcpEndPoint::write(const FileView& view) {
   return TcpUtil::sendfile(handle(), view);
 }
 
-void TcpEndPoint::wantFill() {
-  TRACE("$0 wantFill()", this);
+void TcpEndPoint::wantRead() {
+  TRACE("$0 wantRead()", this);
   // TODO: abstract away the logic of TCP_DEFER_ACCEPT
 
   if (!io_) {
@@ -280,7 +280,7 @@ void TcpEndPoint::fillable() {
 
   try {
     io_.reset();
-    connection()->onFillable();
+    connection()->onReadable();
   } catch (const std::exception& e) {
     connection()->onInterestFailure(e);
   } catch (...) {
@@ -290,8 +290,8 @@ void TcpEndPoint::fillable() {
   }
 }
 
-void TcpEndPoint::wantFlush() {
-  TRACE("$0 wantFlush() $1", this, io_.get() ? "again" : "first time");
+void TcpEndPoint::wantWrite() {
+  TRACE("$0 wantWrite() $1", this, io_.get() ? "again" : "first time");
 
   if (!io_) {
     io_ = executor_->executeOnWritable(
@@ -307,7 +307,7 @@ void TcpEndPoint::flushable() {
   RefPtr<TcpEndPoint> _guard(this);
   try {
     io_.reset();
-    connection()->onFlushable();
+    connection()->onWriteable();
   } catch (const std::exception& e) {
     connection()->onInterestFailure(e);
   } catch (...) {

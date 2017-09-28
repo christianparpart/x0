@@ -41,13 +41,13 @@ void EndPointWriter::write(FileView&& chunk) {
   chain_.write(std::move(chunk));
 }
 
-bool EndPointWriter::flush(TcpEndPoint* sink) {
+bool EndPointWriter::flushTo(TcpEndPoint* sink) {
   TRACE("write: flushing $0 bytes", chain_.size());
   sink_ = sink;
   return chain_.transferTo(this);
 }
 
-bool EndPointWriter::flush(Buffer* sink) {
+bool EndPointWriter::flushTo(Buffer* sink) {
   TRACE("write: flushing $0 bytes", chain_.size());
   return chain_.transferTo(sink);
 }
@@ -58,12 +58,12 @@ bool EndPointWriter::empty() const {
 
 size_t EndPointWriter::transfer(const BufferRef& chunk) {
   TRACE("transfer(buf): $0 bytes", chunk.size());
-  return sink_->flush(chunk);
+  return sink_->write(chunk);
 }
 
 size_t EndPointWriter::transfer(const FileView& fileView) {
   TRACE("transfer(file): $0 bytes, fd $1", fileView.size(), fileView.handle());
-  return sink_->flush(fileView);
+  return sink_->write(fileView);
 }
 
 } // namespace xzero

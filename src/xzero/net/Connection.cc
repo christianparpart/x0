@@ -30,18 +30,18 @@ void Connection::close() {
   }
 }
 
-void Connection::wantFill() {
-  endpoint()->wantFill();
+void Connection::wantRead() {
+  endpoint()->wantRead();
 }
 
-void Connection::wantFlush() {
-  endpoint()->wantFlush();
+void Connection::wantWrite() {
+  endpoint()->wantWrite();
 }
 
-void Connection::onFillable() {
+void Connection::onReadable() {
 }
 
-void Connection::onFlushable() {
+void Connection::onWriteable() {
 }
 
 void Connection::onInterestFailure(const std::exception& error) {

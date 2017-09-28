@@ -132,7 +132,7 @@ void Connection::resetStream(Stream* stream, ErrorCode errorCode) {
   // TODO: also close any stream < sid
 
   generator_.generateResetStream(sid, errorCode);
-  endpoint()->wantFlush();
+  endpoint()->wantWrite();
 
   streams_.erase(sid);
 }
@@ -154,7 +154,7 @@ void Connection::onOpen(bool dataReady) {
 
   // send initial server connection preface
   generator_.generateSettings({}); // leave settings at defaults
-  wantFlush();
+  wantWrite();
 
   // TODO
   // for (std::unique_ptr<Stream>& stream: streams_) {
@@ -162,12 +162,12 @@ void Connection::onOpen(bool dataReady) {
   // }
 }
 
-void Connection::onFillable() {
-  TRACE("onFillable");
+void Connection::onReadable() {
+  TRACE("onReadable");
 
-  TRACE("onFillable: calling fill()");
-  if (endpoint()->fill(&inputBuffer_) == 0) {
-    TRACE("onFillable: fill() returned 0");
+  TRACE("onReadable: calling read()");
+  if (endpoint()->read(&inputBuffer_) == 0) {
+    TRACE("onReadable: read() returned 0");
     // RAISE("client EOF");
     abort();
     return;
@@ -188,15 +188,15 @@ void Connection::parseFragment() {
   // TODO: if no interest assigned yet, wantRead then
 }
 
-void Connection::onFlushable() {
-  TRACE("onFlushable");
+void Connection::onWriteable() {
+  TRACE("onWriteable");
 
-  const bool complete = writer_.flush(endpoint());
+  const bool complete = writer_.flushTo(endpoint());
 
   if (complete) {
-    wantFill();
+    wantRead();
   } else {
-    wantFlush();
+    wantWrite();
   }
 }
 
@@ -224,7 +224,7 @@ void Connection::onPriority(StreamID sid,
 
 void Connection::onPing(const BufferRef& data) {
   generator_.generatePingAck(data);
-  wantFlush();
+  wantWrite();
 }
 
 void Connection::onPingAck(const BufferRef& data) {
@@ -246,7 +246,7 @@ void Connection::onSettings(
   }
 
   generator_.generateSettingsAck();
-  endpoint()->wantFlush();
+  endpoint()->wantWrite();
 }
 
 void Connection::onSettingsAck() {

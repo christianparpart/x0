@@ -66,7 +66,7 @@ void Http1Connection::send(const HttpRequestInfo& requestInfo,
   responseComplete_ = false;
   expectsBody_ = req.method() != HttpMethod::HEAD;
   generator_.generateRequest(req);
-  wantFlush();
+  wantWrite();
 }
 
 void Http1Connection::send(const HttpRequestInfo& requestInfo,
@@ -79,7 +79,7 @@ void Http1Connection::send(const HttpRequestInfo& requestInfo,
   responseComplete_ = false;
   expectsBody_ = req.method() != HttpMethod::HEAD;
   generator_.generateRequest(req, chunk);
-  wantFlush();
+  wantWrite();
 }
 
 void Http1Connection::send(const HttpRequestInfo& requestInfo,
@@ -92,7 +92,7 @@ void Http1Connection::send(const HttpRequestInfo& requestInfo,
   responseComplete_ = false;
   expectsBody_ = req.method() != HttpMethod::HEAD;
   generator_.generateRequest(req, chunk);
-  wantFlush();
+  wantWrite();
 }
 
 void Http1Connection::send(const HttpRequestInfo& requestInfo,
@@ -105,7 +105,7 @@ void Http1Connection::send(const HttpRequestInfo& requestInfo,
   responseComplete_ = false;
   expectsBody_ = req.method() != HttpMethod::HEAD;
   generator_.generateRequest(req, std::move(chunk));
-  wantFlush();
+  wantWrite();
 }
 
 void Http1Connection::send(const HttpRequestInfo& requestInfo,
@@ -118,25 +118,25 @@ void Http1Connection::send(const HttpRequestInfo& requestInfo,
   responseComplete_ = false;
   expectsBody_ = req.method() != HttpMethod::HEAD;
   generator_.generateRequest(req, std::move(chunk));
-  wantFlush();
+  wantWrite();
 }
 
 void Http1Connection::send(const BufferRef& chunk, CompletionHandler onComplete) {
   setCompleter(onComplete);
   generator_.generateBody(std::move(chunk));
-  wantFlush();
+  wantWrite();
 }
 
 void Http1Connection::send(Buffer&& chunk, CompletionHandler onComplete) {
   setCompleter(onComplete);
   generator_.generateBody(std::move(chunk));
-  wantFlush();
+  wantWrite();
 }
 
 void Http1Connection::send(FileView&& chunk, CompletionHandler onComplete) {
   setCompleter(onComplete_);
   generator_.generateBody(std::move(chunk));
-  wantFlush();
+  wantWrite();
 }
 
 void Http1Connection::send(HugeBuffer&& chunk, CompletionHandler onComplete) {
@@ -155,13 +155,13 @@ void Http1Connection::completed() {
                          std::placeholders::_1));
 
   //generator_.generateTrailer(channel_->requestInfo()->trailers());
-  wantFlush();
+  wantWrite();
 }
 
 void Http1Connection::onRequestComplete(bool success) {
   TRACE("onRequestComplete($0)", success ? "success" : "failed");
   if (success) {
-    wantFill();
+    wantRead();
   }
 }
 
@@ -177,10 +177,10 @@ void Http1Connection::abort() {
   close();
 }
 
-void Http1Connection::onFillable() {
-  TRACE("onFillable()");
+void Http1Connection::onReadable() {
+  TRACE("onReadable()");
 
-  size_t n = endpoint()->fill(&inputBuffer_);
+  size_t n = endpoint()->read(&inputBuffer_);
 
   if (n == 0) {
     abort();
@@ -190,7 +190,7 @@ void Http1Connection::onFillable() {
   parseFragment();
 
   if (!responseComplete_) {
-    wantFill();
+    wantRead();
   }
 }
 
@@ -199,13 +199,13 @@ void Http1Connection::parseFragment() {
   inputOffset_ += n;
 }
 
-void Http1Connection::onFlushable() {
-  TRACE("onFlushable()");
-  const bool complete = writer_.flush(endpoint());
-  TRACE("onFlushable: $0", complete ? "completed" : "needs-more-to-flush");
+void Http1Connection::onWriteable() {
+  TRACE("onWriteable()");
+  const bool complete = writer_.flushTo(endpoint());
+  TRACE("onWriteable: $0", complete ? "completed" : "needs-more-to-flush");
 
   if (!complete) {
-    wantFlush();
+    wantWrite();
   } else {
     notifySuccess();
   }

@@ -62,8 +62,8 @@ public:
   void abort() override;
 
   // Connection overrides
-  void onFillable() override;
-  void onFlushable() override;
+  void onReadable() override;
+  void onWriteable() override;
   void onInterestFailure(const std::exception& error) override;
 
   // HttpListener overrides

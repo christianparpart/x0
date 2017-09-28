@@ -14,7 +14,7 @@
 
 namespace xzero {
 
-void FileView::fill(Buffer* output) const {
+void FileView::read(Buffer* output) const {
   output->reserve(output->size() + size());
 
 #if defined(HAVE_PREAD)
