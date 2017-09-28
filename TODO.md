@@ -3,8 +3,6 @@
 
 - flow: add DebugInfo section so that Runner knows which source code lines are
   currently being executed
-- proxy: `proxy_http()`'s return statement's FIXME
-  - FIXME: a failure may generate an internal redirect, thus, returning true is bad.
 - unit tests: adapt to API changes
   - raft::InetTransport (<- LocalTransport)
   - http1::Connection (<- LocalTransport)

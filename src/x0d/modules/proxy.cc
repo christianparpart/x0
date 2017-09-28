@@ -356,13 +356,17 @@ bool ProxyModule::proxy_http(XzeroContext* cx, xzero::flow::vm::Params& args) {
   Future<HttpClient::Response> f = client->send(*cx->request());
 
   f.onFailure([client, cx, upstreamAddr] (std::error_code ec) {
-    logError("proxy", "Failed to proxy to $0. $1", upstreamAddr, ec.message());
-    delete client;
-    bool internalRedirect = false;
-    cx->sendErrorPage(HttpStatus::ServiceUnavailable, &internalRedirect);
-    if (internalRedirect) {
-      cx->runner()->resume();
-    }
+    // XXX defer execution to ensure we're truely async, to avoid nested runner.
+    // TODO: we could instead make resume() a no-op if it's already in the loop.
+    cx->response()->executor()->execute([client, cx, upstreamAddr, ec]() {
+      cx->logError("proxy: Failed to proxy to $0. $1", upstreamAddr, ec.message());
+      delete client;
+      bool internalRedirect = false;
+      cx->sendErrorPage(HttpStatus::ServiceUnavailable, &internalRedirect);
+      if (internalRedirect) {
+        cx->runner()->resume();
+      }
+    });
   });
 
   f.onSuccess([client, cx, this] (HttpClient::Response& response) {
@@ -383,7 +387,6 @@ bool ProxyModule::proxy_http(XzeroContext* cx, xzero::flow::vm::Params& args) {
     delete client;
   });
 
-  // FIXME: a failure may generate an internal redirect, thus, returning true is bad.
   return true;
 }
 
