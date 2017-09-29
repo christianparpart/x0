@@ -95,15 +95,18 @@ ProxyModule::ProxyModule(XzeroDaemon* d)
 
   mainHandler("proxy.fcgi", &ProxyModule::proxy_fcgi)
       .verifier(&ProxyModule::proxy_roadwarrior_verify, this)
+      .param<FlowString>("on_client_abort", "close")
       .param<IPAddress>("address", IPAddress("0.0.0.0"))
-      .param<int>("port")
-      .param<FlowString>("on_client_abort", "close");
+      .param<int>("port");
 
   mainHandler("proxy.http", &ProxyModule::proxy_http)
       .verifier(&ProxyModule::proxy_roadwarrior_verify, this)
+      .param<FlowString>("on_client_abort", "close")
       .param<IPAddress>("address")
       .param<int>("port")
-      .param<FlowString>("on_client_abort", "close");
+      .param<int>("connect_timeout", 10)
+      .param<int>("read_timeout", 60)
+      .param<int>("write_timeout", 10);
 
   mainFunction("proxy.cache", &ProxyModule::proxy_cache)
       .param<bool>("enabled", true)
@@ -335,12 +338,12 @@ bool ProxyModule::proxy_fcgi(XzeroContext* cx, xzero::flow::vm::Params& args) {
 }
 
 bool ProxyModule::proxy_http(XzeroContext* cx, xzero::flow::vm::Params& args) {
-  InetAddress upstreamAddr(args.getIPAddress(1), args.getInt(2));
-  FlowString onClientAbortStr = args.getString(3);
-  Duration connectTimeout = 16_seconds;
-  Duration readTimeout = 60_seconds;
-  Duration writeTimeout = 8_seconds;
-  Duration keepAlive = 0_seconds;
+  const FlowString onClientAbortStr = args.getString(1);
+  const InetAddress upstreamAddr(args.getIPAddress(2), args.getInt(3));
+  const Duration connectTimeout = Duration::fromSeconds(args.getInt(4));
+  const Duration readTimeout = Duration::fromSeconds(args.getInt(5));
+  const Duration writeTimeout = Duration::fromSeconds(args.getInt(6));
+  constexpr Duration keepAlive = 0_seconds;
   Executor* executor = cx->response()->executor();
 
   if (tryHandleTrace(cx))

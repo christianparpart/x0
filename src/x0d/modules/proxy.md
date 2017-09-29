@@ -42,7 +42,7 @@
 - [ ] `proxy.cluster()`
 - [ ] `proxy.cluster(name: string, path: string = @CLUSTERDIR@/NAME.cluster.conf, bucket: string = "", backend: string = "")`
 - [ ] `proxy.fcgi(address: ip, port: int, on_client_abort: string)`
-- [ ] `proxy.http(address: IP, port: number, string: on_client_abort = "close")`
+- [x] `proxy.http(address: IP, port: number, string: on_client_abort = "close")`
 - [ ] `proxy.cache(enabled: bool = true, key: string = "", ttl: int = 0)`
 - [ ] `proxy.haproxy_stats(prefix: string = "/")`
 - [ ] `proxy.api()`
