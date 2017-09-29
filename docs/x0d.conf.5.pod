@@ -106,13 +106,13 @@ additional plugins (extensions) to be loaded into the server.
 
 =over 6
 
-=item B<workers> (number)
+=item B<workers> (I<number>: int)
 
 Gets or sets the number of workers to be spawned.
 Setting this value to 1 (default) will create no additional threads
 except the already existing main thread.
 
-=item B<workers> (array_of_numbers)
+=item B<workers> (I<array_of_numbers>: int[])
 
 Passing an array of numbers will spawn as many workers as elements in that
 array each worker associated with a processor affinity to
@@ -144,7 +144,7 @@ Example 2:
 Also assigning the worker's thread CPU affinity further helps reducing
 the request processing latency.
 
-=item B<mimetypes> (path)
+=item B<mimetypes> (I<path>: int)
 
 Defines the file containing the mimetype mappings.
 
@@ -155,118 +155,118 @@ Example:
     mimetypes '/etc/mime.types';
  }
 
-=item B<mimetypes.default> (mimetype)
+=item B<mimetypes.default> (I<mimetype>: int)
 
 Gets or sets the default mimetype to use.
 
-=item B<etag.mtime> (boolean)
+=item B<etag.mtime> (I<enable>: boolean)
 
 Gets or sets whether or not the mtime (last-modification time) should be
 part of the ETag-field when generated.
 
-=item B<etag.size> (boolean)
+=item B<etag.size> (I<enable>: boolean)
 
 Gets or sets whether or not the file size should be
 part of the ETag-field when generated.
 
-=item B<etag.inode> (boolean)
+=item B<etag.inode> (I<enable>: boolean)
 
 Gets or sets whether or not the file's inode number should be
 part of the ETag-field when generated.
 
 This is generally not a good idea for cluster setups.
 
-=item B<server.advertise> (boolean)
+=item B<server.advertise> (I<enable>: boolean)
 
 Gets or sets whether or not the server should propagate itself
 via the Server response header.
 
-=item B<server.tag> (array)
+=item B<server.tag> (I<array>: string[])
 
 Sets the array of custom server advertisement tags to append to
 the Server response header.
 
-=item B<tcp_fin_timeout> (timeout)
+=item B<tcp_fin_timeout> (I<timeout>: Duration)
 
 Explicitely sets the TCP FIN timeout.
 
 Default: 0 seconds (equivalent to using the system global default)
 
-=item B<max_internal_redirect_count> (number)
+=item B<max_internal_redirect_count> (I<number>: int)
 
 Sets the number of maximum internal redirects that may occur.
 
 Default: 3
 
-=item B<max_read_idle> (timeout)
+=item B<max_read_idle> (I<timeout>: Duration)
 
 Gets or sets the connection read idle timeout value.
 
 Default: 60 seconds
 
-=item B<max_write_idle> (timeout)
+=item B<max_write_idle> (I<timeout>: Duration)
 
 Gets or sets the connection write idle timeout value.
 
 Default: 60 seconds
 
-=item B<max_keepalive_idle> (timeout)
+=item B<max_keepalive_idle> (I<timeout>: Duration)
 
 Gets or sets the connection write keep-alive timeout value.
 
 Default: 60 seconds
 
-=item B<max_keepalive_requests> (number)
+=item B<max_keepalive_requests> (I<number>: int)
 
 Gets or sets the number of requests (after the first, initial) allowed to accept
 within a single connection.
 
 Default: 100
 
-=item B<max_request_uri_size> (size)
+=item B<max_request_uri_size> (I<size>: int)
 
 Gets or sets the number of bytes a request URI must fit into.
 
 Default: 4096 byte
 
-=item B<max_request_header_size> (size)
+=item B<max_request_header_size> (I<size>: int)
 
 Gets or sets the number of bytes a single request header (name plus value) must fit into.
 
 Default: 8192 byte
 
-=item B<max_request_header_count> (number)
+=item B<max_request_header_count> (I<number>: int)
 
 Gets or sets the maximum count of request headers a client request may sent.
 
 Default: 100
 
-=item B<max_request_body_size> (size)
+=item B<max_request_body_size> (I<size>: int)
 
 Gets or sets the maximum number of bytes a request body must fit into.
 
 Default: 4 mbyte
 
-=item B<max_connections> (count)
+=item B<max_connections> (I<count>: int)
 
 Gets or sets the number of maximum connections the server will handle in parallel.
 
 Default: 1000
 
-=item B<max_files> (count)
+=item B<max_files> (I<count>: int)
 
 Gets or sets the number of maximum files the server will have opened at the same time.
 
-=item B<max_address_space> (size)
+=item B<max_address_space> (I<size>: int)
 
 Gets or sets the memory allocation limit to this process.
 
-=item B<max_core_size> (size)
+=item B<max_core_size> (I<size>: int)
 
 Gets or sets the file size limit for possibly generated core files, which are
 required to properly debug the process after it crashed.
 
-=item B<request_header_buffer_size> (size)
+=item B<request_header_buffer_size> (I<size>: int)
 
 Sets the size in bytes for the request headers (plus first line).
 The request headers (plus first line) must fit into this buffer or
@@ -275,7 +275,7 @@ will be generated instead.
 
 Default: 8 kbyte
 
-=item B<request_body_buffer_size> (size)
+=item B<request_body_buffer_size> (I<size>: int)
 
 Defines the size of the internal body buffer size. This does not constrain
 the maximum request body size but sets a limit on how many bytes
@@ -283,13 +283,13 @@ may be read at most in order to hold the request body before it is processed.
 
 Default: 8 kbyte
 
-=item B<tcp_cork> (boolean)
+=item B<tcp_cork> (I<enable>: boolean)
 
 Corks the response stream (see C<TCP_CORK> in tcp(7)) to improve throughput.
 
 Default: false
 
-=item B<tcp_nodelay> (boolean)
+=item B<tcp_nodelay> (I<enable>: boolean)
 
 Gets or sets whether or not the request connection may enable the
 C<TCP_NODELAY> flag.
@@ -320,7 +320,7 @@ Example:
 
 =over 6
 
-=item B<listen> (address: IP = 0.0.0.0, port: number, backlog: number = 128, multi_accept: number = 1, reuse_addr: bool = false, reuse_port = false)
+=item B<listen> (I<address>: IP = 0.0.0.0, I<port>: int, I<backlog>: int = 128, I<multi_accept>: int = 1, I<reuse_addr>: bool = false, I<reuse_port> = false)
 
 Configures a listener on given address and port.
 
@@ -376,7 +376,7 @@ Global functions are available in setup and main handlers.
 
 =over 6
 
-=item B<error.page> (status, uri)
+=item B<error.page> (I<status>: int, I<uri>: string)
 
 Defines an error page for the given response status code.
 
@@ -398,31 +398,31 @@ Example:
    staticfile;
  }
 
-=item B<log.err> (message)
+=item B<log.err> (I<message>: string)
 
 Logs given message with logging severity: error.
 
-=item B<log.warn> (message)
+=item B<log.warn> (I<message>: string)
 
 Logs given message with logging severity: warning.
 
-=item B<log.notice> (message)
+=item B<log.notice> (I<message>: string)
 
 Logs given message with logging severity: notice.
 
-=item B<log.info> (message)
+=item B<log.info> (I<message>: string)
 
 Logs given message with logging severity: info.
 
-=item B<log.diag> (message)
+=item B<log.diag> (I<message>: string)
 
 Logs given message with logging severity: diag.
 
-=item B<log.debug> (message)
+=item B<log.debug> (I<message>: string)
 
 Logs given message with logging severity: debug.
 
-=item B<sys.env> (key)
+=item B<sys.env> (I<key>: string)
 
 Retrieves the value of an environment variable.
 
@@ -430,7 +430,7 @@ Example:
 
  sys.env("PATH")
 
-=item B<sys.hostname> ()
+=item B<sys.hostname>
 
 Retrieves hosts hostname this process is running on.
 
@@ -438,7 +438,7 @@ Example:
 
  log.info("Running on: " + sys.hostname);
 
-=item B<sleep> (seconds)
+=item B<sleep> (I<seconds>: Duration)
 
 Sleeps for given request processing with the specified number of seconds.
 This function is purely for demonstration use of showing how virtual-machine
@@ -446,7 +446,7 @@ suspend/resume is working in order to implement non-blocking synchronous calls.
 
 It is highly discouraged for production use.
 
-=item B<file.exists> (path)
+=item B<file.exists> (I<path>: string)
 
 Determines whether or not given filename path exists.
 
@@ -458,7 +458,7 @@ Example:
      log.debug("File does not exist.")
  }
 
-=item B<file.is_reg> (path)
+=item B<file.is_reg> (I<path>: string)
 
 Determines whether or not given filename path exists as regular file.
 
@@ -470,7 +470,7 @@ Example:
      log.debug("Regular file not exist.")
  }
 
-=item B<file.is_dir> (path)
+=item B<file.is_dir> (I<path>: string)
 
 Determines whether or not given filename path exists as directory.
 
@@ -482,7 +482,7 @@ Example:
      log.debug("Directory does not exist.")
  }
 
-=item B<file.is_exe> (path)
+=item B<file.is_exe> (I<path>: string)
 
 Determines whether or not given filename path exists as executable file.
 
@@ -500,7 +500,7 @@ Example:
 
 =over 6
 
-=item B<req.accept_language(string[] supportedLanguages)>
+=item B<req.accept_language> (I<supportedLanguages>: string[])
 
 Evaluates the B<Accept-Language> request header and matches it against the list of supported languages.
 The supported language that is preferred by the client the most will be the result.
@@ -528,7 +528,7 @@ Retrieves the request URI.
 
 Retrieves the path part of the request URI.
 
-=item B<req.header> (name)
+=item B<req.header> (I<name>: string)
 
 Retrieves request header-value of a given header-name.
 
@@ -538,7 +538,7 @@ Example:
      # ...
  }
 
-=item B<req.cookie> (name)
+=item B<req.cookie> (I<name>: string)
 
 Retrieves the value of the cookie with the given name or an empty string if not available.
 
@@ -619,7 +619,7 @@ Retrieves the mimetype of the physical file.
 
 Indicates whether or not the current connection's request is SSL secured or not.
 
-=item B<regex.group> (position)
+=item B<regex.group> (I<position>: int)
 
 Retrieves the matched group of a regular expression match.
 
@@ -630,7 +630,7 @@ Example:
     rewrite "/static/${regex.group(1)}"
   }
 
-=item B<docroot> (path)
+=item B<docroot> (I<path>: string)
 
 Sets the requests document root to the given path.
 
@@ -644,7 +644,7 @@ Example:
 
 =over 6
 
-=item B<autoindex> (array)
+=item B<autoindex> (I<filenames>: string[])
 
 Remaps the current request to an index file as passed via arguments if the
 current request's physical file points to a directory and this directory
@@ -659,7 +659,7 @@ Example:
     # ...
  }
 
-=item B<alias> (prefix: string, target: string)
+=item B<alias> (I<prefix>: string, I<target>: string)
 
 Aliases the given prefix with the matching part of the request path to the given
 physical target.
@@ -685,7 +685,7 @@ This is equivalent to:
      staticfile;
  }
 
-=item B<rewrite> (path)
+=item B<rewrite> (I<path>: string)
 
 Rewrites the current request to point to another physical file, without redirecting,
 as if the client has requested another file.
@@ -700,20 +700,20 @@ as if the client has requested another file.
 
 Enforces computation of pathinfo.
 
-=item B<header.add> (name, value)
+=item B<header.add> (I<name>: string, I<value>: string)
 
 Adds the given header to the list of response headers.
 
-=item B<header.overwrite> (name, value)
+=item B<header.overwrite> (I<name>: string, I<value>: string)
 
 Adds (possibly overwriting if already present) a response header.
 
-=item B<header.append> (name, value)
+=item B<header.append> (I<name>: string, I<value>: string)
 
 Appends the given value to the already existing header.
 If this header is not yet available, this method is equivalent to B<header.add>.
 
-=item B<header.remove> (name)
+=item B<header.remove> (I<name>: string)
 
 Removes a header by given name from the response headers.
 
@@ -751,7 +751,7 @@ Example:
     staticfile;
  }
 
-=item B<return> (code: int, url: string)
+=item B<return> (I<code>: int, I<url>: string)
 
 Redirects current request to another URL.
 
@@ -768,7 +768,7 @@ Example:
     }
  }
 
-=item B<return> (http_code)
+=item B<return> (I<http_code>: int)
 
 Generate a simple response to the current request.
 
@@ -1181,7 +1181,7 @@ client is still alive.
    proxy.fcgi address: 127.0.0.1, port: 9000;
  }
 
-=item B<proxy.http> (address: IP, port: number, string: on_client_abort = "close")
+=item B<proxy.http> (I<address>: IP, I<port>: int, I<on_client_abort>: string = "close", I<connect_timeout>: Duration = 10s, I<read_timeout>: Duration = 60s, I<write_timeout>: Duration = 10s)
 
 Directly proxies a given request to an HTTP backend application.
 
