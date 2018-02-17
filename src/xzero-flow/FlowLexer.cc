@@ -283,7 +283,13 @@ void FlowLexer::processCommand(const std::string& line) {
   TRACE(1, "Process include: '$0'", pattern);
 
   glob_t gl;
-  int rv = glob(pattern.c_str(), GLOB_TILDE, nullptr, &gl);
+
+  int globOptions = 0;
+#if defined(GLOB_TILDE)
+  globOptions |= GLOB_TILDE;
+#endif
+
+  int rv = glob(pattern.c_str(), globOptions, nullptr, &gl);
   if (rv != 0) {
     static std::unordered_map<int, const char*> globErrs = {
         {GLOB_NOSPACE, "No space"},

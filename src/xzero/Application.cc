@@ -207,4 +207,8 @@ size_t Application::processorCount() {
 #endif
 }
 
+ProcessID Application::processId() {
+  return getpid();
+}
+
 } // namespace xzero

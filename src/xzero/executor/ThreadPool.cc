@@ -18,6 +18,8 @@
 #include <exception>
 #include <typeinfo>
 
+#include <pthread.h>
+
 #ifdef HAVE_UNISTD_H
 #include <unistd.h>
 #endif
@@ -104,10 +106,15 @@ void ThreadPool::stop() {
 }
 
 std::string ThreadPool::getThreadName(const void* tid) {
+  // musl libc doesn't support that ;-(
+#if defined(HAVE_DECL_PTHREAD_GETNAME_NP) && HAVE_DECL_PTHREAD_GETNAME_NP
   char name[16];
   name[0] = '\0';
   pthread_getname_np(*(const pthread_t*)tid, name, sizeof(name));
   return name;
+#else
+  return Application::appName();
+#endif
 }
 
 void ThreadPool::work(int workerId) {

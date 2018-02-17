@@ -1,60 +1,54 @@
-FROM ubuntu:16.04
+FROM alpine:3.7 as build
 MAINTAINER Christian Parpart <christian@parpart.family>
 
-ENV DEBIAN_FRONTEND="noninteractive" \
-    DOCROOT="/var/www" \
+ENV DOCROOT="/var/www" \
     PORT="80"
 
-RUN echo "force-unsafe-io" > /etc/dpkg/dpkg.cfg.d/02apt-speedup && \
-    echo "Acquire::http {No-Cache=True;};" > /etc/apt/apt.conf.d/no-cache && \
-    apt-get update && \
-    apt-get install -y \
-        make automake autoconf libtool \
-        clang++-3.5 libssl-dev zlib1g-dev libbz2-dev pkg-config \
-        libpcre3-dev libfcgi-dev libgoogle-perftools-dev libpam-dev && \
-    apt-get install -y libssl1.0.0 zlib1g libbz2-1.0 libpcre3 \
-        libpam0g
+RUN apk update
+RUN apk add musl-dev gcc g++ clang make \
+      automake autoconf libtool pkgconfig \
+      openssl-dev pcre-dev linux-pam-dev bzip2-dev fcgi-dev \
+      \
+      linux-pam pcre openssl fcgi
 
 COPY 3rdparty          /usr/src/x0/3rdparty
 COPY docs              /usr/src/x0/docs
 COPY src               /usr/src/x0/src
-COPY mimetypes2cc.sh   /usr/src/x0/mimetypes2cc.sh
-COPY Makefile.am       /usr/src/x0/Makefile.am
-COPY configure.ac      /usr/src/x0/configure.ac
-COPY docker-x0d.conf   /usr/src/x0/docker-x0d.conf
-COPY x0d.conf          /usr/src/x0/x0d.conf
+COPY Makefile.am configure.ac x0d.conf \
+       XzeroBase.pc.in XzeroFlow.pc.in XzeroTest.pc.in mimetypes2cc.sh \
+       /usr/src/x0/
 
+WORKDIR /usr/src/x0
 ARG CFLAGS=""
 ARG CXXFLAGS=""
 ARG LDFLAGS=""
-RUN cd /usr/src/x0 && autoreconf --verbose --force --install && \
-    CC="/usr/bin/clang-3.5" \
-    CXX="/usr/bin/clang++-3.5" \
+RUN autoreconf --verbose --force --install && \
+    CC="/usr/bin/clang" \
+    CXX="/usr/bin/clang++" \
     CFLAGS="$CFLAGS" \
     CXXFLAGS="$CXXFLAGS" \
     LDFLAGS="$LDFLAGS" \
       ./configure --prefix="/usr" \
                   --sysconfdir="/etc/x0d" \
                   --with-pidfile="/var/run/x0d.pid" \
-                  --with-logdir="/var/log" && \
-    make && \
-    make check && \
-    mkdir -p /etc/x0d /var/log/x0d /var/lib/x0d /var/www && \
-    ./xzero_test && \
-    strip x0d && \
+                  --with-logdir="/var/log" \
+                  --disable-maintainer-mode
+
+RUN make -j
+RUN make xzero_test
+RUN mkdir -p /etc/x0d /var/log/x0d /var/lib/x0d /var/www
+RUN ./xzero_test && \
     cp -v xzero_test /usr/bin/xzero_test && \
+    strip x0d && \
+    ldd x0d \
     cp -v x0d /usr/bin/x0d
 
-RUN apt-get purge -y \
-        make automake autoconf libtool \
-        clang++-3.5 libssl-dev zlib1g-dev libbz2-dev pkg-config \
-        libpcre3-dev libfcgi-dev libgoogle-perftools-dev libpam-dev && \
-    apt-get autoremove -y && \
-    rm -rvf /var/lib/apt/lists/* && \
-    rm -rf /usr/src
+# -----------------------------------------------------------------------------
+FROM alpine:3.7
+COPY --from=build /usr/bin/x0d /usr/bin/x0d
+COPY docker-x0d.conf /usr/x0d/x0d.conf
 
-ADD docker-x0d.conf /etc/x0d/x0d.conf
-VOLUME /etc/x0d /var/www /var/lib/x0d /var/log/x0d
+VOLUME /etc/x0d /var/www /var/log/x0d
 
 ENTRYPOINT ["/usr/bin/x0d"]
 CMD ["--log-target=console", "--log-level=info"]

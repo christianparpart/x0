@@ -12,6 +12,8 @@ namespace xzero {
 
 class Executor;
 
+using ProcessID = int64_t;
+
 class XZERO_BASE_API Application {
  public:
   static void init();
@@ -66,6 +68,8 @@ class XZERO_BASE_API Application {
    * Retrieves the number of available processors on the system system.
    */
   static size_t processorCount();
+
+  static ProcessID processId();
 };
 
 } // namespace xzero

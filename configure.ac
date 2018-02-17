@@ -45,6 +45,7 @@ AC_CHECK_HEADERS([syslog.h])
 AC_CHECK_HEADERS([unistd.h])
 AC_CHECK_HEADERS([zlib.h])
 
+AC_CHECK_DECLS([pthread_getname_np], [], [], [[#include <pthread.h>]])
 AC_CHECK_DECLS([pthread_setname_np], [], [], [[#include <pthread.h>]])
 AC_CHECK_DECLS([pthread_setaffinity_np], [], [], [[#include <pthread.h>]])
 
@@ -208,7 +209,7 @@ AC_RUN_IFELSE([
     }
     ]])],
     [is_wsl=no; AC_MSG_NOTICE([Yay, no WSL])],
-    [is_wsl=yes; AC_MSG_NOTICE([Microsoft Windows Subsystem for Linux: `uname -a`])]
+    [is_wsl=yes; uname_all=`uname -a`; AC_MSG_NOTICE([Microsoft Windows Subsystem for Linux: ] $uname_all)]
 )
 AS_IF([test "x$is_wsl" != xno],
       [AC_DEFINE([XZERO_WSL], [1], [Works around WSL oddities (Windows Subsystem for Linux)])])
