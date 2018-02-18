@@ -36,17 +36,15 @@ RUN autoreconf --verbose --force --install && \
 
 RUN make -j
 RUN make xzero_test
-RUN mkdir -p /etc/x0d /var/log/x0d /var/lib/x0d /var/www
-RUN ./xzero_test && \
-    cp -v xzero_test /usr/bin/xzero_test && \
-    strip x0d && \
-    ldd x0d \
-    cp -v x0d /usr/bin/x0d
+RUN ./xzero_test --exclude='raft_*'
+RUN strip x0d && ldd x0d && cp -v x0d /usr/bin/x0d
 
 # -----------------------------------------------------------------------------
 FROM alpine:3.7
-COPY --from=build /usr/bin/x0d /usr/bin/x0d
+RUN  apk add --update libgcc libstdc++ gmp openssl linux-pam pcre
+RUN  mkdir -p /etc/x0d /var/log/x0d /var/lib/x0d /var/www
 COPY docker-x0d.conf /usr/x0d/x0d.conf
+COPY --from=build /usr/bin/x0d /usr/bin/x0d
 
 VOLUME /etc/x0d /var/www /var/log/x0d
 
