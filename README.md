@@ -57,7 +57,7 @@ a number of standard plugins to become *your* web application server.
 # Installs required dependencies
 sudo apt-get install make autoconf automake libtool gcc-4.8 g++-4.8 \
     libmysqlclient-dev zlib1g-dev libbz2-dev pkg-config libssl-dev \
-    libpcre3-dev libfcgi-dev libgoogle-perftools-dev libpam-dev git \
+    libpcre3-dev libfcgi-dev libgoogle-perftools-dev libpam-dev git
 
 # Install git and clone repository
 git clone git://github.com/christianparpart/x0.git && cd x0
