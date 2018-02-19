@@ -1,5 +1,5 @@
 sudo: required
-language: cpp
+language: c++
 
 services:
 	- docker
@@ -10,9 +10,11 @@ services:
 script:
 	- docker build -t x0 .
 
+# all branches
 branches:
   only:
     - master
+    - /.*/
 
 notifications:
   recipients:
