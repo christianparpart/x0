@@ -1,6 +1,7 @@
 language: cpp
 dist: xenial
 sudo: enabled
+
 addons:
   apt:
     sources:
@@ -8,12 +9,38 @@ addons:
     packages:
     - clang++-4.0
     - g++-6.0
+
 compiler:
   - gcc
   - clang
+
+matrix:
+  include:
+    # works on Trusty
+    - os: linux
+      addons:
+        apt:
+          sources:
+            - llvm-toolchain-trusty-4.0
+          packages:
+            - clang-4.0
+      env:
+        - MATRIX_EVAL="CC=clang-4.0 && CXX=clang++-4.0"
+
+    # works on Trusty
+    - os: linux
+      addons:
+        apt:
+          sources:
+            - llvm-toolchain-trusty-5.0
+          packages:
+            - clang-5.0
+      env:
+        - MATRIX_EVAL="CC=clang-5.0 && CXX=clang++-5.0"
+
 before_install:
-  - lsb_release -a
-  - sudo apt-get update -qq
+	- eval "${MATRIX_EVAL}"
+
 install:
   # debug output
   - clang++ -v
@@ -22,15 +49,18 @@ install:
   # clang
   - if [ "$CXX" == "clang++" ]; then export CXX="clang++-4.0"; fi
   # x0 dependencies
-  - sudo apt-get install -y -qq make autoconf automake libtool pkg-config zlib1g-dev libssl-dev libpam-dev libpcre3-dev libfcgi-dev
+	- sudo apt-get install make autoconf automake libtool gcc-4.8 g++-4.8 libmysqlclient-dev zlib1g-dev libbz2-dev pkg-config libssl-dev libpcre3-dev libfcgi-dev libgoogle-perftools-dev libpam-dev git
+
 script:
   - $CXX --version
-  - ./autogen.sh --enable-proxy
+  - ./autogen.sh
   - make
   - ./xzero_test -v
+
 branches:
   only:
     - master
+
 notifications:
   recipients:
     - christian@parpart.family
