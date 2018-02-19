@@ -1,5 +1,4 @@
-language: generic
-dist: trusty
+language: cpp
 sudo: required
 
 services:
@@ -9,7 +8,6 @@ services:
 # 	- eval "${MATRIX_EVAL}"
 
 script:
-  - $CXX --version
 	- docker build -t x0 .
 
 branches:
