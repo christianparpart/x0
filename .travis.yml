@@ -1,9 +1,7 @@
-language: java
+language: cpp
 sudo: required
 os:
   - linux
-services:
-	- docker
 addons:
   apt:
     sources:
@@ -25,3 +23,12 @@ notifications:
   email:
     on_success: change
     on_failure: always
+before_install:
+  - sudo apt-get update -qq
+install:
+  - sudo apt-get install -y -qq make autoconf automake libtool gcc-4.8 g++-4.8 libmysqlclient-dev zlib1g-dev libbz2-dev pkg-config libssl-dev libpcre3-dev libfcgi-dev libgoogle-perftools-dev libpam-dev git
+script:
+  - $CXX --version
+  - ./autogen.sh
+  - make all xzero_test
+  - ./xzero_test -v --exclude='raft_*'
