@@ -1,28 +1,5 @@
 language: cpp
-sudo: required
-os:
-  - linux
-addons:
-  apt:
-    sources:
-      - ubuntu-toolchain-r-test
-    packages:
-      - gcc-5
-      - g++-5
-      - clang-5.0
-      - clang++-5.0
-script:
-	- docker build -t x0 .
-branches:
-  only:
-    - master
-    - /.*/
-notifications:
-  recipients:
-    - christian@parpart.family
-  email:
-    on_success: change
-    on_failure: always
+sudo: true
 before_install:
   - sudo apt-get update -qq
 install:
