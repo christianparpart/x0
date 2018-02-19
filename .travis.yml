@@ -1,16 +1,9 @@
+language: cpp
 os:
   - linux
-
-language: cpp
-
 sudo: required
-
 services:
 	- docker
-
-# before_install:
-# 	- eval "${MATRIX_EVAL}"
-
 addons:
   apt:
     sources:
@@ -20,16 +13,12 @@ addons:
       - g++-5
       - clang-5.0
       - clang++-5.0
-
 script:
 	- docker build -t x0 .
-
-# all branches
 branches:
   only:
     - master
     - /.*/
-
 notifications:
   recipients:
     - christian@parpart.family
