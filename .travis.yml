@@ -7,8 +7,13 @@ os:
   - linux
 before_install:
   - sudo apt-get update -qq
+addons:
+  apt:
+    packages:
+      - valgrind
+      - g++-6
 install:
-  - sudo apt-get install -y -qq make autoconf automake libtool gcc-5 g++-5 libmysqlclient-dev zlib1g-dev libbz2-dev pkg-config libssl-dev libpcre3-dev libfcgi-dev libgoogle-perftools-dev libpam-dev git
+  - sudo apt-get install -y -qq make autoconf automake libtool libmysqlclient-dev zlib1g-dev libbz2-dev pkg-config libssl-dev libpcre3-dev libfcgi-dev libgoogle-perftools-dev libpam-dev git
 script:
   - $CXX --version
   - ./autogen.sh
