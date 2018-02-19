@@ -1,5 +1,8 @@
 language: cpp
 sudo: true
+compiler:
+  - clang
+  - gcc
 before_install:
   - sudo apt-get update -qq
 install:
@@ -9,3 +12,6 @@ script:
   - ./autogen.sh
   - make all xzero_test
   - ./xzero_test -v --exclude='raft_*'
+os:
+  - linux
+# vim:ts=2:sw=2:et
