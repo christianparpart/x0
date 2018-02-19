@@ -1,61 +1,16 @@
 language: cpp
-dist: xenial
-sudo: enabled
+dist: trusty
+sudo: required
 
-addons:
-  apt:
-    sources:
-    - sourceline: 'ppa:ubuntu-toolchain-r-test'
-    packages:
-    - clang++-4.0
-    - g++-6.0
+services:
+	- docker
 
-compiler:
-  - gcc
-  - clang
-
-matrix:
-  include:
-    # works on Trusty
-    - os: linux
-      addons:
-        apt:
-          sources:
-            - llvm-toolchain-trusty-4.0
-          packages:
-            - clang-4.0
-      env:
-        - MATRIX_EVAL="CC=clang-4.0 && CXX=clang++-4.0"
-
-    # works on Trusty
-    - os: linux
-      addons:
-        apt:
-          sources:
-            - llvm-toolchain-trusty-5.0
-          packages:
-            - clang-5.0
-      env:
-        - MATRIX_EVAL="CC=clang-5.0 && CXX=clang++-5.0"
-
-before_install:
-	- eval "${MATRIX_EVAL}"
-
-install:
-  # debug output
-  - clang++ -v
-  # gcc
-  - if [ "$CXX" == "g++" ]; then export CXX="g++-6"; fi
-  # clang
-  - if [ "$CXX" == "clang++" ]; then export CXX="clang++-4.0"; fi
-  # x0 dependencies
-	- sudo apt-get install make autoconf automake libtool gcc-4.8 g++-4.8 libmysqlclient-dev zlib1g-dev libbz2-dev pkg-config libssl-dev libpcre3-dev libfcgi-dev libgoogle-perftools-dev libpam-dev git
+# before_install:
+# 	- eval "${MATRIX_EVAL}"
 
 script:
   - $CXX --version
-  - ./autogen.sh
-  - make
-  - ./xzero_test -v
+	- docker build -t x0 .
 
 branches:
   only:
