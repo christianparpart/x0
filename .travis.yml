@@ -2,15 +2,16 @@ language: cpp
 sudo: true
 compiler:
   - clang
+  - gcc
+os:
+  - linux
 before_install:
   - sudo apt-get update -qq
 install:
-  - sudo apt-get install -y -qq make autoconf automake libtool gcc-4.8 g++-4.8 libmysqlclient-dev zlib1g-dev libbz2-dev pkg-config libssl-dev libpcre3-dev libfcgi-dev libgoogle-perftools-dev libpam-dev git
+  - sudo apt-get install -y -qq make autoconf automake libtool gcc-6 g++-6 libmysqlclient-dev zlib1g-dev libbz2-dev pkg-config libssl-dev libpcre3-dev libfcgi-dev libgoogle-perftools-dev libpam-dev git
 script:
   - $CXX --version
   - ./autogen.sh
   - make all xzero_test
   - ./xzero_test -v --exclude='raft_*'
-os:
-  - linux
 # vim:ts=2:sw=2:et
