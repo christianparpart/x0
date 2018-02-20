@@ -8,7 +8,7 @@
 #pragma once
 
 #include <xzero-flow/FlowType.h>
-#include <sys/param.h>  // size_t, odd that it's not part of <stdint.h>.
+#include <stddef.h>
 #include <stdint.h>
 #include <vector>
 
