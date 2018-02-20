@@ -13,6 +13,7 @@
 #include <xzero/RefPtr.h>
 #include <xzero/Option.h>
 #include <xzero/Duration.h>
+#include <xzero/CustomDataMgr.h>
 #include <xzero/CompletionHandler.h>
 #include <xzero/io/FileDescriptor.h>
 #include <xzero/http/HttpRequest.h>
@@ -51,7 +52,7 @@ class HttpTransport;
  * Abstracts away the underlying transport protocol, such as
  * HTTP/1, HTTP/2, HTTPS, FastCGI.
  */
-class HttpClient {
+class HttpClient : public CustomData {
  public:
   using Request = HttpRequest;
   using ResponseListener = HttpListener;
