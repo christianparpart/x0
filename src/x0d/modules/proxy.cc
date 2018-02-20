@@ -349,17 +349,17 @@ bool ProxyModule::proxy_http(XzeroContext* cx, xzero::flow::vm::Params& args) {
   if (tryHandleTrace(cx))
     return true;
 
-  HttpClient* client = new HttpClient(executor, upstreamAddr,
+  HttpClient* client = cx->setCustomData<HttpClient>(this,
+      executor, upstreamAddr,
       connectTimeout, readTimeout, writeTimeout, keepAlive);
 
   Future<HttpClient::Response> f = client->send(*cx->request());
 
-  f.onFailure([client, cx, upstreamAddr] (std::error_code ec) {
+  f.onFailure([cx, upstreamAddr] (std::error_code ec) {
     // XXX defer execution to ensure we're truely async, to avoid nested runner.
     // TODO: we could instead make resume() a no-op if it's already in the loop.
-    cx->response()->executor()->execute([client, cx, upstreamAddr, ec]() {
+    cx->response()->executor()->execute([cx, upstreamAddr, ec]() {
       cx->logError("proxy: Failed to proxy to $0. $1", upstreamAddr, ec.message());
-      delete client;
       bool internalRedirect = false;
       cx->sendErrorPage(HttpStatus::ServiceUnavailable, &internalRedirect);
       if (internalRedirect) {
@@ -368,7 +368,7 @@ bool ProxyModule::proxy_http(XzeroContext* cx, xzero::flow::vm::Params& args) {
     });
   });
 
-  f.onSuccess([client, cx, this] (HttpClient::Response& response) {
+  f.onSuccess([cx, this] (HttpClient::Response& response) {
     for (const HeaderField& field: response.headers()) {
       if (!isConnectionHeader(field.name())) {
         cx->response()->addHeader(field.name(), field.value());
@@ -382,8 +382,6 @@ bool ProxyModule::proxy_http(XzeroContext* cx, xzero::flow::vm::Params& args) {
     cx->response()->setContentLength(response.content().size());
     cx->response()->write(std::move(response.content()));
     cx->response()->completed();
-
-    delete client;
   });
 
   return true;
