@@ -49,19 +49,12 @@ struct XZERO_BASE_API CustomData {
                                                                            \
   xzero::CustomData* setCustomData(const void* key,                            \
                                 std::unique_ptr<xzero::CustomData>&& value) {  \
-    auto res = value.get();                                                \
     customData_[key] = std::move(value);                                   \
-    return res;                                                            \
+    return customData_[key].get();                                         \
   }                                                                        \
                                                                            \
   template <typename T, typename... Args>                                  \
   T* setCustomData(const void* key, Args&&... args) {                      \
-    auto i = customData_.find(key);                                        \
-    if (i != customData_.end()) {                                          \
-      assert(dynamic_cast<T*>(i->second.get()) != nullptr);                \
-      return static_cast<T*>(i->second.get());                             \
-    }                                                                      \
-                                                                           \
     T* value = new T(std::forward<Args>(args)...);                         \
     customData_[key].reset(value);                                         \
     return value;                                                          \
