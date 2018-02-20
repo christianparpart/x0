@@ -1,5 +1,4 @@
 FROM alpine:3.7 as build
-MAINTAINER Christian Parpart <christian@parpart.family>
 
 ENV DOCROOT="/var/www" \
     PORT="80"
