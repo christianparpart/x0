@@ -76,6 +76,9 @@ class XzeroDaemon : public xzero::flow::vm::Runtime {
       bool printAST, bool printIR, bool printTC);
   std::shared_ptr<xzero::flow::vm::Program> loadConfigEasy(
       const std::string& docroot, int port);
+  std::shared_ptr<xzero::flow::vm::Program> loadConfigEasy(
+      const std::string& docroot, int port,
+      bool printAST, bool printIR, bool printTC);
   std::shared_ptr<xzero::flow::vm::Program> loadConfigStream(
       std::unique_ptr<std::istream>&& is, const std::string& name,
       bool printAST, bool printIR, bool printTC);

@@ -78,7 +78,7 @@ int main(int argc, const char* argv[]) {
        .defineString("log-level", 'L', "ENUM", "Defines the minimum log level.", "info", nullptr)
        .defineString("log-target", 0, "ENUM", "Specifies logging target. One of syslog, file, systemd, console.", "console", nullptr)
        .defineString("log-file", 'l', "PATH", "Path to application log file.", "", nullptr)
-       .defineString("instant", 'i', "[BIND:]:PORT", "Enable instant-mode (does not need config file).", "", nullptr)
+       .defineString("instant", 'i', "[PATH,]PORT", "Enable instant-mode (does not need config file).", "", nullptr)
        .defineNumber("optimization-level", 'O', "LEVEL", "Sets the configuration optimization level.", 1)
        .defineBool("daemonize", 'd', "Forks the process into background.")
        .defineString("pid-file", 0, "PATH",
@@ -148,8 +148,25 @@ int main(int argc, const char* argv[]) {
     return 1;
   }
 
-  std::shared_ptr<xzero::flow::vm::Program> config =
-      x0d.loadConfigFile(configFileName, dumpAST, dumpIR, dumpTC);
+  std::shared_ptr<xzero::flow::vm::Program> config;
+
+  if (!flags.getString("instant").empty()) {
+    std::string spec = flags.getString("instant");
+    std::vector<std::string> parts = StringUtil::split(spec, ",");
+    if (parts.size() == 2)
+      config = x0d.loadConfigEasy(parts[0], std::stoi(parts[1]),
+                                  dumpAST, dumpIR, dumpTC);
+    else if (parts.size() == 1)
+      config = x0d.loadConfigEasy(FileUtil::currentWorkingDirectory(),
+                                  std::stoi(parts[0]),
+                                  dumpAST, dumpIR, dumpTC);
+    else {
+      logError("x0d", "Invalid spec passed to --instant command line option.");
+      return 1;
+    }
+  } else {
+    config = x0d.loadConfigFile(configFileName, dumpAST, dumpIR, dumpTC);
+  }
 
   bool exitBeforeRun = dumpAST || dumpIR || dumpTC;
   if (exitBeforeRun)

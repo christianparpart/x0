@@ -11,7 +11,7 @@ x0d [B<-c>|B<--config> I<PATH>] [B<-X>|B<--no-fork>] [B<-G>|B<--guard>] [B<--sys
     [B<-L>|B<--log-severity> I<error>|I<warning>|I<notice>|I<info>|I<diag>|I<debug>] \
     [B<-l>|B<--log-target> I<syslog>|I<file>|I<systemd>|I<console>] \
     [B<-l>|B<--log-file> I<PATH>] \
-    [B<-i>|B<--instant> I<PATH>[,I<PORT>]] \
+    [B<-i>|B<--instant> [I<PATH>,]I<PORT>]] \
     [B<-k>|B<--crash-handler>] \
     [B<--dump-ast>] [B<--dump-ir>] [B<--dump-tc>] \
     [B<-v>|B<--version>] [B<-y>|B<--copyright>] \
@@ -81,13 +81,13 @@ all log entries will be logged into a special format into stdout.
 Specifies the logging severity, one of: error, warning, notice, info, diag, or debug.
 Defaults to "info".
 
-=item B<-i,--instant=PATH[,PORT]>
+=item B<-i,--instant=[PATH,]PORT>
 
 Runs B<x0d> in instant-mode, meaning, no configuration file is loaded nor
 needed at all. B<x0d> will just serve a single document root B<PATH>
 and listen for incoming requests on the specified port.
 
-B<x0d> will by default listen on port 8080 if no port was specified.
+B<x0d> will default to the current working directory, if not specified.
 
 =item B<--systemd>
 

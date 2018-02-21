@@ -132,12 +132,19 @@ bool XzeroDaemon::import(
 // for instant-mode
 std::shared_ptr<flow::vm::Program> XzeroDaemon::loadConfigEasy(
     const std::string& docroot, int port) {
+  return loadConfigEasy(docroot, port, false, false, false);
+}
+
+std::shared_ptr<flow::vm::Program> XzeroDaemon::loadConfigEasy(
+    const std::string& docroot, int port,
+    bool printAST, bool printIR, bool printTC) {
   std::string flow =
       "handler setup {\n"
       "  listen port: #{port};\n"
       "}\n"
       "\n"
       "handler main {\n"
+      "  accesslog '/dev/stdout', 'combined';\n"
       "  docroot '#{docroot}';\n"
       "  staticfile;\n"
       "}\n";
@@ -147,7 +154,7 @@ std::shared_ptr<flow::vm::Program> XzeroDaemon::loadConfigEasy(
 
   return loadConfigStream(
       std::unique_ptr<std::istream>(new std::istringstream(flow)),
-      "instant-mode.conf", false, false, false);
+      "instant-mode.conf", printAST, printIR, printTC);
 }
 
 std::shared_ptr<xzero::flow::vm::Program> XzeroDaemon::loadConfigFile(
