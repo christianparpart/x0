@@ -361,9 +361,12 @@ class UnitTest {
   static UnitTest* instance();
 
   int main(int argc, const char* argv[]);
-  void run();
 
+  void randomizeTestOrder();
+  void sortTestsAlphabetically();
+  void printTestList();
   void filterTests(const std::string& filter, const std::string& exclude);
+  void run();
 
   void addEnvironment(std::unique_ptr<Environment>&& env);
 
@@ -414,9 +417,6 @@ class UnitTest {
   }
 
  private:
-  void randomizeTestOrder();
-  void sortTestsAlphabetically();
-  void printTestList();
   void runAllTestsOnce();
   void printSummary();
   size_t enabledCount() const;

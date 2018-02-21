@@ -8,9 +8,9 @@
 #include <xzero/testing.h>
 #include <xzero/Flags.h>
 #include <xzero/logging/Logger.h>
-#include <xzero/Application.h>
 #include <xzero/AnsiColor.h>
 #include <xzero/StringUtil.h>
+#include <xzero/logging/ConsoleLogTarget.h>
 #include <xzero/logging.h>
 #include <algorithm>
 #include <random>
@@ -137,8 +137,6 @@ int UnitTest::main(int argc, const char* argv[]) {
   // --repeats=NUMBER        repeats tests given number of times
   // --list[-tests]         Just list the tests and exit.
 
-  Application::init();
-
   Flags flags;
   flags.defineBool("help", 'h', "Prints this help and terminates.")
        .defineBool("verbose", 'v', "Prints to console in debug log level.")
@@ -176,7 +174,8 @@ int UnitTest::main(int argc, const char* argv[]) {
     }
   }
 
-  Application::logToStderr(logLevel);
+  Logger::get()->setMinimumLogLevel(logLevel);
+  Logger::get()->addTarget(ConsoleLogTarget::get());
 
   if (flags.isSet("log-target")) {
     std::string logTargetStr = flags.getString("log-target");
