@@ -6,9 +6,9 @@ ENV DOCROOT="/var/www" \
 RUN apk update
 RUN apk add musl-dev gcc g++ clang make \
       automake autoconf libtool pkgconfig \
-      openssl-dev pcre-dev linux-pam-dev bzip2-dev fcgi-dev \
+      openssl-dev linux-pam-dev bzip2-dev fcgi-dev \
       \
-      linux-pam pcre openssl fcgi
+      linux-pam openssl fcgi
 
 COPY 3rdparty          /usr/src/x0/3rdparty
 COPY docs              /usr/src/x0/docs
@@ -40,7 +40,7 @@ RUN strip x0d && ldd x0d && cp -v x0d /usr/bin/x0d
 
 # -----------------------------------------------------------------------------
 FROM alpine:3.7
-RUN  apk add --update libgcc libstdc++ gmp openssl linux-pam pcre
+RUN  apk add --update libgcc libstdc++ gmp openssl linux-pam
 RUN  mkdir -p /etc/x0d /var/log/x0d /var/lib/x0d /var/www
 COPY docker-x0d.conf /usr/x0d/x0d.conf
 COPY --from=build /usr/bin/x0d /usr/bin/x0d
