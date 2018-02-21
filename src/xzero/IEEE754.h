@@ -21,7 +21,7 @@
 
 namespace xzero {
 
-class XZERO_BASE_API IEEE754 {
+class IEEE754 {
  public:
   static uint64_t toBytes(double value);
   static double fromBytes(uint64_t bytes);

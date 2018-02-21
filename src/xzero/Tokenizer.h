@@ -18,7 +18,7 @@ namespace xzero {
  * General purpose string tokenizer.
  */
 template <typename T, typename U = T>
-class XZERO_BASE_API Tokenizer {
+class Tokenizer {
  private:
   const U& input_;
   T token_;

@@ -14,7 +14,7 @@ class Executor;
 
 using ProcessID = int64_t;
 
-class XZERO_BASE_API Application {
+class Application {
  public:
   static void init();
 

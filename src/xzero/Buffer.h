@@ -1220,7 +1220,9 @@ template <void (*ensure)(void*, size_t)>
 inline void MutableBuffer<ensure>::push_back(const void* value, size_t size) {
   if (size) {
     reserve(size_ + size);
-    const size_t minsize = std::min(capacity_ - size_, size);
+    const size_t minsize = capacity_ - size_ < size
+        ? capacity_ - size_
+        : size;
     std::memcpy(end(), value, minsize);
     size_ += minsize;
   }

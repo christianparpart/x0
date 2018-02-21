@@ -17,7 +17,7 @@ namespace xzero {
 /**
  * Random Value Generator.
  */
-class XZERO_BASE_API Random {
+class Random {
  public:
   Random();
 

@@ -7,7 +7,13 @@
 
 #include <xzero/BufferUtil.h>
 #include <xzero/inspect.h>
+#include <xzero/defines.h>
+
+#ifdef XZERO_OS_WIN32
+#include <string.h>
+#else
 #include <strings.h>
+#endif
 
 namespace xzero {
 
@@ -65,10 +71,15 @@ bool BufferUtil::beginsWithIgnoreCase(const BufferRef& str, const BufferRef& pre
   if (str.size() < prefix.size()) {
     return false;
   }
-
+#if defined(_WIN32) || defined(_WIN64)
+  return _strnicmp(str.data(),
+                   prefix.data(),
+                   prefix.size()) == 0;
+#else
   return strncasecmp(str.data(),
                      prefix.data(),
                      prefix.size()) == 0;
+#endif
 }
 
 bool BufferUtil::endsWith(const BufferRef& data, const BufferRef& suffix) {
@@ -82,10 +93,15 @@ bool BufferUtil::endsWithIgnoreCase(const BufferRef& str, const BufferRef& suffi
   if (str.size() < suffix.size()) {
     return false;
   }
-
+#if defined(_WIN32) || defined(_WIN64)
+  return _strnicmp(str.data() + str.size() - suffix.size(),
+                   suffix.data(),
+                   suffix.size()) == 0;
+#else
   return strncasecmp(str.data() + str.size() - suffix.size(),
                      suffix.data(),
                      suffix.size()) == 0;
+#endif
 }
 
 std::string BufferUtil::binPrint(const BufferRef& data, bool spacing) {

@@ -24,7 +24,7 @@ struct None {};
  * Option<> type class.
  */
 template <typename T>
-class XZERO_BASE_API Option {
+class Option {
  public:
   Option();
   Option(None);

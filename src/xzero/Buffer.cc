@@ -12,6 +12,7 @@
 #include <sstream>
 #include <iomanip>
 #include <cstdlib>
+#include <cctype>
 #include <new>
 
 namespace xzero {

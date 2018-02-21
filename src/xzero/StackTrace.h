@@ -13,7 +13,7 @@
 
 namespace xzero {
 
-class XZERO_BASE_API StackTrace {
+class StackTrace {
  public:
   StackTrace();
   StackTrace(StackTrace&&);

@@ -20,7 +20,7 @@ class BufferRef;
 class File;
 class FileView;
 
-class XZERO_BASE_API FileUtil {
+class FileUtil {
  public:
   static char pathSeperator() noexcept;
 

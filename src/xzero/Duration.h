@@ -10,8 +10,13 @@
 #include <inttypes.h>
 #include <limits>
 #include <string>
-#include <sys/time.h>                   // struct timeval; struct timespec;
 #include <xzero/time_constants.h>
+
+#if defined(_WIN32) || defined(_WIN64)
+#include <Winsock2.h>
+#else
+#include <sys/time.h>                   // struct timeval; struct timespec;
+#endif
 
 namespace xzero {
 

@@ -72,7 +72,7 @@
 #define unlikely(x) (x)
 #endif
 
-#elif defined(__MSVC__)
+#elif defined(_MSC_VER)
 
 #define XZERO_NO_EXPORT /*!*/
 #define XZERO_EXPORT __declspec(export)
@@ -92,6 +92,11 @@
 #if !defined(unlikely)
 #define unlikely(x) (x)
 #endif
+
+#include <BaseTsd.h>
+typedef SSIZE_T ssize_t;
+
+#define __PRETTY_FUNCTION__ __FUNCSIG__
 
 #else
 

@@ -61,7 +61,7 @@ inline constexpr Duration::operator struct timeval() const {
            static_cast<__darwin_suseconds_t>(micros_ % kMicrosPerSecond) };
 #else
   return { static_cast<time_t>(micros_ / kMicrosPerSecond),
-           static_cast<long>(micros_ % kMicrosPerSecond) };
+           static_cast<time_t>(micros_ % kMicrosPerSecond) };
 #endif
 }
 

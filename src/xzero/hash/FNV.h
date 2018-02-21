@@ -21,7 +21,7 @@ namespace hash {
  * @see http://en.wikipedia.org/wiki/Fowler-Noll-Vo_hash_function
  */
 template<typename T>
-class XZERO_BASE_API FNV {
+class FNV {
  public:
   FNV();
   FNV(T basis, T prime) : basis_(basis), prime_(prime) {}

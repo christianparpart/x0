@@ -20,7 +20,7 @@
 
 namespace xzero {
 
-class XZERO_BASE_API RuntimeError : public std::system_error {
+class RuntimeError : public std::system_error {
  public:
   RuntimeError(int ev, const std::error_category& ec);
   RuntimeError(int ev, const std::error_category& ec, const std::string& what);
@@ -64,8 +64,8 @@ class XZERO_BASE_API RuntimeError : public std::system_error {
   StackTrace stackTrace_;
 };
 
-XZERO_BASE_API void logAndPass(const std::exception& e);
-XZERO_BASE_API void logAndAbort(const std::exception& e);
+void logAndPass(const std::exception& e);
+void logAndAbort(const std::exception& e);
 
 // {{{ inlines
 template<typename T>
@@ -124,7 +124,7 @@ inline RuntimeError::RuntimeError(const std::error_code& ec)
  * @param what_arg 3rd (optional) argument is the actual error message.
  */
 #define RAISE_CATEGORY(Code, ...) {                                           \
-  RAISE_EXCEPTION(::xzero::RuntimeError, ((int) Code), __VA_ARGS__);                   \
+  RAISE_EXCEPTION(::xzero::RuntimeError, ((int) Code), __VA_ARGS__);          \
 }
 
 /**
@@ -151,8 +151,8 @@ inline RuntimeError::RuntimeError(const std::error_code& ec)
  *
  * @see RAISE_EXCEPTION(E, ...)
  */
-#define RAISE_SYSERR(errno, fmt...) {                                         \
-  RAISE_EXCEPTION(RuntimeError, ((int) errno), std::system_category(), fmt);  \
+#define RAISE_SYSERR(errno, fmt, ...) {                                       \
+  RAISE_EXCEPTION(RuntimeError, ((int) errno), std::system_category(), fmt, __VA_ARGS__); \
 }
 
 /**
