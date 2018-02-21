@@ -7,7 +7,6 @@
 
 #pragma once
 
-#include <xzero/http/Api.h>
 #include <xzero/http/HttpHandler.h>
 #include <xzero/http/HttpDateGenerator.h>
 #include <xzero/http/HttpOutputCompressor.h>

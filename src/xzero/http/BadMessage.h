@@ -5,7 +5,6 @@
 // file except in compliance with the License. You may obtain a copy of
 // the License at: http://opensource.org/licenses/MIT
 
-#include <xzero/http/Api.h>
 #include <xzero/http/HttpStatus.h>
 #include <xzero/RuntimeError.h>
 #include <system_error>
@@ -16,7 +15,7 @@ namespace http {
 /**
  * Helper exception that is thrown on semantic message errors by HttpChannel.
  */
-class XZERO_HTTP_API BadMessage : public RuntimeError {
+class BadMessage : public RuntimeError {
  public:
   explicit BadMessage(HttpStatus code);
   BadMessage(HttpStatus code, const std::string& reason);

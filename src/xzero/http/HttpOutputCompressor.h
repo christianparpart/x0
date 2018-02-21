@@ -7,7 +7,6 @@
 
 #pragma once
 
-#include <xzero/http/Api.h>
 #include <unordered_map>
 #include <string>
 
@@ -20,7 +19,7 @@ class HttpResponse;
 /**
  * HTTP response output compression.
  */
-class XZERO_HTTP_API HttpOutputCompressor {
+class HttpOutputCompressor {
  public:
   HttpOutputCompressor();
   ~HttpOutputCompressor();

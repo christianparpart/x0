@@ -7,7 +7,6 @@
 
 #pragma once
 
-#include <xzero/http/Api.h>
 #include <xzero/http/http1/Generator.h>
 #include <xzero/http/http1/Parser.h>
 #include <xzero/http/HttpVersion.h>
@@ -51,7 +50,7 @@ class ClientResponse { // {{{
  * - sync & async calls.
  * - incremental response receive vs full response object
  */
-class XZERO_HTTP_API Client {
+class Client {
  public:
   Client(HttpVersion version,
          const std::string& method,

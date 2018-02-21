@@ -8,7 +8,7 @@
 #pragma once
 
 #include <xzero-flow/vm/Instruction.h>
-#include <xzero-flow/Api.h>
+#include <xzero/defines.h>
 #include <xzero/sysconfig.h>
 #include <string>
 #include <vector>

@@ -265,7 +265,6 @@ nobase_libXzero_HEADERS = \
 	src/xzero/executor/ThreadPool.h \
 	src/xzero/executor/ThreadedExecutor.h \
 	src/xzero/hash/FNV.h \
-	src/xzero/http/Api.h \
 	src/xzero/http/BadMessage.h \
 	src/xzero/http/Cookies.h \
 	src/xzero/http/HeaderField.h \
@@ -497,7 +496,7 @@ nobase_libXzeroFlow_HEADERS = \
 	src/xzero-flow/AST.h \
 	src/xzero-flow/ASTPrinter.h \
 	src/xzero-flow/ASTVisitor.h \
-	src/xzero-flow/Api.h \
+	src/xzero/defines.h \
 	src/xzero-flow/FlowCallVisitor.h \
 	src/xzero-flow/FlowLexer.h \
 	src/xzero-flow/FlowLocation.h \

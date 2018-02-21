@@ -21,7 +21,7 @@ namespace xzero {
  * While one or more caller are waiting for one event, another
  * caller can cause those waiting callers to be fired.
  */
-class XZERO_BASE_API Wakeup {
+class Wakeup {
  public:
   Wakeup();
 

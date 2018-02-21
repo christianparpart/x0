@@ -15,7 +15,7 @@
 namespace xzero {
 namespace util {
 
-class XZERO_BASE_API BinaryMessageWriter {
+class BinaryMessageWriter {
 public:
   static const size_t kInitialDataSize = 4096;
 

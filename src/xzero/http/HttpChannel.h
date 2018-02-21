@@ -7,7 +7,6 @@
 
 #pragma once
 
-#include <xzero/http/Api.h>
 #include <xzero/Callback.h>
 #include <xzero/CompletionHandler.h>
 #include <xzero/http/HttpListener.h>
@@ -39,7 +38,7 @@ enum class HttpChannelState {
   SENDING,  //!< currently sending data
 };
 
-XZERO_HTTP_API std::string as_string(HttpChannelState state);
+std::string as_string(HttpChannelState state);
 std::ostream& operator<<(std::ostream& os, HttpChannelState state);
 
 /**
@@ -49,7 +48,7 @@ std::ostream& operator<<(std::ostream& os, HttpChannelState state);
  *
  * @see HttpTransport
  */
-class XZERO_HTTP_API HttpChannel : public HttpListener {
+class HttpChannel : public HttpListener {
  public:
   HttpChannel(HttpTransport* transport,
               Executor* executor,

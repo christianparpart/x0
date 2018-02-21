@@ -7,7 +7,7 @@
 
 #pragma once
 
-#include <xzero-flow/Api.h>
+#include <xzero/defines.h>
 #include <xzero-flow/vm/ConstantPool.h>
 #include <xzero-flow/vm/Instruction.h>
 #include <xzero-flow/FlowType.h>  // FlowNumber

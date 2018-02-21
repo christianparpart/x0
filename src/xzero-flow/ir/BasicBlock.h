@@ -7,7 +7,7 @@
 
 #pragma once
 
-#include <xzero-flow/Api.h>
+#include <xzero/defines.h>
 #include <xzero-flow/ir/Value.h>
 #include <xzero-flow/ir/InstructionVisitor.h>
 #include <xzero-flow/vm/Instruction.h>
@@ -33,7 +33,7 @@ class IRBuilder;
  *
  * @see Instr, IRHandler, IRBuilder
  */
-class XZERO_FLOW_API BasicBlock : public Value {
+class BasicBlock : public Value {
  public:
   explicit BasicBlock(const std::string& name);
   ~BasicBlock();

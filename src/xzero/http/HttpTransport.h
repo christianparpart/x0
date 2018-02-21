@@ -30,7 +30,7 @@ class HttpResponseInfo;
  *
  * For HTTP/1 for example it is <b>RFC 7230</b>.
  */
-class XZERO_HTTP_API HttpTransport {
+class HttpTransport {
  public:
   virtual ~HttpTransport();
 

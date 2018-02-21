@@ -16,7 +16,7 @@ namespace xzero {
 namespace flow {
 namespace vm {
 
-class XZERO_FLOW_API Signature {
+class Signature {
  private:
   std::string name_;
   FlowType returnType_;

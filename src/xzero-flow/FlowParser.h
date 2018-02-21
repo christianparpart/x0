@@ -13,7 +13,7 @@
 #include <string>
 #include <functional>
 
-#include <xzero-flow/Api.h>
+#include <xzero/defines.h>
 #include <xzero-flow/FlowToken.h>
 #include <xzero-flow/FlowLexer.h>
 #include <xzero-flow/AST.h>  // SymbolTable
@@ -32,7 +32,7 @@ class NativeCallback;
 
 class FlowLexer;
 
-class XZERO_FLOW_API FlowParser {
+class FlowParser {
   std::unique_ptr<FlowLexer> lexer_;
   SymbolTable* scopeStack_;
   vm::Runtime* runtime_;

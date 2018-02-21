@@ -7,7 +7,7 @@
 
 #pragma once
 
-#include <xzero-flow/Api.h>
+#include <xzero/defines.h>
 #include <xzero-flow/FlowLocation.h>
 #include <xzero-flow/FlowToken.h>
 #include <xzero/net/IPAddress.h>
@@ -25,7 +25,7 @@ namespace flow {
 //! \addtogroup Flow
 //@{
 
-class XZERO_FLOW_API FlowLexer {
+class FlowLexer {
  public:
   FlowLexer();
   ~FlowLexer();

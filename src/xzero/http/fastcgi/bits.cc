@@ -12,7 +12,7 @@ namespace xzero {
 namespace http {
 namespace fastcgi {
 
-XZERO_HTTP_API std::string as_string(Type t) {
+std::string as_string(Type t) {
   switch (t) {
     case Type::BeginRequest: return "BeginRequest";
     case Type::AbortRequest: return "AbortRequest";

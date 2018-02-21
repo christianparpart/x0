@@ -11,7 +11,7 @@
 #include <memory>
 #include <iosfwd>
 #include <cstdint>
-#include <xzero-flow/Api.h>
+#include <xzero/defines.h>
 
 namespace xzero {
 namespace flow {
@@ -19,7 +19,7 @@ namespace flow {
 //! \addtogroup Flow
 //@{
 
-struct XZERO_FLOW_API FlowToken {
+struct FlowToken {
   enum _ {
     Unknown,
 
@@ -125,7 +125,7 @@ struct XZERO_FLOW_API FlowToken {
   int value_;
 };
 
-class XZERO_FLOW_API FlowTokenTraits {
+class FlowTokenTraits {
  public:
   static bool isKeyword(FlowToken t);
   static bool isReserved(FlowToken t);

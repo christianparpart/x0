@@ -8,7 +8,7 @@
 #pragma once
 
 #include <xzero-flow/FlowType.h>
-#include <xzero-flow/Api.h>
+#include <xzero/defines.h>
 
 namespace xzero {
 namespace flow {
@@ -66,8 +66,8 @@ enum class BinaryOperator {
   PInCidr,
 };
 
-XZERO_FLOW_API const char* cstr(BinaryOperator op);
-XZERO_FLOW_API const char* cstr(UnaryOperator op);
+const char* cstr(BinaryOperator op);
+const char* cstr(UnaryOperator op);
 
 class NopInstr;
 class AllocaInstr;
@@ -137,7 +137,7 @@ typedef BinaryInstr<BinaryOperator::PCmpEQ, FlowType::Boolean> PCmpEQInstr;
 typedef BinaryInstr<BinaryOperator::PCmpNE, FlowType::Boolean> PCmpNEInstr;
 typedef BinaryInstr<BinaryOperator::PInCidr, FlowType::Boolean> PInCidrInstr;
 
-class XZERO_FLOW_API InstructionVisitor {
+class InstructionVisitor {
  public:
   virtual ~InstructionVisitor() {};
 

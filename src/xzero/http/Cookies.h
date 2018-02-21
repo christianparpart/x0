@@ -7,7 +7,6 @@
 
 #pragma once
 
-#include <xzero/http/Api.h>
 #include <xzero/UnixTime.h>
 #include <vector>
 #include <string>

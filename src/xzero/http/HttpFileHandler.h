@@ -7,8 +7,8 @@
 
 #pragma once
 
-#include <xzero/http/Api.h>
 #include <xzero/http/HttpStatus.h>
+#include <xzero/defines.h>
 #include <string>
 #include <memory>
 #include <functional>
@@ -29,7 +29,7 @@ class HttpResponse;
  *
  * @note this class is not meant to be thread safe.
  */
-class XZERO_HTTP_API HttpFileHandler {
+class HttpFileHandler {
  public:
   /**
    * Initializes static file handler.

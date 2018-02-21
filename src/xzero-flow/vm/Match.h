@@ -7,7 +7,7 @@
 
 #pragma once
 
-#include <xzero-flow/Api.h>
+#include <xzero/defines.h>
 #include <xzero-flow/vm/Instruction.h>
 #include <xzero-flow/vm/MatchClass.h>
 #include <xzero-flow/FlowType.h>
@@ -24,7 +24,7 @@ namespace xzero {
 namespace flow {
 namespace vm {
 
-struct XZERO_FLOW_API MatchCaseDef {
+struct MatchCaseDef {
   //!< offset into the string pool (or regexp pool) of the associated program.
   uint64_t label;
   //!< program offset into the associated handler
@@ -34,7 +34,7 @@ struct XZERO_FLOW_API MatchCaseDef {
   MatchCaseDef(uint64_t l, uint64_t p) : label(l), pc(p) {}
 };
 
-class XZERO_FLOW_API MatchDef {
+class MatchDef {
  public:
   size_t handlerId;
   MatchClass op;  // == =^ =$ =~

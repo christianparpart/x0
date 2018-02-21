@@ -7,7 +7,7 @@
 
 #pragma once
 
-#include <xzero-flow/Api.h>
+#include <xzero/defines.h>
 #include <xzero-flow/FlowType.h>
 #include <xzero-flow/vm/Handler.h>
 #include <xzero-flow/vm/Program.h>
@@ -20,7 +20,7 @@ namespace xzero {
 namespace flow {
 namespace vm {
 
-class XZERO_FLOW_API Params {
+class Params {
  private:
   int argc_;
   Register* argv_;

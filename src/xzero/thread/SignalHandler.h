@@ -13,7 +13,7 @@
 namespace xzero {
 namespace thread {
 
-class XZERO_BASE_API SignalHandler {
+class SignalHandler {
  public:
   static void ignore(int signum);
 

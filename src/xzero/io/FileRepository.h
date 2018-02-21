@@ -16,7 +16,7 @@ namespace xzero {
 
 class File;
 
-class XZERO_BASE_API FileRepository {
+class FileRepository {
  public:
   virtual ~FileRepository();
 

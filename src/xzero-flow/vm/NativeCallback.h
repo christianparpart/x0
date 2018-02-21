@@ -7,7 +7,7 @@
 
 #pragma once
 
-#include <xzero-flow/Api.h>
+#include <xzero/defines.h>
 #include <xzero-flow/FlowType.h>
 #include <xzero-flow/vm/Signature.h>
 #include <xzero/net/IPAddress.h>
@@ -31,7 +31,7 @@ class Params;
 class Runner;
 class Runtime;
 
-class XZERO_FLOW_API NativeCallback {
+class NativeCallback {
  public:
   typedef std::function<void(Params& args)> Functor;
   typedef std::function<bool(Instr*, IRBuilder*)> Verifier;

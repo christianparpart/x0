@@ -7,7 +7,7 @@
 
 #pragma once
 
-#include <xzero-flow/Api.h>
+#include <xzero/defines.h>
 #include <xzero-flow/ir/Value.h>
 #include <xzero-flow/ir/ConstantValue.h>
 #include <xzero-flow/ir/IRBuiltinHandler.h>
@@ -36,7 +36,7 @@ class IRProgram;
 class IRBuilder;
 class ConstantArray;
 
-class XZERO_FLOW_API IRBuilder {
+class IRBuilder {
  private:
   IRProgram* program_;
   IRHandler* handler_;

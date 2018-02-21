@@ -7,7 +7,6 @@
 
 #pragma once
 
-#include <xzero/http/Api.h>
 #include <xzero/http/HeaderFieldList.h>
 #include <xzero/Buffer.h>
 #include <memory>
@@ -33,7 +32,7 @@ namespace http1 {
  * Implements the HTTP/1.1 transport layer syntax to generate
  * RFC 7230 conform messages.
  */
-class XZERO_HTTP_API Generator {
+class Generator {
   enum class State {
     None,
     WritingBody,

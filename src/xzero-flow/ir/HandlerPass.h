@@ -7,14 +7,14 @@
 
 #pragma once
 
-#include <xzero-flow/Api.h>
+#include <xzero/defines.h>
 
 namespace xzero {
 namespace flow {
 
 class IRHandler;
 
-class XZERO_FLOW_API HandlerPass {
+class HandlerPass {
  public:
   explicit HandlerPass(const char* name) : name_(name) {}
 

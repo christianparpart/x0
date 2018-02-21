@@ -7,7 +7,7 @@
 
 #pragma once
 
-#include <xzero-flow/Api.h>
+#include <xzero/defines.h>
 #include <list>
 #include <memory>
 
@@ -18,7 +18,7 @@ class HandlerPass;
 class IRHandler;
 class IRProgram;
 
-class XZERO_FLOW_API PassManager {
+class PassManager {
  public:
   PassManager();
   ~PassManager();

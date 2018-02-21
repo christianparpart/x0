@@ -7,7 +7,6 @@
 
 #pragma once
 
-#include <xzero/http/Api.h>
 #include <xzero/http/fastcgi/bits.h>
 #include <xzero/http/HeaderFieldList.h>
 #include <xzero/Buffer.h>
@@ -28,7 +27,7 @@ namespace fastcgi {
  * Parses a client FastCGI request stream.
  *
  */
-class XZERO_HTTP_API RequestParser {
+class RequestParser {
  private:
   struct StreamState : public CgiParamStreamReader { // {{{
     HttpListener* listener;

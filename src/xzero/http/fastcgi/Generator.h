@@ -7,7 +7,6 @@
 
 #pragma once
 
-#include <xzero/http/Api.h>
 #include <xzero/http/HeaderFieldList.h>
 #include <xzero/http/HttpInfo.h>
 #include <xzero/http/HttpRequestInfo.h>
@@ -28,7 +27,7 @@ namespace fastcgi {
  *
  * Generates the binary stream for an HTTP request or response.
  */
-class XZERO_HTTP_API Generator {
+class Generator {
  public:
   /**
    * Generates an HTTP request or HTTP response for given FastCGI request-ID.

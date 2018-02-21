@@ -7,7 +7,7 @@
 
 #pragma once
 
-#include <xzero-flow/Api.h>
+#include <xzero/defines.h>
 #include <xzero/RegExp.h>
 #include <xzero/net/IPAddress.h>
 #include <xzero/net/Cidr.h>
@@ -54,7 +54,7 @@ class MatchStmt;
 class ForStmt;
 class AssignStmt;
 
-class XZERO_FLOW_API ASTVisitor {
+class ASTVisitor {
  public:
   virtual ~ASTVisitor() {}
 

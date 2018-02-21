@@ -16,7 +16,7 @@ namespace xzero {
 /**
  * Gzip encoding filter.
  */
-class XZERO_BASE_API GzipFilter : public Filter {
+class GzipFilter : public Filter {
  public:
   explicit GzipFilter(int level);
   ~GzipFilter();

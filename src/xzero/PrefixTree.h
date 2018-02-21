@@ -13,7 +13,7 @@
 namespace xzero {
 
 template <typename K, typename V>
-class XZERO_BASE_API PrefixTree {
+class PrefixTree {
  public:
   typedef K Key;
   typedef typename Key::value_type Elem;

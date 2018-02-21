@@ -620,32 +620,32 @@ FlowType ArrayExpr::getType() const {
 }
 
 template <>
-XZERO_FLOW_API FlowType LiteralExpr<RegExp>::getType() const {
+FlowType LiteralExpr<RegExp>::getType() const {
   return FlowType::RegExp;
 }
 
 template <>
-XZERO_FLOW_API FlowType LiteralExpr<Cidr>::getType() const {
+FlowType LiteralExpr<Cidr>::getType() const {
   return FlowType::Cidr;
 }
 
 template <>
-XZERO_FLOW_API FlowType LiteralExpr<bool>::getType() const {
+FlowType LiteralExpr<bool>::getType() const {
   return FlowType::Boolean;
 }
 
 template <>
-XZERO_FLOW_API FlowType LiteralExpr<IPAddress>::getType() const {
+FlowType LiteralExpr<IPAddress>::getType() const {
   return FlowType::IPAddress;
 }
 
 template <>
-XZERO_FLOW_API FlowType LiteralExpr<long long>::getType() const {
+FlowType LiteralExpr<long long>::getType() const {
   return FlowType::Number;
 }
 
 template <>
-XZERO_FLOW_API FlowType LiteralExpr<std::string>::getType() const {
+FlowType LiteralExpr<std::string>::getType() const {
   return FlowType::String;
 }
 

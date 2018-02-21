@@ -7,7 +7,7 @@
 
 #pragma once
 
-#include <xzero-flow/Api.h>
+#include <xzero/defines.h>
 #include <xzero-flow/FlowType.h>
 #include <xzero-flow/vm/Handler.h>
 #include <xzero-flow/vm/Instruction.h>
@@ -29,7 +29,7 @@ namespace vm {
 
 // ExecutionEngine
 // VM
-class XZERO_FLOW_API Runner : public CustomData {
+class Runner : public CustomData {
  public:
   enum State {
     Inactive,   //!< No handler running nor suspended.

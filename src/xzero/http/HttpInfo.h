@@ -7,7 +7,6 @@
 
 #pragma once
 
-#include <xzero/http/Api.h>
 #include <xzero/http/HttpVersion.h>
 #include <xzero/http/HeaderFieldList.h>
 #include <string>
@@ -21,7 +20,7 @@ namespace http {
  * @see HttpRequestInfo
  * @see HttpResponseInfo
  */
-class XZERO_HTTP_API HttpInfo {
+class HttpInfo {
  public:
   static constexpr size_t UnknownContentLength = static_cast<size_t>(-1);
 

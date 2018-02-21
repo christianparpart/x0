@@ -7,7 +7,7 @@
 
 #pragma once
 
-#include <xzero-flow/Api.h>
+#include <xzero/defines.h>
 #include <xzero-flow/FlowType.h>
 #include <xzero-flow/ir/InstructionVisitor.h>
 #include <xzero-flow/vm/ConstantPool.h>
@@ -39,7 +39,7 @@ namespace vm {
 class Program;
 }
 
-class XZERO_FLOW_API TargetCodeGenerator : public InstructionVisitor {
+class TargetCodeGenerator : public InstructionVisitor {
  public:
   TargetCodeGenerator();
   ~TargetCodeGenerator();

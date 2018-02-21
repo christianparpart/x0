@@ -7,7 +7,7 @@
 
 #pragma once
 
-#include <xzero-flow/Api.h>
+#include <xzero/defines.h>
 #include <xzero-flow/FlowType.h>
 #include <xzero-flow/vm/Params.h>
 #include <xzero-flow/vm/Signature.h>
@@ -28,7 +28,7 @@ typedef uint64_t Value;
 class Runner;
 class NativeCallback;
 
-class XZERO_FLOW_API Runtime {
+class Runtime {
  public:
   virtual ~Runtime();
 

@@ -18,7 +18,7 @@
 namespace xzero {
 namespace util {
 
-class XZERO_BASE_API SimpleRateLimit {
+class SimpleRateLimit {
  public:
   SimpleRateLimit(const Duration& period);
 
@@ -29,7 +29,7 @@ class XZERO_BASE_API SimpleRateLimit {
   uint64_t last_micros_;
 };
 
-class XZERO_BASE_API SimpleRateLimitedFn {
+class SimpleRateLimitedFn {
  public:
   SimpleRateLimitedFn(const Duration& period, std::function<void ()> fn);
 

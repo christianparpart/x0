@@ -20,7 +20,7 @@ namespace xzero {
 /**
  * DNS client API.
  */
-class XZERO_BASE_API DnsClient {
+class DnsClient {
  public:
   DnsClient();
   ~DnsClient();

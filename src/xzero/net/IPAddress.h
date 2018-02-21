@@ -26,7 +26,7 @@ namespace xzero {
 /**
  * IPv4 or IPv6 network address.
  */
-class XZERO_BASE_API IPAddress {
+class IPAddress {
  public:
   static const int V4 = AF_INET;
   static const int V6 = AF_INET6;

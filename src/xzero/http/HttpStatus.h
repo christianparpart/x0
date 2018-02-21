@@ -7,7 +7,6 @@
 
 #pragma once
 
-#include <xzero/http/Api.h>
 #include <system_error>
 #include <string>
 #include <iosfwd>
@@ -111,7 +110,7 @@ enum class HttpStatusGroup {
   ServerError = 5,
 };
 
-class XZERO_HTTP_API HttpStatusCategory : public std::error_category {
+class HttpStatusCategory : public std::error_category {
  public:
   static std::error_category& get();
 
@@ -129,7 +128,7 @@ constexpr HttpStatusGroup toStatusGroup(HttpStatus status) {
 }
 
 /** Retrieves the human readable text of the HTTP status @p code. */
-XZERO_HTTP_API const std::string& as_string(HttpStatus code);
+const std::string& as_string(HttpStatus code);
 
 /** Write human readable text of the HTTP status @p code into @p os. */
 std::ostream& operator<<(std::ostream& os, HttpStatus code);

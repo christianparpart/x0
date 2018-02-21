@@ -7,7 +7,6 @@
 
 #pragma once
 
-#include <xzero/http/Api.h>
 #include <xzero/http/HeaderField.h>
 #include <string>
 #include <vector>
@@ -19,7 +18,7 @@ namespace http {
 /**
  * Represents a list of headers (key/value pairs) for an HTTP message.
  */
-class XZERO_HTTP_API HeaderFieldList {
+class HeaderFieldList {
  public:
   HeaderFieldList() = default;
   HeaderFieldList(HeaderFieldList&&) = default;

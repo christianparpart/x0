@@ -20,7 +20,7 @@ class FileView;
 /**
  * I/O Filter API.
  */
-class XZERO_BASE_API Filter {
+class Filter {
  public:
   /**
    * Applies this filter to the given @p input.

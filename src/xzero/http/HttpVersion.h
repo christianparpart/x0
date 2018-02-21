@@ -7,7 +7,6 @@
 
 #pragma once
 
-#include <xzero/http/Api.h>
 #include <string>
 #include <iosfwd>
 
@@ -25,9 +24,9 @@ enum class HttpVersion {
   VERSION_2_0 = 0x20,
 };
 
-XZERO_HTTP_API const std::string& as_string(HttpVersion value);
-XZERO_HTTP_API std::ostream& operator<<(std::ostream& os, HttpVersion version);
-XZERO_HTTP_API HttpVersion make_version(const std::string& value);
+const std::string& as_string(HttpVersion value);
+std::ostream& operator<<(std::ostream& os, HttpVersion version);
+HttpVersion make_version(const std::string& value);
 
 } // namespace http
 } // namespace xzero

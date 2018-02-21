@@ -7,7 +7,6 @@
 
 #pragma once
 
-#include <xzero/http/Api.h>
 #include <string>
 #include <iosfwd>
 
@@ -34,9 +33,9 @@ enum class HttpMethod {
   UNLOCK,
 };
 
-XZERO_HTTP_API std::string as_string(HttpMethod value);
+std::string as_string(HttpMethod value);
 std::ostream& operator<<(std::ostream& os, HttpMethod method);
-XZERO_HTTP_API HttpMethod to_method(const std::string& value);
+HttpMethod to_method(const std::string& value);
 
 } // namespace http
 } // namespace xzero

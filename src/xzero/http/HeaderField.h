@@ -7,7 +7,6 @@
 
 #pragma once
 
-#include <xzero/http/Api.h>
 #include <string>
 #include <iosfwd>
 
@@ -20,7 +19,7 @@ typedef std::string HeaderFieldValue;
 /**
  * Represents a single HTTP message header name/value pair.
  */
-class XZERO_HTTP_API HeaderField {
+class HeaderField {
  public:
   static HeaderField parse(const std::string& field);
 
@@ -103,7 +102,7 @@ inline HeaderField::HeaderField(const std::string& name,
 }
 // }}}
 
-XZERO_HTTP_API std::string inspect(const HeaderField& field);
+std::string inspect(const HeaderField& field);
 std::ostream& operator<<(std::ostream& os, const HeaderField& field);
 
 }  // namespace http

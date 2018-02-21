@@ -12,7 +12,7 @@
 
 namespace xzero {
 
-class XZERO_BASE_API RefCounted {
+class RefCounted {
  public:
   RefCounted() noexcept;
   virtual ~RefCounted();

@@ -7,7 +7,6 @@
 
 #pragma once
 
-#include <xzero/http/Api.h>
 #include <xzero/Buffer.h>
 #include <xzero/http/HttpVersion.h>
 #include <xzero/http/HttpStatus.h>
@@ -28,7 +27,7 @@ namespace http {
  *
  * @see HttpParser
  */
-class XZERO_HTTP_API HttpListener {
+class HttpListener {
  public:
   virtual ~HttpListener() {}
 

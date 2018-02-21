@@ -38,7 +38,7 @@ inline bool operator!(PromiseStatus s) {
 }
 
 template <typename T>
-class XZERO_BASE_API PromiseState : public RefCounted {
+class PromiseState : public RefCounted {
  public:
   PromiseState();
   ~PromiseState();
@@ -198,7 +198,7 @@ class Future<void> {
 };
 
 template <typename T>
-class XZERO_BASE_API Promise {
+class Promise {
  public:
   Promise();
   Promise(const Promise<T>& other);

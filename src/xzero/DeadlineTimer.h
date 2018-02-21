@@ -19,7 +19,7 @@ namespace xzero {
 /**
  * Manages a single idle timeout.
  */
-class XZERO_BASE_API DeadlineTimer {
+class DeadlineTimer {
  public:
   DeadlineTimer(Executor* executor, Executor::Task cb, Duration timeout);
   DeadlineTimer(Executor* executor, Executor::Task cb);

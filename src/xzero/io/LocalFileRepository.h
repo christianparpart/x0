@@ -17,7 +17,7 @@ namespace xzero {
 class MimeTypes;
 class LocalFile;
 
-class XZERO_BASE_API LocalFileRepository : public FileRepository {
+class LocalFileRepository : public FileRepository {
  public:
   /**
    * Initializes local file repository.

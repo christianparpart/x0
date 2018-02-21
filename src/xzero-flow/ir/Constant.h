@@ -7,13 +7,13 @@
 
 #pragma once
 
-#include <xzero-flow/Api.h>
+#include <xzero/defines.h>
 #include <xzero-flow/ir/Value.h>
 
 namespace xzero {
 namespace flow {
 
-class XZERO_FLOW_API Constant : public Value {
+class Constant : public Value {
  public:
   Constant(FlowType ty, const std::string& name) : Value(ty, name) {}
 

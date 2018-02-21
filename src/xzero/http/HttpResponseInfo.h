@@ -7,7 +7,6 @@
 
 #pragma once
 
-#include <xzero/http/Api.h>
 #include <xzero/http/HttpInfo.h>
 #include <xzero/http/HttpStatus.h>
 #include <string>
@@ -18,7 +17,7 @@ namespace http {
 /**
  * HTTP Response Message Info.
  */
-class XZERO_HTTP_API HttpResponseInfo : public HttpInfo {
+class HttpResponseInfo : public HttpInfo {
  public:
   HttpResponseInfo();
   HttpResponseInfo(HttpResponseInfo&& other);

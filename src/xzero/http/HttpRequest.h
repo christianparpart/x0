@@ -7,7 +7,6 @@
 
 #pragma once
 
-#include <xzero/http/Api.h>
 #include <xzero/Buffer.h>
 #include <xzero/HugeBuffer.h>
 #include <xzero/io/File.h>
@@ -29,7 +28,7 @@ namespace http {
 /**
  * Represents an HTTP request message.
  */
-class XZERO_HTTP_API HttpRequest : public HttpRequestInfo {
+class HttpRequest : public HttpRequestInfo {
  public:
   HttpRequest();
   HttpRequest(HttpVersion version,

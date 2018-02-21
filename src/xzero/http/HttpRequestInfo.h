@@ -7,7 +7,6 @@
 
 #pragma once
 
-#include <xzero/http/Api.h>
 #include <xzero/http/HttpInfo.h>
 #include <xzero/http/HttpMethod.h>
 #include <string>
@@ -18,7 +17,7 @@ namespace http {
 /**
  * HTTP Request Message Info.
  */
-class XZERO_HTTP_API HttpRequestInfo : public HttpInfo {
+class HttpRequestInfo : public HttpInfo {
  public:
   HttpRequestInfo();
   HttpRequestInfo(const HttpRequestInfo&) = default;

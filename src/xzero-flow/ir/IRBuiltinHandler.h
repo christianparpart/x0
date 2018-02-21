@@ -7,7 +7,7 @@
 
 #pragma once
 
-#include <xzero-flow/Api.h>
+#include <xzero/defines.h>
 #include <xzero-flow/ir/Constant.h>
 #include <xzero-flow/vm/Signature.h>
 
@@ -18,7 +18,7 @@
 namespace xzero {
 namespace flow {
 
-class XZERO_FLOW_API IRBuiltinHandler : public Constant {
+class IRBuiltinHandler : public Constant {
  public:
   IRBuiltinHandler(const vm::Signature& sig)
       : Constant(FlowType::Boolean, sig.name()), signature_(sig) {}

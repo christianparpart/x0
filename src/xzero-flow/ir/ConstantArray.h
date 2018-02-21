@@ -7,7 +7,7 @@
 
 #pragma once
 
-#include <xzero-flow/Api.h>
+#include <xzero/defines.h>
 #include <xzero-flow/ir/Constant.h>
 
 #include <string>
@@ -16,7 +16,7 @@
 namespace xzero {
 namespace flow {
 
-class XZERO_FLOW_API ConstantArray : public Constant {
+class ConstantArray : public Constant {
  public:
   ConstantArray(const std::vector<Constant*>& elements,
                 const std::string& name = "")

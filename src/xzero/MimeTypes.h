@@ -13,7 +13,7 @@
 
 namespace xzero {
 
-class XZERO_BASE_API MimeTypes {
+class MimeTypes {
  public:
   MimeTypes();
   MimeTypes(const std::string& path, const std::string& defaultMimeType);

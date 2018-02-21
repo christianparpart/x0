@@ -7,7 +7,7 @@
 
 #pragma once
 
-#include <xzero-flow/Api.h>
+#include <xzero/defines.h>
 #include <xzero-flow/ir/Value.h>
 #include <xzero-flow/ir/InstructionVisitor.h>
 #include <xzero-flow/vm/Instruction.h>
@@ -42,7 +42,7 @@ class InstructionVisitor;
  * @see BasicBlock
  * @see IRHandler
  */
-class XZERO_FLOW_API Instr : public Value {
+class Instr : public Value {
  protected:
   Instr(const Instr& v);
 

@@ -7,7 +7,7 @@
 
 #pragma once
 
-#include <xzero-flow/Api.h>
+#include <xzero/defines.h>
 #include <xzero-flow/FlowType.h>
 
 #include <string>
@@ -21,7 +21,7 @@ class Instr;
 /**
  * Defines an immutable IR value.
  */
-class XZERO_FLOW_API Value {
+class Value {
  protected:
   Value(const Value& v);
 

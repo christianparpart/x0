@@ -7,7 +7,7 @@
 
 #pragma once
 
-#include <xzero-flow/Api.h>
+#include <xzero/defines.h>
 #include <xzero-flow/FlowType.h>
 #include <xzero-flow/vm/Match.h>
 #include <xzero/net/IPAddress.h>
@@ -25,7 +25,7 @@ namespace vm {
  *
  * @see Program
  */
-class XZERO_FLOW_API ConstantPool {
+class ConstantPool {
  public:
   ConstantPool(const ConstantPool& v) = delete;
   ConstantPool& operator=(const ConstantPool& v) = delete;

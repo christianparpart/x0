@@ -7,7 +7,6 @@
 
 #pragma once
 
-#include <xzero/http/Api.h>
 #include <xzero/http/fastcgi/RequestParser.h>
 #include <xzero/http/fastcgi/Generator.h>
 #include <xzero/net/EndPointWriter.h>
@@ -35,7 +34,7 @@ class HttpFastCgiTransport;
 /**
  * @brief Implements a HTTP/1.1 transport connection.
  */
-class XZERO_HTTP_API Connection : public ::xzero::Connection {
+class Connection : public ::xzero::Connection {
   friend class HttpFastCgiTransport;
  public:
   Connection(TcpEndPoint* endpoint,

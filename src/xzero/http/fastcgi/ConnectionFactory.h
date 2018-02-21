@@ -7,7 +7,6 @@
 
 #pragma once
 
-#include <xzero/http/Api.h>
 #include <xzero/Duration.h>
 #include <xzero/http/HttpConnectionFactory.h>
 
@@ -18,7 +17,7 @@ namespace fastcgi {
 /**
  * Connection factory for FastCGI connections.
  */
-class XZERO_HTTP_API ConnectionFactory : public HttpConnectionFactory {
+class ConnectionFactory : public HttpConnectionFactory {
  public:
   ConnectionFactory();
 

@@ -11,7 +11,7 @@
 
 namespace xzero {
 
-class XZERO_BASE_API MemoryMap : public FixedBuffer {
+class MemoryMap : public FixedBuffer {
  public:
   MemoryMap(int fd, off_t ofs, size_t size, bool rw);
   MemoryMap(MemoryMap&& mm);

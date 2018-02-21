@@ -9,7 +9,7 @@
 #define sw_flow_Flow_h
 
 #include <xzero-flow/ASTVisitor.h>
-#include <xzero-flow/Api.h>
+#include <xzero/defines.h>
 #include <vector>
 
 namespace xzero {
@@ -20,7 +20,7 @@ namespace flow {
 
 class ASTNode;
 
-class XZERO_FLOW_API FlowCallVisitor : public ASTVisitor {
+class FlowCallVisitor : public ASTVisitor {
  private:
   std::vector<CallExpr*> calls_;
 

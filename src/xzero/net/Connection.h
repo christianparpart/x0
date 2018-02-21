@@ -23,7 +23,7 @@ class TcpEndPoint;
  * This doesn't necessarily has to be HTTP, but can also be SMTP or anything
  * else.
  */
-class XZERO_BASE_API Connection {
+class Connection {
  public:
   Connection(TcpEndPoint* endpoint, Executor* executor);
   virtual ~Connection();

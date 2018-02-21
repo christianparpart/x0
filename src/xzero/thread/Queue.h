@@ -18,7 +18,7 @@ namespace thread {
  * A queue is threadsafe
  */
 template <typename T>
-class XZERO_BASE_API Queue {
+class Queue {
 public:
   void insert(const T& job);
   T pop();

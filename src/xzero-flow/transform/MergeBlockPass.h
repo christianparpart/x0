@@ -7,7 +7,7 @@
 
 #pragma once
 
-#include <xzero-flow/Api.h>
+#include <xzero/defines.h>
 #include <xzero-flow/ir/HandlerPass.h>
 
 namespace xzero {
@@ -20,7 +20,7 @@ class BasicBlock;
  *
  * A block is equal if their instructions and their successors are equal.
  */
-class XZERO_FLOW_API MergeBlockPass : public HandlerPass {
+class MergeBlockPass : public HandlerPass {
  public:
   MergeBlockPass() : HandlerPass("MergeBlockPass") {}
 

@@ -7,7 +7,6 @@
 
 #pragma once
 
-#include <xzero/http/Api.h>
 #include <xzero/Buffer.h>
 #include <xzero/UnixTime.h>
 #include <mutex>
@@ -21,7 +20,7 @@ namespace http {
 /**
  * API to generate an HTTP conform Date response header field value.
  */
-class XZERO_HTTP_API HttpDateGenerator {
+class HttpDateGenerator {
  public:
   explicit HttpDateGenerator();
 

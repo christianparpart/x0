@@ -7,7 +7,7 @@
 
 #pragma once
 
-#include <xzero-flow/Api.h>
+#include <xzero/defines.h>
 #include <xzero-flow/ASTVisitor.h>
 #include <xzero-flow/ir/IRBuilder.h>
 #include <deque>
@@ -24,7 +24,7 @@ namespace flow {
  * Transforms a Flow-AST into an SSA-conform IR.
  *
  */
-class XZERO_FLOW_API IRGenerator : public IRBuilder, public ASTVisitor {
+class IRGenerator : public IRBuilder, public ASTVisitor {
  public:
   IRGenerator();
   ~IRGenerator();

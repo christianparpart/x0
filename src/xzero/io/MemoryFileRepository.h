@@ -24,7 +24,7 @@ class MimeTypes;
  * @see FileHandler
  * @see MemoryFile
  */
-class XZERO_BASE_API MemoryFileRepository : public FileRepository {
+class MemoryFileRepository : public FileRepository {
  public:
   explicit MemoryFileRepository(MimeTypes& mimetypes);
 

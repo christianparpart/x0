@@ -110,11 +110,10 @@ class File {
   mutable std::string lastModified_;
 };
 
-XZERO_BASE_API File::OpenFlags operator|(File::OpenFlags a, File::OpenFlags b);
+File::OpenFlags operator|(File::OpenFlags a, File::OpenFlags b);
 
 // {{{ inlines
-XZERO_BASE_API inline File::OpenFlags operator|(File::OpenFlags a,
-                                           File::OpenFlags b) {
+inline File::OpenFlags operator|(File::OpenFlags a, File::OpenFlags b) {
   return (File::OpenFlags) ((unsigned) a | (unsigned) b);
 }
 // }}}

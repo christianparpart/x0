@@ -7,7 +7,7 @@
 
 #pragma once
 
-#include <xzero-flow/Api.h>
+#include <xzero/defines.h>
 #include <xzero-flow/ir/HandlerPass.h>
 
 namespace xzero {
@@ -18,7 +18,7 @@ class BasicBlock;
 /**
  * Eliminates empty blocks, that are just jumping to the next block.
  */
-class XZERO_FLOW_API InstructionElimination : public HandlerPass {
+class InstructionElimination : public HandlerPass {
  public:
   InstructionElimination() : HandlerPass("InstructionElimination") {}
 

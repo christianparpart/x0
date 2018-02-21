@@ -7,7 +7,6 @@
 
 #pragma once
 
-#include <xzero/http/Api.h>
 #include <xzero/http/HttpConnectionFactory.h>
 #include <xzero/Duration.h>
 #include <xzero/UnixTime.h> // BuiltinAssetHandler
@@ -36,7 +35,7 @@ class HttpResponse;
  *
  * @note HTTP/1 is always enabled by default.
  */
-class XZERO_HTTP_API HttpService {
+class HttpService {
  public:
   class Handler;
   class BuiltinAssetHandler;
@@ -115,7 +114,7 @@ class XZERO_HTTP_API HttpService {
 /**
  * Interface for general purpose HTTP request handlers.
  */
-class XZERO_HTTP_API HttpService::Handler {
+class HttpService::Handler {
  public:
   /**
    * Attempts to handle the given request.
@@ -129,7 +128,7 @@ class XZERO_HTTP_API HttpService::Handler {
 /**
  * Builtin Asset Handler for HttpService.
  */
-class XZERO_HTTP_API HttpService::BuiltinAssetHandler : public Handler {
+class HttpService::BuiltinAssetHandler : public Handler {
  public:
   BuiltinAssetHandler();
 

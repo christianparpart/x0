@@ -7,7 +7,7 @@
 
 #pragma once
 
-#include <xzero-flow/Api.h>
+#include <xzero/defines.h>
 #include <string>
 
 namespace xzero {
@@ -16,7 +16,7 @@ namespace vm {
 
 enum class MatchClass { Same, Head, Tail, RegExp, };
 
-XZERO_FLOW_API std::string tos(MatchClass c);
+std::string tos(MatchClass c);
 
 }  // namespace vm
 }  // namespace flow

@@ -13,7 +13,7 @@
 namespace xzero {
 namespace util {
 
-class XZERO_BASE_API BinaryMessageReader {
+class BinaryMessageReader {
 public:
   BinaryMessageReader(void const* buf, size_t buf_len);
   virtual ~BinaryMessageReader() {};

@@ -7,7 +7,7 @@
 
 #pragma once
 
-#include <xzero-flow/Api.h>
+#include <xzero/defines.h>
 #include <xzero/Buffer.h>
 #include <string>
 #include <vector>
@@ -49,7 +49,7 @@ bool isArrayType(FlowType type);
 FlowType elementTypeOf(FlowType type);
 
 // {{{ array types
-class XZERO_FLOW_API FlowArray {
+class FlowArray {
  public:
   size_t size() const { return base_[0]; }
 

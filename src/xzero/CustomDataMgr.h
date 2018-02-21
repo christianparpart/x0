@@ -14,7 +14,7 @@
 
 namespace xzero {
 
-struct XZERO_BASE_API CustomData {
+struct CustomData {
   CustomData(const CustomData&) = delete;
   CustomData& operator=(const CustomData&) = delete;
   CustomData() = default;

@@ -15,7 +15,7 @@
 namespace xzero {
 
 template<typename T>
-class XZERO_BASE_API RefPtr {
+class RefPtr {
  public:
   RefPtr() noexcept;
   RefPtr(std::nullptr_t) noexcept;
@@ -59,7 +59,7 @@ class XZERO_BASE_API RefPtr {
 };
 
 template<typename T, typename... Args>
-XZERO_BASE_API RefPtr<T> make_ref(Args... args);
+RefPtr<T> make_ref(Args... args);
 
 // {{{ RefPtr impl
 template<typename T>

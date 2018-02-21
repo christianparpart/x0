@@ -19,7 +19,7 @@ namespace xzero {
  *
  * @see IPAddress
  */
-class XZERO_BASE_API Cidr {
+class Cidr {
  public:
   /**
    * @brief Initializes an empty cidr notation.
@@ -78,12 +78,12 @@ class XZERO_BASE_API Cidr {
   /**
    * @brief compares 2 CIDR notations for equality.
    */
-  friend XZERO_BASE_API bool operator==(const Cidr& a, const Cidr& b);
+  friend bool operator==(const Cidr& a, const Cidr& b);
 
   /**
    * @brief compares 2 CIDR notations for inequality.
    */
-  friend XZERO_BASE_API bool operator!=(const Cidr& a, const Cidr& b);
+  friend bool operator!=(const Cidr& a, const Cidr& b);
 
  private:
   IPAddress ipaddr_;

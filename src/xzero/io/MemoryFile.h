@@ -14,7 +14,7 @@
 
 namespace xzero {
 
-class XZERO_BASE_API MemoryFile : public File {
+class MemoryFile : public File {
  public:
   /** Initializes a "not found" file. */
   MemoryFile();

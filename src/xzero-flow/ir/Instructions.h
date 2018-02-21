@@ -7,7 +7,7 @@
 
 #pragma once
 
-#include <xzero-flow/Api.h>
+#include <xzero/defines.h>
 #include <xzero-flow/ir/Instr.h>
 #include <xzero-flow/ir/ConstantValue.h>
 #include <xzero-flow/vm/MatchClass.h>
@@ -26,7 +26,7 @@ class IRBuilder;
 class IRBuiltinHandler;
 class IRBuiltinFunction;
 
-class XZERO_FLOW_API NopInstr : public Instr {
+class NopInstr : public Instr {
  public:
   NopInstr() : Instr(FlowType::Void, {}, "nop") {}
 
@@ -38,7 +38,7 @@ class XZERO_FLOW_API NopInstr : public Instr {
 /**
  * Allocates an array of given type and elements.
  */
-class XZERO_FLOW_API AllocaInstr : public Instr {
+class AllocaInstr : public Instr {
  private:
   static FlowType computeType(FlowType elementType, Value* size) {  // {{{
     if (auto n = dynamic_cast<ConstantInt*>(size)) {
@@ -77,7 +77,7 @@ class XZERO_FLOW_API AllocaInstr : public Instr {
   void accept(InstructionVisitor& v) override;
 };
 
-class XZERO_FLOW_API StoreInstr : public Instr {
+class StoreInstr : public Instr {
  public:
   StoreInstr(Value* variable, ConstantInt* index, Value* expression,
              const std::string& name)
@@ -92,7 +92,7 @@ class XZERO_FLOW_API StoreInstr : public Instr {
   void accept(InstructionVisitor& v) override;
 };
 
-class XZERO_FLOW_API LoadInstr : public Instr {
+class LoadInstr : public Instr {
  public:
   LoadInstr(Value* variable, const std::string& name)
       : Instr(variable->type(), {variable}, name) {}
@@ -104,7 +104,7 @@ class XZERO_FLOW_API LoadInstr : public Instr {
   void accept(InstructionVisitor& v) override;
 };
 
-class XZERO_FLOW_API CallInstr : public Instr {
+class CallInstr : public Instr {
  private:
   CallInstr(const std::vector<Value*>& args, const std::string& name);
 
@@ -119,7 +119,7 @@ class XZERO_FLOW_API CallInstr : public Instr {
   void accept(InstructionVisitor& v) override;
 };
 
-class XZERO_FLOW_API HandlerCallInstr : public Instr {
+class HandlerCallInstr : public Instr {
  private:
   explicit HandlerCallInstr(const std::vector<Value*>& args);
 
@@ -133,7 +133,7 @@ class XZERO_FLOW_API HandlerCallInstr : public Instr {
   void accept(InstructionVisitor& v) override;
 };
 
-class XZERO_FLOW_API CastInstr : public Instr {
+class CastInstr : public Instr {
  public:
   CastInstr(FlowType resultType, Value* op, const std::string& name)
       : Instr(resultType, {op}, name) {}
@@ -146,7 +146,7 @@ class XZERO_FLOW_API CastInstr : public Instr {
 };
 
 template <const UnaryOperator Operator, const FlowType ResultType>
-class XZERO_FLOW_API UnaryInstr : public Instr {
+class UnaryInstr : public Instr {
  public:
   UnaryInstr(Value* op, const std::string& name)
       : Instr(ResultType, {op}, name), operator_(Operator) {}
@@ -166,7 +166,7 @@ class XZERO_FLOW_API UnaryInstr : public Instr {
 };
 
 template <const BinaryOperator Operator, const FlowType ResultType>
-class XZERO_FLOW_API BinaryInstr : public Instr {
+class BinaryInstr : public Instr {
  public:
   BinaryInstr(Value* lhs, Value* rhs, const std::string& name)
       : Instr(ResultType, {lhs, rhs}, name), operator_(Operator) {}
@@ -194,7 +194,7 @@ class XZERO_FLOW_API BinaryInstr : public Instr {
  * to allocate the very same register for all given operands,
  * which is then used across all their basic blocks.
  */
-class XZERO_FLOW_API PhiNode : public Instr {
+class PhiNode : public Instr {
  public:
   PhiNode(const std::vector<Value*>& ops, const std::string& name);
 
@@ -203,7 +203,7 @@ class XZERO_FLOW_API PhiNode : public Instr {
   void accept(InstructionVisitor& v) override;
 };
 
-class XZERO_FLOW_API TerminateInstr : public Instr {
+class TerminateInstr : public Instr {
  protected:
   TerminateInstr(const TerminateInstr& v) : Instr(v) {}
 
@@ -218,7 +218,7 @@ class XZERO_FLOW_API TerminateInstr : public Instr {
  * Creates a terminate instruction that transfers control to one of the two
  * given alternate basic blocks, depending on the given input condition.
  */
-class XZERO_FLOW_API CondBrInstr : public TerminateInstr {
+class CondBrInstr : public TerminateInstr {
  public:
   /**
    * Initializes the object.
@@ -242,7 +242,7 @@ class XZERO_FLOW_API CondBrInstr : public TerminateInstr {
 /**
  * Unconditional jump instruction.
  */
-class XZERO_FLOW_API BrInstr : public TerminateInstr {
+class BrInstr : public TerminateInstr {
  public:
   explicit BrInstr(BasicBlock* targetBlock);
 
@@ -256,7 +256,7 @@ class XZERO_FLOW_API BrInstr : public TerminateInstr {
 /**
  * handler-return instruction.
  */
-class XZERO_FLOW_API RetInstr : public TerminateInstr {
+class RetInstr : public TerminateInstr {
  public:
   RetInstr(Value* result);
 
@@ -273,7 +273,7 @@ class XZERO_FLOW_API RetInstr : public TerminateInstr {
  * <li>operand[2n+2] - case label</li>
  * <li>operand[2n+3] - case block</li>
  */
-class XZERO_FLOW_API MatchInstr : public TerminateInstr {
+class MatchInstr : public TerminateInstr {
  private:
   MatchInstr(const MatchInstr&);
 

@@ -7,7 +7,6 @@
 
 #pragma once
 
-#include <xzero/http/Api.h>
 #include <xzero/http/HttpVersion.h>
 #include <xzero/http/HttpStatus.h>
 #include <xzero/http/HttpResponseInfo.h>
@@ -37,7 +36,7 @@ class HttpChannel;
  *
  * @note It is not safe to mutate a response from multiple threads concurrently.
  */
-class XZERO_HTTP_API HttpResponse {
+class HttpResponse {
  private:
   HttpResponse(HttpResponse&) = delete;
   HttpResponse& operator=(HttpResponse&) = delete;
