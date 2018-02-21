@@ -7,6 +7,7 @@
 
 #pragma once
 
+#include <xzero/defines.h>
 #include <xzero/base64.h>
 
 namespace xzero {

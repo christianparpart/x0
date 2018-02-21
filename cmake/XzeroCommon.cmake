@@ -1,6 +1,10 @@
 
 # require a C++ compiler that at least the currently latest
 # Ubuntu LTS release is supporting
+if(MSVC)
+# TODO ... fill in whatever is required for compiling under Visual Studio
+else()
+
 if(APPLE)
   set(CMAKE_CXX_FLAGS "-std=c++1z -stdlib=libc++")
 else()
@@ -23,3 +27,4 @@ add_definitions(-D__STDC_FORMAT_MACROS)
 
 # enforce 64bit i/o operations, even on 32bit platforms
 add_definitions(-D_FILE_OFFSET_BITS=64 -D_LARGEFILE_SOURCE -D_LARGE_FILES)
+endif()

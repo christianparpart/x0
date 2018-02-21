@@ -98,7 +98,7 @@ enum class HexDumpMode {
 };
 
 template <typename T>
-class XZERO_BASE_API BufferBase {
+class BufferBase {
  public:
   typedef typename BufferTraits<T>::value_type value_type;
   typedef typename BufferTraits<T>::reference_type reference_type;
@@ -240,7 +240,7 @@ bool operator!=(PodType (&b)[N], const BufferBase<T>& a) {
  * buffer reference owner has to make sure the underlying buffer exists
  * during the whole lifetime of this buffer reference.
  */
-class XZERO_BASE_API BufferRef : public BufferBase<char*> {
+class BufferRef : public BufferBase<char*> {
  public:
   /** Initializes an empty buffer reference. */
   constexpr BufferRef() : BufferBase<char*>() {}
@@ -299,7 +299,7 @@ class XZERO_BASE_API BufferRef : public BufferBase<char*> {
       const void* bytes, std::size_t length,
       HexDumpMode mode = HexDumpMode::InlineWide);
 
-  class XZERO_BASE_API reverse_iterator {  // {{{
+  class reverse_iterator {  // {{{
    private:
     BufferRef* buf_;
     int cur_;
@@ -356,7 +356,7 @@ inline void mutableEnsure(void* self, size_t size);
  *write to.
  */
 template <void (*ensure)(void*, size_t)>
-class XZERO_BASE_API MutableBuffer : public BufferRef {
+class MutableBuffer : public BufferRef {
  protected:
   size_t capacity_;
 
@@ -418,7 +418,7 @@ class XZERO_BASE_API MutableBuffer : public BufferRef {
  *    printf("result: '%s'\n", obj.c_str());
  * @endcode
  */
-class XZERO_BASE_API FixedBuffer : public MutableBuffer<immutableEnsure> {
+class FixedBuffer : public MutableBuffer<immutableEnsure> {
  public:
   FixedBuffer();
   FixedBuffer(const FixedBuffer& v);
@@ -440,7 +440,7 @@ class XZERO_BASE_API FixedBuffer : public MutableBuffer<immutableEnsure> {
  *it is the main goal
  * of some certain linear information to share.
  */
-class XZERO_BASE_API Buffer : public MutableBuffer<mutableEnsure> {
+class Buffer : public MutableBuffer<mutableEnsure> {
  public:
   enum { CHUNK_SIZE = 4096 };
 
@@ -482,30 +482,30 @@ class XZERO_BASE_API Buffer : public MutableBuffer<mutableEnsure> {
 };
 // }}}
 // {{{ free functions API
-XZERO_BASE_API Buffer& operator<<(Buffer& b, Buffer::value_type v);
-XZERO_BASE_API Buffer& operator<<(Buffer& b, int v);
-XZERO_BASE_API Buffer& operator<<(Buffer& b, long v);
-XZERO_BASE_API Buffer& operator<<(Buffer& b, long long v);
-XZERO_BASE_API Buffer& operator<<(Buffer& b, unsigned v);
-XZERO_BASE_API Buffer& operator<<(Buffer& b, unsigned long v);
-XZERO_BASE_API Buffer& operator<<(Buffer& b, unsigned long long v);
-XZERO_BASE_API Buffer& operator<<(Buffer& b, const Buffer& v);
-XZERO_BASE_API Buffer& operator<<(Buffer& b, const BufferRef& v);
-XZERO_BASE_API Buffer& operator<<(Buffer& b, const std::string& v);
-XZERO_BASE_API Buffer& operator<<(Buffer& b, typename Buffer::value_type* v);
+Buffer& operator<<(Buffer& b, Buffer::value_type v);
+Buffer& operator<<(Buffer& b, int v);
+Buffer& operator<<(Buffer& b, long v);
+Buffer& operator<<(Buffer& b, long long v);
+Buffer& operator<<(Buffer& b, unsigned v);
+Buffer& operator<<(Buffer& b, unsigned long v);
+Buffer& operator<<(Buffer& b, unsigned long long v);
+Buffer& operator<<(Buffer& b, const Buffer& v);
+Buffer& operator<<(Buffer& b, const BufferRef& v);
+Buffer& operator<<(Buffer& b, const std::string& v);
+Buffer& operator<<(Buffer& b, typename Buffer::value_type* v);
 
 template <typename PodType, size_t N>
-XZERO_BASE_API Buffer& operator<<(Buffer& b, PodType (&v)[N]);
+Buffer& operator<<(Buffer& b, PodType (&v)[N]);
 
-XZERO_BASE_API Buffer& operator+=(Buffer& b, const BufferRef& v);
-XZERO_BASE_API Buffer& operator+=(Buffer& b, const std::string& v);
-XZERO_BASE_API Buffer& operator+=(Buffer& b, Buffer::value_type v);
+Buffer& operator+=(Buffer& b, const BufferRef& v);
+Buffer& operator+=(Buffer& b, const std::string& v);
+Buffer& operator+=(Buffer& b, Buffer::value_type v);
 
 template <typename PodType, size_t N>
-XZERO_BASE_API Buffer& operator+=(Buffer& b, PodType (&v)[N]);
+Buffer& operator+=(Buffer& b, PodType (&v)[N]);
 // }}}
 // {{{ free functions (concatenation) API
-XZERO_BASE_API Buffer operator+(const BufferRef& a, const BufferRef& b);
+Buffer operator+(const BufferRef& a, const BufferRef& b);
 // }}}
 //@}
 
@@ -955,7 +955,11 @@ inline bool iequals(const BufferBase<T>& a, const BufferBase<T>& b) {
 
   if (a.size() != b.size()) return false;
 
+#if defined(_WIN32) || defined(_WIN64)
+  return _strnicmp(a.data(), b.data(), b.size()) == 0;
+#else
   return strncasecmp(a.data(), b.data(), a.size()) == 0;
+#endif
 }
 
 template <typename T, typename PodType, std::size_t N>
@@ -964,20 +968,32 @@ bool iequals(const BufferBase<T>& a, PodType (&b)[N]) {
 
   if (a.size() != bsize) return false;
 
+#if defined(_WIN32) || defined(_WIN64)
+  return _strnicmp(a.data(), b, bsize) == 0;
+#else
   return strncasecmp(a.data(), b, bsize) == 0;
+#endif
 }
 
 template <typename T>
 inline bool iequals(const BufferBase<T>& a, const std::string& b) {
   if (a.size() != b.size()) return false;
 
+#if defined(_WIN32) || defined(_WIN64)
+  return _strnicmp(a.data(), b.data(), b.size()) == 0;
+#else
   return strncasecmp(a.data(), b.data(), b.size()) == 0;
+#endif
 }
 
 inline bool iequals(const std::string& a, const std::string& b) {
   if (a.size() != b.size()) return false;
 
+#if defined(_WIN32) || defined(_WIN64)
+  return _strnicmp(a.data(), b.data(), b.size()) == 0;
+#else
   return strncasecmp(a.data(), b.data(), b.size()) == 0;
+#endif
 }
 
 // ------------------------------------------------------------------------
