@@ -95,7 +95,7 @@
 
 #else
 
-#warning Unknown platform
+#pragma message("Unknown platform")
 #define XZERO_NO_EXPORT          /*!*/
 #define XZERO_EXPORT             /*!*/
 #define XZERO_IMPORT             /*!*/
