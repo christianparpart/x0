@@ -59,6 +59,17 @@ echo CC = $CC
 echo CXXFLAGS = $CXXFLAGS
 echo PKG_CONFIG_PATH = $PKG_CONFIG_PATH
 
+if [[ "${1}" == "cmake" ]]; then
+  shift
+  exec cmake "${ROOT}" \
+              -DCMAKE_BUILD_TYPE="debug" \
+              -DCMAKE_INSTALL_PREFIX="${HOME}/local" \
+              -DCMAKE_VERBOSE_MAKEFILE=OFF \
+              "${@}"
+fi
+
+# -----------------------------------------------------------------------------
+
 [[ "${1}" != "--help" ]] && autoreconf --verbose --force --install ${ROOT}
 
 exec ${ROOT}/configure --prefix="${HOME}/usr" \
