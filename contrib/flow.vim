@@ -39,10 +39,6 @@ syn match flowRegexpSpecial "\(\[\|?\|\]\|(\|)\|\.\|*\||\)" contained display
 syn region flowRegexp matchgroup=Delimiter start="\(=\|=\~\|(\)\s*/"ms=e,me=e end="/" skip="\\/" oneline contains=flowRegexpEscape,flowRegexpSpecial
 syn region flowRegexp matchgroup=Delimiter start="/"ms=e,me=e end="/" skip="\\/" oneline contains=flowRegexpEscape,flowRegexpSpecial
 
-" types
-syn keyword flowType void int string bool
-syn match flowType '\.\.\.'
-
 " numbers
 syn match flowNumber '\d\+'
 syn match flowNumber '\d\+.\d'
@@ -145,7 +141,6 @@ hi def link flowNumber        Constant
 hi def link flowIPv4          Constant
 hi def link flowIPv6          Constant
 hi def link flowRegexp        Constant
-hi def link flowType          Type
 hi def link flowBlock         Statement
 hi def link flowKeywords      Keyword
 hi def link flowOperator      Operator
