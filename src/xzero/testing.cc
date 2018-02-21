@@ -85,8 +85,6 @@ UnitTest::UnitTest()
   : environments_(),
     testCases_(),
     activeTests_(),
-    exclude_(),
-    filter_("*"),
     repeats_(1),
     printProgress_(false),
     printSummaryDetails_(true),
@@ -185,8 +183,8 @@ int UnitTest::main(int argc, const char* argv[]) {
     // TODO: log-target
   }
 
-  exclude_ = flags.getString("exclude");
-  filter_ = flags.getString("filter");
+  std::string filter = flags.getString("filter");
+  std::string exclude = flags.getString("exclude");
   repeats_ = flags.getNumber("repeat");
   printProgress_ = !flags.getBool("no-progress");
 
@@ -195,30 +193,41 @@ int UnitTest::main(int argc, const char* argv[]) {
   else if (flags.getBool("sort"))
     sortTestsAlphabetically();
 
-  { // if (filter_ != "*") {
-    std::vector<size_t> filtered;
-    for (size_t i = 0, e = activeTests_.size(); i != e; ++i) {
-      TestInfo* testInfo = testCases_[activeTests_[i]].get();
-      std::string matchName = StringUtil::format("$0.$1",
-          testInfo->testCaseName(), testInfo->testName());
-
-      const int flags = 0;
-
-      if (!exclude_.empty() && fnmatch(exclude_.c_str(), matchName.c_str(), flags) == 0)
-        continue; // exclude this one
-
-      if (fnmatch(filter_.c_str(), matchName.c_str(), flags) == 0) {
-        filtered.push_back(activeTests_[i]);
-      }
-    }
-    activeTests_ = std::move(filtered);
-  }
+  filterTests(filter, exclude);
 
   if (flags.getBool("list")) {
     printTestList();
     return 0;
   }
 
+  run();
+
+  return failCount_ == 0 ? EXIT_SUCCESS : EXIT_FAILURE;
+}
+
+void UnitTest::filterTests(const std::string& filter,
+                           const std::string& exclude) {
+  // if (filter != "*") { ... }
+
+  std::vector<size_t> filtered;
+  for (size_t i = 0, e = activeTests_.size(); i != e; ++i) {
+    TestInfo* testInfo = testCases_[activeTests_[i]].get();
+    std::string matchName = StringUtil::format("$0.$1",
+        testInfo->testCaseName(), testInfo->testName());
+
+    const int flags = 0;
+
+    if (!exclude.empty() && fnmatch(exclude.c_str(), matchName.c_str(), flags) == 0)
+      continue; // exclude this one
+
+    if (fnmatch(filter.c_str(), matchName.c_str(), flags) == 0) {
+      filtered.push_back(activeTests_[i]);
+    }
+  }
+  activeTests_ = std::move(filtered);
+}
+
+void UnitTest::run() {
   for (auto& env: environments_) {
     env->SetUp();
   }
@@ -236,8 +245,6 @@ int UnitTest::main(int argc, const char* argv[]) {
   }
 
   printSummary();
-
-  return failCount_ == 0 ? EXIT_SUCCESS : EXIT_FAILURE;
 }
 
 void UnitTest::printTestList() {

@@ -310,7 +310,9 @@ class Test {
  * API to create one kind of a test.
  */
 class TestFactory {
-  XZERO_DISABLE_COPY(TestFactory)
+  TestFactory(const TestFactory&) = delete;
+  TestFactory& operator=(const TestFactory&) = delete;
+
  public:
   TestFactory() {}
   virtual ~TestFactory() {}
@@ -329,7 +331,9 @@ class TestFactoryTemplate : public TestFactory {
  * TestInfo describes a single test.
  */
 class TestInfo {
-  XZERO_DISABLE_COPY(TestInfo)
+  TestInfo(const TestInfo&) = delete;
+  TestInfo& operator=(const TestInfo&) = delete;
+
  public:
   TestInfo(const std::string& testCaseName, 
            const std::string& testName,
@@ -357,6 +361,9 @@ class UnitTest {
   static UnitTest* instance();
 
   int main(int argc, const char* argv[]);
+  void run();
+
+  void filterTests(const std::string& filter, const std::string& exclude);
 
   void addEnvironment(std::unique_ptr<Environment>&& env);
 
@@ -423,8 +430,6 @@ class UnitTest {
   //! ordered list of tests as offsets into testCases_
   std::vector<size_t> activeTests_;
 
-  std::string exclude_;
-  std::string filter_;
   int repeats_;
   bool printProgress_;
   bool printSummaryDetails_;
