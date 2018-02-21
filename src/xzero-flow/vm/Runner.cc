@@ -12,7 +12,7 @@
 #include <xzero-flow/vm/Program.h>
 #include <xzero-flow/vm/Match.h>
 #include <xzero-flow/vm/Instruction.h>
-#include <xzero/BufferUtil.h>
+#include <xzero/StringUtil.h>
 #include <xzero/logging.h>
 #include <xzero/sysconfig.h>
 #include <vector>
@@ -116,22 +116,17 @@ Runner::~Runner() {}
 void Runner::operator delete(void* p) { free(p); }
 
 FlowString* Runner::newString(const std::string& value) {
-  stringGarbage_.push_back(Buffer(value.c_str(), value.size()));
+  stringGarbage_.emplace_back(value);
   return &stringGarbage_.back();
 }
 
 FlowString* Runner::newString(const char* p, size_t n) {
-  stringGarbage_.push_back(Buffer(p, n));
+  stringGarbage_.emplace_back(p, n);
   return &stringGarbage_.back();
 }
 
 FlowString* Runner::catString(const FlowString& a, const FlowString& b) {
-  Buffer s(a.size() + b.size() + 1);
-  s.push_back(a);
-  s.push_back(b);
-
-  stringGarbage_.push_back(std::move(s));
-
+  stringGarbage_.emplace_back(a + b);
   return &stringGarbage_.back();
 }
 
@@ -573,19 +568,19 @@ bool Runner::loop() {
   instr(SCMPBEG) {
     const auto& b = toString(B);
     const auto& c = toString(C);
-    data_[A] = BufferUtil::beginsWith(b, c);
+    data_[A] = StringUtil::beginsWith(b, c);
     next;
   }
 
   instr(SCMPEND) {
     const auto& b = toString(B);
     const auto& c = toString(C);
-    data_[A] = BufferUtil::endsWith(b, c);
+    data_[A] = StringUtil::endsWith(b, c);
     next;
   }
 
   instr(SCONTAINS) {
-    data_[A] = toString(C).find(toString(B)) != FlowString::npos;
+    data_[A] = StringUtil::includes(toString(C), toString(B));
     next;
   }
 
@@ -659,17 +654,17 @@ bool Runner::loop() {
 
   instr(SREGGROUP) {  // A = regex.group(B)
     FlowNumber position = toNumber(B);
-    RegExp::Result* rr = regexpContext_.regexMatch();
-    const auto& match = rr->at(position);
+    RegExp::Result& rr = *regexpContext_.regexMatch();
+    const auto& match = rr[position];
 
-    data_[A] = (Register)newString(match.first, match.second);
+    data_[A] = (Register)newString(match);
 
     next;
   }
   // }}}
   // {{{ conversion
   instr(S2I) {  // A = atoi(B)
-    data_[A] = toString(B).toInt();
+    data_[A] = std::atoi(toString(B).c_str());
     next;
   }
 

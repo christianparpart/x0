@@ -58,7 +58,7 @@ void LogFile::cycle() {
   fd_ = file_->createPosixChannel(File::Write | File::Append);
 }
 // }}}
-template <typename iterator> inline BufferRef getFormatName(iterator& i, iterator e) { // {{{
+std::string getFormatName(std::string::const_iterator& i, std::string::const_iterator e) { // {{{
   // FormatName ::= '{' NAME '}'
 
   if (i != e && *i == '{') {
@@ -67,7 +67,7 @@ template <typename iterator> inline BufferRef getFormatName(iterator& i, iterato
     RAISE(RuntimeError, "Expected '{' token.");
   }
 
-  iterator beg = i;
+  std::string::const_iterator beg = i;
 
   for (;;) {
     if (i == e) {
@@ -82,21 +82,21 @@ template <typename iterator> inline BufferRef getFormatName(iterator& i, iterato
     ++i;
   }
 
-  return BufferRef(beg, i - beg - 1);
+  return std::string(beg, i);
 }
 // }}}
-Buffer formatLog(XzeroContext* cx, const BufferRef& format) { // {{{
+std::string formatLog(XzeroContext* cx, const std::string& format) { // {{{
   HttpRequest* request = cx->masterRequest();
   HttpResponse* response = cx->response();
 
-  Buffer result;
+  std::stringstream result;
 
   auto i = format.begin();
   auto e = format.end();
 
   while (i != e) {
     if (*i != '%') {
-      result.push_back(*i);
+      result << (char)(*i);
       ++i;
       continue;
     }
@@ -109,100 +109,100 @@ Buffer formatLog(XzeroContext* cx, const BufferRef& format) { // {{{
 
     switch (*i) {
       case '%':  // %
-        result.push_back(*i);
+        result << (char)(*i);
         ++i;
         break;
       case '>': {  // request header %>{name}
         ++i;
-        BufferRef fn = getFormatName(i, e);
-        std::string value = request->getHeader(fn.str());
+        auto fn = getFormatName(i, e);
+        std::string value = request->getHeader(fn);
         if (!value.empty()) {
-          result.push_back(value);
+          result << value;
         } else {
-          result.push_back('-');
+          result << '-';
         }
         break;
       }
       case '<': { // response header %<{name}
         ++i;
-        BufferRef fn = getFormatName(i, e);
-        std::string value = response->getHeader(fn.str());
+        auto fn = getFormatName(i, e);
+        std::string value = response->getHeader(fn);
         if (!value.empty()) {
-          result.push_back(value);
+          result << value;
         } else {
-          result.push_back('-');
+          result << '-';
         }
         break;
       }
       case 'C': { // request cookie %C{name}
         ++i;
-        BufferRef fn = getFormatName(i, e);
+        auto fn = getFormatName(i, e);
         auto cookies = Cookies::parseCookieHeader(request->getHeader("Cookie"));
         std::string value;
-        if (Cookies::getCookie(cookies, fn.str(), &value) && !value.empty()) {
-          result.push_back(value);
+        if (Cookies::getCookie(cookies, fn, &value) && !value.empty()) {
+          result << value;
         } else {
-          result.push_back('-');
+          result << '-';
         }
         break;
       }
       case 'c':  // response status code
-        result.push_back(static_cast<int>(response->status()));
+        result << static_cast<int>(response->status());
         ++i;
         break;
       case 'h':  // remote addr
         if (request->remoteAddress().isSome())
-          result.push_back(request->remoteAddress()->ip().c_str());
+          result << request->remoteAddress()->ip().c_str();
         else
-          result.push_back("none");
+          result << "none";
 
         ++i;
         break;
       case 'I':  // received bytes (transport level)
-        result.push_back(to_string(cx->bytesReceived()));
+        result << cx->bytesReceived();
         ++i;
         break;
       case 'l':  // identd user name
-        result.push_back("-");
+        result << '-';
         ++i;
         break;
       case 'm':  // request method
-        result.push_back(request->unparsedMethod());
+        result << request->unparsedMethod();
         ++i;
         break;
       case 'O':  // sent bytes (transport level)
-        result.push_back(to_string(cx->bytesTransmitted()));
+        result << to_string(cx->bytesTransmitted());
         ++i;
         break;
       case 'o':  // sent bytes (response body)
-        result.push_back(to_string(response->contentLength()));
+        result << response->contentLength();
         ++i;
         break;
       case 'p':  // request path
-        result.push_back(request->path());
+        result << request->path();
         ++i;
         break;
       case 'q':  // query string with leading '?' or empty if none
         if (request->query().empty()) {
-          result.push_back('?');
-          result.push_back(request->query());
+          result << '?' << request->query();
         }
         ++i;
         break;
       case 'r':  // request line
-        result.push_back(request->unparsedMethod());
-        result.push_back(' ');
-        result.push_back(request->unparsedUri());
-        result.push_back(' ');
-        result.push_back("HTTP/");
-        result.push_back(to_string(request->version()));
+        result << request->unparsedMethod()
+               << ' ' << request->unparsedUri()
+               << " HTTP/" << to_string(request->version());
         ++i;
         break;
       case 'T': {  // request time duration
         Duration duration = cx->age();
-        result.printf("%d.%03d",
-                      duration.seconds(),
-                      duration.milliseconds() % kMillisPerSecond);
+        char buf[32];
+
+        snprintf(buf, sizeof(buf),
+                 "%" PRIu64 ".%03lu",
+                 duration.seconds(),
+                 duration.milliseconds() % kMillisPerSecond);
+        result << buf;
         ++i;
         break;
       }
@@ -213,26 +213,26 @@ Buffer formatLog(XzeroContext* cx, const BufferRef& format) { // {{{
           char buf[256];
           ssize_t n = std::strftime(buf, sizeof(buf), "[%d/%b/%Y:%T %z]", &tm);
           if (n != 0) {
-            result.push_back(buf, n);
+            result << std::string(buf, n);
           }
         }
         ++i;
         break;
       }
       case 'U': // URL path (without query string)
-        result.push_back(request->path());
+        result << request->path();
         ++i;
         break;
       case 'u':  // username
         if (!request->username().empty()) {
-          result.push_back(request->username());
+          result << request->username();
         } else {
-          result.push_back('-');
+          result << '-';
         }
         ++i;
         break;
       case 'v':  // request vhost
-        result.push_back(request->getHeader("Host"));
+        result << request->getHeader("Host");
         ++i;
         break;
       default:
@@ -240,8 +240,8 @@ Buffer formatLog(XzeroContext* cx, const BufferRef& format) { // {{{
     }
   }
 
-  result.push_back('\n');
-  return result;
+  result << '\n';
+  return result.str();
 }
 // }}}
 struct RequestLogger : public CustomData { // {{{
@@ -269,13 +269,13 @@ struct RequestLogger : public CustomData { // {{{
 
   ~RequestLogger() {
     for (const auto& target: targets_) {
-      Buffer line = formatLog(context_, target.first);
+      std::string line = formatLog(context_, target.first);
       target.second->write(std::move(line));
     }
 
     for (const auto& target: logTargets_) {
-      Buffer line = formatLog(context_, target.first);
-      target.second->log(LogLevel::Info, "accesslog", line.str());
+      std::string line = formatLog(context_, target.first);
+      target.second->log(LogLevel::Info, "accesslog", line);
     }
   }
 };  // }}}
@@ -376,12 +376,12 @@ void AccesslogModule::accesslog_file(XzeroContext* cx, Params& args) {
 }
 
 LogFile* AccesslogModule::getLogFile(const FlowString& filename) {
-  auto i = logfiles_.find(filename.str());
+  auto i = logfiles_.find(filename);
   if (i != logfiles_.end()) {
     return i->second.get();
   }
 
-  std::string path = filename.str();
+  std::string path = filename;
   std::shared_ptr<File> file = daemon().vfs().getFile(path);
   LogFile* logFile = new LogFile(file);
 

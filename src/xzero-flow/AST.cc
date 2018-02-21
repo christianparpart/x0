@@ -147,9 +147,9 @@ static inline void completeDefaultValue(ParamList& args, FlowType type,
       // printf("auto-complete parameter \"%s\" <%s> = \"%s\"\n", name.c_str(),
       // tos(type).c_str(), s->str().c_str());
       if (args.isNamed())
-        args.push_back(name, std::make_unique<StringExpr>(s->str(), loc));
+        args.push_back(name, std::make_unique<StringExpr>(*s, loc));
       else
-        args.push_back(std::make_unique<StringExpr>(s->str(), loc));
+        args.push_back(std::make_unique<StringExpr>(*s, loc));
       break;
     }
     case FlowType::IPAddress:

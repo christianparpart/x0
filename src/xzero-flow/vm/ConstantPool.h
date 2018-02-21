@@ -111,7 +111,7 @@ class ConstantPool {
  private:
   // constant primitives
   std::vector<FlowNumber> numbers_;
-  std::vector<Buffer> strings_;
+  std::vector<std::string> strings_;
   std::vector<IPAddress> ipaddrs_;
   std::vector<Cidr> cidrs_;
   std::vector<RegExp> regularExpressions_;

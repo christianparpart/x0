@@ -242,14 +242,14 @@ void AuthModule::auth_realm(XzeroContext* cx, flow::vm::Params& args) {
   if (!cx->customData<AuthBasic>(this))
     cx->setCustomData<AuthBasic>(this);
 
-  cx->customData<AuthBasic>(this)->realm = args.getString(1).str();
+  cx->customData<AuthBasic>(this)->realm = args.getString(1);
 }
 
 void AuthModule::auth_userfile(XzeroContext* cx, flow::vm::Params& args) {
   if (!cx->customData<AuthBasic>(this))
     cx->setCustomData<AuthBasic>(this);
 
-  cx->customData<AuthBasic>(this)->setupUserfile(args.getString(1).str());
+  cx->customData<AuthBasic>(this)->setupUserfile(args.getString(1));
 }
 
 #if defined(HAVE_SECURITY_PAM_APPL_H)
@@ -257,7 +257,7 @@ void AuthModule::auth_pam(XzeroContext* cx, flow::vm::Params& args) {
   if (!cx->customData<AuthBasic>(this))
     cx->setCustomData<AuthBasic>(this);
 
-  cx->customData<AuthBasic>(this)->setupPAM(args.getString(1).str());
+  cx->customData<AuthBasic>(this)->setupPAM(args.getString(1));
 }
 #endif
 

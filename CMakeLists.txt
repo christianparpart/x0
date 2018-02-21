@@ -3,7 +3,6 @@ project(x0 VERSION "0.11.0" LANGUAGES CXX C)
 set(CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 
 option(ENABLE_FLOW_DIRECT_THREADED_VM "Flow VM using direct threaded mode [default: OFF]" OFF)
-option(ENABLE_PCRE "With PCRE support [default: ON]" ON)
 option(ENABLE_TESTS "Enable building tests [default: ON]" ON)
 
 set(X0D_PIDFILE "${CMAKE_INSTALL_PREFIX}/run/x0d/x0d.pid" CACHE STRING "x0d PID file")
@@ -77,15 +76,6 @@ if(HAVE_BZLIB_H)
   CHECK_LIBRARY_EXISTS(bz2 BZ2_bzCompressInit "" HAVE_LIBBZ2)
   set(BZIP2_LIBRARIES bz2)
 endif(HAVE_BZLIB_H)
-
-if (UNIX)
-  # PCRE
-  if(ENABLE_PCRE)
-    pkg_check_modules(PCRE REQUIRED libpcre>=7.0)
-  else()
-    pkg_check_modules(PCRE libpcre>=7.0)
-  endif()
-endif()
 
 # required for shm_open/shm_unlink
 if(APPLE)
@@ -280,7 +270,7 @@ else()
 endif()
 
 set(XZERO_LIBRARIES pthread dl
-    ${ZLIB_LIBRARIES} ${OPENSSL_LIBRARIES} ${PCRE_LIBRARIES} ${RT_LIBRARIES})
+    ${ZLIB_LIBRARIES} ${OPENSSL_LIBRARIES} ${RT_LIBRARIES})
 
 add_library(Xzero STATIC ${libXzero_SRC} ${libXzero_LINUX_SRC}
     ${libXzero_APPLE_SRC})

@@ -16,6 +16,7 @@
 #include <xzero/StringUtil.h>
 #include <xzero/RuntimeError.h>
 #include <xzero/Tokenizer.h>
+#include <xzero/Buffer.h>
 #include <sstream>
 #include <cmath>
 
@@ -345,11 +346,11 @@ bool CoreModule::redirectOnIncompletePath(XzeroContext* cx) {
 }
 
 void CoreModule::mimetypes(Params& args) {
-  daemon().config_->mimetypesPath = args.getString(1).str();
+  daemon().config_->mimetypesPath = args.getString(1);
 }
 
 void CoreModule::mimetypes_default(Params& args) {
-  daemon().config_->mimetypesDefault = args.getString(1).str();
+  daemon().config_->mimetypesDefault = args.getString(1);
 }
 
 void CoreModule::etag_mtime(Params& args) {
@@ -498,10 +499,10 @@ void CoreModule::ssl_priorities(Params& args) {
 }
 
 void CoreModule::ssl_context(Params& args) {
-  std::string keyFile = args.getString(1).str();
-  std::string certFile = args.getString(2).str();
-  std::string trustFile = args.getString(3).str();
-  std::string priorities = args.getString(4).str();
+  std::string keyFile = args.getString(1);
+  std::string certFile = args.getString(2);
+  std::string trustFile = args.getString(3);
+  std::string priorities = args.getString(4);
 
   daemon().config_->sslContexts.emplace_back(SslContext{certFile, keyFile, trustFile, priorities});
 }
@@ -572,7 +573,7 @@ bool CoreModule::preproc_sys_env(xzero::flow::Instr* call, xzero::flow::IRBuilde
 }
 
 void CoreModule::sys_env(XzeroContext* cx, Params& args) {
-  if (const char* value = getenv(args.getString(1).str().c_str())) {
+  if (const char* value = getenv(args.getString(1).c_str())) {
     args.setResult(value);
   } else {
     args.setResult("");
@@ -602,10 +603,10 @@ bool CoreModule::preproc_sys_env2(xzero::flow::Instr* call, xzero::flow::IRBuild
 }
 
 void CoreModule::sys_env2(XzeroContext* cx, Params& args) {
-  if (const char* value = getenv(args.getString(1).str().c_str())) {
+  if (const char* value = getenv(args.getString(1).c_str())) {
     args.setResult(value);
   } else {
-    args.setResult(args.getString(2).str());
+    args.setResult(args.getString(2));
   }
 }
 
@@ -643,23 +644,23 @@ void CoreModule::sys_domainname(XzeroContext* cx, Params& args) {
 }
 
 void CoreModule::log_err(XzeroContext* cx, Params& args) {
-  cx->logError("$0", args.getString(1).str());
+  cx->logError("$0", args.getString(1));
 }
 
 void CoreModule::log_warn(XzeroContext* cx, Params& args) {
-  cx->logWarning("$0", args.getString(1).str());
+  cx->logWarning("$0", args.getString(1));
 }
 
 void CoreModule::log_notice(XzeroContext* cx, Params& args) {
-  cx->logNotice("$0", args.getString(1).str());
+  cx->logNotice("$0", args.getString(1));
 }
 
 void CoreModule::log_info(XzeroContext* cx, Params& args) {
-  cx->logInfo("$0", args.getString(1).str());
+  cx->logInfo("$0", args.getString(1));
 }
 
 void CoreModule::log_debug(XzeroContext* cx, Params& args) {
-  cx->logDebug("$0", args.getString(1).str());
+  cx->logDebug("$0", args.getString(1));
 }
 
 void CoreModule::rand(XzeroContext* cx, Params& args) {
@@ -697,7 +698,7 @@ bool verifyErrorPageConfig(HttpStatus status, const std::string& uri) {
 
 void CoreModule::error_page(XzeroContext* cx, Params& args) {
   HttpStatus status = static_cast<HttpStatus>(args.getInt(1));
-  std::string uri = args.getString(2).str();
+  std::string uri = args.getString(2);
 
   if (!verifyErrorPageConfig(status, uri))
     return;
@@ -707,7 +708,7 @@ void CoreModule::error_page(XzeroContext* cx, Params& args) {
 
 void CoreModule::error_page(Params& args) {
   HttpStatus status = static_cast<HttpStatus>(args.getInt(1));
-  std::string uri = args.getString(2).str();
+  std::string uri = args.getString(2);
 
   if (!verifyErrorPageConfig(status, uri))
     return;
@@ -716,7 +717,7 @@ void CoreModule::error_page(Params& args) {
 }
 
 void CoreModule::file_exists(XzeroContext* cx, Params& args) {
-  auto fileinfo = daemon().vfs().getFile(args.getString(1).str());
+  auto fileinfo = daemon().vfs().getFile(args.getString(1));
   if (fileinfo)
     args.setResult(fileinfo->exists());
   else
@@ -724,7 +725,7 @@ void CoreModule::file_exists(XzeroContext* cx, Params& args) {
 }
 
 void CoreModule::file_is_reg(XzeroContext* cx, Params& args) {
-  auto fileinfo = daemon().vfs().getFile(args.getString(1).str());
+  auto fileinfo = daemon().vfs().getFile(args.getString(1));
   if (fileinfo)
     args.setResult(fileinfo->isRegular());
   else
@@ -732,7 +733,7 @@ void CoreModule::file_is_reg(XzeroContext* cx, Params& args) {
 }
 
 void CoreModule::file_is_dir(XzeroContext* cx, Params& args) {
-  auto fileinfo = daemon().vfs().getFile(args.getString(1).str());
+  auto fileinfo = daemon().vfs().getFile(args.getString(1));
   if (fileinfo)
     args.setResult(fileinfo->isDirectory());
   else
@@ -740,7 +741,7 @@ void CoreModule::file_is_dir(XzeroContext* cx, Params& args) {
 }
 
 void CoreModule::file_is_exe(XzeroContext* cx, Params& args) {
-  auto fileinfo = daemon().vfs().getFile(args.getString(1).str());
+  auto fileinfo = daemon().vfs().getFile(args.getString(1));
   if (fileinfo)
     args.setResult(fileinfo->isExecutable());
   else
@@ -769,7 +770,7 @@ bool CoreModule::verify_docroot(xzero::flow::Instr* call, xzero::flow::IRBuilder
 }
 
 bool CoreModule::docroot(XzeroContext* cx, Params& args) {
-  std::string path = args.getString(1).str();
+  std::string path = args.getString(1);
   Result<std::string> realpath = FileUtil::realpath(path);
   if (realpath.isFailure()) {
     cx->logError("docroot: Could not find docroot '$0'. ($1) $2",
@@ -795,9 +796,9 @@ bool CoreModule::alias(XzeroContext* cx, Params& args) {
   //    docroot: /srv/special
   //    fileinfo: /srv/special/uri/path
 
-  std::string prefix = args.getString(1).str();
+  std::string prefix = args.getString(1);
   size_t prefixLength = prefix.size();
-  std::string alias = args.getString(2).str();
+  std::string alias = args.getString(2);
 
   if (StringUtil::beginsWith(cx->request()->path(), prefix)) {
     const std::string path = alias + cx->request()->path().substr(prefixLength);
@@ -815,7 +816,7 @@ bool CoreModule::redirect_with_to(XzeroContext* cx, Params& args) {
 
   if (status >= 300 && status <= 308) {
     cx->response()->setStatus(static_cast<HttpStatus>(status));
-    cx->response()->setHeader("Location", location.str());
+    cx->response()->setHeader("Location", location);
   } else {
     cx->response()->setStatus(HttpStatus::InternalServerError);
     cx->logError("Status code is out of range. %s should be between 300 and 308.", status);
@@ -956,8 +957,8 @@ void CoreModule::autoindex(XzeroContext* cx, Params& args) {
   }
 }
 
-bool CoreModule::matchIndex(XzeroContext* cx, const xzero::BufferRef& arg) {
-  std::string ipath = FileUtil::joinPaths(cx->file()->path(), arg.str());
+bool CoreModule::matchIndex(XzeroContext* cx, const std::string& arg) {
+  std::string ipath = FileUtil::joinPaths(cx->file()->path(), arg);
   std::string path = FileUtil::joinPaths(cx->documentRoot(), ipath);
 
   if (auto fi = daemon().vfs().getFile(path)) {
@@ -972,7 +973,7 @@ bool CoreModule::matchIndex(XzeroContext* cx, const xzero::BufferRef& arg) {
 
 void CoreModule::rewrite(XzeroContext* cx, Params& args) {
   std::string filepath = FileUtil::joinPaths(cx->documentRoot(),
-                                             args.getString(1).str());
+                                             args.getString(1));
   auto file = daemon().vfs().getFile(filepath);
   cx->setFile(file);
   args.setResult(file ? file->exists() : false);
@@ -1013,8 +1014,8 @@ void CoreModule::pathinfo(XzeroContext* cx, Params& args) {
 }
 
 void CoreModule::header_add(XzeroContext* cx, Params& args) {
-  std::string name = args.getString(1).str();
-  std::string value = args.getString(2).str();
+  std::string name = args.getString(1);
+  std::string value = args.getString(2);
 
   cx->response()->onPostProcess([cx, name, value]() {
     cx->response()->addHeader(name, value);
@@ -1022,9 +1023,9 @@ void CoreModule::header_add(XzeroContext* cx, Params& args) {
 }
 
 void CoreModule::header_append(XzeroContext* cx, Params& args) {
-  std::string name = args.getString(1).str();
-  std::string value = args.getString(2).str();
-  std::string delim = args.getString(3).str();
+  std::string name = args.getString(1);
+  std::string value = args.getString(2);
+  std::string delim = args.getString(3);
 
   cx->response()->onPostProcess([cx, name, value, delim]() {
     cx->response()->appendHeader(name, value, delim);
@@ -1032,8 +1033,8 @@ void CoreModule::header_append(XzeroContext* cx, Params& args) {
 }
 
 void CoreModule::header_overwrite(XzeroContext* cx, Params& args) {
-  std::string name = args.getString(1).str();
-  std::string value = args.getString(2).str();
+  std::string name = args.getString(1);
+  std::string value = args.getString(2);
 
   cx->response()->onPostProcess([cx, name, value]() {
     cx->response()->setHeader(name, value);
@@ -1041,7 +1042,7 @@ void CoreModule::header_overwrite(XzeroContext* cx, Params& args) {
 }
 
 void CoreModule::header_remove(XzeroContext* cx, Params& args) {
-  std::string name = args.getString(1).str();
+  std::string name = args.getString(1);
 
   cx->response()->onPostProcess([cx, name]() {
     cx->response()->removeHeader(name);
@@ -1085,7 +1086,7 @@ void CoreModule::req_query(XzeroContext* cx, Params& args) {
 }
 
 void CoreModule::req_header(XzeroContext* cx, Params& args) {
-  args.setResult(cx->request()->getHeader(args.getString(1).str()));
+  args.setResult(cx->request()->getHeader(args.getString(1)));
 }
 
 void CoreModule::req_cookie(XzeroContext* cx, Params& args) {
@@ -1192,9 +1193,8 @@ void CoreModule::regex_group(XzeroContext* cx, Params& args) {
 
   if (const RegExp::Result* rr = cx->runner()->regexpContext()->regexMatch()) {
     if (position >= 0 && position < static_cast<FlowNumber>(rr->size())) {
-      const auto& match = rr->at(position);
-      FlowString result(match.first, match.second);
-      args.setResult(args.caller()->newString(match.first, match.second));
+      const auto& match = (*rr)[position];
+      args.setResult(args.caller()->newString(match));
     } else {
       // match index out of bounds
       args.setResult("");
@@ -1224,15 +1224,15 @@ void CoreModule::req_accept_language(XzeroContext* cx, Params& args) {
     return i != e;
   };
 
-  auto parseToken = [&]() -> BufferRef {
+  auto parseToken = [&]() -> std::string {
     const char* beg = i;
     while (i != e && (std::isalnum(*i) || *i == '-' || *i == '_')) {
       ++i;
     }
-    return BufferRef(beg, i - beg);
+    return std::string(beg, i);
   };
 
-  auto isSupported = [&](const BufferRef& language) -> bool {
+  auto isSupported = [&](const std::string& language) -> bool {
     for (const auto& lang : supportedLanguages) {
       if (iequals(lang, language)) {
         return true;
