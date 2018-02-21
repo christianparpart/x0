@@ -118,7 +118,7 @@ ProxyModule::~ProxyModule() {
 }
 
 void ProxyModule::proxy_pseudonym(xzero::flow::vm::Params& args) {
-  std::string value = args.getString(1).str();
+  std::string value = args.getString(1);
 
   for (char ch: value) {
     if (!std::isalnum(ch) && ch != '_' && ch != '-' && ch != '.') {
@@ -286,10 +286,10 @@ bool ProxyModule::proxy_cluster_auto(XzeroContext* cx, Params& args) {
 }
 
 bool ProxyModule::proxy_cluster(XzeroContext* cx, Params& args) {
-  auto& cluster = clusterMap_[args.getString(1).str()];
-  std::string path = args.getString(2).str();
-  std::string bucketName = args.getString(3).str();
-  std::string backendName = args.getString(4).str();
+  auto& cluster = clusterMap_[args.getString(1)];
+  std::string path = args.getString(2);
+  std::string bucketName = args.getString(3);
+  std::string backendName = args.getString(4);
 
   if (tryHandleTrace(cx))
     return true;
@@ -321,7 +321,7 @@ bool ProxyModule::proxy_cluster(XzeroContext* cx, Params& args) {
 }
 
 bool ProxyModule::proxy_api(XzeroContext* cx, xzero::flow::vm::Params& args) {
-  std::string prefix = args.getString(1).str();
+  std::string prefix = args.getString(1);
 
   if (!StringUtil::beginsWithIgnoreCase(cx->request()->path(), prefix))
     return false;

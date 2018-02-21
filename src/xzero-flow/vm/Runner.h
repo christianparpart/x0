@@ -56,7 +56,7 @@ class Runner : public CustomData {
   State state_;     //!< current VM state
   size_t pc_;       //!< last saved program execution offset
 
-  std::list<Buffer> stringGarbage_;
+  std::list<std::string> stringGarbage_;
 
   Register data_[];
 

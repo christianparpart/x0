@@ -130,14 +130,6 @@ AC_ARG_ENABLE([multi-accept],
 AS_IF([test "x$enable_multi_accept" != xno],
       [AC_DEFINE([ENABLE_MULTI_ACCEPT], [1], [Enables use of multiple accept() calls])])
 
-AC_ARG_ENABLE([pcre],
-              AS_HELP_STRING([--disable-pcre],
-                             [Disables use of PCRE.]))
-AS_IF([test "x$enable_pcre" != xno],
-      [AC_DEFINE([ENABLE_PCRE], [1], [Enables use of PCRE library])])
-PKG_CHECK_MODULES([LIBPCRE], [libpcre], [HAVE_LIBPCRE=1])
-AC_SUBST([HAVE_LIBPCRE])
-
 AC_ARG_ENABLE([tcp-defer-accept],
               AS_HELP_STRING([--disable-tcp-defer-accept],
                              [Disables use of TCP_DEFER_ACCEPT feature.]))
@@ -226,10 +218,10 @@ AC_SUBST([PLATFORM_LDFLAGS])
 BASE_CXXFLAGS="-DXOPEN_SOURCE=600 -D_FILE_OFFSET_BITS=64 -D_GNU_SOURCE \
  -D_LARGEFILE_SOURCE -D_LARGE_FILES -Wall -Wextra -std=c++1z \
  -Wno-unused-variable -Wno-unused-parameter \
- $PLATFORM_CXXFLAGS $LIBPCRE_CFLAGS $OPENSSL_CFLAGS"
+ $PLATFORM_CXXFLAGS $OPENSSL_CFLAGS"
 AC_SUBST([BASE_CXXFLAGS])
 
-BASE_LIBS="$PLATFORM_LDFLAGS $OPENSSL_LDADD $LIBPCRE_LIBS $OPENSSL_LIBS \
+BASE_LIBS="$PLATFORM_LDFLAGS $OPENSSL_LDADD $OPENSSL_LIBS \
  $ZLIB_LIBS $BZLIB_LIBS -lresolv"
 AC_SUBST([BASE_LIBS])
 

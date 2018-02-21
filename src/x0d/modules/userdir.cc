@@ -32,7 +32,7 @@ UserdirModule::~UserdirModule() {
 }
 
 void UserdirModule::userdir_name(Params& args) {
-  std::string dirname = args.getString(1).str();
+  std::string dirname = args.getString(1);
 
   std::error_code ec = validate(dirname);
   if (ec) {

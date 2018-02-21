@@ -247,7 +247,7 @@ void ConstantPool::dump() const {
   if (!strings_.empty()) {
     printf("\n; String Constants\n");
     for (size_t i = 0, e = strings_.size(); i != e; ++i) {
-      printf(".const string %6zu = '%s'\n", i, strings_[i].str().c_str());
+      printf(".const string %6zu = '%s'\n", i, strings_[i].c_str());
     }
   }
 
@@ -309,7 +309,7 @@ void ConstantPool::dump() const {
         if (def.op == MatchClass::RegExp) {
           printf("/%s/\n", regularExpressions_[one.label].c_str());
         } else {
-          printf("'%s'\n", strings_[one.label].str().c_str());
+          printf("'%s'\n", strings_[one.label].c_str());
         }
       }
     }

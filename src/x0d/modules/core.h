@@ -121,7 +121,7 @@ class CoreModule : public XzeroModule {
 
   // main functions
   void autoindex(XzeroContext* cx, Params& args);
-  bool matchIndex(XzeroContext* cx, const xzero::BufferRef& arg);
+  bool matchIndex(XzeroContext* cx, const std::string& arg);
   void rewrite(XzeroContext* cx, Params& args);
   void pathinfo(XzeroContext* cx, Params& args);
   void header_add(XzeroContext* cx, Params& args);

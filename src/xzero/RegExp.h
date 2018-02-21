@@ -4,12 +4,9 @@
 // Licensed under the MIT License (the "License"); you may not use this
 // file except in compliance with the License. You may obtain a copy of
 // the License at: http://opensource.org/licenses/MIT
+#pragma once
 
-#ifndef sw_flow_RegExp_h
-#define sw_flow_RegExp_h
-
-#include <xzero/Api.h>
-#include <pcre.h>
+#include <regex>
 #include <string>
 #include <vector>
 
@@ -20,10 +17,10 @@ class BufferRef;
 class RegExp {
  private:
   std::string pattern_;
-  pcre* re_;
+  std::regex re_;
 
  public:
-  typedef std::vector<std::pair<const char*, size_t>> Result;
+  typedef std::smatch Result;
 
  public:
   explicit RegExp(const std::string& pattern);
@@ -34,9 +31,7 @@ class RegExp {
   RegExp(RegExp&& v);
   RegExp& operator=(RegExp&& v);
 
-  bool match(const char* buffer, size_t size, Result* result = nullptr) const;
-  bool match(const BufferRef& buffer, Result* result = nullptr) const;
-  bool match(const char* cstring, Result* result = nullptr) const;
+  bool match(const std::string& target, Result* result = nullptr) const;
 
   const std::string& pattern() const { return pattern_; }
   const char* c_str() const;
@@ -65,17 +60,16 @@ class RegExp {
 
 class RegExpContext {
  public:
-  RegExpContext();
-  virtual ~RegExpContext();
-
   RegExp::Result* regexMatch() {
-    if (!regexMatch_) regexMatch_ = new RegExp::Result();
+    if (!regexMatch_) {
+      regexMatch_.reset(new RegExp::Result());
+    }
 
-    return regexMatch_;
+    return regexMatch_.get();
   }
 
  private:
-  RegExp::Result* regexMatch_;
+  std::unique_ptr<RegExp::Result> regexMatch_;
 };
 
 }  // namespace xzero
@@ -86,5 +80,3 @@ inline std::ostream& operator<<(std::ostream& os, const xzero::RegExp& re) {
   return os;
 }
 }
-
-#endif

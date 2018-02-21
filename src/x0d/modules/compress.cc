@@ -54,7 +54,7 @@ void CompressModule::setup_types(Params& args) {
   const auto& x = args.getStringArray(1);
 
   for (int i = 0, e = args.size(); i != e; ++i) {
-    outputCompressor_.addMimeType(x[i].str());
+    outputCompressor_.addMimeType(x[i]);
   }
 }
 
