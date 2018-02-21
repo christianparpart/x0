@@ -18,8 +18,8 @@ COPY Makefile.am configure.ac x0d.conf \
        /usr/src/x0/
 
 WORKDIR /usr/src/x0
-ARG CFLAGS=""
-ARG CXXFLAGS=""
+ARG CFLAGS="-O2"
+ARG CXXFLAGS="-O2"
 ARG LDFLAGS=""
 RUN autoreconf --verbose --force --install && \
     CC="/usr/bin/clang" \
