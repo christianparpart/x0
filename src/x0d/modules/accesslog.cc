@@ -24,7 +24,6 @@
 #include <xzero/http/Cookies.h>
 #include <xzero/net/IPAddress.h>
 #include <xzero/io/FileDescriptor.h>
-#include <xzero/logging/SyslogTarget.h>
 #include <xzero/logging.h>
 
 #include <sys/types.h>

@@ -145,12 +145,7 @@ libXzero_a_SOURCES = \
 	src/xzero/io/MemoryFileRepository.cc \
 	src/xzero/io/MemoryMap.cc \
 	src/xzero/io/SystemPipe.cc \
-	src/xzero/logging/ConsoleLogTarget.cc \
-	src/xzero/logging/FileLogTarget.cc \
-	src/xzero/logging/LogLevel.cc \
-	src/xzero/logging/LogTarget.cc \
-	src/xzero/logging/Logger.cc \
-	src/xzero/logging/SyslogTarget.cc \
+	src/xzero/logging.cc \
 	src/xzero/net/Cidr.cc \
 	src/xzero/net/Connection.cc \
 	src/xzero/net/DnsClient.cc \
@@ -341,13 +336,6 @@ nobase_libXzero_HEADERS = \
 	src/xzero/io/MemoryFileRepository.h \
 	src/xzero/io/MemoryMap.h \
 	src/xzero/io/SystemPipe.h \
-	src/xzero/logging/ConsoleLogTarget.h \
-	src/xzero/logging/FileLogTarget.h \
-	src/xzero/logging/LogLevel.h \
-	src/xzero/logging/LogTarget.h \
-	src/xzero/logging/Logger.h \
-	src/xzero/logging/Logger_impl.h \
-	src/xzero/logging/SyslogTarget.h \
 	src/xzero/net/Cidr.h \
 	src/xzero/net/Connection.h \
 	src/xzero/net/DnsClient.h \

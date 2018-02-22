@@ -9,8 +9,6 @@
 #include <x0d/XzeroDaemon.h>
 
 #include <xzero/sysconfig.h>
-#include <xzero/logging/ConsoleLogTarget.h>
-#include <xzero/logging/FileLogTarget.h>
 #include <xzero/logging.h>
 #include <xzero/io/FileUtil.h>
 #include <xzero/StringUtil.h>

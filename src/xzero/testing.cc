@@ -7,10 +7,8 @@
 
 #include <xzero/testing.h>
 #include <xzero/Flags.h>
-#include <xzero/logging/Logger.h>
 #include <xzero/AnsiColor.h>
 #include <xzero/StringUtil.h>
-#include <xzero/logging/ConsoleLogTarget.h>
 #include <xzero/logging.h>
 #include <algorithm>
 #include <random>

@@ -12,8 +12,6 @@
 #include <xzero/io/SystemPipe.h>
 #include <xzero/executor/Executor.h>
 #include <xzero/thread/SignalHandler.h>
-#include <xzero/logging/ConsoleLogTarget.h>
-#include <xzero/logging/LogLevel.h>
 #include <xzero/logging.h>
 #include <xzero/RuntimeError.h>
 #include <xzero/sysconfig.h>

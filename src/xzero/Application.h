@@ -6,7 +6,7 @@
 // the License at: http://opensource.org/licenses/MIT
 
 #include <xzero/Api.h>
-#include <xzero/logging/LogLevel.h>
+#include <xzero/logging.h>
 
 namespace xzero {
 

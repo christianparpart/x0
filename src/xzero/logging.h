@@ -4,21 +4,139 @@
 // Licensed under the MIT License (the "License"); you may not use this
 // file except in compliance with the License. You may obtain a copy of
 // the License at: http://opensource.org/licenses/MIT
+#pragma once
 
-#ifndef _libxzero_UTIL_LOGGING_H
-#define _libxzero_UTIL_LOGGING_H
-
-#include <xzero/logging/LogLevel.h>
-#include <xzero/logging/Logger.h>
+#include <atomic>
+#include <xzero/StringUtil.h>
+#include <xzero/io/FileDescriptor.h>
 
 namespace xzero {
 
+enum class LogLevel { // {{{
+  None = 9999,
+  Emergency = 9000,
+  Alert = 8000,
+  Critical = 7000,
+  Error = 6000,
+  Warning = 5000,
+  Notice = 4000,
+  Info = 3000,
+  Debug = 2000,
+  Trace = 1000,
+};
+
+LogLevel make_loglevel(const std::string& value);
+
+std::ostream& operator<<(std::ostream& os, LogLevel value);
+std::string as_string(LogLevel value);
+// }}}
+class LogTarget { // {{{
+ public:
+  virtual ~LogTarget() {}
+
+  virtual void log(
+      LogLevel level,
+      const std::string& component,
+      const std::string& message) = 0;
+};
+// }}}
+class FileLogTarget : public LogTarget { // {{{
+ public:
+  explicit FileLogTarget(FileDescriptor&& fd);
+
+  void log(LogLevel level,
+           const std::string& component,
+           const std::string& message) override;
+
+  void setTimestampEnabled(bool value) { timestampEnabled_ = value; }
+  bool isTimestampEnabled() const noexcept { return timestampEnabled_; }
+
+ private:
+  std::string createTimestamp() const;
+
+ private:
+  FileDescriptor fd_;
+  bool timestampEnabled_;
+}; // }}}
+class ConsoleLogTarget : public LogTarget { // {{{
+ public:
+  ConsoleLogTarget();
+
+  void log(LogLevel level,
+           const std::string& component,
+           const std::string& message) override;
+
+  void setTimestampEnabled(bool value) { timestampEnabled_ = value; }
+  bool isTimestampEnabled() const noexcept { return timestampEnabled_; }
+
+  static ConsoleLogTarget* get();
+
+ private:
+  std::string createTimestamp() const;
+
+ private:
+  bool timestampEnabled_;
+}; // }}}
+class SyslogTarget : public LogTarget { // {{{
+ public:
+  explicit SyslogTarget(const std::string& ident);
+  ~SyslogTarget();
+
+  void log(LogLevel level,
+           const std::string& component,
+           const std::string& message) override;
+
+  static SyslogTarget* get();
+};
+// }}}
+class Logger { // {{{
+ public:
+  Logger();
+  static Logger* get();
+
+  void log(
+      LogLevel log_level,
+      const std::string& component,
+      const std::string& message);
+
+  template <typename... T>
+  void log(
+      LogLevel log_level,
+      const std::string& component,
+      const std::string& message,
+      T... args);
+
+  void logException(
+      LogLevel log_level,
+      const std::string& component,
+      const std::exception& exception,
+      const std::string& message);
+
+  template <typename... T>
+  void logException(
+      LogLevel log_level,
+      const std::string& component,
+      const std::exception& exception,
+      const std::string& message,
+      T... args);
+
+  void addTarget(LogTarget* target);
+  void setMinimumLogLevel(LogLevel min_level);
+  LogLevel getMinimumLogLevel() { return min_level_.load(); }
+
+ protected:
+  std::atomic<LogLevel> min_level_;
+  std::atomic<size_t> max_listener_index_;
+  std::atomic<LogTarget*> listeners_[64];
+};
+// }}}
+// {{{ free functions
 /**
  * EMERGENCY: Something very bad happened
  */
 template <typename... T>
 void logEmergency(const std::string& component, const std::string& msg, T... args) {
-  Logger::get()->log(LogLevel::kEmergency, component, msg, args...);
+  Logger::get()->log(LogLevel::Emergency, component, msg, args...);
 }
 
 template <typename... T>
@@ -27,7 +145,7 @@ void logEmergency(
     const std::exception& e,
     const std::string& msg,
     T... args) {
-  Logger::get()->logException(LogLevel::kEmergency, component, e, msg, args...);
+  Logger::get()->logException(LogLevel::Emergency, component, e, msg, args...);
 }
 
 /**
@@ -35,7 +153,7 @@ void logEmergency(
  */
 template <typename... T>
 void logAlert(const std::string& component, const std::string& msg, T... args) {
-  Logger::get()->log(LogLevel::kAlert, component, msg, args...);
+  Logger::get()->log(LogLevel::Alert, component, msg, args...);
 }
 
 template <typename... T>
@@ -44,7 +162,7 @@ void logAlert(
     const std::exception& e,
     const std::string& msg,
     T... args) {
-  Logger::get()->logException(LogLevel::kAlert, component, e, msg, args...);
+  Logger::get()->logException(LogLevel::Alert, component, e, msg, args...);
 }
 
 /**
@@ -52,7 +170,7 @@ void logAlert(
  */
 template <typename... T>
 void logCritical(const std::string& component, const std::string& msg, T... args) {
-  Logger::get()->log(LogLevel::kCritical, component, msg, args...);
+  Logger::get()->log(LogLevel::Critical, component, msg, args...);
 }
 
 template <typename... T>
@@ -61,7 +179,7 @@ void logCritical(
     const std::exception& e,
     const std::string& msg,
     T... args) {
-  Logger::get()->logException(LogLevel::kCritical, component, e, msg, args...);
+  Logger::get()->logException(LogLevel::Critical, component, e, msg, args...);
 }
 
 /**
@@ -69,7 +187,7 @@ void logCritical(
  */
 template <typename... T>
 void logError(const std::string& component, const std::string& msg, T... args) {
-  Logger::get()->log(LogLevel::kError, component, msg, args...);
+  Logger::get()->log(LogLevel::Error, component, msg, args...);
 }
 
 template <typename... T>
@@ -78,7 +196,7 @@ void logError(
     const std::exception& e,
     const std::string& msg,
     T... args) {
-  Logger::get()->logException(LogLevel::kError, component, e, msg, args...);
+  Logger::get()->logException(LogLevel::Error, component, e, msg, args...);
 }
 
 /**
@@ -86,7 +204,7 @@ void logError(
  */
 template <typename... T>
 void logWarning(const std::string& component, const std::string& msg, T... args) {
-  Logger::get()->log(LogLevel::kWarning, component, msg, args...);
+  Logger::get()->log(LogLevel::Warning, component, msg, args...);
 }
 
 template <typename... T>
@@ -95,7 +213,7 @@ void logWarning(
     const std::exception& e,
     const std::string& msg,
     T... args) {
-  Logger::get()->logException(LogLevel::kWarning, component, e, msg, args...);
+  Logger::get()->logException(LogLevel::Warning, component, e, msg, args...);
 }
 
 /**
@@ -103,7 +221,7 @@ void logWarning(
  */
 template <typename... T>
 void logNotice(const std::string& component, const std::string& msg, T... args) {
-  Logger::get()->log(LogLevel::kNotice, component, msg, args...);
+  Logger::get()->log(LogLevel::Notice, component, msg, args...);
 }
 
 template <typename... T>
@@ -112,7 +230,7 @@ void logNotice(
     const std::exception& e,
     const std::string& msg,
     T... args) {
-  Logger::get()->logException(LogLevel::kNotice, component, e, msg, args...);
+  Logger::get()->logException(LogLevel::Notice, component, e, msg, args...);
 }
 
 /**
@@ -120,7 +238,7 @@ void logNotice(
  */
 template <typename... T>
 void logInfo(const std::string& component, const std::string& msg, T... args) {
-  Logger::get()->log(LogLevel::kInfo, component, msg, args...);
+  Logger::get()->log(LogLevel::Info, component, msg, args...);
 }
 
 template <typename... T>
@@ -129,7 +247,7 @@ void logInfo(
     const std::exception& e,
     const std::string& msg,
     T... args) {
-  Logger::get()->logException(LogLevel::kInfo, component, e, msg, args...);
+  Logger::get()->logException(LogLevel::Info, component, e, msg, args...);
 }
 
 /**
@@ -137,7 +255,7 @@ void logInfo(
  */
 template <typename... T>
 void logDebug(const std::string& component, const std::string& msg, T... args) {
-  Logger::get()->log(LogLevel::kDebug, component, msg, args...);
+  Logger::get()->log(LogLevel::Debug, component, msg, args...);
 }
 
 template <typename... T>
@@ -146,7 +264,7 @@ void logDebug(
     const std::exception& e,
     const std::string& msg,
     T... args) {
-  Logger::get()->logException(LogLevel::kDebug, component, e, msg, args...);
+  Logger::get()->logException(LogLevel::Debug, component, e, msg, args...);
 }
 
 /**
@@ -154,7 +272,7 @@ void logDebug(
  */
 template <typename... T>
 void logTrace(const std::string& component, const std::string& msg, T... args) {
-  Logger::get()->log(LogLevel::kTrace, component, msg, args...);
+  Logger::get()->log(LogLevel::Trace, component, msg, args...);
 }
 
 template <typename... T>
@@ -163,9 +281,36 @@ void logTrace(
     const std::exception& e,
     const std::string& msg,
     T... args) {
-  Logger::get()->logException(LogLevel::kTrace, component, e, msg, args...);
+  Logger::get()->logException(LogLevel::Trace, component, e, msg, args...);
+}
+// }}}
+// {{{ Logger impl
+template <typename... T>
+void Logger::log(
+    LogLevel log_level,
+    const std::string& component,
+    const std::string& message,
+    T... args) {
+  if (log_level >= min_level_) {
+    log(log_level, component, StringUtil::format(message, args...));
+  }
 }
 
-} // namespace xzero
+template <typename... T>
+void Logger::logException(
+    LogLevel log_level,
+    const std::string& component,
+    const std::exception& exception,
+    const std::string& message,
+    T... args) {
+  if (log_level >= min_level_) {
+    logException(
+        log_level,
+        component,
+        exception,
+        StringUtil::format(message, args...));
+  }
+}
+// }}}
 
-#endif
+} // namespace xzero

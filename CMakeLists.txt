@@ -204,12 +204,7 @@ set(libXzero_SRC src/xzero/AnsiColor.cc
                  src/xzero/io/MemoryFileRepository.cc
                  src/xzero/io/MemoryMap.cc
                  src/xzero/io/SystemPipe.cc
-                 src/xzero/logging/ConsoleLogTarget.cc
-                 src/xzero/logging/FileLogTarget.cc
-                 src/xzero/logging/LogLevel.cc
-                 src/xzero/logging/LogTarget.cc
-                 src/xzero/logging/Logger.cc
-                 src/xzero/logging/SyslogTarget.cc
+                 src/xzero/logging.cc
                  src/xzero/net/Cidr.cc
                  src/xzero/net/Connection.cc
                  src/xzero/net/DnsClient.cc

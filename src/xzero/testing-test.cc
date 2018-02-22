@@ -1,6 +1,5 @@
 #include <xzero/testing.h>
 #include <xzero/logging.h>
-#include <xzero/logging/ConsoleLogTarget.h>
 #include <stdio.h>
 
 TEST(Stub, foo) {

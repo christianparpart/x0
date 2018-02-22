@@ -11,9 +11,9 @@
 #include <xzero/http/HttpRequest.h>
 #include <xzero/http/HttpResponse.h>
 #include <xzero/executor/LocalExecutor.h>
-#include <xzero/logging/LogTarget.h>
 #include <xzero/net/TcpConnector.h>
 #include <xzero/Buffer.h>
+#include <xzero/logging.h>
 #include <xzero/testing.h>
 
 #include <xzero/http/http1/Parser.h>
