@@ -40,10 +40,7 @@ TargetCodeGenerator::TargetCodeGenerator()
       unconditionalJumps_(),
       handlerId_(0),
       code_(),
-      variables_(),
-      allocations_() {
-  // preserve r0, so it'll never be used.
-  allocations_.push_back(true);
+      variables_() {
 }
 
 TargetCodeGenerator::~TargetCodeGenerator() {}
@@ -114,7 +111,6 @@ void TargetCodeGenerator::generate(IRHandler* handler) {
   cp_.getHandler(handlerId_).second = std::move(code_);
 
   // cleanup remaining handler-local work vars
-  allocations_.clear();
   variables_.clear();
 }
 
@@ -164,29 +160,21 @@ size_t TargetCodeGenerator::emitUnary(Instr& instr, vm::Opcode r) {
   return emit(r, a);
 }
 
-size_t TargetCodeGenerator::allocate(size_t count, Value& alias) {
-  int rbase = allocate(count);
-  variables_[&alias] = rbase;
-  return rbase;
-}
-
-size_t TargetCodeGenerator::allocate(size_t count) {
-  for (size_t i = 0; i < count; ++i) allocations_.push_back(true);
-
-  return allocations_.size() - count;
-}
-
-void TargetCodeGenerator::free(size_t base, size_t count) {
-  for (int i = base, e = base + count; i != e; ++i) {
-    allocations_[i] = false;
-  }
+size_t TargetCodeGenerator::allocate(const Value* value) {
+  assert(variables_.find(value) == variables_.end());
+  variables_[value] = variables_.size();
+  return variables_.size() = 1;
 }
 
 // {{{ instruction code generation
-void TargetCodeGenerator::visit(NopInstr& instr) { emit(Opcode::NOP); }
+void TargetCodeGenerator::visit(NopInstr& instr) {
+  emit(Opcode::NOP);
+}
 
 void TargetCodeGenerator::visit(AllocaInstr& instr) {
-  allocate(getConstantInt(instr.arraySize()), instr);
+  // TODO handle instr.arraySize()
+  emit(Opcode::ALLOCA, getConstantInt(instr.arraySize()));
+  return allocate(instr);
 }
 
 size_t TargetCodeGenerator::makeNumber(FlowNumber value) {
@@ -353,7 +341,7 @@ vm::Operand TargetCodeGenerator::getConstantInt(Value* value) {
   return 0;
 }
 
-vm::Operand TargetCodeGenerator::getStackPointer(Value* value) {
+StackPointer TargetCodeGenerator::getStackPointer(Value* value) {
   {
     auto i = variables_.find(value);
     if (i != variables_.end()) {
@@ -365,47 +353,42 @@ vm::Operand TargetCodeGenerator::getStackPointer(Value* value) {
   if (ConstantInt* integer = dynamic_cast<ConstantInt*>(value)) {
     // FIXME this constant initialization should pretty much be done in the
     // entry block
-    Register reg = allocate(1);
     FlowNumber number = integer->get();
-    if (number == int16_t(number)) {  // limit to 16bit signed width
-      emit(Opcode::IMOV, reg, number);
+    if (number <= std::numeric_limits<Operand>::max()) {
+      emit(Opcode::IPUSH, number);
     } else {
-      emit(Opcode::NCONST, reg, cp_.makeInteger(number));
+      emit(Opcode::NPUSH, cp_.makeInteger(number));
     }
-    return reg;
+    return allocate(value);
   }
 
   // const boolean
   if (auto boolean = dynamic_cast<ConstantBoolean*>(value)) {
-    Register reg = allocate(1);
-    emit(Opcode::IMOV, reg, boolean->get());
-    return reg;
+    emit(Opcode::IPUSH, boolean->get());
+    return allocate(value);
   }
 
   // const string
   if (ConstantString* str = dynamic_cast<ConstantString*>(value)) {
-    Register reg = allocate(1);
-    emit(Opcode::SCONST, reg, cp_.makeString(str->get()));
-    return reg;
+    emit(Opcode::SPUSH, cp_.makeString(str->get()));
+    return allocate(value);
   }
 
   // const ip
   if (ConstantIP* ip = dynamic_cast<ConstantIP*>(value)) {
-    Register reg = allocate(1);
-    emit(Opcode::PCONST, reg, cp_.makeIPAddress(ip->get()));
-    return reg;
+    emit(Opcode::PPUSH, cp_.makeIPAddress(ip->get()));
+    return allocate(value);
   }
 
   // const cidr
   if (ConstantCidr* cidr = dynamic_cast<ConstantCidr*>(value)) {
-    Register reg = allocate(1);
-    emit(Opcode::CCONST, reg, cp_.makeCidr(cidr->get()));
-    return reg;
+    emit(Opcode::CPUSH, cp_.makeCidr(cidr->get()));
+    return allocate(value);
   }
 
   // const array<T>
   if (ConstantArray* array = dynamic_cast<ConstantArray*>(value)) {
-    Register reg = allocate(1);
+    StackPointe reg = allocate(1);
     switch (array->type()) {
       case FlowType::IntArray:
         emit(Opcode::ITCONST, reg,
@@ -434,13 +417,13 @@ vm::Operand TargetCodeGenerator::getStackPointer(Value* value) {
 
   // const regex
   if (/*ConstantRegExp* re =*/dynamic_cast<ConstantRegExp*>(value)) {
-    Register reg = allocate(1);
+    StackPointer reg = allocate(1);
     // emit(Opcode::RCONST, reg, re->id());
     assert(!"TODO: RCONST opcode");
     return reg;
   }
 
-  return allocate(1, value);
+  return allocate(value);
 }
 
 void TargetCodeGenerator::visit(PhiNode& instr) {

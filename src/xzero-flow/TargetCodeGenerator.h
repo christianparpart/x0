@@ -21,23 +21,24 @@
 #include <utility>
 #include <memory>
 
-namespace xzero {
-namespace flow {
+namespace xzero::flow {
+  class Value;
+  class Instr;
+  class IRProgram;
+  class IRHandler;
+  class BasicBlock;
+  class IRBuiltinHandler;
+  class IRBuiltinFunction;
+}
+
+namespace xzero::flow::vm {
+  class Program;
+}
+
+namespace xzero::flow {
 
 //! \addtogroup Flow
 //@{
-
-class Value;
-class Instr;
-class IRProgram;
-class IRHandler;
-class BasicBlock;
-class IRBuiltinHandler;
-class IRBuiltinFunction;
-
-namespace vm {
-class Program;
-}
 
 class TargetCodeGenerator : public InstructionVisitor {
  public:
@@ -75,8 +76,8 @@ class TargetCodeGenerator : public InstructionVisitor {
    * @param bb Target basic block to jump to by \p opcode.
    *
    * This function will just emit a placeholder and will remember the
-   *instruction pointer and passed operands
-   * for later back-patching once all basic block addresses have been computed.
+   * instruction pointer and passed operands for later back-patching once all
+   * basic block addresses have been computed.
    */
   size_t emit(vm::Opcode opcode, Register cond, BasicBlock* bb);
 
@@ -104,22 +105,19 @@ class TargetCodeGenerator : public InstructionVisitor {
    */
   Register emitCallArgs(Instr& instr);
 
+  using StackPointer = size_t;
+
   /**
    * Translates given @p value into a stack pointer (absolute stack offset).
    *
    * If the value is not available on the stack yet, it'll be allocated a slot.
    */
-  vm::Operand getStackPointer(Value* value);
+  StackPointer getStackPointer(Value* value);
 
   vm::Operand getConstantInt(Value* value);
   size_t getInstructionPointer() const { return code_.size(); }
 
-  size_t allocate(size_t count, Value* alias) {
-    return allocate(count, *alias);
-  }
-  size_t allocate(size_t count, Value& alias);
-  size_t allocate(size_t count);
-  void free(size_t base, size_t count);
+  size_t allocate(const Value* alias);
 
   void visit(NopInstr& instr) override;
 
@@ -212,7 +210,7 @@ class TargetCodeGenerator : public InstructionVisitor {
   size_t handlerId_;                                //!< current handler's ID
   std::vector<vm::Instruction> code_;               //!< current handler's code
 
-  /** variable-to-stack-offset assignment-map */
+  /** value-to-stack-offset assignment-map */
   std::unordered_map<Value*, size_t> variables_;
 
   // target program output

@@ -35,6 +35,8 @@ enum Opcode {
   CTCONST,  // push cidrArray[op1]
 
   // numerical
+  IPUSH,    // IPUSH imm          ; stack[++sp] = op1
+  NPUSH,    // NPUSH imm          ; stack[++sp] = numberConstants[op1]
   ISTORE,   // ISTORE imm, imm    ; stack[op1] = op2
   NSTORE,   // NSTORE imm, imm    ; stack[op1] = numberConstants[op2]
   NNEG,     //                    ; stack[SP] = -stack[SP]
