@@ -87,25 +87,30 @@ class TargetCodeGenerator : public InstructionVisitor {
    * @param bb Target basic block to jump to by \p opcode.
    *
    * This function will just emit a placeholder and will remember the
-   *instruction pointer and passed operands
-   * for later back-patching once all basic block addresses have been computed.
+   * instruction pointer and passed operands for later back-patching once all
+   * basic block addresses have been computed.
    */
   size_t emit(vm::Opcode opcode, BasicBlock* bb);
 
-  size_t emitBinaryAssoc(Instr& instr, vm::Opcode rr, vm::Opcode ri);
-  size_t emitBinary(Instr& instr, vm::Opcode rr, vm::Opcode ri);
-  size_t emitBinary(Instr& instr, vm::Opcode rr);
-  size_t emitUnary(Instr& instr, vm::Opcode r);
+  size_t emitBinaryAssoc(Instr& instr, vm::Opcode opcode);
+  size_t emitBinary(Instr& instr, vm::Opcode opcode);
+  size_t emitUnary(Instr& instr, vm::Opcode opcode);
 
   /**
    * Emits call args.
    *
    * @returns base register for arguments to be passed to the CALL or HANDLER
-   *instruction.
+   *          instruction.
    */
   Register emitCallArgs(Instr& instr);
 
-  vm::Operand getRegister(Value* value);
+  /**
+   * Translates given @p value into a stack pointer (absolute stack offset).
+   *
+   * If the value is not available on the stack yet, it'll be allocated a slot.
+   */
+  vm::Operand getStackPointer(Value* value);
+
   vm::Operand getConstantInt(Value* value);
   size_t getInstructionPointer() const { return code_.size(); }
 
@@ -201,15 +206,14 @@ class TargetCodeGenerator : public InstructionVisitor {
   std::vector<std::string> errors_;
 
   std::unordered_map<BasicBlock*, std::list<ConditionalJump>> conditionalJumps_;
-  std::unordered_map<BasicBlock*, std::list<UnconditionalJump>>
-  unconditionalJumps_;
+  std::unordered_map<BasicBlock*, std::list<UnconditionalJump>> unconditionalJumps_;
   std::list<std::pair<MatchInstr*, size_t /*matchId*/>> matchHints_;
 
   size_t handlerId_;                                //!< current handler's ID
-  std::vector<vm::Instruction> code_;           //!< current handler's code
-  std::unordered_map<Value*, Register> variables_;  //!< variable-to-register
-                                                    //assignment-map
-  std::vector<bool> allocations_;  //!< register allocation map (primitive)
+  std::vector<vm::Instruction> code_;               //!< current handler's code
+
+  /** variable-to-stack-offset assignment-map */
+  std::unordered_map<Value*, size_t> variables_;
 
   // target program output
   vm::ConstantPool cp_;

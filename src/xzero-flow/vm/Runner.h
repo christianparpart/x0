@@ -37,6 +37,9 @@ class Runner : public CustomData {
     Suspended,  //!< Active handler is currently suspended.
   };
 
+  using Value = uint64_t;
+  using Stack = std::deque<Value>;
+
  private:
   std::shared_ptr<Handler> handler_;
 
@@ -56,11 +59,18 @@ class Runner : public CustomData {
   State state_;     //!< current VM state
   size_t pc_;       //!< last saved program execution offset
 
+  Stack stack_;
+
   std::list<std::string> stringGarbage_;
 
-  Register data_[];
+ private:
+  void npush(FlowNumber value);
+  FlowNumber npop();
+
+  void pushString(const FlowString* value) { npush((Value) value); }
 
  public:
+  explicit Runner(std::shared_ptr<Handler> handler, size_t initialStackCapacity = 64);
   ~Runner();
 
   static std::unique_ptr<Runner> create(std::shared_ptr<Handler> handler);
@@ -94,7 +104,7 @@ class Runner : public CustomData {
   const RegExpContext* regexpContext() const noexcept { return &regexpContext_; }
   RegExpContext* regexpContext() noexcept { return &regexpContext_; }
 
-  const Register* data() const { return data_; }
+  const Stack& stack() const { return stack_; }
 
   FlowString* newString(const std::string& value);
   FlowString* newString(const char* p, size_t n);
@@ -102,8 +112,6 @@ class Runner : public CustomData {
   const FlowString* emptyString() const { return &*stringGarbage_.begin(); }
 
  private:
-  explicit Runner(std::shared_ptr<Handler> handler);
-
   inline bool loop();
 
   Runner(Runner&) = delete;

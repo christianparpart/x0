@@ -12,71 +12,51 @@
 #include <stdint.h>
 #include <vector>
 
-namespace xzero {
-namespace flow {
-namespace vm {
+namespace xzero::flow::vm {
 
 enum Opcode {
   // misc
   NOP = 0,  // NOP                 ; no operation
 
   // control
-  EXIT,  // EXIT imm            ; exit program
-  JMP,   // JMP imm             ; unconditional jump
-  JN,    // JN reg, imm         ; conditional jump (A != 0)
-  JZ,    // JZ reg, imm         ; conditional jump (A == 0)
+  EXIT,     // EXIT imm           ; exit program
+  JMP,      // JMP imm            ; unconditional jump
+  JN,       // JN imm             ; conditional jump (A != 0)
+  JZ,       // JZ imm             ; conditional jump (A == 0)
 
   // copy
-  MOV,  // A = B
+  MOV       // MOV imm            ; stack[op1] = pop()
+  STORE     // STORE imm, imm     ; stack[op1] = stack[op2]
 
   // const arrays
-  ITCONST,  // A = intArray[B]
-  STCONST,  // A = stringArray[B]
-  PTCONST,  // A = ipaddrArray[B]
-  CTCONST,  // A = cidrArray[B]
+  ITCONST,  // push intArray[op1]
+  STCONST,  // push stringArray[op1]
+  PTCONST,  // push ipaddrArray[op1]
+  CTCONST,  // push cidrArray[op1]
 
   // numerical
-  IMOV,    // A = B/imm
-  NCONST,  // A = numberConstants[B]
-  NNEG,    // A = -A
-  NNOT,    // A = ~A
-  NADD,    // A = B + C
-  NSUB,    // A = B - C
-  NMUL,    // A = B * C
-  NDIV,    // A = B / C
-  NREM,    // A = B % C
-  NSHL,    // A = B << C
-  NSHR,    // A = B >> C
-  NPOW,    // A = B ** C
-  NAND,    // A = B & C
-  NOR,     // A = B | C
-  NXOR,    // A = B ^ C
-  NCMPZ,   // A = B == 0
-  NCMPEQ,  // A = B == C
-  NCMPNE,  // A = B != C
-  NCMPLE,  // A = B <= C
-  NCMPGE,  // A = B >= C
-  NCMPLT,  // A = B < C
-  NCMPGT,  // A = B > C
-
-  // numerical (reg, imm)
-  NIADD,    // A = B + C
-  NISUB,    // A = B - C
-  NIMUL,    // A = B * C
-  NIDIV,    // A = B / C
-  NIREM,    // A = B % C
-  NISHL,    // A = B << C
-  NISHR,    // A = B >> C
-  NIPOW,    // A = B ** C
-  NIAND,    // A = B & C
-  NIOR,     // A = B | C
-  NIXOR,    // A = B ^ C
-  NICMPEQ,  // A = B == C
-  NICMPNE,  // A = B != C
-  NICMPLE,  // A = B <= C
-  NICMPGE,  // A = B >= C
-  NICMPLT,  // A = B < C
-  NICMPGT,  // A = B > C
+  ISTORE,   // ISTORE imm, imm    ; stack[op1] = op2
+  NSTORE,   // NSTORE imm, imm    ; stack[op1] = numberConstants[op2]
+  NNEG,     //                    ; stack[SP] = -stack[SP]
+  NNOT,     //                    ; stack[SP] = ~stack[SP]
+  NADD,     //                    ; npush(npop() + npop())
+  NSUB,     //                    ; npush(npop() - npop())
+  NMUL,     //                    ; npush(npop() * npop())
+  NDIV,     //                    ; npush(npop() / npop())
+  NREM,     //                    ; npush(npop() % npop())
+  NSHL,     // t = stack[SP-2] << stack[SP-1]; pop(2); npush(t);
+  NSHR,     // A = B >> C
+  NPOW,     // A = B ** C
+  NAND,     // A = B & C
+  NOR,      // A = B | C
+  NXOR,     // A = B ^ C
+  NCMPZ,    // A = B == 0
+  NCMPEQ,   // A = B == C
+  NCMPNE,   // A = B != C
+  NCMPLE,   // A = B <= C
+  NCMPGE,   // A = B >= C
+  NCMPLT,   // A = B < C
+  NCMPGT,   // A = B > C
 
   // boolean
   BNOT,  // A = !A
@@ -154,17 +134,26 @@ typedef uint16_t ImmOperand;
 // --------------------------------------------------------------------------
 // encoder
 
-constexpr Instruction makeInstruction(Opcode opc) { return (Instruction)opc; }
+constexpr Instruction makeInstruction(Opcode opc) {
+  return (Instruction) opc;
+}
+
 constexpr Instruction makeInstruction(Opcode opc, Operand op1) {
   return (opc | (op1 << 16));
 }
+
 constexpr Instruction makeInstruction(Opcode opc, Operand op1, Operand op2) {
-  return (opc | (op1 << 16) | (Instruction(op2) << 32));
+  return (opc
+       | (op1 << 16)
+       | (Instruction(op2) << 32));
 }
+
 constexpr Instruction makeInstruction(Opcode opc, Operand op1, Operand op2,
                                       Operand op3) {
-  return (opc | (op1 << 16) | (Instruction(op2) << 32) |
-          (Instruction(op3) << 48));
+  return (opc
+       | (op1 << 16)
+       | (Instruction(op2) << 32)
+       | (Instruction(op3) << 48));
 }
 
 // --------------------------------------------------------------------------
@@ -193,6 +182,4 @@ size_t computeRegisterCount(const Instruction* code, size_t size);
 size_t registerMax(Instruction instr);
 FlowType resultType(Opcode opc);
 
-}  // namespace vm
-}  // namespace flow
-}  // namespace xzero
+} // namespace xzero::flow::vm

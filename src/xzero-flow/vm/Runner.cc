@@ -39,14 +39,13 @@ namespace xzero::flow::vm {
 #define B operandB((Instruction) * pc)
 #define C operandC((Instruction) * pc)
 
-#define toString(R) (*(FlowString*)data_[R])
-#define toIPAddress(R) (*(IPAddress*)data_[R])
-#define toCidr(R) (*(Cidr*)data_[R])
-#define toRegExp(R) (*(RegExp*)data_[R])
-#define toNumber(R) ((FlowNumber)data_[R])
-
-#define toStringPtr(R) ((FlowString*)data_[R])
-#define toCidrPtr(R) ((Cidr*)data_[R])
+#define toString(R)     (*(FlowString*)data_[R])
+#define toStringPtr(R)  ((FlowString*)data_[R])
+#define toIPAddress(R)  (*(IPAddress*)data_[R])
+#define toCidr(R)       (*(Cidr*)data_[R])
+#define toCidrPtr(R)    ((Cidr*)data_[R])
+#define toRegExp(R)     (*(RegExp*)data_[R])
+#define toNumber(R)     ((FlowNumber)data_[R])
 
 #define incr_pc()       \
   do {                  \
@@ -88,10 +87,7 @@ namespace xzero::flow::vm {
 // }}}
 
 std::unique_ptr<Runner> Runner::create(std::shared_ptr<Handler> handler) {
-  Runner* p = (Runner*)malloc(sizeof(Runner) +
-                              handler->registerCount() * sizeof(uint64_t));
-  new (p) Runner(handler);
-  return std::unique_ptr<Runner>(p);
+  return std::unique_ptr<Runner>(new Runner(handler));
 }
 
 static FlowString* t = nullptr;
@@ -103,17 +99,13 @@ Runner::Runner(std::shared_ptr<Handler> handler)
       regexpContext_(),
       state_(Inactive),
       pc_(0),
+      stack_(),
       stringGarbage_() {
   // initialize emptyString()
   t = newString("");
-
-  // initialize registers
-  memset(data_, 0, sizeof(Register) * handler_->registerCount());
 }
 
 Runner::~Runner() {}
-
-void Runner::operator delete(void* p) { free(p); }
 
 FlowString* Runner::newString(const std::string& value) {
   stringGarbage_.emplace_back(value);
@@ -180,19 +172,12 @@ bool Runner::loop() {
       label(ITCONST),   label(STCONST),   label(PTCONST),   label(CTCONST),
 
       // numerical
-      label(IMOV),      label(NCONST),    label(NNEG),      label(NNOT),
+      label(ISTORE),    label(NSTORE),    label(NNEG),      label(NNOT),
       label(NADD),      label(NSUB),      label(NMUL),      label(NDIV),
       label(NREM),      label(NSHL),      label(NSHR),      label(NPOW),
       label(NAND),      label(NOR),       label(NXOR),      label(NCMPZ),
       label(NCMPEQ),    label(NCMPNE),    label(NCMPLE),    label(NCMPGE),
       label(NCMPLT),    label(NCMPGT),
-
-      // numerical (reg, imm)
-      label(NIADD),     label(NISUB),     label(NIMUL),     label(NIDIV),
-      label(NIREM),     label(NISHL),     label(NISHR),     label(NIPOW),
-      label(NIAND),     label(NIOR),      label(NIXOR),     label(NICMPEQ),
-      label(NICMPNE),   label(NICMPLE),   label(NICMPGE),   label(NICMPLT),
-      label(NICMPGT),
 
       // boolean op
       label(BNOT),      label(BAND),      label(BOR),       label(BXOR),
@@ -252,19 +237,21 @@ bool Runner::loop() {
     return A != 0;
   }
 
-  instr(JMP) { jump_to(A); }
+  instr(JMP) {
+    jump_to(A);
+  }
 
   instr(JN) {
-    if (data_[A] != 0) {
-      jump_to(B);
+    if (npop() != 0) {
+      jump_to(A);
     } else {
       next;
     }
   }
 
   instr(JZ) {
-    if (data_[A] == 0) {
-      jump_to(B);
+    if (npop() == 0) {
+      jump_to(A);
     } else {
       next;
     }
@@ -298,236 +285,176 @@ bool Runner::loop() {
   }
   // }}}
   // {{{ numerical
-  instr(IMOV) {
-    data_[A] = B;
+  instr(ISTORE) {
+    stack_[A] = stack_[B];
     next;
   }
 
-  instr(NCONST) {
-    data_[A] = program()->constants().getInteger(B);
+  instr(NSTORE) {
+    stack_[A] = program()->constants().getInteger(B);
     next;
   }
 
   instr(NNEG) {
-    data_[A] = (Register)(-toNumber(B));
+    npush(-npop());
     next;
   }
 
   instr(NNOT) {
-    data_[A] = (Register)(~toNumber(B));
+    npush(~npop());
     next;
   }
 
   instr(NADD) {
-    data_[A] = static_cast<Register>(toNumber(B) + toNumber(C));
+    npush(npop() + npop());
     next;
   }
 
   instr(NSUB) {
-    data_[A] = static_cast<Register>(toNumber(B) - toNumber(C));
+    auto b = npop();
+    auto a = npop();
+    npush(a - b);
     next;
   }
 
   instr(NMUL) {
-    data_[A] = static_cast<Register>(toNumber(B) * toNumber(C));
+    npush(npop() * npop());
     next;
   }
 
   instr(NDIV) {
-    data_[A] = static_cast<Register>(toNumber(B) / toNumber(C));
+    auto b = npop();
+    auto a = npop();
+    npush(a / b);
     next;
   }
 
   instr(NREM) {
-    data_[A] = static_cast<Register>(toNumber(B) % toNumber(C));
+    auto b = npop();
+    auto a = npop();
+    npush(a % b);
     next;
   }
 
   instr(NSHL) {
-    data_[A] = static_cast<Register>(toNumber(B) << toNumber(C));
+    auto b = npop();
+    auto a = npop();
+    npush(a << b);
     next;
   }
 
   instr(NSHR) {
-    data_[A] = static_cast<Register>(toNumber(B) >> toNumber(C));
+    auto b = npop();
+    auto a = npop();
+    npush(a >> b);
     next;
   }
 
   instr(NPOW) {
-    data_[A] = static_cast<Register>(powl(toNumber(B), toNumber(C)));
+    auto b = npop();
+    auto a = npop();
+    npush(powl(a, b));
     next;
   }
 
   instr(NAND) {
-    data_[A] = data_[B] & data_[C];
+    auto b = npop();
+    auto a = npop();
+    npush(a & b);
     next;
   }
 
   instr(NOR) {
-    data_[A] = data_[B] | data_[C];
+    auto b = npop();
+    auto a = npop();
+    npush(a | b);
     next;
   }
 
   instr(NXOR) {
-    data_[A] = data_[B] ^ data_[C];
+    auto b = npop();
+    auto a = npop();
+    npush(a ^ b);
     next;
   }
 
   instr(NCMPZ) {
-    data_[A] = static_cast<Register>(toNumber(B) == 0);
+    npush(npop() == 0);
     next;
   }
 
   instr(NCMPEQ) {
-    data_[A] = static_cast<Register>(toNumber(B) == toNumber(C));
+    npush(npop() == npop());
     next;
   }
 
   instr(NCMPNE) {
-    data_[A] = static_cast<Register>(toNumber(B) != toNumber(C));
+    npush(npop() != npop());
     next;
   }
 
   instr(NCMPLE) {
-    data_[A] = static_cast<Register>(toNumber(B) <= toNumber(C));
+    auto b = npop();
+    auto a = npop();
+    npush(a <= b);
     next;
   }
 
   instr(NCMPGE) {
-    data_[A] = static_cast<Register>(toNumber(B) >= toNumber(C));
+    auto b = npop();
+    auto a = npop();
+    npush(a >= b);
     next;
   }
 
   instr(NCMPLT) {
-    data_[A] = static_cast<Register>(toNumber(B) < toNumber(C));
+    auto b = npop();
+    auto a = npop();
+    npush(a < b);
     next;
   }
 
   instr(NCMPGT) {
-    data_[A] = static_cast<Register>(toNumber(B) > toNumber(C));
-    next;
-  }
-  // }}}
-  // {{{ numerical binary (reg, imm)
-  instr(NIADD) {
-    data_[A] = static_cast<Register>(toNumber(B) + C);
-    next;
-  }
-
-  instr(NISUB) {
-    data_[A] = static_cast<Register>(toNumber(B) - C);
-    next;
-  }
-
-  instr(NIMUL) {
-    data_[A] = static_cast<Register>(toNumber(B) * C);
-    next;
-  }
-
-  instr(NIDIV) {
-    data_[A] = static_cast<Register>(toNumber(B) / C);
-    next;
-  }
-
-  instr(NIREM) {
-    data_[A] = static_cast<Register>(toNumber(B) % C);
-    next;
-  }
-
-  instr(NISHL) {
-    data_[A] = static_cast<Register>(toNumber(B) << C);
-    next;
-  }
-
-  instr(NISHR) {
-    data_[A] = static_cast<Register>(toNumber(B) >> C);
-    next;
-  }
-
-  instr(NIPOW) {
-    data_[A] = static_cast<Register>(powl(toNumber(B), C));
-    next;
-  }
-
-  instr(NIAND) {
-    data_[A] = data_[B] & C;
-    next;
-  }
-
-  instr(NIOR) {
-    data_[A] = data_[B] | C;
-    next;
-  }
-
-  instr(NIXOR) {
-    data_[A] = data_[B] ^ C;
-    next;
-  }
-
-  instr(NICMPEQ) {
-    data_[A] = static_cast<Register>(toNumber(B) == C);
-    next;
-  }
-
-  instr(NICMPNE) {
-    data_[A] = static_cast<Register>(toNumber(B) != C);
-    next;
-  }
-
-  instr(NICMPLE) {
-    data_[A] = static_cast<Register>(toNumber(B) <= C);
-    next;
-  }
-
-  instr(NICMPGE) {
-    data_[A] = static_cast<Register>(toNumber(B) >= C);
-    next;
-  }
-
-  instr(NICMPLT) {
-    data_[A] = static_cast<Register>(toNumber(B) < C);
-    next;
-  }
-
-  instr(NICMPGT) {
-    data_[A] = static_cast<Register>(toNumber(B) > C);
+    auto b = npop();
+    auto a = npop();
+    npush(a > b);
     next;
   }
   // }}}
   // {{{ boolean
   instr(BNOT) {
-    data_[A] = (Register)(!toNumber(B));
+    npush(!npop());
     next;
   }
 
   instr(BAND) {
-    data_[A] = toNumber(B) && toNumber(C);
+    npush(npop() && npop());
     next;
   }
 
   instr(BOR) {
-    data_[A] = toNumber(B) || toNumber(C);
+    npush(npop() || npop());
     next;
   }
 
   instr(BXOR) {
-    data_[A] = toNumber(B) ^ toNumber(C);
+    npush(npop() ^ npop());
     next;
   }
   // }}}
   // {{{ string
   instr(SCONST) {  // A = stringConstTable[B]
-    data_[A] = reinterpret_cast<Register>(&program()->constants().getString(B));
+    npush(reinterpret_cast<Value>(&program()->constants().getString(A)));
     next;
   }
 
   instr(SADD) {  // A = concat(B, C)
-    data_[A] = (Register)catString(toString(B), toString(C));
+    npush((Value) catString(toString(A), toString(B)));
     next;
   }
 
-  instr(SSUBSTR) {  // A = substr(B, C /*offset*/, C+1 /*count*/)
-    data_[A] = (Register)newString(toString(B).substr(data_[C], data_[C + 1]));
+  instr(SSUBSTR) {  // substr(A, B /*offset*/, C /*count*/)
+    npush((Value) newString(toString(A).substr(stack_[B], stack_[C]));
     next;
   }
 
@@ -536,163 +463,185 @@ bool Runner::loop() {
   }
 
   instr(SCMPEQ) {
-    data_[A] = toString(B) == toString(C);
+    auto b = toString(npop());
+    auto a = toString(npop());
+    npush(a == b);
     next;
   }
 
   instr(SCMPNE) {
-    data_[A] = toString(B) != toString(C);
+    auto b = toString(npop());
+    auto a = toString(npop());
+    npush(a != b);
     next;
   }
 
   instr(SCMPLE) {
-    data_[A] = toString(B) <= toString(C);
+    auto b = toString(npop());
+    auto a = toString(npop());
+    npush(a <= b);
     next;
   }
 
   instr(SCMPGE) {
-    data_[A] = toString(B) >= toString(C);
+    auto b = toString(npop());
+    auto a = toString(npop());
+    npush(a >= b);
     next;
   }
 
   instr(SCMPLT) {
-    data_[A] = toString(B) < toString(C);
+    auto b = toString(npop());
+    auto a = toString(npop());
+    npush(a < b);
     next;
   }
 
   instr(SCMPGT) {
-    data_[A] = toString(B) > toString(C);
+    auto b = toString(npop());
+    auto a = toString(npop());
+    npush(a > b);
     next;
   }
 
   instr(SCMPBEG) {
-    const auto& b = toString(B);
-    const auto& c = toString(C);
-    data_[A] = StringUtil::beginsWith(b, c);
+    auto b = toString(npop());
+    auto a = toString(npop());
+    npush(StringUtil::beginsWith(a, b));
     next;
   }
 
   instr(SCMPEND) {
-    const auto& b = toString(B);
-    const auto& c = toString(C);
-    data_[A] = StringUtil::endsWith(b, c);
+    auto b = toString(npop());
+    auto a = toString(npop());
+    npush(StringUtil::endsWith(a, b));
     next;
   }
 
   instr(SCONTAINS) {
-    data_[A] = StringUtil::includes(toString(C), toString(B));
+    auto b = toString(npop());
+    auto a = toString(npop());
+    npush(StringUtil::includes(a, b));
     next;
   }
 
   instr(SLEN) {
-    data_[A] = toString(B).size();
+    npush(toString(npop()).size());
     next;
   }
 
   instr(SISEMPTY) {
-    data_[A] = toString(B).empty();
+    npush(toString(npop()).empty());
     next;
   }
 
   instr(SMATCHEQ) {
-    auto result = program()->match(B)->evaluate(toStringPtr(A), this);
+    auto pattern = toStringPtr(npop());
+    auto matchID = npop();
+    auto result = program()->match(matchID)->evaluate(pattern, this);
     jump_to(result);
   }
 
   instr(SMATCHBEG) {
-    auto result = program()->match(B)->evaluate(toStringPtr(A), this);
+    auto pattern = toStringPtr(npop());
+    auto matchID = npop();
+    auto result = program()->match(matchID)->evaluate(pattern, this);
     jump_to(result);
   }
 
   instr(SMATCHEND) {
-    auto result = program()->match(B)->evaluate(toStringPtr(A), this);
+    auto pattern = toStringPtr(npop());
+    auto matchID = npop();
+    auto result = program()->match(matchID)->evaluate(pattern, this);
     jump_to(result);
   }
 
   instr(SMATCHR) {
-    auto result = program()->match(B)->evaluate(toStringPtr(A), this);
+    auto pattern = toStringPtr(npop());
+    auto matchID = npop();
+    auto result = program()->match(matchID)->evaluate(pattern, this);
     jump_to(result);
   }
   // }}}
   // {{{ ipaddr
   instr(PCONST) {
-    data_[A] =
-        reinterpret_cast<Register>(&program()->constants().getIPAddress(B));
+    npush(reinterpret_cast<Value>(&program()->constants().getIPAddress(A)));
     next;
   }
 
   instr(PCMPEQ) {
-    data_[A] = toIPAddress(B) == toIPAddress(C);
+    npush(toIPAddress(npop()) == toIPAddress(npop()));
     next;
   }
 
   instr(PCMPNE) {
-    data_[A] = toIPAddress(B) != toIPAddress(C);
+    npush(toIPAddress(npop()) != toIPAddress(npop()));
     next;
   }
 
   instr(PINCIDR) {
-    const IPAddress& ipaddr = toIPAddress(B);
-    const Cidr& cidr = toCidr(C);
-    data_[A] = cidr.contains(ipaddr);
+    const Cidr& cidr = toCidr(npop());
+    const IPAddress& ipaddr = toIPAddress(npop());
+    npush(cidr.contains(ipaddr));
     next;
   }
   // }}}
   // {{{ cidr
   instr(CCONST) {
-    data_[A] = reinterpret_cast<Register>(&program()->constants().getCidr(B));
+    npush(reinterpret_cast<Value>(&program()->constants().getCidr(A)));
     next;
   }
   // }}}
   // {{{ regex
   instr(SREGMATCH) {  // A = B =~ C
-    data_[A] = program()->constants().getRegExp(C).match(
-        toString(B), regexpContext_.regexMatch());
-
+    auto regex = program()->constants().getRegExp(npop());
+    auto data = toString(npop());
+    auto result = regex.match(data, regexpContext_.regexMatch());
+    npush(result);
     next;
   }
 
-  instr(SREGGROUP) {  // A = regex.group(B)
-    FlowNumber position = toNumber(B);
+  instr(SREGGROUP) {
+    FlowNumber position = toNumber(npop());
     RegExp::Result& rr = *regexpContext_.regexMatch();
     const auto& match = rr[position];
 
-    data_[A] = (Register)newString(match);
-
+    npush((Value) newString(match));
     next;
   }
   // }}}
   // {{{ conversion
   instr(S2I) {  // A = atoi(B)
-    data_[A] = std::atoi(toString(B).c_str());
+    npush(std::stoi(toString(npop())));
     next;
   }
 
   instr(I2S) {  // A = itoa(B)
+    auto value = npop();
     char buf[64];
-    if (snprintf(buf, sizeof(buf), "%" PRIi64 "", (int64_t)data_[B]) > 0) {
-      data_[A] = (Register)newString(buf);
+    if (snprintf(buf, sizeof(buf), "%" PRIi64 "", (int64_t)value) > 0) {
+      pushString(newString(buf));
     } else {
-      data_[A] = (Register)emptyString();
+      pushString(emptyString());
     }
     next;
   }
 
   instr(P2S) {  // A = ip(B).toString()
-    const IPAddress& ipaddr = toIPAddress(B);
-    data_[A] = (Register)newString(ipaddr.str());
+    const IPAddress& ipaddr = toIPAddress(npop());
+    pushString(newString(ipaddr.str()));
     next;
   }
 
   instr(C2S) {  // A = cidr(B).toString()
-    const Cidr& cidr = toCidr(B);
-    data_[A] = (Register)newString(cidr.str());
+    const Cidr& cidr = toCidr(npop());
+    pushString(newString(cidr.str()));
     next;
   }
 
   instr(R2S) {  // A = regex(B).toString()
-    const RegExp& re = toRegExp(B);
-    data_[A] = (Register)newString(re.pattern());
+    const RegExp& re = toRegExp(npop());
+    pushString(newString(re.pattern()));
     next;
   }
 

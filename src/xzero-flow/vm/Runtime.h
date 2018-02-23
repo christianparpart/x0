@@ -15,13 +15,12 @@
 #include <vector>
 #include <functional>
 
-namespace xzero {
-namespace flow {
+namespace xzero::flow {
+  class IRProgram;
+  class IRBuilder;
+}
 
-class IRProgram;
-class IRBuilder;
-
-namespace vm {
+namespace xzero::flow::vm {
 
 typedef uint64_t Value;
 
@@ -55,6 +54,4 @@ class Runtime {
   std::vector<NativeCallback*> builtins_;
 };
 
-}  // vm
-}  // flow
-}  // xzero
+}  // xzero::flow::vm
