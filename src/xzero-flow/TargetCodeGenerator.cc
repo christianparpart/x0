@@ -131,74 +131,37 @@ size_t TargetCodeGenerator::emit(vm::Instruction instr) {
   return getInstructionPointer() - 1;
 }
 
-size_t TargetCodeGenerator::emit(vm::Opcode opcode, Register cond,
-                                 BasicBlock* bb) {
+size_t TargetCodeGenerator::emit(Opcode opcode, Register cond, BasicBlock* bb) {
   size_t pc = emit(Opcode::NOP);
   conditionalJumps_[bb].push_back({pc, opcode, cond});
   return pc;
 }
 
-size_t TargetCodeGenerator::emit(vm::Opcode opcode, BasicBlock* bb) {
+size_t TargetCodeGenerator::emit(Opcode opcode, BasicBlock* bb) {
   size_t pc = emit(Opcode::NOP);
   unconditionalJumps_[bb].push_back({pc, opcode});
   return pc;
 }
 
-size_t TargetCodeGenerator::emitBinary(Instr& instr, Opcode rr) {
-  assert(operandSignature(rr) == InstructionSig::RRR);
+size_t TargetCodeGenerator::emitBinary(Instr& instr, Opcode opcode) {
+  Operand a = getStackPointer(instr.operand(0));
+  Operand b = getStackPointer(instr.operand(1));
 
-  Register a = allocate(1, instr);
-  Register b = getRegister(instr.operand(0));
-  Register c = getRegister(instr.operand(1));
-
-  return emit(rr, a, b, c);
+  return emit(opcode, a, b);
 }
 
-size_t TargetCodeGenerator::emitBinaryAssoc(Instr& instr, Opcode rr,
-                                            Opcode ri) {
-  assert(operandSignature(rr) == InstructionSig::RRR);
-  assert(operandSignature(ri) == InstructionSig::RRI);
-
-  Register a = allocate(1, instr);
-
-  if (auto i = dynamic_cast<ConstantInt*>(instr.operand(1))) {
-    Register b = getRegister(instr.operand(0));
-    return emit(ri, a, b, i->get());
-  }
-
-  if (auto i = dynamic_cast<ConstantInt*>(instr.operand(0))) {
-    Register b = getRegister(instr.operand(1));
-    return emit(ri, a, b, i->get());
-  }
-
-  Register b = getRegister(instr.operand(0));
-  Register c = getRegister(instr.operand(1));
-  return emit(rr, a, b, c);
-}
-
-size_t TargetCodeGenerator::emitBinary(Instr& instr, Opcode rr, Opcode ri) {
-  assert(operandSignature(rr) == InstructionSig::RRR);
-  assert(operandSignature(ri) == InstructionSig::RRI);
-
-  Register a = allocate(1, instr);
-
-  if (auto i = dynamic_cast<ConstantInt*>(instr.operand(1))) {
-    Register b = getRegister(instr.operand(0));
-    return emit(ri, a, b, i->get());
-  }
-
-  Register b = getRegister(instr.operand(0));
-  Register c = getRegister(instr.operand(1));
-  return emit(rr, a, b, c);
+size_t TargetCodeGenerator::emitBinaryAssoc(Instr& instr, Opcode opcode) {
+  Operand a = getStackPointer(instr.operand(0));
+  Operand b = getStackPointer(instr.operand(1));
+  return emit(opcode, a, b);
 }
 
 size_t TargetCodeGenerator::emitUnary(Instr& instr, vm::Opcode r) {
   assert(operandSignature(r) == InstructionSig::RR);
 
-  Register a = allocate(1, instr);
-  Register b = getRegister(instr.operand(0));
+  Operand a = getStackPointer(instr.operand(0));
 
-  return emit(r, a, b);
+  return emit(r, a);
 }
 
 size_t TargetCodeGenerator::allocate(size_t count, Value& alias) {
@@ -243,7 +206,7 @@ void TargetCodeGenerator::visit(StoreInstr& instr) {
   size_t index = getConstantInt(instr.index());
   Value* rhs = instr.expression();
 
-  Register lhsReg = getRegister(lhs) + index;
+  Register lhsReg = getStackPointer(lhs) + index;
 
   // const int
   if (auto integer = dynamic_cast<ConstantInt*>(rhs)) {
@@ -333,7 +296,7 @@ void TargetCodeGenerator::visit(StoreInstr& instr) {
 void TargetCodeGenerator::visit(LoadInstr& instr) {
   // no need to *load* the variable into a register as
   // we have only one variable store
-  variables_[&instr] = getRegister(instr.variable());
+  variables_[&instr] = getStackPointer(instr.variable());
 }
 
 Register TargetCodeGenerator::emitCallArgs(Instr& instr) {
@@ -341,7 +304,7 @@ Register TargetCodeGenerator::emitCallArgs(Instr& instr) {
   Register rbase = allocate(argc, instr);
 
   for (int i = 1; i < argc; ++i) {
-    Register tmp = getRegister(instr.operands()[i]);
+    Register tmp = getStackPointer(instr.operands()[i]);
     if (auto alloca = dynamic_cast<AllocaInstr*>(instr.operands()[i])) {
       size_t n = getConstantInt(alloca->arraySize());
       if (n > 1) {
@@ -390,9 +353,13 @@ vm::Operand TargetCodeGenerator::getConstantInt(Value* value) {
   return 0;
 }
 
-vm::Operand TargetCodeGenerator::getRegister(Value* value) {
-  auto i = variables_.find(value);
-  if (i != variables_.end()) return i->second;
+vm::Operand TargetCodeGenerator::getStackPointer(Value* value) {
+  {
+    auto i = variables_.find(value);
+    if (i != variables_.end()) {
+      return i->second;
+    }
+  }
 
   // const int
   if (ConstantInt* integer = dynamic_cast<ConstantInt*>(value)) {
@@ -482,11 +449,11 @@ void TargetCodeGenerator::visit(PhiNode& instr) {
 
 void TargetCodeGenerator::visit(CondBrInstr& instr) {
   if (instr.parent()->isAfter(instr.trueBlock())) {
-    emit(Opcode::JZ, getRegister(instr.condition()), instr.falseBlock());
+    emit(Opcode::JZ, getStackPointer(instr.condition()), instr.falseBlock());
   } else if (instr.parent()->isAfter(instr.falseBlock())) {
-    emit(Opcode::JN, getRegister(instr.condition()), instr.trueBlock());
+    emit(Opcode::JN, getStackPointer(instr.condition()), instr.trueBlock());
   } else {
-    emit(Opcode::JN, getRegister(instr.condition()), instr.trueBlock());
+    emit(Opcode::JN, getStackPointer(instr.condition()), instr.trueBlock());
     emit(Opcode::JMP, instr.falseBlock());
   }
 }
@@ -539,7 +506,7 @@ void TargetCodeGenerator::visit(MatchInstr& instr) {
     matchDef.cases.push_back(caseDef);
   }
 
-  Register condition = getRegister(instr.condition());
+  Register condition = getStackPointer(instr.condition());
 
   emit(ops[(size_t)matchDef.op], condition, matchId);
 }
@@ -562,7 +529,7 @@ void TargetCodeGenerator::visit(CastInstr& instr) {
 
   // just alias same-type casts
   if (instr.type() == instr.source()->type()) {
-    variables_[&instr] = getRegister(instr.source());
+    variables_[&instr] = getStackPointer(instr.source());
     return;
   }
 
@@ -578,7 +545,7 @@ void TargetCodeGenerator::visit(CastInstr& instr) {
 
   // emit instruction
   Register result = allocate(1, instr);
-  Register a = getRegister(instr.source());
+  Register a = getStackPointer(instr.source());
   emit(op, result, a);
 }
 
@@ -588,76 +555,76 @@ void TargetCodeGenerator::visit(INegInstr& instr) {
 
 void TargetCodeGenerator::visit(INotInstr& instr) {
   Register a = allocate(1, instr);
-  Register b = getRegister(instr.operands()[0]);
+  Register b = getStackPointer(instr.operands()[0]);
   emit(Opcode::NNOT, a, b);
 }
 
 void TargetCodeGenerator::visit(IAddInstr& instr) {
-  emitBinaryAssoc(instr, Opcode::NADD, Opcode::NIADD);
+  emitBinaryAssoc(instr, Opcode::NADD);
 }
 
 void TargetCodeGenerator::visit(ISubInstr& instr) {
-  emitBinaryAssoc(instr, Opcode::NSUB, Opcode::NISUB);
+  emitBinaryAssoc(instr, Opcode::NSUB);
 }
 
 void TargetCodeGenerator::visit(IMulInstr& instr) {
-  emitBinaryAssoc(instr, Opcode::NMUL, Opcode::NIMUL);
+  emitBinaryAssoc(instr, Opcode::NMUL);
 }
 
 void TargetCodeGenerator::visit(IDivInstr& instr) {
-  emitBinaryAssoc(instr, Opcode::NDIV, Opcode::NIDIV);
+  emitBinaryAssoc(instr, Opcode::NDIV);
 }
 
 void TargetCodeGenerator::visit(IRemInstr& instr) {
-  emitBinaryAssoc(instr, Opcode::NREM, Opcode::NIREM);
+  emitBinaryAssoc(instr, Opcode::NREM);
 }
 
 void TargetCodeGenerator::visit(IPowInstr& instr) {
-  emitBinary(instr, Opcode::NPOW, Opcode::NIPOW);
+  emitBinary(instr, Opcode::NPOW);
 }
 
 void TargetCodeGenerator::visit(IAndInstr& instr) {
-  emitBinaryAssoc(instr, Opcode::NAND, Opcode::NIAND);
+  emitBinaryAssoc(instr, Opcode::NAND);
 }
 
 void TargetCodeGenerator::visit(IOrInstr& instr) {
-  emitBinaryAssoc(instr, Opcode::NOR, Opcode::NIOR);
+  emitBinaryAssoc(instr, Opcode::NOR);
 }
 
 void TargetCodeGenerator::visit(IXorInstr& instr) {
-  emitBinaryAssoc(instr, Opcode::NXOR, Opcode::NIXOR);
+  emitBinaryAssoc(instr, Opcode::NXOR);
 }
 
 void TargetCodeGenerator::visit(IShlInstr& instr) {
-  emitBinaryAssoc(instr, Opcode::NSHL, Opcode::NISHL);
+  emitBinaryAssoc(instr, Opcode::NSHL);
 }
 
 void TargetCodeGenerator::visit(IShrInstr& instr) {
-  emitBinaryAssoc(instr, Opcode::NSHR, Opcode::NISHR);
+  emitBinaryAssoc(instr, Opcode::NSHR);
 }
 
 void TargetCodeGenerator::visit(ICmpEQInstr& instr) {
-  emitBinaryAssoc(instr, Opcode::NCMPEQ, Opcode::NICMPEQ);
+  emitBinaryAssoc(instr, Opcode::NCMPEQ);
 }
 
 void TargetCodeGenerator::visit(ICmpNEInstr& instr) {
-  emitBinaryAssoc(instr, Opcode::NCMPNE, Opcode::NICMPNE);
+  emitBinaryAssoc(instr, Opcode::NCMPNE);
 }
 
 void TargetCodeGenerator::visit(ICmpLEInstr& instr) {
-  emitBinaryAssoc(instr, Opcode::NCMPLE, Opcode::NICMPLE);
+  emitBinaryAssoc(instr, Opcode::NCMPLE);
 }
 
 void TargetCodeGenerator::visit(ICmpGEInstr& instr) {
-  emitBinaryAssoc(instr, Opcode::NCMPGE, Opcode::NICMPGE);
+  emitBinaryAssoc(instr, Opcode::NCMPGE);
 }
 
 void TargetCodeGenerator::visit(ICmpLTInstr& instr) {
-  emitBinaryAssoc(instr, Opcode::NCMPLT, Opcode::NICMPLT);
+  emitBinaryAssoc(instr, Opcode::NCMPLT);
 }
 
 void TargetCodeGenerator::visit(ICmpGTInstr& instr) {
-  emitBinaryAssoc(instr, Opcode::NCMPGT, Opcode::NICMPGT);
+  emitBinaryAssoc(instr, Opcode::NCMPGT);
 }
 
 void TargetCodeGenerator::visit(BNotInstr& instr) {
@@ -723,7 +690,7 @@ void TargetCodeGenerator::visit(SCmpREInstr& instr) {
   ConstantRegExp* re = static_cast<ConstantRegExp*>(instr.operand(1));
 
   Register a = allocate(1, instr);
-  Register b = getRegister(instr.operand(0));
+  Register b = getStackPointer(instr.operand(0));
   Operand c = cp_.makeRegExp(re->get());
 
   emit(Opcode::SREGMATCH, a, b, c);
