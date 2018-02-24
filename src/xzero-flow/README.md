@@ -47,6 +47,9 @@ An instruction is a 64-bit fixed sized code with network byte order:
 - operand 2: from 32..47
 - operand 3: from 48..63
 
+* What's passed as operand and what via stack?
+  - values that never change should be passed as operand
+
 * move to stack based VM; this requires opcode changes
   - redesign opcodes
   - rewrite TargetCodeGenerator

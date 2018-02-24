@@ -39,13 +39,13 @@ namespace xzero::flow::vm {
 #define B operandB((Instruction) * pc)
 #define C operandC((Instruction) * pc)
 
-#define toString(R)     (*(FlowString*)data_[R])
-#define toStringPtr(R)  ((FlowString*)data_[R])
-#define toIPAddress(R)  (*(IPAddress*)data_[R])
-#define toCidr(R)       (*(Cidr*)data_[R])
-#define toCidrPtr(R)    ((Cidr*)data_[R])
-#define toRegExp(R)     (*(RegExp*)data_[R])
-#define toNumber(R)     ((FlowNumber)data_[R])
+#define toString(R)     (*(FlowString*)stack_[R])
+#define toStringPtr(R)  ((FlowString*)stack_[R])
+#define toIPAddress(R)  (*(IPAddress*)stack_[R])
+#define toCidr(R)       (*(Cidr*)stack_[R])
+#define toCidrPtr(R)    ((Cidr*)stack_[R])
+#define toRegExp(R)     (*(RegExp*)stack_[R])
+#define toNumber(R)     ((FlowNumber)stack_[R])
 
 #define incr_pc()       \
   do {                  \
@@ -242,7 +242,7 @@ bool Runner::loop() {
   }
 
   instr(JN) {
-    if (npop() != 0) {
+    if (pop() != 0) {
       jump_to(A);
     } else {
       next;
@@ -250,7 +250,7 @@ bool Runner::loop() {
   }
 
   instr(JZ) {
-    if (npop() == 0) {
+    if (pop() == 0) {
       jump_to(A);
     } else {
       next;
@@ -296,328 +296,334 @@ bool Runner::loop() {
   }
 
   instr(NNEG) {
-    npush(-npop());
+    push(-pop());
     next;
   }
 
   instr(NNOT) {
-    npush(~npop());
+    push(~pop());
     next;
   }
 
   instr(NADD) {
-    npush(npop() + npop());
+    push(pop() + pop());
     next;
   }
 
   instr(NSUB) {
-    auto b = npop();
-    auto a = npop();
-    npush(a - b);
+    auto y = pop();
+    auto x = pop();
+    push(x - y);
     next;
   }
 
   instr(NMUL) {
-    npush(npop() * npop());
+    push(pop() * pop());
     next;
   }
 
   instr(NDIV) {
-    auto b = npop();
-    auto a = npop();
-    npush(a / b);
+    auto y = pop();
+    auto x = pop();
+    push(x / y);
     next;
   }
 
   instr(NREM) {
-    auto b = npop();
-    auto a = npop();
-    npush(a % b);
+    auto y = pop();
+    auto x = pop();
+    push(x % y);
     next;
   }
 
   instr(NSHL) {
-    auto b = npop();
-    auto a = npop();
-    npush(a << b);
+    auto y = pop();
+    auto x = pop();
+    push(x << y);
     next;
   }
 
   instr(NSHR) {
-    auto b = npop();
-    auto a = npop();
-    npush(a >> b);
+    auto y = pop();
+    auto x = pop();
+    push(x >> y);
     next;
   }
 
   instr(NPOW) {
-    auto b = npop();
-    auto a = npop();
-    npush(powl(a, b));
+    auto y = pop();
+    auto x = pop();
+    push(powl(x, y));
     next;
   }
 
   instr(NAND) {
-    auto b = npop();
-    auto a = npop();
-    npush(a & b);
+    auto y = pop();
+    auto x = pop();
+    push(x & y);
     next;
   }
 
   instr(NOR) {
-    auto b = npop();
-    auto a = npop();
-    npush(a | b);
+    auto y = pop();
+    auto x = pop();
+    push(x | y);
     next;
   }
 
   instr(NXOR) {
-    auto b = npop();
-    auto a = npop();
-    npush(a ^ b);
+    auto y = pop();
+    auto x = pop();
+    push(x ^ y);
     next;
   }
 
   instr(NCMPZ) {
-    npush(npop() == 0);
+    push(pop() == 0);
     next;
   }
 
   instr(NCMPEQ) {
-    npush(npop() == npop());
+    push(pop() == pop());
     next;
   }
 
   instr(NCMPNE) {
-    npush(npop() != npop());
+    push(pop() != pop());
     next;
   }
 
   instr(NCMPLE) {
-    auto b = npop();
-    auto a = npop();
-    npush(a <= b);
+    auto y = pop();
+    auto x = pop();
+    push(x <= y);
     next;
   }
 
   instr(NCMPGE) {
-    auto b = npop();
-    auto a = npop();
-    npush(a >= b);
+    auto y = pop();
+    auto x = pop();
+    push(x >= y);
     next;
   }
 
   instr(NCMPLT) {
-    auto b = npop();
-    auto a = npop();
-    npush(a < b);
+    auto y = pop();
+    auto x = pop();
+    push(x < y);
     next;
   }
 
   instr(NCMPGT) {
-    auto b = npop();
-    auto a = npop();
-    npush(a > b);
+    auto y = pop();
+    auto x = pop();
+    push(x > y);
     next;
   }
   // }}}
   // {{{ boolean
   instr(BNOT) {
-    npush(!npop());
+    push(!pop());
     next;
   }
 
   instr(BAND) {
-    npush(npop() && npop());
+    push(pop() && pop());
     next;
   }
 
   instr(BOR) {
-    npush(npop() || npop());
+    push(pop() || pop());
     next;
   }
 
   instr(BXOR) {
-    npush(npop() ^ npop());
+    push(pop() ^ pop());
     next;
   }
   // }}}
   // {{{ string
-  instr(SCONST) {  // A = stringConstTable[B]
-    npush(reinterpret_cast<Value>(&program()->constants().getString(A)));
+  instr(SPUSH) {
+    push(reinterpret_cast<Value>(&program()->constants().getString(A)));
     next;
   }
 
-  instr(SADD) {  // A = concat(B, C)
-    npush((Value) catString(toString(A), toString(B)));
+  instr(SADD) {
+    auto y = toString(pop());
+    auto x = toString(pop());
+    push((Value) catString(x, y));
     next;
   }
 
-  instr(SSUBSTR) {  // substr(A, B /*offset*/, C /*count*/)
-    npush((Value) newString(toString(A).substr(stack_[B], stack_[C]));
+  instr(SSUBSTR) {
+    auto z = toNumber(pop());
+    auto y = toNumber(pop());
+    auto x = toString(pop());
+    pushString(newString(x.substr(y, z));
     next;
   }
 
-  instr(SADDMULTI) {  // TODO: A = concat(B /*rbase*/, C /*count*/)
+  instr(SADDMULTI) {
+    // TODO: A = concat(B /*rbase*/, C /*count*/)
     next;
   }
 
   instr(SCMPEQ) {
-    auto b = toString(npop());
-    auto a = toString(npop());
-    npush(a == b);
+    auto y = toString(pop());
+    auto x = toString(pop());
+    push(x == y);
     next;
   }
 
   instr(SCMPNE) {
-    auto b = toString(npop());
-    auto a = toString(npop());
-    npush(a != b);
+    auto y = toString(pop());
+    auto x = toString(pop());
+    push(x != y);
     next;
   }
 
   instr(SCMPLE) {
-    auto b = toString(npop());
-    auto a = toString(npop());
-    npush(a <= b);
+    auto y = toString(pop());
+    auto x = toString(pop());
+    push(x <= y);
     next;
   }
 
   instr(SCMPGE) {
-    auto b = toString(npop());
-    auto a = toString(npop());
-    npush(a >= b);
+    auto y = toString(pop());
+    auto x = toString(pop());
+    push(x >= y);
     next;
   }
 
   instr(SCMPLT) {
-    auto b = toString(npop());
-    auto a = toString(npop());
-    npush(a < b);
+    auto y = toString(pop());
+    auto x = toString(pop());
+    push(x < y);
     next;
   }
 
   instr(SCMPGT) {
-    auto b = toString(npop());
-    auto a = toString(npop());
-    npush(a > b);
+    auto y = toString(pop());
+    auto x = toString(pop());
+    push(x > y);
     next;
   }
 
   instr(SCMPBEG) {
-    auto b = toString(npop());
-    auto a = toString(npop());
-    npush(StringUtil::beginsWith(a, b));
+    auto y = toString(pop());
+    auto x = toString(pop());
+    push(StringUtil::beginsWith(x, y));
     next;
   }
 
   instr(SCMPEND) {
-    auto b = toString(npop());
-    auto a = toString(npop());
-    npush(StringUtil::endsWith(a, b));
+    auto y = toString(pop());
+    auto x = toString(pop());
+    push(StringUtil::endsWith(x, y));
     next;
   }
 
   instr(SCONTAINS) {
-    auto b = toString(npop());
-    auto a = toString(npop());
-    npush(StringUtil::includes(a, b));
+    auto y = toString(pop());
+    auto x = toString(pop());
+    push(StringUtil::includes(x, y));
     next;
   }
 
   instr(SLEN) {
-    npush(toString(npop()).size());
+    push(toString(pop()).size());
     next;
   }
 
   instr(SISEMPTY) {
-    npush(toString(npop()).empty());
+    push(toString(pop()).empty());
     next;
   }
 
   instr(SMATCHEQ) {
-    auto pattern = toStringPtr(npop());
-    auto matchID = npop();
+    auto pattern = toStringPtr(pop());
+    auto matchID = A;
     auto result = program()->match(matchID)->evaluate(pattern, this);
     jump_to(result);
   }
 
   instr(SMATCHBEG) {
-    auto pattern = toStringPtr(npop());
-    auto matchID = npop();
+    auto pattern = toStringPtr(pop());
+    auto matchID = A;
     auto result = program()->match(matchID)->evaluate(pattern, this);
     jump_to(result);
   }
 
   instr(SMATCHEND) {
-    auto pattern = toStringPtr(npop());
-    auto matchID = npop();
+    auto pattern = toStringPtr(pop());
+    auto matchID = A;
     auto result = program()->match(matchID)->evaluate(pattern, this);
     jump_to(result);
   }
 
   instr(SMATCHR) {
-    auto pattern = toStringPtr(npop());
-    auto matchID = npop();
+    auto pattern = toStringPtr(pop());
+    auto matchID = A;
     auto result = program()->match(matchID)->evaluate(pattern, this);
     jump_to(result);
   }
   // }}}
   // {{{ ipaddr
   instr(PCONST) {
-    npush(reinterpret_cast<Value>(&program()->constants().getIPAddress(A)));
+    push(reinterpret_cast<Value>(&program()->constants().getIPAddress(A)));
     next;
   }
 
   instr(PCMPEQ) {
-    npush(toIPAddress(npop()) == toIPAddress(npop()));
+    push(toIPAddress(pop()) == toIPAddress(pop()));
     next;
   }
 
   instr(PCMPNE) {
-    npush(toIPAddress(npop()) != toIPAddress(npop()));
+    push(toIPAddress(pop()) != toIPAddress(pop()));
     next;
   }
 
   instr(PINCIDR) {
-    const Cidr& cidr = toCidr(npop());
-    const IPAddress& ipaddr = toIPAddress(npop());
-    npush(cidr.contains(ipaddr));
+    const Cidr& cidr = toCidr(pop());
+    const IPAddress& ipaddr = toIPAddress(pop());
+    push(cidr.contains(ipaddr));
     next;
   }
   // }}}
   // {{{ cidr
   instr(CCONST) {
-    npush(reinterpret_cast<Value>(&program()->constants().getCidr(A)));
+    push(reinterpret_cast<Value>(&program()->constants().getCidr(A)));
     next;
   }
   // }}}
   // {{{ regex
   instr(SREGMATCH) {  // A = B =~ C
-    auto regex = program()->constants().getRegExp(npop());
-    auto data = toString(npop());
+    auto regex = program()->constants().getRegExp(pop());
+    auto data = toString(pop());
     auto result = regex.match(data, regexpContext_.regexMatch());
-    npush(result);
+    push(result);
     next;
   }
 
   instr(SREGGROUP) {
-    FlowNumber position = toNumber(npop());
+    FlowNumber position = toNumber(pop());
     RegExp::Result& rr = *regexpContext_.regexMatch();
     const auto& match = rr[position];
 
-    npush((Value) newString(match));
+    push((Value) newString(match));
     next;
   }
   // }}}
   // {{{ conversion
   instr(S2I) {  // A = atoi(B)
-    npush(std::stoi(toString(npop())));
+    push(std::stoi(toString(pop())));
     next;
   }
 
   instr(I2S) {  // A = itoa(B)
-    auto value = npop();
+    auto value = pop();
     char buf[64];
     if (snprintf(buf, sizeof(buf), "%" PRIi64 "", (int64_t)value) > 0) {
       pushString(newString(buf));
@@ -628,19 +634,19 @@ bool Runner::loop() {
   }
 
   instr(P2S) {  // A = ip(B).toString()
-    const IPAddress& ipaddr = toIPAddress(npop());
+    const IPAddress& ipaddr = toIPAddress(pop());
     pushString(newString(ipaddr.str()));
     next;
   }
 
   instr(C2S) {  // A = cidr(B).toString()
-    const Cidr& cidr = toCidr(npop());
+    const Cidr& cidr = toCidr(pop());
     pushString(newString(cidr.str()));
     next;
   }
 
   instr(R2S) {  // A = regex(B).toString()
-    const RegExp& re = toRegExp(npop());
+    const RegExp& re = toRegExp(pop());
     pushString(newString(re.pattern()));
     next;
   }

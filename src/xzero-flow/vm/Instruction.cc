@@ -23,98 +23,81 @@ InstructionSig operandSignature(Opcode opc) {
       // control
       {Opcode::EXIT, InstructionSig::I},
       {Opcode::JMP, InstructionSig::I},
-      {Opcode::JN, InstructionSig::RI},
-      {Opcode::JZ, InstructionSig::RI},
-      // copy
-      {Opcode::MOV, InstructionSig::RR},
+      {Opcode::JN, InstructionSig::I},
+      {Opcode::JZ, InstructionSig::I},
       // array
       {Opcode::ITCONST, InstructionSig::RI},
       {Opcode::STCONST, InstructionSig::RI},
       {Opcode::PTCONST, InstructionSig::RI},
       {Opcode::CTCONST, InstructionSig::RI},
       // numerical
-      {Opcode::IMOV, InstructionSig::RI},
-      {Opcode::NCONST, InstructionSig::RI},
-      {Opcode::NNEG, InstructionSig::RR},
-      {Opcode::NNOT, InstructionSig::RR},
-      {Opcode::NADD, InstructionSig::RRR},
-      {Opcode::NSUB, InstructionSig::RRR},
-      {Opcode::NMUL, InstructionSig::RRR},
-      {Opcode::NDIV, InstructionSig::RRR},
-      {Opcode::NREM, InstructionSig::RRR},
-      {Opcode::NSHL, InstructionSig::RRR},
-      {Opcode::NSHR, InstructionSig::RRR},
-      {Opcode::NPOW, InstructionSig::RRR},
-      {Opcode::NAND, InstructionSig::RRR},
-      {Opcode::NOR, InstructionSig::RRR},
-      {Opcode::NXOR, InstructionSig::RRR},
-      {Opcode::NCMPZ, InstructionSig::RR},
-      {Opcode::NCMPEQ, InstructionSig::RRR},
-      {Opcode::NCMPNE, InstructionSig::RRR},
-      {Opcode::NCMPLE, InstructionSig::RRR},
-      {Opcode::NCMPGE, InstructionSig::RRR},
-      {Opcode::NCMPLT, InstructionSig::RRR},
-      {Opcode::NCMPGT, InstructionSig::RRR},
-      // numerical (reg, imm)
-      {Opcode::NIADD, InstructionSig::RRI},
-      {Opcode::NISUB, InstructionSig::RRI},
-      {Opcode::NIMUL, InstructionSig::RRI},
-      {Opcode::NIDIV, InstructionSig::RRI},
-      {Opcode::NIREM, InstructionSig::RRI},
-      {Opcode::NISHL, InstructionSig::RRI},
-      {Opcode::NISHR, InstructionSig::RRI},
-      {Opcode::NIPOW, InstructionSig::RRI},
-      {Opcode::NIAND, InstructionSig::RRI},
-      {Opcode::NIOR, InstructionSig::RRI},
-      {Opcode::NIXOR, InstructionSig::RRI},
-      {Opcode::NICMPEQ, InstructionSig::RRI},
-      {Opcode::NICMPNE, InstructionSig::RRI},
-      {Opcode::NICMPLE, InstructionSig::RRI},
-      {Opcode::NICMPGE, InstructionSig::RRI},
-      {Opcode::NICMPLT, InstructionSig::RRI},
-      {Opcode::NICMPGT, InstructionSig::RRI},
+      {Opcode::IPUSH, InstructionSig::I},
+      {Opcode::NPUSH, InstructionSig::I},
+      {Opcode::ISTORE, InstructionSig::SS},
+      {Opcode::NSTORE, InstructionSig::SS},
+      {Opcode::NNEG, InstructionSig::None},
+      {Opcode::NNOT, InstructionSig::None},
+      {Opcode::NADD, InstructionSig::None},
+      {Opcode::NSUB, InstructionSig::None},
+      {Opcode::NMUL, InstructionSig::None},
+      {Opcode::NDIV, InstructionSig::None},
+      {Opcode::NREM, InstructionSig::None},
+      {Opcode::NSHL, InstructionSig::None},
+      {Opcode::NSHR, InstructionSig::None},
+      {Opcode::NPOW, InstructionSig::None},
+      {Opcode::NAND, InstructionSig::None},
+      {Opcode::NOR, InstructionSig::None},
+      {Opcode::NXOR, InstructionSig::None},
+      {Opcode::NCMPZ, InstructionSig::None,
+      {Opcode::NCMPEQ, InstructionSig::None},
+      {Opcode::NCMPNE, InstructionSig::None},
+      {Opcode::NCMPLE, InstructionSig::None},
+      {Opcode::NCMPGE, InstructionSig::None},
+      {Opcode::NCMPLT, InstructionSig::None},
+      {Opcode::NCMPGT, InstructionSig::None},
       // boolean
-      {Opcode::BNOT, InstructionSig::RR},
-      {Opcode::BAND, InstructionSig::RRR},
-      {Opcode::BOR, InstructionSig::RRR},
-      {Opcode::BXOR, InstructionSig::RRR},
+      {Opcode::BNOT, InstructionSig::None,
+      {Opcode::BAND, InstructionSig::None},
+      {Opcode::BOR, InstructionSig::None},
+      {Opcode::BXOR, InstructionSig::None},
       // string
-      {Opcode::SCONST, InstructionSig::RI},
-      {Opcode::SADD, InstructionSig::RRR},
-      {Opcode::SSUBSTR, InstructionSig::RRR},
-      {Opcode::SCMPEQ, InstructionSig::RRR},
-      {Opcode::SCMPNE, InstructionSig::RRR},
-      {Opcode::SCMPLE, InstructionSig::RRR},
-      {Opcode::SCMPGE, InstructionSig::RRR},
-      {Opcode::SCMPLT, InstructionSig::RRR},
-      {Opcode::SCMPGT, InstructionSig::RRR},
-      {Opcode::SCMPBEG, InstructionSig::RRR},
-      {Opcode::SCMPEND, InstructionSig::RRR},
-      {Opcode::SCONTAINS, InstructionSig::RRR},
-      {Opcode::SLEN, InstructionSig::RR},
-      {Opcode::SISEMPTY, InstructionSig::RR},
-      {Opcode::SMATCHEQ, InstructionSig::RI},
-      {Opcode::SMATCHBEG, InstructionSig::RI},
-      {Opcode::SMATCHEND, InstructionSig::RI},
-      {Opcode::SMATCHR, InstructionSig::RI},
+      {Opcode::SPUSH, InstructionSig::I},
+      {Opcode::SADD, InstructionSig::None},
+      {Opcode::SSUBSTR, InstructionSig::II},
+      {Opcode::SCMPEQ, InstructionSig::None},
+      {Opcode::SCMPNE, InstructionSig::None},
+      {Opcode::SCMPLE, InstructionSig::None},
+      {Opcode::SCMPGE, InstructionSig::None},
+      {Opcode::SCMPLT, InstructionSig::None},
+      {Opcode::SCMPGT, InstructionSig::None},
+      {Opcode::SCMPBEG, InstructionSig::None},
+      {Opcode::SCMPEND, InstructionSig::None},
+      {Opcode::SCONTAINS, InstructionSig::None},
+      {Opcode::SLEN, InstructionSig::None},
+      {Opcode::SISEMPTY, InstructionSig::None},
+      {Opcode::SMATCHEQ, InstructionSig::None},
+      {Opcode::SMATCHBEG, InstructionSig::None},
+      {Opcode::SMATCHEND, InstructionSig::None},
+      {Opcode::SMATCHR, InstructionSig::None},
       // ipaddr
-      {Opcode::PCONST, InstructionSig::RI},
-      {Opcode::PCMPEQ, InstructionSig::RRR},
-      {Opcode::PCMPNE, InstructionSig::RRR},
-      {Opcode::PINCIDR, InstructionSig::RRR},
+      {Opcode::PPUSH, InstructionSig::I},
+      {Opcode::PCMPEQ, InstructionSig::None},
+      {Opcode::PCMPNE, InstructionSig::None},
+      {Opcode::PINCIDR, InstructionSig::None},
       // cidr
-      {Opcode::CCONST, InstructionSig::RI},
+      {Opcode::CPUSH, InstructionSig::I},
+      {Opcode::CSTORE, InstructionSig::SS},
       // regex
-      {Opcode::SREGMATCH, InstructionSig::RRR},
-      {Opcode::SREGGROUP, InstructionSig::RR},
+      {Opcode::SREGMATCH, InstructionSig::None},
+      {Opcode::SREGGROUP, InstructionSig::None},
       // conversion
-      {Opcode::I2S, InstructionSig::RR},
-      {Opcode::P2S, InstructionSig::RR},
-      {Opcode::C2S, InstructionSig::RR},
-      {Opcode::R2S, InstructionSig::RR},
-      {Opcode::S2I, InstructionSig::RR},
-      {Opcode::SURLENC, InstructionSig::RR},
-      {Opcode::SURLDEC, InstructionSig::RR},
+      {Opcode::I2S, InstructionSig::None},
+      {Opcode::P2S, InstructionSig::None},
+      {Opcode::C2S, InstructionSig::None},
+      {Opcode::R2S, InstructionSig::None},
+      {Opcode::S2I, InstructionSig::None},
+      {Opcode::SURLENC, InstructionSig::None},
+      {Opcode::SURLDEC, InstructionSig::None},
       // invokation
       {Opcode::CALL, InstructionSig::IIR},
       {Opcode::HANDLER, InstructionSig::IIR}, };
@@ -329,7 +312,7 @@ FlowType resultType(Opcode opc) {
   return map[static_cast<size_t>(opc)];
 }
 
-Buffer disassemble(Instruction pc, ImmOperand ip, const char* comment) {
+Buffer disassemble(Instruction pc, size_t ip, const char* comment) {
   Buffer line;
   Opcode opc = opcode(pc);
   Operand A = operandA(pc);
@@ -406,53 +389,6 @@ Buffer disassemble(const Instruction* program, size_t n) {
     result.push_back("\n");
   }
   return result;
-}
-
-/**
- * Retrieves the highest register as non-zero positive integer (1 to n), even
- * though.
- */
-size_t registerMax(Instruction instr) {
-  Operand result = 0;
-  switch (operandSignature(opcode(instr))) {
-    case InstructionSig::RRR:
-      result = std::max(result, (Operand)(1 + operandC(instr)));
-    case InstructionSig::RRI:
-    case InstructionSig::RR:
-      result = std::max(result, (Operand)(1 + operandB(instr)));
-    case InstructionSig::R:
-    case InstructionSig::RI:
-      result = std::max(result, (Operand)(1 + operandA(instr)));
-    case InstructionSig::I:
-    case InstructionSig::None:
-      return static_cast<size_t>(result);
-    case InstructionSig::IRR:
-      result = std::max(result, (Operand)(1 + operandB(instr)));
-    case InstructionSig::IIR:
-      result = std::max(result, (Operand)(1 + operandC(instr)));
-      return static_cast<size_t>(result);
-    case InstructionSig::RIR:
-      result = std::max(result, (Operand)(1 + operandA(instr)));
-      result = std::max(result, (Operand)(1 + operandC(instr)));
-      return result;
-    case InstructionSig::RII:
-      return std::max(result, (Operand)(1 + operandA(instr)));
-  }
-  assert(!"FIXME");
-  return result;
-}
-
-size_t computeRegisterCount(const Instruction* code, size_t size) {
-  auto* ip = code;
-  auto* e = code + size;
-  size_t count = 0;
-
-  while (ip != e) {
-    count = std::max(count, registerMax(*ip));
-    ++ip;
-  }
-
-  return count;
 }
 
 }  // namespace vm
