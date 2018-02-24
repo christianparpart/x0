@@ -14,31 +14,88 @@
 
 namespace xzero::flow::vm {
 
-enum Opcode {
+enum class StackSig {
+//SIG          OUTPUT   INPUT
+  V_V,      // void     void
+  V_N,      // void     num, num
+  V_S,      // void     str
+  V_P,      // void     ip
+  V_C,      // void     cidr
+  V_X,      // void     variable number of values
+  X_X,      // value?   variable number of values
+
+  N_V,      // num      void
+  N_N,      // num      num
+  N_NN,     // num      num, num
+  N_S,      // num      str
+
+  B_N,      // bool     num
+  B_NN,     // bool     num, num
+  B_B,      // bool     bool
+  B_BB,     // bool     bool, bool
+  B_S,      // bool     str
+  B_PP,     // bool     ip, ip
+  B_PC,     // bool     ip, cidr
+  B_SR,     // bool     str, regex
+  B_SS,     // bool     str, str
+
+  S_V,      // str      void
+  S_N,      // str      num
+  S_P,      // str      ip
+  S_C,      // str      cidr
+  S_R,      // str      regex
+  S_S,      // str      str
+  S_SS,     // str      str, str
+  S_SNN,    // str      str, num, num
+
+  P_V,      // ip       void
+  C_V,      // cidr     void
+};
+
+enum class OperandSig {
+  V,        // no operands
+
+  I,        // imm16 value        imm
+
+  N,        // const number       numberConstants[imm]
+  S,        // const string       stringConstants[imm]
+  P,        // const IP           ipaddrConstants[imm]
+  C,        // const Cidr         cidrConstants[imm]
+  R,        // const RegExp       regexpConstants[imm]
+
+  n,        // stack num          STACK[imm] AS NUMBER
+  s,        // stack string       STACK[imm] AS STRING
+  p,        // stack IP           STACK[imm] AS IP
+  c,        // stack Cidr         STACK[imm] AS CIDR
+};
+
+enum Opcode : uint16_t {
   // misc
-  NOP = 0,  // NOP                 ; no operation
+  NOP = 1,  // NOP                 ; no operation
+
+  // stack manip
+  DISCARD,  // DISCARD imm        ; pops A items from the stack
 
   // control
   EXIT,     // EXIT imm           ; exit program
-  JMP,      // JMP imm            ; unconditional jump
-  JN,       // JN imm             ; conditional jump (A != 0)
-  JZ,       // JZ imm             ; conditional jump (A == 0)
-
-  // copy
-  MOV       // MOV imm            ; stack[op1] = pop()
-  STORE     // STORE imm, imm     ; stack[op1] = stack[op2]
+  JMP,      // JMP imm            ; unconditional jump to A
+  JN,       // JN imm             ; conditional jump to A if (pop() != 0)
+  JZ,       // JZ imm             ; conditional jump to A if (pop() == 0)
 
   // const arrays
-  ITCONST,  // push intArray[op1]
-  STCONST,  // push stringArray[op1]
-  PTCONST,  // push ipaddrArray[op1]
-  CTCONST,  // push cidrArray[op1]
+  ITSTORE,  // ITSTORE stack[imm], intArray[imm]
+  STSTORE,  // STSTORE stack[imm], stringArray[imm]
+  PTSTORE,  // PTSTORE stack[imm], ipaddrArray[imm]
+  CTSTORE,  // CTSTORE stack[imm], cidrArray[imm]
+
+  PUSH,     // PUSH imm, imm      ; stack[++op1] = stack[op2]
+  STORE,    // STORE imm, imm     ; stack[op1] = stack[op2]
 
   // numerical
-  IPUSH,    // IPUSH imm          ; stack[++sp] = op1
-  NPUSH,    // NPUSH imm          ; stack[++sp] = numberConstants[op1]
-  ISTORE,   // ISTORE imm, imm    ; stack[op1] = op2
-  NSTORE,   // NSTORE imm, imm    ; stack[op1] = numberConstants[op2]
+  IPUSH,    // IPUSH imm
+  NPUSH,    // NPUSH numberConstants[imm]
+  ISTORE,   // ISTORE stack[imm], imm
+  NSTORE,   // NSTORE stack[imm] # from numberConstants[stack[SP--]]
   NNEG,     //                    ; stack[SP] = -stack[SP]
   NNOT,     //                    ; stack[SP] = ~stack[SP]
   NADD,     //                    ; npush(npop() + npop())
@@ -67,8 +124,9 @@ enum Opcode {
   BXOR,  // A = B xor C
 
   // string
-  SCONST,     // A = stringConstants[B]
-  SADD,       // A = B + C
+  SPUSH,      // SPUSH stringConstants[imm]
+  SSTORE,     // SSTORE stack[imm] # from stringConstants[stack[SP--]]
+  SADD,       // b = pop(); a = pop(); push(a + b);
   SADDMULTI,  // A = concat(B /*rbase*/, C /*count*/)
   SSUBSTR,    // A = substr(B, C /*offset*/, C+1 /*count*/)
   SCMPEQ,     // A = B == C
@@ -88,68 +146,74 @@ enum Opcode {
   SMATCHR,    // $pc = MatchRegEx[A].evaluate(B);
 
   // IP address
-  PCONST,   // A = ipconst[B]
-  PCMPEQ,   // A = ip(B) == ip(C)
-  PCMPNE,   // A = ip(B) != ip(C)
-  PINCIDR,  // A = cidr(C).contains(ip(B))
+  PPUSH,     // PPUSH ipaddrConstants[imm]
+  PSTORE,    // PSTORE stack[imm] # from ipaddrConstants[stack[SP--]]
+  PCMPEQ,    // A = ip(B) == ip(C)
+  PCMPNE,    // A = ip(B) != ip(C)
+  PINCIDR,   // A = cidr(C).contains(ip(B))
 
   // CIDR
-  CCONST,  // A = cidr(C)
+  CPUSH,    // CPUSH  cidrConstants[imm]
+  CSTORE,   // CSTORE stack[imm] # from cidrConstants[stack[SP--]]
 
   // regex
   SREGMATCH,  // A = B =~ C           /* regex match against regexPool[C] */
   SREGGROUP,  // A = regex.match(B)   /* regex match result */
 
   // conversion
-  I2S,      // A = itoa(B)
-  P2S,      // A = ip(B).toString();
-  C2S,      // A = cidr(B).toString();
-  R2S,      // A = regex(B).toString();
-  S2I,      // A = atoi(B)
-  SURLENC,  // A = urlencode(B)
-  SURLDEC,  // A = urldecode(B)
+  I2S,      // push(itoa(pop()))
+  P2S,      // push(ip(pop()).toString())
+  C2S,      // push(cidr(pop()).toString()
+  R2S,      // push(regex(pop()).toString()
+  S2I,      // push(atoi(pop()))
+  SURLENC,  // push(urlencode(pop())
+  SURLDEC,  // push(urldecode(pop())
 
   // invokation
   // CALL A = id, B = argc, C = rbase for argv
   CALL,     // [C+0] = functions[A] ([C+1 ... C+B])
   HANDLER,  // handlers[A] ([C+1 ... C+B]); if ([C+0] == true) EXIT 1
+
+  _COUNT,
 };
 
 enum class InstructionSig {
-  None = 0,  //                   ()
-  R,         // reg               (A)
-  RR,        // reg, reg          (AB)
-  RRR,       // reg, reg, reg     (ABC)
-  RI,        // reg, imm16        (AB)
-  RRI,       // reg, reg, imm16   (ABC)
-  RII,       // reg, imm16, imm16 (ABC)
-  RIR,       // reg, imm16, reg   (ABC)
-  IRR,       // imm16, reg, reg   (ABC)
-  IIR,       // imm16, imm16, reg (ABC)
-  I,         // imm16             (A)
+  None = 0,   //                      ()
+  I,          // imm16                (A)
+  II,         // imm16, imm16         (AB)
+  III,        // imm16, imm16, imm16  (ABC)
+  S,          // stack                (A)
+  SS,         // stack, stack         (AB)
+  SSS,        // stack, stack, stack  (ABC)
+  SI,         // stack, imm16         (AB)
+  SSI,        // stack, stack, imm16  (ABC)
+  SII,        // stack, imm16, imm16  (ABC)
 };
 
 typedef uint64_t Instruction;
 typedef uint16_t Operand;
-typedef uint16_t ImmOperand;
 
 // --------------------------------------------------------------------------
 // encoder
 
+/** Creates an instruction with no operands. */
 constexpr Instruction makeInstruction(Opcode opc) {
   return (Instruction) opc;
 }
 
+/** Creates an instruction with one operand. */
 constexpr Instruction makeInstruction(Opcode opc, Operand op1) {
   return (opc | (op1 << 16));
 }
 
+/** Creates an instruction with two operands. */
 constexpr Instruction makeInstruction(Opcode opc, Operand op1, Operand op2) {
   return (opc
        | (op1 << 16)
        | (Instruction(op2) << 32));
 }
 
+/** Creates an instruction with three operands. */
 constexpr Instruction makeInstruction(Opcode opc, Operand op1, Operand op2,
                                       Operand op3) {
   return (opc
@@ -161,27 +225,48 @@ constexpr Instruction makeInstruction(Opcode opc, Operand op1, Operand op2,
 // --------------------------------------------------------------------------
 // decoder
 
-Buffer disassemble(Instruction pc, ImmOperand ip,
-                   const char* comment = nullptr);
+/**
+ * Disassembles the @p program with @p n instructions.
+ *
+ * @param program pointer to the first instruction to disassemble
+ * @param n       number of instructions to disassemble
+ *
+ * @returns       disassembled program in text form.
+ */
 Buffer disassemble(const Instruction* program, size_t n);
 
+/**
+ * Disassembles a single instruction.
+ *
+ * @param pc      Instruction to disassemble.
+ * @param ip      The instruction pointer at which position the instruction is
+ *                located within the program.
+ * @param comment An optional comment to append to the end of the disassembly.
+ */
+Buffer disassemble(Instruction pc, size_t ip, const char* comment = nullptr);
+
+/** decodes the opcode from the instruction. */
 constexpr Opcode opcode(Instruction instr) {
   return static_cast<Opcode>(instr & 0xFF);
 }
+
+/** Decodes the first operand from the instruction. */
 constexpr Operand operandA(Instruction instr) {
   return static_cast<Operand>((instr >> 16) & 0xFFFF);
 }
+
+/** Decodes the second operand from the instruction. */
 constexpr Operand operandB(Instruction instr) {
   return static_cast<Operand>((instr >> 32) & 0xFFFF);
 }
+
+/** Decodes the third operand from the instruction. */
 constexpr Operand operandC(Instruction instr) {
   return static_cast<Operand>((instr >> 48) & 0xFFFF);
 }
 
 InstructionSig operandSignature(Opcode opc);
 const char* mnemonic(Opcode opc);
-size_t computeRegisterCount(const Instruction* code, size_t size);
-size_t registerMax(Instruction instr);
 FlowType resultType(Opcode opc);
 
 } // namespace xzero::flow::vm

@@ -104,20 +104,23 @@ class IRGenerator::Scope {
  private:
   std::unordered_map<Symbol*, Value*> scope_;
 
-  std::unordered_map<Symbol*, std::list<Value*>> versions_;
+  std::unordered_map<Symbol*, std::list<Value*>> versions_; // TODO: unused?
 
  public:
-  Scope() {}
-  ~Scope() {}
-
-  void clear() { scope_.clear(); }
-
-  Value* lookup(Symbol* symbol) const {
-    auto i = scope_.find(symbol);
-    return i != scope_.end() ? i->second : nullptr;
+  void clear() {
+    scope_.clear();
   }
 
-  void update(Symbol* symbol, Value* value) { scope_[symbol] = value; }
+  Value* lookup(Symbol* symbol) const {
+    if (auto i = scope_.find(symbol); i != scope_.end())
+      return i->second;
+
+    return nullptr;
+  }
+
+  void update(Symbol* symbol, Value* value) {
+    scope_[symbol] = value;
+  }
 
   void remove(Symbol* symbol) {
     auto i = scope_.find(symbol);

@@ -93,7 +93,8 @@ std::unique_ptr<IRProgram> IRGenerator::generate(
 std::unique_ptr<IRProgram> IRGenerator::generate(Unit* unit) {
   codegen(unit);
 
-  if (errorCount_ > 0) return nullptr;
+  if (errorCount_ > 0)
+    return nullptr;
 
   return std::unique_ptr<IRProgram>(program());
 }
@@ -128,17 +129,29 @@ void IRGenerator::accept(Unit& unit) {
   }
 }
 
+// # i = 2 + 3 * 4
+// IPUSH 2
+// IPUSH 3
+// IPUSH 4
+// NMUL
+// NADD
+//
+// # printnum i
+// PUSH STACK[0]
+// CALL @printnum
+//
+// # i = i + 2
+// PUSH STACK[0]
+// PUSH 2
+// NADD
+// NPOP STACK[0]
+
 void IRGenerator::accept(Variable& variable) {
   FNTRACE();
 
   Value* initializer = codegen(variable.initializer());
-  if (!initializer) return;
-
-  AllocaInstr* var = createAlloca(initializer->type(), get(1), variable.name());
-  scope().update(&variable, var);
-
-  createStore(var, initializer);
-  result_ = var;
+  scope().update(&variable, initializer);
+  result_ = initializer;
 }
 
 void IRGenerator::accept(Handler& handlerSym) {
@@ -148,7 +161,9 @@ void IRGenerator::accept(Handler& handlerSym) {
 
   if (!exports_.empty()) {
     auto i = std::find(exports_.begin(), exports_.end(), handlerSym.name());
-    if (i == exports_.end()) return;
+    if (i == exports_.end()) {
+      return;
+    }
   }
 
   setHandler(getHandler(handlerSym.name()));

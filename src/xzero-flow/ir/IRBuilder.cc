@@ -128,7 +128,8 @@ AllocaInstr* IRBuilder::createAlloca(FlowType ty, Value* arraySize,
  * Loads given value
  */
 Value* IRBuilder::createLoad(Value* value, const std::string& name) {
-  if (dynamic_cast<Constant*>(value)) return value;
+  if (dynamic_cast<Constant*>(value))
+    return value;
 
   // if (dynamic_cast<Variable*>(value))
   return insert(new LoadInstr(value, makeName(name)));

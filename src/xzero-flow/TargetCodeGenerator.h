@@ -11,7 +11,6 @@
 #include <xzero-flow/FlowType.h>
 #include <xzero-flow/ir/InstructionVisitor.h>
 #include <xzero-flow/vm/ConstantPool.h>
-#include <xzero-flow/vm/Match.h>
 #include <xzero/net/IPAddress.h>
 #include <xzero/net/Cidr.h>
 
@@ -40,6 +39,8 @@ namespace xzero::flow {
 //! \addtogroup Flow
 //@{
 
+using StackPointer = size_t;
+
 class TargetCodeGenerator : public InstructionVisitor {
  public:
   TargetCodeGenerator();
@@ -48,6 +49,11 @@ class TargetCodeGenerator : public InstructionVisitor {
   std::shared_ptr<vm::Program> generate(IRProgram* program);
 
  protected:
+  using Opcode = vm::Opcode;
+  using Operand = vm::Operand;
+  using Instruction = vm::Instruction;
+  using ConstantPool = vm::ConstantPool;
+
   void generate(IRHandler* handler);
   size_t handlerRef(IRHandler* handler);
 
@@ -55,18 +61,31 @@ class TargetCodeGenerator : public InstructionVisitor {
   size_t makeNativeHandler(IRBuiltinHandler* builtin);
   size_t makeNativeFunction(IRBuiltinFunction* builtin);
 
-  size_t emit(vm::Opcode opc) { return emit(vm::makeInstruction(opc)); }
-  size_t emit(vm::Opcode opc, vm::Operand op1) {
+  /**
+   * Ensures stack value at @p sp is (also) on top of the stack.
+   *
+   * May emit a PUSH instruction if stack[sp] is not on top of the stack.
+   */
+  void emitPushIfNotTop(StackPointer sp);
+
+  /**
+   * Ensures @p value is available on top of the stack.
+   *
+   * May emit a PUSH instruction if stack[sp] is not on top of the stack.
+   */
+  void emitPushIfNotTop(Value* value);
+
+  size_t emit(Opcode opc) { return emit(vm::makeInstruction(opc)); }
+  size_t emit(Opcode opc, Operand op1) {
     return emit(vm::makeInstruction(opc, op1));
   }
-  size_t emit(vm::Opcode opc, vm::Operand op1, vm::Operand op2) {
+  size_t emit(Opcode opc, Operand op1, Operand op2) {
     return emit(vm::makeInstruction(opc, op1, op2));
   }
-  size_t emit(vm::Opcode opc, vm::Operand op1, vm::Operand op2,
-              vm::Operand op3) {
+  size_t emit(Opcode opc, Operand op1, Operand op2, Operand op3) {
     return emit(vm::makeInstruction(opc, op1, op2, op3));
   }
-  size_t emit(vm::Instruction instr);
+  size_t emit(Instruction instr);
 
   /**
    * Emits conditional jump instruction.
@@ -79,7 +98,7 @@ class TargetCodeGenerator : public InstructionVisitor {
    * instruction pointer and passed operands for later back-patching once all
    * basic block addresses have been computed.
    */
-  size_t emit(vm::Opcode opcode, Register cond, BasicBlock* bb);
+  size_t emit(Opcode opcode, Register cond, BasicBlock* bb);
 
   /**
    * Emits unconditional jump instruction.
@@ -91,30 +110,31 @@ class TargetCodeGenerator : public InstructionVisitor {
    * instruction pointer and passed operands for later back-patching once all
    * basic block addresses have been computed.
    */
-  size_t emit(vm::Opcode opcode, BasicBlock* bb);
+  size_t emit(Opcode opcode, BasicBlock* bb);
 
-  size_t emitBinaryAssoc(Instr& instr, vm::Opcode opcode);
-  size_t emitBinary(Instr& instr, vm::Opcode opcode);
-  size_t emitUnary(Instr& instr, vm::Opcode opcode);
+  size_t emitBinaryAssoc(Instr& instr, Opcode opcode);
+  size_t emitBinary(Instr& instr, Opcode opcode);
+  size_t emitUnary(Instr& instr, Opcode opcode);
 
   /**
    * Emits call args.
    *
-   * @returns base register for arguments to be passed to the CALL or HANDLER
-   *          instruction.
+   * @returns number of args pushed.
    */
-  Register emitCallArgs(Instr& instr);
-
-  using StackPointer = size_t;
+  size_t emitCallArgs(Instr& instr);
 
   /**
-   * Translates given @p value into a stack pointer (absolute stack offset).
+   * Emits @p value and returns its stack position.
    *
    * If the value is not available on the stack yet, it'll be allocated a slot.
    */
-  StackPointer getStackPointer(Value* value);
+  StackPointer emit(Value* value);
 
-  vm::Operand getConstantInt(Value* value);
+  Operand getConstantInt(Value* value);
+
+  /**
+   * Retrieves the instruction pointer of the next instruction to be emitted.
+   */
   size_t getInstructionPointer() const { return code_.size(); }
 
   size_t allocate(const Value* alias);
@@ -191,13 +211,13 @@ class TargetCodeGenerator : public InstructionVisitor {
  private:
   struct ConditionalJump {
     size_t pc;
-    vm::Opcode opcode;
+    Opcode opcode;
     Register condition;
   };
 
   struct UnconditionalJump {
     size_t pc;
-    vm::Opcode opcode;
+    Opcode opcode;
   };
 
   //! list of raised errors during code generation.
@@ -207,17 +227,16 @@ class TargetCodeGenerator : public InstructionVisitor {
   std::unordered_map<BasicBlock*, std::list<UnconditionalJump>> unconditionalJumps_;
   std::list<std::pair<MatchInstr*, size_t /*matchId*/>> matchHints_;
 
-  size_t handlerId_;                                //!< current handler's ID
-  std::vector<vm::Instruction> code_;               //!< current handler's code
+  size_t handlerId_;                    //!< current handler's ID
+  std::vector<Instruction> code_;       //!< current handler's code
 
   /** value-to-stack-offset assignment-map */
-  std::unordered_map<Value*, size_t> variables_;
+  std::unordered_map<const Value*, StackPointer> variables_;
 
   // target program output
-  vm::ConstantPool cp_;
+  ConstantPool cp_;
 };
 
 //!@}
 
-}  // namespace flow
-}  // namespace xzero
+}  // namespace xzero::flow

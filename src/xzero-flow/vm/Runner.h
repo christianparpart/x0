@@ -64,10 +64,10 @@ class Runner : public CustomData {
   std::list<std::string> stringGarbage_;
 
  private:
-  void npush(FlowNumber value);
-  FlowNumber npop();
+  void push(Value value);
+  Value pop();
 
-  void pushString(const FlowString* value) { npush((Value) value); }
+  void pushString(const FlowString* value) { push((Value) value); }
 
  public:
   explicit Runner(std::shared_ptr<Handler> handler, size_t initialStackCapacity = 64);
