@@ -88,12 +88,12 @@ enum Opcode : uint16_t {
   PTSTORE,  // PTSTORE stack[imm], ipaddrArray[imm]
   CTSTORE,  // CTSTORE stack[imm], cidrArray[imm]
 
-  PUSH,     // PUSH imm, imm      ; stack[++op1] = stack[op2]
+  LOAD,     // LOAD imm, imm      ; stack[++op1] = stack[op2]
   STORE,    // STORE imm, imm     ; stack[op1] = stack[op2]
 
   // numerical
-  IPUSH,    // IPUSH imm
-  NPUSH,    // NPUSH numberConstants[imm]
+  ILOAD,    // ILOAD imm
+  NLOAD,    // NLOAD numberConstants[imm]
   ISTORE,   // ISTORE stack[imm], imm
   NSTORE,   // NSTORE stack[imm] # from numberConstants[stack[SP--]]
   NNEG,     //                    ; stack[SP] = -stack[SP]
@@ -124,7 +124,7 @@ enum Opcode : uint16_t {
   BXOR,  // A = B xor C
 
   // string
-  SPUSH,      // SPUSH stringConstants[imm]
+  SLOAD,      // SLOAD stringConstants[imm]
   SSTORE,     // SSTORE stack[imm] # from stringConstants[stack[SP--]]
   SADD,       // b = pop(); a = pop(); push(a + b);
   SADDMULTI,  // A = concat(B /*rbase*/, C /*count*/)
@@ -146,14 +146,14 @@ enum Opcode : uint16_t {
   SMATCHR,    // $pc = MatchRegEx[A].evaluate(B);
 
   // IP address
-  PPUSH,     // PPUSH ipaddrConstants[imm]
+  PLOAD,     // PLOAD ipaddrConstants[imm]
   PSTORE,    // PSTORE stack[imm] # from ipaddrConstants[stack[SP--]]
   PCMPEQ,    // A = ip(B) == ip(C)
   PCMPNE,    // A = ip(B) != ip(C)
   PINCIDR,   // A = cidr(C).contains(ip(B))
 
   // CIDR
-  CPUSH,    // CPUSH  cidrConstants[imm]
+  CLOAD,    // CLOAD  cidrConstants[imm]
   CSTORE,   // CSTORE stack[imm] # from cidrConstants[stack[SP--]]
 
   // regex
@@ -161,7 +161,7 @@ enum Opcode : uint16_t {
   SREGGROUP,  // A = regex.match(B)   /* regex match result */
 
   // conversion
-  I2S,      // push(itoa(pop()))
+  N2S,      // push(itoa(pop()))
   P2S,      // push(ip(pop()).toString())
   C2S,      // push(cidr(pop()).toString()
   R2S,      // push(regex(pop()).toString()

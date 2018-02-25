@@ -62,18 +62,11 @@ class TargetCodeGenerator : public InstructionVisitor {
   size_t makeNativeFunction(IRBuiltinFunction* builtin);
 
   /**
-   * Ensures stack value at @p sp is (also) on top of the stack.
-   *
-   * May emit a PUSH instruction if stack[sp] is not on top of the stack.
-   */
-  void emitPushIfNotTop(StackPointer sp);
-
-  /**
    * Ensures @p value is available on top of the stack.
    *
-   * May emit a PUSH instruction if stack[sp] is not on top of the stack.
+   * May emit a LOAD instruction if stack[sp] is not on top of the stack.
    */
-  void emitPushIfNotTop(Value* value);
+  StackPointer emitLoad(Value* value);
 
   size_t emit(Opcode opc) { return emit(vm::makeInstruction(opc)); }
   size_t emit(Opcode opc, Operand op1) {
@@ -137,7 +130,9 @@ class TargetCodeGenerator : public InstructionVisitor {
    */
   size_t getInstructionPointer() const { return code_.size(); }
 
-  size_t allocate(const Value* alias);
+  StackPointer allocate(const Value* alias);
+  StackPointer findOnStack(const Value* value);
+  void discard(const Value* alias);
 
   void visit(NopInstr& instr) override;
 
@@ -230,8 +225,13 @@ class TargetCodeGenerator : public InstructionVisitor {
   size_t handlerId_;                    //!< current handler's ID
   std::vector<Instruction> code_;       //!< current handler's code
 
+  /** SP of current top value on the stack at the time of code generation. */
+  StackPointer sp_;
+
   /** value-to-stack-offset assignment-map */
   std::unordered_map<const Value*, StackPointer> variables_;
+
+  std::deque<Value*> stack_;
 
   // target program output
   ConstantPool cp_;

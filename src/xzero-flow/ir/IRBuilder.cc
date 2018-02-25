@@ -590,7 +590,7 @@ Value* IRBuilder::createB2S(Value* rhs, const std::string& name) {
   return insert(new CastInstr(FlowType::String, rhs, makeName(name)));
 }
 
-Value* IRBuilder::createI2S(Value* rhs, const std::string& name) {
+Value* IRBuilder::createN2S(Value* rhs, const std::string& name) {
   assert(rhs->type() == FlowType::Number);
 
   if (auto i = dynamic_cast<ConstantInt*>(rhs)) {

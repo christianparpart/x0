@@ -225,7 +225,7 @@ void IRGenerator::accept(UnaryExpr& expr) {
   static const std::unordered_map<
       int /*vm::Opcode*/,
       Value* (IRGenerator::*)(Value*, const std::string&)> ops =
-      {{vm::Opcode::I2S, &IRGenerator::createI2S},
+      {{vm::Opcode::N2S, &IRGenerator::createN2S},
        {vm::Opcode::P2S, &IRGenerator::createP2S},
        {vm::Opcode::C2S, &IRGenerator::createC2S},
        {vm::Opcode::R2S, &IRGenerator::createR2S},
