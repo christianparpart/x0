@@ -300,13 +300,13 @@ Opcode makeOperator(FlowToken target, Expr* source) {
         {{FlowToken::Not, Opcode::NCMPZ},
          {FlowToken::BitNot, Opcode::NNOT},
          {FlowToken::Minus, Opcode::NNEG},
-         {FlowToken::StringType, Opcode::I2S},
+         {FlowToken::StringType, Opcode::N2S},
          {FlowToken::BoolType, Opcode::NCMPZ},
          {FlowToken::NumberType, Opcode::NOP}, }},
        {FlowType::Boolean,
         {{FlowToken::Not, Opcode::BNOT},
          {FlowToken::BoolType, Opcode::NOP},
-         {FlowToken::StringType, Opcode::I2S},  // XXX or better print "true" | "false" ?
+         {FlowToken::StringType, Opcode::N2S},  // XXX or better print "true" | "false" ?
         }},
        {FlowType::String,
         {{FlowToken::Not, Opcode::SISEMPTY},

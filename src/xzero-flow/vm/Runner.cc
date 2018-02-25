@@ -39,6 +39,11 @@ namespace xzero::flow::vm {
 #define B operandB((Instruction) * pc)
 #define C operandC((Instruction) * pc)
 
+#define SP(i) stack_[stack_.size() - (i)]
+// #define X SP(0)
+// #define Y SP(-1)
+// #define Z SP(-2)
+
 #define toString(R)     (*(FlowString*)stack_[R])
 #define toStringPtr(R)  ((FlowString*)stack_[R])
 #define toIPAddress(R)  (*(IPAddress*)stack_[R])
@@ -199,7 +204,7 @@ bool Runner::loop() {
       label(SREGMATCH), label(SREGGROUP),
 
       // conversion
-      label(I2S),       label(P2S),       label(C2S),       label(R2S),
+      label(N2S),       label(P2S),       label(C2S),       label(R2S),
       label(S2I),       label(SURLENC),   label(SURLDEC),
 
       // invokation
@@ -622,8 +627,8 @@ bool Runner::loop() {
     next;
   }
 
-  instr(I2S) {  // A = itoa(B)
-    auto value = pop();
+  instr(N2S) {  // A = itoa(B)
+    FlowNumber value = pop();
     char buf[64];
     if (snprintf(buf, sizeof(buf), "%" PRIi64 "", (int64_t)value) > 0) {
       pushString(newString(buf));
