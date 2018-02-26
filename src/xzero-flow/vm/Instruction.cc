@@ -23,6 +23,9 @@ struct InstructionInfo {
   int stackChange;
   FlowType stackOutput;
 
+  InstructionInfo() = default;
+  InstructionInfo(const InstructionInfo&) = default;
+
   InstructionInfo(Opcode opc, const char* const m, OperandSig opsig,
                   int _stackChange, FlowType _stackOutput)
       : opcode(opc),
@@ -34,7 +37,8 @@ struct InstructionInfo {
 };
 
 #define IIDEF(opcode, operandSig, stackChange, stackOutput) \
-  { Opcode:: opcode, #opcode, OperandSig:: operandSig, stackChange, FlowType:: stackOutput }
+  [(size_t)(Opcode:: opcode)] = { Opcode:: opcode, #opcode, OperandSig:: operandSig, stackChange, FlowType:: stackOutput }
+  // { Opcode:: opcode, #opcode, OperandSig:: operandSig, stackChange, FlowType:: stackOutput }
 
 // OPCODE, operandSignature, stackChange
 static InstructionInfo instructionInfos[] = {
@@ -47,6 +51,15 @@ static InstructionInfo instructionInfos[] = {
   IIDEF(JMP,       I,  0, Void),
   IIDEF(JN,        V, -1, Void),
   IIDEF(JZ,        V, -1, Void),
+
+  // arrays
+  IIDEF(ITLOAD,    I,  1, IntArray),
+  IIDEF(STLOAD,    I,  1, StringArray),
+  IIDEF(PTLOAD,    I,  1, IPAddrArray),
+  IIDEF(CTLOAD,    I,  1, CidrArray),
+
+  IIDEF(LOAD,      I,  1, Void),
+  IIDEF(STORE,     I, -1, Void),
 
   // numeric
   IIDEF(ILOAD,     I,  1, Number),
@@ -62,7 +75,6 @@ static InstructionInfo instructionInfos[] = {
   IIDEF(NSHR,      V, -1, Number),
   IIDEF(NPOW,      V, -1, Number),
   IIDEF(NAND,      V, -1, Number),
-  IIDEF(NOR,       V, -1, Number),
   IIDEF(NOR,       V, -1, Number),
   IIDEF(NXOR,      V, -1, Number),
   IIDEF(NCMPZ,     V,  0, Boolean),
@@ -112,6 +124,7 @@ static InstructionInfo instructionInfos[] = {
   IIDEF(SREGMATCH, I,  0, Boolean),
   IIDEF(SREGGROUP, V,  0, String),
 
+  // cast
   IIDEF(N2S,       V,  0, String),
   IIDEF(P2S,       V,  0, String),
   IIDEF(C2S,       V,  0, String),

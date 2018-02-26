@@ -102,6 +102,9 @@ class CoreModule : public XzeroModule {
   void rand(XzeroContext* cx, Params& args);
   void randAB(XzeroContext* cx, Params& args);
 
+  // debug
+  void printi(XzeroContext* cx, Params& args);
+
   void file_exists(XzeroContext* cx, Params& args);
   void file_is_reg(XzeroContext* cx, Params& args);
   void file_is_dir(XzeroContext* cx, Params& args);
