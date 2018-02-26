@@ -19,7 +19,7 @@
 namespace xzero {
 namespace flow {
 
-#define FLOW_DEBUG_IR 1
+//#define FLOW_DEBUG_IR 1
 
 #if defined(FLOW_DEBUG_IR)
 // {{{ trace
@@ -151,8 +151,14 @@ void IRGenerator::accept(Variable& variable) {
   FNTRACE();
 
   Value* initializer = codegen(variable.initializer());
-  scope().update(&variable, initializer);
-  result_ = initializer;
+  assert(initializer != nullptr);
+
+  AllocaInstr* var = createAlloca(initializer->type(), get(1), variable.name());
+  scope().update(&variable, var);
+
+  createStore(var, initializer);
+
+  result_ = var;
 }
 
 void IRGenerator::accept(Handler& handlerSym) {

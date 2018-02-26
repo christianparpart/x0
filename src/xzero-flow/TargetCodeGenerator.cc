@@ -18,12 +18,63 @@
 #include <xzero-flow/ir/IRBuiltinHandler.h>
 #include <xzero-flow/ir/IRBuiltinFunction.h>
 #include <xzero-flow/FlowType.h>
+#include <xzero/logging.h>
 #include <unordered_map>
 #include <limits>
 #include <array>
+#include <cstdarg>
 
 namespace xzero::flow {
 
+#define FLOW_DEBUG_TCG 1
+#if defined(FLOW_DEBUG_TCG)
+// {{{ trace
+static size_t fni = 0;
+struct fntrace4 {
+  std::string msg_;
+
+  fntrace4(const char* msg) : msg_(msg) {
+    size_t i = 0;
+    char fmt[1024];
+
+    for (i = 0; i < 2 * fni;) {
+      fmt[i++] = ' ';
+      fmt[i++] = ' ';
+    }
+    fmt[i++] = '-';
+    fmt[i++] = '>';
+    fmt[i++] = ' ';
+    strcpy(fmt + i, msg_.c_str());
+
+    logDebug("TCG", fmt);
+    ++fni;
+  }
+
+  ~fntrace4() {
+    --fni;
+
+    size_t i = 0;
+    char fmt[1024];
+
+    for (i = 0; i < 2 * fni;) {
+      fmt[i++] = ' ';
+      fmt[i++] = ' ';
+    }
+    fmt[i++] = '<';
+    fmt[i++] = '-';
+    fmt[i++] = ' ';
+    strcpy(fmt + i, msg_.c_str());
+
+    logDebug("TCG", fmt);
+  }
+};
+// }}}
+#define FNTRACE() fntrace4 _(__PRETTY_FUNCTION__)
+#define TRACE(level, msg...) XZERO_DEBUG("TCG", (level), msg)
+#else
+#define FNTRACE()            do {} while (0)
+#define TRACE(level, msg...) do {} while (0)
+#endif
 using namespace vm;
 
 template <typename T, typename S>
@@ -172,19 +223,23 @@ void TargetCodeGenerator::discard(const Value* value) {
 
 // {{{ instruction code generation
 void TargetCodeGenerator::visit(NopInstr& instr) {
+  FNTRACE();
   emitInstr(Opcode::NOP);
 }
 
 void TargetCodeGenerator::visit(AllocaInstr& instr) {
-  // XXX don't allocate until actually used
+  FNTRACE();
 
   // TODO handle instr.arraySize()
   // emitInstr(Opcode::ALLOCA, getConstantInt(instr.arraySize()));
   // return allocate(instr);
+
+  variables_[&instr] = sp_++;
 }
 
 // variable = expression
 void TargetCodeGenerator::visit(StoreInstr& instr) {
+  FNTRACE();
   emitLoad(instr.expression());
 
   if (StackPointer di = getStackPointer(instr.variable()); di != size_t(-1)) {
@@ -195,6 +250,7 @@ void TargetCodeGenerator::visit(StoreInstr& instr) {
 }
 
 void TargetCodeGenerator::visit(LoadInstr& instr) {
+  FNTRACE();
   StackPointer sp = emitLoad(instr.variable());
   variables_[&instr] = sp;
 }
@@ -210,6 +266,7 @@ size_t TargetCodeGenerator::emitCallArgs(Instr& instr) {
 }
 
 void TargetCodeGenerator::visit(CallInstr& instr) {
+  FNTRACE();
   StackPointer bp = variables_.size() - 1;
   variables_[&instr] = bp;
 
@@ -218,6 +275,7 @@ void TargetCodeGenerator::visit(CallInstr& instr) {
 }
 
 void TargetCodeGenerator::visit(HandlerCallInstr& instr) {
+  FNTRACE();
   emitCallArgs(instr);
   emitInstr(Opcode::HANDLER, cp_.makeNativeHandler(instr.callee()));
 }
@@ -234,6 +292,9 @@ StackPointer TargetCodeGenerator::emitLoad(Value* value) {
     emitInstr(Opcode::LOAD, si);
     return sp;
   }
+
+  if (auto i = variables_.find(value); i != variables_.end())
+    return i->second;
 
   StackPointer sp = stack_.size();
   stack_.emplace_back(value);
@@ -309,15 +370,19 @@ StackPointer TargetCodeGenerator::emitLoad(Value* value) {
     return sp;
   }
 
+  printf("BUG: emitLoad() hit unknown type: %s\n", typeid(*value).name());
+
   assert(!"BUG: emitLoad() for unknown Value* type");
   abort();
 }
 
 void TargetCodeGenerator::visit(PhiNode& instr) {
+  FNTRACE();
   assert(!"Should never reach here, as PHI instruction nodes should have been replaced by target registers.");
 }
 
 void TargetCodeGenerator::visit(CondBrInstr& instr) {
+  FNTRACE();
   if (instr.parent()->isAfter(instr.trueBlock())) {
     emitLoad(instr.condition());
     emitCondJump(Opcode::JZ, instr.falseBlock());

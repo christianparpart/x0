@@ -225,6 +225,8 @@ CoreModule::CoreModule(XzeroDaemon* d)
   sharedFunction("rand", &CoreModule::randAB, FlowType::Number, FlowType::Number)
       .returnType(FlowType::Number);
 
+  sharedFunction("printi", &CoreModule::printi, FlowType::Number);
+
   // main: read-only attributes
   mainFunction("req.method", &CoreModule::req_method)
       .returnType(FlowType::String);
@@ -673,6 +675,11 @@ void CoreModule::randAB(XzeroContext* cx, Params& args) {
   FlowNumber y = a + (rng_.random64() % (1 + b - a));
 
   args.setResult(y);
+}
+
+void CoreModule::printi(XzeroContext* cx, Params& args) {
+  FlowNumber n = args.getInt(1);
+  printf("printi: %s\n", std::to_string(n).c_str());
 }
 
 void CoreModule::sleep(XzeroContext* cx, Params& args) {
