@@ -11,9 +11,7 @@
 #include <xzero/logging.h>
 #include <xzero/sysconfig.h>
 
-namespace xzero {
-namespace flow {
-namespace vm {
+namespace xzero::flow::vm {
 
 #define TRACE(msg...) logTrace("flow.vm.Handler", msg)
 
@@ -25,7 +23,7 @@ Handler::Handler(std::shared_ptr<Program> program,
                  const std::vector<Instruction>& code)
     : program_(program),
       name_(name),
-      registerCount_(computeRegisterCount(code.data(), code.size())),
+      stackSize_(computeStackSize(code.data(), code.size())),
       code_(code)
 #if defined(ENABLE_FLOW_DIRECT_THREADED_VM)
       ,
@@ -38,7 +36,7 @@ Handler::Handler(std::shared_ptr<Program> program,
 Handler::Handler(const Handler& v)
     : program_(v.program_),
       name_(v.name_),
-      registerCount_(v.registerCount_),
+      stackSize_(v.stackSize_),
       code_(v.code_)
 #if defined(ENABLE_FLOW_DIRECT_THREADED_VM)
       ,
@@ -51,7 +49,7 @@ Handler::Handler(const Handler& v)
 Handler::Handler(Handler&& v)
     : program_(std::move(v.program_)),
       name_(std::move(v.name_)),
-      registerCount_(std::move(v.registerCount_)),
+      stackSize_(std::move(v.stackSize_)),
       code_(std::move(v.code_))
 #if defined(ENABLE_FLOW_DIRECT_THREADED_VM)
       ,
@@ -67,12 +65,12 @@ Handler::~Handler() {
 
 void Handler::setCode(const std::vector<Instruction>& code) {
   code_ = code;
-  registerCount_ = computeRegisterCount(code_.data(), code_.size());
+  stackSize_ = computeStackSize(code_.data(), code_.size());
 }
 
 void Handler::setCode(std::vector<Instruction>&& code) {
   code_ = std::move(code);
-  registerCount_ = computeRegisterCount(code_.data(), code_.size());
+  stackSize_ = computeStackSize(code_.data(), code_.size());
 
 #if defined(ENABLE_FLOW_DIRECT_THREADED_VM)
   directThreadedCode_.clear();
@@ -80,8 +78,7 @@ void Handler::setCode(std::vector<Instruction>&& code) {
 }
 
 std::unique_ptr<Runner> Handler::createRunner() {
-  TRACE("Handler.createRunner: use_count=$0", shared_from_this().use_count());
-  return Runner::create(shared_from_this());
+  return std::unique_ptr<Runner>(new Runner(shared_from_this()));
 }
 
 bool Handler::run(void* userdata, void* userdata2) {
@@ -94,6 +91,4 @@ void Handler::disassemble() {
   printf("%s", vm::disassemble(code_.data(), code_.size()).c_str());
 }
 
-}  // namespace vm
-}  // namespace flow
-}  // namespace xzero
+}  // namespace xzero::flow::vm

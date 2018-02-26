@@ -310,7 +310,7 @@ Opcode makeOperator(FlowToken target, Expr* source) {
         }},
        {FlowType::String,
         {{FlowToken::Not, Opcode::SISEMPTY},
-         {FlowToken::NumberType, Opcode::S2I},
+         {FlowToken::NumberType, Opcode::S2N},
          {FlowToken::StringType, Opcode::NOP}, }},
        {FlowType::IPAddress, {{FlowToken::StringType, Opcode::P2S}, }},
        {FlowType::Cidr, {{FlowToken::StringType, Opcode::C2S}, }},

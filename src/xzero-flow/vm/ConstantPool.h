@@ -15,13 +15,17 @@
 #include <xzero/Buffer.h>
 #include <xzero/RegExp.h>
 
-namespace xzero {
-namespace flow {
-namespace vm {
+namespace xzero::flow {
+  class IRHandler;
+  class IRBuiltinFunction;
+  class IRBuiltinHandler;
+}
+
+namespace xzero::flow::vm {
 
 /**
  * Provides a pool of constant that can be built dynamically during code
- *generation and accessed effeciently at runtime.
+ * generation and accessed effeciently at runtime.
  *
  * @see Program
  */
@@ -51,9 +55,12 @@ class ConstantPool {
   MatchDef& getMatchDef(size_t id) { return matchDefs_[id]; }
 
   size_t makeNativeHandler(const std::string& sig);
+  size_t makeNativeHandler(const IRBuiltinHandler* handler);
   size_t makeNativeFunction(const std::string& sig);
+  size_t makeNativeFunction(const IRBuiltinFunction* function);
 
-  size_t makeHandler(const std::string& name);
+  size_t makeHandler(const std::string& handlerName);
+  size_t makeHandler(const IRHandler* handler);
 
   void setModules(
       const std::vector<std::pair<std::string, std::string>>& modules) {
@@ -131,6 +138,4 @@ class ConstantPool {
   std::vector<std::string> nativeFunctionSignatures_;
 };
 
-}  // namespace vm
-}  // namespace flow
-}  // namespace xzero
+}  // namespace xzero::flow::vm

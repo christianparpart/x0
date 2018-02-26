@@ -13,303 +13,155 @@
 #include <climits>
 #include <unordered_map>
 
-namespace xzero {
-namespace flow {
-namespace vm {
+namespace xzero::flow::vm {
 
-InstructionSig operandSignature(Opcode opc) {
-  static std::unordered_map<size_t, InstructionSig> map = {
-      {Opcode::NOP, InstructionSig::None},
-      // control
-      {Opcode::EXIT, InstructionSig::I},
-      {Opcode::JMP, InstructionSig::I},
-      {Opcode::JN, InstructionSig::I},
-      {Opcode::JZ, InstructionSig::I},
-      // array
-      {Opcode::ITCONST, InstructionSig::RI},
-      {Opcode::STCONST, InstructionSig::RI},
-      {Opcode::PTCONST, InstructionSig::RI},
-      {Opcode::CTCONST, InstructionSig::RI},
-      // numerical
-      {Opcode::IPUSH, InstructionSig::I},
-      {Opcode::NPUSH, InstructionSig::I},
-      {Opcode::ISTORE, InstructionSig::SS},
-      {Opcode::NSTORE, InstructionSig::SS},
-      {Opcode::NNEG, InstructionSig::None},
-      {Opcode::NNOT, InstructionSig::None},
-      {Opcode::NADD, InstructionSig::None},
-      {Opcode::NSUB, InstructionSig::None},
-      {Opcode::NMUL, InstructionSig::None},
-      {Opcode::NDIV, InstructionSig::None},
-      {Opcode::NREM, InstructionSig::None},
-      {Opcode::NSHL, InstructionSig::None},
-      {Opcode::NSHR, InstructionSig::None},
-      {Opcode::NPOW, InstructionSig::None},
-      {Opcode::NAND, InstructionSig::None},
-      {Opcode::NOR, InstructionSig::None},
-      {Opcode::NXOR, InstructionSig::None},
-      {Opcode::NCMPZ, InstructionSig::None,
-      {Opcode::NCMPEQ, InstructionSig::None},
-      {Opcode::NCMPNE, InstructionSig::None},
-      {Opcode::NCMPLE, InstructionSig::None},
-      {Opcode::NCMPGE, InstructionSig::None},
-      {Opcode::NCMPLT, InstructionSig::None},
-      {Opcode::NCMPGT, InstructionSig::None},
-      // boolean
-      {Opcode::BNOT, InstructionSig::None,
-      {Opcode::BAND, InstructionSig::None},
-      {Opcode::BOR, InstructionSig::None},
-      {Opcode::BXOR, InstructionSig::None},
-      // string
-      {Opcode::SPUSH, InstructionSig::I},
-      {Opcode::SADD, InstructionSig::None},
-      {Opcode::SSUBSTR, InstructionSig::II},
-      {Opcode::SCMPEQ, InstructionSig::None},
-      {Opcode::SCMPNE, InstructionSig::None},
-      {Opcode::SCMPLE, InstructionSig::None},
-      {Opcode::SCMPGE, InstructionSig::None},
-      {Opcode::SCMPLT, InstructionSig::None},
-      {Opcode::SCMPGT, InstructionSig::None},
-      {Opcode::SCMPBEG, InstructionSig::None},
-      {Opcode::SCMPEND, InstructionSig::None},
-      {Opcode::SCONTAINS, InstructionSig::None},
-      {Opcode::SLEN, InstructionSig::None},
-      {Opcode::SISEMPTY, InstructionSig::None},
-      {Opcode::SMATCHEQ, InstructionSig::None},
-      {Opcode::SMATCHBEG, InstructionSig::None},
-      {Opcode::SMATCHEND, InstructionSig::None},
-      {Opcode::SMATCHR, InstructionSig::None},
-      // ipaddr
-      {Opcode::PPUSH, InstructionSig::I},
-      {Opcode::PCMPEQ, InstructionSig::None},
-      {Opcode::PCMPNE, InstructionSig::None},
-      {Opcode::PINCIDR, InstructionSig::None},
-      // cidr
-      {Opcode::CPUSH, InstructionSig::I},
-      {Opcode::CSTORE, InstructionSig::SS},
-      // regex
-      {Opcode::SREGMATCH, InstructionSig::None},
-      {Opcode::SREGGROUP, InstructionSig::None},
-      // conversion
-      {Opcode::I2S, InstructionSig::None},
-      {Opcode::P2S, InstructionSig::None},
-      {Opcode::C2S, InstructionSig::None},
-      {Opcode::R2S, InstructionSig::None},
-      {Opcode::S2I, InstructionSig::None},
-      {Opcode::SURLENC, InstructionSig::None},
-      {Opcode::SURLDEC, InstructionSig::None},
-      // invokation
-      {Opcode::CALL, InstructionSig::IIR},
-      {Opcode::HANDLER, InstructionSig::IIR}, };
-  return map[static_cast<size_t>(opc)];
+// {{{ InstructionInfo
+struct InstructionInfo {
+  Opcode opcode;
+  const char* const mnemonic;
+  OperandSig operandSig;
+  int stackChange;
+  FlowType stackOutput;
+
+  InstructionInfo(Opcode opc, const char* const m, OperandSig opsig,
+                  int _stackChange, FlowType _stackOutput)
+      : opcode(opc),
+        mnemonic(m),
+        operandSig(opsig),
+        stackChange(_stackChange),
+        stackOutput(_stackOutput) {
+  }
+};
+
+#define IIDEF(opcode, operandSig, stackChange, stackOutput) \
+  { Opcode:: opcode, #opcode, OperandSig:: operandSig, stackChange, FlowType:: stackOutput }
+
+// OPCODE, operandSignature, stackChange
+static InstructionInfo instructionInfos[] = {
+  // misc
+  IIDEF(NOP,       V,  0, Void),
+  IIDEF(DISCARD,   V,  0, Void),
+
+  // control
+  IIDEF(EXIT,      I,  0, Void),
+  IIDEF(JMP,       I,  0, Void),
+  IIDEF(JN,        V, -1, Void),
+  IIDEF(JZ,        V, -1, Void),
+
+  // numeric
+  IIDEF(ILOAD,     I,  1, Number),
+  IIDEF(NLOAD,     I,  1, Number),
+  IIDEF(NNEG,      V,  0, Number),
+  IIDEF(NNOT,      V,  0, Number),
+  IIDEF(NADD,      V, -1, Number),
+  IIDEF(NSUB,      V, -1, Number),
+  IIDEF(NMUL,      V, -1, Number),
+  IIDEF(NDIV,      V, -1, Number),
+  IIDEF(NREM,      V, -1, Number),
+  IIDEF(NSHL,      V, -1, Number),
+  IIDEF(NSHR,      V, -1, Number),
+  IIDEF(NPOW,      V, -1, Number),
+  IIDEF(NAND,      V, -1, Number),
+  IIDEF(NOR,       V, -1, Number),
+  IIDEF(NOR,       V, -1, Number),
+  IIDEF(NXOR,      V, -1, Number),
+  IIDEF(NCMPZ,     V,  0, Boolean),
+  IIDEF(NCMPEQ,    V, -1, Number),
+  IIDEF(NCMPNE,    V, -1, Number),
+  IIDEF(NCMPLE,    V, -1, Number),
+  IIDEF(NCMPGE,    V, -1, Number),
+  IIDEF(NCMPLT,    V, -1, Number),
+  IIDEF(NCMPGT,    V, -1, Number),
+
+  // bool
+  IIDEF(BNOT,      V,  0, Boolean),
+  IIDEF(BAND,      V, -1, Boolean),
+  IIDEF(BOR,       V, -1, Boolean),
+  IIDEF(BXOR,      V, -1, Boolean),
+
+  // string
+  IIDEF(SLOAD,     I,  1, String),
+  IIDEF(SADD,      V, -1, String),
+  IIDEF(SSUBSTR,   V, -2, String),
+  IIDEF(SCMPEQ,    V, -1, Boolean),
+  IIDEF(SCMPNE,    V, -1, Boolean),
+  IIDEF(SCMPLE,    V, -1, Boolean),
+  IIDEF(SCMPGE,    V, -1, Boolean),
+  IIDEF(SCMPLT,    V, -1, Boolean),
+  IIDEF(SCMPGT,    V, -1, Boolean),
+  IIDEF(SCMPBEG,   V, -1, Boolean),
+  IIDEF(SCMPEND,   V, -1, Boolean),
+  IIDEF(SCONTAINS, V, -1, Boolean),
+  IIDEF(SLEN,      V,  0, Number),
+  IIDEF(SISEMPTY,  V,  0, Boolean),
+  IIDEF(SMATCHEQ,  I, -1, Void),
+  IIDEF(SMATCHBEG, I, -1, Void),
+  IIDEF(SMATCHEND, I, -1, Void),
+  IIDEF(SMATCHR,   I, -1, Void),
+
+  // IP
+  IIDEF(PLOAD,     I,  1, IPAddress),
+  IIDEF(PCMPEQ,    V, -1, Boolean),
+  IIDEF(PCMPNE,    V, -1, Boolean),
+  IIDEF(PINCIDR,   V, -1, Boolean),
+
+  // Cidr
+  IIDEF(CLOAD,     I,  1, Cidr),
+
+  // regex
+  IIDEF(SREGMATCH, I,  0, Boolean),
+  IIDEF(SREGGROUP, V,  0, String),
+
+  IIDEF(N2S,       V,  0, String),
+  IIDEF(P2S,       V,  0, String),
+  IIDEF(C2S,       V,  0, String),
+  IIDEF(R2S,       V,  0, String),
+  IIDEF(S2N,       V,  0, Number),
+
+  // invokation
+  IIDEF(CALL,      II, 0, Void),
+  IIDEF(HANDLER,   II, 0, Void),
+};
+// }}}
+
+int getStackChange(Instruction instr) {
+  Opcode opc = opcode(instr);
+  switch (opc) {
+    case Opcode::DISCARD:
+      return -operandA(instr);
+    case Opcode::HANDLER:
+      return -operandB(instr);
+    case Opcode::CALL:
+      return 1 - operandB(instr);
+    default:
+      return instructionInfos[opc].stackChange;
+  }
+}
+
+size_t computeStackSize(const Instruction* program, size_t programSize) {
+  const Instruction* i = program;
+  const Instruction* e = program + programSize;
+  size_t stackSize = 0;
+
+  while (i != e) {
+    int change = getStackChange(*i);
+    stackSize += change;
+    i++;
+  }
+
+  return stackSize;
+}
+
+OperandSig operandSignature(Opcode opc) {
+  return instructionInfos[(size_t) opc].operandSig;
 };
 
 const char* mnemonic(Opcode opc) {
-  static std::unordered_map<size_t, const char*> map = {
-      {Opcode::NOP, "NOP"},
-      // control
-      {Opcode::EXIT, "EXIT"},
-      {Opcode::JMP, "JMP"},
-      {Opcode::JN, "JN"},
-      {Opcode::JZ, "JZ"},
-      // copy
-      {Opcode::MOV, "MOV"},
-      // array
-      {Opcode::ITCONST, "ITCONST"},
-      {Opcode::STCONST, "STCONST"},
-      {Opcode::PTCONST, "PTCONST"},
-      {Opcode::CTCONST, "CTCONST"},
-      // numerical
-      {Opcode::IMOV, "IMOV"},
-      {Opcode::NCONST, "NCONST"},
-      {Opcode::NNEG, "NNEG"},
-      {Opcode::NNOT, "NNOT"},
-      {Opcode::NADD, "NADD"},
-      {Opcode::NSUB, "NSUB"},
-      {Opcode::NMUL, "NMUL"},
-      {Opcode::NDIV, "NDIV"},
-      {Opcode::NREM, "NREM"},
-      {Opcode::NSHL, "NSHL"},
-      {Opcode::NSHR, "NSHR"},
-      {Opcode::NPOW, "NPOW"},
-      {Opcode::NAND, "NADN"},
-      {Opcode::NOR, "NOR"},
-      {Opcode::NXOR, "NXOR"},
-      {Opcode::NCMPZ, "NCMPZ"},
-      {Opcode::NCMPEQ, "NCMPEQ"},
-      {Opcode::NCMPNE, "NCMPNE"},
-      {Opcode::NCMPLE, "NCMPLE"},
-      {Opcode::NCMPGE, "NCMPGE"},
-      {Opcode::NCMPLT, "NCMPLT"},
-      {Opcode::NCMPGT, "NCMPGT"},
-      // numerical (reg, imm)
-      {Opcode::NIADD, "NIADD"},
-      {Opcode::NISUB, "NISUB"},
-      {Opcode::NIMUL, "NIMUL"},
-      {Opcode::NIDIV, "NIDIV"},
-      {Opcode::NIREM, "NIREM"},
-      {Opcode::NISHL, "NISHL"},
-      {Opcode::NISHR, "NISHR"},
-      {Opcode::NIPOW, "NIPOW"},
-      {Opcode::NIAND, "NIADN"},
-      {Opcode::NIOR, "NIOR"},
-      {Opcode::NIXOR, "NIXOR"},
-      {Opcode::NICMPEQ, "NICMPEQ"},
-      {Opcode::NICMPNE, "NICMPNE"},
-      {Opcode::NICMPLE, "NICMPLE"},
-      {Opcode::NICMPGE, "NICMPGE"},
-      {Opcode::NICMPLT, "NICMPLT"},
-      {Opcode::NICMPGT, "NICMPGT"},
-      // boolean
-      {Opcode::BNOT, "BNOT"},
-      {Opcode::BAND, "BAND"},
-      {Opcode::BOR, "BOR"},
-      {Opcode::BXOR, "BXOR"},
-      // string
-      {Opcode::SCONST, "SCONST"},
-      {Opcode::SADD, "SADD"},
-      {Opcode::SSUBSTR, "SSUBSTR"},
-      {Opcode::SCMPEQ, "SCMPEQ"},
-      {Opcode::SCMPNE, "SCMPNE"},
-      {Opcode::SCMPLE, "SCMPLE"},
-      {Opcode::SCMPGE, "SCMPGE"},
-      {Opcode::SCMPLT, "SCMPLT"},
-      {Opcode::SCMPGT, "SCMPGT"},
-      {Opcode::SCMPBEG, "SCMPBEG"},
-      {Opcode::SCMPEND, "SCMPEND"},
-      {Opcode::SCONTAINS, "SCONTAINS"},
-      {Opcode::SLEN, "SLEN"},
-      {Opcode::SISEMPTY, "SISEMPTY"},
-      {Opcode::SMATCHEQ, "SMATCHEQ"},
-      {Opcode::SMATCHBEG, "SMATCHBEG"},
-      {Opcode::SMATCHEND, "SMATCHEND"},
-      {Opcode::SMATCHR, "SMATCHR"},
-      // ipaddr
-      {Opcode::PCONST, "PCONST"},
-      {Opcode::PCMPEQ, "PCMPEQ"},
-      {Opcode::PCMPNE, "PCMPNE"},
-      {Opcode::PINCIDR, "PINCIDR"},
-      // cidr
-      {Opcode::CCONST, "CCONST"},
-      // regex
-      {Opcode::SREGMATCH, "SREGMATCH"},
-      {Opcode::SREGGROUP, "SREGGROUP"},
-      // conversion
-      {Opcode::I2S, "I2S"},
-      {Opcode::P2S, "P2S"},
-      {Opcode::C2S, "C2S"},
-      {Opcode::R2S, "R2S"},
-      {Opcode::S2I, "S2I"},
-      {Opcode::SURLENC, "SURLENC"},
-      {Opcode::SURLDEC, "SURLDEC"},
-      // invokation
-      {Opcode::CALL, "CALL"},
-      {Opcode::HANDLER, "HANDLER"}, };
-  return map[static_cast<size_t>(opc)];
+  return instructionInfos[(size_t) opc].mnemonic;
 }
 
 FlowType resultType(Opcode opc) {
-  static std::unordered_map<size_t, FlowType> map = {
-      {Opcode::NOP, FlowType::Void},
-      // control
-      {Opcode::EXIT, FlowType::Void},
-      {Opcode::JMP, FlowType::Void},
-      {Opcode::JN, FlowType::Void},
-      {Opcode::JZ, FlowType::Void},
-      // copy
-      {Opcode::MOV, FlowType::Void},
-      // array
-      {Opcode::ITCONST, FlowType::IntArray},
-      {Opcode::STCONST, FlowType::StringArray},
-      {Opcode::PTCONST, FlowType::IPAddrArray},
-      {Opcode::CTCONST, FlowType::CidrArray},
-      // numerical
-      {Opcode::IMOV, FlowType::Number},
-      {Opcode::NCONST, FlowType::Number},
-      {Opcode::NNEG, FlowType::Number},
-      {Opcode::NNOT, FlowType::Number},
-      {Opcode::NADD, FlowType::Number},
-      {Opcode::NSUB, FlowType::Number},
-      {Opcode::NMUL, FlowType::Number},
-      {Opcode::NDIV, FlowType::Number},
-      {Opcode::NREM, FlowType::Number},
-      {Opcode::NSHL, FlowType::Number},
-      {Opcode::NSHR, FlowType::Number},
-      {Opcode::NPOW, FlowType::Number},
-      {Opcode::NAND, FlowType::Number},
-      {Opcode::NOR, FlowType::Number},
-      {Opcode::NXOR, FlowType::Number},
-      {Opcode::NCMPZ, FlowType::Boolean},
-      {Opcode::NCMPEQ, FlowType::Boolean},
-      {Opcode::NCMPNE, FlowType::Boolean},
-      {Opcode::NCMPLE, FlowType::Boolean},
-      {Opcode::NCMPGE, FlowType::Boolean},
-      {Opcode::NCMPLT, FlowType::Boolean},
-      {Opcode::NCMPGT, FlowType::Boolean},
-      // numerical (reg, imm)
-      {Opcode::NIADD, FlowType::Number},
-      {Opcode::NISUB, FlowType::Number},
-      {Opcode::NIMUL, FlowType::Number},
-      {Opcode::NIDIV, FlowType::Number},
-      {Opcode::NIREM, FlowType::Number},
-      {Opcode::NISHL, FlowType::Number},
-      {Opcode::NISHR, FlowType::Number},
-      {Opcode::NIPOW, FlowType::Number},
-      {Opcode::NIAND, FlowType::Number},
-      {Opcode::NIOR, FlowType::Number},
-      {Opcode::NIXOR, FlowType::Number},
-      {Opcode::NICMPEQ, FlowType::Boolean},
-      {Opcode::NICMPNE, FlowType::Boolean},
-      {Opcode::NICMPLE, FlowType::Boolean},
-      {Opcode::NICMPGE, FlowType::Boolean},
-      {Opcode::NICMPLT, FlowType::Boolean},
-      {Opcode::NICMPGT, FlowType::Boolean},
-      // boolean
-      {Opcode::BNOT, FlowType::Boolean},
-      {Opcode::BAND, FlowType::Boolean},
-      {Opcode::BOR, FlowType::Boolean},
-      {Opcode::BXOR, FlowType::Boolean},
-      // string
-      {Opcode::SCONST, FlowType::String},
-      {Opcode::SADD, FlowType::String},
-      {Opcode::SSUBSTR, FlowType::String},
-      {Opcode::SCMPEQ, FlowType::Boolean},
-      {Opcode::SCMPNE, FlowType::Boolean},
-      {Opcode::SCMPLE, FlowType::Boolean},
-      {Opcode::SCMPGE, FlowType::Boolean},
-      {Opcode::SCMPLT, FlowType::Boolean},
-      {Opcode::SCMPGT, FlowType::Boolean},
-      {Opcode::SCMPBEG, FlowType::Boolean},
-      {Opcode::SCMPEND, FlowType::Boolean},
-      {Opcode::SCONTAINS, FlowType::Boolean},
-      {Opcode::SLEN, FlowType::Number},
-      {Opcode::SISEMPTY, FlowType::Boolean},
-      {Opcode::SMATCHEQ, FlowType::Void},
-      {Opcode::SMATCHBEG, FlowType::Void},
-      {Opcode::SMATCHEND, FlowType::Void},
-      {Opcode::SMATCHR, FlowType::Void},
-      // ipaddr
-      {Opcode::PCONST, FlowType::IPAddress},
-      {Opcode::PCMPEQ, FlowType::Boolean},
-      {Opcode::PCMPNE, FlowType::Boolean},
-      {Opcode::PINCIDR, FlowType::Boolean},
-      // cidr
-      {Opcode::CCONST, FlowType::Cidr},
-      // regex
-      {Opcode::SREGMATCH, FlowType::Boolean},
-      {Opcode::SREGGROUP, FlowType::String},
-      // conversion
-      {Opcode::I2S, FlowType::String},
-      {Opcode::P2S, FlowType::String},
-      {Opcode::C2S, FlowType::String},
-      {Opcode::R2S, FlowType::String},
-      {Opcode::S2I, FlowType::Number},
-      {Opcode::SURLENC, FlowType::String},
-      {Opcode::SURLDEC, FlowType::String},
-      // invokation
-      {Opcode::CALL, FlowType::Void},
-      {Opcode::HANDLER, FlowType::Void}, };
-  return map[static_cast<size_t>(opc)];
+  return instructionInfos[(size_t) opc].stackOutput;
 }
 
 Buffer disassemble(Instruction pc, size_t ip, const char* comment) {
@@ -328,37 +180,16 @@ Buffer disassemble(Instruction pc, size_t ip, const char* comment) {
   }
 
   switch (operandSignature(opc)) {
-    case InstructionSig::None:
+    case OperandSig::III:
+      rv = line.printf(" %d, %d, %d", A, B, C);
       break;
-    case InstructionSig::R:
-      rv = line.printf(" r%d", A);
+    case OperandSig::II:
+      rv = line.printf(" %d, %d", A, B);
       break;
-    case InstructionSig::RR:
-      rv = line.printf(" r%d, r%d", A, B);
-      break;
-    case InstructionSig::RRR:
-      rv = line.printf(" r%d, r%d, r%d", A, B, C);
-      break;
-    case InstructionSig::RI:
-      rv = line.printf(" r%d, %d", A, B);
-      break;
-    case InstructionSig::RII:
-      rv = line.printf(" r%d, %d, %d", A, B, C);
-      break;
-    case InstructionSig::RIR:
-      rv = line.printf(" r%d, %d, r%d", A, B, C);
-      break;
-    case InstructionSig::RRI:
-      rv = line.printf(" r%d, r%d, %d", A, B, C);
-      break;
-    case InstructionSig::IRR:
-      rv = line.printf(" %d, r%d, r%d", A, B, C);
-      break;
-    case InstructionSig::IIR:
-      rv = line.printf(" %d, %d, r%d", A, B, C);
-      break;
-    case InstructionSig::I:
+    case OperandSig::I:
       rv = line.printf(" %d", A);
+      break;
+    case OperandSig::V:
       break;
   }
 
@@ -391,6 +222,4 @@ Buffer disassemble(const Instruction* program, size_t n) {
   return result;
 }
 
-}  // namespace vm
-}  // namespace flow
-}  // namespace xzero
+}  // namespace xzero::flow::vm

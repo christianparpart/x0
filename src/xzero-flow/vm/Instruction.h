@@ -14,66 +14,16 @@
 
 namespace xzero::flow::vm {
 
-enum class StackSig {
-//SIG          OUTPUT   INPUT
-  V_V,      // void     void
-  V_N,      // void     num, num
-  V_S,      // void     str
-  V_P,      // void     ip
-  V_C,      // void     cidr
-  V_X,      // void     variable number of values
-  X_X,      // value?   variable number of values
-
-  N_V,      // num      void
-  N_N,      // num      num
-  N_NN,     // num      num, num
-  N_S,      // num      str
-
-  B_N,      // bool     num
-  B_NN,     // bool     num, num
-  B_B,      // bool     bool
-  B_BB,     // bool     bool, bool
-  B_S,      // bool     str
-  B_PP,     // bool     ip, ip
-  B_PC,     // bool     ip, cidr
-  B_SR,     // bool     str, regex
-  B_SS,     // bool     str, str
-
-  S_V,      // str      void
-  S_N,      // str      num
-  S_P,      // str      ip
-  S_C,      // str      cidr
-  S_R,      // str      regex
-  S_S,      // str      str
-  S_SS,     // str      str, str
-  S_SNN,    // str      str, num, num
-
-  P_V,      // ip       void
-  C_V,      // cidr     void
-};
-
 enum class OperandSig {
   V,        // no operands
-
-  I,        // imm16 value        imm
-
-  N,        // const number       numberConstants[imm]
-  S,        // const string       stringConstants[imm]
-  P,        // const IP           ipaddrConstants[imm]
-  C,        // const Cidr         cidrConstants[imm]
-  R,        // const RegExp       regexpConstants[imm]
-
-  n,        // stack num          STACK[imm] AS NUMBER
-  s,        // stack string       STACK[imm] AS STRING
-  p,        // stack IP           STACK[imm] AS IP
-  c,        // stack Cidr         STACK[imm] AS CIDR
+  I,        // imm16
+  II,       // imm16, imm16
+  III,      // imm16, imm16, imm16
 };
 
 enum Opcode : uint16_t {
   // misc
-  NOP = 1,  // NOP                 ; no operation
-
-  // stack manip
+  NOP = 0,  // NOP                 ; no operation
   DISCARD,  // DISCARD imm        ; pops A items from the stack
 
   // control
@@ -83,10 +33,10 @@ enum Opcode : uint16_t {
   JZ,       // JZ imm             ; conditional jump to A if (pop() == 0)
 
   // const arrays
-  ITSTORE,  // ITSTORE stack[imm], intArray[imm]
-  STSTORE,  // STSTORE stack[imm], stringArray[imm]
-  PTSTORE,  // PTSTORE stack[imm], ipaddrArray[imm]
-  CTSTORE,  // CTSTORE stack[imm], cidrArray[imm]
+  ITLOAD,   // stack[sp++] = intArray[imm]
+  STLOAD,   // stack[sp++] = stringArray[imm]
+  PTLOAD,   // stack[sp++] = ipaddrArray[imm]
+  CTLOAD,   // stack[sp++] = cidrArray[imm]
 
   LOAD,     // LOAD imm, imm      ; stack[++op1] = stack[op2]
   STORE,    // STORE imm, imm     ; stack[op1] = stack[op2]
@@ -94,8 +44,6 @@ enum Opcode : uint16_t {
   // numerical
   ILOAD,    // ILOAD imm
   NLOAD,    // NLOAD numberConstants[imm]
-  ISTORE,   // ISTORE stack[imm], imm
-  NSTORE,   // NSTORE stack[imm] # from numberConstants[stack[SP--]]
   NNEG,     //                    ; stack[SP] = -stack[SP]
   NNOT,     //                    ; stack[SP] = ~stack[SP]
   NADD,     //                    ; npush(npop() + npop())
@@ -125,9 +73,7 @@ enum Opcode : uint16_t {
 
   // string
   SLOAD,      // SLOAD stringConstants[imm]
-  SSTORE,     // SSTORE stack[imm] # from stringConstants[stack[SP--]]
   SADD,       // b = pop(); a = pop(); push(a + b);
-  SADDMULTI,  // A = concat(B /*rbase*/, C /*count*/)
   SSUBSTR,    // A = substr(B, C /*offset*/, C+1 /*count*/)
   SCMPEQ,     // A = B == C
   SCMPNE,     // A = B != C
@@ -147,14 +93,12 @@ enum Opcode : uint16_t {
 
   // IP address
   PLOAD,     // PLOAD ipaddrConstants[imm]
-  PSTORE,    // PSTORE stack[imm] # from ipaddrConstants[stack[SP--]]
   PCMPEQ,    // A = ip(B) == ip(C)
   PCMPNE,    // A = ip(B) != ip(C)
   PINCIDR,   // A = cidr(C).contains(ip(B))
 
   // CIDR
   CLOAD,    // CLOAD  cidrConstants[imm]
-  CSTORE,   // CSTORE stack[imm] # from cidrConstants[stack[SP--]]
 
   // regex
   SREGMATCH,  // A = B =~ C           /* regex match against regexPool[C] */
@@ -165,29 +109,12 @@ enum Opcode : uint16_t {
   P2S,      // push(ip(pop()).toString())
   C2S,      // push(cidr(pop()).toString()
   R2S,      // push(regex(pop()).toString()
-  S2I,      // push(atoi(pop()))
-  SURLENC,  // push(urlencode(pop())
-  SURLDEC,  // push(urldecode(pop())
+  S2N,      // push(atoi(pop()))
 
   // invokation
-  // CALL A = id, B = argc, C = rbase for argv
-  CALL,     // [C+0] = functions[A] ([C+1 ... C+B])
-  HANDLER,  // handlers[A] ([C+1 ... C+B]); if ([C+0] == true) EXIT 1
-
-  _COUNT,
-};
-
-enum class InstructionSig {
-  None = 0,   //                      ()
-  I,          // imm16                (A)
-  II,         // imm16, imm16         (AB)
-  III,        // imm16, imm16, imm16  (ABC)
-  S,          // stack                (A)
-  SS,         // stack, stack         (AB)
-  SSS,        // stack, stack, stack  (ABC)
-  SI,         // stack, imm16         (AB)
-  SSI,        // stack, stack, imm16  (ABC)
-  SII,        // stack, imm16, imm16  (ABC)
+  // CALL A = id, B = argc
+  CALL,     // calls A with B arguments, always pushes result to stack
+  HANDLER,  // calls A with B arguments (never leaves result on stack)
 };
 
 typedef uint64_t Instruction;
@@ -265,8 +192,18 @@ constexpr Operand operandC(Instruction instr) {
   return static_cast<Operand>((instr >> 48) & 0xFFFF);
 }
 
-InstructionSig operandSignature(Opcode opc);
+OperandSig operandSignature(Opcode opc);
 const char* mnemonic(Opcode opc);
 FlowType resultType(Opcode opc);
+
+// --------------------------------------------------------------------------
+// helper
+
+/**
+ * Computes the stack height after the execution of the given instruction.
+ */
+int getStackChange(Instruction instr);
+
+size_t computeStackSize(const Instruction* program, size_t programSize);
 
 } // namespace xzero::flow::vm

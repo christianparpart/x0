@@ -26,113 +26,6 @@ namespace xzero::flow {
 
 using namespace vm;
 
-struct InstructionSignature {
-  Opcode opcode;
-  const char* const mnemonic;
-  OperandSig operandSig;
-  StackSig stackSig;
-
-  InstructionSignature(Opcode opc, const char* const m,
-                                 OperandSig opsig, StackSig stsig)
-      : opcode(opc), mnemonic(m), operandSig(opsig), stackSig(stsig) {}
-};
-
-#define SIGDEF(opcode, operandSig, stackSig) \
-  { Opcode:: opcode, #opcode, OperandSig:: operandSig, StackSig:: stackSig }
-
-std::vector<InstructionSignature> signatures = {
-  // misc
-  SIGDEF(NOP,       V,  V_V),
-  SIGDEF(DISCARD,   V,  V_X),
-
-  // control
-  SIGDEF(EXIT,      I,  V_V),
-  SIGDEF(JMP,       I,  V_V),
-  SIGDEF(JN,        V,  V_N),
-  SIGDEF(JZ,        V,  V_N),
-
-  // numeric
-  SIGDEF(ILOAD,     I,  N_V),
-  SIGDEF(NLOAD,     N,  N_V),
-  SIGDEF(NSTORE,    N,  V_N),
-  SIGDEF(NNEG,      V,  N_N),
-  SIGDEF(NNOT,      V,  N_N),
-  SIGDEF(NADD,      V,  N_NN),
-  SIGDEF(NSUB,      V,  N_NN),
-  SIGDEF(NMUL,      V,  N_NN),
-  SIGDEF(NDIV,      V,  N_NN),
-  SIGDEF(NREM,      V,  N_NN),
-  SIGDEF(NSHL,      V,  N_NN),
-  SIGDEF(NSHR,      V,  N_NN),
-  SIGDEF(NPOW,      V,  N_NN),
-  SIGDEF(NAND,      V,  N_NN),
-  SIGDEF(NOR,       V,  N_NN),
-  SIGDEF(NOR,       V,  N_NN),
-  SIGDEF(NXOR,      V,  N_NN),
-  SIGDEF(NCMPZ,     V,  B_N),
-  SIGDEF(NCMPEQ,    V,  B_NN),
-  SIGDEF(NCMPNE,    V,  B_NN),
-  SIGDEF(NCMPLE,    V,  B_NN),
-  SIGDEF(NCMPGE,    V,  B_NN),
-  SIGDEF(NCMPLT,    V,  B_NN),
-  SIGDEF(NCMPGT,    V,  B_NN),
-
-  // bool
-  SIGDEF(BNOT,      V,  B_B),
-  SIGDEF(BAND,      V,  B_BB),
-  SIGDEF(BOR,       V,  B_BB),
-  SIGDEF(BXOR,      V,  B_BB),
-
-  // string
-  SIGDEF(SLOAD,     S,  S_V),
-  SIGDEF(SSTORE,    s,  V_S),
-  SIGDEF(SADD,      V,  S_SS),
-  SIGDEF(SADDMULTI, V,  S_V), // TODO
-  SIGDEF(SSUBSTR,   V,  S_SNN),
-  SIGDEF(SCMPEQ,    V,  B_SS),
-  SIGDEF(SCMPNE,    V,  B_SS),
-  SIGDEF(SCMPLE,    V,  B_SS),
-  SIGDEF(SCMPGE,    V,  B_SS),
-  SIGDEF(SCMPLT,    V,  B_SS),
-  SIGDEF(SCMPGT,    V,  B_SS),
-  SIGDEF(SCMPBEG,   V,  B_SS),
-  SIGDEF(SCMPEND,   V,  B_SS),
-  SIGDEF(SCONTAINS, V,  B_SS),
-  SIGDEF(SLEN,      V,  N_S),
-  SIGDEF(SISEMPTY,  V,  B_S),
-  SIGDEF(SMATCHEQ,  I,  V_S),
-  SIGDEF(SMATCHBEG, I,  V_S),
-  SIGDEF(SMATCHEND, I,  V_S),
-  SIGDEF(SMATCHR,   I,  V_S),
-
-  // IP
-  SIGDEF(PLOAD,     P,  P_V),
-  SIGDEF(PSTORE,    p,  V_P),
-  SIGDEF(PCMPEQ,    V,  B_PP),
-  SIGDEF(PCMPNE,    V,  B_PP),
-  SIGDEF(PINCIDR,   V,  B_PC),
-
-  // Cidr
-  SIGDEF(CLOAD,     C,  C_V),
-  SIGDEF(CSTORE,    c,  V_C),
-
-  // regex
-  SIGDEF(SREGMATCH, V,  B_SR),
-  SIGDEF(SREGGROUP, V,  S_N),
-
-  SIGDEF(N2S,       V, S_N),
-  SIGDEF(P2S,       V, S_P),
-  SIGDEF(C2S,       V, S_C),
-  SIGDEF(R2S,       V, S_R),
-  SIGDEF(S2I,       V, N_S),
-  SIGDEF(SURLENC,   V, S_S),
-  SIGDEF(SURLDEC,   V, S_S),
-
-  // invokation
-  SIGDEF(CALL,      I, X_X),
-  SIGDEF(HANDLER,   I, V_X),
-};
-
 template <typename T, typename S>
 std::vector<T> convert(const std::vector<Constant*>& source) {
   std::vector<T> target(source.size());
@@ -171,7 +64,7 @@ std::shared_ptr<Program> TargetCodeGenerator::generate(IRProgram* programIR) {
 
 void TargetCodeGenerator::generate(IRHandler* handler) {
   // explicitely forward-declare handler, so we can use its ID internally.
-  handlerId_ = handlerRef(handler);
+  handlerId_ = cp_.makeHandler(handler);
 
   std::unordered_map<BasicBlock*, size_t> basicBlockEntryPoints;
 
@@ -187,8 +80,7 @@ void TargetCodeGenerator::generate(IRHandler* handler) {
   for (const auto& target : conditionalJumps_) {
     size_t targetPC = basicBlockEntryPoints[target.first];
     for (const auto& source : target.second) {
-      code_[source.pc] =
-          makeInstruction(source.opcode, source.condition, targetPC);
+      code_[source.pc] = makeInstruction(source.opcode, targetPC);
     }
   }
   conditionalJumps_.clear();
@@ -223,40 +115,33 @@ void TargetCodeGenerator::generate(IRHandler* handler) {
 
   // cleanup remaining handler-local work vars
   variables_.clear();
-}
-
-/**
- * Retrieves the program's handler ID for given handler, possibly
- * forward-declaring given handler if not (yet) found.
- */
-size_t TargetCodeGenerator::handlerRef(IRHandler* handler) {
-  return cp_.makeHandler(handler->name());
+  sp_ = 0;
 }
 
 size_t TargetCodeGenerator::emitInstr(Instruction instr) {
   code_.push_back(instr);
+  sp_ += getStackChange(instr);
   return getInstructionPointer() - 1;
 }
 
 size_t TargetCodeGenerator::emitCondJump(Opcode opcode,
-                                         Value cond,
                                          BasicBlock* bb) {
-  size_t pc = emitInstr(Opcode::NOP);
-  conditionalJumps_[bb].push_back({pc, opcode, cond});
+  size_t pc = emitInstr(opcode);
+  conditionalJumps_[bb].push_back({pc, opcode});
   return pc;
 }
 
-size_t TargetCodeGenerator::emitJump(Opcode opcode, BasicBlock* bb) {
-  size_t pc = emitInstr(Opcode::NOP);
-  unconditionalJumps_[bb].push_back({pc, opcode});
+size_t TargetCodeGenerator::emitJump(BasicBlock* bb) {
+  size_t pc = emitInstr(Opcode::JMP);
+  unconditionalJumps_[bb].push_back({pc, Opcode::JMP});
   return pc;
 }
 
-size_t TargetCodeGenerator::emitBinary(Instr& instr, Opcode opcode, Opcode ri) {
+size_t TargetCodeGenerator::emitBinary(Instr& instr, Opcode opcode) {
   emitLoad(instr.operand(0));
   emitLoad(instr.operand(1));
 
-  return emit(opcode);
+  return emitInstr(opcode);
 }
 
 size_t TargetCodeGenerator::emitBinaryAssoc(Instr& instr, Opcode opcode) {
@@ -264,20 +149,15 @@ size_t TargetCodeGenerator::emitBinaryAssoc(Instr& instr, Opcode opcode) {
   // TODO: revive stack/imm opcodes
   emitLoad(instr.operand(0));
   emitLoad(instr.operand(1));
-  return emit(opcode);
+  return emitInstr(opcode);
 }
 
 size_t TargetCodeGenerator::emitUnary(Instr& instr, Opcode opcode) {
   emitLoad(instr.operand(0));
-  return emit(opcode);
+  return emitInstr(opcode);
 }
 
-StackPointer TargetCodeGenerator::allocate(const Value* value) {
-  stack_.emplace_back(value);
-  return stack_.size() - 1;
-}
-
-StackPointer TargetCodeGenerator::findOnStack(const Value* value) {
+StackPointer TargetCodeGenerator::getStackPointer(const Value* value) {
   for (size_t i = 0, e = stack_.size(); i != e; ++i)
     if (stack_[i] == value)
       return i;
@@ -292,134 +172,38 @@ void TargetCodeGenerator::discard(const Value* value) {
 
 // {{{ instruction code generation
 void TargetCodeGenerator::visit(NopInstr& instr) {
-  emit(Opcode::NOP);
+  emitInstr(Opcode::NOP);
 }
 
 void TargetCodeGenerator::visit(AllocaInstr& instr) {
   // XXX don't allocate until actually used
 
   // TODO handle instr.arraySize()
-  // emit(Opcode::ALLOCA, getConstantInt(instr.arraySize()));
+  // emitInstr(Opcode::ALLOCA, getConstantInt(instr.arraySize()));
   // return allocate(instr);
-}
-
-size_t TargetCodeGenerator::makeNumber(FlowNumber value) {
-  return cp_.makeInteger(value);
-}
-
-size_t TargetCodeGenerator::makeNativeHandler(IRBuiltinHandler* builtin) {
-  return cp_.makeNativeHandler(builtin->signature().to_s());
-}
-
-size_t TargetCodeGenerator::makeNativeFunction(IRBuiltinFunction* builtin) {
-  return cp_.makeNativeFunction(builtin->signature().to_s());
 }
 
 // variable = expression
 void TargetCodeGenerator::visit(StoreInstr& instr) {
-  Value* lhs = instr.variable();
-  StackPointer di = emit(lhs);
-  Value* rhs = instr.expression();
+  emitLoad(instr.expression());
 
-  // const int
-  if (auto integer = dynamic_cast<ConstantInt*>(rhs)) {
-    FlowNumber number = integer->get();
-    if (number <= std::numeric_limits<Operand>::max()) {
-      emit(Opcode::ISTORE, di, number);
-    } else {
-      emit(Opcode::NSTORE, di, cp_.makeInteger(number));
-    }
-    return;
+  if (StackPointer di = getStackPointer(instr.variable()); di != size_t(-1)) {
+    emitInstr(Opcode::STORE, di);
+  } else {
+    variables_[instr.variable()] = getStackPointer() - 1;
   }
-
-  // const boolean
-  if (auto boolean = dynamic_cast<ConstantBoolean*>(rhs)) {
-    emit(Opcode::ISTORE, di, boolean->get());
-    return;
-  }
-
-  // const string
-  if (auto string = dynamic_cast<ConstantString*>(rhs)) {
-    emit(Opcode::SSTORE, di, cp_.makeString(string->get()));
-    return;
-  }
-
-  // const IP address
-  if (auto ip = dynamic_cast<ConstantIP*>(rhs)) {
-    emit(Opcode::PSTORE, di, cp_.makeIPAddress(ip->get()));
-    return;
-  }
-
-  // const Cidr
-  if (auto cidr = dynamic_cast<ConstantCidr*>(rhs)) {
-    emit(Opcode::CSTORE, di, cp_.makeCidr(cidr->get()));
-    return;
-  }
-
-  // TODO const RegExp
-  if (/*auto re =*/dynamic_cast<ConstantRegExp*>(rhs)) {
-    assert(!"TODO store const RegExp"); // XXX RSTORE
-    return;
-  }
-
-  if (auto array = dynamic_cast<ConstantArray*>(rhs)) {
-    switch (array->type()) {
-      case FlowType::IntArray:
-        emit(Opcode::ITSTORE, di,
-             cp_.makeIntegerArray(
-                 convert<FlowNumber, ConstantInt>(array->get())));
-        return;
-      case FlowType::StringArray:
-        emit(Opcode::STSTORE, di,
-             cp_.makeStringArray(
-                 convert<std::string, ConstantString>(array->get())));
-        return;
-      case FlowType::IPAddrArray:
-        emit(Opcode::PTSTORE, di,
-             cp_.makeIPaddrArray(convert<IPAddress, ConstantIP>(array->get())));
-        return;
-      case FlowType::CidrArray:
-        emit(Opcode::CTSTORE, di,
-             cp_.makeCidrArray(convert<Cidr, ConstantCidr>(array->get())));
-        return;
-      default:
-        assert(!"BUG: array");
-        abort();
-    }
-  }
-
-  // var = var
-  emit(Opcode::STORE, di, emit(rhs));
-
-  // XXX XXX
-  // ---------------------------------------------------
-  // var = var
-  auto i = variables_.find(rhs);
-  if (i != variables_.end()) {
-    emit(Opcode::STORE, di, i->second);
-    return;
-  }
-
-#ifndef NDEBUG
-  printf("instr:\n");
-  instr.dump();
-  printf("lhs:\n");
-  lhs->dump();
-  printf("rhs:\n");
-  rhs->dump();
-#endif
-  assert(!"Store variant not implemented!");
 }
 
 void TargetCodeGenerator::visit(LoadInstr& instr) {
-  emit(instr.variable());
+  StackPointer sp = emitLoad(instr.variable());
+  variables_[&instr] = sp;
 }
 
 size_t TargetCodeGenerator::emitCallArgs(Instr& instr) {
   int argc = instr.operands().size();
 
   for (int i = 1; i < argc; ++i) {
-    emit(instr.operand(i));
+    emitLoad(instr.operand(i));
   }
 
   return argc;
@@ -430,12 +214,12 @@ void TargetCodeGenerator::visit(CallInstr& instr) {
   variables_[&instr] = bp;
 
   emitCallArgs(instr);
-  emit(Opcode::CALL, makeNativeFunction(instr.callee()));
+  emitInstr(Opcode::CALL, cp_.makeNativeFunction(instr.callee()));
 }
 
 void TargetCodeGenerator::visit(HandlerCallInstr& instr) {
   emitCallArgs(instr);
-  emit(Opcode::HANDLER, makeNativeHandler(instr.callee()));
+  emitInstr(Opcode::HANDLER, cp_.makeNativeHandler(instr.callee()));
 }
 
 Operand TargetCodeGenerator::getConstantInt(Value* value) {
@@ -444,6 +228,13 @@ Operand TargetCodeGenerator::getConstantInt(Value* value) {
 }
 
 StackPointer TargetCodeGenerator::emitLoad(Value* value) {
+  // if value is already on stack, dup to top
+  if (StackPointer si = getStackPointer(value); si != size_t(-1)) {
+    StackPointer sp = stack_.size();
+    emitInstr(Opcode::LOAD, si);
+    return sp;
+  }
+
   StackPointer sp = stack_.size();
   stack_.emplace_back(value);
 
@@ -452,74 +243,74 @@ StackPointer TargetCodeGenerator::emitLoad(Value* value) {
     // FIXME this constant initialization should pretty much be done in the entry block
     FlowNumber number = integer->get();
     if (number <= std::numeric_limits<Operand>::max()) {
-      emit(Opcode::ILOAD, number);
+      emitInstr(Opcode::ILOAD, number);
     } else {
-      emit(Opcode::NLOAD, cp_.makeInteger(number));
+      emitInstr(Opcode::NLOAD, cp_.makeInteger(number));
     }
     return sp;
   }
 
   // const boolean
   if (auto boolean = dynamic_cast<ConstantBoolean*>(value)) {
-    emit(Opcode::ILOAD, boolean->get());
+    emitInstr(Opcode::ILOAD, boolean->get());
     return sp;
   }
 
   // const string
   if (ConstantString* str = dynamic_cast<ConstantString*>(value)) {
-    emit(Opcode::SLOAD, cp_.makeString(str->get()));
+    emitInstr(Opcode::SLOAD, cp_.makeString(str->get()));
     return sp;
   }
 
   // const ip
   if (ConstantIP* ip = dynamic_cast<ConstantIP*>(value)) {
-    emit(Opcode::PLOAD, cp_.makeIPAddress(ip->get()));
+    emitInstr(Opcode::PLOAD, cp_.makeIPAddress(ip->get()));
     return sp;
   }
 
   // const cidr
   if (ConstantCidr* cidr = dynamic_cast<ConstantCidr*>(value)) {
-    emit(Opcode::CLOAD, cp_.makeCidr(cidr->get()));
+    emitInstr(Opcode::CLOAD, cp_.makeCidr(cidr->get()));
     return sp;
   }
 
   // const array<T>
   if (ConstantArray* array = dynamic_cast<ConstantArray*>(value)) {
-    StackPointer reg = allocate(1);
     switch (array->type()) {
       case FlowType::IntArray:
-        emit(Opcode::ITLOAD, reg,
+        emitInstr(Opcode::ITLOAD,
              cp_.makeIntegerArray(
                  convert<FlowNumber, ConstantInt>(array->get())));
         break;
       case FlowType::StringArray:
-        emit(Opcode::STCONST, reg,
+        emitInstr(Opcode::STLOAD,
              cp_.makeStringArray(
                  convert<std::string, ConstantString>(array->get())));
         break;
       case FlowType::IPAddrArray:
-        emit(Opcode::PTCONST, reg,
+        emitInstr(Opcode::PTLOAD,
              cp_.makeIPaddrArray(convert<IPAddress, ConstantIP>(array->get())));
         break;
       case FlowType::CidrArray:
-        emit(Opcode::CTCONST, reg,
+        emitInstr(Opcode::CTLOAD,
              cp_.makeCidrArray(convert<Cidr, ConstantCidr>(array->get())));
         break;
       default:
-        assert(!"BUG: array");
+        assert(!"BUG: Unsupported array type");
         abort();
     }
-    return reg;
-  }
-
-  // const regex
-  if (/*ConstantRegExp* re =*/dynamic_cast<ConstantRegExp*>(value)) {
-    // emit(Opcode::RCONST, reg, re->id());
-    assert(!"TODO: RCONST opcode");
     return sp;
   }
 
-  return sp;
+  // const regex
+  if (ConstantRegExp* re = dynamic_cast<ConstantRegExp*>(value)) {
+    // TODO emitInstr(Opcode::RLOAD, re->get());
+    emitInstr(Opcode::ILOAD, cp_.makeRegExp(re->get()));
+    return sp;
+  }
+
+  assert(!"BUG: emitLoad() for unknown Value* type");
+  abort();
 }
 
 void TargetCodeGenerator::visit(PhiNode& instr) {
@@ -528,66 +319,64 @@ void TargetCodeGenerator::visit(PhiNode& instr) {
 
 void TargetCodeGenerator::visit(CondBrInstr& instr) {
   if (instr.parent()->isAfter(instr.trueBlock())) {
-    emit(Opcode::JZ, emitLoad(instr.condition()), instr.falseBlock());
+    emitLoad(instr.condition());
+    emitCondJump(Opcode::JZ, instr.falseBlock());
   } else if (instr.parent()->isAfter(instr.falseBlock())) {
-    emit(Opcode::JN, emitLoad(instr.condition()), instr.trueBlock());
+    emitLoad(instr.condition());
+    emitCondJump(Opcode::JN, instr.trueBlock());
   } else {
-    emit(Opcode::JN, emitLoad(instr.condition()), instr.trueBlock());
-    emit(Opcode::JMP, instr.falseBlock());
+    emitLoad(instr.condition());
+    emitCondJump(Opcode::JN, instr.trueBlock());
+    emitJump(instr.falseBlock());
   }
 }
 
 void TargetCodeGenerator::visit(BrInstr& instr) {
-  // to not emit the JMP if the target block is emitted right after this block
+  // Do not emit the JMP if the target block is emitted right after this block
   // (and thus, right after this instruction).
-  if (instr.parent()->isAfter(instr.targetBlock())) return;
+  if (instr.parent()->isAfter(instr.targetBlock()))
+    return;
 
-  emit(Opcode::JMP, instr.targetBlock());
+  emitJump(instr.targetBlock());
 }
 
 void TargetCodeGenerator::visit(RetInstr& instr) {
-  emit(Opcode::EXIT, getConstantInt(instr.operands()[0]));
+  emitInstr(Opcode::EXIT, getConstantInt(instr.operands()[0]));
 }
 
 void TargetCodeGenerator::visit(MatchInstr& instr) {
   static const Opcode ops[] = {[(size_t)MatchClass::Same] = Opcode::SMATCHEQ,
                                [(size_t)MatchClass::Head] = Opcode::SMATCHBEG,
                                [(size_t)MatchClass::Tail] = Opcode::SMATCHEND,
-                               [(size_t)MatchClass::RegExp] =
-                                   Opcode::SMATCHR, };
+                               [(size_t)MatchClass::RegExp] = Opcode::SMATCHR, };
 
   const size_t matchId = cp_.makeMatchDef();
   MatchDef& matchDef = cp_.getMatchDef(matchId);
 
-  matchDef.handlerId = handlerRef(instr.parent()->parent());
+  matchDef.handlerId = cp_.makeHandler(instr.parent()->parent());
   matchDef.op = instr.op();
   matchDef.elsePC = 0;  // XXX to be filled in post-processing the handler
 
   matchHints_.push_back({&instr, matchId});
 
   for (const auto& one : instr.cases()) {
-    MatchCaseDef caseDef;
     switch (one.first->type()) {
       case FlowType::String:
-        caseDef.label =
-            cp_.makeString(static_cast<ConstantString*>(one.first)->get());
+        matchDef.cases.emplace_back(
+            cp_.makeString(static_cast<ConstantString*>(one.first)->get()));
         break;
       case FlowType::RegExp:
-        caseDef.label =
-            cp_.makeRegExp(static_cast<ConstantRegExp*>(one.first)->get());
+        matchDef.cases.emplace_back(
+            cp_.makeRegExp(static_cast<ConstantRegExp*>(one.first)->get()));
         break;
       default:
         assert(!"BUG: unsupported label type");
         abort();
     }
-    caseDef.pc = 0;  // XXX to be filled in post-processing the handler
-
-    matchDef.cases.push_back(caseDef);
   }
 
-  Register condition = emit(instr.condition());
-
-  emit(ops[(size_t)matchDef.op], condition, matchId);
+  emitLoad(instr.condition());
+  emitInstr(ops[(size_t)matchDef.op], matchId);
 }
 
 void TargetCodeGenerator::visit(CastInstr& instr) {
@@ -602,13 +391,13 @@ void TargetCodeGenerator::visit(CastInstr& instr) {
           {FlowType::RegExp, Opcode::R2S},
         }},
         {FlowType::Number, {
-          {FlowType::String, Opcode::S2I},
+          {FlowType::String, Opcode::S2N},
         }},
       };
 
   // just alias same-type casts
   if (instr.type() == instr.source()->type()) {
-    variables_[&instr] = emit(instr.source());
+    variables_[&instr] = emitLoad(instr.source());
     return;
   }
 
@@ -623,9 +412,8 @@ void TargetCodeGenerator::visit(CastInstr& instr) {
   Opcode op = k->second;
 
   // emit instruction
-  Register result = allocate(1, instr);
-  Register a = emit(instr.source());
-  emit(op, result, a);
+  emitLoad(instr.source());
+  emitInstr(op);
 }
 
 void TargetCodeGenerator::visit(INegInstr& instr) {
@@ -761,14 +549,11 @@ void TargetCodeGenerator::visit(SCmpGTInstr& instr) {
 }
 
 void TargetCodeGenerator::visit(SCmpREInstr& instr) {
-  assert(dynamic_cast<ConstantRegExp*>(instr.operand(1)) &&
-         "RHS must be a ConstantRegExp");
-
   ConstantRegExp* re = static_cast<ConstantRegExp*>(instr.operand(1));
+  assert(re != nullptr && "RHS must be a ConstantRegExp");
 
   emitLoad(instr.operand(0));
-  emitLoad(cp_.makeRegExp(re->get()));
-  emit(Opcode::SREGMATCH);
+  emitInstr(Opcode::SREGMATCH, cp_.makeRegExp(re->get()));
 }
 
 void TargetCodeGenerator::visit(SCmpBegInstr& instr) {
