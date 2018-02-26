@@ -11,6 +11,7 @@
 #include <xzero-flow/ir/IRHandler.h>
 #include <xzero-flow/ir/Instructions.h>
 #include <xzero-flow/ir/ConstantArray.h>
+#include <xzero/logging.h>
 #include <algorithm>
 #include <assert.h>
 #include <math.h>
@@ -18,9 +19,9 @@
 namespace xzero {
 namespace flow {
 
-//#define FLOW_DEBUG_IR 1
+#define FLOW_DEBUG_IR 1
 
-#if 0 // defined(FLOW_DEBUG_IR)
+#if defined(FLOW_DEBUG_IR)
 // {{{ trace
 static size_t fnd = 0;
 struct fntrace3 {
@@ -39,7 +40,7 @@ struct fntrace3 {
     fmt[i++] = ' ';
     strcpy(fmt + i, msg_.c_str());
 
-    XZERO_DEBUG("IRGenerator", 5, "%s", fmt);
+    logDebug("IRGenerator", fmt);
     ++fnd;
   }
 
@@ -58,7 +59,7 @@ struct fntrace3 {
     fmt[i++] = ' ';
     strcpy(fmt + i, msg_.c_str());
 
-    XZERO_DEBUG("IRGenerator", 5, "%s", fmt);
+    logDebug("IRGenerator", fmt);
   }
 };
 // }}}
@@ -469,36 +470,36 @@ void IRGenerator::accept(ArrayExpr& arrayExpr) {
   }
 }
 
-void IRGenerator::accept(ExprStmt& stmt) {
+void IRGenerator::accept(ExprStmt& exprStmt) {
   FNTRACE();
 
-  codegen(stmt.expression());
+  codegen(exprStmt.expression());
 }
 
-void IRGenerator::accept(CompoundStmt& compound) {
+void IRGenerator::accept(CompoundStmt& compoundStmt) {
   FNTRACE();
 
-  for (const auto& stmt : compound) {
+  for (const auto& stmt : compoundStmt) {
     codegen(stmt.get());
   }
 }
 
-void IRGenerator::accept(CondStmt& stmt) {
+void IRGenerator::accept(CondStmt& condStmt) {
   FNTRACE();
 
   BasicBlock* trueBlock = createBlock("trueBlock");
   BasicBlock* falseBlock = createBlock("falseBlock");
   BasicBlock* contBlock = createBlock("contBlock");
 
-  Value* cond = codegen(stmt.condition());
+  Value* cond = codegen(condStmt.condition());
   createCondBr(cond, trueBlock, falseBlock);
 
   setInsertPoint(trueBlock);
-  codegen(stmt.thenStmt());
+  codegen(condStmt.thenStmt());
   createBr(contBlock);
 
   setInsertPoint(falseBlock);
-  codegen(stmt.elseStmt());
+  codegen(condStmt.elseStmt());
   createBr(contBlock);
 
   setInsertPoint(contBlock);
@@ -516,14 +517,14 @@ Constant* IRGenerator::getConstant(Expr* expr) {
   }
 }
 
-void IRGenerator::accept(MatchStmt& stmt) {
+void IRGenerator::accept(MatchStmt& matchStmt) {
   FNTRACE();
 
-  Value* cond = codegen(stmt.condition());
+  Value* cond = codegen(matchStmt.condition());
   BasicBlock* contBlock = createBlock("match.cont");
-  MatchInstr* matchInstr = createMatch(stmt.op(), cond);
+  MatchInstr* matchInstr = createMatch(matchStmt.op(), cond);
 
-  for (const MatchCase& one : stmt.cases()) {
+  for (const MatchCase& one : matchStmt.cases()) {
     BasicBlock* bb = createBlock("match.case");
     setInsertPoint(bb);
     codegen(one.second.get());
@@ -535,10 +536,10 @@ void IRGenerator::accept(MatchStmt& stmt) {
     }
   }
 
-  if (stmt.elseStmt()) {
+  if (matchStmt.elseStmt()) {
     BasicBlock* elseBlock = createBlock("match.else");
     setInsertPoint(elseBlock);
-    codegen(stmt.elseStmt());
+    codegen(matchStmt.elseStmt());
     createBr(contBlock);
 
     matchInstr->setElseBlock(elseBlock);
@@ -549,16 +550,16 @@ void IRGenerator::accept(MatchStmt& stmt) {
   setInsertPoint(contBlock);
 }
 
-void IRGenerator::accept(ForStmt& stmt) {
+void IRGenerator::accept(ForStmt& forStmt) {
   FNTRACE();
   throw "TODO";
 }
 
-void IRGenerator::accept(AssignStmt& stmt) {
+void IRGenerator::accept(AssignStmt& assignStmt) {
   FNTRACE();
 
-  Value* lhs = scope().lookup(stmt.variable());
-  Value* rhs = codegen(stmt.expression());
+  Value* lhs = scope().lookup(assignStmt.variable());
+  Value* rhs = codegen(assignStmt.expression());
   assert(lhs->type() == rhs->type() && "Type of lhs and rhs must be equal.");
 
   result_ = createStore(lhs, rhs, "assignment");

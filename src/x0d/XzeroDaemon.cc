@@ -189,6 +189,11 @@ std::shared_ptr<flow::vm::Program> XzeroDaemon::loadConfigStream(
 
   validateConfig(unit.get());
 
+  if (printAST) {
+    flow::ASTPrinter::print(unit.get());
+    return nullptr;
+  }
+
   flow::IRGenerator irgen;
   irgen.setExports({"setup", "main"});
   irgen.setErrorCallback([&](const std::string& msg) {
@@ -223,16 +228,15 @@ std::shared_ptr<flow::vm::Program> XzeroDaemon::loadConfigStream(
 
   verify(programIR.get(), &irgen);
 
+  if (printIR) {
+    programIR->dump();
+    return nullptr;
+  }
+
   std::shared_ptr<flow::vm::Program> program =
       flow::TargetCodeGenerator().generate(programIR.get());
 
   program->link(this);
-
-  if (printAST)
-    flow::ASTPrinter::print(unit.get());
-
-  if (printIR)
-    programIR->dump();
 
   if (printTC)
     program->dump();
