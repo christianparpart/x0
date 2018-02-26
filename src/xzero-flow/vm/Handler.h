@@ -37,7 +37,7 @@ class Handler : public std::enable_shared_from_this<Handler> {
   const std::string& name() const { return name_; }
   void setName(const std::string& name) { name_ = name; }
 
-  size_t registerCount() const { return registerCount_; }
+  size_t stackSize() const { return stackSize_; }
 
   const std::vector<Instruction>& code() const { return code_; }
   void setCode(const std::vector<Instruction>& code);
@@ -58,7 +58,7 @@ class Handler : public std::enable_shared_from_this<Handler> {
  private:
   std::weak_ptr<Program> program_;
   std::string name_;
-  size_t registerCount_;
+  size_t stackSize_;
   std::vector<Instruction> code_;
 #if defined(ENABLE_FLOW_DIRECT_THREADED_VM)
   std::vector<uint64_t> directThreadedCode_;

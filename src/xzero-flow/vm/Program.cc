@@ -156,10 +156,9 @@ void Program::dump() {
 
   for (size_t i = 0, e = handlers_.size(); i != e; ++i) {
     std::shared_ptr<Handler> handler = this->handler(i);
-    printf("\n.handler %-20s ; #%zu (%zu registers, %zu instructions)\n",
+    printf("\n.handler %-20s ; #%zu (%zu stack size, %zu instructions)\n",
            handler->name().c_str(), i,
-           handler->registerCount() ? handler->registerCount() - 1
-                                    : 0,  // r0 is never used
+           handler->stackSize(),
            handler->code().size());
     handler->disassemble();
   }

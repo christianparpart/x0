@@ -55,11 +55,6 @@ class TargetCodeGenerator : public InstructionVisitor {
   using ConstantPool = vm::ConstantPool;
 
   void generate(IRHandler* handler);
-  size_t handlerRef(IRHandler* handler);
-
-  size_t makeNumber(FlowNumber value);
-  size_t makeNativeHandler(IRBuiltinHandler* builtin);
-  size_t makeNativeFunction(IRBuiltinFunction* builtin);
 
   /**
    * Ensures @p value is available on top of the stack.
@@ -68,42 +63,42 @@ class TargetCodeGenerator : public InstructionVisitor {
    */
   StackPointer emitLoad(Value* value);
 
-  size_t emit(Opcode opc) { return emit(vm::makeInstruction(opc)); }
-  size_t emit(Opcode opc, Operand op1) {
-    return emit(vm::makeInstruction(opc, op1));
+  size_t emitInstr(Opcode opc) {
+    return emitInstr(vm::makeInstruction(opc));
   }
-  size_t emit(Opcode opc, Operand op1, Operand op2) {
-    return emit(vm::makeInstruction(opc, op1, op2));
+  size_t emitInstr(Opcode opc, Operand op1) {
+    return emitInstr(vm::makeInstruction(opc, op1));
   }
-  size_t emit(Opcode opc, Operand op1, Operand op2, Operand op3) {
-    return emit(vm::makeInstruction(opc, op1, op2, op3));
+  size_t emitInstr(Opcode opc, Operand op1, Operand op2) {
+    return emitInstr(vm::makeInstruction(opc, op1, op2));
   }
-  size_t emit(Instruction instr);
+  size_t emitInstr(Opcode opc, Operand op1, Operand op2, Operand op3) {
+    return emitInstr(vm::makeInstruction(opc, op1, op2, op3));
+  }
+  size_t emitInstr(Instruction instr);
 
   /**
    * Emits conditional jump instruction.
    *
    * @param opcode Opcode for the conditional jump.
-   * @param cond Condition to to evaluated by given \p opcode.
    * @param bb Target basic block to jump to by \p opcode.
    *
    * This function will just emit a placeholder and will remember the
    * instruction pointer and passed operands for later back-patching once all
    * basic block addresses have been computed.
    */
-  size_t emit(Opcode opcode, Register cond, BasicBlock* bb);
+  size_t emitCondJump(Opcode opcode, BasicBlock* bb);
 
   /**
    * Emits unconditional jump instruction.
    *
-   * @param opcode Opcode for the conditional jump.
    * @param bb Target basic block to jump to by \p opcode.
    *
    * This function will just emit a placeholder and will remember the
    * instruction pointer and passed operands for later back-patching once all
    * basic block addresses have been computed.
    */
-  size_t emit(Opcode opcode, BasicBlock* bb);
+  size_t emitJump(BasicBlock* bb);
 
   size_t emitBinaryAssoc(Instr& instr, Opcode opcode);
   size_t emitBinary(Instr& instr, Opcode opcode);
@@ -116,13 +111,6 @@ class TargetCodeGenerator : public InstructionVisitor {
    */
   size_t emitCallArgs(Instr& instr);
 
-  /**
-   * Emits @p value and returns its stack position.
-   *
-   * If the value is not available on the stack yet, it'll be allocated a slot.
-   */
-  StackPointer emit(Value* value);
-
   Operand getConstantInt(Value* value);
 
   /**
@@ -130,8 +118,15 @@ class TargetCodeGenerator : public InstructionVisitor {
    */
   size_t getInstructionPointer() const { return code_.size(); }
 
-  StackPointer allocate(const Value* alias);
-  StackPointer findOnStack(const Value* value);
+  /**
+   * Retrieves the current number of elements on the stack.
+   */
+  StackPointer getStackPointer() const { return sp_; }
+
+  /** Locates given @p value on the stack.
+   */
+  StackPointer getStackPointer(const Value* value);
+
   void discard(const Value* alias);
 
   void visit(NopInstr& instr) override;
@@ -207,7 +202,6 @@ class TargetCodeGenerator : public InstructionVisitor {
   struct ConditionalJump {
     size_t pc;
     Opcode opcode;
-    Register condition;
   };
 
   struct UnconditionalJump {
@@ -228,10 +222,10 @@ class TargetCodeGenerator : public InstructionVisitor {
   /** SP of current top value on the stack at the time of code generation. */
   StackPointer sp_;
 
+  std::deque<Value*> stack_;
+
   /** value-to-stack-offset assignment-map */
   std::unordered_map<const Value*, StackPointer> variables_;
-
-  std::deque<Value*> stack_;
 
   // target program output
   ConstantPool cp_;

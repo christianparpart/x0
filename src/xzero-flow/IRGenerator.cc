@@ -229,7 +229,7 @@ void IRGenerator::accept(UnaryExpr& expr) {
        {vm::Opcode::P2S, &IRGenerator::createP2S},
        {vm::Opcode::C2S, &IRGenerator::createC2S},
        {vm::Opcode::R2S, &IRGenerator::createR2S},
-       {vm::Opcode::S2I, &IRGenerator::createS2I},
+       {vm::Opcode::S2N, &IRGenerator::createS2N},
        {vm::Opcode::NNEG, &IRGenerator::createNeg},
        {vm::Opcode::NNOT, &IRGenerator::createNot},
        {vm::Opcode::BNOT, &IRGenerator::createBNot}, };

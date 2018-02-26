@@ -627,7 +627,7 @@ Value* IRBuilder::createR2S(Value* rhs, const std::string& name) {
   return insert(new CastInstr(FlowType::String, rhs, makeName(name)));
 }
 
-Value* IRBuilder::createS2I(Value* rhs, const std::string& name) {
+Value* IRBuilder::createS2N(Value* rhs, const std::string& name) {
   assert(rhs->type() == FlowType::String);
 
   if (auto ip = dynamic_cast<ConstantString*>(rhs)) return get(stoi(ip->get()));

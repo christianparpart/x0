@@ -173,7 +173,7 @@ class IRBuilder {
   Value* createP2S(Value* rhs, const std::string& name = "");
   Value* createC2S(Value* rhs, const std::string& name = "");
   Value* createR2S(Value* rhs, const std::string& name = "");
-  Value* createS2I(Value* rhs, const std::string& name = "");
+  Value* createS2N(Value* rhs, const std::string& name = "");
 
   // calls
   Instr* createCallFunction(IRBuiltinFunction* callee,

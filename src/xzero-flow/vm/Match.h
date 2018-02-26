@@ -31,6 +31,7 @@ struct MatchCaseDef {
   uint64_t pc;
 
   MatchCaseDef() = default;
+  explicit MatchCaseDef(uint64_t l) : label(l), pc(0) {}
   MatchCaseDef(uint64_t l, uint64_t p) : label(l), pc(p) {}
 };
 

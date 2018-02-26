@@ -6,6 +6,9 @@
 // the License at: http://opensource.org/licenses/MIT
 
 #include <xzero-flow/vm/ConstantPool.h>
+#include <xzero-flow/ir/IRBuiltinFunction.h>
+#include <xzero-flow/ir/IRBuiltinHandler.h>
+#include <xzero-flow/ir/IRHandler.h>
 #include <iostream>
 #include <iomanip>
 #include <inttypes.h>
@@ -153,12 +156,24 @@ size_t ConstantPool::makeMatchDef() {
   return matchDefs_.size() - 1;
 }
 
+size_t ConstantPool::makeNativeHandler(const IRBuiltinHandler* handler) {
+  return makeNativeHandler(handler->signature().to_s());
+}
+
 size_t ConstantPool::makeNativeHandler(const std::string& sig) {
   return ensureValue(nativeHandlerSignatures_, sig);
 }
 
+size_t ConstantPool::makeNativeFunction(const IRBuiltinFunction* function) {
+  return makeNativeFunction(function->signature().to_s());
+}
+
 size_t ConstantPool::makeNativeFunction(const std::string& sig) {
   return ensureValue(nativeFunctionSignatures_, sig);
+}
+
+size_t ConstantPool::makeHandler(const IRHandler* handler) {
+  return makeHandler(handler->name());
 }
 
 size_t ConstantPool::makeHandler(const std::string& name) {

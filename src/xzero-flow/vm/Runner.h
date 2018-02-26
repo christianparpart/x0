@@ -13,7 +13,9 @@
 #include <xzero-flow/vm/Instruction.h>
 #include <xzero/CustomDataMgr.h>
 #include <xzero/RegExp.h>
+#include <algorithm>
 #include <utility>
+#include <vector>
 #include <list>
 #include <memory>
 #include <new>
@@ -23,9 +25,7 @@
 #include <string>
 #include <iosfwd>
 
-namespace xzero {
-namespace flow {
-namespace vm {
+namespace xzero::flow::vm {
 
 // ExecutionEngine
 // VM
@@ -38,7 +38,57 @@ class Runner : public CustomData {
   };
 
   using Value = uint64_t;
-  using Stack = std::deque<Value>;
+
+  class Stack { // {{{
+   public:
+    explicit Stack(size_t stackSize) : stack_() {
+      stack_.reserve(stackSize);
+    }
+
+    void push(Value value) {
+      stack_.push_back(value);
+    }
+
+    Value pop() {
+      Value v = stack_.back();
+      stack_.pop_back();
+      return v;
+    }
+
+    void discard(size_t n) {
+      assert(n <= stack_.size());
+      n = std::min(n, stack_.size());
+      stack_.resize(stack_.size() - n);
+    }
+
+    size_t size() const { return stack_.size(); }
+
+    Value operator[](int relativeIndex) const {
+      if (relativeIndex < 0)
+        return stack_[stack_.size() + relativeIndex];
+      else
+        return stack_[relativeIndex];
+    }
+
+    Value& operator[](int relativeIndex) {
+      if (relativeIndex < 0)
+        return stack_[stack_.size() + relativeIndex];
+      else
+        return stack_[relativeIndex];
+    }
+
+    Value operator[](size_t absoluteIndex) const {
+      return stack_[absoluteIndex];
+    }
+
+    Value& operator[](size_t absoluteIndex) {
+      return stack_[absoluteIndex];
+    }
+
+   private:
+    std::vector<Value> stack_;
+  };
+  // }}}
 
  private:
   std::shared_ptr<Handler> handler_;
@@ -64,17 +114,15 @@ class Runner : public CustomData {
   std::list<std::string> stringGarbage_;
 
  private:
-  void push(Value value);
-  Value pop();
+  void push(Value value) { stack_.push(value); }
+  Value pop() { return stack_.pop(); }
+  void discard(size_t n) { stack_.discard(n); }
 
   void pushString(const FlowString* value) { push((Value) value); }
 
  public:
-  explicit Runner(std::shared_ptr<Handler> handler, size_t initialStackCapacity = 64);
+  explicit Runner(std::shared_ptr<Handler> handler);
   ~Runner();
-
-  static std::unique_ptr<Runner> create(std::shared_ptr<Handler> handler);
-  static void operator delete(void* p);
 
   bool run();
   void suspend();
@@ -121,6 +169,4 @@ class Runner : public CustomData {
 std::ostream& operator<<(std::ostream& os, Runner::State state);
 std::ostream& operator<<(std::ostream& os, const Runner& vm);
 
-}  // namespace vm
-}  // namespace flow
-}  // namespace xzero
+}  // namespace xzero::flow::vm
