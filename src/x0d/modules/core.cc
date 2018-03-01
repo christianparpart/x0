@@ -666,7 +666,7 @@ void CoreModule::log_debug(XzeroContext* cx, Params& args) {
 }
 
 void CoreModule::rand(XzeroContext* cx, Params& args) {
-  args.setResult(rng_.random64());
+  args.setResult(static_cast<FlowNumber>(rng_.random64()));
 }
 
 void CoreModule::randAB(XzeroContext* cx, Params& args) {
