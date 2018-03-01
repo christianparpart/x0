@@ -93,10 +93,15 @@ const std::string& LocalFile::etag() const {
 void LocalFile::update() {
   int rv = stat(path().c_str(), &stat_);
 
-  if (rv < 0)
+  if (rv < 0) {
     setErrorCode(errno);
-  else
+  } else {
     setErrorCode(0);
+
+    if (isDirectory()) {
+      mimetype_ = "inode/directory";
+    }
+  }
 }
 
 int LocalFile::createPosixChannel(OpenFlags oflags, int mode) {

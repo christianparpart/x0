@@ -102,11 +102,10 @@ class File {
 
  private:
   std::string path_;
-  std::string mimetype_;
-
   int errno_;
 
  protected:
+  std::string mimetype_;
   mutable std::string lastModified_;
 };
 
