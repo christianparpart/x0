@@ -150,11 +150,13 @@ void IRGenerator::accept(Unit& unit) {
 void IRGenerator::accept(Variable& variable) {
   FNTRACE();
 
+  AllocaInstr* var = createAlloca(variable.initializer()->getType(),
+                                  get(1),
+                                  variable.name());
+  scope().update(&variable, var);
+
   Value* initializer = codegen(variable.initializer());
   assert(initializer != nullptr);
-
-  AllocaInstr* var = createAlloca(initializer->type(), get(1), variable.name());
-  scope().update(&variable, var);
 
   createStore(var, initializer);
 
