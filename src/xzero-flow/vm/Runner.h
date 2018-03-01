@@ -109,7 +109,8 @@ class Runner : public CustomData {
   State state_;     //!< current VM state
   size_t pc_;       //!< last saved program execution offset
 
-  Stack stack_;
+  size_t sp_;       //!< current stack depth (XXX used in debugging only)
+  Stack stack_;     //!< runtime stack
 
   std::list<std::string> stringGarbage_;
 

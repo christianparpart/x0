@@ -25,10 +25,12 @@
 #include <cmath>
 #include <inttypes.h>
 
-#if 0 // !defined(NDEBUG)
+#if 1 // !defined(NDEBUG)
 #define TRACE(msg...) logTrace("vm", msg)
+#define DEBUG(msg...) logDebug("vm", msg)
 #else
 #define TRACE(msg...) do {} while (0)
+#define DEBUG(msg...) do {} while (0)
 #endif
 
 namespace xzero::flow::vm {
@@ -70,7 +72,7 @@ namespace xzero::flow::vm {
 #if defined(ENABLE_FLOW_DIRECT_THREADED_VM)
 #define instr(name) \
   l_##name : ++pc;  \
-  TRACE("$0",    \
+  DEBUG("$0",    \
         disassemble((Instruction) * pc, (pc - code.data()) / 2));
 
 #define get_pc() ((pc - code.data()) / 2)
@@ -82,7 +84,7 @@ namespace xzero::flow::vm {
 #define next goto*(void*)*++pc
 #else
 #define instr(name) \
-  l_##name : TRACE("$0", disassemble(*pc, pc - code.data()));
+  l_##name : DEBUG("$0", disassemble(*pc, pc - code.data(), &sp_));
 
 #define get_pc() (pc - code.data())
 #define set_pc(offset)           \
@@ -104,6 +106,7 @@ Runner::Runner(std::shared_ptr<Handler> handler)
       regexpContext_(),
       state_(Inactive),
       pc_(0),
+      sp_(0),
       stack_(handler_->stackSize()),
       stringGarbage_() {
   // initialize emptyString()
@@ -635,59 +638,61 @@ bool Runner::loop() {
   }
   // }}}
   // {{{ invokation
-  instr(CALL) {  // TODO
-    size_t id = A;
-    int argc = B;
-#if 0
-    const Value* argv = &stack_[stack_.size() - argc]; // TODO: pop call args
+  instr(CALL) {
+    {
+      size_t id = A;
+      int argc = B;
 
-    Params args(argc, argv, this);
+      incr_pc();
+      pc_ = get_pc();
 
-    TRACE("Calling function: $0",
-          handler_->program()->nativeFunction(id)->signature());
+      Params args(this, argc);
+      for (int i = 1; i <= argc; i++)
+        args.setArg(i, SP(-(argc + 1) + i));
 
-    incr_pc();
-    pc_ = get_pc();
+      TRACE("Calling function: $0",
+            handler_->program()->nativeFunction(id)->signature());
 
-    handler_->program()->nativeFunction(id)->invoke(args);
+      handler_->program()->nativeFunction(id)->invoke(args);
 
-    if (state_ == Suspended) {
-      logDebug("flow", "vm suspended in function. returning (false)");
-      return false;
+      if (state_ == Suspended) {
+        logDebug("flow", "vm suspended in function. returning (false)");
+        return false;
+      }
     }
-
     set_pc(pc_);
-#endif
     jump;
   }
 
-  instr(HANDLER) {  // TODO
-#if 0
-    size_t id = A;
-    int argc = B;
-    Value* argv = &data_[C];
+  instr(HANDLER) {
+    {
+      size_t id = A;
+      int argc = B;
 
-    incr_pc();
-    pc_ = get_pc();
+      incr_pc();
+      pc_ = get_pc();
 
-    Params args(argc, argv, this);
-    TRACE("Calling handler: $0",
-          handler_->program()->nativeHandler(id)->signature());
-    handler_->program()->nativeHandler(id)->invoke(args);
-    const bool handled = (bool)argv[0];
+      Params args(this, argc);
+      for (int i = 1; i <= argc; i++)
+        args.setArg(i, SP(-(argc + 1) + i));
 
-    if (state_ == Suspended) {
-      logDebug("flow", "vm suspended in handler. returning (false)");
-      return false;
+      TRACE("Calling handler: $0",
+            handler_->program()->nativeHandler(id)->signature());
+
+      handler_->program()->nativeHandler(id)->invoke(args);
+      const bool handled = (bool) args[0];
+
+      if (state_ == Suspended) {
+        logDebug("flow", "vm suspended in handler. returning (false)");
+        return false;
+      }
+
+      if (handled) {
+        state_ = Inactive;
+        return true;
+      }
     }
-
-    if (handled) {
-      state_ = Inactive;
-      return true;
-    }
-
     set_pc(pc_);
-#endif
     jump;
   }
   // }}}
