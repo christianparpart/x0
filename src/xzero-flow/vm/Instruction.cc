@@ -155,14 +155,16 @@ size_t computeStackSize(const Instruction* program, size_t programSize) {
   const Instruction* i = program;
   const Instruction* e = program + programSize;
   size_t stackSize = 0;
+  size_t limit = 0;
 
   while (i != e) {
     int change = getStackChange(*i);
     stackSize += change;
+    limit = std::max(limit, stackSize);
     i++;
   }
 
-  return stackSize;
+  return limit;
 }
 
 OperandSig operandSignature(Opcode opc) {
@@ -177,7 +179,7 @@ FlowType resultType(Opcode opc) {
   return instructionInfos[(size_t) opc].stackOutput;
 }
 
-Buffer disassemble(Instruction pc, size_t ip, const char* comment) {
+Buffer disassemble(Instruction pc, size_t ip, size_t* sp) {
   Buffer line;
   Opcode opc = opcode(pc);
   Operand A = operandA(pc);
@@ -203,6 +205,7 @@ Buffer disassemble(Instruction pc, size_t ip, const char* comment) {
       rv = line.printf(" %d", A);
       break;
     case OperandSig::V:
+      rv = 0;
       break;
   }
 
@@ -214,22 +217,33 @@ Buffer disassemble(Instruction pc, size_t ip, const char* comment) {
     line.printf(" ");
   }
 
-  const uint8_t* b = (uint8_t*)&pc;
-  line.printf(";%4hu | %02x %02x %02x %02x %02x %02x %02x %02x", ip, b[0], b[1],
-              b[2], b[3], b[4], b[5], b[6], b[7]);
+  int stackChange = getStackChange(pc);
 
-  if (comment && *comment) {
-    line.printf("   %s", comment);
+  const uint8_t* b = (uint8_t*)&pc;
+  if (sp) {
+    line.printf("; ip=%-3hu sp=%-2hu (%c%d)",
+                ip, *sp,
+                stackChange > 0 ? '+' :
+                    stackChange < 0 ? '-' : ' ',
+                std::abs(stackChange));
+  } else {
+    line.printf("; ip=%-3hu (%c%d)",
+                ip,
+                stackChange > 0 ? '+' :
+                    stackChange < 0 ? '-' : ' ',
+                std::abs(stackChange));
   }
 
+  *sp += stackChange;
   return line;
 }
 
 Buffer disassemble(const Instruction* program, size_t n) {
   Buffer result;
   size_t i = 0;
+  size_t sp = 0;
   for (const Instruction* pc = program; pc < program + n; ++pc) {
-    result.push_back(disassemble(*pc, i++));
+    result.push_back(disassemble(*pc, i++, &sp));
     result.push_back("\n");
   }
   return result;

@@ -106,10 +106,8 @@ class TargetCodeGenerator : public InstructionVisitor {
 
   /**
    * Emits call args.
-   *
-   * @returns number of args pushed.
    */
-  size_t emitCallArgs(Instr& instr);
+  void emitCallArgs(Instr& instr);
 
   Operand getConstantInt(Value* value);
 

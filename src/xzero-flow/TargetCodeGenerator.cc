@@ -26,7 +26,7 @@
 
 namespace xzero::flow {
 
-#define FLOW_DEBUG_TCG 1
+//#define FLOW_DEBUG_TCG 1
 #if defined(FLOW_DEBUG_TCG)
 // {{{ trace
 static size_t fni = 0;
@@ -166,6 +166,7 @@ void TargetCodeGenerator::generate(IRHandler* handler) {
 
   // cleanup remaining handler-local work vars
   variables_.clear();
+  stack_.clear();
   sp_ = 0;
 }
 
@@ -255,14 +256,14 @@ void TargetCodeGenerator::visit(LoadInstr& instr) {
   variables_[&instr] = sp;
 }
 
-size_t TargetCodeGenerator::emitCallArgs(Instr& instr) {
+void TargetCodeGenerator::emitCallArgs(Instr& instr) {
   int argc = instr.operands().size();
+
+  // operand(0) skipped. as this one is passed as operand (not stack)
 
   for (int i = 1; i < argc; ++i) {
     emitLoad(instr.operand(i));
   }
-
-  return argc;
 }
 
 void TargetCodeGenerator::visit(CallInstr& instr) {
@@ -271,13 +272,17 @@ void TargetCodeGenerator::visit(CallInstr& instr) {
   variables_[&instr] = bp;
 
   emitCallArgs(instr);
-  emitInstr(Opcode::CALL, cp_.makeNativeFunction(instr.callee()));
+  emitInstr(Opcode::CALL,
+      cp_.makeNativeFunction(instr.callee()),
+      instr.operands().size() - 1);
 }
 
 void TargetCodeGenerator::visit(HandlerCallInstr& instr) {
   FNTRACE();
   emitCallArgs(instr);
-  emitInstr(Opcode::HANDLER, cp_.makeNativeHandler(instr.callee()));
+  emitInstr(Opcode::HANDLER,
+      cp_.makeNativeHandler(instr.callee()),
+      instr.operands().size() - 1);
 }
 
 Operand TargetCodeGenerator::getConstantInt(Value* value) {
@@ -293,8 +298,11 @@ StackPointer TargetCodeGenerator::emitLoad(Value* value) {
     return sp;
   }
 
-  if (auto i = variables_.find(value); i != variables_.end())
-    return i->second;
+  if (auto i = variables_.find(value); i != variables_.end()) {
+    StackPointer si = i->second;
+    //emitInstr(Opcode::LOAD, si);
+    return si;//i->second;
+  }
 
   StackPointer sp = stack_.size();
   stack_.emplace_back(value);
@@ -490,6 +498,7 @@ void TargetCodeGenerator::visit(INotInstr& instr) {
 }
 
 void TargetCodeGenerator::visit(IAddInstr& instr) {
+  variables_[&instr] = getStackPointer();
   emitBinaryAssoc(instr, Opcode::NADD);
 }
 

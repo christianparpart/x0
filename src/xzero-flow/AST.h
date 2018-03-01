@@ -486,10 +486,17 @@ class ExprStmt : public Stmt {
 
 class CompoundStmt : public Stmt {
  private:
+  std::unique_ptr<SymbolTable> scope_;
   std::list<std::unique_ptr<Stmt>> statements_;
 
  public:
-  explicit CompoundStmt(const FlowLocation& loc) : Stmt(loc) {}
+  explicit CompoundStmt(const FlowLocation& loc) : Stmt(loc), scope_() {}
+
+  CompoundStmt(const FlowLocation& loc,
+               std::unique_ptr<SymbolTable>&& s)
+      : Stmt(loc), scope_(std::move(s)) {}
+
+  SymbolTable* scope() const { return scope_.get(); }
 
   void push_back(std::unique_ptr<Stmt>&& stmt);
 

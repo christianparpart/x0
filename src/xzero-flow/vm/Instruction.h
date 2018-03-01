@@ -168,9 +168,9 @@ Buffer disassemble(const Instruction* program, size_t n);
  * @param pc      Instruction to disassemble.
  * @param ip      The instruction pointer at which position the instruction is
  *                located within the program.
- * @param comment An optional comment to append to the end of the disassembly.
+ * @param sp      stack size (depth) at that execution point.
  */
-Buffer disassemble(Instruction pc, size_t ip, const char* comment = nullptr);
+Buffer disassemble(Instruction pc, size_t ip, size_t* sp = nullptr);
 
 /** decodes the opcode from the instruction. */
 constexpr Opcode opcode(Instruction instr) {
