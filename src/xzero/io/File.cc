@@ -28,8 +28,8 @@ namespace xzero {
 
 File::File(const std::string& path, const std::string& mimetype)
     : path_(path),
-      mimetype_(mimetype),
       errno_(0),
+      mimetype_(mimetype),
       lastModified_() {
   TRACE(2, "($0).ctor", path_);
 }
