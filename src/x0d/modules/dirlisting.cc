@@ -28,6 +28,36 @@ class OutputFormatter {
   virtual void generateTrailer() = 0;
 };
 
+class CsvFormatter : public OutputFormatter { // {{{
+ public:
+  HttpResponse* response_;
+  Buffer buffer_;
+
+  explicit CsvFormatter(HttpResponse* resp)
+      : response_(resp), buffer_() {}
+
+  void generateHeader(const std::string& path) override {
+    buffer_.push_back("mtime,size,mimetype,filename\n");
+  }
+
+  void generateEntry(std::shared_ptr<File> file) override {
+    buffer_.push_back(file->mtime());
+    buffer_.push_back(',');
+    buffer_.push_back(file->isDirectory() ? 0 : file->size());
+    buffer_.push_back(",\"");
+    buffer_.push_back(file->mimetype());
+    buffer_.push_back("\",\"");
+    buffer_.push_back(file->filename());
+    buffer_.push_back("\"\n");
+  }
+
+  void generateTrailer() override {
+    response_->setContentLength(buffer_.size());
+    response_->setHeader("Content-Type", "text/csv");
+    response_->write(std::move(buffer_));
+  }
+};
+// }}}
 class JsonFormatter : public OutputFormatter { // {{{
  public:
   HttpResponse* response_;
@@ -64,7 +94,6 @@ class JsonFormatter : public OutputFormatter { // {{{
   }
 };
 // }}}
-
 class HtmlFormatter : public OutputFormatter { // {{{
  public:
   Buffer buffer_;
@@ -162,9 +191,12 @@ bool DirlistingModule::dirlisting(XzeroContext* cx, Params& args) {
   std::unique_ptr<OutputFormatter> formatter;
 
   std::string accept = MediaRange::match(cx->request()->getHeader("Accept"),
-                                         {"text/html", "application/json"});
+                                         {"text/html", "application/json",
+                                          "text/csv"});
 
-  if (accept == "application/json") {
+  if (accept == "text/csv") {
+    formatter = std::make_unique<CsvFormatter>(cx->response());
+  } else if (accept == "application/json") {
     formatter = std::make_unique<JsonFormatter>(cx->response());
   } else {
     // default to text/html
