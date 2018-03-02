@@ -31,7 +31,7 @@ class MatchDef;
 class NativeCallback;
 class ConstantPool;
 
-class Program : public std::enable_shared_from_this<Program> {
+class Program {
  public:
   explicit Program(ConstantPool&& cp);
   Program(Program&) = delete;
@@ -39,6 +39,7 @@ class Program : public std::enable_shared_from_this<Program> {
   ~Program();
 
   const ConstantPool& constants() const { return cp_; }
+  ConstantPool& constants() { return cp_; }
 
   // accessors to linked data
   const Match* match(size_t index) const { return matches_[index]; }
@@ -72,9 +73,9 @@ class Program : public std::enable_shared_from_this<Program> {
 
   void dump();
 
+ private:
   void setup();
 
- private:
   // builders
   std::shared_ptr<Handler> createHandler(const std::string& name);
   std::shared_ptr<Handler> createHandler(const std::string& name,

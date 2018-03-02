@@ -31,6 +31,8 @@ namespace xzero::flow::vm {
  */
 class ConstantPool {
  public:
+  using Code = std::vector<Instruction>;
+
   ConstantPool(const ConstantPool& v) = delete;
   ConstantPool& operator=(const ConstantPool& v) = delete;
 
@@ -89,20 +91,24 @@ class ConstantPool {
 
   const MatchDef& getMatchDef(size_t id) const { return matchDefs_[id]; }
 
-  const std::pair<std::string, std::vector<Instruction>>& getHandler(
-      size_t id) const {
+  const std::pair<std::string, Code>& getHandler(size_t id) const {
     return handlers_[id];
   }
-  std::pair<std::string, std::vector<Instruction>>& getHandler(size_t id) {
+  std::pair<std::string, Code>& getHandler(size_t id) {
     return handlers_[id];
+  }
+
+  size_t setHandler(const std::string& name, Code&& code) {
+    auto id = makeHandler(name);
+    handlers_[id].second = std::move(code);
+    return id;
   }
 
   // bulk accessors
   const std::vector<std::pair<std::string, std::string>>& getModules() const {
     return modules_;
   }
-  const std::vector<std::pair<std::string, std::vector<Instruction>>>&
-  getHandlers() const {
+  const std::vector<std::pair<std::string, Code>>& getHandlers() const {
     return handlers_;
   }
   const std::vector<MatchDef>& getMatchDefs() const { return matchDefs_; }
@@ -132,7 +138,7 @@ class ConstantPool {
 
   // code data
   std::vector<std::pair<std::string, std::string>> modules_;
-  std::vector<std::pair<std::string, std::vector<Instruction>>> handlers_;
+  std::vector<std::pair<std::string, Code>> handlers_;
   std::vector<MatchDef> matchDefs_;
   std::vector<std::string> nativeHandlerSignatures_;
   std::vector<std::string> nativeFunctionSignatures_;

@@ -99,7 +99,7 @@ class Runner : public CustomData {
    * as it is only having a weak reference to the program (to avoid cycling
    * references).
    */
-  std::shared_ptr<Program> program_;
+  Program* program_;
 
   //! pointer to the currently evaluated HttpRequest/HttpResponse our case
   std::pair<void*,void*> userdata_;
@@ -130,6 +130,9 @@ class Runner : public CustomData {
   bool resume();
   void rewind();
 
+  size_t getInstructionPointer() const noexcept { return sp_; }
+  size_t getStackPointer() const noexcept { return sp_; }
+
   size_t instructionOffset() const { return pc_; }
   State state() const { return state_; }
   bool isInactive() const { return state_ == Inactive; }
@@ -137,7 +140,7 @@ class Runner : public CustomData {
   bool isSuspended() const { return state_ == Suspended; }
 
   std::shared_ptr<Handler> handler() const { return handler_; }
-  std::shared_ptr<Program> program() const { return program_; }
+  Program* program() const { return program_; }
   void* userdata() const { return userdata_.first; }
   void* userdata2() const { return userdata_.second; }
   void setUserData(void* p, void* q = nullptr) {
@@ -154,6 +157,16 @@ class Runner : public CustomData {
   RegExpContext* regexpContext() noexcept { return &regexpContext_; }
 
   const Stack& stack() const { return stack_; }
+  Value stack(int si) const { return stack_[si]; }
+
+  FlowNumber getNumber(int si) { return static_cast<FlowNumber>(stack_[si]); }
+  const FlowString& getString(int si) { return *(FlowString*) stack_[si]; }
+  const IPAddress& getIPAddress(int si) { return *(IPAddress*) stack_[si]; }
+  const Cidr& getCidr(int si) { return *(Cidr*) stack_[si]; }
+  const RegExp& getRegExp(int si) { return *(RegExp*) stack_[si]; }
+
+  const FlowString* getStringPtr(int si) { return (FlowString*) stack_[si]; }
+  const Cidr* getCidrPtr(int si) { return (Cidr*) stack_[si]; }
 
   FlowString* newString(const std::string& value);
   FlowString* newString(const char* p, size_t n);

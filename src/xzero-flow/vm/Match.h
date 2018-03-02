@@ -67,7 +67,7 @@ class Match {
 /** Implements SMATCHEQ instruction. */
 class MatchSame : public Match {
  public:
-  MatchSame(const MatchDef& def, std::shared_ptr<Program> program);
+  MatchSame(const MatchDef& def, Program* program);
   ~MatchSame();
 
   uint64_t evaluate(const FlowString* condition, Runner* env) const override;
@@ -79,7 +79,7 @@ class MatchSame : public Match {
 /** Implements SMATCHBEG instruction. */
 class MatchHead : public Match {
  public:
-  MatchHead(const MatchDef& def, std::shared_ptr<Program> program);
+  MatchHead(const MatchDef& def, Program* program);
   ~MatchHead();
 
   uint64_t evaluate(const FlowString* condition, Runner* env) const override;
@@ -91,7 +91,7 @@ class MatchHead : public Match {
 /** Implements SMATCHBEG instruction. */
 class MatchTail : public Match {
  public:
-  MatchTail(const MatchDef& def, std::shared_ptr<Program> program);
+  MatchTail(const MatchDef& def, Program* program);
   ~MatchTail();
 
   uint64_t evaluate(const FlowString* condition, Runner* env) const override;
@@ -103,7 +103,7 @@ class MatchTail : public Match {
 /** Implements SMATCHR instruction. */
 class MatchRegEx : public Match {
  public:
-  MatchRegEx(const MatchDef& def, std::shared_ptr<Program> program);
+  MatchRegEx(const MatchDef& def, Program* program);
   ~MatchRegEx();
 
   uint64_t evaluate(const FlowString* condition, Runner* env) const override;

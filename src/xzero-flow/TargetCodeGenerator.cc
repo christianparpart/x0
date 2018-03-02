@@ -107,10 +107,7 @@ std::shared_ptr<Program> TargetCodeGenerator::generate(IRProgram* programIR) {
 
   cp_.setModules(programIR->modules());
 
-  auto program = std::shared_ptr<Program>(new Program(std::move(cp_)));
-  program->setup();
-
-  return program;
+  return std::shared_ptr<Program>(new Program(std::move(cp_)));
 }
 
 void TargetCodeGenerator::generate(IRHandler* handler) {

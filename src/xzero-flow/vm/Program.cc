@@ -57,6 +57,7 @@ Program::Program(ConstantPool&& cp)
       nativeHandlers_(),
       nativeFunctions_() {
   TRACE("Program.ctor");
+  setup();
 }
 
 Program::~Program() {
@@ -70,24 +71,26 @@ std::shared_ptr<Handler> Program::handler(size_t index) const {
 }
 
 void Program::setup() {
+  TRACE("Program.setup: create handlers");
   for (const auto& handler : cp_.getHandlers())
     createHandler(handler.first, handler.second);
 
+  TRACE("Program.setup: create matches");
   const std::vector<MatchDef>& matches = cp_.getMatchDefs();
   for (size_t i = 0, e = matches.size(); i != e; ++i) {
     const MatchDef& def = matches[i];
     switch (def.op) {
       case MatchClass::Same:
-        matches_.emplace_back(new MatchSame(def, shared_from_this()));
+        matches_.emplace_back(new MatchSame(def, this));
         break;
       case MatchClass::Head:
-        matches_.emplace_back(new MatchHead(def, shared_from_this()));
+        matches_.emplace_back(new MatchHead(def, this));
         break;
       case MatchClass::Tail:
-        matches_.emplace_back(new MatchTail(def, shared_from_this()));
+        matches_.emplace_back(new MatchTail(def, this));
         break;
       case MatchClass::RegExp:
-        matches_.emplace_back(new MatchRegEx(def, shared_from_this()));
+        matches_.emplace_back(new MatchRegEx(def, this));
         break;
     }
   }
@@ -100,7 +103,7 @@ std::shared_ptr<Handler> Program::createHandler(const std::string& name) {
 std::shared_ptr<Handler> Program::createHandler(
     const std::string& name,
     const std::vector<Instruction>& instructions) {
-  auto handler = std::make_shared<Handler>(shared_from_this(),
+  auto handler = std::make_shared<Handler>(this,
                                            name,
                                            instructions);
   handlers_.emplace_back(handler);
