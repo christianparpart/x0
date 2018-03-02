@@ -146,7 +146,7 @@ int main(int argc, const char* argv[]) {
     return 1;
   }
 
-  std::shared_ptr<xzero::flow::vm::Program> config;
+  std::unique_ptr<xzero::flow::vm::Program> config;
 
   if (!flags.getString("instant").empty()) {
     std::string spec = flags.getString("instant");
@@ -170,7 +170,7 @@ int main(int argc, const char* argv[]) {
   if (exitBeforeRun)
     return 0;
 
-  if (!x0d.applyConfiguration(config))
+  if (!x0d.applyConfiguration(std::move(config)))
     return 1;
 
   std::string pidfilepath = FileUtil::absolutePath(flags.getString("pid-file"));

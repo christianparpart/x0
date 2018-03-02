@@ -130,12 +130,12 @@ bool XzeroDaemon::import(
 }
 
 // for instant-mode
-std::shared_ptr<flow::vm::Program> XzeroDaemon::loadConfigEasy(
+std::unique_ptr<flow::vm::Program> XzeroDaemon::loadConfigEasy(
     const std::string& docroot, int port) {
   return loadConfigEasy(docroot, port, false, false, false);
 }
 
-std::shared_ptr<flow::vm::Program> XzeroDaemon::loadConfigEasy(
+std::unique_ptr<flow::vm::Program> XzeroDaemon::loadConfigEasy(
     const std::string& docroot, int port,
     bool printAST, bool printIR, bool printTC) {
   std::string flow =
@@ -157,12 +157,12 @@ std::shared_ptr<flow::vm::Program> XzeroDaemon::loadConfigEasy(
       "instant-mode.conf", printAST, printIR, printTC);
 }
 
-std::shared_ptr<xzero::flow::vm::Program> XzeroDaemon::loadConfigFile(
+std::unique_ptr<xzero::flow::vm::Program> XzeroDaemon::loadConfigFile(
     const std::string& configFileName) {
   return loadConfigFile(configFileName, false, false, false);
 }
 
-std::shared_ptr<flow::vm::Program> XzeroDaemon::loadConfigFile(
+std::unique_ptr<flow::vm::Program> XzeroDaemon::loadConfigFile(
     const std::string& configFileName,
     bool printAST, bool printIR, bool printTC) {
   configFilePath_ = configFileName;
@@ -171,7 +171,7 @@ std::shared_ptr<flow::vm::Program> XzeroDaemon::loadConfigFile(
       printAST, printIR, printTC);
 }
 
-std::shared_ptr<flow::vm::Program> XzeroDaemon::loadConfigStream(
+std::unique_ptr<flow::vm::Program> XzeroDaemon::loadConfigStream(
     std::unique_ptr<std::istream>&& is,
     const std::string& fakeFilename,
     bool printAST, bool printIR, bool printTC) {
@@ -233,7 +233,7 @@ std::shared_ptr<flow::vm::Program> XzeroDaemon::loadConfigStream(
     return nullptr;
   }
 
-  std::shared_ptr<flow::vm::Program> program =
+  std::unique_ptr<flow::vm::Program> program =
       flow::TargetCodeGenerator().generate(programIR.get());
 
   program->link(this);
@@ -283,14 +283,14 @@ void XzeroDaemon::patchProgramIR(xzero::flow::IRProgram* programIR,
   }
 }
 
-bool XzeroDaemon::applyConfiguration(std::shared_ptr<flow::vm::Program> program) {
+bool XzeroDaemon::applyConfiguration(std::unique_ptr<flow::vm::Program>&& program) {
   try {
     program->findHandler("setup")->run();
 
     // Override main and *then* preserve the program reference.
     // XXX The order is important to not accidentally generate stale weak ptrs.
     main_ = program->findHandler("main");
-    program_ = program;
+    program_ = std::move(program);
 
     postConfig();
     return true;
@@ -358,12 +358,12 @@ void XzeroDaemon::reloadConfiguration() {
     stopThreads();
 
     // load new config file into Flow
-    std::shared_ptr<flow::vm::Program> program = loadConfigFile(configFilePath_);
+    std::unique_ptr<flow::vm::Program> program = loadConfigFile(configFilePath_);
 
     threadedExecutor_.joinAll();
     stop();
 
-    applyConfiguration(program);
+    applyConfiguration(std::move(program));
   } catch (const std::exception& e) {
     logError("x0d", e, "Error cought while reloading configuration.");
   }
