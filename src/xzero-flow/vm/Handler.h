@@ -25,14 +25,14 @@ class Runner;
 class Handler : public std::enable_shared_from_this<Handler> {
  public:
   Handler();
-  Handler(std::shared_ptr<Program> program,
+  Handler(Program* program,
           const std::string& name,
           const std::vector<Instruction>& instructions);
   Handler(const Handler& handler);
   Handler(Handler&& handler);
   ~Handler();
 
-  std::shared_ptr<Program> program() const { return program_.lock(); }
+  Program* program() const { return program_; }
 
   const std::string& name() const { return name_; }
   void setName(const std::string& name) { name_ = name; }
@@ -56,7 +56,7 @@ class Handler : public std::enable_shared_from_this<Handler> {
   void disassemble();
 
  private:
-  std::weak_ptr<Program> program_;
+  Program* program_;
   std::string name_;
   size_t stackSize_;
   std::vector<Instruction> code_;

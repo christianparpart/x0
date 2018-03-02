@@ -18,7 +18,7 @@ namespace xzero::flow::vm {
 Handler::Handler() {
 }
 
-Handler::Handler(std::shared_ptr<Program> program,
+Handler::Handler(Program* program,
                  const std::string& name,
                  const std::vector<Instruction>& code)
     : program_(program),

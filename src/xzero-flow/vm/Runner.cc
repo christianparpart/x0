@@ -42,19 +42,6 @@ namespace xzero::flow::vm {
 #define C operandC((Instruction) * pc)
 
 #define SP(i) stack_[(i)]
-#define SPARAM3(n) SP(-3 + (n))
-#define SPARAM2(n) SP(-2 + (n))
-#define SPARAM1(n) SP(-1 + (n))
-// #define X SP(-1)
-// #define Y SP(-2)
-// #define Z SP(-3)
-
-#define toString(index)     (*(FlowString*) stack_[index])
-#define toIPAddress(index)  (*(IPAddress*)  stack_[index])
-#define toCidr(index)       (*(Cidr*)       stack_[index])
-#define toCidrPtr(index)    ((Cidr*)        stack_[index])
-#define toRegExp(index)     (*(RegExp*)     stack_[index])
-#define toNumber(index)     ((FlowNumber)   stack_[index])
 
 #define popStringPtr()      ((FlowString*)  stack_.pop())
 
@@ -171,7 +158,8 @@ bool Runner::loop() {
       label(NOP),       label(DISCARD),
 
       // control
-      label(EXIT),      label(JMP),       label(JN),        label(JZ),
+      label(EXIT),
+      label(JMP),       label(JN),        label(JZ),
 
       // array
       label(ITLOAD),    label(STLOAD),    label(PTLOAD),    label(CTLOAD),
@@ -310,142 +298,142 @@ bool Runner::loop() {
   }
 
   instr(NNEG) {
-    SP(-1) = -toNumber(-1);
+    SP(-1) = -getNumber(-1);
     next;
   }
 
   instr(NNOT) {
-    SP(-1) = ~toNumber(-1);
+    SP(-1) = ~getNumber(-1);
     next;
   }
 
   instr(NADD) {
-    SP(-2) = toNumber(-2) + toNumber(-1);
+    SP(-2) = getNumber(-2) + getNumber(-1);
     pop();
     next;
   }
 
   instr(NSUB) {
-    SP(-2) = toNumber(-2) - toNumber(-1);
+    SP(-2) = getNumber(-2) - getNumber(-1);
     pop();
     next;
   }
 
   instr(NMUL) {
-    SP(-2) = toNumber(-2) * toNumber(-1);
+    SP(-2) = getNumber(-2) * getNumber(-1);
     pop();
     next;
   }
 
   instr(NDIV) {
-    SP(-2) = toNumber(-2) / toNumber(-1);
+    SP(-2) = getNumber(-2) / getNumber(-1);
     pop();
     next;
   }
 
   instr(NREM) {
-    SP(-2) = toNumber(-2) % toNumber(-1);
+    SP(-2) = getNumber(-2) % getNumber(-1);
     pop();
     next;
   }
 
   instr(NSHL) {
-    SP(-2) = toNumber(-2) << toNumber(-1);
+    SP(-2) = getNumber(-2) << getNumber(-1);
     pop();
     next;
   }
 
   instr(NSHR) {
-    SP(-2) = toNumber(-2) >> toNumber(-1);
+    SP(-2) = getNumber(-2) >> getNumber(-1);
     pop();
     next;
   }
 
   instr(NPOW) {
-    SP(-2) = powl(toNumber(-2), toNumber(-1));
+    SP(-2) = powl(getNumber(-2), getNumber(-1));
     pop();
     next;
   }
 
   instr(NAND) {
-    SP(-2) = toNumber(-2) & toNumber(-1);
+    SP(-2) = getNumber(-2) & getNumber(-1);
     pop();
     next;
   }
 
   instr(NOR) {
-    SP(-2) = toNumber(-2) | toNumber(-1);
+    SP(-2) = getNumber(-2) | getNumber(-1);
     pop();
     next;
   }
 
   instr(NXOR) {
-    SP(-2) = toNumber(-2) ^ toNumber(-1);
+    SP(-2) = getNumber(-2) ^ getNumber(-1);
     pop();
     next;
   }
 
   instr(NCMPZ) {
-    SP(-1) = toNumber(-1) == 0;
+    SP(-1) = getNumber(-1) == 0;
     next;
   }
 
   instr(NCMPEQ) {
-    SP(-2) = toNumber(-2) == toNumber(-1);
+    SP(-2) = getNumber(-2) == getNumber(-1);
     pop();
     next;
   }
 
   instr(NCMPNE) {
-    SP(-2) = toNumber(-2) != toNumber(-1);
+    SP(-2) = getNumber(-2) != getNumber(-1);
     pop();
     next;
   }
 
   instr(NCMPLE) {
-    SP(-2) = toNumber(-2) <= toNumber(-1);
+    SP(-2) = getNumber(-2) <= getNumber(-1);
     pop();
     next;
   }
 
   instr(NCMPGE) {
-    SP(-2) = toNumber(-2) >= toNumber(-1);
+    SP(-2) = getNumber(-2) >= getNumber(-1);
     pop();
     next;
   }
 
   instr(NCMPLT) {
-    SP(-2) = toNumber(-2) < toNumber(-1);
+    SP(-2) = getNumber(-2) < getNumber(-1);
     pop();
     next;
   }
 
   instr(NCMPGT) {
-    SP(-2) = toNumber(-2) > toNumber(-1);
+    SP(-2) = getNumber(-2) > getNumber(-1);
     pop();
     next;
   }
   // }}}
   // {{{ boolean
   instr(BNOT) {
-    SP(-1) = !toNumber(-1);
+    SP(-1) = !getNumber(-1);
     next;
   }
 
   instr(BAND) {
-    SP(-2) = toNumber(-2) && toNumber(-1);
+    SP(-2) = getNumber(-2) && getNumber(-1);
     pop();
     next;
   }
 
   instr(BOR) {
-    SP(-2) = toNumber(-2) || toNumber(-1);
+    SP(-2) = getNumber(-2) || getNumber(-1);
     pop();
     next;
   }
 
   instr(BXOR) {
-    SP(-2) = toNumber(-2) ^ toNumber(-1);
+    SP(-2) = getNumber(-2) ^ getNumber(-1);
     pop();
     next;
   }
@@ -457,78 +445,78 @@ bool Runner::loop() {
   }
 
   instr(SADD) {
-    SP(-2) = (Value) catString(toString(-2), toString(-1));
+    SP(-2) = (Value) catString(getString(-2), getString(-1));
     pop();
     next;
   }
 
   instr(SSUBSTR) {
-    SP(-2) = (Value) newString(toString(-3).substr(toNumber(-2), toNumber(-1)));
+    SP(-2) = (Value) newString(getString(-3).substr(getNumber(-2), getNumber(-1)));
     stack_.discard(2);
     next;
   }
 
   instr(SCMPEQ) {
-    SP(-2) = toString(-2) == toString(-1);
+    SP(-2) = getString(-2) == getString(-1);
     pop();
     next;
   }
 
   instr(SCMPNE) {
-    SP(-2) = toString(-2) != toString(-1);
+    SP(-2) = getString(-2) != getString(-1);
     pop();
     next;
   }
 
   instr(SCMPLE) {
-    SP(-2) = toString(-2) <= toString(-1);
+    SP(-2) = getString(-2) <= getString(-1);
     pop();
     next;
   }
 
   instr(SCMPGE) {
-    SP(-2) = toString(-2) >= toString(-1);
+    SP(-2) = getString(-2) >= getString(-1);
     pop();
     next;
   }
 
   instr(SCMPLT) {
-    SP(-2) = toString(-2) < toString(-1);
+    SP(-2) = getString(-2) < getString(-1);
     pop();
     next;
   }
 
   instr(SCMPGT) {
-    SP(-2) = toString(-2) > toString(-1);
+    SP(-2) = getString(-2) > getString(-1);
     pop();
     next;
   }
 
   instr(SCMPBEG) {
-    SP(-2) = StringUtil::beginsWith(toString(-2), toString(-1));
+    SP(-2) = StringUtil::beginsWith(getString(-2), getString(-1));
     pop();
     next;
   }
 
   instr(SCMPEND) {
-    SP(-2) = StringUtil::endsWith(toString(-2), toString(-1));
+    SP(-2) = StringUtil::endsWith(getString(-2), getString(-1));
     pop();
     next;
   }
 
   instr(SCONTAINS) {
-    SP(-2) = StringUtil::includes(toString(-2), toString(-1));
+    SP(-2) = StringUtil::includes(getString(-2), getString(-1));
     pop();
     next;
   }
 
   instr(SLEN) {
-    SP(-1) = toString(-1).size();
+    SP(-1) = getString(-1).size();
     next;
   }
 
   instr(SISEMPTY) {
-    SP(-1) = toString(-1).empty();
+    SP(-1) = getString(-1).empty();
     next;
   }
 
@@ -559,20 +547,20 @@ bool Runner::loop() {
   }
 
   instr(PCMPEQ) {
-    SP(-2) = toIPAddress(-2) == toIPAddress(-2);
+    SP(-2) = getIPAddress(-2) == getIPAddress(-2);
     pop();
     next;
   }
 
   instr(PCMPNE) {
-    SP(-2) = toIPAddress(-2) != toIPAddress(-1);
+    SP(-2) = getIPAddress(-2) != getIPAddress(-1);
     pop();
     next;
   }
 
   instr(PINCIDR) {
-    const IPAddress& ipaddr = toIPAddress(-2);
-    const Cidr& cidr = toCidr(-1);
+    const IPAddress& ipaddr = getIPAddress(-2);
+    const Cidr& cidr = getCidr(-1);
     SP(-2) = cidr.contains(ipaddr);
     pop();
     next;
@@ -587,14 +575,14 @@ bool Runner::loop() {
   // {{{ regex
   instr(SREGMATCH) {  // A =~ B
     const RegExp& regex = program()->constants().getRegExp(A);
-    const FlowString& data = toString(-1);
+    const FlowString& data = getString(-1);
     const bool result = regex.match(data, regexpContext_.regexMatch());
     SP(-1) = result;
     next;
   }
 
   instr(SREGGROUP) {
-    FlowNumber position = toNumber(-1);
+    FlowNumber position = getNumber(-1);
     RegExp::Result& rr = *regexpContext_.regexMatch();
     const auto& match = rr[position];
 
@@ -604,12 +592,12 @@ bool Runner::loop() {
   // }}}
   // {{{ conversion
   instr(S2N) {  // A = atoi(B)
-    SP(-1) = std::stoi(toString(-1));
+    SP(-1) = std::stoi(getString(-1));
     next;
   }
 
   instr(N2S) {  // A = itoa(B)
-    FlowNumber value = toNumber(-1);
+    FlowNumber value = getNumber(-1);
     char buf[64];
     if (snprintf(buf, sizeof(buf), "%" PRIi64 "", (int64_t)value) > 0) {
       SP(-1) = (Value) newString(buf);
@@ -619,20 +607,20 @@ bool Runner::loop() {
     next;
   }
 
-  instr(P2S) {  // A = ip(B).toString()
-    const IPAddress& ipaddr = toIPAddress(-1);
+  instr(P2S) {
+    const IPAddress& ipaddr = getIPAddress(-1);
     SP(-1) = (Value) newString(ipaddr.str());
     next;
   }
 
-  instr(C2S) {  // A = cidr(B).toString()
-    const Cidr& cidr = toCidr(-1);
+  instr(C2S) {
+    const Cidr& cidr = getCidr(-1);
     SP(-1) = (Value) newString(cidr.str());
     next;
   }
 
-  instr(R2S) {  // A = regex(B).toString()
-    const RegExp& re = toRegExp(-1);
+  instr(R2S) {
+    const RegExp& re = getRegExp(-1);
     SP(-1) = (Value) newString(re.pattern());
     next;
   }

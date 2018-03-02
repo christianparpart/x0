@@ -23,7 +23,7 @@ Match::~Match() {
 }
 // }}} Match
 // {{{ MatchSame
-MatchSame::MatchSame(const MatchDef& def, std::shared_ptr<Program> program)
+MatchSame::MatchSame(const MatchDef& def, Program* program)
     : Match(def),
       map_() {
   for (const auto& one : def.cases) {
@@ -43,7 +43,7 @@ uint64_t MatchSame::evaluate(const FlowString* condition, Runner* env) const {
 }
 // }}}
 // {{{ MatchHead
-MatchHead::MatchHead(const MatchDef& def, std::shared_ptr<Program> program)
+MatchHead::MatchHead(const MatchDef& def, Program* program)
     : Match(def),
       map_() {
   for (const auto& one : def.cases) {
@@ -63,7 +63,7 @@ uint64_t MatchHead::evaluate(const FlowString* condition, Runner* env) const {
 }
 // }}}
 // {{{ MatchTail
-MatchTail::MatchTail(const MatchDef& def, std::shared_ptr<Program> program)
+MatchTail::MatchTail(const MatchDef& def, Program* program)
     : Match(def),
       map_() {
   for (const auto& one: def.cases) {
@@ -83,7 +83,7 @@ uint64_t MatchTail::evaluate(const FlowString* condition, Runner* env) const {
 }
 // }}}
 // {{{ MatchRegEx
-MatchRegEx::MatchRegEx(const MatchDef& def, std::shared_ptr<Program> program)
+MatchRegEx::MatchRegEx(const MatchDef& def, Program* program)
     : Match(def), map_() {
   for (const auto& one : def.cases) {
     map_.push_back(
