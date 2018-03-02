@@ -585,7 +585,8 @@ xzero_test_SOURCES = \
 	src/xzero/thread/Future-test.cc \
 	src/xzero/thread/Queue-test.cc \
 	src/xzero/util/BinaryReader-test.cc \
-	src/xzero/util/BinaryWriter-test.cc
+	src/xzero/util/BinaryWriter-test.cc \
+	src/xzero-flow/vm/Runner-test.cc
 
 if PLATFORM_LINUX
 xzero_test_SOURCES += \
