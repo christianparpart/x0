@@ -20,12 +20,12 @@ using namespace xzero::http;
 namespace x0d {
 
 XzeroContext::XzeroContext(
-    std::shared_ptr<xzero::flow::vm::Handler> entrypoint,
+    std::unique_ptr<xzero::flow::vm::Runner>&& runner,
     xzero::http::HttpRequest* request,
     xzero::http::HttpResponse* response,
     std::unordered_map<xzero::http::HttpStatus, std::string>* globalErrorPages,
     size_t maxInternalRedirectCount)
-    : runner_(entrypoint->createRunner()),
+    : runner_(std::move(runner)),
       createdAt_(now()),
       requests_({request}),
       response_(response),

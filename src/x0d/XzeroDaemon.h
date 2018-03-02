@@ -204,7 +204,7 @@ class XzeroDaemon : public xzero::flow::vm::Runtime {
 
   // Flow configuration
   std::unique_ptr<xzero::flow::vm::Program> program_; // kept to preserve strong reference count
-  std::shared_ptr<xzero::flow::vm::Handler> main_;
+  xzero::flow::vm::Handler* main_;
   std::vector<std::string> setupApi_;
   std::vector<std::string> mainApi_;
   int optimizationLevel_;

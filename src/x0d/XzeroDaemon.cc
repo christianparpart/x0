@@ -484,7 +484,7 @@ std::unique_ptr<EventLoop> XzeroDaemon::createEventLoop() {
 
 void XzeroDaemon::handleRequest(HttpRequest* request, HttpResponse* response) {
   // XXX the XzeroContext instance is getting deleted upon response completion
-  XzeroContext* cx = new XzeroContext(main_,
+  XzeroContext* cx = new XzeroContext(main_->createRunner(),
                                       request,
                                       response,
                                       &config_->errorPages,

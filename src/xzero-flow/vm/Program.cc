@@ -66,8 +66,8 @@ Program::~Program() {
     delete m;
 }
 
-std::shared_ptr<Handler> Program::handler(size_t index) const {
-  return handlers_[index];
+Handler* Program::handler(size_t index) const {
+  return handlers_[index].get();
 }
 
 void Program::setup() {
@@ -96,31 +96,27 @@ void Program::setup() {
   }
 }
 
-std::shared_ptr<Handler> Program::createHandler(const std::string& name) {
+Handler* Program::createHandler(const std::string& name) {
   return createHandler(name, {});
 }
 
-std::shared_ptr<Handler> Program::createHandler(
-    const std::string& name,
-    const std::vector<Instruction>& instructions) {
-  auto handler = std::make_shared<Handler>(this,
-                                           name,
-                                           instructions);
-  handlers_.emplace_back(handler);
-  return handler;
+Handler* Program::createHandler(const std::string& name, const Code& code) {
+  handlers_.emplace_back(std::make_unique<Handler>(this,
+                                                   name,
+                                                   code));
+  return handlers_.back().get();
 }
 
-std::shared_ptr<Handler> Program::findHandler(const std::string& name) const {
-  for (auto& handler: handlers_) {
+Handler* Program::findHandler(const std::string& name) const {
+  for (auto& handler: handlers_)
     if (handler->name() == name)
-      return handler;
-  }
+      return handler.get();
 
   return nullptr;
 }
 
 bool Program::run(const std::string& handlerName, void* u1, void* u2) {
-  if (std::shared_ptr<Handler> handler = findHandler(handlerName))
+  if (Handler* handler = findHandler(handlerName); handler != nullptr)
     return handler->run(u1, u2);
 
   RAISE(RuntimeError, "No handler with name '%s' found.", handlerName.c_str());
@@ -136,17 +132,9 @@ std::vector<std::string> Program::handlerNames() const {
   return result;
 }
 
-int Program::indexOf(const std::shared_ptr<Handler>& that) const {
-  for (int i = 0, e = handlers_.size(); i != e; ++i)
-    if (handler(i).get() == that.get())
-      return i;
-
-  return -1;
-}
-
 int Program::indexOf(const Handler* that) const {
   for (int i = 0, e = handlers_.size(); i != e; ++i)
-    if (handler(i).get() == that)
+    if (handlers_[i].get() == that)
       return i;
 
   return -1;
@@ -158,7 +146,7 @@ void Program::dump() {
   cp_.dump();
 
   for (size_t i = 0, e = handlers_.size(); i != e; ++i) {
-    std::shared_ptr<Handler> handler = this->handler(i);
+    Handler* handler = this->handler(i);
     printf("\n.handler %-20s ; #%zu (%zu stack size, %zu instructions)\n",
            handler->name().c_str(), i,
            handler->stackSize(),

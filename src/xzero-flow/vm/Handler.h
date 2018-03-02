@@ -15,14 +15,12 @@
 #include <memory>
 #include <cstdint>
 
-namespace xzero {
-namespace flow {
-namespace vm {
+namespace xzero::flow::vm {
 
 class Program;
 class Runner;
 
-class Handler : public std::enable_shared_from_this<Handler> {
+class Handler {
  public:
   Handler();
   Handler(Program* program,
@@ -65,6 +63,4 @@ class Handler : public std::enable_shared_from_this<Handler> {
 #endif
 };
 
-}  // namespace vm
-}  // namespace flow
-}  // namespace xzero
+}  // namespace xzero::flow::vm
