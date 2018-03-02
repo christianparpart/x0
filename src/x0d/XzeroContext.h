@@ -42,7 +42,7 @@ class XzeroContext {
   CUSTOMDATA_API_INLINE
  public:
   XzeroContext(
-      std::shared_ptr<xzero::flow::vm::Handler> entrypoint,
+      std::unique_ptr<xzero::flow::vm::Runner>&& runner,
       xzero::http::HttpRequest* request,
       xzero::http::HttpResponse* response,
       std::unordered_map<xzero::http::HttpStatus, std::string>* globalErrorPages,

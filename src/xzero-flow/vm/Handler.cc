@@ -78,7 +78,7 @@ void Handler::setCode(std::vector<Instruction>&& code) {
 }
 
 std::unique_ptr<Runner> Handler::createRunner() {
-  return std::unique_ptr<Runner>(new Runner(shared_from_this()));
+  return std::unique_ptr<Runner>(new Runner(this));
 }
 
 bool Handler::run(void* userdata, void* userdata2) {

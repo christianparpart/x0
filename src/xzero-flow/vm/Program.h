@@ -43,7 +43,7 @@ class Program {
 
   // accessors to linked data
   const Match* match(size_t index) const { return matches_[index]; }
-  std::shared_ptr<Handler> handler(size_t index) const;
+  Handler* handler(size_t index) const;
   NativeCallback* nativeHandler(size_t index) const {
     return nativeHandlers_[index];
   }
@@ -56,8 +56,7 @@ class Program {
 
   std::vector<std::string> handlerNames() const;
   int indexOf(const Handler* handler) const;
-  int indexOf(const std::shared_ptr<Handler>& handler) const;
-  std::shared_ptr<Handler> findHandler(const std::string& name) const;
+  Handler* findHandler(const std::string& name) const;
 
   /**
    * Convenience method to run a handler.
@@ -77,16 +76,16 @@ class Program {
   void setup();
 
   // builders
-  std::shared_ptr<Handler> createHandler(const std::string& name);
-  std::shared_ptr<Handler> createHandler(const std::string& name,
-      const std::vector<Instruction>& instructions);
+  using Code = ConstantPool::Code;
+  Handler* createHandler(const std::string& name);
+  Handler* createHandler(const std::string& name, const Code& instructions);
 
  private:
   ConstantPool cp_;
 
   // linked data
   Runtime* runtime_;
-  mutable std::vector<std::shared_ptr<Handler>> handlers_;
+  mutable std::vector<std::unique_ptr<Handler>> handlers_;
   std::vector<Match*> matches_;
   std::vector<NativeCallback*> nativeHandlers_;
   std::vector<NativeCallback*> nativeFunctions_;

@@ -91,7 +91,7 @@ class Runner : public CustomData {
   // }}}
 
  private:
-  std::shared_ptr<Handler> handler_;
+  Handler* handler_;
 
   /**
    * We especially keep this ref to prevent ensure handler has
@@ -122,7 +122,7 @@ class Runner : public CustomData {
   void pushString(const FlowString* value) { push((Value) value); }
 
  public:
-  explicit Runner(std::shared_ptr<Handler> handler);
+  explicit Runner(Handler* handler);
   ~Runner();
 
   bool run();
@@ -139,7 +139,7 @@ class Runner : public CustomData {
   bool isRunning() const { return state_ == Running; }
   bool isSuspended() const { return state_ == Suspended; }
 
-  std::shared_ptr<Handler> handler() const { return handler_; }
+  Handler* handler() const { return handler_; }
   Program* program() const { return program_; }
   void* userdata() const { return userdata_.first; }
   void* userdata2() const { return userdata_.second; }

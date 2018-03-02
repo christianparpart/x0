@@ -33,7 +33,7 @@ class Params {
 
   void setResult(bool value) { argv_[0] = value; }
   void setResult(FlowNumber value) { argv_[0] = (Value) value; }
-  void setResult(std::shared_ptr<Handler> handler) { argv_[0] = caller_->program()->indexOf(handler); }
+  void setResult(const Handler* handler) { argv_[0] = caller_->program()->indexOf(handler); }
   void setResult(const char* cstr) { argv_[0] = (Value) caller_->newString(cstr); }
   void setResult(const std::string& str) { argv_[0] = (Value) caller_->newString(str.data(), str.size()); }
   void setResult(const FlowString* str) { argv_[0] = (Value) str; }
@@ -50,7 +50,7 @@ class Params {
   bool getBool(size_t offset) const { return at(offset); }
   FlowNumber getInt(size_t offset) const { return at(offset); }
   const FlowString& getString(size_t offset) const { return *(FlowString*)at(offset); }
-  std::shared_ptr<Handler> getHandler(size_t offset) const { return caller_->program()->handler(at(offset)); }
+  Handler* getHandler(size_t offset) const { return caller_->program()->handler(at(offset)); }
   const IPAddress& getIPAddress(size_t offset) const { return *(IPAddress*)at(offset); }
   const Cidr& getCidr(size_t offset) const { return *(Cidr*)at(offset); }
 
