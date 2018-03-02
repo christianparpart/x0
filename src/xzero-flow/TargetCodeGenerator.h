@@ -46,7 +46,7 @@ class TargetCodeGenerator : public InstructionVisitor {
   TargetCodeGenerator();
   ~TargetCodeGenerator();
 
-  std::shared_ptr<vm::Program> generate(IRProgram* program);
+  std::unique_ptr<vm::Program> generate(IRProgram* program);
 
  protected:
   using Opcode = vm::Opcode;

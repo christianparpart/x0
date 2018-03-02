@@ -101,13 +101,13 @@ TargetCodeGenerator::TargetCodeGenerator()
 
 TargetCodeGenerator::~TargetCodeGenerator() {}
 
-std::shared_ptr<Program> TargetCodeGenerator::generate(IRProgram* programIR) {
+std::unique_ptr<Program> TargetCodeGenerator::generate(IRProgram* programIR) {
   for (IRHandler* handler : programIR->handlers())
     generate(handler);
 
   cp_.setModules(programIR->modules());
 
-  return std::shared_ptr<Program>(new Program(std::move(cp_)));
+  return std::make_unique<Program>(std::move(cp_));
 }
 
 void TargetCodeGenerator::generate(IRHandler* handler) {

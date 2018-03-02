@@ -69,21 +69,21 @@ class XzeroDaemon : public xzero::flow::vm::Runtime {
   void setOptimizationLevel(int level) { optimizationLevel_ = level; }
 
   // {{{ config management
-  std::shared_ptr<xzero::flow::vm::Program> loadConfigFile(
+  std::unique_ptr<xzero::flow::vm::Program> loadConfigFile(
       const std::string& configFileName);
-  std::shared_ptr<xzero::flow::vm::Program> loadConfigFile(
+  std::unique_ptr<xzero::flow::vm::Program> loadConfigFile(
       const std::string& configFileName,
       bool printAST, bool printIR, bool printTC);
-  std::shared_ptr<xzero::flow::vm::Program> loadConfigEasy(
+  std::unique_ptr<xzero::flow::vm::Program> loadConfigEasy(
       const std::string& docroot, int port);
-  std::shared_ptr<xzero::flow::vm::Program> loadConfigEasy(
+  std::unique_ptr<xzero::flow::vm::Program> loadConfigEasy(
       const std::string& docroot, int port,
       bool printAST, bool printIR, bool printTC);
-  std::shared_ptr<xzero::flow::vm::Program> loadConfigStream(
+  std::unique_ptr<xzero::flow::vm::Program> loadConfigStream(
       std::unique_ptr<std::istream>&& is, const std::string& name,
       bool printAST, bool printIR, bool printTC);
   void reloadConfiguration();
-  bool applyConfiguration(std::shared_ptr<xzero::flow::vm::Program> program);
+  bool applyConfiguration(std::unique_ptr<xzero::flow::vm::Program>&& program);
   // }}}
 
   void run();
@@ -203,7 +203,7 @@ class XzeroDaemon : public xzero::flow::vm::Runtime {
   std::list<std::unique_ptr<xzero::TcpConnector>> connectors_; //!< TCP (HTTP) connectors
 
   // Flow configuration
-  std::shared_ptr<xzero::flow::vm::Program> program_; // kept to preserve strong reference count
+  std::unique_ptr<xzero::flow::vm::Program> program_; // kept to preserve strong reference count
   std::shared_ptr<xzero::flow::vm::Handler> main_;
   std::vector<std::string> setupApi_;
   std::vector<std::string> mainApi_;
