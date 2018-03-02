@@ -23,14 +23,15 @@ Handler::Handler(Program* program,
                  const std::vector<Instruction>& code)
     : program_(program),
       name_(name),
-      stackSize_(computeStackSize(code.data(), code.size())),
-      code_(code)
+      stackSize_(),
+      code_()
 #if defined(ENABLE_FLOW_DIRECT_THREADED_VM)
       ,
       directThreadedCode_()
 #endif
 {
   TRACE("Handler.ctor: $0 $1", name_, (long long) this);
+  setCode(code);
 }
 
 Handler::Handler(const Handler& v)
@@ -65,11 +66,17 @@ Handler::~Handler() {
 
 void Handler::setCode(const std::vector<Instruction>& code) {
   code_ = code;
+  if (opcode(code_.back()) != Opcode::EXIT)
+    code_.push_back(makeInstruction(Opcode::EXIT, false));
+
   stackSize_ = computeStackSize(code_.data(), code_.size());
 }
 
 void Handler::setCode(std::vector<Instruction>&& code) {
   code_ = std::move(code);
+  if (opcode(code_.back()) != Opcode::EXIT)
+    code_.push_back(makeInstruction(Opcode::EXIT, false));
+
   stackSize_ = computeStackSize(code_.data(), code_.size());
 
 #if defined(ENABLE_FLOW_DIRECT_THREADED_VM)
