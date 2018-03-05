@@ -16,7 +16,7 @@ namespace http {
 namespace fastcgi {
 
 #define TRACE(msg...) do { \
-  logTrace("fastcgi", "ResponseParser: " msg); \
+  logTrace("fastcgi: ResponseParser: " msg); \
 } while (0)
 
 // {{{ ResponseParser::StreamState impl

@@ -26,7 +26,7 @@
 namespace xzero {
 
 #ifndef NDEBUG
-#define TRACE(msg...) logTrace("SslContext", msg)
+#define TRACE(msg...) logTrace("SslContext" msg)
 #else
 #define TRACE(msg...) do {} while (0)
 #endif
@@ -231,7 +231,7 @@ void SslContext::initialize() {
 
 /* Include <openssl/opensslconf.h> to get this define */
 #if !defined(OPENSSL_THREADS)
-  logDebug("SSL", "OpenSSL implementation has no thread-locking support");
+  logDebug("OpenSSL implementation has no thread-locking support");
 #endif
 }
 

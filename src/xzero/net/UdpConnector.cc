@@ -125,14 +125,14 @@ void UdpConnector::open(
 }
 
 void UdpConnector::notifyOnEvent() {
-  logTrace("UdpConnector", "notifyOnEvent()");
+  logTrace("UdpConnector: notifyOnEvent()");
   io_ = executor_->executeOnReadable(
       socket_,
       std::bind(&UdpConnector::onMessage, this));
 }
 
 void UdpConnector::onMessage() {
-  logTrace("UdpConnector", "onMessage");
+  logTrace("UdpConnector: onMessage");
 
   socklen_t remoteAddrLen;
   sockaddr* remoteAddr;
@@ -177,8 +177,7 @@ void UdpConnector::onMessage() {
         this, std::move(message), remoteAddr, remoteAddrLen));
     executor_->execute(std::bind(handler_, client));
   } else {
-    logTrace("UdpConnector",
-             "ignoring incoming message of %i bytes. No handler set.", n);
+    logTrace("UdpConnector: Ignoring incoming message of %i bytes. No handler set.", n);
   }
 }
 

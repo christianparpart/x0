@@ -26,8 +26,8 @@
 #include <inttypes.h>
 
 #if 1 // !defined(NDEBUG)
-#define TRACE(msg...) logTrace("vm", msg)
-#define DEBUG(msg...) logDebug("vm", msg)
+#define TRACE(msg...) logTrace(msg)
+#define DEBUG(msg...) logDebug(msg)
 #else
 #define TRACE(msg...) do {} while (0)
 #define DEBUG(msg...) do {} while (0)
@@ -644,7 +644,7 @@ bool Runner::loop() {
       handler_->program()->nativeFunction(id)->invoke(args);
 
       if (state_ == Suspended) {
-        logDebug("flow", "vm suspended in function. returning (false)");
+        logDebug("flow: vm suspended in function. returning (false)");
         return false;
       }
     }
@@ -671,7 +671,7 @@ bool Runner::loop() {
       const bool handled = (bool) args[0];
 
       if (state_ == Suspended) {
-        logDebug("flow", "vm suspended in handler. returning (false)");
+        logDebug("flow: vm suspended in handler. returning (false)");
         return false;
       }
 

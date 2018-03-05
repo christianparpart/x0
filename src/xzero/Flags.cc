@@ -382,7 +382,7 @@ std::error_code Flags::parse(const std::vector<std::string>& args) {
 
           if (i >= args.size()) {
             char option[3] = { '-', fd->shortOption, '\0' };
-            logDebug("Flags", "Missing option value for $0", option);
+            logDebug("flags: Missing option value for $0", option);
             return Error::MissingOptionValue;
           }
 
@@ -392,7 +392,7 @@ std::error_code Flags::parse(const std::vector<std::string>& args) {
 
           if (!value.empty() && value[0] == '-') {
             char option[3] = { '-', fd->shortOption, '\0' };
-            logDebug("Flags", "Missing option value for $0", option);
+            logDebug("flags: Missing option value for $0", option);
             return Error::MissingOptionValue;
           }
 
@@ -403,7 +403,7 @@ std::error_code Flags::parse(const std::vector<std::string>& args) {
       params.push_back(arg);
     } else {
       // oops
-      logDebug("Flags", "Unknown option $0", arg);
+      logDebug("flags: Unknown option $0", arg);
       return Error::UnknownOption;
     }
   }

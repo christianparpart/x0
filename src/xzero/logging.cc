@@ -97,7 +97,6 @@ Logger::Logger() :
 }
 
 void Logger::log(LogLevel log_level,
-                 const std::string& component,
                  const std::string& message) {
   if (log_level >= min_level_) {
     const size_t max_idx = max_listener_index_.load();
@@ -105,7 +104,7 @@ void Logger::log(LogLevel log_level,
       auto listener = listeners_[i].load();
 
       if (listener != nullptr) {
-        listener->log(log_level, component, message);
+        listener->log(log_level, message);
       }
     }
   }
@@ -137,13 +136,11 @@ FileLogTarget::FileLogTarget(FileDescriptor&& fd)
 
 // TODO is a mutex required for concurrent printf()'s ?
 void FileLogTarget::log(LogLevel level,
-                        const std::string& component,
                         const std::string& message) {
   std::string logline = StringUtil::format(
-      "$0[$1] [$2] $3\n",
+      "$0[$1] $2\n",
       createTimestamp(),
       level,
-      component,
       message);
 
   FileUtil::write(fd_, logline);
@@ -168,10 +165,8 @@ ConsoleLogTarget* ConsoleLogTarget::get() {
 
 // TODO is a mutex required for concurrent printf()'s ?
 void ConsoleLogTarget::log(LogLevel level,
-                           const std::string& component,
                            const std::string& message) {
   if (isatty(STDERR_FILENO)) {
-    static constexpr AnsiColor::Type componentColor = AnsiColor::Cyan;
     static const auto logColor = [](LogLevel ll) -> AnsiColor::Type {
       switch (ll) {
         case LogLevel::None: return AnsiColor::Clear;
@@ -186,17 +181,15 @@ void ConsoleLogTarget::log(LogLevel level,
     };
 
     fprintf(stderr,
-            "%s[%s] [%s] %s\n",
+            "%s[%s] %s\n",
             createTimestamp().c_str(),
             AnsiColor::colorize(logColor(level), to_string(level)).c_str(),
-            AnsiColor::colorize(componentColor, component).c_str(),
             message.c_str());
   } else {
     fprintf(stderr,
-            "%s[%s] [%s] %s\n",
+            "%s[%s] %s\n",
             createTimestamp().c_str(),
             to_string(level).c_str(),
-            component.c_str(),
             message.c_str());
     fflush(stderr);
   }
@@ -245,7 +238,6 @@ int makeSyslogPriority(LogLevel level) {
 }
 
 void SyslogTarget::log(LogLevel level,
-                       const std::string& component,
                        const std::string& message) {
 
   syslog(makeSyslogPriority(level), "%s", message.c_str());

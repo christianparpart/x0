@@ -157,7 +157,7 @@ bool XzeroContext::sendErrorPage(xzero::http::HttpStatus status,
                                               {}));
       return false;
     } else {
-      logError("x0d", "Too many internal redirects.");
+      logError("Too many internal redirects.");
       sendTrivialResponse(HttpStatus::InternalServerError, "Too many internal redirects.");
       return true;
     }

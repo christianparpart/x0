@@ -133,10 +133,10 @@ bool HttpClusterApiHandler::run() {
       begin = end + pattern.length();
     }
   }
-  logDebug("api", "path $0 tokens ($1): $2",
-                  request_->path(),
-                  tokens_.size(),
-                  StringUtil::join(tokens_, ", "));
+  logDebug("proxy.api: path $0 tokens ($1): $2",
+                       request_->path(),
+                       tokens_.size(),
+                       StringUtil::join(tokens_, ", "));
 
   switch (tokens_.size()) {
     case 3:
@@ -280,9 +280,9 @@ void HttpClusterApiHandler::createCluster(const std::string& name) {
   HttpStatus status = doUpdateCluster(cluster, HttpStatus::Created);
 
   if (isAlreadyPresent) {
-    logInfo("api", "cluster: $0 updated via create method.", cluster->name());
+    logInfo("proxy.api: cluster: $0 updated via create method.", cluster->name());
   } else {
-    logInfo("api", "cluster: $0 created.", cluster->name());
+    logInfo("proxy.api: cluster: $0 created.", cluster->name());
   }
 
   response_->setStatus(status);
@@ -306,14 +306,14 @@ void HttpClusterApiHandler::showCluster(HttpCluster* cluster) {
 
 void HttpClusterApiHandler::updateCluster(HttpCluster* cluster) {
   HttpStatus status = doUpdateCluster(cluster, HttpStatus::Ok);
-  logInfo("api", "cluster: $0 reconfigured.", cluster->name());
+  logInfo("proxy.api: cluster: $0 reconfigured.", cluster->name());
   generateResponse(status);
 }
 
 HttpStatus HttpClusterApiHandler::doUpdateCluster(HttpCluster* cluster,
                                                   HttpStatus status) {
   if (!cluster->isMutable()) {
-    logError("api", "cluster: Could not updatecluster '$0'. Director immutable.",
+    logError("proxy.api: cluster: Could not updatecluster '$0'. Director immutable.",
              cluster->name());
     return HttpStatus::Forbidden;
   }
@@ -504,7 +504,7 @@ void HttpClusterApiHandler::processBackend() {
 
 void HttpClusterApiHandler::createBackend(HttpCluster* cluster,
                                           const std::string& name) {
-  logDebug("api", "create backend '$0'", name);
+  logDebug("proxy.api: create backend '$0'", name);
   IPAddress ip;
   int port = 0;
   size_t capacity = 0;
@@ -599,7 +599,7 @@ void HttpClusterApiHandler::updateBackend(HttpCluster* cluster,
 
   cluster->saveConfiguration();
 
-  logInfo("api", "director: $0 reconfigured backend: $1.",
+  logInfo("proxy.api: director: $0 reconfigured backend: $1.",
           cluster->name(), member->name());
 
   generateResponse(HttpStatus::NoContent);
@@ -666,7 +666,7 @@ void HttpClusterApiHandler::destroyBucket(HttpCluster* cluster,
     return;
   }
 
-  logInfo("api", "director $0: Destroying bucket $1", cluster->name(), name);
+  logInfo("proxy.api: director $0: Destroying bucket $1", cluster->name(), name);
 
   cluster->shaper()->destroyNode(bucket);
   cluster->saveConfiguration();
@@ -778,7 +778,7 @@ bool HttpClusterApiHandler::hasParam(const std::string& key) const {
 bool HttpClusterApiHandler::loadParam(const std::string& key, bool* result) {
   auto i = params_.find(key);
   if (i == params_.end()) {
-    logError("api", "Request parameter '$0' not found.", key);
+    logError("proxy.api: Request parameter '$0' not found.", key);
     errorCount_++;
     return false;
   }
@@ -803,7 +803,7 @@ bool HttpClusterApiHandler::loadParam(const std::string& key, bool* result) {
 bool HttpClusterApiHandler::loadParam(const std::string& key, int* result) {
   auto i = params_.find(key);
   if (i == params_.end()) {
-    logError("api", "Request parameter '$0' not found.", key);
+    logError("proxy.api: Request parameter '$0' not found.", key);
     errorCount_++;
     return false;
   }
@@ -816,7 +816,7 @@ bool HttpClusterApiHandler::loadParam(const std::string& key, int* result) {
 bool HttpClusterApiHandler::loadParam(const std::string& key, size_t* result) {
   auto i = params_.find(key);
   if (i == params_.end()) {
-    logError("api", "Request parameter '$0' not found.", key);
+    logError("proxy.api: Request parameter '$0' not found.", key);
     errorCount_++;
     return false;
   }
@@ -829,7 +829,7 @@ bool HttpClusterApiHandler::loadParam(const std::string& key, size_t* result) {
 bool HttpClusterApiHandler::loadParam(const std::string& key, float* result) {
   auto i = params_.find(key);
   if (i == params_.end()) {
-    logError("api", "Request parameter '$0' not found.", key);
+    logError("proxy.api: Request parameter '$0' not found.", key);
     errorCount_++;
     return false;
   }
@@ -843,7 +843,7 @@ bool HttpClusterApiHandler::loadParam(const std::string& key, float* result) {
 bool HttpClusterApiHandler::loadParam(const std::string& key, Duration* result) {
   auto i = params_.find(key);
   if (i == params_.end()) {
-    logError("api", "Request parameter '$0' not found.", key);
+    logError("proxy.api: Request parameter '$0' not found.", key);
     errorCount_++;
     return false;
   }
@@ -856,7 +856,7 @@ bool HttpClusterApiHandler::loadParam(const std::string& key, Duration* result) 
 bool HttpClusterApiHandler::loadParam(const std::string& key, std::string* result) {
   auto i = params_.find(key);
   if (i == params_.end()) {
-    logError("api", "Request parameter '$0' not found.", key);
+    logError("proxy.api: Request parameter '$0' not found.", key);
     errorCount_++;
     return false;
   }
@@ -869,7 +869,7 @@ bool HttpClusterApiHandler::loadParam(const std::string& key, std::string* resul
 bool HttpClusterApiHandler::loadParam(const std::string& key, IPAddress* result) {
   auto i = params_.find(key);
   if (i == params_.end()) {
-    logError("api", "Request parameter '$0' not found.", key);
+    logError("proxy.api: Request parameter '$0' not found.", key);
     errorCount_++;
     return false;
   }

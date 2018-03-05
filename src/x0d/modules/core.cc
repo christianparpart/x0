@@ -69,8 +69,7 @@ unsigned long long CoreModule::setrlimit(
     int resource, unsigned long long value) {
   struct rlimit rlim;
   if (::getrlimit(resource, &rlim) == -1) {
-    logWarning("x0d",
-               "Failed to retrieve current resource limit on $0 ($1).",
+    logWarning("Failed to retrieve current resource limit on $0 ($1).",
                rc2str(resource), resource);
 
     return 0;
@@ -87,15 +86,13 @@ unsigned long long CoreModule::setrlimit(
   rlim.rlim_max = value;
 
   if (::setrlimit(resource, &rlim) == -1) {
-    logWarning("x0d",
-               "Failed to set resource limit on $0 from $1 to $2.",
+    logWarning("Failed to set resource limit on $0 from $1 to $2.",
                rc2str(resource), hlast, hvalue);
 
     return 0;
   }
 
-  logTrace("x0d",
-           "Set resource limit on $0 from $1 to $2.",
+  logTrace("Set resource limit on $0 from $1 to $2.",
            rc2str(resource), hlast, hvalue);
 
   return value;
@@ -107,7 +104,7 @@ size_t CoreModule::cpuCount() {
   if (numCPU_ < 0) {
     numCPU_ = sysconf(_SC_NPROCESSORS_ONLN);
     if (numCPU_ < 0) {
-      logError("x0d", "Could not retrieve processor count. $0", strerror(errno));
+      logError("Could not retrieve processor count. $0", strerror(errno));
       numCPU_ = 1;
     }
   }
@@ -520,7 +517,7 @@ void CoreModule::workers(Params& args) {
   daemon().config_->workerAffinities.clear();
 
   if (workerCount == cpuCount()) {
-    logDebug("x0d", "Worker count equals CPU count. Defining linear processor affinity.");
+    logDebug("Worker count equals CPU count. Defining linear processor affinity.");
     daemon().config_->workerAffinities.resize(workerCount);
     for (size_t i = 0; i < workerCount; ++i) {
       daemon().config_->workerAffinities[i] = i;
@@ -557,7 +554,7 @@ void CoreModule::sys_cpu_count(XzeroContext* cx, Params& args) {
 bool CoreModule::preproc_sys_env(xzero::flow::Instr* call, xzero::flow::IRBuilder* builder) {
   if (auto arg = dynamic_cast<ConstantString*>(call->operand(1))) {
     if (arg->get().empty()) {
-      logError("x0d", "sys.env: Empty environment variable name is not allowed.");
+      logError("sys.env: Empty environment variable name is not allowed.");
       return false;
     }
 
@@ -586,7 +583,7 @@ bool CoreModule::preproc_sys_env2(xzero::flow::Instr* call, xzero::flow::IRBuild
   if (auto arg = dynamic_cast<ConstantString*>(call->operand(1))) {
     if (auto val = dynamic_cast<ConstantString*>(call->operand(2))) {
       if (arg->get().empty()) {
-        logError("x0d", "sys.env: Empty environment variable name is not allowed.");
+        logError("sys.env: Empty environment variable name is not allowed.");
         return false;
       }
 
@@ -691,12 +688,12 @@ void CoreModule::sleep(XzeroContext* cx, Params& args) {
 
 bool verifyErrorPageConfig(HttpStatus status, const std::string& uri) {
   if (!isError(status)) {
-    logError("x0d", "error.page: HTTP status %d is not a client nor server error\n", status);
+    logError("error.page: HTTP status %d is not a client nor server error\n", status);
     return false;
   }
 
   if (uri.empty()) {
-    logError("x0d", "error.page: Empty URIs are not allowed. Ignoring\n");
+    logError("error.page: Empty URIs are not allowed. Ignoring\n");
     return false;
   }
 
@@ -758,7 +755,7 @@ void CoreModule::file_is_exe(XzeroContext* cx, Params& args) {
 bool CoreModule::verify_docroot(xzero::flow::Instr* call, xzero::flow::IRBuilder* builder) {
   if (auto arg = dynamic_cast<ConstantString*>(call->operand(1))) {
     if (arg->get().empty()) {
-      logError("x0d", "Setting empty document root is not allowed.");
+      logError("Setting empty document root is not allowed.");
       return false;
     }
 
@@ -1283,7 +1280,7 @@ bool CoreModule::verify_req_accept_language(xzero::flow::Instr* call, xzero::flo
   // empty-arrays aren't currently supported, but write the test in case I
   // changed my mind on the other side. ;)
   if (arg->get().size() == 0) {
-    logError("x0d", "req.accept_language() requires a non-empty array argument.");
+    logError("req.accept_language() requires a non-empty array argument.");
     return false;
   }
 

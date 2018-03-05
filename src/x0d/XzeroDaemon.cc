@@ -59,8 +59,8 @@ using namespace xzero;
 using namespace xzero::http;
 
 #if !defined(NDEBUG)
-#define TRACE(msg...) logTrace("x0d", msg)
-#define DEBUG(msg...) logDebug("x0d", msg)
+#define TRACE(msg...) logTrace(msg)
+#define DEBUG(msg...) logDebug(msg)
 #else
 #define TRACE(msg...) do {} while (0)
 #define DEBUG(msg...) do {} while (0)
@@ -120,9 +120,9 @@ bool XzeroDaemon::import(
     std::vector<flow::vm::NativeCallback*>* builtins) {
 
   if (path.empty())
-    logDebug("x0d", "Loading plugin \"$0\"", name);
+    logDebug("Loading plugin \"$0\"", name);
   else
-    logDebug("x0d", "Loading plugin \"$0\" from \"$1\"", name, path);
+    logDebug("Loading plugin \"$0\" from \"$1\"", name, path);
 
   // TODO actually load the plugin
 
@@ -181,7 +181,7 @@ std::unique_ptr<flow::vm::Program> XzeroDaemon::loadConfigStream(
                                             std::placeholders::_2,
                                             std::placeholders::_3),
       [](const std::string& msg) {
-        logError("x0d", "Configuration file error. $0", msg);
+        logError("Configuration file error. $0", msg);
       });
 
   parser.openStream(std::move(is), fakeFilename);
@@ -197,7 +197,7 @@ std::unique_ptr<flow::vm::Program> XzeroDaemon::loadConfigStream(
   flow::IRGenerator irgen;
   irgen.setExports({"setup", "main"});
   irgen.setErrorCallback([&](const std::string& msg) {
-    logError("x0d", "$0", msg);
+    logError("$0", msg);
   });
 
   std::shared_ptr<flow::IRProgram> programIR = irgen.generate(unit.get());
@@ -296,7 +296,7 @@ bool XzeroDaemon::applyConfiguration(std::unique_ptr<flow::vm::Program>&& progra
     return true;
   } catch (const RuntimeError& e) {
     if (e == Status::ConfigurationError) {
-      logError("x0d", "Configuration failed. $0", e.what());
+      logError("Configuration failed. $0", e.what());
       return false;
     }
 
@@ -346,7 +346,7 @@ void XzeroDaemon::reloadConfiguration() {
    */
 
   if (configFilePath_.empty()) {
-    logNotice("x0d", "No configuration file given at startup. Nothing to reload.");
+    logNotice("No configuration file given at startup. Nothing to reload.");
     return;
   }
 
@@ -365,9 +365,9 @@ void XzeroDaemon::reloadConfiguration() {
 
     applyConfiguration(std::move(program));
   } catch (const std::exception& e) {
-    // TODO: logError("x0d", e, "Error cought while reloading configuration.");
+    logFatal("Error cought while reloading configuration. $0", e.what());
   }
-  logNotice("x0d", "Configuration reloading done.");
+  logNotice("Configuration reloading done.");
 }
 
 void XzeroDaemon::stopThreads() {
@@ -396,8 +396,7 @@ void XzeroDaemon::postConfig() {
 #if defined(XZERO_WSL)
   if (config_->tcpFinTimeout != Duration::Zero) {
     config_->tcpFinTimeout = Duration::Zero;
-    logWarning("x0d",
-               "Your platform does not support overriding TCP FIN timeout. "
+    logWarning("Your platform does not support overriding TCP FIN timeout. "
                "Using system defaults.");
   }
 #endif
@@ -424,7 +423,7 @@ void XzeroDaemon::postConfig() {
   }
 
   if (mimetypes_.empty()) {
-    logDebug("x0d", "No mimetypes given. Defaulting to builtin database.");
+    logDebug("No mimetypes given. Defaulting to builtin database.");
     mimetypes_.load(mimetypes2cc);
   }
 
@@ -445,7 +444,7 @@ void XzeroDaemon::postConfig() {
       if (config_->sslContexts.empty()) {
         RAISE(ConfigurationError, "SSL listeners found but no SSL contexts configured.");
       }
-      logNotice("x0d", "Starting HTTPS listener on $0:$1", l.bindAddress, l.port);
+      logNotice("Starting HTTPS listener on $0:$1", l.bindAddress, l.port);
       setupConnector<SslConnector>(
           l.bindAddress, l.port, l.backlog,
           l.multiAcceptCount, l.reuseAddr, l.deferAccept, l.reusePort,
@@ -457,7 +456,7 @@ void XzeroDaemon::postConfig() {
           }
       );
     } else {
-      logNotice("x0d", "Starting HTTP listener on $0:$1", l.bindAddress, l.port);
+      logNotice("Starting HTTP listener on $0:$1", l.bindAddress, l.port);
       setupConnector<TcpConnector>(
           l.bindAddress, l.port, l.backlog,
           l.multiAcceptCount, l.reuseAddr, l.deferAccept, l.reusePort,
@@ -524,11 +523,10 @@ void XzeroDaemon::validateContext(const std::string& entrypointHandlerName,
     }
 
     if (std::find(api.begin(), api.end(), i->callee()->name()) == api.end()) {
-      logError("x0d",
-          "Illegal call to '$0' found within handler $1 (or its callees).",
-          i->callee()->name(),
-          entrypointHandlerName);
-      logError("x0d", "$0", i->location().str());
+      logError("Illegal call to '$0' found within handler $1 (or its callees).",
+               i->callee()->name(),
+               entrypointHandlerName);
+      logError(i->location().str());
       errorCount++;
     }
   }
@@ -569,14 +567,12 @@ void XzeroDaemon::setThreadAffinity(int cpu, int workerId) {
 
   int rv = pthread_setaffinity_np(tid, sizeof(set), &set);
   if (rv < 0) {
-    logError("x0d",
-             "setting event-loopaffinity on CPU $0 failed for worker $1. $2",
+    logError("setting event-loopaffinity on CPU $0 failed for worker $1. $2",
              cpu, workerId, strerror(errno));
   }
 #else
-  logWarning("x0d",
-           "setting event-loop affinity on CPU $0 failed for worker $1. $2",
-           cpu, workerId, strerror(ENOTSUP));
+  logWarning("setting event-loop affinity on CPU $0 failed for worker $1. $2",
+             cpu, workerId, strerror(ENOTSUP));
 #endif
 }
 
@@ -606,14 +602,14 @@ void XzeroDaemon::setupConnector(
     std::function<void(T*)> connectorVisitor) {
 
   if (reusePort && !TcpConnector::isReusePortSupported()) {
-    logWarning("x0d", "Your platform does not support SO_REUSEPORT. "
-                      "Falling back to traditional connection scheduling.");
+    logWarning("Your platform does not support SO_REUSEPORT. "
+               "Falling back to traditional connection scheduling.");
     reusePort = false;
   }
 
   if (deferAccept && !TcpConnector::isDeferAcceptSupported()) {
-    logWarning("x0d", "Your platform does not support TCP_DEFER_ACCEPT. "
-                      "Disabling.");
+    logWarning("Your platform does not support TCP_DEFER_ACCEPT. "
+               "Disabling.");
     deferAccept = false;
   }
 

@@ -39,13 +39,13 @@ TEST(PosixSchedulerTest, timeoutBreak) {
   MonotonicTime a_timeout_at;
   MonotonicTime b_timeout_at;
   auto a_fired = [&]() { a_fired_at = MonotonicClock::now();
-                         logTrace("x", "a_fired_at: $0", a_fired_at); };
+                         logTrace("a_fired_at: $0", a_fired_at); };
   auto b_fired = [&]() { b_fired_at = MonotonicClock::now();
-                         logTrace("x", "b_fired_at: $0", b_fired_at); };
+                         logTrace("b_fired_at: $0", b_fired_at); };
   auto a_timeout = [&]() { a_timeout_at = MonotonicClock::now();
-                           logTrace("x", "a_timeout_at: $0", a_timeout_at - start); };
+                           logTrace("a_timeout_at: $0", a_timeout_at - start); };
   auto b_timeout = [&]() { b_timeout_at = MonotonicClock::now();
-                           logTrace("x", "b_timeout_at: $0", b_timeout_at - start); };
+                           logTrace("b_timeout_at: $0", b_timeout_at - start); };
 
   scheduler.executeOnReadable(a.readerFd(), a_fired,
                               500_milliseconds, a_timeout);

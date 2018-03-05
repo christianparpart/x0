@@ -76,12 +76,12 @@ bool WebdavModule::webdav_mkcol(XzeroContext* cx) {
     return true;
   }
 
-  logDebug("webdav", "Creating directory: $0", cx->file()->path());
+  logDebug("webdav: Creating directory: $0", cx->file()->path());
   try {
     FileUtil::mkdir_p(cx->file()->path());
     cx->response()->setStatus(HttpStatus::Created);
   } catch (const std::exception& e) {
-    logError("webdav", "Failed creating file $0. $1",
+    logError("webdav: Failed creating file $0. $1",
              cx->file()->path(),
              e.what());
     cx->response()->setStatus(HttpStatus::NoContent);
@@ -128,7 +128,7 @@ bool WebdavModule::webdav_put(XzeroContext* cx, Params& args) {
 
   BufferRef content = cx->request()->getContent().getBuffer();
 
-  logDebug("webdav", "put filename: $0", cx->file()->path());
+  logDebug("webdav: put filename: $0", cx->file()->path());
 
   //bool didNotExistBefore = !cx->file()->exists();
   int mode = args.getInt(1);

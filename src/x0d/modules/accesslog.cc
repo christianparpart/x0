@@ -274,7 +274,7 @@ struct RequestLogger : public CustomData { // {{{
 
     for (const auto& target: logTargets_) {
       std::string line = formatLog(context_, target.first);
-      target.second->log(LogLevel::Info, "accesslog", line);
+      target.second->log(LogLevel::Info, line);
     }
   }
 };  // }}}
