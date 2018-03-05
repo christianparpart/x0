@@ -10,6 +10,7 @@
 #include <xzero-flow/ir/Instructions.h>
 #include <xzero-flow/ir/IRHandler.h>
 #include <xzero-flow/ir/Instructions.h>
+#include <xzero/logging.h>
 #include <list>
 
 namespace xzero {
@@ -33,10 +34,8 @@ bool InstructionElimination::run(IRHandler* handler) {
 bool InstructionElimination::rewriteCondBrToSameBranches(BasicBlock* bb) {
   // attempt to eliminate useless condbr
   if (CondBrInstr* condbr = dynamic_cast<CondBrInstr*>(bb->getTerminator())) {
-    if (condbr->trueBlock() != condbr->falseBlock()) return false;
-
-    // printf("rewriteCondBrToSameBranches\n");
-    // bb->dump();
+    if (condbr->trueBlock() != condbr->falseBlock())
+      return false;
 
     BasicBlock* nextBB = condbr->trueBlock();
 
@@ -46,6 +45,7 @@ bool InstructionElimination::rewriteCondBrToSameBranches(BasicBlock* bb) {
     // create new terminator
     bb->push_back(new BrInstr(nextBB));
 
+    logTrace("flow: rewrote condbr with true-block == false-block");
     return true;
   }
 
@@ -66,6 +66,7 @@ bool InstructionElimination::eliminateLinearBr(BasicBlock* bb) {
     if (br->targetBlock()->predecessors().front() != bb) return false;
 
     // we are the only predecessor of BR's target block, so merge them
+    logTrace("flow: eliminate linear BR-instruction");
 
     BasicBlock* nextBB = br->targetBlock();
 
@@ -87,13 +88,14 @@ bool InstructionElimination::eliminateLinearBr(BasicBlock* bb) {
 bool InstructionElimination::foldConstantCondBr(BasicBlock* bb) {
   if (auto condbr = dynamic_cast<CondBrInstr*>(bb->getTerminator())) {
     if (auto cond = dynamic_cast<ConstantBoolean*>(condbr->condition())) {
+      logTrace("flow: rewrite condbr with constant expression");
       std::pair<BasicBlock*, BasicBlock*> use;
 
       if (cond->get()) {
-        // printf("condition is always true\n");
+        // printf("condition is always true");
         use = std::make_pair(condbr->trueBlock(), condbr->falseBlock());
       } else {
-        // printf("condition is always false\n");
+        // printf("condition is always false");
         use = std::make_pair(condbr->falseBlock(), condbr->trueBlock());
       }
 
@@ -116,14 +118,17 @@ bool InstructionElimination::branchToExit(BasicBlock* bb) {
   if (BrInstr* br = dynamic_cast<BrInstr*>(bb->getTerminator())) {
     BasicBlock* targetBB = br->targetBlock();
 
-    if (targetBB->instructions().size() != 1) return false;
+    if (targetBB->instructions().size() != 1)
+      return false;
 
-    if (bb->isAfter(targetBB)) return false;
+    if (bb->isAfter(targetBB))
+      return false;
 
     if (RetInstr* ret = dynamic_cast<RetInstr*>(targetBB->getTerminator())) {
       delete bb->remove(br);
       bb->push_back(ret->clone());
 
+      logTrace("flow: eliminate branch-to-exit block");
       return true;
     }
   }

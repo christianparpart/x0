@@ -194,7 +194,8 @@ Value* IRBuilder::createBXor(Value* lhs, Value* rhs, const std::string& name) {
 Value* IRBuilder::createNeg(Value* rhs, const std::string& name) {
   assert(rhs->type() == FlowType::Number);
 
-  if (auto a = dynamic_cast<ConstantInt*>(rhs)) return get(-a->get());
+  if (auto a = dynamic_cast<ConstantInt*>(rhs))
+    return get(-a->get());
 
   return insert(new INegInstr(rhs, makeName(name)));
 }
@@ -202,7 +203,8 @@ Value* IRBuilder::createNeg(Value* rhs, const std::string& name) {
 Value* IRBuilder::createNot(Value* rhs, const std::string& name) {
   assert(rhs->type() == FlowType::Number);
 
-  if (auto a = dynamic_cast<ConstantInt*>(rhs)) return get(~a->get());
+  if (auto a = dynamic_cast<ConstantInt*>(rhs))
+    return get(~a->get());
 
   return insert(new INotInstr(rhs, makeName(name)));
 }
@@ -335,7 +337,7 @@ Value* IRBuilder::createNCmpEQ(Value* lhs, Value* rhs,
 
   if (auto a = dynamic_cast<ConstantInt*>(lhs))
     if (auto b = dynamic_cast<ConstantInt*>(rhs))
-      return get(a->get() == b->get());
+      return getBoolean(a->get() == b->get());
 
   return insert(new ICmpEQInstr(lhs, rhs, makeName(name)));
 }
@@ -347,7 +349,7 @@ Value* IRBuilder::createNCmpNE(Value* lhs, Value* rhs,
 
   if (auto a = dynamic_cast<ConstantInt*>(lhs))
     if (auto b = dynamic_cast<ConstantInt*>(rhs))
-      return get(a->get() != b->get());
+      return getBoolean(a->get() != b->get());
 
   return insert(new ICmpNEInstr(lhs, rhs, makeName(name)));
 }
@@ -359,7 +361,7 @@ Value* IRBuilder::createNCmpLE(Value* lhs, Value* rhs,
 
   if (auto a = dynamic_cast<ConstantInt*>(lhs))
     if (auto b = dynamic_cast<ConstantInt*>(rhs))
-      return get(a->get() <= b->get());
+      return getBoolean(a->get() <= b->get());
 
   return insert(new ICmpLEInstr(lhs, rhs, makeName(name)));
 }
@@ -371,7 +373,7 @@ Value* IRBuilder::createNCmpGE(Value* lhs, Value* rhs,
 
   if (auto a = dynamic_cast<ConstantInt*>(lhs))
     if (auto b = dynamic_cast<ConstantInt*>(rhs))
-      return get(a->get() >= b->get());
+      return getBoolean(a->get() >= b->get());
 
   return insert(new ICmpGEInstr(lhs, rhs, makeName(name)));
 }
@@ -383,7 +385,7 @@ Value* IRBuilder::createNCmpLT(Value* lhs, Value* rhs,
 
   if (auto a = dynamic_cast<ConstantInt*>(lhs))
     if (auto b = dynamic_cast<ConstantInt*>(rhs))
-      return get(a->get() < b->get());
+      return getBoolean(a->get() < b->get());
 
   return insert(new ICmpLTInstr(lhs, rhs, makeName(name)));
 }
@@ -395,7 +397,7 @@ Value* IRBuilder::createNCmpGT(Value* lhs, Value* rhs,
 
   if (auto a = dynamic_cast<ConstantInt*>(lhs))
     if (auto b = dynamic_cast<ConstantInt*>(rhs))
-      return get(a->get() > b->get());
+      return getBoolean(a->get() > b->get());
 
   return insert(new ICmpGTInstr(lhs, rhs, makeName(name)));
 }
@@ -429,7 +431,7 @@ Value* IRBuilder::createSCmpEQ(Value* lhs, Value* rhs,
 
   if (auto a = dynamic_cast<ConstantString*>(lhs))
     if (auto b = dynamic_cast<ConstantString*>(rhs))
-      return get(a->get() == b->get());
+      return getBoolean(a->get() == b->get());
 
   return insert(new SCmpEQInstr(lhs, rhs, makeName(name)));
 }
@@ -441,7 +443,7 @@ Value* IRBuilder::createSCmpNE(Value* lhs, Value* rhs,
 
   if (auto a = dynamic_cast<ConstantString*>(lhs))
     if (auto b = dynamic_cast<ConstantString*>(rhs))
-      return get(a->get() != b->get());
+      return getBoolean(a->get() != b->get());
 
   return insert(new SCmpNEInstr(lhs, rhs, makeName(name)));
 }
@@ -453,7 +455,7 @@ Value* IRBuilder::createSCmpLE(Value* lhs, Value* rhs,
 
   if (auto a = dynamic_cast<ConstantString*>(lhs))
     if (auto b = dynamic_cast<ConstantString*>(rhs))
-      return get(a->get() <= b->get());
+      return getBoolean(a->get() <= b->get());
 
   return insert(new SCmpLEInstr(lhs, rhs, makeName(name)));
 }
@@ -465,7 +467,7 @@ Value* IRBuilder::createSCmpGE(Value* lhs, Value* rhs,
 
   if (auto a = dynamic_cast<ConstantString*>(lhs))
     if (auto b = dynamic_cast<ConstantString*>(rhs))
-      return get(a->get() >= b->get());
+      return getBoolean(a->get() >= b->get());
 
   return insert(new SCmpGEInstr(lhs, rhs, makeName(name)));
 }
@@ -477,7 +479,7 @@ Value* IRBuilder::createSCmpLT(Value* lhs, Value* rhs,
 
   if (auto a = dynamic_cast<ConstantString*>(lhs))
     if (auto b = dynamic_cast<ConstantString*>(rhs))
-      return get(a->get() < b->get());
+      return getBoolean(a->get() < b->get());
 
   return insert(new SCmpLTInstr(lhs, rhs, makeName(name)));
 }
@@ -489,7 +491,7 @@ Value* IRBuilder::createSCmpGT(Value* lhs, Value* rhs,
 
   if (auto a = dynamic_cast<ConstantString*>(lhs))
     if (auto b = dynamic_cast<ConstantString*>(rhs))
-      return get(a->get() > b->get());
+      return getBoolean(a->get() > b->get());
 
   return insert(new SCmpGTInstr(lhs, rhs, makeName(name)));
 }
@@ -521,7 +523,7 @@ Value* IRBuilder::createSCmpEB(Value* lhs, Value* rhs,
                                const std::string& name) {
   if (auto a = dynamic_cast<ConstantString*>(lhs))
     if (auto b = dynamic_cast<ConstantString*>(rhs))
-      return get(StringUtil::beginsWith(a->get(), b->get()));
+      return getBoolean(StringUtil::beginsWith(a->get(), b->get()));
 
   return insert(new SCmpBegInstr(lhs, rhs, makeName(name)));
 }
@@ -539,7 +541,7 @@ Value* IRBuilder::createSCmpEE(Value* lhs, Value* rhs,
                                const std::string& name) {
   if (auto a = dynamic_cast<ConstantString*>(lhs))
     if (auto b = dynamic_cast<ConstantString*>(rhs))
-      return get(StringUtil::endsWith(a->get(), b->get()));
+      return getBoolean(StringUtil::endsWith(a->get(), b->get()));
 
   return insert(new SCmpEndInstr(lhs, rhs, makeName(name)));
 }
@@ -547,9 +549,16 @@ Value* IRBuilder::createSCmpEE(Value* lhs, Value* rhs,
 Value* IRBuilder::createSIn(Value* lhs, Value* rhs, const std::string& name) {
   if (auto a = dynamic_cast<ConstantString*>(lhs))
     if (auto b = dynamic_cast<ConstantString*>(rhs))
-      return get(BufferRef(b->get()).find(a->get()) != Buffer::npos);
+      return getBoolean(BufferRef(b->get()).find(a->get()) != Buffer::npos);
 
   return insert(new SInInstr(lhs, rhs, makeName(name)));
+}
+
+Value* IRBuilder::createSLen(Value* value, const std::string& name) {
+  if (auto a = dynamic_cast<ConstantString*>(value))
+    return get(a->get().size());
+
+  return insert(new SLenInstr(value, makeName(name)));
 }
 // }}}
 // {{{ ip ops
@@ -557,7 +566,7 @@ Value* IRBuilder::createPCmpEQ(Value* lhs, Value* rhs,
                                const std::string& name) {
   if (auto a = dynamic_cast<ConstantIP*>(lhs))
     if (auto b = dynamic_cast<ConstantIP*>(rhs))
-      return get(a->get() == b->get());
+      return getBoolean(a->get() == b->get());
 
   return insert(new PCmpEQInstr(lhs, rhs, makeName(name)));
 }
@@ -566,7 +575,7 @@ Value* IRBuilder::createPCmpNE(Value* lhs, Value* rhs,
                                const std::string& name) {
   if (auto a = dynamic_cast<ConstantIP*>(lhs))
     if (auto b = dynamic_cast<ConstantIP*>(rhs))
-      return get(a->get() != b->get());
+      return getBoolean(a->get() != b->get());
 
   return insert(new PCmpNEInstr(lhs, rhs, makeName(name)));
 }
@@ -575,7 +584,7 @@ Value* IRBuilder::createPInCidr(Value* lhs, Value* rhs,
                                 const std::string& name) {
   if (auto a = dynamic_cast<ConstantIP*>(lhs))
     if (auto b = dynamic_cast<ConstantCidr*>(rhs))
-      return get(b->get().contains(a->get()));
+      return getBoolean(b->get().contains(a->get()));
 
   return insert(new PInCidrInstr(lhs, rhs, makeName(name)));
 }
@@ -630,7 +639,13 @@ Value* IRBuilder::createR2S(Value* rhs, const std::string& name) {
 Value* IRBuilder::createS2N(Value* rhs, const std::string& name) {
   assert(rhs->type() == FlowType::String);
 
-  if (auto ip = dynamic_cast<ConstantString*>(rhs)) return get(stoi(ip->get()));
+  if (auto value = dynamic_cast<ConstantString*>(rhs)) {
+    try {
+      return get(stoi(value->get()));
+    } catch (...) {
+      // fall through to default behaviour
+    }
+  }
 
   return insert(new CastInstr(FlowType::Number, rhs, makeName(name)));
 }

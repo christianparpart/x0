@@ -150,6 +150,7 @@ class IRBuilder {
   Value* createSCmpEE(Value* lhs, Value* rhs,
                       const std::string& name = "");                       // =$
   Value* createSIn(Value* lhs, Value* rhs, const std::string& name = "");  // in
+  Value* createSLen(Value* value, const std::string& name = "");
 
   // IP address
   Value* createPCmpEQ(Value* lhs, Value* rhs,

@@ -78,12 +78,12 @@ static InstructionInfo instructionInfos[] = {
   IIDEF(NOR,       V, -1, Number),
   IIDEF(NXOR,      V, -1, Number),
   IIDEF(NCMPZ,     V,  0, Boolean),
-  IIDEF(NCMPEQ,    V, -1, Number),
-  IIDEF(NCMPNE,    V, -1, Number),
-  IIDEF(NCMPLE,    V, -1, Number),
-  IIDEF(NCMPGE,    V, -1, Number),
-  IIDEF(NCMPLT,    V, -1, Number),
-  IIDEF(NCMPGT,    V, -1, Number),
+  IIDEF(NCMPEQ,    V, -1, Boolean),
+  IIDEF(NCMPNE,    V, -1, Boolean),
+  IIDEF(NCMPLE,    V, -1, Boolean),
+  IIDEF(NCMPGE,    V, -1, Boolean),
+  IIDEF(NCMPLT,    V, -1, Boolean),
+  IIDEF(NCMPGT,    V, -1, Boolean),
 
   // bool
   IIDEF(BNOT,      V,  0, Boolean),

@@ -241,7 +241,8 @@ void IRGenerator::accept(UnaryExpr& expr) {
        {vm::Opcode::S2N, &IRGenerator::createS2N},
        {vm::Opcode::NNEG, &IRGenerator::createNeg},
        {vm::Opcode::NNOT, &IRGenerator::createNot},
-       {vm::Opcode::BNOT, &IRGenerator::createBNot}, };
+       {vm::Opcode::BNOT, &IRGenerator::createBNot},
+       {vm::Opcode::SLEN, &IRGenerator::createSLen}, };
 
   Value* rhs = codegen(expr.subExpr());
 

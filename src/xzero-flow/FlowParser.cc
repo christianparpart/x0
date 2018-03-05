@@ -1318,6 +1318,20 @@ std::unique_ptr<Stmt> FlowParser::ifStmt() {
   std::unique_ptr<Expr> cond(expr());
   consumeIf(FlowToken::Then);
 
+  switch (cond->getType()) {
+    case FlowType::Boolean:
+      break;
+    case FlowType::String:
+      cond = std::make_unique<UnaryExpr>(Opcode::SLEN, std::move(cond), sloc.update(end()));
+      cond = std::make_unique<BinaryExpr>(Opcode::NCMPNE, std::move(cond),
+          std::make_unique<NumberExpr>(0, sloc));
+      break;
+    default:
+      reportError("If expression must be boolean type. Received type %s instead.",
+          tos(cond->getType()).c_str());
+      return nullptr;
+  }
+
   std::unique_ptr<Stmt> thenStmt(stmt());
   if (!thenStmt) return nullptr;
 

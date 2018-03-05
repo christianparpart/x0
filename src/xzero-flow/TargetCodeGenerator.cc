@@ -373,6 +373,7 @@ StackPointer TargetCodeGenerator::emitLoad(Value* value) {
     return sp;
   }
 
+  value->dump();
   logFatal("BUG: emitLoad() hit with unknown type: $0", typeid(*value).name());
 }
 
