@@ -32,7 +32,7 @@ namespace xzero {
 #define SKIP_FRAMES 2
 
 void logAndPass(const std::exception& e) {
-  logError(typeid(e).name(), e, "unhandled exception");
+  // TODO logError(typeid(e).name(), e, "unhandled exception");
 }
 
 void logAndAbort(const std::exception& e) {

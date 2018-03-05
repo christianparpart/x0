@@ -304,7 +304,7 @@ void Connection::onInterestFailure(const std::exception& error) {
 
   // TODO: improve logging here, as this eats our exception here.
   // e.g. via (factory or connector)->error(error);
-  logError("fastcgi", error, "unhandled exception received in I/O loop");
+  // TODO: logError("fastcgi", error, "unhandled exception received in I/O loop");
 
   auto callback = std::move(onComplete_);
   onComplete_.clear();

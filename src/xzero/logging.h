@@ -97,12 +97,6 @@ class Logger { // {{{
       const std::string& component,
       const std::string& message);
 
-  void logException(
-      LogLevel log_level,
-      const std::string& component,
-      const std::exception& exception,
-      const std::string& message);
-
   void addTarget(LogTarget* target);
   void setMinimumLogLevel(LogLevel min_level);
   LogLevel getMinimumLogLevel() { return min_level_.load(); }
@@ -122,30 +116,12 @@ void logFatal(const std::string& component, const std::string& msg, T... args) {
   Logger::get()->log(LogLevel::Fatal, component, StringUtil::format(msg, args...));
 }
 
-template <typename... T>
-void logFatal(
-    const std::string& component,
-    const std::exception& e,
-    const std::string& msg,
-    T... args) {
-  Logger::get()->logException(LogLevel::Fatal, component, e, StringUtil::format(msg, args...));
-}
-
 /**
  * ERROR: User-visible Runtime Errors
  */
 template <typename... T>
 void logError(const std::string& component, const std::string& msg, T... args) {
   Logger::get()->log(LogLevel::Error, component, StringUtil::format(msg, args...));
-}
-
-template <typename... T>
-void logError(
-    const std::string& component,
-    const std::exception& e,
-    const std::string& msg,
-    T... args) {
-  Logger::get()->logException(LogLevel::Error, component, e, StringUtil::format(msg, args...));
 }
 
 /**
@@ -156,30 +132,12 @@ void logWarning(const std::string& component, const std::string& msg, T... args)
   Logger::get()->log(LogLevel::Warning, component, StringUtil::format(msg, args...));
 }
 
-template <typename... T>
-void logWarning(
-    const std::string& component,
-    const std::exception& e,
-    const std::string& msg,
-    T... args) {
-  Logger::get()->logException(LogLevel::Warning, component, e, StringUtil::format(msg, args...));
-}
-
 /**
  * NOTICE: Normal but significant condition.
  */
 template <typename... T>
 void logNotice(const std::string& component, const std::string& msg, T... args) {
   Logger::get()->log(LogLevel::Notice, component, StringUtil::format(msg, args...));
-}
-
-template <typename... T>
-void logNotice(
-    const std::string& component,
-    const std::exception& e,
-    const std::string& msg,
-    T... args) {
-  Logger::get()->logException(LogLevel::Notice, component, e, StringUtil::format(msg, args...));
 }
 
 /**
@@ -190,15 +148,6 @@ void logInfo(const std::string& component, const std::string& msg, T... args) {
   Logger::get()->log(LogLevel::Info, component, StringUtil::format(msg, args...));
 }
 
-template <typename... T>
-void logInfo(
-    const std::string& component,
-    const std::exception& e,
-    const std::string& msg,
-    T... args) {
-  Logger::get()->logException(LogLevel::Info, component, e, StringUtil::format(msg, args...));
-}
-
 /**
  * DEBUG: Debug messages
  */
@@ -207,30 +156,12 @@ void logDebug(const std::string& component, const std::string& msg, T... args) {
   Logger::get()->log(LogLevel::Debug, component, StringUtil::format(msg, args...));
 }
 
-template <typename... T>
-void logDebug(
-    const std::string& component,
-    const std::exception& e,
-    const std::string& msg,
-    T... args) {
-  Logger::get()->logException(LogLevel::Debug, component, e, StringUtil::format(msg, args...));
-}
-
 /**
  * TRACE: Trace messages
  */
 template <typename... T>
 void logTrace(const std::string& component, const std::string& msg, T... args) {
   Logger::get()->log(LogLevel::Trace, component, StringUtil::format(msg, args...));
-}
-
-template <typename... T>
-void logTrace(
-    const std::string& component,
-    const std::exception& e,
-    const std::string& msg,
-    T... args) {
-  Logger::get()->logException(LogLevel::Trace, component, e, StringUtil::format(msg, args...));
 }
 // }}}
 

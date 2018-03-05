@@ -24,7 +24,7 @@ CatchAndLogExceptionHandler::CatchAndLogExceptionHandler(
 
 void CatchAndLogExceptionHandler::onException(
     const std::exception& error) const {
-  logError(component_, error,  error.what());
+  //TODO logError(component_, error,  error.what());
 }
 
 CatchAndAbortExceptionHandler::CatchAndAbortExceptionHandler(

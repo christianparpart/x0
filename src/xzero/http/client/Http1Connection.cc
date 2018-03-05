@@ -212,7 +212,7 @@ void Http1Connection::onWriteable() {
 }
 
 void Http1Connection::onInterestFailure(const std::exception& error) {
-  logError("http.client.Http1Connection", error, "Unhandled exception caught in I/O loop");
+  //TODO logError("http.client.Http1Connection", error, "Unhandled exception caught in I/O loop");
 
   notifyFailure(); // notify the callback that we failed doing something wrt. I/O.
   abort();
