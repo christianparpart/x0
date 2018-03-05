@@ -7,7 +7,7 @@
 
 #pragma once
 
-#include <xzero/Api.h>
+#include <xzero/defines.h>
 
 namespace xzero {
 
