@@ -301,6 +301,9 @@ public:
   template <typename... T>
   static std::string format(const std::string& fmt, T... values);
 
+  static std::string format(const char* nofmt) { return nofmt; }
+  static std::string format(const std::string& nofmt) { return nofmt; }
+
   /**
    * Insert values into a string with placeholders. This method will throw an
    * exception if an invalid placeholder is referenced

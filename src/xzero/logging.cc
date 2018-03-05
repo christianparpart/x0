@@ -17,6 +17,7 @@
 #include <xzero/io/FileUtil.h>
 #include <stdexcept>
 #include <iostream>
+#include <stdlib.h>
 #include <unistd.h>
 #include <syslog.h>
 
@@ -31,8 +32,8 @@ std::string as_string(LogLevel value) {
   switch (value) {
     case LogLevel::None:
       return "none";
-    case LogLevel::Critical:
-      return "critical";
+    case LogLevel::Fatal:
+      return "fatal";
     case LogLevel::Error:
       return "error";
     case LogLevel::Warning:
@@ -56,8 +57,8 @@ LogLevel make_loglevel(const std::string& str) {
   if (value == "none")
     return LogLevel::None;
 
-  if (value == "critical" || value == "crit")
-    return LogLevel::Critical;
+  if (value == "fatal")
+    return LogLevel::Fatal;
 
   if (value == "error" || value == "err")
     return LogLevel::Error;
@@ -95,62 +96,65 @@ Logger::Logger() :
   }
 }
 
-void Logger::logException(
-    LogLevel log_level,
-    const std::string& component,
-    const std::exception& exception,
-    const std::string& message) {
-  if (log_level < min_level_) {
-    return;
+void Logger::logException(LogLevel log_level,
+                          const std::string& component,
+                          const std::exception& exception,
+                          const std::string& message) {
+  if (log_level >= min_level_) {
+    try {
+      auto rte = dynamic_cast<const RuntimeError*>(&exception);
+      if (rte != nullptr) {
+        log(log_level,
+            component,
+            StringUtil::format(
+                "$0: $1: $2\n    in $3\n    in $4:$5",
+                message,
+                rte->typeName(),
+                rte->what(),
+                rte->functionName(),
+                rte->sourceFile(),
+                rte->sourceLine()));
+        if (log_level >= LogLevel::Debug) {
+          rte->debugPrint(&std::cerr);
+        }
+      } else {
+        log(log_level,
+            component,
+            StringUtil::format("$0: std::exception: <foreign exception> $1",
+                               message,
+                               exception.what()));
+      }
+    } catch (const std::exception& bcee) {
+      log(
+          log_level,
+          component,
+          StringUtil::format("$0: std::exception: <nested exception> $1",
+                             message,
+                             exception.what()));
+    }
   }
 
-  try {
-    auto rte = dynamic_cast<const RuntimeError*>(&exception);
-    if (rte != nullptr) {
-      log(log_level,
-          component,
-          "$0: $1: $2\n    in $3\n    in $4:$5",
-          message,
-          rte->typeName(),
-          rte->what(),
-          rte->functionName(),
-          rte->sourceFile(),
-          rte->sourceLine());
-      if (log_level >= LogLevel::Debug) {
-        rte->debugPrint(&std::cerr);
-      }
-    } else {
-      log(log_level,
-          component,
-          "$0: std::exception: <foreign exception> $1",
-          message,
-          exception.what());
-    }
-  } catch (const std::exception& bcee) {
-    log(
-        log_level,
-        component,
-        "$0: std::exception: <nested exception> $1",
-        message,
-        exception.what());
+  if (log_level == LogLevel::Fatal) {
+    abort();
   }
 }
 
-void Logger::log(
-      LogLevel log_level,
-      const std::string& component,
-      const std::string& message) {
-  if (log_level < min_level_) {
-    return;
+void Logger::log(LogLevel log_level,
+                 const std::string& component,
+                 const std::string& message) {
+  if (log_level >= min_level_) {
+    const size_t max_idx = max_listener_index_.load();
+    for (size_t i = 0; i < max_idx; ++i) {
+      auto listener = listeners_[i].load();
+
+      if (listener != nullptr) {
+        listener->log(log_level, component, message);
+      }
+    }
   }
 
-  const size_t max_idx = max_listener_index_.load();
-  for (size_t i = 0; i < max_idx; ++i) {
-    auto listener = listeners_[i].load();
-
-    if (listener != nullptr) {
-      listener->log(log_level, component, message);
-    }
+  if (log_level == LogLevel::Fatal) {
+    abort();
   }
 }
 
@@ -176,8 +180,8 @@ FileLogTarget::FileLogTarget(FileDescriptor&& fd)
 
 // TODO is a mutex required for concurrent printf()'s ?
 void FileLogTarget::log(LogLevel level,
-                           const std::string& component,
-                           const std::string& message) {
+                        const std::string& component,
+                        const std::string& message) {
   std::string logline = StringUtil::format(
       "$0[$1] [$2] $3\n",
       createTimestamp(),
@@ -214,7 +218,7 @@ void ConsoleLogTarget::log(LogLevel level,
     static const auto logColor = [](LogLevel ll) -> AnsiColor::Type {
       switch (ll) {
         case LogLevel::None: return AnsiColor::Clear;
-        case LogLevel::Critical: return AnsiColor::Red;
+        case LogLevel::Fatal: return AnsiColor::Red;
         case LogLevel::Error: return AnsiColor::Red;
         case LogLevel::Warning: return AnsiColor::Yellow;
         case LogLevel::Notice: return AnsiColor::Green;
@@ -267,8 +271,8 @@ int makeSyslogPriority(LogLevel level) {
   switch (level) {
     case LogLevel::None:
       return 0; // TODO
-    case LogLevel::Critical:
-      return LOG_CRIT;
+    case LogLevel::Fatal:
+      return LOG_CRIT; // XXX
     case LogLevel::Error:
       return LOG_ERR;
     case LogLevel::Warning:

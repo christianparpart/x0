@@ -145,8 +145,10 @@ class XzeroContext {
 
   template<typename... Args>
   inline void logf(::xzero::LogLevel logLevel, const std::string& fmt, Args&&... args) {
+    using ::xzero::StringUtil;
+
     ::xzero::Logger::get()->log(logLevel, "x0d",
-        ::xzero::StringUtil::format("$0: $1", remoteIP(), fmt), args...);
+        StringUtil::format(StringUtil::format("$0: $1", remoteIP(), fmt), args...));
   }
   // }}}
 

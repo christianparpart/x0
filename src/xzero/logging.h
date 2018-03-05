@@ -14,7 +14,7 @@ namespace xzero {
 
 enum class LogLevel { // {{{
   None = 9999,
-  Critical = 7000,
+  Fatal = 7000,
   Error = 6000,
   Warning = 5000,
   Notice = 4000,
@@ -97,26 +97,11 @@ class Logger { // {{{
       const std::string& component,
       const std::string& message);
 
-  template <typename... T>
-  void log(
-      LogLevel log_level,
-      const std::string& component,
-      const std::string& message,
-      T... args);
-
   void logException(
       LogLevel log_level,
       const std::string& component,
       const std::exception& exception,
       const std::string& message);
-
-  template <typename... T>
-  void logException(
-      LogLevel log_level,
-      const std::string& component,
-      const std::exception& exception,
-      const std::string& message,
-      T... args);
 
   void addTarget(LogTarget* target);
   void setMinimumLogLevel(LogLevel min_level);
@@ -133,17 +118,17 @@ class Logger { // {{{
  * CRITICAL: Action should be taken as soon as possible
  */
 template <typename... T>
-void logCritical(const std::string& component, const std::string& msg, T... args) {
-  Logger::get()->log(LogLevel::Critical, component, msg, args...);
+void logFatal(const std::string& component, const std::string& msg, T... args) {
+  Logger::get()->log(LogLevel::Fatal, component, StringUtil::format(msg, args...));
 }
 
 template <typename... T>
-void logCritical(
+void logFatal(
     const std::string& component,
     const std::exception& e,
     const std::string& msg,
     T... args) {
-  Logger::get()->logException(LogLevel::Critical, component, e, msg, args...);
+  Logger::get()->logException(LogLevel::Fatal, component, e, StringUtil::format(msg, args...));
 }
 
 /**
@@ -151,7 +136,7 @@ void logCritical(
  */
 template <typename... T>
 void logError(const std::string& component, const std::string& msg, T... args) {
-  Logger::get()->log(LogLevel::Error, component, msg, args...);
+  Logger::get()->log(LogLevel::Error, component, StringUtil::format(msg, args...));
 }
 
 template <typename... T>
@@ -160,7 +145,7 @@ void logError(
     const std::exception& e,
     const std::string& msg,
     T... args) {
-  Logger::get()->logException(LogLevel::Error, component, e, msg, args...);
+  Logger::get()->logException(LogLevel::Error, component, e, StringUtil::format(msg, args...));
 }
 
 /**
@@ -168,7 +153,7 @@ void logError(
  */
 template <typename... T>
 void logWarning(const std::string& component, const std::string& msg, T... args) {
-  Logger::get()->log(LogLevel::Warning, component, msg, args...);
+  Logger::get()->log(LogLevel::Warning, component, StringUtil::format(msg, args...));
 }
 
 template <typename... T>
@@ -177,7 +162,7 @@ void logWarning(
     const std::exception& e,
     const std::string& msg,
     T... args) {
-  Logger::get()->logException(LogLevel::Warning, component, e, msg, args...);
+  Logger::get()->logException(LogLevel::Warning, component, e, StringUtil::format(msg, args...));
 }
 
 /**
@@ -185,7 +170,7 @@ void logWarning(
  */
 template <typename... T>
 void logNotice(const std::string& component, const std::string& msg, T... args) {
-  Logger::get()->log(LogLevel::Notice, component, msg, args...);
+  Logger::get()->log(LogLevel::Notice, component, StringUtil::format(msg, args...));
 }
 
 template <typename... T>
@@ -194,7 +179,7 @@ void logNotice(
     const std::exception& e,
     const std::string& msg,
     T... args) {
-  Logger::get()->logException(LogLevel::Notice, component, e, msg, args...);
+  Logger::get()->logException(LogLevel::Notice, component, e, StringUtil::format(msg, args...));
 }
 
 /**
@@ -202,7 +187,7 @@ void logNotice(
  */
 template <typename... T>
 void logInfo(const std::string& component, const std::string& msg, T... args) {
-  Logger::get()->log(LogLevel::Info, component, msg, args...);
+  Logger::get()->log(LogLevel::Info, component, StringUtil::format(msg, args...));
 }
 
 template <typename... T>
@@ -211,7 +196,7 @@ void logInfo(
     const std::exception& e,
     const std::string& msg,
     T... args) {
-  Logger::get()->logException(LogLevel::Info, component, e, msg, args...);
+  Logger::get()->logException(LogLevel::Info, component, e, StringUtil::format(msg, args...));
 }
 
 /**
@@ -219,7 +204,7 @@ void logInfo(
  */
 template <typename... T>
 void logDebug(const std::string& component, const std::string& msg, T... args) {
-  Logger::get()->log(LogLevel::Debug, component, msg, args...);
+  Logger::get()->log(LogLevel::Debug, component, StringUtil::format(msg, args...));
 }
 
 template <typename... T>
@@ -228,7 +213,7 @@ void logDebug(
     const std::exception& e,
     const std::string& msg,
     T... args) {
-  Logger::get()->logException(LogLevel::Debug, component, e, msg, args...);
+  Logger::get()->logException(LogLevel::Debug, component, e, StringUtil::format(msg, args...));
 }
 
 /**
@@ -236,7 +221,7 @@ void logDebug(
  */
 template <typename... T>
 void logTrace(const std::string& component, const std::string& msg, T... args) {
-  Logger::get()->log(LogLevel::Trace, component, msg, args...);
+  Logger::get()->log(LogLevel::Trace, component, StringUtil::format(msg, args...));
 }
 
 template <typename... T>
@@ -245,35 +230,7 @@ void logTrace(
     const std::exception& e,
     const std::string& msg,
     T... args) {
-  Logger::get()->logException(LogLevel::Trace, component, e, msg, args...);
-}
-// }}}
-// {{{ Logger impl
-template <typename... T>
-void Logger::log(
-    LogLevel log_level,
-    const std::string& component,
-    const std::string& message,
-    T... args) {
-  if (log_level >= min_level_) {
-    log(log_level, component, StringUtil::format(message, args...));
-  }
-}
-
-template <typename... T>
-void Logger::logException(
-    LogLevel log_level,
-    const std::string& component,
-    const std::exception& exception,
-    const std::string& message,
-    T... args) {
-  if (log_level >= min_level_) {
-    logException(
-        log_level,
-        component,
-        exception,
-        StringUtil::format(message, args...));
-  }
+  Logger::get()->logException(LogLevel::Trace, component, e, StringUtil::format(msg, args...));
 }
 // }}}
 

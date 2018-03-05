@@ -173,8 +173,7 @@ size_t TargetCodeGenerator::emitInstr(Instruction instr) {
   return getInstructionPointer() - 1;
 }
 
-size_t TargetCodeGenerator::emitCondJump(Opcode opcode,
-                                         BasicBlock* bb) {
+size_t TargetCodeGenerator::emitCondJump(Opcode opcode, BasicBlock* bb) {
   size_t pc = emitInstr(opcode);
   conditionalJumps_[bb].push_back({pc, opcode});
   return pc;
@@ -362,8 +361,7 @@ StackPointer TargetCodeGenerator::emitLoad(Value* value) {
              cp_.makeCidrArray(convert<Cidr, ConstantCidr>(array->get())));
         break;
       default:
-        assert(!"BUG: Unsupported array type");
-        abort();
+        logFatal("TargetCodeGenerator", "BUG: Unsupported array type");
     }
     return sp;
   }
@@ -375,15 +373,13 @@ StackPointer TargetCodeGenerator::emitLoad(Value* value) {
     return sp;
   }
 
-  printf("BUG: emitLoad() hit unknown type: %s\n", typeid(*value).name());
-
-  assert(!"BUG: emitLoad() for unknown Value* type");
-  abort();
+  logFatal("TargetCodeGenerator", "BUG: emitLoad() hit with unknown type: $0", typeid(*value).name());
 }
 
 void TargetCodeGenerator::visit(PhiNode& instr) {
   FNTRACE();
-  assert(!"Should never reach here, as PHI instruction nodes should have been replaced by target registers.");
+  logFatal("TargetCodeGenerator",
+           "Should never reach here, as PHI instruction nodes should have been replaced by target registers.");
 }
 
 void TargetCodeGenerator::visit(CondBrInstr& instr) {
@@ -440,8 +436,7 @@ void TargetCodeGenerator::visit(MatchInstr& instr) {
             cp_.makeRegExp(static_cast<ConstantRegExp*>(one.first)->get()));
         break;
       default:
-        assert(!"BUG: unsupported label type");
-        abort();
+        logFatal("TargetCodeGenerator", "BUG: unsupported label type");
     }
   }
 
