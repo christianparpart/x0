@@ -77,6 +77,7 @@ class FlowLexer {
   void processCommand(const std::string& line);
 
   FlowToken parseNumber(int base);
+  FlowToken parseEnvVar();
   FlowToken parseRawString();
   FlowToken parseString(FlowToken result);
   FlowToken parseInterpolationFragment(bool start);

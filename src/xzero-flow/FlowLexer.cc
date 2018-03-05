@@ -475,6 +475,8 @@ FlowToken FlowLexer::nextToken() {
         default:
           return token_ = FlowToken::Not;
       }
+    case '$':
+      return token_ = parseEnvVar();
     case '\'':
       return token_ = parseRawString();
     case '"':
@@ -504,6 +506,24 @@ FlowToken FlowLexer::nextToken() {
   }
 
   return token_;
+}
+
+FlowToken FlowLexer::parseEnvVar() {
+  stringValue_.clear();
+  nextChar(); // skip leading '$'
+
+  while (!eof() && (currentChar() == '_' || std::isalnum(currentChar()))) {
+    stringValue_ += static_cast<char>(currentChar());
+    nextChar();
+  }
+
+  if (char* value = getenv(stringValue_.c_str()); value != nullptr) {
+    stringValue_ = value;
+  } else {
+    stringValue_.clear();
+  }
+
+  return FlowToken::String;
 }
 
 FlowToken FlowLexer::parseRawString() {
