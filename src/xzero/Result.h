@@ -4,13 +4,16 @@
 // Licensed under the MIT License (the "License"); you may not use this
 // file except in compliance with the License. You may obtain a copy of
 // the License at: http://opensource.org/licenses/MIT
-
 #pragma once
-// Inspired by Mesos' libprocess Result<>
 
 #include <string>
 #include <system_error>
 #include <type_traits>
+
+class ResultBadAccess : public std::exception {
+ public:
+  const char* what() const noexcept override { return "Bad access to Result<>."; }
+};
 
 /**
  * @brief Result<T> gives you the opportunity to either return some value or an error.
