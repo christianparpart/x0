@@ -5,10 +5,6 @@
 // file except in compliance with the License. You may obtain a copy of
 // the License at: http://opensource.org/licenses/MIT
 
-#include <xzero/RuntimeError.h>
-#include <xzero/Status.h>
-#include <xzero/StringUtil.h>
-
 template<typename T>
 inline Result<T>::Result(const value_type& value)
   : success_(true),
@@ -28,11 +24,7 @@ inline Result<T>::Result(const std::error_code& ec)
   : success_(false),
     error_(ec) {
   if (!error_) {
-    using xzero::Status;
-    using xzero::RuntimeError;
-
-    // "received an error_code in Result, but there is no error."
-    RAISE(InternalError);
+    throw std::invalid_argument("Result<> received an error_code that does not contain an error.");
   }
 }
 
@@ -113,11 +105,9 @@ inline const typename Result<T>::value_type& Result<T>::operator*() const {
 
 template<typename T>
 inline void Result<T>::require() const {
-  using xzero::Status;
-  using xzero::RuntimeError;
-
-  if (isFailure())
-    RAISE(IllegalStateError);
+  if (isFailure()) {
+    throw ResultBadAccess();
+  }
 }
 
 template<typename T>

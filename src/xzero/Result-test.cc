@@ -43,3 +43,13 @@ TEST(Result, ErrorEnumClass) {
   Result<int> u = std::future_errc::no_state;
   ASSERT_EQ(std::future_errc::no_state, u.error());
 }
+
+TEST(Result, BadAccess) {
+  Result<int> t = std::errc::io_error;
+  EXPECT_THROW(t.get(), ResultBadAccess);
+}
+
+TEST(Result, CtorEmptyErrorInvalid) {
+  static const std::error_code no_error;
+  EXPECT_THROW({ Result<int> t(no_error); }, std::invalid_argument);
+}
