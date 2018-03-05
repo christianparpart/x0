@@ -96,49 +96,6 @@ Logger::Logger() :
   }
 }
 
-void Logger::logException(LogLevel log_level,
-                          const std::string& component,
-                          const std::exception& exception,
-                          const std::string& message) {
-  if (log_level >= min_level_) {
-    try {
-      auto rte = dynamic_cast<const RuntimeError*>(&exception);
-      if (rte != nullptr) {
-        log(log_level,
-            component,
-            StringUtil::format(
-                "$0: $1: $2\n    in $3\n    in $4:$5",
-                message,
-                rte->typeName(),
-                rte->what(),
-                rte->functionName(),
-                rte->sourceFile(),
-                rte->sourceLine()));
-        if (log_level >= LogLevel::Debug) {
-          rte->debugPrint(&std::cerr);
-        }
-      } else {
-        log(log_level,
-            component,
-            StringUtil::format("$0: std::exception: <foreign exception> $1",
-                               message,
-                               exception.what()));
-      }
-    } catch (const std::exception& bcee) {
-      log(
-          log_level,
-          component,
-          StringUtil::format("$0: std::exception: <nested exception> $1",
-                             message,
-                             exception.what()));
-    }
-  }
-
-  if (log_level == LogLevel::Fatal) {
-    abort();
-  }
-}
-
 void Logger::log(LogLevel log_level,
                  const std::string& component,
                  const std::string& message) {

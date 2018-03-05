@@ -365,7 +365,7 @@ void XzeroDaemon::reloadConfiguration() {
 
     applyConfiguration(std::move(program));
   } catch (const std::exception& e) {
-    logError("x0d", e, "Error cought while reloading configuration.");
+    // TODO: logError("x0d", e, "Error cought while reloading configuration.");
   }
   logNotice("x0d", "Configuration reloading done.");
 }

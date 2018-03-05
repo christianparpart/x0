@@ -365,7 +365,7 @@ void Connection::onInterestFailure(const std::exception& error) {
 
   // TODO: improve logging here, as this eats our exception here.
   // e.g. via (factory or connector)->error(error);
-  logError("Connection", error, "Unhandled exception caught in I/O loop");
+  // TODO: logError("Connection", error, "Unhandled exception caught in I/O loop");
   invokeCompleter(false);
   abort();
 }
