@@ -14,8 +14,6 @@ namespace xzero {
 
 enum class LogLevel { // {{{
   None = 9999,
-  Emergency = 9000,
-  Alert = 8000,
   Critical = 7000,
   Error = 6000,
   Warning = 5000,
@@ -131,40 +129,6 @@ class Logger { // {{{
 };
 // }}}
 // {{{ free functions
-/**
- * EMERGENCY: Something very bad happened
- */
-template <typename... T>
-void logEmergency(const std::string& component, const std::string& msg, T... args) {
-  Logger::get()->log(LogLevel::Emergency, component, msg, args...);
-}
-
-template <typename... T>
-void logEmergency(
-    const std::string& component,
-    const std::exception& e,
-    const std::string& msg,
-    T... args) {
-  Logger::get()->logException(LogLevel::Emergency, component, e, msg, args...);
-}
-
-/**
- * ALERT: Action must be taken immediately
- */
-template <typename... T>
-void logAlert(const std::string& component, const std::string& msg, T... args) {
-  Logger::get()->log(LogLevel::Alert, component, msg, args...);
-}
-
-template <typename... T>
-void logAlert(
-    const std::string& component,
-    const std::exception& e,
-    const std::string& msg,
-    T... args) {
-  Logger::get()->logException(LogLevel::Alert, component, e, msg, args...);
-}
-
 /**
  * CRITICAL: Action should be taken as soon as possible
  */

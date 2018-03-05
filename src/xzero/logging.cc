@@ -31,8 +31,6 @@ std::string as_string(LogLevel value) {
   switch (value) {
     case LogLevel::None:
       return "none";
-    case LogLevel::Alert:
-      return "alert";
     case LogLevel::Critical:
       return "critical";
     case LogLevel::Error:
@@ -57,9 +55,6 @@ LogLevel make_loglevel(const std::string& str) {
 
   if (value == "none")
     return LogLevel::None;
-
-  if (value == "alert")
-    return LogLevel::Alert;
 
   if (value == "critical" || value == "crit")
     return LogLevel::Critical;
@@ -219,8 +214,6 @@ void ConsoleLogTarget::log(LogLevel level,
     static const auto logColor = [](LogLevel ll) -> AnsiColor::Type {
       switch (ll) {
         case LogLevel::None: return AnsiColor::Clear;
-        case LogLevel::Emergency: return AnsiColor::Red;
-        case LogLevel::Alert: return AnsiColor::Red;
         case LogLevel::Critical: return AnsiColor::Red;
         case LogLevel::Error: return AnsiColor::Red;
         case LogLevel::Warning: return AnsiColor::Yellow;
@@ -274,10 +267,6 @@ int makeSyslogPriority(LogLevel level) {
   switch (level) {
     case LogLevel::None:
       return 0; // TODO
-    case LogLevel::Emergency:
-      return LOG_EMERG; // naeh...
-    case LogLevel::Alert:
-      return LOG_ALERT;
     case LogLevel::Critical:
       return LOG_CRIT;
     case LogLevel::Error:
