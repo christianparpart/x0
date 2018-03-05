@@ -74,13 +74,13 @@ Index MemoryStore::latestIndex() {
 }
 
 std::error_code MemoryStore::appendLogEntry(const LogEntry& log) {
-  logDebug("MemoryStore", "appendLogEntry: at index:$0, $1", log_.size(), log);
+  logDebug("raft: MemoryStore: appendLogEntry: at index:$0, $1", log_.size(), log);
   log_.emplace_back(log);
   return std::error_code();
 }
 
 Future<Index> MemoryStore::appendLogEntryAsync(const LogEntry& log) {
-  logDebug("MemoryStore", "appendLogEntryAsync: at index:$0, $1", log_.size(), log);
+  logDebug("raft: MemoryStore: appendLogEntryAsync: at index:$0, $1", log_.size(), log);
 
   Promise<Index> promise;
 
@@ -102,7 +102,7 @@ Future<Index> MemoryStore::appendLogEntryAsync(const LogEntry& log) {
 
 Result<LogEntry> MemoryStore::getLogEntry(Index index) {
   // XXX we also support returning log[0] as this has a term of 0 and no command.
-  //logDebug("MemoryStore", "getLogEntry: at $0/$1", index, latestIndex());
+  //logDebug("raft: MemoryStore: getLogEntry: at $0/$1", index, latestIndex());
   //assert(index >= 0 && index <= latestIndex());
 
   if (index > latestIndex())
@@ -161,7 +161,7 @@ Option<std::pair<Id, Term>> FileStore::parseVote(const BufferRef& data) {
 
 std::error_code FileStore::initialize(Id* id) {
   if (!FileUtil::isDirectory(basedir_)) {
-    logDebug("raft.FileStore", "Creating directory $0", basedir_);
+    logDebug("raft: FileStore: Creating directory $0", basedir_);
     FileUtil::mkdir_p(basedir_);
   }
 

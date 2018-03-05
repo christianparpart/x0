@@ -361,7 +361,7 @@ StackPointer TargetCodeGenerator::emitLoad(Value* value) {
              cp_.makeCidrArray(convert<Cidr, ConstantCidr>(array->get())));
         break;
       default:
-        logFatal("TargetCodeGenerator", "BUG: Unsupported array type");
+        logFatal("BUG: Unsupported array type in target code generator.");
     }
     return sp;
   }
@@ -373,13 +373,12 @@ StackPointer TargetCodeGenerator::emitLoad(Value* value) {
     return sp;
   }
 
-  logFatal("TargetCodeGenerator", "BUG: emitLoad() hit with unknown type: $0", typeid(*value).name());
+  logFatal("BUG: emitLoad() hit with unknown type: $0", typeid(*value).name());
 }
 
 void TargetCodeGenerator::visit(PhiNode& instr) {
   FNTRACE();
-  logFatal("TargetCodeGenerator",
-           "Should never reach here, as PHI instruction nodes should have been replaced by target registers.");
+  logFatal("Should never reach here, as PHI instruction nodes should have been replaced by target registers.");
 }
 
 void TargetCodeGenerator::visit(CondBrInstr& instr) {
@@ -436,7 +435,7 @@ void TargetCodeGenerator::visit(MatchInstr& instr) {
             cp_.makeRegExp(static_cast<ConstantRegExp*>(one.first)->get()));
         break;
       default:
-        logFatal("TargetCodeGenerator", "BUG: unsupported label type");
+        logFatal("BUG: unsupported label type");
     }
   }
 

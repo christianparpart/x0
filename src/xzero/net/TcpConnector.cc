@@ -41,7 +41,7 @@
 #endif
 
 #if !defined(NDEBUG)
-#define TRACE(msg...) logTrace("TcpConnector", msg)
+#define TRACE(msg...) logTrace("TcpConnector" msg)
 #else
 #define TRACE(msg...) do {} while (0)
 #endif
@@ -285,8 +285,10 @@ void TcpConnector::setDeferAccept(bool enable) {
 #if defined(EOPNOTSUPP) && (EOPNOTSUPP != ENOTSUP)
       case EOPNOTSUPP:
 #endif
-        logWarning("TcpConnector", "setDeferAccept($0) failed with $1 ($2). Ignoring",
-            enable ? "true" : "false", strerror(errno), errno);
+        logWarning("TcpConnector: setDeferAccept($0) failed with $1 ($2). Ignoring",
+                   enable ? "true" : "false",
+                   strerror(errno),
+                   errno);
         return;
       default:
         RAISE_ERRNO(errno);
@@ -305,8 +307,7 @@ void TcpConnector::setDeferAccept(bool enable) {
   deferAccept_ = enable;
 #else
   if (enable) {
-    logWarning("TcpConnector",
-               "Ignoring setting TCP_DEFER_ACCEPT. Not supported.");
+    logWarning("TcpConnector: Ignoring setting TCP_DEFER_ACCEPT. Not supported.");
   } else {
     deferAccept_ = enable;
   }

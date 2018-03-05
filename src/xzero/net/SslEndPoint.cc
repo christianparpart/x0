@@ -23,7 +23,7 @@
 namespace xzero {
 
 #ifndef NDEBUG
-#define TRACE(msg...) logTrace("SslEndPoint", msg)
+#define TRACE(msg...) logTrace("SslEndPoint" msg)
 #else
 #define TRACE(msg...) do {} while (0)
 #endif
@@ -243,7 +243,7 @@ size_t SslEndPoint::read(Buffer* sink, size_t space) {
       close();
       break;
     default:
-      logDebug("SSL", "Failed to fill. $0",
+      logDebug("SslEndPoint: Failed to fill. $0",
           SslErrorCategory::get().message(SSL_get_error(ssl_, rv)));
       TRACE("$0 read(Buffer:$1): SSL_read() -> $2",
             this, space, SSL_get_error(ssl_, rv));
@@ -279,7 +279,7 @@ size_t SslEndPoint::write(const BufferRef& source) {
       close();
       break;
     default:
-      logDebug("SSL", "Failed to flush. $0",
+      logDebug("SslEndPoint: Failed to flush. $0",
           SslErrorCategory::get().message(SSL_get_error(ssl_, rv)));
       TRACE("$0 write(BufferRef, @$1, $2 bytes) failed. error.", this, source.data(), source.size());
       THROW_SSL_ERROR();
@@ -375,7 +375,7 @@ void SslEndPoint::onClientHandshake(Promise<RefPtr<SslEndPoint>> promise) {
     default: {
       std::error_code ec = makeSslError(ERR_get_error());
       promise.failure(ec);
-      logDebug("SSL", "Client handshake error. $0", ec.message());
+      logDebug("SslEndPoint: Client handshake error. $0", ec.message());
       TcpEndPoint::close();
       unref(); // XXX: <- incremented in client connect
       break;
@@ -419,7 +419,7 @@ void SslEndPoint::onServerHandshake() {
       default: {
         char buf[256];
         ERR_error_string_n(ERR_get_error(), buf, sizeof(buf));
-        logDebug("SSL", "Handshake error. $0", buf);
+        logDebug("SslEndPoint: Handshake error. $0", buf);
 
         TcpEndPoint::close();
         return;
@@ -564,7 +564,7 @@ static inline std::string tlsext_type_to_string(int type) {
 void SslEndPoint::tlsext_debug_cb(
     SSL* ssl, int client_server, int type,
     unsigned char* data, int len, SslEndPoint* self) {
-  logDebug("ssl", "TLS $1 extension \"$2\" (id=$3), len=$4",
+  logDebug("SslEndPoint: TLS $1 extension \"$2\" (id=$3), len=$4",
            client_server ? "server" : "client",
            tlsext_type_to_string(type),
            type,

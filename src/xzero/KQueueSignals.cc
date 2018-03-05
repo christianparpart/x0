@@ -89,7 +89,7 @@ void KQueueSignals::onSignal() {
       int signo = events[i].ident;
       std::list<RefPtr<SignalWatcher>>& watchers = watchers_[signo];
 
-      logDebug("UnixSignals", "Caught signal $0.", toString(signo));
+      logDebug("KQueueSignals: Caught signal $0.", toString(signo));
 
       for (RefPtr<SignalWatcher>& watcher: watchers) {
         watcher->info.signal = signo;

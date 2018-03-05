@@ -52,8 +52,7 @@ class PidFile { // {{{
 PidFile::PidFile(const std::string& path)
     : path_(path) {
   // TODO: sanity-check (flock?) to ensure that we're the one.
-  logInfo("x0d", "Writing main process ID $0 into file $1",
-          getpid(), path_);
+  logInfo("Writing main process ID $0 into file $1", getpid(), path_);
   FileUtil::write(path_, to_string(getpid()));
 }
 
@@ -142,7 +141,7 @@ int main(int argc, const char* argv[]) {
                                        : flags.getString("config");
 
   if (webfile && flags.getString("config") != X0D_CONFIGFILE) {
-    logError("x0d", "Do not use --webfile and --config options at once.");
+    logError("Do not use --webfile and --config options at once.");
     return 1;
   }
 
@@ -159,7 +158,7 @@ int main(int argc, const char* argv[]) {
                                   std::stoi(parts[0]),
                                   dumpAST, dumpIR, dumpTC);
     else {
-      logError("x0d", "Invalid spec passed to --instant command line option.");
+      logError("Invalid spec passed to --instant command line option.");
       return 1;
     }
   } else {

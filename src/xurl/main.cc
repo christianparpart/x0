@@ -25,9 +25,9 @@
 // #define PACKAGE_VERSION X0_VERSION
 #define PACKAGE_HOMEPAGE_URL "https://xzero.io"
 
-#define VERBOSE(msg...) logInfo("xurl", msg)
-#define DEBUG(msg...) logDebug("xurl", msg)
-#define TRACE(msg...) logTrace("xurl", msg)
+#define VERBOSE(msg...) logInfo(msg)
+#define DEBUG(msg...) logDebug(msg)
+#define TRACE(msg...) logTrace(msg)
 
 using namespace xzero;
 using namespace xzero::http;
@@ -70,18 +70,11 @@ int ServicePortMapping::tcp(const std::string& name) {
 class XurlLogTarget : public ::xzero::LogTarget { // {{{
  public:
   void log(LogLevel level,
-           const std::string& component,
            const std::string& message) override;
 };
 
-void XurlLogTarget::log(LogLevel level,
-                            const std::string& component,
-                            const std::string& message) {
-  if (component == "xurl") {
-    printf("%s\n", message.c_str());
-  } else {
-    printf("[%s] %s\n", component.c_str(), message.c_str());
-  }
+void XurlLogTarget::log(LogLevel level, const std::string& message) {
+  printf("%s\n", message.c_str());
 }
 // }}}
 
@@ -172,12 +165,12 @@ int XUrl::run(int argc, const char* argv[]) {
   }
 
   if (flags_.parameters().empty()) {
-    logError("xurl", "No URL given.");
+    logError("xurl: No URL given.");
     return 1;
   }
 
   if (flags_.parameters().size() != 1) {
-    logError("xurl", "Too many URLs given.");
+    logError("xurl: Too many URLs given.");
     return 1;
   }
 
@@ -271,7 +264,7 @@ void XUrl::query(const Uri& uri) {
   });
 
   f.onFailure([](std::error_code ec) {
-    logError("xurl", "connect() failed. $0", ec.message());
+    logError("xurl: connect() failed. $0", ec.message());
   });
 
   scheduler_.runLoop();

@@ -132,7 +132,7 @@ std::vector<std::string> DnsClient::txt(const std::string& fqdn) {
   }
 
   if (!txtCache.empty()) {
-    logDebug("DnsClient", "using cached TXT: $0", fqdn);
+    logDebug("DnsClient: using cached TXT: $0", fqdn);
     std::vector<std::string> result;
     for (const auto& txt: txtCache) {
       result.emplace_back(txt.text);
@@ -140,7 +140,7 @@ std::vector<std::string> DnsClient::txt(const std::string& fqdn) {
     return result;
   }
 
-  logDebug("DnsClient", "resolving TXT: $0", fqdn);
+  logDebug("DnsClient: resolving TXT: $0", fqdn);
   Buffer answer(NS_MAXMSG);
   int answerLength = res_query(fqdn.c_str(),
                                ns_c_in,
@@ -148,7 +148,7 @@ std::vector<std::string> DnsClient::txt(const std::string& fqdn) {
                                (unsigned char*) answer.data(),
                                answer.capacity());
   if (answerLength < 0) {
-    logDebug("DnsClient", "TXT lookup failed for $0", fqdn);
+    logDebug("DnsClient: TXT lookup failed for $0", fqdn);
     return std::vector<std::string>();
   }
   answer.resize(answerLength);
@@ -214,7 +214,7 @@ std::vector<DnsClient::SRV> DnsClient::srv(const std::string& fqdn) {
                                (unsigned char*) answer.data(),
                                answer.capacity());
   if (answerLength < 0) {
-    logDebug("DnsClient", "SRV lookup failed for $0", fqdn);
+    logDebug("DnsClient: SRV lookup failed for $0", fqdn);
     return std::vector<SRV>();
   }
   answer.resize(answerLength);
@@ -260,7 +260,7 @@ std::vector<DnsClient::SRV> DnsClient::srv(const std::string& fqdn) {
       IPAddress ip(&addr);
       std::string name = rr.name;
 
-      logDebug("DnsClient", "Additional Section: $0 $1 IN A $2 ($3)",
+      logDebug("DnsClient: Additional Section: $0 $1 IN A $2 ($3)",
                name, ttl.seconds(), ip, name.size());
 
       ipv4[name].emplace_back(ip);

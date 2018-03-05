@@ -49,8 +49,8 @@ using xzero::http::client::HttpClusterRequest;
 using xzero::http::client::HttpCluster;
 using xzero::http::client::HttpClient;
 
-#define TRACE(msg...) logTrace("proxy", msg)
-#define DEBUG(msg...) logDebug("proxy", msg)
+#define TRACE(msg...) logTrace(msg)
+#define DEBUG(msg...) logDebug(msg)
 
 template<typename T>
 static bool isConnectionHeader(const T& name) {
@@ -134,19 +134,19 @@ bool ProxyModule::verify_proxy_cluster(xzero::flow::Instr* call, xzero::flow::IR
 
   auto nameArg = dynamic_cast<ConstantString*>(call->operand(1));
   if (nameArg == nullptr) {
-    logError("x0d", "proxy.cluster: name parameter must be a literal.");
+    logError("proxy.cluster: name parameter must be a literal.");
     return false;
   }
 
   if (nameArg->get().empty()) {
-    logError("x0d", "Setting empty proxy.cluster name is not allowed.");
+    logError("Setting empty proxy.cluster name is not allowed.");
     return false;
   }
 
   // pathArg
   auto pathArg = dynamic_cast<ConstantString*>(call->operand(2));
   if (pathArg == nullptr) {
-    logError("x0d", "proxy.cluster: path parameter must be a literal.");
+    logError("proxy.cluster: path parameter must be a literal.");
     return false;
   }
 
@@ -227,7 +227,7 @@ void HttpResponseBuilder::onError(std::error_code ec) {
   if (ec.category() == HttpStatusCategory::get()) {
     response_->sendError(static_cast<HttpStatus>(ec.value()));
   } else {
-    logError("proxy", "Unhandled error in response builder. $0", ec.message());
+    logError("proxy: Unhandled error in response builder. $0", ec.message());
     response_->sendError(HttpStatus::InternalServerError);
   }
 }
@@ -302,7 +302,7 @@ bool ProxyModule::proxy_cluster(XzeroContext* cx, Params& args) {
     if (foundBucket) {
       bucket = foundBucket;
     } else {
-      logError("proxy", "Cluster $0 is missing bucket $1. Defaulting to $2",
+      logError("proxy: Cluster $0 is missing bucket $1. Defaulting to $2",
                cluster->name(), bucketName, bucket->name());
     }
   }
@@ -430,10 +430,10 @@ HttpCluster* ProxyModule::createCluster(const std::string& name,
   clusterMap_[name] = cluster;
 
   if (FileUtil::exists(path)) {
-    logInfo("proxy", "Loading cluster $0 ($1)", name, path);
+    logInfo("proxy: Loading cluster $0 ($1)", name, path);
     cluster->setConfiguration(FileUtil::read(path).str(), path);
   } else {
-    logInfo("proxy", "Initializing new cluster $0 ($1)", name, path);
+    logInfo("proxy: Initializing new cluster $0 ($1)", name, path);
     cluster->saveConfiguration();
   }
   return cluster.get();

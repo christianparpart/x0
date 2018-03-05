@@ -60,7 +60,7 @@ void Application::redirectStdOutToLogger(Executor* executor) {
     FileUtil::read(fd, &buf);
     if (buf.size() > 0) {
       fprintf(stderr, "[stdout] %s\n", buf.c_str());
-      logInfo("stdout", "$0", buf.str());
+      logInfo(buf.str());
       buf.clear();
     }
     fflush(stderr);
@@ -75,7 +75,7 @@ static void globalEH() {
   try {
     throw;
   } catch (const std::exception& e) {
-    logAndAbort(e);
+    logFatal("Unhandled exception caught. $0", e.what());
   } catch (...) {
     // d'oh
     fprintf(stderr, "Unhandled foreign exception caught.\n");
@@ -118,13 +118,12 @@ void Application::dropPrivileges(const std::string& username,
   if (username == Application::userName() && groupname == Application::groupName())
     return;
 
-  logDebug("application", "dropping privileges to $0:$1", username, groupname);
+  logDebug("Dropping privileges to $0:$1", username, groupname);
 
   if (!groupname.empty() && !getgid()) {
     if (struct group* gr = getgrnam(groupname.c_str())) {
       if (setgid(gr->gr_gid) != 0) {
-        logError("application", "could not setgid to $0: $1",
-                 groupname, strerror(errno));
+        logError("Could not setgid to $0: $1", groupname, strerror(errno));
         return;
       }
 
@@ -134,42 +133,38 @@ void Application::dropPrivileges(const std::string& username,
         initgroups(username.c_str(), gr->gr_gid);
       }
     } else {
-      logError("application", "Could not find group: $0", groupname);
+      logError("Could not find group: $0", groupname);
       return;
     }
-    logTrace("application", "Dropped group privileges to '$0'.", groupname);
+    logTrace("Dropped group privileges to '$0'.", groupname);
   }
 
   if (!username.empty() && !getuid()) {
     if (struct passwd* pw = getpwnam(username.c_str())) {
       if (setuid(pw->pw_uid) != 0) {
-        logError("application", "could not setgid to $0: $1",
-                 username, strerror(errno));
+        logError("Could not setgid to $0: $1", username, strerror(errno));
         return;
       }
-      logInfo("application", "Dropped privileges to user $0", username);
+      logInfo("Dropped privileges to user $0", username);
 
       if (chdir(pw->pw_dir) < 0) {
-        logError("application", "could not chdir to $0: $1",
-                 pw->pw_dir, strerror(errno));
+        logError("Could not chdir to $0: $1", pw->pw_dir, strerror(errno));
         return;
       }
     } else {
-      logError("application", "Could not find group: $0", groupname);
+      logError("Could not find group: $0", groupname);
       return;
     }
 
-    logTrace("application", "Dropped user privileges to '$0'.", username);
+    logTrace("Dropped user privileges to '$0'.", username);
   }
 
   if (!::getuid() || !::geteuid() || !::getgid() || !::getegid()) {
 #if defined(X0_RELEASE)
-    logError("application",
-             "Service is not allowed to run with administrative permissions. "
+    logError("Service is not allowed to run with administrative permissions. "
              "Service is still running with administrative permissions.");
 #else
-    logWarning("application",
-               "Service is still running with administrative permissions.");
+    logWarning("Service is still running with administrative permissions.");
 #endif
   }
 }

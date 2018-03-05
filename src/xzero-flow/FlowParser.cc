@@ -61,7 +61,7 @@ struct fntrace {
     fmt[i++] = ' ';
     strcpy(fmt + i, msg_.c_str());
 
-    logTrace("FlowParser", "$0", fmt);
+    logTrace(fmt);
     ++fnd;
   }
 
@@ -80,14 +80,14 @@ struct fntrace {
     fmt[i++] = ' ';
     strcpy(fmt + i, msg_.c_str());
 
-    logTrace("FlowParser", "$0", fmt);
+    logTrace(fmt);
   }
 };
 // }}}
 #define FNTRACE() fntrace _(__PRETTY_FUNCTION__)
-#define TRACE(msg...) logTrace("FlowParser", msg)
+#define TRACE(msg...) logTrace(msg)
 #else
-#define FNTRACE()            do {} while (0)
+#define FNTRACE()     do {} while (0)
 #define TRACE(msg...) do {} while (0)
 #endif
 

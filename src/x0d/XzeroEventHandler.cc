@@ -35,8 +35,7 @@ XzeroEventHandler::~XzeroEventHandler() {
 }
 
 void XzeroEventHandler::onConfigReload(const xzero::UnixSignalInfo& info) {
-  logNotice("x0d",
-            "Reloading configuration. (requested via $0 by UID $1 PID $2)",
+  logNotice("Reloading configuration. (requested via $0 by UID $1 PID $2)",
             UnixSignals::toString(info.signal),
             info.uid.getOrElse(-1),
             info.pid.getOrElse(-1));
@@ -47,7 +46,7 @@ void XzeroEventHandler::onConfigReload(const xzero::UnixSignalInfo& info) {
 }
 
 void XzeroEventHandler::onCycleLogs(const xzero::UnixSignalInfo& info) {
-  logNotice("x0d", "Cycling logs. (requested via $0 by UID $1 PID $2)",
+  logNotice("Cycling logs. (requested via $0 by UID $1 PID $2)",
             UnixSignals::toString(info.signal),
             info.uid.getOrElse(-1),
             info.pid.getOrElse(-1));
@@ -58,8 +57,7 @@ void XzeroEventHandler::onCycleLogs(const xzero::UnixSignalInfo& info) {
 }
 
 void XzeroEventHandler::onUpgradeBinary(const UnixSignalInfo& info) {
-  logNotice("x0d",
-            "Upgrading binary. (requested via $0 by UID $1 PID $2)",
+  logNotice("Upgrading binary. (requested via $0 by UID $1 PID $2)",
             UnixSignals::toString(info.signal),
             info.uid.getOrElse(-1),
             info.pid.getOrElse(-1));
@@ -74,8 +72,7 @@ void XzeroEventHandler::onUpgradeBinary(const UnixSignalInfo& info) {
 }
 
 void XzeroEventHandler::onQuickShutdown(const xzero::UnixSignalInfo& info) {
-  logNotice("x0d",
-            "Initiating quick shutdown. (requested via $0 by UID $1 PID $2)",
+  logNotice("Initiating quick shutdown. (requested via $0 by UID $1 PID $2)",
             UnixSignals::toString(info.signal),
             info.uid.getOrElse(-1),
             info.pid.getOrElse(-1));
@@ -84,8 +81,7 @@ void XzeroEventHandler::onQuickShutdown(const xzero::UnixSignalInfo& info) {
 }
 
 void XzeroEventHandler::onGracefulShutdown(const xzero::UnixSignalInfo& info) {
-  logNotice("x0d",
-            "Initiating graceful shutdown. (requested via $0 by UID $1 PID $2)",
+  logNotice("Initiating graceful shutdown. (requested via $0 by UID $1 PID $2)",
             UnixSignals::toString(info.signal),
             info.uid.getOrElse(-1),
             info.pid.getOrElse(-1));

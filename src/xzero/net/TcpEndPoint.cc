@@ -26,8 +26,8 @@
 namespace xzero {
 
 #if !defined(NDEBUG)
-#define TRACE(msg...) logTrace("TcpEndPoint", msg)
-#define DEBUG(msg...) logDebug("TcpEndPoint", msg)
+#define TRACE(msg...) logTrace("TcpEndPoint" msg)
+#define DEBUG(msg...) logDebug("TcpEndPoint" msg)
 #else
 #define TRACE(msg...) do {} while (0)
 #define DEBUG(msg...) do {} while (0)
@@ -73,7 +73,7 @@ Option<InetAddress> TcpEndPoint::remoteAddress() const {
   if (addr.isSuccess())
     return Some(*addr);
   else {
-    logError("TcpEndPoint", "remoteAddress: ($0) $1",
+    logError("TcpEndPoint: remoteAddress: ($0) $1",
         addr.error().category().name(),
         addr.error().message().c_str());
     return None();
@@ -85,7 +85,7 @@ Option<InetAddress> TcpEndPoint::localAddress() const {
   if (addr.isSuccess())
     return Some(*addr);
   else {
-    logError("TcpEndPoint", "localAddress: ($0) $1",
+    logError("TcpEndPoint: localAddress: ($0) $1",
         addr.error().category().name(),
         addr.error().message().c_str());
     return None();

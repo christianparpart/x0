@@ -32,19 +32,14 @@ class LogTarget { // {{{
  public:
   virtual ~LogTarget() {}
 
-  virtual void log(
-      LogLevel level,
-      const std::string& component,
-      const std::string& message) = 0;
+  virtual void log(LogLevel level, const std::string& message) = 0;
 };
 // }}}
 class FileLogTarget : public LogTarget { // {{{
  public:
   explicit FileLogTarget(FileDescriptor&& fd);
 
-  void log(LogLevel level,
-           const std::string& component,
-           const std::string& message) override;
+  void log(LogLevel level, const std::string& message) override;
 
   void setTimestampEnabled(bool value) { timestampEnabled_ = value; }
   bool isTimestampEnabled() const noexcept { return timestampEnabled_; }
@@ -60,9 +55,7 @@ class ConsoleLogTarget : public LogTarget { // {{{
  public:
   ConsoleLogTarget();
 
-  void log(LogLevel level,
-           const std::string& component,
-           const std::string& message) override;
+  void log(LogLevel level, const std::string& message) override;
 
   void setTimestampEnabled(bool value) { timestampEnabled_ = value; }
   bool isTimestampEnabled() const noexcept { return timestampEnabled_; }
@@ -80,9 +73,7 @@ class SyslogTarget : public LogTarget { // {{{
   explicit SyslogTarget(const std::string& ident);
   ~SyslogTarget();
 
-  void log(LogLevel level,
-           const std::string& component,
-           const std::string& message) override;
+  void log(LogLevel level, const std::string& message) override;
 
   static SyslogTarget* get();
 };
@@ -92,10 +83,7 @@ class Logger { // {{{
   Logger();
   static Logger* get();
 
-  void log(
-      LogLevel log_level,
-      const std::string& component,
-      const std::string& message);
+  void log(LogLevel log_level, const std::string& message);
 
   void addTarget(LogTarget* target);
   void setMinimumLogLevel(LogLevel min_level);
@@ -112,56 +100,56 @@ class Logger { // {{{
  * CRITICAL: Action should be taken as soon as possible
  */
 template <typename... T>
-void logFatal(const std::string& component, const std::string& msg, T... args) {
-  Logger::get()->log(LogLevel::Fatal, component, StringUtil::format(msg, args...));
+void logFatal(const std::string& msg, T... args) {
+  Logger::get()->log(LogLevel::Fatal, StringUtil::format(msg, args...));
 }
 
 /**
  * ERROR: User-visible Runtime Errors
  */
 template <typename... T>
-void logError(const std::string& component, const std::string& msg, T... args) {
-  Logger::get()->log(LogLevel::Error, component, StringUtil::format(msg, args...));
+void logError(const std::string& msg, T... args) {
+  Logger::get()->log(LogLevel::Error, StringUtil::format(msg, args...));
 }
 
 /**
  * WARNING: Something unexpected happened that should not have happened
  */
 template <typename... T>
-void logWarning(const std::string& component, const std::string& msg, T... args) {
-  Logger::get()->log(LogLevel::Warning, component, StringUtil::format(msg, args...));
+void logWarning(const std::string& msg, T... args) {
+  Logger::get()->log(LogLevel::Warning, StringUtil::format(msg, args...));
 }
 
 /**
  * NOTICE: Normal but significant condition.
  */
 template <typename... T>
-void logNotice(const std::string& component, const std::string& msg, T... args) {
-  Logger::get()->log(LogLevel::Notice, component, StringUtil::format(msg, args...));
+void logNotice(const std::string& msg, T... args) {
+  Logger::get()->log(LogLevel::Notice, StringUtil::format(msg, args...));
 }
 
 /**
  * INFO: Informational messages
  */
 template <typename... T>
-void logInfo(const std::string& component, const std::string& msg, T... args) {
-  Logger::get()->log(LogLevel::Info, component, StringUtil::format(msg, args...));
+void logInfo(const std::string& msg, T... args) {
+  Logger::get()->log(LogLevel::Info, StringUtil::format(msg, args...));
 }
 
 /**
  * DEBUG: Debug messages
  */
 template <typename... T>
-void logDebug(const std::string& component, const std::string& msg, T... args) {
-  Logger::get()->log(LogLevel::Debug, component, StringUtil::format(msg, args...));
+void logDebug(const std::string& msg, T... args) {
+  Logger::get()->log(LogLevel::Debug, StringUtil::format(msg, args...));
 }
 
 /**
  * TRACE: Trace messages
  */
 template <typename... T>
-void logTrace(const std::string& component, const std::string& msg, T... args) {
-  Logger::get()->log(LogLevel::Trace, component, StringUtil::format(msg, args...));
+void logTrace(const std::string& msg, T... args) {
+  Logger::get()->log(LogLevel::Trace, StringUtil::format(msg, args...));
 }
 // }}}
 

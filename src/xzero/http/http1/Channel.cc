@@ -143,7 +143,7 @@ void Channel::h2cVerifyUpgrade(std::string&& settingsPayload) {
                                                              &debugData);
 
   if (errorCode != http2::ErrorCode::NoError) {
-    logDebug("http1.Channel", "Upgrade to h2c failed. $0. $1",
+    logDebug("http1.Channel: Upgrade to h2c failed. $0. $1",
              errorCode, debugData);
     return;
   }
