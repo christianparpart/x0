@@ -13,6 +13,7 @@
 #include <xzero/net/Cidr.h>
 #include <xzero/RegExp.h>
 
+#include <iostream>
 #include <string>
 
 namespace xzero {
@@ -25,6 +26,11 @@ class ConstantValue : public Constant {
       : Constant(Ty, name), value_(value) {}
 
   T get() const { return value_; }
+
+  void dump() override {
+    std::cout << "Constant '" << name() << "': "
+      << tos(type()) << " = " << value_ << std::endl;
+  }
 
  private:
   T value_;

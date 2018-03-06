@@ -162,6 +162,8 @@ void TargetCodeGenerator::generate(IRHandler* handler) {
   cp_.getHandler(handlerId_).second = std::move(code_);
 
   // cleanup remaining handler-local work vars
+  printf("stack depth after run: sp=%zu, stackSize=%zu, varCount=%zu\n",
+      sp_, stack_.size(), variables_.size());
   variables_.clear();
   stack_.clear();
   sp_ = 0;
@@ -206,10 +208,16 @@ size_t TargetCodeGenerator::emitUnary(Instr& instr, Opcode opcode) {
 }
 
 StackPointer TargetCodeGenerator::getStackPointer(const Value* value) {
-  for (size_t i = 0, e = stack_.size(); i != e; ++i)
-    if (stack_[i] == value)
+  for (size_t i = 0, e = stack_.size(); i != e; ++i) {
+    if (stack_[i] == value) {
+      logDebug("getStackPointer: found $0 on stack ($1)", value->name(), i);
+      ((Value*) value)->dump();
       return i;
+    }
+  }
 
+  logDebug("getStackPointer: not found $0 on stack", value->name());
+  ((Value*) value)->dump();
   return (StackPointer) -1;
 }
 
@@ -231,6 +239,7 @@ void TargetCodeGenerator::visit(AllocaInstr& instr) {
   // emitInstr(Opcode::ALLOCA, getConstantInt(instr.arraySize()));
   // return allocate(instr);
 
+  stack_.push_back(&instr);
   variables_[&instr] = sp_++;
 }
 
