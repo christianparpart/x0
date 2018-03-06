@@ -213,13 +213,7 @@ std::unique_ptr<flow::vm::Program> XzeroDaemon::loadConfigStream(
     // optional passes
     if (optimizationLevel_ >= 1) {
       pm.registerPass(std::make_unique<flow::MergeBlockPass>());
-    }
-
-    if (optimizationLevel_ >= 2) {
       pm.registerPass(std::make_unique<flow::EmptyBlockElimination>());
-    }
-
-    if (optimizationLevel_ >= 3) {
       pm.registerPass(std::make_unique<flow::InstructionElimination>());
     }
 
