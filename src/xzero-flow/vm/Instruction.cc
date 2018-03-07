@@ -145,7 +145,9 @@ int getStackChange(Instruction instr) {
     case Opcode::HANDLER:
       return -operandB(instr);
     case Opcode::CALL:
-      return 1 - operandB(instr);
+      // TODO: handle void/non-void functions properly
+      //return 1 - operandB(instr);
+      return -operandB(instr);
     default:
       return instructionInfos[opc].stackChange;
   }

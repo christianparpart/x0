@@ -13,7 +13,7 @@
 
 namespace xzero::flow::vm {
 
-#define TRACE(msg...) logTrace("flow.vm.Handler", msg)
+#define TRACE(msg...) logTrace("flow.vm.Handler" msg)
 
 Handler::Handler() {
 }

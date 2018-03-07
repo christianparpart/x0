@@ -104,11 +104,6 @@ class TargetCodeGenerator : public InstructionVisitor {
   size_t emitBinary(Instr& instr, Opcode opcode);
   size_t emitUnary(Instr& instr, Opcode opcode);
 
-  /**
-   * Emits call args.
-   */
-  void emitCallArgs(Instr& instr);
-
   Operand getConstantInt(Value* value);
 
   /**
@@ -118,14 +113,19 @@ class TargetCodeGenerator : public InstructionVisitor {
 
   /**
    * Retrieves the current number of elements on the stack.
+   *
+   * This also means, this value will be the absolute index for the next value
+   * to be placed on top of the stack.
    */
-  StackPointer getStackPointer() const { return sp_; }
+  StackPointer getStackPointer() const { return stack_.size(); }
 
   /** Locates given @p value on the stack.
    */
   StackPointer getStackPointer(const Value* value);
 
-  void discard(const Value* alias);
+  void changeStack(size_t pops, const Value* pushValue);
+  void pop(size_t count);
+  void push(const Value* alias);
 
   void visit(NopInstr& instr) override;
 
@@ -217,13 +217,8 @@ class TargetCodeGenerator : public InstructionVisitor {
   size_t handlerId_;                    //!< current handler's ID
   std::vector<Instruction> code_;       //!< current handler's code
 
-  /** SP of current top value on the stack at the time of code generation. */
-  StackPointer sp_;
-
-  std::deque<Value*> stack_;
-
-  /** value-to-stack-offset assignment-map */
-  std::unordered_map<const Value*, StackPointer> variables_;
+  /** target stack during target code generation */
+  std::deque<const Value*> stack_;
 
   // target program output
   ConstantPool cp_;

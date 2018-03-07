@@ -23,7 +23,7 @@ namespace xzero {
 namespace flow {
 namespace vm {
 
-#define TRACE(msg...) logTrace("flow.vm.Program", msg)
+#define TRACE(msg...) logTrace("flow.vm.Program" msg)
 
 /* {{{ possible binary file format
  * ----------------------------------------------

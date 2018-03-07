@@ -638,10 +638,16 @@ bool Runner::loop() {
       for (int i = 1; i <= argc; i++)
         args.setArg(i, SP(-(argc + 1) + i));
 
-      TRACE("Calling function: $0",
-            handler_->program()->nativeFunction(id)->signature());
+      const Signature& signature =
+          handler_->program()->nativeFunction(id)->signature();
+
+      TRACE("Calling function: $0", signature);
 
       handler_->program()->nativeFunction(id)->invoke(args);
+
+      discard(argc);
+      if (signature.returnType() != FlowType::Void)
+        push(args[0]);
 
       if (state_ == Suspended) {
         logDebug("flow: vm suspended in function. returning (false)");
@@ -669,6 +675,7 @@ bool Runner::loop() {
 
       handler_->program()->nativeHandler(id)->invoke(args);
       const bool handled = (bool) args[0];
+      discard(argc);
 
       if (state_ == Suspended) {
         logDebug("flow: vm suspended in handler. returning (false)");
