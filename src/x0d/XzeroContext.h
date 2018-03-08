@@ -120,35 +120,27 @@ class XzeroContext {
   // {{{ Logging API
   template<typename... Args>
   inline void logError(const std::string& fmt, Args&&... args) {
-    logf(::xzero::LogLevel::Error, fmt, args...);
+    ::xzero::logError(::xzero::StringUtil::format("$0: $1", remoteIP(), fmt), args...);
   }
 
   template<typename... Args>
   inline void logWarning(const std::string& fmt, Args&&... args) {
-    logf(::xzero::LogLevel::Warning, fmt, args...);
+    ::xzero::logWarning(::xzero::StringUtil::format("$0: $1", remoteIP(), fmt), args...);
   }
 
   template<typename... Args>
   inline void logNotice(const std::string& fmt, Args&&... args) {
-    logf(::xzero::LogLevel::Notice, fmt, args...);
+    ::xzero::logNotice(::xzero::StringUtil::format("$0: $1", remoteIP(), fmt), args...);
   }
 
   template<typename... Args>
   inline void logInfo(const std::string& fmt, Args&&... args) {
-    logf(::xzero::LogLevel::Info, fmt, args...);
+    ::xzero::logInfo(::xzero::StringUtil::format("$0: $1", remoteIP(), fmt), args...);
   }
 
   template<typename... Args>
   inline void logDebug(const std::string& fmt, Args&&... args) {
-    logf(::xzero::LogLevel::Debug, fmt, args...);
-  }
-
-  template<typename... Args>
-  inline void logf(::xzero::LogLevel logLevel, const std::string& fmt, Args&&... args) {
-    using ::xzero::StringUtil;
-
-    ::xzero::Logger::get()->log(logLevel,
-        StringUtil::format(StringUtil::format("$0: $1", remoteIP(), fmt), args...));
+    ::xzero::logDebug(::xzero::StringUtil::format("$0: $1", remoteIP(), fmt), args...);
   }
   // }}}
 
