@@ -33,8 +33,8 @@ RUN autoreconf --verbose --force --install && \
                   --with-logdir="/var/log" \
                   --disable-maintainer-mode
 
-RUN make
-RUN make xzero_test
+RUN make -j$(grep -c ^processor /proc/cpuinfo)
+RUN make -j$(grep -c ^processor /proc/cpuinfo) xzero_test
 RUN ./xzero_test --exclude='raft_*'
 RUN strip x0d && ldd x0d && cp -v x0d /usr/bin/x0d
 
