@@ -130,7 +130,7 @@ void ProxyModule::proxy_pseudonym(xzero::flow::vm::Params& args) {
 }
 
 bool ProxyModule::verify_proxy_cluster(xzero::flow::Instr* call, xzero::flow::IRBuilder* builder) {
-  auto program = call->parent()->parent()->parent();
+  auto program = call->getBasicBlock()->getHandler()->getProgram();
 
   auto nameArg = dynamic_cast<ConstantString*>(call->operand(1));
   if (nameArg == nullptr) {

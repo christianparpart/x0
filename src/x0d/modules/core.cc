@@ -558,8 +558,7 @@ bool CoreModule::preproc_sys_env(xzero::flow::Instr* call, xzero::flow::IRBuilde
       return false;
     }
 
-    auto program = call->parent()->parent()->parent();  // instr -> BB ->
-                                                        // handler -> program
+    auto program = call->getBasicBlock()->getHandler()->getProgram();
 
     const char* cval = getenv(arg->get().c_str());
     ConstantString* str = program->get(cval ? cval : "");
@@ -587,8 +586,7 @@ bool CoreModule::preproc_sys_env2(xzero::flow::Instr* call, xzero::flow::IRBuild
         return false;
       }
 
-      auto program = call->parent()->parent()->parent();  // instr -> BB ->
-                                                          // handler -> program
+      auto program = call->getBasicBlock()->getHandler()->getProgram();
 
       const char* cval = getenv(arg->get().c_str());
       ConstantString* str = program->get((cval && *cval) ? cval : val->get());
@@ -759,8 +757,7 @@ bool CoreModule::verify_docroot(xzero::flow::Instr* call, xzero::flow::IRBuilder
       return false;
     }
 
-    auto program = call->parent()->parent()->parent();  // instr -> BB ->
-                                                        // handler -> program
+    auto program = call->getBasicBlock()->getHandler()->getProgram();
 
     // cut off trailing slash
     size_t trailerOffset = arg->get().size() - 1;
