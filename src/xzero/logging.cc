@@ -96,8 +96,36 @@ Logger::Logger() :
   }
 }
 
-void Logger::log(LogLevel log_level,
-                 const std::string& message) {
+void Logger::fatal(const std::string& message) {
+  log(LogLevel::Fatal, message);
+  abort();
+}
+
+void Logger::error(const std::string& message) {
+  log(LogLevel::Error, message);
+}
+
+void Logger::warning(const std::string& message) {
+  log(LogLevel::Warning, message);
+}
+
+void Logger::notice(const std::string& message) {
+  log(LogLevel::Notice, message);
+}
+
+void Logger::info(const std::string& message) {
+  log(LogLevel::Info, message);
+}
+
+void Logger::debug(const std::string& message) {
+  log(LogLevel::Debug, message);
+}
+
+void Logger::trace(const std::string& message) {
+  log(LogLevel::Trace, message);
+}
+
+void Logger::log(LogLevel log_level, const std::string& message) {
   if (log_level >= min_level_) {
     const size_t max_idx = max_listener_index_.load();
     for (size_t i = 0; i < max_idx; ++i) {
@@ -107,10 +135,6 @@ void Logger::log(LogLevel log_level,
         listener->log(log_level, message);
       }
     }
-  }
-
-  if (log_level == LogLevel::Fatal) {
-    abort();
   }
 }
 

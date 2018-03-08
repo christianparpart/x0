@@ -83,11 +83,20 @@ class Logger { // {{{
   Logger();
   static Logger* get();
 
-  void log(LogLevel log_level, const std::string& message);
+  [[noreturn]] void fatal(const std::string& message);
+  void error(const std::string& message);
+  void warning(const std::string& message);
+  void notice(const std::string& message);
+  void info(const std::string& message);
+  void debug(const std::string& message);
+  void trace(const std::string& message);
 
   void addTarget(LogTarget* target);
   void setMinimumLogLevel(LogLevel min_level);
   LogLevel getMinimumLogLevel() { return min_level_.load(); }
+
+ protected:
+  void log(LogLevel log_level, const std::string& message);
 
  protected:
   std::atomic<LogLevel> min_level_;
@@ -100,56 +109,61 @@ class Logger { // {{{
  * CRITICAL: Action should be taken as soon as possible
  */
 template <typename... T>
-void logFatal(const std::string& msg, T... args) {
-  Logger::get()->log(LogLevel::Fatal, StringUtil::format(msg, args...));
+[[noreturn]] void logFatal(const std::string& msg, T... args) {
+  Logger::get()->fatal(StringUtil::format(msg, args...));
 }
+
+#define XZERO_ASSERT(cond, msg) \
+  if (!(cond)) { \
+    logFatal((__FILE__ ":") + std::to_string(__LINE__) + ": " + msg); \
+  }
 
 /**
  * ERROR: User-visible Runtime Errors
  */
 template <typename... T>
-void logError(const std::string& msg, T... args) {
-  Logger::get()->log(LogLevel::Error, StringUtil::format(msg, args...));
+inline void logError(const std::string& msg, T... args) {
+  Logger::get()->error(StringUtil::format(msg, args...));
 }
 
 /**
  * WARNING: Something unexpected happened that should not have happened
  */
 template <typename... T>
-void logWarning(const std::string& msg, T... args) {
-  Logger::get()->log(LogLevel::Warning, StringUtil::format(msg, args...));
+inline void logWarning(const std::string& msg, T... args) {
+  Logger::get()->warning(StringUtil::format(msg, args...));
 }
 
 /**
  * NOTICE: Normal but significant condition.
  */
 template <typename... T>
-void logNotice(const std::string& msg, T... args) {
-  Logger::get()->log(LogLevel::Notice, StringUtil::format(msg, args...));
+inline void logNotice(const std::string& msg, T... args) {
+  Logger::get()->notice(StringUtil::format(msg, args...));
 }
 
 /**
  * INFO: Informational messages
  */
 template <typename... T>
-void logInfo(const std::string& msg, T... args) {
-  Logger::get()->log(LogLevel::Info, StringUtil::format(msg, args...));
+inline void logInfo(const std::string& msg, T... args) {
+  Logger::get()->info(StringUtil::format(msg, args...));
 }
 
 /**
  * DEBUG: Debug messages
  */
 template <typename... T>
-void logDebug(const std::string& msg, T... args) {
-  Logger::get()->log(LogLevel::Debug, StringUtil::format(msg, args...));
+inline void logDebug(const std::string& msg, T... args) {
+  Logger::get()->debug(StringUtil::format(msg, args...));
 }
 
 /**
  * TRACE: Trace messages
  */
 template <typename... T>
-void logTrace(const std::string& msg, T... args) {
-  Logger::get()->log(LogLevel::Trace, StringUtil::format(msg, args...));
+inline void logTrace(const std::string& msg, T... args) {
+  Logger::get()->trace(StringUtil::format(msg, args...));
 }
 // }}}
 
