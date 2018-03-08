@@ -316,8 +316,6 @@ void LinuxScheduler::runLoopOnce() {
 
   if (rv < 0) {
     RAISE_ERRNO(errno);
-  } else if (rv == 0 && timeoutMillis > 0) {
-    usleep(Duration::fromMilliseconds(timeoutMillis).microseconds());
   }
 
   std::list<Task> activeTasks;
