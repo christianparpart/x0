@@ -49,6 +49,7 @@ LinuxScheduler::LinuxScheduler(
       epollfd_(),
       eventfd_(),
       signalfd_(),
+      now_(0),
       activeEvents_(1024),
       readerCount_(0),
       writerCount_(0),
@@ -78,7 +79,7 @@ LinuxScheduler::~LinuxScheduler() {
 }
 
 MonotonicTime LinuxScheduler::now() const {
-  return MonotonicClock::now();
+  return now_;
 }
 
 void LinuxScheduler::execute(Task task) {
@@ -95,13 +96,13 @@ std::string LinuxScheduler::toString() const {
 }
 
 Executor::HandleRef LinuxScheduler::executeAfter(Duration delay, Task task) {
-  MonotonicTime time = now() + delay;
+  MonotonicTime time = MonotonicClock::now() + delay;
   TRACE("executeAfter: $0", time);
   return insertIntoTimersList(time, task);
 }
 
 Executor::HandleRef LinuxScheduler::executeAt(UnixTime when, Task task) {
-  MonotonicTime time = now() + (when - WallClock::now());
+  MonotonicTime time = MonotonicClock::now() + (when - WallClock::now());
   TRACE("executeAt: $0", time);
   return insertIntoTimersList(time, task);
 }
@@ -142,7 +143,7 @@ Executor::HandleRef LinuxScheduler::createWatcher(
     RAISE(AlreadyWatchingOnResource, "Already watching on resource");
   }
 
-  Watcher* interest = new Watcher(fd, mode, task, now() + timeout, tcb);
+  Watcher* interest = new Watcher(fd, mode, task, MonotonicClock::now() + timeout, tcb);
   watchers_[fd] = RefPtr<Watcher>(interest);
 
   interest->setCancelHandler([this, interest] () {
@@ -271,11 +272,11 @@ Duration LinuxScheduler::nextTimeout() const {
     return Duration::Zero;
 
   const Duration a = !timers_.empty()
-                 ? timers_.front()->when - now()
+                 ? timers_.front()->when - now_
                  : 60_seconds;
 
   const Duration b = firstWatcher_ != nullptr
-                 ? firstWatcher_->timeout - now()
+                 ? firstWatcher_->timeout - now_
                  : 61_seconds;
 
   return std::min(a, b);
@@ -296,6 +297,7 @@ void LinuxScheduler::runLoop() {
   breakLoopCounter_.store(0);
 
   TRACE("runLoop: referenceCount=$0", referenceCount());
+  now_ = MonotonicClock::now();
   while (referenceCount() > 0 && breakLoopCounter_.load() == 0) {
     runLoopOnce();
   }
@@ -304,7 +306,7 @@ void LinuxScheduler::runLoop() {
 void LinuxScheduler::runLoopOnce() {
   int rv;
 
-  uint64_t timeoutMillis = nextTimeout().milliseconds();
+  const uint64_t timeoutMillis = nextTimeout().milliseconds();
 
   do rv = epoll_wait(epollfd_, &activeEvents_[0], activeEvents_.size(),
                      timeoutMillis);
@@ -317,6 +319,8 @@ void LinuxScheduler::runLoopOnce() {
   if (rv < 0) {
     RAISE_ERRNO(errno);
   }
+
+  now_ = MonotonicClock::now();
 
   std::list<Task> activeTasks;
   {
@@ -420,7 +424,7 @@ void LinuxScheduler::collectActiveHandles(size_t count,
 
 void LinuxScheduler::collectTimeouts(std::list<Task>* result) {
   const auto nextTimedout = [this]() -> Watcher* {
-    return firstWatcher_ && firstWatcher_->timeout <= now()
+    return firstWatcher_ && firstWatcher_->timeout <= now_
         ? firstWatcher_
         : nullptr;
   };
@@ -436,7 +440,7 @@ void LinuxScheduler::collectTimeouts(std::list<Task>* result) {
   }
 
   const auto nextTimer = [this]() -> Timer* {
-    return !timers_.empty() && timers_.front()->when <= now()
+    return !timers_.empty() && timers_.front()->when <= now_
         ? timers_.front().get()
         : nullptr;
   };

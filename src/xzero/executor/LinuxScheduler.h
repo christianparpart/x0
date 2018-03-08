@@ -170,6 +170,7 @@ class LinuxScheduler : public EventLoop {
   FileDescriptor epollfd_;
   FileDescriptor eventfd_;
   FileDescriptor signalfd_;
+  MonotonicTime now_;
 
   std::vector<epoll_event> activeEvents_;
 
