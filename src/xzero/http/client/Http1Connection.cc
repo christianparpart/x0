@@ -18,7 +18,7 @@ namespace http {
 namespace client {
 
 #if 0 //!defined(NDEBUG)
-#define TRACE(msg...) logTrace("http.client.Http1Connection", msg)
+#define TRACE(msg...) logTrace("http.client.Http1Connection: " msg)
 #else
 #define TRACE(msg...) do {} while (0)
 #endif

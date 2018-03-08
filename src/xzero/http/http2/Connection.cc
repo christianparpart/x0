@@ -16,7 +16,7 @@ namespace xzero {
 namespace http {
 namespace http2 {
 
-#define TRACE(msg...) logNotice("http2.Connection", msg)
+#define TRACE(msg...) logNotice("http2.Connection: " msg)
 
 Connection::Connection(TcpEndPoint* endpoint,
                        Executor* executor,

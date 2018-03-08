@@ -17,7 +17,7 @@ namespace http {
 namespace hpack {
 
 #if !defined(NDEBUG)
-#define TRACE(msg...) logTrace("http.hpack.Parser", msg)
+#define TRACE(msg...) logTrace("http.hpack.Parser: " msg)
 #else
 #define TRACE(msg...) do {} while (0)
 #endif

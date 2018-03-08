@@ -11,7 +11,7 @@
 #include <unistd.h>
 
 #ifndef NDEBUG
-#define TRACE(msg...) logTrace("net.EndPointWriter", msg)
+#define TRACE(msg...) logTrace("net.EndPointWriter: " msg)
 #else
 #define TRACE(msg...) do {} while (0)
 #endif

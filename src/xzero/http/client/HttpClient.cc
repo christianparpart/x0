@@ -21,7 +21,7 @@
 #include <xzero/logging.h>
 
 #if !defined(NDEBUG)
-#define TRACE(msg...) logTrace("HttpClient", msg)
+#define TRACE(msg...) logTrace("HttpClient: " msg)
 #else
 #warning "No NDEBUG set"
 #define TRACE(msg...) do {} while (0)

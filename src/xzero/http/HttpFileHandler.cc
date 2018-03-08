@@ -23,7 +23,7 @@
 #include <fcntl.h>
 
 #if 1 //!defined(NDEBUG)
-#define TRACE(msg...) logTrace("http.FileHandler", msg)
+#define TRACE(msg...) logTrace("http.FileHandler: " msg)
 #else
 #define TRACE(msg...) do {} while (0)
 #endif

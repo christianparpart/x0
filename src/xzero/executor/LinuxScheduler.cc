@@ -28,7 +28,7 @@ namespace xzero {
 #define EPOLL_MAX_USER_WATCHES_FILE "/proc/sys/fs/epoll/max_user_watches"
 
 #if !defined(NDEBUG)
-#define TRACE(msg...) logTrace("LinuxScheduler", msg)
+#define TRACE(msg...) logTrace("LinuxScheduler: " msg)
 #else
 #define TRACE(msg...) do {} while (0)
 #endif

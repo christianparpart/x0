@@ -17,7 +17,7 @@ namespace http {
 namespace fastcgi {
 
 #ifndef NDEBUG
-#define TRACE(msg...) logTrace("http.fastcgi.Generator", msg)
+#define TRACE(msg...) logTrace("http.fastcgi.Generator: " msg)
 #else
 #define TRACE(msg...) do {} while (0)
 #endif

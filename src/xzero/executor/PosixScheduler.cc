@@ -30,7 +30,7 @@ namespace xzero {
 #define PIPE_READ_END  0
 #define PIPE_WRITE_END 1
 
-#define ERROR(msg...) logError("PosixScheduler", msg)
+#define ERROR(msg...) logError("PosixScheduler: " msg)
 
 #if 0 // !defined(NDEBUG)
 #define TRACE(msg...) logTrace("PosixScheduler", msg)

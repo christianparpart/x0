@@ -15,8 +15,8 @@ namespace xzero {
 namespace http {
 
 #ifndef NDEBUG
-# define DEBUG(msg...) logDebug("http.HttpRequest", msg)
-# define TRACE(msg...) logTrace("http.HttpRequest", msg)
+# define DEBUG(msg...) logDebug("http.HttpRequest: " msg)
+# define TRACE(msg...) logTrace("http.HttpRequest: " msg)
 #else
 # define DEBUG(msg...) do {} while (0)
 # define TRACE(msg...) do {} while (0)

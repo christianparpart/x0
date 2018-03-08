@@ -22,7 +22,7 @@ namespace http {
 namespace http1 {
 
 #if !defined(NDEBUG)
-#define TRACE(msg...) logTrace("http.http1.Generator", msg)
+#define TRACE(msg...) logTrace("http.http1.Generator: " msg)
 #else
 #define TRACE(msg...) do {} while (0)
 #endif

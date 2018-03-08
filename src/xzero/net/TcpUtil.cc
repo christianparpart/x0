@@ -32,7 +32,7 @@
 
 namespace xzero {
 
-#define TRACE(msg...) logTrace("TcpUtil", msg)
+#define TRACE(msg...) logTrace("TcpUtil: " msg)
 
 Result<InetAddress> TcpUtil::getRemoteAddress(int fd, int addressFamily) {
   if (fd < 0)

@@ -24,10 +24,10 @@
 namespace xzero {
 namespace http {
 
-#define ERROR(msg...) logError("http.HttpChannel", msg)
+#define ERROR(msg...) logError("http.HttpChannel: " msg)
 
 #ifndef NDEBUG
-#define TRACE(msg...) logTrace("http.HttpChannel", msg)
+#define TRACE(msg...) logTrace("http.HttpChannel: " msg)
 #else
 #define TRACE(msg...) do {} while (0)
 #endif

@@ -37,9 +37,9 @@ namespace fastcgi {
  */
 
 #ifndef NDEBUG
-#define TRACE_CONN(msg...) logTrace("http.fastcgi.Connection", msg)
-#define TRACE_TRANSPORT(msg...) logTrace("http.fastcgi.Transport", msg)
-#define TRACE_CHANNEL(msg...) logTrace("http.fastcgi.Channel", msg)
+#define TRACE_CONN(msg...) logTrace("http.fastcgi.Connection: " msg)
+#define TRACE_TRANSPORT(msg...) logTrace("http.fastcgi.Transport: " msg)
+#define TRACE_CHANNEL(msg...) logTrace("http.fastcgi.Channel: " msg)
 #else
 #define TRACE_CONN(msg...) do {} while (0)
 #define TRACE_TRANSPORT(msg...) do {} while (0)

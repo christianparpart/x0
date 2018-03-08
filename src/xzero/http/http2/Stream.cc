@@ -16,7 +16,7 @@ namespace xzero {
 namespace http {
 namespace http2 {
 
-#define TRACE(msg...) logTrace("http.http2.Stream", msg)
+#define TRACE(msg...) logTrace("http.http2.Stream: " msg)
 
 Stream::Stream(StreamID id,
                Stream* parentStream,

@@ -18,8 +18,8 @@ namespace http {
 namespace client {
 
 #ifndef NDEBUG
-# define DEBUG(msg...) logDebug("http.client.HttpClusterMember", msg)
-# define TRACE(msg...) logTrace("http.client.HttpClusterMember", msg)
+# define DEBUG(msg...) logDebug("http.client.HttpClusterMember: " msg)
+# define TRACE(msg...) logTrace("http.client.HttpClusterMember: " msg)
 #else
 # define DEBUG(msg...) do {} while (0)
 # define TRACE(msg...) do {} while (0)

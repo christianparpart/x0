@@ -11,7 +11,7 @@
 #include <stdlib.h>
 
 #if !defined(NDEBUG)
-#define TRACE(msg...) logTrace("http.MediaRange", msg)
+#define TRACE(msg...) logTrace("http.MediaRange: " msg)
 #else
 #define TRACE(msg...) do {} while (0)
 #endif

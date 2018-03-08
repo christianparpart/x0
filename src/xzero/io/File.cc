@@ -19,7 +19,7 @@
 #include <errno.h>
 
 #if 1
-#define TRACE(level, msg...) logTrace("File", msg)
+#define TRACE(level, msg...) logTrace("File: " msg)
 #else
 #define TRACE(level, msg...) do {} while (0)
 #endif

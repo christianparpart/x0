@@ -13,8 +13,8 @@
 #include <algorithm>
 
 #if 0 // !defined(NDEBUG)
-# define DEBUG(msg...) logDebug("http.client.HttpHealthMonitor", msg)
-# define TRACE(msg...) logTrace("http.client.HttpHealthMonitor", msg)
+# define DEBUG(msg...) logDebug("http.client.HttpHealthMonitor: " msg)
+# define TRACE(msg...) logTrace("http.client.HttpHealthMonitor: " msg)
 #else
 # define DEBUG(msg...) do {} while (0)
 # define TRACE(msg...) do {} while (0)

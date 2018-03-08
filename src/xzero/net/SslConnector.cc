@@ -18,7 +18,7 @@
 namespace xzero {
 
 #ifndef NDEBUG
-#define TRACE(msg...) logTrace("SslConnector", msg)
+#define TRACE(msg...) logTrace("SslConnector: " msg)
 #else
 #define TRACE(msg...) do {} while (0)
 #endif

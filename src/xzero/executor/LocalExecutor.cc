@@ -14,7 +14,7 @@
 namespace xzero {
 
 #ifndef NDEBUG
-#define TRACE(msg...) logTrace("executor.LocalExecutor", msg)
+#define TRACE(msg...) logTrace("executor.LocalExecutor: " msg)
 #else
 #define TRACE(msg...) do {} while (0)
 #endif

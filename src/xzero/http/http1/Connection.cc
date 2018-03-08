@@ -27,10 +27,10 @@ namespace xzero {
 namespace http {
 namespace http1 {
 
-#define ERROR(msg...) logError("http.http1.Connection", msg)
+#define ERROR(msg...) logError("http.http1.Connection" msg)
 
 #if !defined(NDEBUG)
-#define TRACE(msg...) logTrace("http.http1.Connection", msg)
+#define TRACE(msg...) logTrace("http.http1.Connection" msg)
 #else
 #define TRACE(msg...) do {} while (0)
 #endif

@@ -26,7 +26,7 @@
 
 namespace xzero {
 
-#define ERROR(msg...) logError("ThreadPool", msg)
+#define ERROR(msg...) logError("ThreadPool: " msg)
 
 #ifndef NDEBUG
 #define TRACE(msg...) logTrace("ThreadPool", msg)

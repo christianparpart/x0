@@ -13,8 +13,8 @@
 namespace xzero {
 
 #if !defined(NDEBUG)
-#define TRACE(msg...) logTrace("LinuxSignals", msg)
-#define DEBUG(msg...) logDebug("LinuxSignals", msg)
+#define TRACE(msg...) logTrace("LinuxSignals: " msg)
+#define DEBUG(msg...) logDebug("LinuxSignals: " msg)
 #else
 #define TRACE(msg...) do {} while (0)
 #define DEBUG(msg...) do {} while (0)

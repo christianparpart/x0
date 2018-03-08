@@ -14,7 +14,7 @@ namespace http {
 namespace hpack {
 
 #if !defined(NDEBUG)
-#define TRACE(msg...) logTrace("http.hpack.DynamicTable", msg)
+#define TRACE(msg...) logTrace("http.hpack.DynamicTable: " msg)
 #else
 #define TRACE(msg...) do {} while (0)
 #endif

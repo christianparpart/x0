@@ -14,9 +14,9 @@
 
 namespace xzero {
 
-#define ERROR(msg...) do { logError("DeadlineTimer", msg); } while (0)
+#define ERROR(msg...) do { logError("DeadlineTimer: " msg); } while (0)
 #ifndef NDEBUG
-#define TRACE(msg...) do { logTrace("DeadlineTimer", msg); } while (0)
+#define TRACE(msg...) do { logTrace("DeadlineTimer: " msg); } while (0)
 #else
 #define TRACE(msg...) do {} while (0)
 #endif
