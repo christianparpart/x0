@@ -641,23 +641,38 @@ void CoreModule::sys_domainname(XzeroContext* cx, Params& args) {
 }
 
 void CoreModule::log_err(XzeroContext* cx, Params& args) {
-  cx->logError("$0", args.getString(1));
+  if (cx)
+    cx->logError("$0", args.getString(1));
+  else
+    logError("$0", args.getString(1));
 }
 
 void CoreModule::log_warn(XzeroContext* cx, Params& args) {
-  cx->logWarning("$0", args.getString(1));
+  if (cx)
+    cx->logWarning("$0", args.getString(1));
+  else
+    logWarning("$0", args.getString(1));
 }
 
 void CoreModule::log_notice(XzeroContext* cx, Params& args) {
-  cx->logNotice("$0", args.getString(1));
+  if (cx)
+    cx->logNotice("$0", args.getString(1));
+  else
+    logNotice("$0", args.getString(1));
 }
 
 void CoreModule::log_info(XzeroContext* cx, Params& args) {
-  cx->logInfo("$0", args.getString(1));
+  if (cx)
+    cx->logInfo("$0", args.getString(1));
+  else
+    logInfo("$0", args.getString(1));
 }
 
 void CoreModule::log_debug(XzeroContext* cx, Params& args) {
-  cx->logDebug("$0", args.getString(1));
+  if (cx)
+    cx->logDebug(args.getString(1));
+  else
+    logDebug(args.getString(1));
 }
 
 void CoreModule::rand(XzeroContext* cx, Params& args) {
