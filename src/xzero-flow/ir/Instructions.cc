@@ -252,7 +252,7 @@ Instr* LoadInstr::clone() { return new LoadInstr(variable(), name()); }
 void StoreInstr::dump() { dumpOne("store"); }
 
 Instr* StoreInstr::clone() {
-  return new StoreInstr(variable(), index(), expression(), name());
+  return new StoreInstr(variable(), index(), source(), name());
 }
 // }}}
 

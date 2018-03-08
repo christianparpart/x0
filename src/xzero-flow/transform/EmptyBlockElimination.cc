@@ -35,7 +35,7 @@ bool EmptyBlockElimination::run(IRHandler* handler) {
   }
 
   for (BasicBlock* bb : eliminated) {
-    bb->parent()->erase(bb);
+    bb->getHandler()->erase(bb);
   }
 
   return eliminated.size() > 0;

@@ -33,7 +33,7 @@ static size_t fni = 0;
 struct fntrace4 {
   std::string msg_;
 
-  fntrace4(const char* msg) : msg_(msg) {
+  explicit fntrace4(const std::string& msg) : msg_(msg) {
     size_t i = 0;
     char fmt[1024];
 
@@ -70,9 +70,11 @@ struct fntrace4 {
 };
 // }}}
 #define FNTRACE() fntrace4 _(__PRETTY_FUNCTION__)
-#define TRACE(level, msg...) logDebug("TCG: " msg)
+#define CTRACE(msg) fntrace4 _ct(msg)
+#define TRACE(level, msg...) logTrace("TCG: " msg)
 #else
 #define FNTRACE()            do {} while (0)
+#define CTRACE(msg)          do {} while (0)
 #define TRACE(level, msg...) do {} while (0)
 #endif
 using namespace vm;
@@ -97,10 +99,11 @@ TargetCodeGenerator::TargetCodeGenerator()
       cp_() {
 }
 
-TargetCodeGenerator::~TargetCodeGenerator() {}
+TargetCodeGenerator::~TargetCodeGenerator() {
+}
 
 std::unique_ptr<Program> TargetCodeGenerator::generate(IRProgram* programIR) {
-  FNTRACE();
+  CTRACE("generate(IRProgram)");
 
   for (IRHandler* handler : programIR->handlers())
     generate(handler);
@@ -111,7 +114,7 @@ std::unique_ptr<Program> TargetCodeGenerator::generate(IRProgram* programIR) {
 }
 
 void TargetCodeGenerator::generate(IRHandler* handler) {
-  FNTRACE();
+  CTRACE("generate(IRHandler)");
 
   // explicitely forward-declare handler, so we can use its ID internally.
   handlerId_ = cp_.makeHandler(handler);
@@ -164,58 +167,56 @@ void TargetCodeGenerator::generate(IRHandler* handler) {
   cp_.getHandler(handlerId_).second = std::move(code_);
 
   // cleanup remaining handler-local work vars
-  printf("stack depth after run: stackSize=%zu\n", stack_.size());
+  logTrace("flow: stack depth after handler code generation: $0\n", stack_.size());
   stack_.clear();
 }
 
-size_t TargetCodeGenerator::emitInstr(Instruction instr) {
+void TargetCodeGenerator::emitInstr(Instruction instr) {
   code_.push_back(instr);
-  return getInstructionPointer() - 1;
 }
 
-size_t TargetCodeGenerator::emitCondJump(Opcode opcode, BasicBlock* bb) {
-  size_t pc = emitInstr(opcode);
+void TargetCodeGenerator::emitCondJump(Opcode opcode, BasicBlock* bb) {
+  const auto pc = getInstructionPointer();
+  emitInstr(opcode);
+  changeStack(1, nullptr);
   conditionalJumps_[bb].push_back({pc, opcode});
-  return pc;
 }
 
-size_t TargetCodeGenerator::emitJump(BasicBlock* bb) {
-  size_t pc = emitInstr(Opcode::JMP);
+void TargetCodeGenerator::emitJump(BasicBlock* bb) {
+  const auto pc = getInstructionPointer();
+  emitInstr(Opcode::JMP);
   unconditionalJumps_[bb].push_back({pc, Opcode::JMP});
-  return pc;
 }
 
-size_t TargetCodeGenerator::emitBinary(Instr& binaryInstr, Opcode opcode) {
+void TargetCodeGenerator::emitBinary(Instr& binaryInstr, Opcode opcode) {
   emitLoad(binaryInstr.operand(0));
   emitLoad(binaryInstr.operand(1));
-
-  return emitInstr(opcode);
+  emitInstr(opcode);
+  changeStack(2, &binaryInstr);
 }
 
-size_t TargetCodeGenerator::emitBinaryAssoc(Instr& binaryInstr, Opcode opcode) {
+void TargetCodeGenerator::emitBinaryAssoc(Instr& binaryInstr, Opcode opcode) {
   // TODO: switch lhs and rhs if lhs is const and rhs is not
   // TODO: revive stack/imm opcodes
   emitLoad(binaryInstr.operand(0));
   emitLoad(binaryInstr.operand(1));
-  return emitInstr(opcode);
+  emitInstr(opcode);
+  changeStack(2, &binaryInstr);
 }
 
-size_t TargetCodeGenerator::emitUnary(Instr& unaryInstr, Opcode opcode) {
+void TargetCodeGenerator::emitUnary(Instr& unaryInstr, Opcode opcode) {
   emitLoad(unaryInstr.operand(0));
-  return emitInstr(opcode);
+  emitInstr(opcode);
+  changeStack(1, &unaryInstr);
 }
 
 StackPointer TargetCodeGenerator::getStackPointer(const Value* value) {
-  for (size_t i = 0, e = stack_.size(); i != e; ++i) {
-    if (stack_[i] == value) {
-      logDebug("getStackPointer: found $0 on stack ($1)", value->name(), i);
-      ((Value*) value)->dump();
+  for (size_t i = 0, e = stack_.size(); i != e; ++i)
+    if (stack_[i] == value)
       return i;
-    }
-  }
 
-  logDebug("getStackPointer: not found $0 on stack", value->name());
-  ((Value*) value)->dump();
+  // logDebug("getStackPointer: not found $0 on stack", value->name());
+  // ((Value*) value)->dump();
   return (StackPointer) -1;
 }
 
@@ -223,7 +224,8 @@ void TargetCodeGenerator::changeStack(size_t pops, const Value* pushValue) {
   if (pops)
     pop(pops);
 
-  push(pushValue);
+  if (pushValue)
+    push(pushValue);
 }
 
 void TargetCodeGenerator::pop(size_t count) {
@@ -236,65 +238,86 @@ void TargetCodeGenerator::pop(size_t count) {
 }
 
 void TargetCodeGenerator::push(const Value* alias) {
-  logDebug("tcg: push $0", alias->name());
+  logDebug("tcg: push $0", alias ? alias->name() : "NULL");
   stack_.push_back(alias);
 }
 
 // {{{ instruction code generation
 void TargetCodeGenerator::visit(NopInstr& nopInstr) {
-  FNTRACE();
+  CTRACE("visit(NopInstr)");
   emitInstr(Opcode::NOP);
 }
 
 void TargetCodeGenerator::visit(AllocaInstr& allocaInstr) {
-  FNTRACE();
+  CTRACE("visit(AllocaInstr)");
 
-  // TODO handle allocaInstr.arraySize()
-  // emitInstr(Opcode::ALLOCA, getConstantInt(allocaInstr.arraySize()));
-  // return allocate(allocaInstr);
-
-  stack_.push_back(&allocaInstr);
+  emitInstr(Opcode::ALLOCA, 1);
+  push(&allocaInstr);
 }
 
 // variable = expression
 void TargetCodeGenerator::visit(StoreInstr& storeInstr) {
-  FNTRACE();
-  emitLoad(storeInstr.expression());
+  CTRACE("visit(StoreInstr)");
 
-  if (StackPointer di = getStackPointer(storeInstr.variable()); di != size_t(-1)) {
+  StackPointer di = getStackPointer(storeInstr.variable());
+  XZERO_ASSERT(di != size_t(-1), "BUG: StoreInstr.variable not found on stack");
+
+  logDebug("storeInstr: source $0 (use count $1), variable name = $2",
+      storeInstr.source()->name(),
+      storeInstr.source()->uses().size(),
+      storeInstr.variable()->name());
+
+  if (storeInstr.source()->uses().size() == 1 && stack_.back() == storeInstr.source()) {
     emitInstr(Opcode::STORE, di);
+		changeStack(1, nullptr);
   } else {
-    //DEL variables_[storeInstr.variable()] = getStackPointer() - 1;
+    emitLoad(storeInstr.source());
+    emitInstr(Opcode::STORE, di);
+		changeStack(1, nullptr);
   }
 }
 
 void TargetCodeGenerator::visit(LoadInstr& loadInstr) {
-  FNTRACE();
-  StackPointer sp = emitLoad(loadInstr.variable());
-  //DEL variables_[&loadInstr] = sp;
+  CTRACE(StringUtil::format("visit(LoadInstr) $0 <- $1", loadInstr.name(), loadInstr.variable()->name()));
+
+	StackPointer si = getStackPointer(loadInstr.variable());
+	XZERO_ASSERT(si != static_cast<size_t>(-1),
+			"BUG: emitLoad: LoadInstr with variable() not yet on the stack.");
+
+	emitInstr(Opcode::LOAD, si);
+	changeStack(0, &loadInstr);
 }
 
 void TargetCodeGenerator::visit(CallInstr& callInstr) {
-  FNTRACE();
-  StackPointer bp = getStackPointer();
+  CTRACE("visit(CallInstr)");
 
-  int argc = callInstr.operands().size() - 1;
+  const int argc = callInstr.operands().size() - 1;
   for (int i = 1; i <= argc; ++i)
     emitLoad(callInstr.operand(i));
 
+  const bool returnsValue =
+      callInstr.callee()->signature().returnType() != FlowType::Void;
+
   emitInstr(Opcode::CALL,
       cp_.makeNativeFunction(callInstr.callee()),
-      callInstr.operands().size() - 1);
+      callInstr.operands().size() - 1,
+      returnsValue ? 1 : 0);
 
   if (argc)
     pop(argc);
 
-  if (callInstr.callee()->signature().returnType() != FlowType::Void)
+  if (returnsValue) {
     push(&callInstr);
+
+    if (!callInstr.isUsed()) {
+      emitInstr(Opcode::DISCARD, 1);
+      pop(1);
+    }
+  }
 }
 
 void TargetCodeGenerator::visit(HandlerCallInstr& handlerCallInstr) {
-  FNTRACE();
+  CTRACE("visit(HandlerCallInstr)");
 
   int argc = handlerCallInstr.operands().size() - 1;
   for (int i = 1; i <= argc; ++i)
@@ -313,17 +336,7 @@ Operand TargetCodeGenerator::getConstantInt(Value* value) {
   return static_cast<ConstantInt*>(value)->get();
 }
 
-StackPointer TargetCodeGenerator::emitLoad(Value* value) {
-  // if value is already on stack, dup to top
-  // if (StackPointer si = getStackPointer(value); si != size_t(-1)) {
-  //   logDebug("flow[TargetCodeGenerator]: emitLoad via getStackPointer()");
-  //   StackPointer sp = stack_.size();
-  //   emitInstr(Opcode::LOAD, si);
-  //   return sp;
-  // }
-
-  StackPointer sp = getStackPointer();
-
+void TargetCodeGenerator::emitLoad(Value* value) {
   // const int
   if (ConstantInt* integer = dynamic_cast<ConstantInt*>(value)) {
     // FIXME this constant initialization should pretty much be done in the entry block
@@ -335,35 +348,35 @@ StackPointer TargetCodeGenerator::emitLoad(Value* value) {
       emitInstr(Opcode::NLOAD, cp_.makeInteger(number));
       changeStack(0, value);
     }
-    return sp;
+    return;
   }
 
   // const boolean
   if (auto boolean = dynamic_cast<ConstantBoolean*>(value)) {
     emitInstr(Opcode::ILOAD, boolean->get());
     changeStack(0, value);
-    return sp;
+    return;
   }
 
   // const string
   if (ConstantString* str = dynamic_cast<ConstantString*>(value)) {
     emitInstr(Opcode::SLOAD, cp_.makeString(str->get()));
     changeStack(0, value);
-    return sp;
+    return;
   }
 
   // const ip
   if (ConstantIP* ip = dynamic_cast<ConstantIP*>(value)) {
     emitInstr(Opcode::PLOAD, cp_.makeIPAddress(ip->get()));
     changeStack(0, value);
-    return sp;
+    return;
   }
 
   // const cidr
   if (ConstantCidr* cidr = dynamic_cast<ConstantCidr*>(value)) {
     emitInstr(Opcode::CLOAD, cp_.makeCidr(cidr->get()));
     changeStack(0, value);
-    return sp;
+    return;
   }
 
   // const array<T>
@@ -394,7 +407,7 @@ StackPointer TargetCodeGenerator::emitLoad(Value* value) {
       default:
         logFatal("BUG: Unsupported array type in target code generator.");
     }
-    return sp;
+    return;
   }
 
   // const regex
@@ -402,24 +415,28 @@ StackPointer TargetCodeGenerator::emitLoad(Value* value) {
     // TODO emitInstr(Opcode::RLOAD, re->get());
     emitInstr(Opcode::ILOAD, cp_.makeRegExp(re->get()));
     changeStack(0, value);
-    return sp;
+    return;
   }
 
-  value->dump();
-  logFatal("BUG: emitLoad() hit with unknown type: $0", typeid(*value).name());
+  // if value is already on stack, dup to top
+  StackPointer si = getStackPointer(value);
+  XZERO_ASSERT(si != static_cast<size_t>(-1),
+      "BUG: emitLoad: value not yet on the stack but referenced as operand.");
+  emitInstr(Opcode::LOAD, si);
+  changeStack(0, value);
 }
 
 void TargetCodeGenerator::visit(PhiNode& phiInstr) {
-  FNTRACE();
+  CTRACE("visit(PhiNode)");
   logFatal("Should never reach here, as PHI instruction nodes should have been replaced by target registers.");
 }
 
 void TargetCodeGenerator::visit(CondBrInstr& condBrInstr) {
-  FNTRACE();
-  if (condBrInstr.parent()->isAfter(condBrInstr.trueBlock())) {
+  CTRACE("visit(CondBrInstr)");
+  if (condBrInstr.getBasicBlock()->isAfter(condBrInstr.trueBlock())) {
     emitLoad(condBrInstr.condition());
     emitCondJump(Opcode::JZ, condBrInstr.falseBlock());
-  } else if (condBrInstr.parent()->isAfter(condBrInstr.falseBlock())) {
+  } else if (condBrInstr.getBasicBlock()->isAfter(condBrInstr.falseBlock())) {
     emitLoad(condBrInstr.condition());
     emitCondJump(Opcode::JN, condBrInstr.trueBlock());
   } else {
@@ -432,7 +449,7 @@ void TargetCodeGenerator::visit(CondBrInstr& condBrInstr) {
 void TargetCodeGenerator::visit(BrInstr& brInstr) {
   // Do not emit the JMP if the target block is emitted right after this block
   // (and thus, right after this instruction).
-  if (brInstr.parent()->isAfter(brInstr.targetBlock()))
+  if (brInstr.getBasicBlock()->isAfter(brInstr.targetBlock()))
     return;
 
   emitJump(brInstr.targetBlock());
@@ -451,7 +468,7 @@ void TargetCodeGenerator::visit(MatchInstr& matchInstr) {
   const size_t matchId = cp_.makeMatchDef();
   MatchDef& matchDef = cp_.getMatchDef(matchId);
 
-  matchDef.handlerId = cp_.makeHandler(matchInstr.parent()->parent());
+  matchDef.handlerId = cp_.makeHandler(matchInstr.getBasicBlock()->getHandler());
   matchDef.op = matchInstr.op();
   matchDef.elsePC = 0;  // XXX to be filled in post-processing the handler
 

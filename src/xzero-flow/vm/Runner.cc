@@ -60,7 +60,7 @@ namespace xzero::flow::vm {
 #define instr(name) \
   l_##name : ++pc;  \
   DEBUG("$0",    \
-        disassemble((Instruction) * pc, (pc - code.data()) / 2));
+        disassemble((Instruction) * pc, (pc - code.data()) / 2), program_->constants());
 
 #define get_pc() ((pc - code.data()) / 2)
 #define set_pc(offset)               \
@@ -71,7 +71,7 @@ namespace xzero::flow::vm {
 #define next goto*(void*)*++pc
 #else
 #define instr(name) \
-  l_##name : DEBUG("$0", disassemble(*pc, pc - code.data(), &sp_));
+  l_##name : DEBUG("$0", disassemble(*pc, pc - code.data(), &sp_, program_->constants()));
 
 #define get_pc() (pc - code.data())
 #define set_pc(offset)           \
@@ -155,7 +155,7 @@ bool Runner::loop() {
 #define label(opcode) &&l_##opcode
   static const void* const ops[] = {
       // misc
-      label(NOP),       label(DISCARD),
+      label(NOP),       label(ALLOCA),    label(DISCARD),
 
       // control
       label(EXIT),
@@ -225,7 +225,16 @@ bool Runner::loop() {
   jump;
 
   // {{{ misc
-  instr(NOP) { next; }
+  instr(NOP) {
+    next;
+  }
+
+  instr(ALLOCA) {
+    for (int i = 0; i < A; ++i)
+      stack_.push(0);
+    next;
+  }
+
   instr(DISCARD) {
     stack_.discard(A);
     next;

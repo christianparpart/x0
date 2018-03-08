@@ -77,7 +77,7 @@ bool InstructionElimination::eliminateLinearBr(BasicBlock* bb) {
     bb->merge_back(nextBB);
 
     // destroy unused BB
-    bb->parent()->erase(nextBB);
+    bb->getHandler()->erase(nextBB);
 
     return true;
   }

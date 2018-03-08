@@ -14,6 +14,8 @@
 
 namespace xzero::flow::vm {
 
+class ConstantPool;
+
 enum class OperandSig {
   V,        // no operands
   I,        // imm16
@@ -24,6 +26,7 @@ enum class OperandSig {
 enum Opcode : uint16_t {
   // misc
   NOP = 0,  // NOP                 ; no operation
+  ALLOCA,   // ALLOCA imm         ; pushes A default-initialized items onto the stack
   DISCARD,  // DISCARD imm        ; pops A items from the stack
 
   // control
@@ -162,6 +165,10 @@ constexpr Instruction makeInstruction(Opcode opc, Operand op1, Operand op2,
  */
 Buffer disassemble(const Instruction* program, size_t n);
 
+std::string disassemble(const Instruction* program, size_t n,
+                        const std::string& indent,
+                        const ConstantPool& cp);
+
 /**
  * Disassembles a single instruction.
  *
@@ -171,6 +178,8 @@ Buffer disassemble(const Instruction* program, size_t n);
  * @param sp      stack size (depth) at that execution point.
  */
 Buffer disassemble(Instruction pc, size_t ip, size_t* sp = nullptr);
+
+std::string disassemble(Instruction pc, size_t ip, size_t* sp, const ConstantPool& cp);
 
 /** decodes the opcode from the instruction. */
 constexpr Opcode opcode(Instruction instr) {

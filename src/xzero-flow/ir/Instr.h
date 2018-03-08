@@ -54,7 +54,8 @@ class Instr : public Value {
   /**
    * Retrieves parent basic block this instruction is part of.
    */
-  BasicBlock* parent() const { return parent_; }
+  XZERO_DEPRECATED BasicBlock* parent() const { return parent_; }
+  BasicBlock* getBasicBlock() const { return parent_; }
 
   /**
    * Read-only access to operands.

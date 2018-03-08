@@ -69,8 +69,8 @@ Instr* BasicBlock::remove(Instr* instr) {
 }
 
 Instr* BasicBlock::replace(Instr* oldInstr, Instr* newInstr) {
-  assert(oldInstr->parent() == this);
-  assert(newInstr->parent() == nullptr);
+  assert(oldInstr->getBasicBlock() == this);
+  assert(newInstr->getBasicBlock() == nullptr);
 
   oldInstr->replaceAllUsesWith(newInstr);
 
@@ -93,7 +93,7 @@ Instr* BasicBlock::replace(Instr* oldInstr, Instr* newInstr) {
 
 void BasicBlock::push_back(Instr* instr) {
   assert(instr != nullptr);
-  assert(instr->parent() == nullptr);
+  assert(instr->getBasicBlock() == nullptr);
 
   instr->setParent(this);
   code_.push_back(instr);
@@ -121,9 +121,9 @@ void BasicBlock::merge_back(BasicBlock* bb) {
 }
 
 void BasicBlock::moveAfter(BasicBlock* otherBB) {
-  assert(parent() == otherBB->parent());
+  assert(getHandler() == otherBB->getHandler());
 
-  IRHandler* handler = parent();
+  IRHandler* handler = getHandler();
   auto& list = handler->basicBlocks();
 
   list.remove(otherBB);
@@ -134,9 +134,9 @@ void BasicBlock::moveAfter(BasicBlock* otherBB) {
 }
 
 void BasicBlock::moveBefore(BasicBlock* otherBB) {
-  assert(parent() == otherBB->parent());
+  assert(getHandler() == otherBB->getHandler());
 
-  IRHandler* handler = parent();
+  IRHandler* handler = getHandler();
   auto& list = handler->basicBlocks();
 
   list.remove(otherBB);
@@ -146,9 +146,9 @@ void BasicBlock::moveBefore(BasicBlock* otherBB) {
 }
 
 bool BasicBlock::isAfter(const BasicBlock* otherBB) const {
-  assert(parent() == otherBB->parent());
+  assert(getHandler() == otherBB->getHandler());
 
-  const auto& list = parent()->basicBlocks();
+  const auto& list = getHandler()->basicBlocks();
   auto i = std::find(list.cbegin(), list.cend(), this);
 
   if (i == list.cend()) return false;

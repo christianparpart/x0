@@ -61,21 +61,21 @@ class TargetCodeGenerator : public InstructionVisitor {
    *
    * May emit a LOAD instruction if stack[sp] is not on top of the stack.
    */
-  StackPointer emitLoad(Value* value);
+  void emitLoad(Value* value);
 
-  size_t emitInstr(Opcode opc) {
-    return emitInstr(vm::makeInstruction(opc));
+  void emitInstr(Opcode opc) {
+    emitInstr(vm::makeInstruction(opc));
   }
-  size_t emitInstr(Opcode opc, Operand op1) {
-    return emitInstr(vm::makeInstruction(opc, op1));
+  void emitInstr(Opcode opc, Operand op1) {
+    emitInstr(vm::makeInstruction(opc, op1));
   }
-  size_t emitInstr(Opcode opc, Operand op1, Operand op2) {
-    return emitInstr(vm::makeInstruction(opc, op1, op2));
+  void emitInstr(Opcode opc, Operand op1, Operand op2) {
+    emitInstr(vm::makeInstruction(opc, op1, op2));
   }
-  size_t emitInstr(Opcode opc, Operand op1, Operand op2, Operand op3) {
-    return emitInstr(vm::makeInstruction(opc, op1, op2, op3));
+  void emitInstr(Opcode opc, Operand op1, Operand op2, Operand op3) {
+    emitInstr(vm::makeInstruction(opc, op1, op2, op3));
   }
-  size_t emitInstr(Instruction instr);
+  void emitInstr(Instruction instr);
 
   /**
    * Emits conditional jump instruction.
@@ -87,7 +87,7 @@ class TargetCodeGenerator : public InstructionVisitor {
    * instruction pointer and passed operands for later back-patching once all
    * basic block addresses have been computed.
    */
-  size_t emitCondJump(Opcode opcode, BasicBlock* bb);
+  void emitCondJump(Opcode opcode, BasicBlock* bb);
 
   /**
    * Emits unconditional jump instruction.
@@ -98,11 +98,11 @@ class TargetCodeGenerator : public InstructionVisitor {
    * instruction pointer and passed operands for later back-patching once all
    * basic block addresses have been computed.
    */
-  size_t emitJump(BasicBlock* bb);
+  void emitJump(BasicBlock* bb);
 
-  size_t emitBinaryAssoc(Instr& instr, Opcode opcode);
-  size_t emitBinary(Instr& instr, Opcode opcode);
-  size_t emitUnary(Instr& instr, Opcode opcode);
+  void emitBinaryAssoc(Instr& instr, Opcode opcode);
+  void emitBinary(Instr& instr, Opcode opcode);
+  void emitUnary(Instr& instr, Opcode opcode);
 
   Operand getConstantInt(Value* value);
 

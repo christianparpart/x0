@@ -47,9 +47,9 @@ IRHandler::~IRHandler() {
 }
 
 void IRHandler::setEntryBlock(BasicBlock* bb) {
-  assert(bb->parent() == nullptr || bb->parent() == this);
+  assert(bb->getHandler() == nullptr || bb->getHandler() == this);
 
-  if (bb->parent() == this) {
+  if (bb->getHandler() == this) {
     auto i = std::find(blocks_.begin(), blocks_.end(), bb);
     assert(i != blocks_.end());
     blocks_.erase(i);

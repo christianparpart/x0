@@ -6,6 +6,7 @@
 // the License at: http://opensource.org/licenses/MIT
 
 #include <xzero-flow/vm/Handler.h>
+#include <xzero-flow/vm/Program.h>
 #include <xzero-flow/vm/Runner.h>
 #include <xzero-flow/vm/Instruction.h>
 #include <xzero/logging.h>
@@ -95,7 +96,12 @@ bool Handler::run(void* userdata, void* userdata2) {
 }
 
 void Handler::disassemble() {
-  printf("%s", vm::disassemble(code_.data(), code_.size()).c_str());
+  printf("\n.handler %-27s ; (%zu stack size, %zu instructions)\n",
+         name().c_str(),
+         stackSize(),
+         code().size());
+  printf("%s", vm::disassemble(code_.data(), code_.size(), "  ",
+                               program_->constants()).c_str());
 }
 
 }  // namespace xzero::flow::vm

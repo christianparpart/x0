@@ -8,6 +8,7 @@
 #pragma once
 
 #include <xzero/defines.h>
+#include <xzero/logging.h>
 #include <xzero-flow/FlowType.h>
 #include <xzero-flow/vm/Handler.h>
 #include <xzero-flow/vm/Instruction.h>
@@ -21,6 +22,7 @@
 #include <new>
 #include <cstdint>
 #include <cstdio>
+#include <cstdlib>
 #include <cmath>
 #include <string>
 #include <iosfwd>
@@ -50,6 +52,7 @@ class Runner : public CustomData {
     }
 
     Value pop() {
+      XZERO_ASSERT(stack_.size() > 0, "BUG: Cannot pop from empty stack.");
       Value v = stack_.back();
       stack_.pop_back();
       return v;
@@ -64,17 +67,27 @@ class Runner : public CustomData {
     size_t size() const { return stack_.size(); }
 
     Value operator[](int relativeIndex) const {
-      if (relativeIndex < 0)
+      if (relativeIndex < 0) {
+        XZERO_ASSERT(static_cast<size_t>(-relativeIndex - 1) < stack_.size(),
+                     "vm: Attempt to load from stack beyond stack top");
         return stack_[stack_.size() + relativeIndex];
-      else
+      } else {
+        XZERO_ASSERT(static_cast<size_t>(relativeIndex) < stack_.size(),
+                     "vm: Attempt to load from stack beyond stack top");
         return stack_[relativeIndex];
+      }
     }
 
     Value& operator[](int relativeIndex) {
-      if (relativeIndex < 0)
+      if (relativeIndex < 0) {
+        XZERO_ASSERT(static_cast<size_t>(-relativeIndex - 1) < stack_.size(),
+                     "vm: Attempt to load from stack beyond stack top");
         return stack_[stack_.size() + relativeIndex];
-      else
+      } else {
+        XZERO_ASSERT(static_cast<size_t>(relativeIndex) < stack_.size(),
+                     "vm: Attempt to load from stack beyond stack top");
         return stack_[relativeIndex];
+      }
     }
 
     Value operator[](size_t absoluteIndex) const {

@@ -28,7 +28,8 @@ class IRHandler : public Constant {
 
   BasicBlock* createBlock(const std::string& name = "");
 
-  IRProgram* parent() const { return parent_; }
+  IRProgram* getProgram() const { return parent_; }
+  XZERO_DEPRECATED IRProgram* parent() const { return parent_; }
   void setParent(IRProgram* prog) { parent_ = prog; }
 
   void dump() override;

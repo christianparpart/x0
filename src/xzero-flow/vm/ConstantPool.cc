@@ -193,23 +193,8 @@ size_t ConstantPool::makeHandler(const std::string& name) {
   return i;
 }
 
-void dump(const std::vector<std::vector<Buffer>>& vv, const char* name) {
-  if (vv.empty()) return;
-
-  std::cout << "\n; Constant " << name << " Arrays\n";
-  for (size_t i = 0, e = vv.size(); i != e; ++i) {
-    const auto& array = vv[i];
-    std::cout << ".const array<" << name << "> " << std::setw(3) << i << " = [";
-    for (size_t k = 0, m = array.size(); k != m; ++k) {
-      if (k) std::cout << ", ";
-      std::cout << '"' << array[k] << '"';
-    }
-    std::cout << "];\n";
-  }
-}
-
 template <typename T>
-void dump(const std::vector<std::vector<T>>& vv, const char* name) {
+void dumpArrays(const std::vector<std::vector<T>>& vv, const char* name) {
   if (vv.empty()) return;
 
   std::cout << "\n; Constant " << name << " Arrays\n";
@@ -225,6 +210,8 @@ void dump(const std::vector<std::vector<T>>& vv, const char* name) {
 }
 
 void ConstantPool::dump() const {
+  printf("; Program\n");
+
   if (!modules_.empty()) {
     printf("\n; Modules\n");
     for (size_t i = 0, e = modules_.size(); i != e; ++i) {
@@ -287,8 +274,6 @@ void ConstantPool::dump() const {
     }
   }
 
-  flow::vm::dump(intArrays_, "Integer");
-
   if (!stringArrays_.empty()) {
     std::cout << "\n; Constant String Arrays\n";
     for (size_t i = 0, e = stringArrays_.size(); i != e; ++i) {
@@ -302,10 +287,11 @@ void ConstantPool::dump() const {
     }
   }
 
-  flow::vm::dump(ipaddrArrays_, "IPAddress");
-  flow::vm::dump(cidrArrays_, "Cidr");
+  dumpArrays(intArrays_, "Integer");
+  dumpArrays(ipaddrArrays_, "IPAddress");
+  dumpArrays(cidrArrays_, "Cidr");
 
-  if (!matchDefs_.empty()) {
+  if (!matchDefs_.empty()) { // {{{
     printf("\n; Match Table\n");
     for (size_t i = 0, e = matchDefs_.size(); i != e; ++i) {
       const MatchDef& def = matchDefs_[i];
@@ -328,7 +314,20 @@ void ConstantPool::dump() const {
         }
       }
     }
+  } // }}}
+
+  for (const auto& handler: getHandlers()) {
+    const auto& name = handler.first;
+    const auto& code = handler.second;
+
+    printf("\n.handler %-27s ; (%zu stack size, %zu instructions)\n",
+           name.c_str(),
+           computeStackSize(code.data(), code.size()),
+           code.size());
+    printf("%s", disassemble(code.data(), code.size(), "  ", *this).c_str());
   }
+
+  printf("\n\n");
 }
 
 }  // namespace vm

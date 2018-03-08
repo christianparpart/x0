@@ -38,7 +38,8 @@ class BasicBlock : public Value {
   explicit BasicBlock(const std::string& name);
   ~BasicBlock();
 
-  IRHandler* parent() const { return parent_; }
+  XZERO_DEPRECATED IRHandler* parent() const { return parent_; }
+  IRHandler* getHandler() const { return parent_; }
   void setParent(IRHandler* handler) { parent_ = handler; }
 
   /*!

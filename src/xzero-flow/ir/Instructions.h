@@ -79,13 +79,13 @@ class AllocaInstr : public Instr {
 
 class StoreInstr : public Instr {
  public:
-  StoreInstr(Value* variable, ConstantInt* index, Value* expression,
+  StoreInstr(Value* variable, ConstantInt* index, Value* source,
              const std::string& name)
-      : Instr(FlowType::Void, {variable, index, expression}, name) {}
+      : Instr(FlowType::Void, {variable, index, source}, name) {}
 
   Value* variable() const { return operand(0); }
   ConstantInt* index() const { return static_cast<ConstantInt*>(operand(1)); }
-  Value* expression() const { return operand(2); }
+  Value* source() const { return operand(2); }
 
   void dump() override;
   Instr* clone() override;

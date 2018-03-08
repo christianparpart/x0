@@ -141,20 +141,7 @@ int Program::indexOf(const Handler* that) const {
 }
 
 void Program::dump() {
-  printf("; Program\n");
-
   cp_.dump();
-
-  for (size_t i = 0, e = handlers_.size(); i != e; ++i) {
-    Handler* handler = this->handler(i);
-    printf("\n.handler %-20s ; #%zu (%zu stack size, %zu instructions)\n",
-           handler->name().c_str(), i,
-           handler->stackSize(),
-           handler->code().size());
-    handler->disassemble();
-  }
-
-  printf("\n\n");
 }
 
 /**

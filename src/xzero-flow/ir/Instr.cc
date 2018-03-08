@@ -41,14 +41,16 @@ Instr::Instr(FlowType ty, const std::vector<Value*>& ops,
 
 Instr::~Instr() {
   for (Value* op : operands_) {
-    if (!op) continue;
+    if (!op)
+      continue;
 
     op->removeUse(this);
 
-    if (!parent()) continue;
+    if (!getBasicBlock())
+      continue;
 
     if (BasicBlock* oldBB = dynamic_cast<BasicBlock*>(op)) {
-      parent()->unlinkSuccessor(oldBB);
+      getBasicBlock()->unlinkSuccessor(oldBB);
     }
   }
 }
@@ -59,7 +61,7 @@ void Instr::addOperand(Value* value) {
   value->addUse(this);
 
   if (BasicBlock* newBB = dynamic_cast<BasicBlock*>(value)) {
-    parent()->linkSuccessor(newBB);
+    getBasicBlock()->linkSuccessor(newBB);
   }
 }
 
@@ -71,7 +73,7 @@ Value* Instr::setOperand(size_t i, Value* value) {
     old->removeUse(this);
 
     if (BasicBlock* oldBB = dynamic_cast<BasicBlock*>(old)) {
-      parent()->unlinkSuccessor(oldBB);
+      getBasicBlock()->unlinkSuccessor(oldBB);
     }
   }
 
@@ -79,7 +81,7 @@ Value* Instr::setOperand(size_t i, Value* value) {
     value->addUse(this);
 
     if (BasicBlock* newBB = dynamic_cast<BasicBlock*>(value)) {
-      parent()->linkSuccessor(newBB);
+      getBasicBlock()->linkSuccessor(newBB);
     }
   }
 
