@@ -447,6 +447,7 @@ void TargetCodeGenerator::visit(CondBrInstr& condBrInstr) {
 }
 
 void TargetCodeGenerator::visit(BrInstr& brInstr) {
+  CTRACE("visit(BrInstr)");
   // Do not emit the JMP if the target block is emitted right after this block
   // (and thus, right after this instruction).
   if (brInstr.getBasicBlock()->isAfter(brInstr.targetBlock()))
@@ -456,10 +457,12 @@ void TargetCodeGenerator::visit(BrInstr& brInstr) {
 }
 
 void TargetCodeGenerator::visit(RetInstr& retInstr) {
+  CTRACE("visit(RetInstr)");
   emitInstr(Opcode::EXIT, getConstantInt(retInstr.operands()[0]));
 }
 
 void TargetCodeGenerator::visit(MatchInstr& matchInstr) {
+  CTRACE("visit(MatchInstr)");
   static const Opcode ops[] = {[(size_t)MatchClass::Same] = Opcode::SMATCHEQ,
                                [(size_t)MatchClass::Head] = Opcode::SMATCHBEG,
                                [(size_t)MatchClass::Tail] = Opcode::SMATCHEND,
@@ -494,6 +497,7 @@ void TargetCodeGenerator::visit(MatchInstr& matchInstr) {
 }
 
 void TargetCodeGenerator::visit(CastInstr& castInstr) {
+  CTRACE("visit(CastInstr)");
   // map of (target, source, opcode)
   static const std::unordered_map<
       FlowType,
