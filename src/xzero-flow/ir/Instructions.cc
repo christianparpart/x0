@@ -97,11 +97,17 @@ Instr* NopInstr::clone() { return new NopInstr(); }
 void NopInstr::accept(InstructionVisitor& v) { v.visit(*this); }
 // }}}
 // {{{ CastInstr
-void CastInstr::dump() { dumpOne(tos(type()).c_str()); }
+void CastInstr::dump() {
+  dumpOne((std::string("cast ") + tos(type()).c_str()).c_str());
+}
 
-Instr* CastInstr::clone() { return new CastInstr(type(), source(), name()); }
+Instr* CastInstr::clone() {
+  return new CastInstr(type(), source(), name());
+}
 
-void CastInstr::accept(InstructionVisitor& v) { v.visit(*this); }
+void CastInstr::accept(InstructionVisitor& v) {
+  v.visit(*this);
+}
 // }}}
 // {{{ CondBrInstr
 CondBrInstr::CondBrInstr(Value* cond, BasicBlock* trueBlock,
