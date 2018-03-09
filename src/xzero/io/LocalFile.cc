@@ -99,8 +99,7 @@ void LocalFile::update() {
     setErrorCode(0);
 
     if (isDirectory()) {
-      // XXX see https://tools.ietf.org/html/rfc2425
-      mimetype_ = "text/directory";
+      mimetype_ = "inode/directory";
     }
   }
 }
