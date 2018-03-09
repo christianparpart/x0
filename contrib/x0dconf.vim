@@ -132,7 +132,7 @@ endif
 
 " ---------------------------------------------------------------------------------
 
-let b:current_syntax = "flow"
+let b:current_syntax = "x0dconf"
 
 hi def link flowIdent         Identifier
 hi def link flowTodo          Todo
