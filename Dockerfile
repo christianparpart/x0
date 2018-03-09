@@ -42,7 +42,7 @@ RUN strip x0d && ldd x0d && cp -v x0d /usr/bin/x0d
 FROM alpine:3.7
 RUN  apk add --update libgcc libstdc++ gmp openssl linux-pam
 RUN  mkdir -p /etc/x0d /var/log/x0d /var/lib/x0d /var/www
-COPY docker-x0d.conf /usr/x0d/x0d.conf
+COPY docker-x0d.conf /etc/x0d/x0d.conf
 COPY --from=build /usr/bin/x0d /usr/bin/x0d
 
 VOLUME /etc/x0d /var/www /var/log/x0d
