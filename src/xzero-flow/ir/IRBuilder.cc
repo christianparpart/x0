@@ -61,7 +61,7 @@ void IRBuilder::setProgram(IRProgram* prog) {
 }
 
 IRHandler* IRBuilder::setHandler(IRHandler* hn) {
-  assert(hn->parent() == program_);
+  assert(hn->getProgram() == program_);
 
   handler_ = hn;
   insertPoint_ = nullptr;
@@ -83,7 +83,7 @@ BasicBlock* IRBuilder::createBlock(const std::string& name) {
 
 void IRBuilder::setInsertPoint(BasicBlock* bb) {
   assert(bb != nullptr);
-  assert(bb->parent() == handler() &&
+  assert(bb->getHandler() == handler() &&
          "insert point must belong to the current handler.");
 
   TRACE(1, "setInsertPoint() $0", bb->name());
