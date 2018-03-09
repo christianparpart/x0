@@ -511,7 +511,6 @@ void TargetCodeGenerator::visit(CastInstr& castInstr) {
 
   // just alias same-type casts
   if (castInstr.type() == castInstr.source()->type()) {
-    //DEL variables_[&castInstr] = emitLoad(castInstr.source());
     emitLoad(castInstr.source());
     return;
   }
