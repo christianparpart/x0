@@ -324,7 +324,7 @@ void ConstantPool::dump() const {
            name.c_str(),
            computeStackSize(code.data(), code.size()),
            code.size());
-    printf("%s", disassemble(code.data(), code.size(), "  ", *this).c_str());
+    printf("%s", disassemble(code.data(), code.size(), "  ", this).c_str());
   }
 
   printf("\n\n");

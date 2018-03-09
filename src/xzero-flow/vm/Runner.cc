@@ -60,7 +60,7 @@ namespace xzero::flow::vm {
 #define instr(name) \
   l_##name : ++pc;  \
   DEBUG("$0",    \
-        disassemble((Instruction) * pc, (pc - code.data()) / 2), program_->constants());
+        disassemble((Instruction) * pc, (pc - code.data()) / 2), &program_->constants());
 
 #define get_pc() ((pc - code.data()) / 2)
 #define set_pc(offset)               \
@@ -71,7 +71,7 @@ namespace xzero::flow::vm {
 #define next goto*(void*)*++pc
 #else
 #define instr(name) \
-  l_##name : DEBUG("$0", disassemble(*pc, pc - code.data(), &sp_, program_->constants()));
+  l_##name : DEBUG("$0", disassemble(*pc, pc - code.data(), &sp_, &program_->constants()));
 
 #define get_pc() (pc - code.data())
 #define set_pc(offset)           \

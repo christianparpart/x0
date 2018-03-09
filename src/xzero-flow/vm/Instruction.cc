@@ -185,82 +185,12 @@ FlowType resultType(Opcode opc) {
   return instructionInfos[(size_t) opc].stackOutput;
 }
 
-Buffer disassemble(Instruction pc, size_t ip, size_t* sp) {
-  Buffer line;
-  Opcode opc = opcode(pc);
-  Operand A = operandA(pc);
-  Operand B = operandB(pc);
-  Operand C = operandC(pc);
-  const char* mnemo = mnemonic(opc);
-  size_t n = 0;
-  int rv = 4;
-
-  rv = line.printf("  %-10s", mnemo);
-  if (rv > 0) {
-    n += rv;
-  }
-
-  switch (operandSignature(opc)) {
-    case OperandSig::III:
-      rv = line.printf(" %d, %d, %d", A, B, C);
-      break;
-    case OperandSig::II:
-      rv = line.printf(" %d, %d", A, B);
-      break;
-    case OperandSig::I:
-      rv = line.printf(" %d", A);
-      break;
-    case OperandSig::V:
-      rv = 0;
-      break;
-  }
-
-  if (rv > 0) {
-    n += rv;
-  }
-
-  for (; n < 30; ++n) {
-    line.printf(" ");
-  }
-
-  int stackChange = getStackChange(pc);
-
-  const uint8_t* b = (uint8_t*)&pc;
-  if (sp) {
-    line.printf("; ip=%-3hu sp=%-2hu (%c%d)",
-                ip, *sp,
-                stackChange > 0 ? '+' :
-                    stackChange < 0 ? '-' : ' ',
-                std::abs(stackChange));
-  } else {
-    line.printf("; ip=%-3hu (%c%d)",
-                ip,
-                stackChange > 0 ? '+' :
-                    stackChange < 0 ? '-' : ' ',
-                std::abs(stackChange));
-  }
-
-  *sp += stackChange;
-  return line;
-}
-
-Buffer disassemble(const Instruction* program, size_t n) {
-  Buffer result;
-  size_t i = 0;
-  size_t sp = 0;
-  for (const Instruction* pc = program; pc < program + n; ++pc) {
-    result.push_back(disassemble(*pc, i++, &sp));
-    result.push_back("\n");
-  }
-  return result;
-}
-
 // ---------------------------------------------------------------------------
 
 std::string disassemble(const Instruction* program,
                         size_t n,
                         const std::string& indent,
-                        const ConstantPool& cp) {
+                        const ConstantPool* cp) {
   Buffer result;
   size_t i = 0;
   size_t sp = 0;
@@ -273,7 +203,7 @@ std::string disassemble(const Instruction* program,
 }
 
 std::string disassemble(Instruction pc, size_t ip, size_t* sp,
-                        const ConstantPool& cp) {
+                        const ConstantPool* cp) {
   const Opcode opc = opcode(pc);
   const Operand A = operandA(pc);
   const Operand B = operandB(pc);
@@ -285,98 +215,114 @@ std::string disassemble(Instruction pc, size_t ip, size_t* sp,
   n += line.printf("%-10s", mnemo);
 
   // operands
-  switch (opc) {
-    case Opcode::ITLOAD: {
-      n += line.printf("[");
-      const auto& v = cp.getIntArray(A);
-      for (size_t i = 0, e = v.size(); i != e; ++i) {
-        if (i) {
-          line.push_back(", ");
-          n += 2;
+  if (cp != nullptr) {
+    switch (opc) {
+      case Opcode::ITLOAD: {
+        n += line.printf("[");
+        const auto& v = cp->getIntArray(A);
+        for (size_t i = 0, e = v.size(); i != e; ++i) {
+          if (i) {
+            line.push_back(", ");
+            n += 2;
+          }
+          n += line.printf("%lli", v[i]);
         }
-        n += line.printf("%lli", v[i]);
+        n += line.printf("]");
+        break;
       }
-      n += line.printf("]");
-      break;
-    }
-    case Opcode::STLOAD: {
-      n += line.printf("[");
-      const auto& v = cp.getStringArray(A);
-      for (size_t i = 0, e = v.size(); i != e; ++i) {
-        if (i) {
-          line.push_back(", ");
-          n += 2;
+      case Opcode::STLOAD: {
+        n += line.printf("[");
+        const auto& v = cp->getStringArray(A);
+        for (size_t i = 0, e = v.size(); i != e; ++i) {
+          if (i) {
+            line.push_back(", ");
+            n += 2;
+          }
+          n += line.printf("\"%s\"", v[i].str().c_str());
         }
-        n += line.printf("\"%s\"", v[i].str().c_str());
+        n += line.printf("]");
+        break;
       }
-      n += line.printf("]");
-      break;
-    }
-    case Opcode::PTLOAD: {
-      n += line.printf("[");
-      const auto& v = cp.getIPAddressArray(A);
-      for (size_t i = 0, e = v.size(); i != e; ++i) {
-        if (i) {
-          line.push_back(", ");
-          n += 2;
+      case Opcode::PTLOAD: {
+        n += line.printf("[");
+        const auto& v = cp->getIPAddressArray(A);
+        for (size_t i = 0, e = v.size(); i != e; ++i) {
+          if (i) {
+            line.push_back(", ");
+            n += 2;
+          }
+          n += line.printf("%s", v[i].c_str());
         }
-        n += line.printf("%s", v[i].c_str());
+        n += line.printf("]");
+        break;
       }
-      n += line.printf("]");
-      break;
-    }
-    case Opcode::CTLOAD: {
-      n += line.printf("[");
-      const auto& v = cp.getCidrArray(A);
-      for (size_t i = 0, e = v.size(); i != e; ++i) {
-        if (i) {
-          line.push_back(", ");
-          n += 2;
+      case Opcode::CTLOAD: {
+        n += line.printf("[");
+        const auto& v = cp->getCidrArray(A);
+        for (size_t i = 0, e = v.size(); i != e; ++i) {
+          if (i) {
+            line.push_back(", ");
+            n += 2;
+          }
+          n += line.printf("%s", v[i].str().c_str());
         }
-        n += line.printf("%s", v[i].str().c_str());
+        n += line.printf("]");
+        break;
       }
-      n += line.printf("]");
-      break;
+      case Opcode::LOAD:
+        n += line.printf("STACK[%lli]", A);
+        break;
+      case Opcode::STORE:
+        n += line.printf("@STACK[%lli]", A);
+        break;
+      case Opcode::NLOAD:
+        n += line.printf("%lli", cp->getInteger(A));
+        break;
+      case Opcode::SLOAD:
+        n += line.printf("\"%s\"", cp->getString(A).c_str());
+        break;
+      case Opcode::PLOAD:
+        n += line.printf("%s", cp->getIPAddress(A).c_str());
+        break;
+      case Opcode::CLOAD:
+        n += line.printf("%s", cp->getCidr(A).str().c_str());
+        break;
+      case Opcode::CALL:
+        n += line.printf("%s", cp->getNativeFunctionSignatures()[A].c_str());
+        break;
+      case Opcode::HANDLER:
+        n += line.printf("%s", cp->getNativeHandlerSignatures()[A].c_str());
+        break;
+      default:
+        switch (operandSignature(opc)) {
+          case OperandSig::III:
+            n += line.printf("%d, %d, %d", A, B, C);
+            break;
+          case OperandSig::II:
+            n += line.printf("%d, %d", A, B);
+            break;
+          case OperandSig::I:
+            n += line.printf("%d", A);
+            break;
+          case OperandSig::V:
+            break;
+        }
+        break;
     }
-    case Opcode::LOAD:
-      n += line.printf("STACK[%lli]", A);
-      break;
-    case Opcode::STORE:
-      n += line.printf("@STACK[%lli]", A);
-      break;
-    case Opcode::NLOAD:
-      n += line.printf("%lli", cp.getInteger(A));
-      break;
-    case Opcode::SLOAD:
-      n += line.printf("\"%s\"", cp.getString(A).c_str());
-      break;
-    case Opcode::PLOAD:
-      n += line.printf("%s", cp.getIPAddress(A).c_str());
-      break;
-    case Opcode::CLOAD:
-      n += line.printf("%s", cp.getCidr(A).str().c_str());
-      break;
-    case Opcode::CALL:
-      n += line.printf("%s", cp.getNativeFunctionSignatures()[A].c_str());
-      break;
-    case Opcode::HANDLER:
-      n += line.printf("%s", cp.getNativeHandlerSignatures()[A].c_str());
-      break;
-    default:
-      switch (operandSignature(opc)) {
-        case OperandSig::III:
-          n += line.printf("%d, %d, %d", A, B, C);
-          break;
-        case OperandSig::II:
-          n += line.printf("%d, %d", A, B);
-          break;
-        case OperandSig::I:
-          n += line.printf("%d", A);
-          break;
-        case OperandSig::V:
-          break;
-      }
-      break;
+  } else {
+    switch (operandSignature(opc)) {
+      case OperandSig::III:
+        n += line.printf("%d, %d, %d", A, B, C);
+        break;
+      case OperandSig::II:
+        n += line.printf("%d, %d", A, B);
+        break;
+      case OperandSig::I:
+        n += line.printf("%d", A);
+        break;
+      case OperandSig::V:
+        break;
+    }
   }
 
   for (; n < 35; ++n) {

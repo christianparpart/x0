@@ -101,7 +101,7 @@ void Handler::disassemble() {
          stackSize(),
          code().size());
   printf("%s", vm::disassemble(code_.data(), code_.size(), "  ",
-                               program_->constants()).c_str());
+                               &program_->constants()).c_str());
 }
 
 }  // namespace xzero::flow::vm

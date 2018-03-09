@@ -155,32 +155,6 @@ constexpr Instruction makeInstruction(Opcode opc, Operand op1, Operand op2,
 // --------------------------------------------------------------------------
 // decoder
 
-/**
- * Disassembles the @p program with @p n instructions.
- *
- * @param program pointer to the first instruction to disassemble
- * @param n       number of instructions to disassemble
- *
- * @returns       disassembled program in text form.
- */
-Buffer disassemble(const Instruction* program, size_t n);
-
-std::string disassemble(const Instruction* program, size_t n,
-                        const std::string& indent,
-                        const ConstantPool& cp);
-
-/**
- * Disassembles a single instruction.
- *
- * @param pc      Instruction to disassemble.
- * @param ip      The instruction pointer at which position the instruction is
- *                located within the program.
- * @param sp      stack size (depth) at that execution point.
- */
-Buffer disassemble(Instruction pc, size_t ip, size_t* sp = nullptr);
-
-std::string disassemble(Instruction pc, size_t ip, size_t* sp, const ConstantPool& cp);
-
 /** decodes the opcode from the instruction. */
 constexpr Opcode opcode(Instruction instr) {
   return static_cast<Opcode>(instr & 0xFF);
@@ -201,18 +175,54 @@ constexpr Operand operandC(Instruction instr) {
   return static_cast<Operand>((instr >> 48) & 0xFFFF);
 }
 
+/** Determines the operand signature of the given instruction. */
 OperandSig operandSignature(Opcode opc);
-const char* mnemonic(Opcode opc);
-FlowType resultType(Opcode opc);
 
-// --------------------------------------------------------------------------
-// helper
+/** Returns the mnemonic string representing the opcode. */
+const char* mnemonic(Opcode opc);
+
+/**
+ * Determines the data type of the result being pushed onto the stack, if any.
+ */
+FlowType resultType(Opcode opc);
 
 /**
  * Computes the stack height after the execution of the given instruction.
  */
 int getStackChange(Instruction instr);
 
+/**
+ * Computes the highest stack size needed to run the given program.
+ */
 size_t computeStackSize(const Instruction* program, size_t programSize);
+
+/**
+ * Disassembles the @p program with @p n instructions.
+ *
+ * @param program pointer to the first instruction to disassemble
+ * @param n       number of instructions to disassemble
+ * @param indent  prefix to inject in front of every new instruction line
+ * @param cp      pointer to ConstantPool for pretty-printing or @c nullptr 
+ *
+ * @returns       disassembled program in text form.
+ */
+std::string disassemble(const Instruction* program, size_t n,
+                        const std::string& indent,
+                        const ConstantPool* cp);
+
+/**
+ * Disassembles a single instruction.
+ *
+ * @param pc      Instruction to disassemble.
+ * @param ip      The instruction pointer at which position the instruction is
+ *                located within the program.
+ * @param sp      current stack size (depth) before executing given instruction.
+ *                This value will be modified as if the instruction would have
+ *                been executed.
+ * @param cp      pointer to ConstantPool for pretty-printing or @c nullptr 
+ */
+std::string disassemble(Instruction pc, size_t ip,
+                        size_t* sp,
+                        const ConstantPool* cp);
 
 } // namespace xzero::flow::vm
