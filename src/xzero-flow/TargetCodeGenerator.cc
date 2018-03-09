@@ -528,6 +528,7 @@ void TargetCodeGenerator::visit(CastInstr& castInstr) {
   // emit instruction
   emitLoad(castInstr.source());
   emitInstr(op);
+  changeStack(1, &castInstr);
 }
 
 void TargetCodeGenerator::visit(INegInstr& ineg) {
