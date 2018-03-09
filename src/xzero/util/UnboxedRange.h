@@ -6,6 +6,8 @@
 // the License at: http://opensource.org/licenses/MIT
 #pragma once
 
+#include <iterator>
+
 namespace xzero {
 
 template<typename T>
@@ -14,13 +16,22 @@ class UnboxedRange {
   using BoxedContainer = T;
   using BoxedIterator = typename BoxedContainer::iterator;
   using element_type = typename BoxedContainer::value_type::element_type;
+
   class iterator { // {{{
    public:
+    typedef typename BoxedContainer::iterator::difference_type difference_type;
+    typedef typename BoxedContainer::iterator::value_type::element_type value_type;
+    typedef typename BoxedContainer::iterator::value_type::element_type* pointer;
+    typedef typename BoxedContainer::iterator::value_type::element_type& reference;
+    typedef typename BoxedContainer::iterator::iterator_category iterator_category;
+
     explicit iterator(BoxedIterator boxed) : it_(boxed) {}
 
     const element_type& operator->() const { return **it_; }
     element_type& operator->() { return **it_; }
-    element_type operator*() const { return **it_; }
+
+    const element_type* operator*() const { return (*it_).get(); }
+    element_type* operator*() { return (*it_).get(); }
 
     iterator& operator++() { ++it_; return *this; }
     iterator& operator++(int) { ++it_; return *this; }
@@ -37,6 +48,7 @@ class UnboxedRange {
 
   iterator begin() const { return begin_; }
   iterator end() const { return end_; }
+  size_t size() const { return std::distance(begin_, end_); }
 
  private:
   iterator begin_;
