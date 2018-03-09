@@ -46,7 +46,7 @@ struct fntrace4 {
     fmt[i++] = ' ';
     strcpy(fmt + i, msg_.c_str());
 
-    logDebug(fmt);
+    logTrace(fmt);
     ++fni;
   }
 
@@ -65,17 +65,17 @@ struct fntrace4 {
     fmt[i++] = ' ';
     strcpy(fmt + i, msg_.c_str());
 
-    logDebug(fmt);
+    logTrace(fmt);
   }
 };
 // }}}
-#define FNTRACE() fntrace4 _(__PRETTY_FUNCTION__)
-#define CTRACE(msg) fntrace4 _ct(msg)
-#define TRACE(level, msg...) logTrace("TCG: " msg)
+#define FNTRACE()           fntrace4 _(__PRETTY_FUNCTION__)
+#define CTRACE(msg)         fntrace4 _ct(msg)
+#define TRACE(msg...)       logTrace("TCG: " msg)
 #else
-#define FNTRACE()            do {} while (0)
-#define CTRACE(msg)          do {} while (0)
-#define TRACE(level, msg...) do {} while (0)
+#define FNTRACE()           do {} while (0)
+#define CTRACE(msg)         do {} while (0)
+#define TRACE(msg...)       do {} while (0)
 #endif
 using namespace vm;
 
@@ -215,7 +215,7 @@ StackPointer TargetCodeGenerator::getStackPointer(const Value* value) {
     if (stack_[i] == value)
       return i;
 
-  // logDebug("getStackPointer: not found $0 on stack", value->name());
+  // TRACE("getStackPointer: not found $0 on stack", value->name());
   // ((Value*) value)->dump();
   return (StackPointer) -1;
 }
@@ -229,7 +229,7 @@ void TargetCodeGenerator::changeStack(size_t pops, const Value* pushValue) {
 }
 
 void TargetCodeGenerator::pop(size_t count) {
-  logDebug("tcg: pop $0 (of $1) values", count, stack_.size());
+  TRACE("tcg: pop $0 (of $1) values", count, stack_.size());
   if (count > stack_.size())
     logFatal("flow: BUG: stack smaller than amount of elements to pop.");
 
@@ -238,7 +238,7 @@ void TargetCodeGenerator::pop(size_t count) {
 }
 
 void TargetCodeGenerator::push(const Value* alias) {
-  logDebug("tcg: push $0", alias ? alias->name() : "NULL");
+  TRACE("tcg: push $0", alias ? alias->name() : "NULL");
   stack_.push_back(alias);
 }
 
@@ -262,7 +262,7 @@ void TargetCodeGenerator::visit(StoreInstr& storeInstr) {
   StackPointer di = getStackPointer(storeInstr.variable());
   XZERO_ASSERT(di != size_t(-1), "BUG: StoreInstr.variable not found on stack");
 
-  logDebug("storeInstr: source $0 (use count $1), variable name = $2",
+  TRACE("storeInstr: source $0 (use count $1), variable name = $2",
       storeInstr.source()->name(),
       storeInstr.source()->uses().size(),
       storeInstr.variable()->name());
