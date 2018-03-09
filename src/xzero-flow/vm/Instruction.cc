@@ -274,120 +274,109 @@ std::string disassemble(const Instruction* program,
 
 std::string disassemble(Instruction pc, size_t ip, size_t* sp,
                         const ConstantPool& cp) {
-  Buffer line;
-  Opcode opc = opcode(pc);
-  Operand A = operandA(pc);
-  Operand B = operandB(pc);
-  Operand C = operandC(pc);
+  const Opcode opc = opcode(pc);
+  const Operand A = operandA(pc);
+  const Operand B = operandB(pc);
+  const Operand C = operandC(pc);
   const char* mnemo = mnemonic(opc);
+  Buffer line;
   size_t n = 0;
-  int rv = 4;
 
-  rv = line.printf("%-10s", mnemo);
-  n += rv;
-  rv = 0;
+  n += line.printf("%-10s", mnemo);
 
   // operands
   switch (opc) {
     case Opcode::ITLOAD: {
-      rv = line.printf(" [");
+      n += line.printf("[");
       const auto& v = cp.getIntArray(A);
       for (size_t i = 0, e = v.size(); i != e; ++i) {
         if (i) {
           line.push_back(", ");
-          rv += 2;
+          n += 2;
         }
-        rv += line.printf("%lli", v[i]);
+        n += line.printf("%lli", v[i]);
       }
-      rv += line.printf("]");
+      n += line.printf("]");
       break;
     }
     case Opcode::STLOAD: {
-      rv = line.printf(" [");
+      n += line.printf("[");
       const auto& v = cp.getStringArray(A);
       for (size_t i = 0, e = v.size(); i != e; ++i) {
         if (i) {
           line.push_back(", ");
-          rv += 2;
+          n += 2;
         }
-        rv += line.printf("\"%s\"", v[i].str().c_str());
+        n += line.printf("\"%s\"", v[i].str().c_str());
       }
-      rv += line.printf("]");
+      n += line.printf("]");
       break;
     }
     case Opcode::PTLOAD: {
-      rv = line.printf(" [");
+      n += line.printf("[");
       const auto& v = cp.getIPAddressArray(A);
       for (size_t i = 0, e = v.size(); i != e; ++i) {
         if (i) {
           line.push_back(", ");
-          rv += 2;
+          n += 2;
         }
-        rv += line.printf("%s", v[i].c_str());
+        n += line.printf("%s", v[i].c_str());
       }
-      rv += line.printf("]");
+      n += line.printf("]");
       break;
     }
     case Opcode::CTLOAD: {
-      rv = line.printf(" [");
+      n += line.printf("[");
       const auto& v = cp.getCidrArray(A);
       for (size_t i = 0, e = v.size(); i != e; ++i) {
         if (i) {
           line.push_back(", ");
-          rv += 2;
+          n += 2;
         }
-        rv += line.printf("%s", v[i].str().c_str());
+        n += line.printf("%s", v[i].str().c_str());
       }
-      rv += line.printf("]");
+      n += line.printf("]");
       break;
     }
     case Opcode::LOAD:
-      rv = line.printf(" STACK[%lli]", A);
+      n += line.printf("STACK[%lli]", A);
       break;
     case Opcode::STORE:
-      rv = line.printf(" @STACK[%lli]", A);
-      break;
-    case Opcode::ILOAD:
-      rv = line.printf(" %lli", A);
+      n += line.printf("@STACK[%lli]", A);
       break;
     case Opcode::NLOAD:
-      rv = line.printf(" %lli", cp.getInteger(A));
+      n += line.printf("%lli", cp.getInteger(A));
       break;
     case Opcode::SLOAD:
-      rv = line.printf(" \"%s\"", cp.getString(A).c_str());
+      n += line.printf("\"%s\"", cp.getString(A).c_str());
       break;
     case Opcode::PLOAD:
-      rv = line.printf(" %s", cp.getIPAddress(A).c_str());
+      n += line.printf("%s", cp.getIPAddress(A).c_str());
       break;
     case Opcode::CLOAD:
-      rv = line.printf(" %s", cp.getCidr(A).str().c_str());
+      n += line.printf("%s", cp.getCidr(A).str().c_str());
       break;
     case Opcode::CALL:
-      rv = line.printf(" %s", cp.getNativeFunctionSignatures()[A].c_str());
+      n += line.printf("%s", cp.getNativeFunctionSignatures()[A].c_str());
       break;
     case Opcode::HANDLER:
-      rv = line.printf(" %s", cp.getNativeHandlerSignatures()[A].c_str());
+      n += line.printf("%s", cp.getNativeHandlerSignatures()[A].c_str());
       break;
     default:
       switch (operandSignature(opc)) {
         case OperandSig::III:
-          rv = line.printf(" %d, %d, %d", A, B, C);
+          n += line.printf("%d, %d, %d", A, B, C);
           break;
         case OperandSig::II:
-          rv = line.printf(" %d, %d", A, B);
+          n += line.printf("%d, %d", A, B);
           break;
         case OperandSig::I:
-          rv = line.printf(" %d", A);
+          n += line.printf("%d", A);
           break;
         case OperandSig::V:
-          rv = 0;
           break;
       }
       break;
-  }
-
-  if (rv > 0) {
-    n += rv;
   }
 
   for (; n < 35; ++n) {
