@@ -187,9 +187,9 @@ CoreModule::CoreModule(XzeroDaemon* d)
   sharedFunction("sys.cwd", &CoreModule::sys_cwd)
       .returnType(FlowType::String);
   sharedFunction("sys.pid", &CoreModule::sys_pid)
-      .returnType(FlowType::String);
+      .returnType(FlowType::Number);
   sharedFunction("sys.now", &CoreModule::sys_now)
-      .returnType(FlowType::String);
+      .returnType(FlowType::Number);
   sharedFunction("sys.now_str", &CoreModule::sys_now_str)
       .returnType(FlowType::String);
   sharedFunction("sys.hostname", &CoreModule::sys_hostname)
