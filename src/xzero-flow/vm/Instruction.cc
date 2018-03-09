@@ -289,21 +289,58 @@ std::string disassemble(Instruction pc, size_t ip, size_t* sp,
 
   // operands
   switch (opc) {
-    case Opcode::JZ:
-      rv = line.printf(" %lli", A);
+    case Opcode::ITLOAD: {
+      rv = line.printf(" [");
+      const auto& v = cp.getIntArray(A);
+      for (size_t i = 0, e = v.size(); i != e; ++i) {
+        if (i) {
+          line.push_back(", ");
+          rv += 2;
+        }
+        rv += line.printf("%lli", v[i]);
+      }
+      rv += line.printf("]");
       break;
-    case Opcode::ITLOAD:
-      rv = line.printf(" NumberArrays[%lli]", A);
+    }
+    case Opcode::STLOAD: {
+      rv = line.printf(" [");
+      const auto& v = cp.getStringArray(A);
+      for (size_t i = 0, e = v.size(); i != e; ++i) {
+        if (i) {
+          line.push_back(", ");
+          rv += 2;
+        }
+        rv += line.printf("\"%s\"", v[i].str().c_str());
+      }
+      rv += line.printf("]");
       break;
-    case Opcode::STLOAD:
-      rv = line.printf(" StringArrays[%lli]", A);
+    }
+    case Opcode::PTLOAD: {
+      rv = line.printf(" [");
+      const auto& v = cp.getIPAddressArray(A);
+      for (size_t i = 0, e = v.size(); i != e; ++i) {
+        if (i) {
+          line.push_back(", ");
+          rv += 2;
+        }
+        rv += line.printf("%s", v[i].c_str());
+      }
+      rv += line.printf("]");
       break;
-    case Opcode::PTLOAD:
-      rv = line.printf(" IPAddrArrays[%lli]", A);
+    }
+    case Opcode::CTLOAD: {
+      rv = line.printf(" [");
+      const auto& v = cp.getCidrArray(A);
+      for (size_t i = 0, e = v.size(); i != e; ++i) {
+        if (i) {
+          line.push_back(", ");
+          rv += 2;
+        }
+        rv += line.printf("%s", v[i].str().c_str());
+      }
+      rv += line.printf("]");
       break;
-    case Opcode::CTLOAD:
-      rv = line.printf(" CidrArrays[%lli]", A);
-      break;
+    }
     case Opcode::LOAD:
       rv = line.printf(" STACK[%lli]", A);
       break;
