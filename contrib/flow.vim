@@ -33,6 +33,8 @@ syn match flowOperator '[^=<>~\$\^\/\*]\zs\(=>\|=\^\|=\$\|=\~\|==\|!=\|<=\|>=\|<
 " FIXME the '/' operator is not mentioned in the operator list, currently, to
 " properly highlight the /regex/ operator.
 
+syn keyword flowCast bool int string
+
 " regular expressions (/things.like.that/)
 "syn match flowRegexpEscape "\\\[" contained display
 syn match flowRegexpSpecial "\(\[\|?\|\]\|(\|)\|\.\|*\||\)" contained display
@@ -144,6 +146,7 @@ hi def link flowRegexp        Constant
 hi def link flowBlock         Statement
 hi def link flowKeywords      Keyword
 hi def link flowOperator      Operator
+hi def link flowCast          Type
 hi def link flowCoreFunctions Statement
 hi def link flowCoreHandler   Statement
 hi def link flowCoreVar       Statement
