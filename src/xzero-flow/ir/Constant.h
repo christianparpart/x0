@@ -10,8 +10,7 @@
 #include <xzero/defines.h>
 #include <xzero-flow/ir/Value.h>
 
-namespace xzero {
-namespace flow {
+namespace xzero::flow {
 
 class Constant : public Value {
  public:
@@ -20,5 +19,4 @@ class Constant : public Value {
   void dump() override;
 };
 
-}  // namespace flow
-}  // namespace xzero
+}  // namespace xzero::flow

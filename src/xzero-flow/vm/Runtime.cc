@@ -12,9 +12,7 @@
 #include <xzero-flow/ir/BasicBlock.h>
 #include <xzero-flow/ir/Instructions.h>
 
-namespace xzero {
-namespace flow {
-namespace vm {
+namespace xzero::flow::vm {
 
 Runtime::~Runtime() {
   for (auto b : builtins_) {
@@ -85,6 +83,4 @@ bool Runtime::verify(IRProgram* program, IRBuilder* builder) {
   return true;
 }
 
-}  // namespace vm
-}  // namespace flow
-}  // namespace xzero
+}  // namespace xzero::flow::vm

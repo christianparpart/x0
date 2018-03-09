@@ -17,13 +17,12 @@
 #include <vector>
 #include <functional>
 
-namespace xzero {
-namespace flow {
+namespace xzero::flow {
+  class Instr;
+  class IRBuilder;
+}
 
-class Instr;
-class IRBuilder;
-
-namespace vm {
+namespace xzero::flow::vm {
 
 typedef uint64_t Value;
 
@@ -345,6 +344,4 @@ inline const void* NativeCallback::getDefaultAt(size_t i) const {
 }
 // }}}
 
-}  // namespace vm
-}  // namespace flow
-}  // namespace xzero
+}  // namespace xzero::flow::vm

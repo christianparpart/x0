@@ -10,8 +10,7 @@
 #include <xzero/defines.h>
 #include <xzero-flow/ir/HandlerPass.h>
 
-namespace xzero {
-namespace flow {
+namespace xzero::flow {
 
 class BasicBlock;
 
@@ -31,5 +30,4 @@ class InstructionElimination : public HandlerPass {
   bool branchToExit(BasicBlock* bb);
 };
 
-}  // namespace flow
-}  // namespace xzero
+}  // namespace xzero::flow

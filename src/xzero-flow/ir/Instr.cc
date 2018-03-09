@@ -15,8 +15,7 @@
 #include <assert.h>
 #include <inttypes.h>
 
-namespace xzero {
-namespace flow {
+namespace xzero::flow {
 
 using namespace vm;
 
@@ -199,5 +198,4 @@ void Instr::dumpOne(const char* mnemonic) {
   printf("\n");
 }
 
-}  // namespace flow
-}  // namespace xzero
+}  // namespace xzero::flow

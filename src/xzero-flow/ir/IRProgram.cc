@@ -11,8 +11,7 @@
 #include <xzero-flow/ir/ConstantArray.h>
 #include <assert.h>
 
-namespace xzero {
-namespace flow {
+namespace xzero::flow {
 
 using namespace vm;
 
@@ -78,5 +77,4 @@ template IRBuiltinHandler* IRProgram::get<IRBuiltinHandler, Signature>(
 template IRBuiltinFunction* IRProgram::get<IRBuiltinFunction, Signature>(
     std::vector<IRBuiltinFunction*>&, const Signature&);
 
-}  // namespace flow
-}  // namespace xzero
+}  // namespace xzero::flow

@@ -15,8 +15,7 @@
 #include <vector>
 #include <list>
 
-namespace xzero {
-namespace flow {
+namespace xzero::flow {
 
 class IRBuiltinHandler : public Constant {
  public:
@@ -30,5 +29,4 @@ class IRBuiltinHandler : public Constant {
   vm::Signature signature_;
 };
 
-}  // namespace flow
-}  // namespace xzero
+}  // namespace xzero::flow

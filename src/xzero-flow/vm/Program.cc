@@ -19,9 +19,7 @@
 #include <memory>
 #include <new>
 
-namespace xzero {
-namespace flow {
-namespace vm {
+namespace xzero::flow::vm {
 
 #define TRACE(msg...) logTrace("flow.vm.Program" msg)
 
@@ -203,6 +201,4 @@ bool Program::link(Runtime* runtime) {
   return errors == 0;
 }
 
-}  // namespace vm
-}  // namespace flow
-}  // namespace xzero
+}  // namespace xzero::flow::vm

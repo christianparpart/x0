@@ -12,8 +12,7 @@
 #include <xzero-flow/ir/Instructions.h>
 #include <list>
 
-namespace xzero {
-namespace flow {
+namespace xzero::flow {
 
 bool UnusedBlockPass::run(IRHandler* handler) {
   std::list<BasicBlock*> unused;
@@ -33,5 +32,4 @@ bool UnusedBlockPass::run(IRHandler* handler) {
   return !unused.empty();
 }
 
-}  // namespace flow
-}  // namespace xzero
+}  // namespace xzero::flow

@@ -8,9 +8,7 @@
 #include <xzero-flow/vm/MatchClass.h>
 #include <cassert>
 
-namespace xzero {
-namespace flow {
-namespace vm {
+namespace xzero::flow::vm {
 
 std::string tos(MatchClass mc) {
   switch (mc) {
@@ -28,6 +26,4 @@ std::string tos(MatchClass mc) {
   }
 }
 
-}  // namespace vm
-}  // namespace flow
-}  // namespace xzero
+}  // namespace xzero::flow::vm

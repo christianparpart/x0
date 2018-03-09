@@ -10,9 +10,7 @@
 #include <xzero/net/Cidr.h>
 #include <xzero/RegExp.h>
 
-namespace xzero {
-namespace flow {
-namespace vm {
+namespace xzero::flow::vm {
 
 // constructs a handler callback
 NativeCallback::NativeCallback(Runtime* runtime, const std::string& _name)
@@ -68,11 +66,17 @@ NativeCallback::~NativeCallback() {
   }
 }
 
-bool NativeCallback::isHandler() const { return isHandler_; }
+bool NativeCallback::isHandler() const {
+  return isHandler_;
+}
 
-const std::string NativeCallback::name() const { return signature_.name(); }
+const std::string NativeCallback::name() const {
+  return signature_.name();
+}
 
-const Signature& NativeCallback::signature() const { return signature_; }
+const Signature& NativeCallback::signature() const {
+  return signature_;
+}
 
 int NativeCallback::find(const std::string& name) const {
   for (int i = 0, e = names_.size(); i != e; ++i)
@@ -81,8 +85,8 @@ int NativeCallback::find(const std::string& name) const {
   return -1;
 }
 
-void NativeCallback::invoke(Params& args) const { function_(args); }
+void NativeCallback::invoke(Params& args) const {
+  function_(args);
+}
 
-}  // namespace vm
-}  // namespace flow
-}  // namespace xzero
+}  // namespace xzero::flow::vm

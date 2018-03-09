@@ -9,8 +9,7 @@
 
 #include <xzero/defines.h>
 
-namespace xzero {
-namespace flow {
+namespace xzero::flow {
 
 class IRHandler;
 
@@ -34,5 +33,4 @@ class HandlerPass {
   const char* name_;
 };
 
-}  // namespace flow
-}  // namespace xzero
+}  // namespace xzero::flow

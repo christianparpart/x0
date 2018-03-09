@@ -11,9 +11,7 @@
 #include <vector>
 #include <string>
 
-namespace xzero {
-namespace flow {
-namespace vm {
+namespace xzero::flow::vm {
 
 Signature::Signature()
     : name_(),
@@ -158,6 +156,4 @@ std::ostream& operator<<(std::ostream& os, const Signature& signature) {
   return os << signature.to_s();
 }
 
-}  // namespace vm
-}  // namespace flow
-}  // namespace xzero
+}  // namespace xzero::flow::vm

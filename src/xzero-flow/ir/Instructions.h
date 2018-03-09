@@ -16,8 +16,7 @@
 #include <vector>
 #include <list>
 
-namespace xzero {
-namespace flow {
+namespace xzero::flow {
 
 class Instr;
 class BasicBlock;
@@ -299,5 +298,4 @@ class MatchInstr : public TerminateInstr {
   std::vector<std::pair<Constant*, BasicBlock*>> cases_;
 };
 
-}  // namespace flow
-}  // namespace xzero
+}  // namespace xzero::flow

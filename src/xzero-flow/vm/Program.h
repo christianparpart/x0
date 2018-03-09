@@ -19,9 +19,7 @@
 #include <utility>
 #include <memory>
 
-namespace xzero {
-namespace flow {
-namespace vm {
+namespace xzero::flow::vm {
 
 class Runner;
 class Runtime;
@@ -91,6 +89,4 @@ class Program {
   std::vector<NativeCallback*> nativeFunctions_;
 };
 
-}  // namespace vm
-}  // namespace flow
-}  // namespace xzero
+}  // namespace xzero::flow::vm

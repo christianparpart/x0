@@ -13,8 +13,7 @@
 #include <string>
 #include <vector>
 
-namespace xzero {
-namespace flow {
+namespace xzero::flow {
 
 class Instr;
 
@@ -41,8 +40,8 @@ class Value {
   const std::vector<Instr*>& uses() const { return uses_; }
 
   /**
-   * @brief Replaces all uses of \c this value as operand with value \p newUse
-   * instead.
+   * Replaces all uses of \c this value as operand with value \p newUse instead.
+   *
    * @param newUse the new value to be used.
    */
   void replaceAllUsesWith(Value* newUse);
@@ -53,9 +52,7 @@ class Value {
   FlowType type_;
   std::string name_;
 
-  std::vector<Instr*> uses_;  //! list of instructions that <b>use</b> this
-                              //value.
+  std::vector<Instr*> uses_;  //! list of instructions that <b>use</b> this value.
 };
 
-}  // namespace flow
-}  // namespace xzero
+}  // namespace xzero::flow

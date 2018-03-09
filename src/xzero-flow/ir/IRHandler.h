@@ -14,8 +14,7 @@
 #include <vector>
 #include <list>
 
-namespace xzero {
-namespace flow {
+namespace xzero::flow {
 
 class BasicBlock;
 class IRProgram;
@@ -77,5 +76,4 @@ class IRHandler : public Constant {
   friend class IRBuilder;
 };
 
-}  // namespace flow
-}  // namespace xzero
+}  // namespace xzero::flow

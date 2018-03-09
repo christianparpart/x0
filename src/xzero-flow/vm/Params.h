@@ -16,9 +16,7 @@
 #include <xzero/net/Cidr.h>
 #include <memory>
 
-namespace xzero {
-namespace flow {
-namespace vm {
+namespace xzero::flow::vm {
 
 class Params {
  public:
@@ -99,6 +97,4 @@ class Params {
   std::vector<Value> argv_;
 };
 
-}  // namespace vm
-}  // namespace flow
-}  // namespace xzero
+}  // namespace xzero::flow::vm

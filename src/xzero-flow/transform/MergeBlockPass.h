@@ -10,8 +10,7 @@
 #include <xzero/defines.h>
 #include <xzero-flow/ir/HandlerPass.h>
 
-namespace xzero {
-namespace flow {
+namespace xzero::flow {
 
 class BasicBlock;
 
@@ -27,6 +26,5 @@ class MergeBlockPass : public HandlerPass {
   bool run(IRHandler* handler) override;
 };
 
-}  // namespace flow
-}  // namespace xzero
+}  // namespace xzero::flow
 

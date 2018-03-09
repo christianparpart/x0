@@ -10,8 +10,7 @@
 #include <xzero-flow/FlowType.h>
 #include <xzero/defines.h>
 
-namespace xzero {
-namespace flow {
+namespace xzero::flow {
 
 enum class UnaryOperator {
   // numerical
@@ -295,5 +294,4 @@ class IsSameInstruction : public InstructionVisitor {
   void visit(PInCidrInstr& instr) override;
 };
 
-}  // namespace flow
-}  // namespace xzero
+}  // namespace xzero::flow

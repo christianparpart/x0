@@ -16,8 +16,7 @@
 #include <iostream>
 #include <string>
 
-namespace xzero {
-namespace flow {
+namespace xzero::flow {
 
 template <typename T, const FlowType Ty>
 class ConstantValue : public Constant {
@@ -43,5 +42,4 @@ typedef ConstantValue<IPAddress, FlowType::IPAddress> ConstantIP;
 typedef ConstantValue<Cidr, FlowType::Cidr> ConstantCidr;
 typedef ConstantValue<RegExp, FlowType::RegExp> ConstantRegExp;
 
-}  // namespace flow
-}  // namespace xzero
+}  // namespace xzero::flow

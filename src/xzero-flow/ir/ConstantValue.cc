@@ -7,8 +7,7 @@
 
 #include <xzero-flow/ir/ConstantValue.h>
 
-namespace xzero {
-namespace flow {
+namespace xzero::flow {
 
 template class XZERO_EXPORT ConstantValue<int64_t, FlowType::Number>;
 template class XZERO_EXPORT ConstantValue<bool, FlowType::Boolean>;
@@ -17,5 +16,4 @@ template class XZERO_EXPORT ConstantValue<IPAddress, FlowType::IPAddress>;
 template class XZERO_EXPORT ConstantValue<Cidr, FlowType::Cidr>;
 template class XZERO_EXPORT ConstantValue<RegExp, FlowType::RegExp>;
 
-}  // namespace flow
-}  // namespace xzero
+}  // namespace xzero::flow

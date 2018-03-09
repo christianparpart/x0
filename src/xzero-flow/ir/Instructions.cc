@@ -13,8 +13,7 @@
 #include <utility>  // make_pair
 #include <assert.h>
 
-namespace xzero {
-namespace flow {
+namespace xzero::flow {
 
 using namespace vm;
 
@@ -256,5 +255,4 @@ Instr* StoreInstr::clone() {
 }
 // }}}
 
-}  // namespace flow
-}  // namespace xzero
+}  // namespace xzero::flow

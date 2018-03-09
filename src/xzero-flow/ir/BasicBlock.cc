@@ -17,8 +17,7 @@
  * TODO assert() on last instruction in current BB is not a terminator instr.
  */
 
-namespace xzero {
-namespace flow {
+namespace xzero::flow {
 
 BasicBlock::BasicBlock(const std::string& name)
     : Value(FlowType::Void, name),
@@ -253,5 +252,4 @@ void BasicBlock::verify() {
   }
 }
 
-}  // namespace flow
-}  // namespace xzero
+}  // namespace xzero::flow

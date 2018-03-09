@@ -10,14 +10,10 @@
 #include <xzero/defines.h>
 #include <string>
 
-namespace xzero {
-namespace flow {
-namespace vm {
+namespace xzero::flow::vm {
 
 enum class MatchClass { Same, Head, Tail, RegExp, };
 
 std::string tos(MatchClass c);
 
-}  // namespace vm
-}  // namespace flow
-}  // namespace xzero
+}  // namespace xzero::flow::vm

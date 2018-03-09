@@ -10,9 +10,7 @@
 #include <xzero-flow/vm/Handler.h>
 #include <xzero-flow/vm/Runner.h>
 
-namespace xzero {
-namespace flow {
-namespace vm {
+namespace xzero::flow::vm {
 
 // {{{ Match
 Match::Match(const MatchDef& def)
@@ -107,6 +105,4 @@ uint64_t MatchRegEx::evaluate(const FlowString* condition, Runner* env) const {
 }
 // }}}
 
-}  // namespace vm
-}  // namespace flow
-}  // namespace xzero
+}  // namespace xzero::flow::vm

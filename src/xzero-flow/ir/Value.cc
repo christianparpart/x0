@@ -10,8 +10,7 @@
 #include <algorithm>
 #include <assert.h>
 
-namespace xzero {
-namespace flow {
+namespace xzero::flow {
 
 static unsigned long long valueCounter = 1;
 
@@ -61,5 +60,4 @@ void Value::dump() {
   printf("Value '%s': %s\n", name_.c_str(), tos(type_).c_str());
 }
 
-}  // namespace flow
-}  // namespace xzero
+}  // namespace xzero::flow

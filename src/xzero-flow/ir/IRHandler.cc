@@ -11,8 +11,7 @@
 #include <algorithm>
 #include <assert.h>
 
-namespace xzero {
-namespace flow {
+namespace xzero::flow {
 
 using namespace vm;
 
@@ -86,5 +85,4 @@ void IRHandler::verify() {
   }
 }
 
-}  // namespace flow
-}  // namespace xzero
+}  // namespace xzero::flow

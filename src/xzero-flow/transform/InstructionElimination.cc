@@ -13,8 +13,7 @@
 #include <xzero/logging.h>
 #include <list>
 
-namespace xzero {
-namespace flow {
+namespace xzero::flow {
 
 bool InstructionElimination::run(IRHandler* handler) {
   for (BasicBlock* bb : handler->basicBlocks()) {
@@ -136,5 +135,4 @@ bool InstructionElimination::branchToExit(BasicBlock* bb) {
   return false;
 }
 
-}  // namespace flow
-}  // namespace xzero
+}  // namespace xzero::flow

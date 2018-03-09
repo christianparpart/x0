@@ -8,8 +8,7 @@
 #include <xzero-flow/ir/InstructionVisitor.h>
 #include <xzero-flow/ir/Instructions.h>
 
-namespace xzero {
-namespace flow {
+namespace xzero::flow {
 
 bool IsSameInstruction::test(Instr* a, Instr* b) {
   IsSameInstruction check(a);
@@ -100,5 +99,4 @@ IS_SAME_INSTR_IMPL(PCmpNEInstr);
 IS_SAME_INSTR_IMPL(PInCidrInstr);
 // }}}
 
-}  // namespace flow
-}  // namespace xzero
+}  // namespace xzero::flow

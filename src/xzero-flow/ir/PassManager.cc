@@ -10,8 +10,7 @@
 #include <xzero-flow/ir/IRProgram.h>
 #include <xzero/logging.h>
 
-namespace xzero {
-namespace flow {
+namespace xzero::flow {
 
 PassManager::PassManager() {
 }
@@ -45,5 +44,4 @@ void PassManager::run(IRHandler* handler) {
   }
 }
 
-}  // namespace flow
-}  // namespace xzero
+}  // namespace xzero::flow

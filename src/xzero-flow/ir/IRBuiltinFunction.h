@@ -11,8 +11,7 @@
 #include <xzero-flow/ir/Constant.h>
 #include <xzero-flow/vm/Signature.h>
 
-namespace xzero {
-namespace flow {
+namespace xzero::flow {
 
 class IRBuiltinFunction : public Constant {
  public:
@@ -26,5 +25,4 @@ class IRBuiltinFunction : public Constant {
   vm::Signature signature_;
 };
 
-}  // namespace flow
-}  // namespace xzero
+}  // namespace xzero::flow

@@ -22,8 +22,7 @@
 #include <string>
 #include <vector>
 
-namespace xzero {
-namespace flow {
+namespace xzero::flow {
 
 class IRBuilder;
 class ConstantArray;
@@ -122,5 +121,4 @@ class IRProgram {
   friend class IRBuilder;
 };
 
-}  // namespace flow
-}  // namespace xzero
+}  // namespace xzero::flow
