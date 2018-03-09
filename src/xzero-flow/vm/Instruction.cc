@@ -51,8 +51,8 @@ static InstructionInfo instructionInfos[] = {
   // control
   IIDEF(EXIT,      I,  0, Void),
   IIDEF(JMP,       I,  0, Void),
-  IIDEF(JN,        V, -1, Void),
-  IIDEF(JZ,        V, -1, Void),
+  IIDEF(JN,        I, -1, Void),
+  IIDEF(JZ,        I, -1, Void),
 
   // arrays
   IIDEF(ITLOAD,    I,  1, IntArray),
