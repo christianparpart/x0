@@ -383,7 +383,8 @@ nobase_libXzero_HEADERS = \
 	src/xzero/util/BinaryWriter.h \
 	src/xzero/util/BinaryMessageReader.h \
 	src/xzero/util/BinaryMessageWriter.h \
-	src/xzero/util/SimpleRateLimit.h
+	src/xzero/util/SimpleRateLimit.h \
+	src/xzero/util/UnboxedRange.h
 
 # TODO: finalize
 if PLATFORM_LINUX
