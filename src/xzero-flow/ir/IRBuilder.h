@@ -22,6 +22,7 @@
 #include <unordered_map>
 #include <vector>
 #include <string>
+#include <memory>
 
 namespace xzero::flow {
 
@@ -48,7 +49,7 @@ class IRBuilder {
 
   std::string makeName(const std::string& name);
 
-  void setProgram(IRProgram* program);
+  void setProgram(std::unique_ptr<IRProgram> program);
   IRProgram* program() const { return program_; }
 
   IRHandler* setHandler(IRHandler* hn);

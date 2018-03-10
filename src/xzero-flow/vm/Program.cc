@@ -17,7 +17,6 @@
 #include <utility>
 #include <vector>
 #include <memory>
-#include <new>
 
 namespace xzero::flow::vm {
 
@@ -60,8 +59,6 @@ Program::Program(ConstantPool&& cp)
 
 Program::~Program() {
   TRACE("~Program.dtor");
-  for (auto m : matches_)
-    delete m;
 }
 
 Handler* Program::handler(size_t index) const {
@@ -79,16 +76,16 @@ void Program::setup() {
     const MatchDef& def = matches[i];
     switch (def.op) {
       case MatchClass::Same:
-        matches_.emplace_back(new MatchSame(def, this));
+        matches_.emplace_back(std::make_unique<MatchSame>(def, this));
         break;
       case MatchClass::Head:
-        matches_.emplace_back(new MatchHead(def, this));
+        matches_.emplace_back(std::make_unique<MatchHead>(def, this));
         break;
       case MatchClass::Tail:
-        matches_.emplace_back(new MatchTail(def, this));
+        matches_.emplace_back(std::make_unique<MatchTail>(def, this));
         break;
       case MatchClass::RegExp:
-        matches_.emplace_back(new MatchRegEx(def, this));
+        matches_.emplace_back(std::make_unique<MatchRegEx>(def, this));
         break;
     }
   }

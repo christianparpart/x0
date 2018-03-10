@@ -80,7 +80,8 @@ const Signature& NativeCallback::signature() const {
 
 int NativeCallback::find(const std::string& name) const {
   for (int i = 0, e = names_.size(); i != e; ++i)
-    if (names_[i] == name) return i;
+    if (names_[i] == name)
+      return i;
 
   return -1;
 }

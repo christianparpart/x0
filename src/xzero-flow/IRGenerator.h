@@ -46,7 +46,7 @@ class IRGenerator : public IRBuilder, public ASTVisitor {
   class Scope;
 
   std::vector<std::string> exports_;
-  Scope* scope_;
+  std::unique_ptr<Scope> scope_;
   Value* result_;
   std::deque<Handler*> handlerStack_;
 

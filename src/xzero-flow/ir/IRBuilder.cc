@@ -33,7 +33,8 @@ IRBuilder::IRBuilder()
       insertPoint_(nullptr),
       nameStore_() {}
 
-IRBuilder::~IRBuilder() {}
+IRBuilder::~IRBuilder() {
+}
 
 // {{{ name management
 std::string IRBuilder::makeName(const std::string& name) {
@@ -53,8 +54,8 @@ std::string IRBuilder::makeName(const std::string& name) {
 }
 // }}}
 // {{{ context management
-void IRBuilder::setProgram(IRProgram* prog) {
-  program_ = prog;
+void IRBuilder::setProgram(std::unique_ptr<IRProgram> prog) {
+  program_ = prog.release();
   handler_ = nullptr;
   insertPoint_ = nullptr;
 }

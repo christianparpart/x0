@@ -85,14 +85,10 @@ void Handler::setCode(std::vector<Instruction>&& code) {
 #endif
 }
 
-std::unique_ptr<Runner> Handler::createRunner() {
-  return std::unique_ptr<Runner>(new Runner(this));
-}
-
 bool Handler::run(void* userdata, void* userdata2) {
-  auto runner = createRunner();
-  runner->setUserData(userdata, userdata2);
-  return runner->run();
+  Runner runner(this);
+  runner.setUserData(userdata, userdata2);
+  return runner.run();
 }
 
 void Handler::disassemble() {

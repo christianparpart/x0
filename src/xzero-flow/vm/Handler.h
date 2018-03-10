@@ -48,7 +48,6 @@ class Handler {
   std::vector<uint64_t>& directThreadedCode() { return directThreadedCode_; }
 #endif
 
-  std::unique_ptr<Runner> createRunner();
   bool run(void* userdata = nullptr, void* userdata2 = nullptr);
 
   void disassemble();

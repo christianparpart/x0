@@ -19,7 +19,6 @@
 #include <vector>
 #include <list>
 #include <memory>
-#include <new>
 #include <cstdint>
 #include <cstdio>
 #include <cstdlib>

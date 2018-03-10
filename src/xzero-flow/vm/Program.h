@@ -8,6 +8,7 @@
 #pragma once
 
 #include <xzero/defines.h>
+#include <xzero/util/UnboxedRange.h>
 #include <xzero-flow/vm/ConstantPool.h>
 #include <xzero-flow/vm/Instruction.h>
 #include <xzero-flow/FlowType.h>  // FlowNumber
@@ -40,7 +41,7 @@ class Program {
   ConstantPool& constants() { return cp_; }
 
   // accessors to linked data
-  const Match* match(size_t index) const { return matches_[index]; }
+  const Match* match(size_t index) const { return matches_[index].get(); }
   Handler* handler(size_t index) const;
   NativeCallback* nativeHandler(size_t index) const {
     return nativeHandlers_[index];
@@ -50,7 +51,7 @@ class Program {
   }
 
   // bulk accessors
-  const std::vector<Match*>& matches() const { return matches_; }
+  auto matches() { return unbox(matches_); }
 
   std::vector<std::string> handlerNames() const;
   int indexOf(const Handler* handler) const;
@@ -84,7 +85,7 @@ class Program {
   // linked data
   Runtime* runtime_;
   mutable std::vector<std::unique_ptr<Handler>> handlers_;
-  std::vector<Match*> matches_;
+  std::vector<std::unique_ptr<Match>> matches_;
   std::vector<NativeCallback*> nativeHandlers_;
   std::vector<NativeCallback*> nativeFunctions_;
 };

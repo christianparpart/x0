@@ -157,7 +157,7 @@ std::unique_ptr<flow::vm::Program> XzeroDaemon::loadConfigEasy(
       "instant-mode.conf", printAST, printIR, printTC);
 }
 
-std::unique_ptr<xzero::flow::vm::Program> XzeroDaemon::loadConfigFile(
+std::unique_ptr<flow::vm::Program> XzeroDaemon::loadConfigFile(
     const std::string& configFileName) {
   return loadConfigFile(configFileName, false, false, false);
 }
@@ -238,9 +238,9 @@ std::unique_ptr<flow::vm::Program> XzeroDaemon::loadConfigStream(
   return program;
 }
 
-void XzeroDaemon::patchProgramIR(xzero::flow::IRProgram* programIR,
-                                 xzero::flow::IRGenerator* irgen) {
-  using namespace xzero::flow;
+void XzeroDaemon::patchProgramIR(flow::IRProgram* programIR,
+                                 flow::IRGenerator* irgen) {
+  using namespace flow;
 
   IRHandler* mainIR = programIR->findHandler("main");
   irgen->setHandler(mainIR);
@@ -477,7 +477,7 @@ std::unique_ptr<EventLoop> XzeroDaemon::createEventLoop() {
 
 void XzeroDaemon::handleRequest(HttpRequest* request, HttpResponse* response) {
   // XXX the XzeroContext instance is getting deleted upon response completion
-  XzeroContext* cx = new XzeroContext(main_->createRunner(),
+  XzeroContext* cx = new XzeroContext(std::make_unique<flow::vm::Runner>(main_),
                                       request,
                                       response,
                                       &config_->errorPages,

@@ -74,14 +74,13 @@ IRGenerator::IRGenerator()
     : IRBuilder(),
       ASTVisitor(),
       exports_(),
-      scope_(new Scope()),
+      scope_(std::make_unique<Scope>()),
       result_(nullptr),
       handlerStack_(),
       errorCount_(0),
       onError_() {}
 
 IRGenerator::~IRGenerator() {
-  delete scope_;
 }
 
 std::unique_ptr<IRProgram> IRGenerator::generate(
@@ -122,7 +121,7 @@ Value* IRGenerator::codegen(Symbol* sym) {
 void IRGenerator::accept(Unit& unit) {
   FNTRACE();
 
-  setProgram(new IRProgram());
+  setProgram(std::make_unique<IRProgram>());
   program()->setModules(unit.modules());
 
   for (const auto sym : *unit.scope()) {
