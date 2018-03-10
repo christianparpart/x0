@@ -13,6 +13,7 @@
 #include <xzero-flow/vm/Instruction.h>
 #include <xzero-flow/vm/MatchClass.h>
 #include <xzero-flow/vm/Signature.h>
+#include <xzero/util/UnboxedRange.h>
 #include <xzero/net/IPAddress.h>
 #include <xzero/net/Cidr.h>
 #include <xzero/RegExp.h>
@@ -34,12 +35,12 @@ class IRBuilder;
  */
 class BasicBlock : public Value {
  public:
-  explicit BasicBlock(const std::string& name);
+  BasicBlock(const std::string& name, IRHandler* parent);
   ~BasicBlock();
 
-  XZERO_DEPRECATED IRHandler* parent() const { return parent_; }
-  IRHandler* getHandler() const { return parent_; }
-  void setParent(IRHandler* handler) { parent_ = handler; }
+  XZERO_DEPRECATED IRHandler* parent() const { return handler_; }
+  IRHandler* getHandler() const { return handler_; }
+  void setParent(IRHandler* handler) { handler_ = handler; }
 
   /*!
    * Retrieves the last terminating instruction in this basic block.
@@ -55,12 +56,18 @@ class BasicBlock : public Value {
    * Retrieves the linear ordered list of instructions of instructions in this
    * basic block.
    */
-  const std::vector<Instr*>& instructions() const { return code_; }
-  Instr* front() const { return code_.front(); }
-  Instr* back() const { return code_.back(); }
+  auto instructions() { return unbox(code_); }
+  Instr* instruction(size_t i) { return code_[i].get(); }
+
+  Instr* front() const { return code_.front().get(); }
+  Instr* back() const { return code_.back().get(); }
+
+  size_t size() const { return code_.size(); }
+  bool empty() const { return code_.empty(); }
+
   Instr* back(size_t sub) const {
     if (sub + 1 <= code_.size())
-      return code_[code_.size() - (1 + sub)];
+      return code_[code_.size() - (1 + sub)].get();
     else
       return nullptr;
   }
@@ -70,32 +77,32 @@ class BasicBlock : public Value {
    *
    * The basic block will take over ownership of the given instruction.
    */
-  void push_back(Instr* instr);
+  Instr* push_back(std::unique_ptr<Instr> instr);
 
   /**
    * Removes given instruction from this basic block.
    *
    * The basic block will pass ownership of the given instruction to the caller.
    * That means, the caller has to either delete \p childInstr or transfer it to
-   *another basic block.
+   * another basic block.
    *
    * @see push_back()
    */
-  Instr* remove(Instr* childInstr);
+  std::unique_ptr<Instr> remove(Instr* childInstr);
 
   /**
    * Replaces given @p oldInstr with @p newInstr.
    *
    * @return returns given @p oldInstr.
    */
-  Instr* replace(Instr* oldInstr, Instr* newInstr);
+  std::unique_ptr<Instr> replace(Instr* oldInstr, std::unique_ptr<Instr> newInstr);
 
   /**
    * Merges given basic block's instructions into this ones end.
    *
    * The passed basic block's instructions will not be touched.
    */
-  void merge_back(BasicBlock* bb);
+  void merge_back(const BasicBlock* bb);
 
   /**
    * Moves this basic block after the other basic block, \p otherBB.
@@ -105,19 +112,19 @@ class BasicBlock : public Value {
    * In a function, all basic blocks (starting from the entry block)
    * will be aligned linear into the execution segment.
    *
-   * This function moves the given basic block directly after
+   * This function moves this basic block directly after
    * the other basic block, \p otherBB.
    *
    * @see moveBefore()
    */
-  void moveAfter(BasicBlock* otherBB);
+  void moveAfter(const BasicBlock* otherBB);
 
   /**
    * Moves this basic block before the other basic block, \p otherBB.
    *
    * @see moveAfter()
    */
-  void moveBefore(BasicBlock* otherBB);
+  void moveBefore(const BasicBlock* otherBB);
 
   /**
    * Tests whether or not given block is straight-line located after this block.
@@ -133,7 +140,7 @@ class BasicBlock : public Value {
    * Links given \p successor basic block to this predecessor.
    *
    * @param successor the basic block to link as an successor of this basic
-   *block.
+   *                  block.
    *
    * This will also automatically link this basic block as
    * future predecessor of the \p successor.
@@ -170,10 +177,8 @@ class BasicBlock : public Value {
    * Performs sanity checks on internal data structures.
    *
    * This call does not return any success or failure as every failure is
-   *considered fatal
-   * and will cause the program to exit with diagnostics as this is most likely
-   *caused by
-   * an application programming error.
+   * considered fatal and will cause the program to exit with diagnostics
+   * as this is most likely caused by an application programming error.
    *
    * @note This function is automatically invoked by IRHandler::verify()
    *
@@ -185,8 +190,8 @@ class BasicBlock : public Value {
   void collectIDom(std::vector<BasicBlock*>& output);
 
  private:
-  IRHandler* parent_;
-  std::vector<Instr*> code_;
+  IRHandler* handler_;
+  std::vector<std::unique_ptr<Instr>> code_;
   std::vector<BasicBlock*> predecessors_;
   std::vector<BasicBlock*> successors_;
 

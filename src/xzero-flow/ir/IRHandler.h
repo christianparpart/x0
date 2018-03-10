@@ -7,11 +7,13 @@
 
 #pragma once
 
-#include <xzero/defines.h>
 #include <xzero-flow/ir/Constant.h>
+#include <xzero-flow/ir/BasicBlock.h>
+#include <xzero/util/UnboxedRange.h>
+#include <xzero/defines.h>
 
 #include <string>
-#include <vector>
+#include <memory>
 #include <list>
 
 namespace xzero::flow {
@@ -22,20 +24,23 @@ class IRBuilder;
 
 class IRHandler : public Constant {
  public:
-  explicit IRHandler(const std::string& name);
+  IRHandler(const std::string& name, IRProgram* parent);
   ~IRHandler();
+
+  IRHandler(IRHandler&&) = default;
+  IRHandler& operator=(IRHandler&&) = default;
 
   BasicBlock* createBlock(const std::string& name = "");
 
-  IRProgram* getProgram() const { return parent_; }
-  XZERO_DEPRECATED IRProgram* parent() const { return parent_; }
-  void setParent(IRProgram* prog) { parent_ = prog; }
+  IRProgram* getProgram() const { return program_; }
+  XZERO_DEPRECATED IRProgram* parent() const { return program_; }
+  void setParent(IRProgram* prog) { program_ = prog; }
 
   void dump() override;
 
-  std::list<BasicBlock*>& basicBlocks() { return blocks_; }
+  auto basicBlocks() { return unbox(blocks_); }
 
-  BasicBlock* getEntryBlock() const { return blocks_.front(); }
+  BasicBlock* getEntryBlock() const { return blocks_.front().get(); }
   void setEntryBlock(BasicBlock* bb);
 
   /**
@@ -43,7 +48,11 @@ class IRHandler : public Constant {
    *
    * @note \p bb will be a dangling pointer after this call.
    */
-  void erase(BasicBlock* bb);
+  void erase(const BasicBlock* bb);
+
+  bool isAfter(const BasicBlock* bb, const BasicBlock* afterThat) const;
+  void moveAfter(const BasicBlock* moveable, const BasicBlock* afterThat);
+  void moveBefore(const BasicBlock* moveable, const BasicBlock* beforeThat);
 
   /**
    * Performs given transformation on this handler.
@@ -52,26 +61,24 @@ class IRHandler : public Constant {
    */
   template <typename TheHandlerPass, typename... Args>
   size_t transform(Args&&... args) {
-    return TheHandlerPass(args...).run(this);
+    return TheHandlerPass(std::forward(args)...).run(this);
   }
 
   /**
    * Performs sanity checks on internal data structures.
    *
    * This call does not return any success or failure as every failure is
-   *considered fatal
-   * and will cause the program to exit with diagnostics as this is most likely
-   *caused by
-   * an application programming error.
+   * considered fatal and will cause the program to exit with diagnostics
+   * as this is most likely caused by an application programming error.
    *
    * @note Always call this on completely defined handlers and never on
-   *half-contructed ones.
+   * half-contructed ones.
    */
   void verify();
 
  private:
-  IRProgram* parent_;
-  std::list<BasicBlock*> blocks_;
+  IRProgram* program_;
+  std::list<std::unique_ptr<BasicBlock>> blocks_;
 
   friend class IRBuilder;
 };

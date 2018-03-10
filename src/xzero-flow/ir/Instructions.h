@@ -30,7 +30,7 @@ class NopInstr : public Instr {
   NopInstr() : Instr(FlowType::Void, {}, "nop") {}
 
   void dump() override;
-  Instr* clone() override;
+  std::unique_ptr<Instr> clone() override;
   void accept(InstructionVisitor& v) override;
 };
 
@@ -72,7 +72,7 @@ class AllocaInstr : public Instr {
   Value* arraySize() const { return operands()[0]; }
 
   void dump() override;
-  Instr* clone() override;
+  std::unique_ptr<Instr> clone() override;
   void accept(InstructionVisitor& v) override;
 };
 
@@ -87,7 +87,7 @@ class StoreInstr : public Instr {
   Value* source() const { return operand(2); }
 
   void dump() override;
-  Instr* clone() override;
+  std::unique_ptr<Instr> clone() override;
   void accept(InstructionVisitor& v) override;
 };
 
@@ -99,36 +99,32 @@ class LoadInstr : public Instr {
   Value* variable() const { return operand(0); }
 
   void dump() override;
-  Instr* clone() override;
+  std::unique_ptr<Instr> clone() override;
   void accept(InstructionVisitor& v) override;
 };
 
 class CallInstr : public Instr {
- private:
-  CallInstr(const std::vector<Value*>& args, const std::string& name);
-
  public:
+  CallInstr(const std::vector<Value*>& args, const std::string& name);
   CallInstr(IRBuiltinFunction* callee, const std::vector<Value*>& args,
             const std::string& name);
 
   IRBuiltinFunction* callee() const { return (IRBuiltinFunction*)operand(0); }
 
   void dump() override;
-  Instr* clone() override;
+  std::unique_ptr<Instr> clone() override;
   void accept(InstructionVisitor& v) override;
 };
 
 class HandlerCallInstr : public Instr {
- private:
-  explicit HandlerCallInstr(const std::vector<Value*>& args);
-
  public:
+  explicit HandlerCallInstr(const std::vector<Value*>& args);
   HandlerCallInstr(IRBuiltinHandler* callee, const std::vector<Value*>& args);
 
   IRBuiltinHandler* callee() const { return (IRBuiltinHandler*)operand(0); }
 
   void dump() override;
-  Instr* clone() override;
+  std::unique_ptr<Instr> clone() override;
   void accept(InstructionVisitor& v) override;
 };
 
@@ -140,7 +136,7 @@ class CastInstr : public Instr {
   Value* source() const { return operand(0); }
 
   void dump() override;
-  Instr* clone() override;
+  std::unique_ptr<Instr> clone() override;
   void accept(InstructionVisitor& v) override;
 };
 
@@ -154,8 +150,8 @@ class UnaryInstr : public Instr {
 
   void dump() override { dumpOne(cstr(operator_)); }
 
-  Instr* clone() override {
-    return new UnaryInstr<Operator, ResultType>(operand(0), name());
+  std::unique_ptr<Instr> clone() override {
+    return std::make_unique<UnaryInstr<Operator, ResultType>>(operand(0), name());
   }
 
   void accept(InstructionVisitor& v) override { v.visit(*this); }
@@ -174,9 +170,9 @@ class BinaryInstr : public Instr {
 
   void dump() override { dumpOne(cstr(operator_)); }
 
-  Instr* clone() override {
-    return new BinaryInstr<Operator, ResultType>(operand(0), operand(1),
-                                                 name());
+  std::unique_ptr<Instr> clone() override {
+    return std::make_unique<BinaryInstr<Operator, ResultType>>(
+        operand(0), operand(1), name());
   }
 
   void accept(InstructionVisitor& v) override { v.visit(*this); }
@@ -198,7 +194,7 @@ class PhiNode : public Instr {
   PhiNode(const std::vector<Value*>& ops, const std::string& name);
 
   void dump() override;
-  Instr* clone() override;
+  std::unique_ptr<Instr> clone() override;
   void accept(InstructionVisitor& v) override;
 };
 
@@ -234,7 +230,7 @@ class CondBrInstr : public TerminateInstr {
   BasicBlock* falseBlock() const { return (BasicBlock*)operands()[2]; }
 
   void dump() override;
-  Instr* clone() override;
+  std::unique_ptr<Instr> clone() override;
   void accept(InstructionVisitor& v) override;
 };
 
@@ -248,7 +244,7 @@ class BrInstr : public TerminateInstr {
   BasicBlock* targetBlock() const { return (BasicBlock*)operands()[0]; }
 
   void dump() override;
-  Instr* clone() override;
+  std::unique_ptr<Instr> clone() override;
   void accept(InstructionVisitor& v) override;
 };
 
@@ -260,7 +256,7 @@ class RetInstr : public TerminateInstr {
   RetInstr(Value* result);
 
   void dump() override;
-  Instr* clone() override;
+  std::unique_ptr<Instr> clone() override;
   void accept(InstructionVisitor& v) override;
 };
 
@@ -273,10 +269,8 @@ class RetInstr : public TerminateInstr {
  * <li>operand[2n+3] - case block</li>
  */
 class MatchInstr : public TerminateInstr {
- private:
-  MatchInstr(const MatchInstr&);
-
  public:
+  MatchInstr(const MatchInstr&);
   MatchInstr(vm::MatchClass op, Value* cond);
 
   vm::MatchClass op() const { return op_; }
@@ -290,7 +284,7 @@ class MatchInstr : public TerminateInstr {
   void setElseBlock(BasicBlock* code);
 
   void dump() override;
-  Instr* clone() override;
+  std::unique_ptr<Instr> clone() override;
   void accept(InstructionVisitor& v) override;
 
  private:

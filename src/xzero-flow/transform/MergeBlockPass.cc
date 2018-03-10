@@ -16,11 +16,11 @@
 namespace xzero::flow {
 
 bool isSameInstructions(BasicBlock* a, BasicBlock* b) {
-  if (a->instructions().size() != b->instructions().size())
+  if (a->size() != b->size())
     return false;
 
-  for (size_t i = 0, e = a->instructions().size(); i != e; ++i)
-    if (!IsSameInstruction::test(a->instructions()[i],b->instructions()[i]))
+  for (size_t i = 0, e = a->size(); i != e; ++i)
+    if (!IsSameInstruction::test(a->instruction(i), b->instruction(i)))
       return false;
 
   return true;

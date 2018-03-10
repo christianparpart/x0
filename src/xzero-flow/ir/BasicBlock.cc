@@ -9,6 +9,7 @@
 #include <xzero-flow/ir/Instr.h>
 #include <xzero-flow/ir/Instructions.h>
 #include <xzero-flow/ir/IRHandler.h>
+#include <xzero/logging.h>
 #include <algorithm>
 #include <assert.h>
 #include <math.h>
@@ -19,36 +20,38 @@
 
 namespace xzero::flow {
 
-BasicBlock::BasicBlock(const std::string& name)
+BasicBlock::BasicBlock(const std::string& name, IRHandler* parent)
     : Value(FlowType::Void, name),
-      parent_(nullptr),
+      handler_(parent),
       code_(),
       predecessors_(),
-      successors_() {}
+      successors_() {
+}
 
 BasicBlock::~BasicBlock() {
-  for (auto i = code_.rbegin(), e = code_.rend(); i != e; ++i) {
-    delete *i;
+  // XXX we *must* destruct the code in reverse order to ensure proper release
+  // The validity checks will fail otherwise.
+  while (!empty()) {
+    remove(back());
   }
-  code_.clear();
 
-  assert(predecessors().empty() &&
-         "Cannot remove a basic block that some other basic block still refers "
-         "to.");
-  for (BasicBlock* bb : predecessors()) {
+  XZERO_ASSERT(predecessors_.empty(),
+         "Cannot remove a BasicBlock that another BasicBlock still refers to.");
+
+  for (BasicBlock* bb : predecessors_) {
     bb->unlinkSuccessor(this);
   }
 
-  for (BasicBlock* bb : successors()) {
+  for (BasicBlock* bb : successors_) {
     unlinkSuccessor(bb);
   }
 }
 
 TerminateInstr* BasicBlock::getTerminator() const {
-  return dynamic_cast<TerminateInstr*>(code_.back());
+  return dynamic_cast<TerminateInstr*>(code_.back().get());
 }
 
-Instr* BasicBlock::remove(Instr* instr) {
+std::unique_ptr<Instr> BasicBlock::remove(Instr* instr) {
   // if we're removing the terminator instruction
   if (instr == getTerminator()) {
     // then unlink all successors also
@@ -59,49 +62,57 @@ Instr* BasicBlock::remove(Instr* instr) {
     }
   }
 
-  auto i = std::find(code_.begin(), code_.end(), instr);
+  auto i = std::find_if(
+      code_.begin(), code_.end(),
+      [&](const auto& obj) { return obj.get() == instr; });
   assert(i != code_.end());
+
+  std::unique_ptr<Instr> removedInstr = std::move(*i);
   code_.erase(i);
   instr->setParent(nullptr);
-
-  return instr;
+  return removedInstr;
 }
 
-Instr* BasicBlock::replace(Instr* oldInstr, Instr* newInstr) {
+std::unique_ptr<Instr> BasicBlock::replace(Instr* oldInstr,
+                                           std::unique_ptr<Instr> newInstr) {
   assert(oldInstr->getBasicBlock() == this);
   assert(newInstr->getBasicBlock() == nullptr);
 
-  oldInstr->replaceAllUsesWith(newInstr);
+  oldInstr->replaceAllUsesWith(newInstr.get());
 
   if (oldInstr == getTerminator()) {
-    remove(oldInstr);
-    push_back(newInstr);
-    return oldInstr;
+    std::unique_ptr<Instr> removedInstr = remove(oldInstr);
+    push_back(std::move(newInstr));
+    return removedInstr;
+  } else {
+    assert(dynamic_cast<TerminateInstr*>(newInstr.get()) == nullptr && "Most not be a terminator instruction.");
+
+    auto i = std::find_if(
+        code_.begin(), code_.end(),
+        [&](const auto& obj) { return obj.get() == oldInstr; });
+
+    assert(i != code_.end());
+
+    oldInstr->setParent(nullptr);
+    newInstr->setParent(this);
+
+    std::unique_ptr<Instr> removedInstr = std::move(*i);
+    *i = std::move(newInstr);
+    return removedInstr;
   }
-
-  assert(dynamic_cast<TerminateInstr*>(newInstr) == nullptr && "Most not be a terminator instruction.");
-  auto i = std::find(code_.begin(), code_.end(), oldInstr);
-  assert(i != code_.end());
-
-  oldInstr->setParent(nullptr);
-  newInstr->setParent(this);
-  *i = newInstr;
-
-  return oldInstr;
 }
 
-void BasicBlock::push_back(Instr* instr) {
+Instr* BasicBlock::push_back(std::unique_ptr<Instr> instr) {
   assert(instr != nullptr);
   assert(instr->getBasicBlock() == nullptr);
-
-  instr->setParent(this);
-  code_.push_back(instr);
 
   // FIXME: do we need this? I'd say NOPE.
   setType(instr->type());
 
+  instr->setParent(this);
+
   // are we're now adding the terminate instruction?
-  if (dynamic_cast<TerminateInstr*>(instr)) {
+  if (dynamic_cast<TerminateInstr*>(instr.get())) {
     // then check for possible successors
     for (auto operand : instr->operands()) {
       if (BasicBlock* bb = dynamic_cast<BasicBlock*>(operand)) {
@@ -109,73 +120,48 @@ void BasicBlock::push_back(Instr* instr) {
       }
     }
   }
+
+  code_.push_back(std::move(instr));
+  return code_.back().get();
 }
 
-void BasicBlock::merge_back(BasicBlock* bb) {
+void BasicBlock::merge_back(const BasicBlock* bb) {
   assert(getTerminator() == nullptr);
 
-  for (Instr* i : bb->code_) {
-    push_back(i->clone());
+  for (const std::unique_ptr<Instr>& instr : bb->code_) {
+    push_back(instr->clone());
   }
 }
 
-void BasicBlock::moveAfter(BasicBlock* otherBB) {
-  assert(getHandler() == otherBB->getHandler());
-
-  IRHandler* handler = getHandler();
-  auto& list = handler->basicBlocks();
-
-  list.remove(otherBB);
-
-  auto i = std::find(list.begin(), list.end(), this);
-  ++i;
-  list.insert(i, otherBB);
+void BasicBlock::moveAfter(const BasicBlock* otherBB) {
+  handler_->moveAfter(this, otherBB);
 }
 
-void BasicBlock::moveBefore(BasicBlock* otherBB) {
-  assert(getHandler() == otherBB->getHandler());
-
-  IRHandler* handler = getHandler();
-  auto& list = handler->basicBlocks();
-
-  list.remove(otherBB);
-
-  auto i = std::find(list.begin(), list.end(), this);
-  list.insert(i, otherBB);
+void BasicBlock::moveBefore(const BasicBlock* otherBB) {
+  handler_->moveBefore(this, otherBB);
 }
 
 bool BasicBlock::isAfter(const BasicBlock* otherBB) const {
-  assert(getHandler() == otherBB->getHandler());
-
-  const auto& list = getHandler()->basicBlocks();
-  auto i = std::find(list.cbegin(), list.cend(), this);
-
-  if (i == list.cend()) return false;
-
-  ++i;
-
-  if (i == list.cend()) return false;
-
-  return *i == otherBB;
+  return handler_->isAfter(this, otherBB);
 }
 
 void BasicBlock::dump() {
   int n = printf("%%%s:", name().c_str());
-  if (!predecessors().empty()) {
+  if (!predecessors_.empty()) {
     printf("%*c; [preds: ", 20 - n, ' ');
-    for (size_t i = 0, e = predecessors().size(); i != e; ++i) {
+    for (size_t i = 0, e = predecessors_.size(); i != e; ++i) {
       if (i) printf(", ");
-      printf("%%%s", predecessors()[i]->name().c_str());
+      printf("%%%s", predecessors_[i]->name().c_str());
     }
     printf("]");
   }
   printf("\n");
 
-  if (!successors().empty()) {
+  if (!successors_.empty()) {
     printf("%20c; [succs: ", ' ');
-    for (size_t i = 0, e = successors().size(); i != e; ++i) {
+    for (size_t i = 0, e = successors_.size(); i != e; ++i) {
       if (i) printf(", ");
-      printf("%%%s", successors()[i]->name().c_str());
+      printf("%%%s", successors_[i]->name().c_str());
     }
     printf("]\n");
   }
@@ -190,8 +176,8 @@ void BasicBlock::dump() {
 void BasicBlock::linkSuccessor(BasicBlock* successor) {
   assert(successor != nullptr);
 
-  successors().push_back(successor);
-  successor->predecessors().push_back(this);
+  successors_.push_back(successor);
+  successor->predecessors_.push_back(this);
 }
 
 void BasicBlock::unlinkSuccessor(BasicBlock* successor) {
@@ -221,34 +207,26 @@ std::vector<BasicBlock*> BasicBlock::immediateDominators() {
 }
 
 void BasicBlock::collectIDom(std::vector<BasicBlock*>& output) {
-  for (BasicBlock* p : predecessors()) {
+  for (BasicBlock* p : predecessors_) {
     p->collectIDom(output);
   }
 }
 
 void BasicBlock::verify() {
-  return;
-
   if (code_.size() < 1) {
-    fprintf(stderr,
-            "BasicBlock.verify: Must contain at least one instruction.");
-    abort();
+    logFatal("BasicBlock.verify: Must contain at least one instruction.");
   }
 
   for (size_t i = 0, e = code_.size() - 1; i != e; ++i) {
-    if (dynamic_cast<TerminateInstr*>(code_[i]) != nullptr) {
-      fprintf(stderr,
-              "BasicBlock.verify: Found a terminate instruction in the middle "
-              "of the block.");
-      abort();
+    if (dynamic_cast<TerminateInstr*>(code_[i].get()) != nullptr) {
+      logFatal("BasicBlock.verify: Found a terminate instruction in the middle "
+               "of the block.");
     }
   }
 
   if (getTerminator() == nullptr) {
-    fprintf(stderr,
-            "BasicBlock.verify: Last instruction must be a terminator "
-            "instruction.");
-    abort();
+    logFatal("BasicBlock.verify: Last instruction must be a terminator "
+             "instruction.");
   }
 }
 

@@ -257,11 +257,11 @@ void XzeroDaemon::patchProgramIR(xzero::flow::IRProgram* programIR,
       // check if last instruction *always* finishes the handler
       if (auto handler = dynamic_cast<HandlerCallInstr*>(bb->back(1))) {
         if (handler->callee() == returnFn) { // return(II)B
-          delete bb->remove(br);
+          bb->remove(br);
         }
       }
     } else if (auto ret = dynamic_cast<RetInstr*>(bb->getTerminator())) {
-      delete bb->remove(ret);
+      bb->remove(ret);
 
       // check if last instruction *always* finishes the handler
       if (auto handler = dynamic_cast<HandlerCallInstr*>(bb->back())) {

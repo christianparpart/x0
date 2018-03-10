@@ -20,7 +20,7 @@ namespace xzero::flow {
 using namespace vm;
 
 Instr::Instr(const Instr& v)
-    : Value(v), parent_(nullptr), operands_(v.operands_) {
+    : Value(v), basicBlock_(nullptr), operands_(v.operands_) {
   for (Value* op : operands_) {
     if (op) {
       op->addUse(this);
@@ -30,7 +30,7 @@ Instr::Instr(const Instr& v)
 
 Instr::Instr(FlowType ty, const std::vector<Value*>& ops,
              const std::string& name)
-    : Value(ty, name), parent_(nullptr), operands_(ops) {
+    : Value(ty, name), basicBlock_(nullptr), operands_(ops) {
   for (Value* op : operands_) {
     if (op) {
       op->addUse(this);
@@ -108,9 +108,9 @@ void Instr::clearOperands() {
   operands_.clear();
 }
 
-void Instr::replace(Instr* newInstr) {
-  if (parent_) {
-    parent_->replace(this, newInstr);
+void Instr::replace(std::unique_ptr<Instr> newInstr) {
+  if (basicBlock_) {
+    basicBlock_->replace(this, std::move(newInstr));
   }
 }
 

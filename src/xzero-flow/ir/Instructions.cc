@@ -92,7 +92,9 @@ const char* cstr(BinaryOperator op)  // {{{
 // {{{ NopInstr
 void NopInstr::dump() { dumpOne("NOP"); }
 
-Instr* NopInstr::clone() { return new NopInstr(); }
+std::unique_ptr<Instr> NopInstr::clone() {
+  return std::make_unique<NopInstr>();
+}
 
 void NopInstr::accept(InstructionVisitor& v) { v.visit(*this); }
 // }}}
@@ -101,8 +103,8 @@ void CastInstr::dump() {
   dumpOne((std::string("cast ") + tos(type()).c_str()).c_str());
 }
 
-Instr* CastInstr::clone() {
-  return new CastInstr(type(), source(), name());
+std::unique_ptr<Instr> CastInstr::clone() {
+  return std::make_unique<CastInstr>(type(), source(), name());
 }
 
 void CastInstr::accept(InstructionVisitor& v) {
@@ -116,8 +118,8 @@ CondBrInstr::CondBrInstr(Value* cond, BasicBlock* trueBlock,
 
 void CondBrInstr::dump() { dumpOne("condbr"); }
 
-Instr* CondBrInstr::clone() {
-  return new CondBrInstr(condition(), trueBlock(), falseBlock());
+std::unique_ptr<Instr> CondBrInstr::clone() {
+  return std::make_unique<CondBrInstr>(condition(), trueBlock(), falseBlock());
 }
 
 void CondBrInstr::accept(InstructionVisitor& visitor) { visitor.visit(*this); }
@@ -127,7 +129,9 @@ BrInstr::BrInstr(BasicBlock* targetBlock) : TerminateInstr({targetBlock}) {}
 
 void BrInstr::dump() { dumpOne("br"); }
 
-Instr* BrInstr::clone() { return new BrInstr(targetBlock()); }
+std::unique_ptr<Instr> BrInstr::clone() {
+  return std::make_unique<BrInstr>(targetBlock());
+}
 
 void BrInstr::accept(InstructionVisitor& visitor) { visitor.visit(*this); }
 // }}}
@@ -165,7 +169,9 @@ void MatchInstr::dump() {
 
 MatchInstr::MatchInstr(const MatchInstr& v) : TerminateInstr(v), op_(v.op()) {}
 
-Instr* MatchInstr::clone() { return new MatchInstr(*this); }
+std::unique_ptr<Instr> MatchInstr::clone() {
+  return std::make_unique<MatchInstr>(*this);
+}
 
 std::vector<std::pair<Constant*, BasicBlock*>> MatchInstr::cases() const {
   std::vector<std::pair<Constant*, BasicBlock*>> out;
@@ -189,7 +195,9 @@ RetInstr::RetInstr(Value* result) : TerminateInstr({result}) {}
 
 void RetInstr::dump() { dumpOne("ret"); }
 
-Instr* RetInstr::clone() { return new RetInstr(operand(0)); }
+std::unique_ptr<Instr> RetInstr::clone() {
+  return std::make_unique<RetInstr>(operand(0));
+}
 
 void RetInstr::accept(InstructionVisitor& visitor) { visitor.visit(*this); }
 // }}}
@@ -204,7 +212,9 @@ CallInstr::CallInstr(IRBuiltinFunction* callee, const std::vector<Value*>& args,
 
 void CallInstr::dump() { dumpOne("call"); }
 
-Instr* CallInstr::clone() { return new CallInstr(operands(), name()); }
+std::unique_ptr<Instr> CallInstr::clone() {
+  return std::make_unique<CallInstr>(operands(), name());
+}
 
 void CallInstr::accept(InstructionVisitor& visitor) { visitor.visit(*this); }
 // }}}
@@ -221,7 +231,9 @@ HandlerCallInstr::HandlerCallInstr(IRBuiltinHandler* callee,
 
 void HandlerCallInstr::dump() { dumpOne("handler"); }
 
-Instr* HandlerCallInstr::clone() { return new HandlerCallInstr(operands()); }
+std::unique_ptr<Instr> HandlerCallInstr::clone() {
+  return std::make_unique<HandlerCallInstr>(operands());
+}
 
 void HandlerCallInstr::accept(InstructionVisitor& visitor) {
   visitor.visit(*this);
@@ -233,7 +245,9 @@ PhiNode::PhiNode(const std::vector<Value*>& ops, const std::string& name)
 
 void PhiNode::dump() { dumpOne("phi"); }
 
-Instr* PhiNode::clone() { return new PhiNode(operands(), name()); }
+std::unique_ptr<Instr> PhiNode::clone() {
+  return std::make_unique<PhiNode>(operands(), name());
+}
 
 void PhiNode::accept(InstructionVisitor& visitor) { visitor.visit(*this); }
 // }}}
@@ -246,18 +260,20 @@ void LoadInstr::accept(InstructionVisitor& visitor) { visitor.visit(*this); }
 
 void AllocaInstr::dump() { dumpOne("alloca"); }
 
-Instr* AllocaInstr::clone() {
-  return new AllocaInstr(type(), operand(0), name());
+std::unique_ptr<Instr> AllocaInstr::clone() {
+  return std::make_unique<AllocaInstr>(type(), operand(0), name());
 }
 
 void LoadInstr::dump() { dumpOne("load"); }
 
-Instr* LoadInstr::clone() { return new LoadInstr(variable(), name()); }
+std::unique_ptr<Instr> LoadInstr::clone() {
+  return std::make_unique<LoadInstr>(variable(), name());
+}
 
 void StoreInstr::dump() { dumpOne("store"); }
 
-Instr* StoreInstr::clone() {
-  return new StoreInstr(variable(), index(), source(), name());
+std::unique_ptr<Instr> StoreInstr::clone() {
+  return std::make_unique<StoreInstr>(variable(), index(), source(), name());
 }
 // }}}
 

@@ -18,9 +18,11 @@ bool UnusedBlockPass::run(IRHandler* handler) {
   std::list<BasicBlock*> unused;
 
   for (BasicBlock* bb : handler->basicBlocks()) {
-    if (bb == handler->getEntryBlock()) continue;
+    if (bb == handler->getEntryBlock())
+      continue;
 
-    if (!bb->predecessors().empty()) continue;
+    if (!bb->predecessors().empty())
+      continue;
 
     unused.push_back(bb);
   }

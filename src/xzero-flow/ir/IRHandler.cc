@@ -8,6 +8,7 @@
 #include <xzero-flow/ir/IRHandler.h>
 #include <xzero-flow/ir/BasicBlock.h>
 #include <xzero-flow/ir/Instructions.h>
+#include <xzero/logging.h>
 #include <algorithm>
 #include <assert.h>
 
@@ -15,11 +16,12 @@ namespace xzero::flow {
 
 using namespace vm;
 
-IRHandler::IRHandler(const std::string& name)
-    : Constant(FlowType::Handler, name), parent_(nullptr), blocks_() {}
+IRHandler::IRHandler(const std::string& name, IRProgram* program)
+    : Constant(FlowType::Handler, name), program_(program), blocks_() {
+}
 
 IRHandler::~IRHandler() {
-  for (BasicBlock* bb : blocks_) {
+  for (BasicBlock* bb : basicBlocks()) {
     for (Instr* instr : bb->instructions()) {
       instr->clearOperands();
     }
@@ -30,13 +32,10 @@ IRHandler::~IRHandler() {
     auto e = blocks_.end();
 
     while (i != e) {
-      BasicBlock* bb = *i;
+      BasicBlock* bb = i->get();
 
       if (bb->predecessors().empty()) {
-        delete bb;
-        auto k = i;
-        ++i;
-        blocks_.erase(k);
+        i = blocks_.erase(i);
       } else {
         // skip BBs that other BBs still point to (we never point to ourself).
         ++i;
@@ -45,42 +44,93 @@ IRHandler::~IRHandler() {
   }
 }
 
+BasicBlock* IRHandler::createBlock(const std::string& name) {
+  blocks_.emplace_back(std::make_unique<BasicBlock>(name, this));
+  return blocks_.back().get();
+}
+
 void IRHandler::setEntryBlock(BasicBlock* bb) {
-  assert(bb->getHandler() == nullptr || bb->getHandler() == this);
+  XZERO_ASSERT(bb->getHandler(), "BasicBlock must belong to this handler.");
 
-  if (bb->getHandler() == this) {
-    auto i = std::find(blocks_.begin(), blocks_.end(), bb);
-    assert(i != blocks_.end());
-    blocks_.erase(i);
-  }
-
-  blocks_.push_front(bb);
+  auto i = std::find_if(blocks_.begin(), blocks_.end(),
+                        [&](const auto& obj) { return obj.get() == bb; });
+  XZERO_ASSERT(i != blocks_.end(), "BasicBlock must belong to this handler.");
+  std::unique_ptr<BasicBlock> t = std::move(*i);
+  blocks_.erase(i);
+  blocks_.push_front(std::move(t));
 }
 
 void IRHandler::dump() {
   printf(".handler %s %*c; entryPoint = %%%s\n", name().c_str(),
          10 - (int)name().size(), ' ', getEntryBlock()->name().c_str());
 
-  for (BasicBlock* bb : blocks_) bb->dump();
+  for (auto& bb : blocks_)
+    bb->dump();
 
   printf("\n");
 }
 
-void IRHandler::erase(BasicBlock* bb) {
-  auto i = std::find(blocks_.begin(), blocks_.end(), bb);
-  assert(i != blocks_.end() &&
-         "Given basic block must be a member of this handler to be removed.");
+bool IRHandler::isAfter(const BasicBlock* bb, const BasicBlock* afterThat) const {
+  assert(bb->getHandler() == this);
+  assert(afterThat->getHandler() == this);
+
+  auto i = std::find_if(blocks_.cbegin(), blocks_.cend(),
+                       [&](const auto& obj) { return obj.get() == bb; });
+
+  if (i == blocks_.cend())
+    return false;
+
+  ++i;
+
+  if (i == blocks_.cend())
+    return false;
+
+  return i->get() == afterThat;
+}
+
+void IRHandler::moveAfter(const BasicBlock* moveable, const BasicBlock* after) {
+  assert(moveable->getHandler() == this && after->getHandler() == this);
+
+  auto i = std::find_if(blocks_.begin(), blocks_.end(),
+                       [&](const auto& obj) { return obj.get() == moveable; });
+  std::unique_ptr<BasicBlock> m = std::move(*i);
   blocks_.erase(i);
 
+  i = std::find_if(blocks_.begin(), blocks_.end(),
+                   [&](const auto& obj) { return obj.get() == after; });
+  ++i;
+  blocks_.insert(i, std::move(m));
+}
+
+void IRHandler::moveBefore(const BasicBlock* moveable, const BasicBlock* before) {
+  assert(moveable->getHandler() == this && before->getHandler() == this);
+
+  auto i = std::find_if(blocks_.begin(), blocks_.end(),
+                        [&](const auto& obj) { return obj.get() == moveable; });
+  std::unique_ptr<BasicBlock> m = std::move(*i);
+  blocks_.erase(i);
+
+  i = std::find_if(blocks_.begin(), blocks_.end(),
+                   [&](const auto& obj) { return obj.get() == before; });
+  ++i;
+  blocks_.insert(i, std::move(m));
+}
+
+void IRHandler::erase(const BasicBlock* bb) {
+  auto i = std::find_if(blocks_.begin(), blocks_.end(),
+                        [&](const auto& obj) { return obj.get() == bb; });
+  XZERO_ASSERT(i != blocks_.end(),
+         "Given basic block must be a member of this handler to be removed.");
+
   if (TerminateInstr* terminator = bb->getTerminator()) {
-    delete bb->remove(terminator);
+    (*i)->remove(terminator);
   }
 
-  delete bb;
+  blocks_.erase(i);
 }
 
 void IRHandler::verify() {
-  for (BasicBlock* bb : blocks_) {
+  for (std::unique_ptr<BasicBlock>& bb : blocks_) {
     bb->verify();
   }
 }

@@ -53,8 +53,8 @@ class Instr : public Value {
   /**
    * Retrieves parent basic block this instruction is part of.
    */
-  XZERO_DEPRECATED BasicBlock* parent() const { return parent_; }
-  BasicBlock* getBasicBlock() const { return parent_; }
+  XZERO_DEPRECATED BasicBlock* parent() const { return basicBlock_; }
+  BasicBlock* getBasicBlock() const { return basicBlock_; }
 
   /**
    * Read-only access to operands.
@@ -100,14 +100,14 @@ class Instr : public Value {
   /**
    * Replaces this instruction with the given @p newInstr.
    */
-  void replace(Instr* newInstr);
+  void replace(std::unique_ptr<Instr> newInstr);
 
   /**
    * Clones given instruction.
    *
    * This will not clone any of its operands but reference them.
    */
-  virtual Instr* clone() = 0;
+  virtual std::unique_ptr<Instr> clone() = 0;
 
   /**
    * Generic extension interface.
@@ -121,12 +121,12 @@ class Instr : public Value {
  protected:
   void dumpOne(const char* mnemonic);
 
-  void setParent(BasicBlock* bb) { parent_ = bb; }
+  void setParent(BasicBlock* bb) { basicBlock_ = bb; }
 
   friend class BasicBlock;
 
  private:
-  BasicBlock* parent_;
+  BasicBlock* basicBlock_;
   std::vector<Value*> operands_;
 };
 

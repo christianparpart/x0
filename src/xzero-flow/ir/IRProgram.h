@@ -15,6 +15,7 @@
 #include <xzero-flow/ir/Instructions.h>
 #include <xzero-flow/ir/IRHandler.h>
 #include <xzero-flow/vm/Signature.h>
+#include <xzero/util/UnboxedRange.h>
 #include <xzero/net/IPAddress.h>
 #include <xzero/net/Cidr.h>
 #include <xzero/RegExp.h>
@@ -35,7 +36,7 @@ class IRProgram {
   void dump();
 
   ConstantBoolean* getBoolean(bool literal) {
-    return literal ? trueLiteral_ : falseLiteral_;
+    return literal ? &trueLiteral_ : &falseLiteral_;
   }
   ConstantInt* get(int64_t literal) {
     return get<ConstantInt>(numbers_, literal);
@@ -66,8 +67,8 @@ class IRProgram {
     return get<IRBuiltinFunction>(builtinFunctions_, sig);
   }
 
-  template <typename T, typename U>
-  T* get(std::vector<T*>& table, const U& literal);
+  template <typename T, typename U> T* get(std::vector<T>& table, const U& literal);
+  template <typename T, typename U> T* get(std::vector<std::unique_ptr<T>>& table, const U& literal);
 
   void addImport(const std::string& name, const std::string& path) {
     modules_.push_back(std::make_pair(name, path));
@@ -80,15 +81,18 @@ class IRProgram {
   const std::vector<std::pair<std::string, std::string>>& modules() const {
     return modules_;
   }
-  const std::vector<IRHandler*>& handlers() const { return handlers_; }
+
+  auto handlers() { return unbox(handlers_); }
 
   IRHandler* findHandler(const std::string& name) {
-    for (IRHandler* handler: handlers_)
+    for (IRHandler* handler: handlers())
       if (handler->name() == name)
         return handler;
 
     return nullptr;
   }
+
+  IRHandler* createHandler(const std::string& name);
 
   /**
    * Performs given transformation on all handlers by given type.
@@ -106,17 +110,17 @@ class IRProgram {
 
  private:
   std::vector<std::pair<std::string, std::string>> modules_;
-  std::vector<ConstantArray*> constantArrays_;
-  std::vector<ConstantInt*> numbers_;
-  std::vector<ConstantString*> strings_;
-  std::vector<ConstantIP*> ipaddrs_;
-  std::vector<ConstantCidr*> cidrs_;
-  std::vector<ConstantRegExp*> regexps_;
-  std::vector<IRBuiltinFunction*> builtinFunctions_;
-  std::vector<IRBuiltinHandler*> builtinHandlers_;
-  std::vector<IRHandler*> handlers_;
-  ConstantBoolean* trueLiteral_;
-  ConstantBoolean* falseLiteral_;
+  ConstantBoolean trueLiteral_;
+  ConstantBoolean falseLiteral_;
+  std::vector<ConstantArray> constantArrays_;
+  std::vector<std::unique_ptr<ConstantInt>> numbers_;
+  std::vector<std::unique_ptr<ConstantString>> strings_;
+  std::vector<std::unique_ptr<ConstantIP>> ipaddrs_;
+  std::vector<std::unique_ptr<ConstantCidr>> cidrs_;
+  std::vector<std::unique_ptr<ConstantRegExp>> regexps_;
+  std::vector<std::unique_ptr<IRBuiltinFunction>> builtinFunctions_;
+  std::vector<std::unique_ptr<IRBuiltinHandler>> builtinHandlers_;
+  std::vector<std::unique_ptr<IRHandler>> handlers_;
 
   friend class IRBuilder;
 };

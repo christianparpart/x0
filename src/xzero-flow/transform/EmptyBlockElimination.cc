@@ -14,10 +14,11 @@
 namespace xzero::flow {
 
 bool EmptyBlockElimination::run(IRHandler* handler) {
-  std::list<BasicBlock*> eliminated;
+  std::list<const BasicBlock*> eliminated;
 
   for (BasicBlock* bb : handler->basicBlocks()) {
-    if (bb->instructions().size() != 1) continue;
+    if (bb->size() != 1)
+      continue;
 
     if (BrInstr* br = dynamic_cast<BrInstr*>(bb->getTerminator())) {
       BasicBlock* newSuccessor = br->targetBlock();
@@ -33,7 +34,7 @@ bool EmptyBlockElimination::run(IRHandler* handler) {
     }
   }
 
-  for (BasicBlock* bb : eliminated) {
+  for (const BasicBlock* bb : eliminated) {
     bb->getHandler()->erase(bb);
   }
 

@@ -59,7 +59,12 @@ class IRBuilder {
   void setInsertPoint(BasicBlock* bb);
   BasicBlock* getInsertPoint() const { return insertPoint_; }
 
-  Instr* insert(Instr* instr);
+  Instr* insert(std::unique_ptr<Instr> instr);
+
+  template<typename T, typename... Args>
+  Instr* insert(Args&&... args) {
+    return insert(std::make_unique<T>(std::move(args)...));
+  }
 
   IRHandler* getHandler(const std::string& name);
 

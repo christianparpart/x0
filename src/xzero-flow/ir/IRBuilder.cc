@@ -70,14 +70,8 @@ IRHandler* IRBuilder::setHandler(IRHandler* hn) {
 
 BasicBlock* IRBuilder::createBlock(const std::string& name) {
   std::string n = makeName(name);
-
   TRACE(1, "createBlock() $0", n);
-  BasicBlock* bb = new BasicBlock(n);
-
-  bb->setParent(handler_);
-  handler_->blocks_.push_back(bb);
-
-  return bb;
+  return handler_->createBlock(name);
 }
 
 void IRBuilder::setInsertPoint(BasicBlock* bb) {
@@ -88,29 +82,20 @@ void IRBuilder::setInsertPoint(BasicBlock* bb) {
   TRACE(1, "setInsertPoint() $0", bb->name());
 
   insertPoint_ = bb;
-  bb->parent_ = handler_;
 }
 
-Instr* IRBuilder::insert(Instr* instr) {
+Instr* IRBuilder::insert(std::unique_ptr<Instr> instr) {
   assert(getInsertPoint() != nullptr);
 
-  getInsertPoint()->push_back(instr);
-
-  return instr;
+  return getInsertPoint()->push_back(std::move(instr));
 }
 // }}}
 // {{{ handler pool
 IRHandler* IRBuilder::getHandler(const std::string& name) {
-  for (auto& item : program_->handlers_) {
-    if (item->name() == name) return item;
-  }
+  if (IRHandler* h = program_->findHandler(name); h != nullptr)
+    return h;
 
-  IRHandler* h = new IRHandler(name);
-
-  h->setParent(program_);
-  program_->handlers_.push_back(h);
-
-  return h;
+  return program_->createHandler(name);
 }
 // }}}
 // {{{ value management
@@ -120,7 +105,7 @@ IRHandler* IRBuilder::getHandler(const std::string& name) {
 AllocaInstr* IRBuilder::createAlloca(FlowType ty, Value* arraySize,
                                      const std::string& name) {
   return static_cast<AllocaInstr*>(
-      insert(new AllocaInstr(ty, arraySize, makeName(name))));
+      insert<AllocaInstr>(ty, arraySize, makeName(name)));
 }
 
 /**
@@ -131,7 +116,7 @@ Value* IRBuilder::createLoad(Value* value, const std::string& name) {
     return value;
 
   // if (dynamic_cast<Variable*>(value))
-  return insert(new LoadInstr(value, makeName(name)));
+  return insert<LoadInstr>(value, makeName(name));
 
   assert(!"Value must be of type Constant or Variable.");
   return nullptr;
@@ -151,12 +136,12 @@ Instr* IRBuilder::createStore(Value* lhs, ConstantInt* index, Value* rhs,
   // assert(lhs->type() == rhs->type() && "Type of lhs and rhs must be equal.");
   // assert(dynamic_cast<IRVariable*>(lhs) && "lhs must be of type Variable.");
 
-  return insert(new StoreInstr(lhs, index, rhs, makeName(name)));
+  return insert<StoreInstr>(lhs, index, rhs, makeName(name));
 }
 
 Instr* IRBuilder::createPhi(const std::vector<Value*>& incomings,
                             const std::string& name) {
-  return insert(new PhiNode(incomings, makeName(name)));
+  return insert<PhiNode>(incomings, makeName(name));
 }
 // }}}
 // {{{ boolean ops
@@ -166,7 +151,7 @@ Value* IRBuilder::createBNot(Value* rhs, const std::string& name) {
   if (auto a = dynamic_cast<ConstantBoolean*>(rhs))
     return getBoolean(!a->get());
 
-  return insert(new BNotInstr(rhs, makeName(name)));
+  return insert<BNotInstr>(rhs, makeName(name));
 }
 
 Value* IRBuilder::createBAnd(Value* lhs, Value* rhs, const std::string& name) {
@@ -176,7 +161,7 @@ Value* IRBuilder::createBAnd(Value* lhs, Value* rhs, const std::string& name) {
     if (auto b = dynamic_cast<ConstantBoolean*>(rhs))
       return getBoolean(a->get() && b->get());
 
-  return insert(new BAndInstr(lhs, rhs, makeName(name)));
+  return insert<BAndInstr>(lhs, rhs, makeName(name));
 }
 
 Value* IRBuilder::createBXor(Value* lhs, Value* rhs, const std::string& name) {
@@ -186,7 +171,7 @@ Value* IRBuilder::createBXor(Value* lhs, Value* rhs, const std::string& name) {
     if (auto b = dynamic_cast<ConstantBoolean*>(rhs))
       return getBoolean(a->get() ^ b->get());
 
-  return insert(new BAndInstr(lhs, rhs, makeName(name)));
+  return insert<BAndInstr>(lhs, rhs, makeName(name));
 }
 // }}}
 // {{{ numerical ops
@@ -196,7 +181,7 @@ Value* IRBuilder::createNeg(Value* rhs, const std::string& name) {
   if (auto a = dynamic_cast<ConstantInt*>(rhs))
     return get(-a->get());
 
-  return insert(new INegInstr(rhs, makeName(name)));
+  return insert<INegInstr>(rhs, makeName(name));
 }
 
 Value* IRBuilder::createNot(Value* rhs, const std::string& name) {
@@ -205,7 +190,7 @@ Value* IRBuilder::createNot(Value* rhs, const std::string& name) {
   if (auto a = dynamic_cast<ConstantInt*>(rhs))
     return get(~a->get());
 
-  return insert(new INotInstr(rhs, makeName(name)));
+  return insert<INotInstr>(rhs, makeName(name));
 }
 
 Value* IRBuilder::createAdd(Value* lhs, Value* rhs, const std::string& name) {
@@ -216,7 +201,7 @@ Value* IRBuilder::createAdd(Value* lhs, Value* rhs, const std::string& name) {
     if (auto b = dynamic_cast<ConstantInt*>(rhs))
       return get(a->get() + b->get());
 
-  return insert(new IAddInstr(lhs, rhs, makeName(name)));
+  return insert<IAddInstr>(lhs, rhs, makeName(name));
 }
 
 Value* IRBuilder::createSub(Value* lhs, Value* rhs, const std::string& name) {
@@ -227,7 +212,7 @@ Value* IRBuilder::createSub(Value* lhs, Value* rhs, const std::string& name) {
     if (auto b = dynamic_cast<ConstantInt*>(rhs))
       return get(a->get() - b->get());
 
-  return insert(new ISubInstr(lhs, rhs, makeName(name)));
+  return insert<ISubInstr>(lhs, rhs, makeName(name));
 }
 
 Value* IRBuilder::createMul(Value* lhs, Value* rhs, const std::string& name) {
@@ -238,7 +223,7 @@ Value* IRBuilder::createMul(Value* lhs, Value* rhs, const std::string& name) {
     if (auto b = dynamic_cast<ConstantInt*>(rhs))
       return get(a->get() * b->get());
 
-  return insert(new IMulInstr(lhs, rhs, makeName(name)));
+  return insert<IMulInstr>(lhs, rhs, makeName(name));
 }
 
 Value* IRBuilder::createDiv(Value* lhs, Value* rhs, const std::string& name) {
@@ -249,7 +234,7 @@ Value* IRBuilder::createDiv(Value* lhs, Value* rhs, const std::string& name) {
     if (auto b = dynamic_cast<ConstantInt*>(rhs))
       return get(a->get() / b->get());
 
-  return insert(new IDivInstr(lhs, rhs, makeName(name)));
+  return insert<IDivInstr>(lhs, rhs, makeName(name));
 }
 
 Value* IRBuilder::createRem(Value* lhs, Value* rhs, const std::string& name) {
@@ -260,7 +245,7 @@ Value* IRBuilder::createRem(Value* lhs, Value* rhs, const std::string& name) {
     if (auto b = dynamic_cast<ConstantInt*>(rhs))
       return get(a->get() % b->get());
 
-  return insert(new IRemInstr(lhs, rhs, makeName(name)));
+  return insert<IRemInstr>(lhs, rhs, makeName(name));
 }
 
 Value* IRBuilder::createShl(Value* lhs, Value* rhs, const std::string& name) {
@@ -271,7 +256,7 @@ Value* IRBuilder::createShl(Value* lhs, Value* rhs, const std::string& name) {
     if (auto b = dynamic_cast<ConstantInt*>(rhs))
       return get(a->get() << b->get());
 
-  return insert(new IShlInstr(lhs, rhs, makeName(name)));
+  return insert<IShlInstr>(lhs, rhs, makeName(name));
 }
 
 Value* IRBuilder::createShr(Value* lhs, Value* rhs, const std::string& name) {
@@ -282,7 +267,7 @@ Value* IRBuilder::createShr(Value* lhs, Value* rhs, const std::string& name) {
     if (auto b = dynamic_cast<ConstantInt*>(rhs))
       return get(a->get() >> b->get());
 
-  return insert(new IShrInstr(lhs, rhs, makeName(name)));
+  return insert<IShrInstr>(lhs, rhs, makeName(name));
 }
 
 Value* IRBuilder::createPow(Value* lhs, Value* rhs, const std::string& name) {
@@ -293,7 +278,7 @@ Value* IRBuilder::createPow(Value* lhs, Value* rhs, const std::string& name) {
     if (auto b = dynamic_cast<ConstantInt*>(rhs))
       return get(powl(a->get(), b->get()));
 
-  return insert(new IPowInstr(lhs, rhs, makeName(name)));
+  return insert<IPowInstr>(lhs, rhs, makeName(name));
 }
 
 Value* IRBuilder::createAnd(Value* lhs, Value* rhs, const std::string& name) {
@@ -304,7 +289,7 @@ Value* IRBuilder::createAnd(Value* lhs, Value* rhs, const std::string& name) {
     if (auto b = dynamic_cast<ConstantInt*>(rhs))
       return get(a->get() & b->get());
 
-  return insert(new IAndInstr(lhs, rhs, makeName(name)));
+  return insert<IAndInstr>(lhs, rhs, makeName(name));
 }
 
 Value* IRBuilder::createOr(Value* lhs, Value* rhs, const std::string& name) {
@@ -315,7 +300,7 @@ Value* IRBuilder::createOr(Value* lhs, Value* rhs, const std::string& name) {
     if (auto b = dynamic_cast<ConstantInt*>(rhs))
       return get(a->get() | b->get());
 
-  return insert(new IOrInstr(lhs, rhs, makeName(name)));
+  return insert<IOrInstr>(lhs, rhs, makeName(name));
 }
 
 Value* IRBuilder::createXor(Value* lhs, Value* rhs, const std::string& name) {
@@ -326,7 +311,7 @@ Value* IRBuilder::createXor(Value* lhs, Value* rhs, const std::string& name) {
     if (auto b = dynamic_cast<ConstantInt*>(rhs))
       return get(a->get() ^ b->get());
 
-  return insert(new IXorInstr(lhs, rhs, makeName(name)));
+  return insert<IXorInstr>(lhs, rhs, makeName(name));
 }
 
 Value* IRBuilder::createNCmpEQ(Value* lhs, Value* rhs,
@@ -338,7 +323,7 @@ Value* IRBuilder::createNCmpEQ(Value* lhs, Value* rhs,
     if (auto b = dynamic_cast<ConstantInt*>(rhs))
       return getBoolean(a->get() == b->get());
 
-  return insert(new ICmpEQInstr(lhs, rhs, makeName(name)));
+  return insert<ICmpEQInstr>(lhs, rhs, makeName(name));
 }
 
 Value* IRBuilder::createNCmpNE(Value* lhs, Value* rhs,
@@ -350,7 +335,7 @@ Value* IRBuilder::createNCmpNE(Value* lhs, Value* rhs,
     if (auto b = dynamic_cast<ConstantInt*>(rhs))
       return getBoolean(a->get() != b->get());
 
-  return insert(new ICmpNEInstr(lhs, rhs, makeName(name)));
+  return insert<ICmpNEInstr>(lhs, rhs, makeName(name));
 }
 
 Value* IRBuilder::createNCmpLE(Value* lhs, Value* rhs,
@@ -362,7 +347,7 @@ Value* IRBuilder::createNCmpLE(Value* lhs, Value* rhs,
     if (auto b = dynamic_cast<ConstantInt*>(rhs))
       return getBoolean(a->get() <= b->get());
 
-  return insert(new ICmpLEInstr(lhs, rhs, makeName(name)));
+  return insert<ICmpLEInstr>(lhs, rhs, makeName(name));
 }
 
 Value* IRBuilder::createNCmpGE(Value* lhs, Value* rhs,
@@ -374,7 +359,7 @@ Value* IRBuilder::createNCmpGE(Value* lhs, Value* rhs,
     if (auto b = dynamic_cast<ConstantInt*>(rhs))
       return getBoolean(a->get() >= b->get());
 
-  return insert(new ICmpGEInstr(lhs, rhs, makeName(name)));
+  return insert<ICmpGEInstr>(lhs, rhs, makeName(name));
 }
 
 Value* IRBuilder::createNCmpLT(Value* lhs, Value* rhs,
@@ -386,7 +371,7 @@ Value* IRBuilder::createNCmpLT(Value* lhs, Value* rhs,
     if (auto b = dynamic_cast<ConstantInt*>(rhs))
       return getBoolean(a->get() < b->get());
 
-  return insert(new ICmpLTInstr(lhs, rhs, makeName(name)));
+  return insert<ICmpLTInstr>(lhs, rhs, makeName(name));
 }
 
 Value* IRBuilder::createNCmpGT(Value* lhs, Value* rhs,
@@ -398,7 +383,7 @@ Value* IRBuilder::createNCmpGT(Value* lhs, Value* rhs,
     if (auto b = dynamic_cast<ConstantInt*>(rhs))
       return getBoolean(a->get() > b->get());
 
-  return insert(new ICmpGTInstr(lhs, rhs, makeName(name)));
+  return insert<ICmpGTInstr>(lhs, rhs, makeName(name));
 }
 // }}}
 // {{{ string ops
@@ -420,7 +405,7 @@ Value* IRBuilder::createSAdd(Value* lhs, Value* rhs, const std::string& name) {
     }
   }
 
-  return insert(new SAddInstr(lhs, rhs, makeName(name)));
+  return insert<SAddInstr>(lhs, rhs, makeName(name));
 }
 
 Value* IRBuilder::createSCmpEQ(Value* lhs, Value* rhs,
@@ -432,7 +417,7 @@ Value* IRBuilder::createSCmpEQ(Value* lhs, Value* rhs,
     if (auto b = dynamic_cast<ConstantString*>(rhs))
       return getBoolean(a->get() == b->get());
 
-  return insert(new SCmpEQInstr(lhs, rhs, makeName(name)));
+  return insert<SCmpEQInstr>(lhs, rhs, makeName(name));
 }
 
 Value* IRBuilder::createSCmpNE(Value* lhs, Value* rhs,
@@ -444,7 +429,7 @@ Value* IRBuilder::createSCmpNE(Value* lhs, Value* rhs,
     if (auto b = dynamic_cast<ConstantString*>(rhs))
       return getBoolean(a->get() != b->get());
 
-  return insert(new SCmpNEInstr(lhs, rhs, makeName(name)));
+  return insert<SCmpNEInstr>(lhs, rhs, makeName(name));
 }
 
 Value* IRBuilder::createSCmpLE(Value* lhs, Value* rhs,
@@ -456,7 +441,7 @@ Value* IRBuilder::createSCmpLE(Value* lhs, Value* rhs,
     if (auto b = dynamic_cast<ConstantString*>(rhs))
       return getBoolean(a->get() <= b->get());
 
-  return insert(new SCmpLEInstr(lhs, rhs, makeName(name)));
+  return insert<SCmpLEInstr>(lhs, rhs, makeName(name));
 }
 
 Value* IRBuilder::createSCmpGE(Value* lhs, Value* rhs,
@@ -468,7 +453,7 @@ Value* IRBuilder::createSCmpGE(Value* lhs, Value* rhs,
     if (auto b = dynamic_cast<ConstantString*>(rhs))
       return getBoolean(a->get() >= b->get());
 
-  return insert(new SCmpGEInstr(lhs, rhs, makeName(name)));
+  return insert<SCmpGEInstr>(lhs, rhs, makeName(name));
 }
 
 Value* IRBuilder::createSCmpLT(Value* lhs, Value* rhs,
@@ -480,7 +465,7 @@ Value* IRBuilder::createSCmpLT(Value* lhs, Value* rhs,
     if (auto b = dynamic_cast<ConstantString*>(rhs))
       return getBoolean(a->get() < b->get());
 
-  return insert(new SCmpLTInstr(lhs, rhs, makeName(name)));
+  return insert<SCmpLTInstr>(lhs, rhs, makeName(name));
 }
 
 Value* IRBuilder::createSCmpGT(Value* lhs, Value* rhs,
@@ -492,7 +477,7 @@ Value* IRBuilder::createSCmpGT(Value* lhs, Value* rhs,
     if (auto b = dynamic_cast<ConstantString*>(rhs))
       return getBoolean(a->get() > b->get());
 
-  return insert(new SCmpGTInstr(lhs, rhs, makeName(name)));
+  return insert<SCmpGTInstr>(lhs, rhs, makeName(name));
 }
 
 /**
@@ -506,7 +491,7 @@ Value* IRBuilder::createSCmpRE(Value* lhs, Value* rhs,
   // XXX don't perform constant folding on (string =~ regexp) as this operation
   // yields side affects to: regex.group(I)S
 
-  return insert(new SCmpREInstr(lhs, rhs, makeName(name)));
+  return insert<SCmpREInstr>(lhs, rhs, makeName(name));
 }
 
 /**
@@ -524,7 +509,7 @@ Value* IRBuilder::createSCmpEB(Value* lhs, Value* rhs,
     if (auto b = dynamic_cast<ConstantString*>(rhs))
       return getBoolean(StringUtil::beginsWith(a->get(), b->get()));
 
-  return insert(new SCmpBegInstr(lhs, rhs, makeName(name)));
+  return insert<SCmpBegInstr>(lhs, rhs, makeName(name));
 }
 
 /**
@@ -542,7 +527,7 @@ Value* IRBuilder::createSCmpEE(Value* lhs, Value* rhs,
     if (auto b = dynamic_cast<ConstantString*>(rhs))
       return getBoolean(StringUtil::endsWith(a->get(), b->get()));
 
-  return insert(new SCmpEndInstr(lhs, rhs, makeName(name)));
+  return insert<SCmpEndInstr>(lhs, rhs, makeName(name));
 }
 
 Value* IRBuilder::createSIn(Value* lhs, Value* rhs, const std::string& name) {
@@ -550,14 +535,14 @@ Value* IRBuilder::createSIn(Value* lhs, Value* rhs, const std::string& name) {
     if (auto b = dynamic_cast<ConstantString*>(rhs))
       return getBoolean(BufferRef(b->get()).find(a->get()) != Buffer::npos);
 
-  return insert(new SInInstr(lhs, rhs, makeName(name)));
+  return insert<SInInstr>(lhs, rhs, makeName(name));
 }
 
 Value* IRBuilder::createSLen(Value* value, const std::string& name) {
   if (auto a = dynamic_cast<ConstantString*>(value))
     return get(a->get().size());
 
-  return insert(new SLenInstr(value, makeName(name)));
+  return insert<SLenInstr>(value, makeName(name));
 }
 // }}}
 // {{{ ip ops
@@ -567,7 +552,7 @@ Value* IRBuilder::createPCmpEQ(Value* lhs, Value* rhs,
     if (auto b = dynamic_cast<ConstantIP*>(rhs))
       return getBoolean(a->get() == b->get());
 
-  return insert(new PCmpEQInstr(lhs, rhs, makeName(name)));
+  return insert<PCmpEQInstr>(lhs, rhs, makeName(name));
 }
 
 Value* IRBuilder::createPCmpNE(Value* lhs, Value* rhs,
@@ -576,7 +561,7 @@ Value* IRBuilder::createPCmpNE(Value* lhs, Value* rhs,
     if (auto b = dynamic_cast<ConstantIP*>(rhs))
       return getBoolean(a->get() != b->get());
 
-  return insert(new PCmpNEInstr(lhs, rhs, makeName(name)));
+  return insert<PCmpNEInstr>(lhs, rhs, makeName(name));
 }
 
 Value* IRBuilder::createPInCidr(Value* lhs, Value* rhs,
@@ -585,7 +570,7 @@ Value* IRBuilder::createPInCidr(Value* lhs, Value* rhs,
     if (auto b = dynamic_cast<ConstantCidr*>(rhs))
       return getBoolean(b->get().contains(a->get()));
 
-  return insert(new PInCidrInstr(lhs, rhs, makeName(name)));
+  return insert<PInCidrInstr>(lhs, rhs, makeName(name));
 }
 // }}}
 // {{{ cast ops
@@ -595,7 +580,7 @@ Value* IRBuilder::createB2S(Value* rhs, const std::string& name) {
   if (auto a = dynamic_cast<ConstantBoolean*>(rhs))
     return get(a->get() ? "true" : "false");
 
-  return insert(new CastInstr(FlowType::String, rhs, makeName(name)));
+  return insert<CastInstr>(FlowType::String, rhs, makeName(name));
 }
 
 Value* IRBuilder::createN2S(Value* rhs, const std::string& name) {
@@ -607,7 +592,7 @@ Value* IRBuilder::createN2S(Value* rhs, const std::string& name) {
     return get(buf);
   }
 
-  return insert(new CastInstr(FlowType::String, rhs, makeName(name)));
+  return insert<CastInstr>(FlowType::String, rhs, makeName(name));
 }
 
 Value* IRBuilder::createP2S(Value* rhs, const std::string& name) {
@@ -615,7 +600,7 @@ Value* IRBuilder::createP2S(Value* rhs, const std::string& name) {
 
   if (auto ip = dynamic_cast<ConstantIP*>(rhs)) return get(ip->get().str());
 
-  return insert(new CastInstr(FlowType::String, rhs, makeName(name)));
+  return insert<CastInstr>(FlowType::String, rhs, makeName(name));
 }
 
 Value* IRBuilder::createC2S(Value* rhs, const std::string& name) {
@@ -623,7 +608,7 @@ Value* IRBuilder::createC2S(Value* rhs, const std::string& name) {
 
   if (auto ip = dynamic_cast<ConstantCidr*>(rhs)) return get(ip->get().str());
 
-  return insert(new CastInstr(FlowType::String, rhs, makeName(name)));
+  return insert<CastInstr>(FlowType::String, rhs, makeName(name));
 }
 
 Value* IRBuilder::createR2S(Value* rhs, const std::string& name) {
@@ -632,7 +617,7 @@ Value* IRBuilder::createR2S(Value* rhs, const std::string& name) {
   if (auto ip = dynamic_cast<ConstantRegExp*>(rhs))
     return get(ip->get().pattern());
 
-  return insert(new CastInstr(FlowType::String, rhs, makeName(name)));
+  return insert<CastInstr>(FlowType::String, rhs, makeName(name));
 }
 
 Value* IRBuilder::createS2N(Value* rhs, const std::string& name) {
@@ -646,37 +631,37 @@ Value* IRBuilder::createS2N(Value* rhs, const std::string& name) {
     }
   }
 
-  return insert(new CastInstr(FlowType::Number, rhs, makeName(name)));
+  return insert<CastInstr>(FlowType::Number, rhs, makeName(name));
 }
 // }}}
 // {{{ call creators
 Instr* IRBuilder::createCallFunction(IRBuiltinFunction* callee,
                                      const std::vector<Value*>& args,
                                      const std::string& name) {
-  return insert(new CallInstr(callee, args, makeName(name)));
+  return insert<CallInstr>(callee, args, makeName(name));
 }
 
 Instr* IRBuilder::createInvokeHandler(IRBuiltinHandler* callee,
                                       const std::vector<Value*>& args) {
-  return insert(new HandlerCallInstr(callee, args));
+  return insert<HandlerCallInstr>(callee, args);
 }
 // }}}
 // {{{ exit point creators
 Instr* IRBuilder::createRet(Value* result) {
-  return insert(new RetInstr(result));
+  return insert<RetInstr>(result);
 }
 
 Instr* IRBuilder::createBr(BasicBlock* target) {
-  return insert(new BrInstr(target));
+  return insert<BrInstr>(target);
 }
 
 Instr* IRBuilder::createCondBr(Value* condValue, BasicBlock* trueBlock,
                                BasicBlock* falseBlock) {
-  return insert(new CondBrInstr(condValue, trueBlock, falseBlock));
+  return insert<CondBrInstr>(condValue, trueBlock, falseBlock);
 }
 
 MatchInstr* IRBuilder::createMatch(vm::MatchClass opc, Value* cond) {
-  return static_cast<MatchInstr*>(insert(new MatchInstr(opc, cond)));
+  return static_cast<MatchInstr*>(insert<MatchInstr>(opc, cond));
 }
 
 Value* IRBuilder::createMatchSame(Value* cond) {

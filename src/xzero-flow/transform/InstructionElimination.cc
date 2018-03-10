@@ -39,10 +39,10 @@ bool InstructionElimination::rewriteCondBrToSameBranches(BasicBlock* bb) {
     BasicBlock* nextBB = condbr->trueBlock();
 
     // remove old terminator
-    delete bb->remove(condbr);
+    bb->remove(condbr);
 
     // create new terminator
-    bb->push_back(new BrInstr(nextBB));
+    bb->push_back(std::make_unique<BrInstr>(nextBB));
 
     logTrace("flow: rewrote condbr with true-block == false-block");
     return true;
@@ -70,7 +70,7 @@ bool InstructionElimination::eliminateLinearBr(BasicBlock* bb) {
     BasicBlock* nextBB = br->targetBlock();
 
     // remove old terminator
-    delete bb->remove(br);
+    bb->remove(br);
 
     // merge nextBB
     bb->merge_back(nextBB);
@@ -99,8 +99,7 @@ bool InstructionElimination::foldConstantCondBr(BasicBlock* bb) {
       }
 
       bb->remove(condbr);
-      bb->push_back(new BrInstr(use.first));
-      delete condbr;
+      bb->push_back(std::make_unique<BrInstr>(use.first));
       return true;
     }
   }
@@ -117,14 +116,14 @@ bool InstructionElimination::branchToExit(BasicBlock* bb) {
   if (BrInstr* br = dynamic_cast<BrInstr*>(bb->getTerminator())) {
     BasicBlock* targetBB = br->targetBlock();
 
-    if (targetBB->instructions().size() != 1)
+    if (targetBB->size() != 1)
       return false;
 
     if (bb->isAfter(targetBB))
       return false;
 
     if (RetInstr* ret = dynamic_cast<RetInstr*>(targetBB->getTerminator())) {
-      delete bb->remove(br);
+      bb->remove(br);
       bb->push_back(ret->clone());
 
       logTrace("flow: eliminate branch-to-exit block");
