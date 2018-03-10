@@ -134,7 +134,7 @@ class FlowParser::Scope {
 FlowParser::FlowParser(vm::Runtime* runtime,
                        ImportHandler importHandler,
                        ErrorHandler errorHandler)
-    : lexer_(new FlowLexer()),
+    : lexer_(std::make_unique<FlowLexer>()),
       scopeStack_(nullptr),
       runtime_(runtime),
       errorHandler(errorHandler),
@@ -1127,7 +1127,7 @@ std::unique_ptr<ParamList> FlowParser::paramList() {
   FNTRACE();
 
   if (token() == FlowToken::NamedParam) {
-    std::unique_ptr<ParamList> args(new ParamList(true));
+    std::unique_ptr<ParamList> args = std::make_unique<ParamList>(true);
     std::string name;
     std::unique_ptr<Expr> e = namedExpr(&name);
     if (!e) return nullptr;
@@ -1147,7 +1147,7 @@ std::unique_ptr<ParamList> FlowParser::paramList() {
     return args;
   } else {
     // unnamed param list
-    std::unique_ptr<ParamList> args(new ParamList(false));
+    std::unique_ptr<ParamList> args = std::make_unique<ParamList>(false);
 
     std::unique_ptr<Expr> e = expr();
     if (!e) return nullptr;

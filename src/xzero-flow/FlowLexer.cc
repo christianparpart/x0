@@ -104,7 +104,7 @@ void FlowLexer::openLocalFile(const std::string& filename) {
 }
 
 void FlowLexer::openString(const std::string& content) {
-  std::unique_ptr<std::stringstream> sstr(new std::stringstream());
+  auto sstr = std::make_unique<std::stringstream>();
   (*sstr) << content;
   openStream(std::move(sstr), "<string>");
 }
@@ -119,7 +119,7 @@ void FlowLexer::openStream(
 FlowLexer::Scope* FlowLexer::enterScope(
     std::unique_ptr<std::istream>&& ifs,
     const std::string& filename) {
-  std::unique_ptr<Scope> cx(new Scope());
+  std::unique_ptr<Scope> cx = std::make_unique<Scope>();
   if (!cx) return nullptr;
 
   TRACE(1, "ENTER SCOPE '$0' (depth: $1)", filename, contexts_.size() + 1);
@@ -137,7 +137,7 @@ FlowLexer::Scope* FlowLexer::enterScope(
 }
 
 FlowLexer::Scope* FlowLexer::enterScope(const std::string& filename) {
-  auto ifs = std::unique_ptr<std::ifstream>(new std::ifstream());
+  auto ifs = std::make_unique<std::ifstream>();
 
   ifs->open(filename);
   if (!ifs->good())

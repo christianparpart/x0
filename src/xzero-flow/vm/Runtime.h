@@ -8,6 +8,7 @@
 #pragma once
 
 #include <xzero/defines.h>
+#include <xzero/util/UnboxedRange.h>
 #include <xzero-flow/FlowType.h>
 #include <xzero-flow/vm/Params.h>
 #include <xzero-flow/vm/Signature.h>
@@ -37,11 +38,10 @@ class Runtime {
   bool contains(const std::string& signature) const;
   NativeCallback* find(const std::string& signature);
   NativeCallback* find(const Signature& signature);
-  const std::vector<NativeCallback*>& builtins() const { return builtins_; }
+  auto builtins() { return unbox(builtins_); }
 
   NativeCallback& registerHandler(const std::string& name);
   NativeCallback& registerFunction(const std::string& name, FlowType returnType);
-  void unregisterNative(const std::string& name);
 
   void invoke(int id, int argc, Value* argv, Runner* cx);
 
@@ -51,7 +51,7 @@ class Runtime {
   bool verify(IRProgram* program, IRBuilder* builder);
 
  private:
-  std::vector<NativeCallback*> builtins_;
+  std::vector<std::unique_ptr<NativeCallback>> builtins_;
 };
 
 }  // xzero::flow::vm
