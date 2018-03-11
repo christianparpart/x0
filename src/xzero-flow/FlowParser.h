@@ -95,19 +95,16 @@ class FlowParser {
   bool booleanValue() const { return lexer_->numberValue(); }
 
   // scoping
-  SymbolTable* scope() { return scopeStack_; }
-  SymbolTable* globalScope();
-  SymbolTable* enter(SymbolTable* scope);
-  std::unique_ptr<SymbolTable> enterScope(const std::string& title) {
-    return std::unique_ptr<SymbolTable>(enter(new SymbolTable(scope(), title)));
-  }
-  SymbolTable* leaveScope() { return leave(); }
-  SymbolTable* leave();
+  SymbolTable* currentScope() { return scopeStack_; }
+  SymbolTable* globalScope() const;
+  std::unique_ptr<SymbolTable> enterScope(const std::string& title);
+  SymbolTable* enterScope(SymbolTable* scope);
+  SymbolTable* leaveScope();
 
   // symbol mgnt
   template <typename T>
   T* lookup(const std::string& name) {
-    if (T* result = static_cast<T*>(scope()->lookup(name, Lookup::All)))
+    if (T* result = static_cast<T*>(currentScope()->lookup(name, Lookup::All)))
       return result;
 
     return nullptr;
@@ -115,19 +112,17 @@ class FlowParser {
 
   template <typename T, typename... Args>
   T* createSymbol(Args&&... args) {
-    return static_cast<T*>(scope()->appendSymbol(
+    return static_cast<T*>(currentScope()->appendSymbol(
         std::make_unique<T>(std::forward<Args>(args)...)));
   }
 
   template <typename T, typename... Args>
   T* lookupOrCreate(const std::string& name, Args&&... args) {
-    if (T* result = static_cast<T*>(scope()->lookup(name, Lookup::All)))
+    if (T* result = static_cast<T*>(currentScope()->lookup(name, Lookup::All)))
       return result;
 
     // create symbol in global-scope
-    T* result = new T(name, args...);
-    scopeStack_->appendSymbol(result);
-    return result;
+    return scopeStack_->appendSymbol(std::make_unique<T>(std::forward<Args>(args)...));
   }
 
   void importRuntime();
@@ -174,16 +169,6 @@ class FlowParser {
 };
 
 // {{{ inlines
-inline SymbolTable* FlowParser::globalScope() {
-  if (SymbolTable* st = scopeStack_) {
-    while (st->outerTable()) {
-      st = st->outerTable();
-    }
-    return st;
-  }
-  return nullptr;
-}
-
 template <typename... Args>
 inline void FlowParser::reportError(const std::string& fmt, Args&&... args) {
   char buf[1024];

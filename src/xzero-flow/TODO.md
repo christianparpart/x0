@@ -2,10 +2,10 @@
 
 All the things I've found out on the way, that need retouching
 
-- [ ] FlowParser.cc: `enter(new SymbolTable(...))`
-- [ ] FlowParser.cc: `new Handler(...)`
-- [ ] FlowParser.h: `new SymbolTable(...)`
-- [ ] FlowParser.h: `new T(...)`
+- [x] FlowParser.cc: `enter(new SymbolTable(...))`
+- [x] FlowParser.cc: `new Handler(...)`
+- [x] FlowParser.h: `new SymbolTable(...)`
+- [x] FlowParser.h: `new T(...)`
 - [ ] NativeCallback: replace operator new/delete with `std::variant` + `bool hasDefault_`
 - [x] TargetCodeGenerator: `stack_` vs `sp_` vs `variables_`
 - [ ] nested scopes with local variables must be initialized in this block

@@ -101,23 +101,23 @@ class FlowParser::Scope {
  public:
   Scope(FlowParser* parser, SymbolTable* table)
       : parser_(parser), table_(table), flipped_(false) {
-    parser_->enter(table_);
+    parser_->enterScope(table_);
   }
 
   Scope(FlowParser* parser, ScopedSymbol* symbol)
       : parser_(parser), table_(symbol->scope()), flipped_(false) {
-    parser_->enter(table_);
+    parser_->enterScope(table_);
   }
 
   Scope(FlowParser* parser, std::unique_ptr<SymbolTable>& table)
       : parser_(parser), table_(table.get()), flipped_(false) {
-    parser_->enter(table_);
+    parser_->enterScope(table_);
   }
 
   template <typename T>
   Scope(FlowParser* parser, std::unique_ptr<T>& symbol)
       : parser_(parser), table_(symbol->scope()), flipped_(false) {
-    parser_->enter(table_);
+    parser_->enterScope(table_);
   }
 
   bool flip() {
@@ -125,7 +125,7 @@ class FlowParser::Scope {
     return flipped_;
   }
 
-  ~Scope() { parser_->leave(); }
+  ~Scope() { parser_->leaveScope(); }
 };
 #define scoped(SCOPED_SYMBOL) \
   for (FlowParser::Scope _(this, (SCOPED_SYMBOL)); _.flip();)
@@ -139,11 +139,11 @@ FlowParser::FlowParser(vm::Runtime* runtime,
       runtime_(runtime),
       errorHandler(errorHandler),
       importHandler(importHandler) {
-  // enter(new SymbolTable(nullptr, "global"));
+  // enterScope("global");
 }
 
 FlowParser::~FlowParser() {
-  // leave();
+  // leaveScope();
   // assert(scopeStack_ == nullptr && "scopeStack not properly unwind. probably
   // a bug.");
 }
@@ -161,8 +161,19 @@ void FlowParser::openStream(std::unique_ptr<std::istream>&& ifs,
   lexer_->openStream(std::move(ifs), filename);
 }
 
-SymbolTable* FlowParser::enter(SymbolTable* scope) {
-  // printf("Parser::enter(): new top: %p \"%s\" (outer: %p \"%s\")\n", scope,
+std::unique_ptr<SymbolTable> FlowParser::enterScope(const std::string& title) {
+  // printf("Parser::enterScope(): new top: %p \"%s\" (outer: %p \"%s\")\n", scope,
+  // scope->name().c_str(), scopeStack_, scopeStack_ ?
+  // scopeStack_->name().c_str() : "");
+
+  auto st = std::make_unique<SymbolTable>(currentScope(), title);
+  st->setOuterTable(scopeStack_);
+  scopeStack_ = st.get();
+  return st;
+}
+
+SymbolTable* FlowParser::enterScope(SymbolTable* scope) {
+  // printf("Parser::enterScope(): new top: %p \"%s\" (outer: %p \"%s\")\n", scope,
   // scope->name().c_str(), scopeStack_, scopeStack_ ?
   // scopeStack_->name().c_str() : "");
 
@@ -172,11 +183,21 @@ SymbolTable* FlowParser::enter(SymbolTable* scope) {
   return scope;
 }
 
-SymbolTable* FlowParser::leave() {
+SymbolTable* FlowParser::globalScope() const {
+  if (SymbolTable* st = scopeStack_; st != nullptr) {
+    while (st->outerTable()) {
+      st = st->outerTable();
+    }
+    return st;
+  }
+  return nullptr;
+}
+
+SymbolTable* FlowParser::leaveScope() {
   SymbolTable* popped = scopeStack_;
   scopeStack_ = scopeStack_->outerTable();
 
-  // printf("Parser::leave(): new top: %p \"%s\" (outer: %p \"%s\")\n", popped,
+  // printf("Parser::leaveScope(): new top: %p \"%s\" (outer: %p \"%s\")\n", popped,
   // popped->name().c_str(), scopeStack_, scopeStack_ ?
   // scopeStack_->name().c_str() : "");
 
@@ -403,7 +424,7 @@ std::unique_ptr<Unit> FlowParser::unit() {
     }
 
     while (std::unique_ptr<Symbol> symbol = decl()) {
-      scope()->appendSymbol(std::move(symbol));
+      currentScope()->appendSymbol(std::move(symbol));
     }
   }
 
@@ -421,7 +442,7 @@ void FlowParser::importRuntime() {
 }
 
 void FlowParser::declareBuiltin(const vm::NativeCallback* native) {
-  TRACE("declareBuiltin (scope:$0): $1", scope(), native->signature().to_s());
+  TRACE("declareBuiltin (scope:$0): $1", currentScope(), native->signature().to_s());
 
   if (native->isHandler()) {
     createSymbol<BuiltinHandler>(native);
@@ -575,7 +596,7 @@ std::unique_ptr<Handler> FlowParser::handlerDecl(bool keyword) {
   loc.update(body->location().end);
 
   // forward-declared / previousely -declared?
-  if (Handler* handler = scope()->lookup<Handler>(name, Lookup::Self)) {
+  if (Handler* handler = currentScope()->lookup<Handler>(name, Lookup::Self)) {
     if (handler->body() != nullptr) {
       // TODO say where we found the other hand, compared to this one.
       reportError("Redeclaring handler \"%s\"", handler->name().c_str());
@@ -867,7 +888,7 @@ std::unique_ptr<Expr> FlowParser::primaryExpr() {
       nextToken();
 
       std::list<Symbol*> symbols;
-      Symbol* symbol = scope()->lookup(name, Lookup::All, &symbols);
+      Symbol* symbol = currentScope()->lookup(name, Lookup::All, &symbols);
       if (!symbol) {
         // XXX assume that given symbol is a auto forward-declared handler.
         Handler* href = (Handler*)globalScope()->appendSymbol(
@@ -926,26 +947,23 @@ std::unique_ptr<Expr> FlowParser::primaryExpr() {
       return nullptr;
     }
     case FlowToken::Begin: {  // lambda-like inline function ref
-      char name[64];
       static unsigned long i = 0;
       ++i;
-      snprintf(name, sizeof(name), "__lambda_%lu", i);
 
+      std::string name = StringUtil::format("__lambda_#$0", i);
       FlowLocation loc = location();
-      auto st = std::make_unique<SymbolTable>(scope(), name);
-      enter(st.get());
+      std::unique_ptr<SymbolTable> st = enterScope(name);
       std::unique_ptr<Stmt> body = compoundStmt();
-      leave();
+      leaveScope();
 
-      if (!body) return nullptr;
+      if (!body)
+        return nullptr;
 
       loc.update(body->location().end);
 
-      Handler* handler = new Handler(name, std::move(st), std::move(body), loc);
-      // TODO (memory leak): add handler to unit's global scope, i.e. via:
-      //       - scope()->rootScope()->insert(handler);
-      //       - unit_->scope()->insert(handler);
-      //       to get free'd
+      Handler* handler = static_cast<Handler*>(currentScope()->appendSymbol(
+          std::make_unique<Handler>(name, std::move(st), std::move(body), loc)));
+
       return std::make_unique<HandlerRefExpr>(handler, loc);
     }
     case FlowToken::RndOpen: {
@@ -1534,7 +1552,7 @@ std::unique_ptr<Stmt> FlowParser::compoundStmt() {
 
   while (token() == FlowToken::Var) {
     if (std::unique_ptr<Variable> var = varDecl())
-      scope()->appendSymbol(std::move(var));
+      currentScope()->appendSymbol(std::move(var));
     else
       return nullptr;
   }
@@ -1567,7 +1585,7 @@ std::unique_ptr<Stmt> FlowParser::identStmt() {
 
   std::unique_ptr<Stmt> stmt;
   std::list<Symbol*> symbols;
-  Symbol* callee = scope()->lookup(name, Lookup::All, &symbols);
+  Symbol* callee = currentScope()->lookup(name, Lookup::All, &symbols);
   if (!callee) {
     // XXX assume that given symbol is a auto forward-declared handler that's
     // being defined later in the source.
