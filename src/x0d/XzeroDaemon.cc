@@ -153,7 +153,7 @@ std::unique_ptr<flow::vm::Program> XzeroDaemon::loadConfigEasy(
   StringUtil::replaceAll(&flow, "#{docroot}", docroot);
 
   return loadConfigStream(
-      std::unique_ptr<std::istream>(new std::istringstream(flow)),
+      std::make_unique<std::istringstream>(flow),
       "instant-mode.conf", printAST, printIR, printTC);
 }
 
@@ -166,8 +166,8 @@ std::unique_ptr<flow::vm::Program> XzeroDaemon::loadConfigFile(
     const std::string& configFileName,
     bool printAST, bool printIR, bool printTC) {
   configFilePath_ = configFileName;
-  std::unique_ptr<std::istream> input(new std::ifstream(configFileName));
-  return loadConfigStream(std::move(input), configFileName,
+  return loadConfigStream(
+      std::make_unique<std::ifstream>(configFileName), configFileName,
       printAST, printIR, printTC);
 }
 
@@ -317,7 +317,7 @@ void XzeroDaemon::removeAllConnectors() {
 }
 
 std::unique_ptr<Config> XzeroDaemon::createDefaultConfig() {
-  std::unique_ptr<Config> config(new Config);
+  std::unique_ptr<Config> config = std::make_unique<Config>();
 
   // defaulting worker/affinities to total host CPU count
   config->workers = CoreModule::cpuCount();
@@ -469,10 +469,10 @@ void XzeroDaemon::postConfig() {
 std::unique_ptr<EventLoop> XzeroDaemon::createEventLoop() {
   size_t i = eventLoops_.size();
 
-  return std::unique_ptr<EventLoop>(new NativeScheduler(
+  return std::make_unique<NativeScheduler>(
         CatchAndLogExceptionHandler(StringUtil::format("x0d/$0", i)),
         nullptr /* preInvoke */,
-        nullptr /* postInvoke */));
+        nullptr /* postInvoke */);
 }
 
 void XzeroDaemon::handleRequest(HttpRequest* request, HttpResponse* response) {
