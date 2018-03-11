@@ -396,7 +396,7 @@ void XzeroDaemon::postConfig() {
 #endif
 
   // HTTP/1 connection factory
-  http1_.reset(new http1::ConnectionFactory(
+  http1_ = std::make_unique<http1::ConnectionFactory>(
       config_->requestHeaderBufferSize,
       config_->requestBodyBufferSize,
       config_->maxRequestUriLength,
@@ -404,7 +404,7 @@ void XzeroDaemon::postConfig() {
       config_->maxKeepAliveRequests,
       config_->maxKeepAlive,
       config_->tcpCork,
-      config_->tcpNoDelay));
+      config_->tcpNoDelay);
 
   http1_->setHandler(std::bind(&XzeroDaemon::handleRequest, this,
         std::placeholders::_1, std::placeholders::_2));
@@ -531,7 +531,7 @@ void XzeroDaemon::validateContext(const std::string& entrypointHandlerName,
 }
 
 void XzeroDaemon::run() {
-  eventHandler_.reset(new XzeroEventHandler(this, eventLoops_[0].get()));
+  eventHandler_ = std::make_unique<XzeroEventHandler>(this, eventLoops_[0].get());
   runOneThread(0);
   TRACE("Main loop quit. Shutting down.");
   stop();
