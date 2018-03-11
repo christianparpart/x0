@@ -6,6 +6,7 @@
 // the License at: http://opensource.org/licenses/MIT
 
 #include <xzero-flow/FlowLocation.h>
+#include <xzero/io/FileDescriptor.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
@@ -23,29 +24,24 @@ std::string FlowLocation::str() const {
 }
 
 std::string FlowLocation::text() const {
+  FileDescriptor fd = open(filename.c_str(), O_RDONLY);
+  if (fd < 0)
+    return {};
+
+  int size = 1 + end.offset - begin.offset;
+  if (size <= 0)
+    return {};
+
+  if (lseek(fd, begin.offset, SEEK_SET) < 0)
+    return {};
+
   std::string result;
-  char* buf = nullptr;
-  ssize_t size;
-  ssize_t n;
-  int fd;
+  result.reserve(size + 1);
+  ssize_t n = read(fd, const_cast<char*>(result.data()), size);
+  if (n < 0)
+    return {};
 
-  fd = open(filename.c_str(), O_RDONLY);
-  if (fd < 0) return std::string();
-
-  size = 1 + end.offset - begin.offset;
-  if (size <= 0) goto out;
-
-  if (lseek(fd, begin.offset, SEEK_SET) < 0) goto out;
-
-  buf = new char[size + 1];
-  n = read(fd, buf, size);
-  if (n < 0) goto out;
-
-  result = std::string(buf, n);
-
-out:
-  delete[] buf;
-  close(fd);
+  result.resize(static_cast<size_t>(n));
   return result;
 }
 
