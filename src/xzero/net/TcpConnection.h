@@ -17,16 +17,16 @@ class Executor;
 class TcpEndPoint;
 
 /**
- * A Connection is responsible for processing an TcpEndPoint.
+ * A TcpConnection is responsible for processing an TcpEndPoint.
  *
- * A Connection derivate can implement various stream oriented protocols.
+ * A TcpConnection derivate can implement various stream oriented protocols.
  * This doesn't necessarily has to be HTTP, but can also be SMTP or anything
  * else.
  */
-class Connection {
+class TcpConnection {
  public:
-  Connection(TcpEndPoint* endpoint, Executor* executor);
-  virtual ~Connection();
+  TcpConnection(TcpEndPoint* endpoint, Executor* executor);
+  virtual ~TcpConnection();
 
   /**
    * Callback, invoked when connection was opened.
@@ -92,7 +92,7 @@ class Connection {
    * @retval true close the endpoint.
    * @retval false ignore the timeout, do not close.
    *
-   * By default the implementation of Connection::onReadTimeout() returns just
+   * By default the implementation of TcpConnection::onReadTimeout() returns just
    * true.
    */
   virtual bool onReadTimeout();
@@ -102,11 +102,11 @@ class Connection {
   Executor* executor_;
 };
 
-inline TcpEndPoint* Connection::endpoint() const XZERO_NOEXCEPT {
+inline TcpEndPoint* TcpConnection::endpoint() const XZERO_NOEXCEPT {
   return endpoint_;
 }
 
-inline Executor* Connection::executor() const XZERO_NOEXCEPT {
+inline Executor* TcpConnection::executor() const XZERO_NOEXCEPT {
   return executor_;
 }
 

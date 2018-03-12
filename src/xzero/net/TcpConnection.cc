@@ -6,49 +6,49 @@
 // the License at: http://opensource.org/licenses/MIT
 
 #include <xzero/StringUtil.h>
-#include <xzero/net/Connection.h>
+#include <xzero/net/TcpConnection.h>
 #include <xzero/net/TcpEndPoint.h>
 #include <algorithm>
 
 namespace xzero {
 
-Connection::Connection(TcpEndPoint* endpoint,
-                       Executor* executor)
+TcpConnection::TcpConnection(TcpEndPoint* endpoint,
+                             Executor* executor)
     : endpoint_(endpoint),
       executor_(executor) {
 }
 
-Connection::~Connection() {
+TcpConnection::~TcpConnection() {
 }
 
-void Connection::onOpen(bool dataReady) {
+void TcpConnection::onOpen(bool dataReady) {
 }
 
-void Connection::close() {
+void TcpConnection::close() {
   if (endpoint_) {
     endpoint_->close();
   }
 }
 
-void Connection::wantRead() {
+void TcpConnection::wantRead() {
   endpoint()->wantRead();
 }
 
-void Connection::wantWrite() {
+void TcpConnection::wantWrite() {
   endpoint()->wantWrite();
 }
 
-void Connection::onReadable() {
+void TcpConnection::onReadable() {
 }
 
-void Connection::onWriteable() {
+void TcpConnection::onWriteable() {
 }
 
-void Connection::onInterestFailure(const std::exception& error) {
+void TcpConnection::onInterestFailure(const std::exception& error) {
   close();
 }
 
-bool Connection::onReadTimeout() {
+bool TcpConnection::onReadTimeout() {
   // inform caller to close the endpoint
   return true;
 }

@@ -7,7 +7,7 @@
 
 #include <xzero/net/SslEndPoint.h>
 #include <xzero/net/SslContext.h>
-#include <xzero/net/Connection.h>
+#include <xzero/net/TcpConnection.h>
 #include <xzero/net/TcpUtil.h>
 #include <xzero/io/FileUtil.h>
 #include <xzero/util/BinaryWriter.h>
@@ -426,7 +426,7 @@ void SslEndPoint::onServerHandshake() {
       }
     }
   } else {
-    // create associated Connection object and run it
+    // create associated TcpConnection object and run it
     bioDesire_ = Desire::None;
     RefPtr<TcpEndPoint> _guard(this);
     std::string protocolName = applicationProtocolName().str();

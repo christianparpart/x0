@@ -15,9 +15,9 @@
 namespace xzero {
 
 class WallClock;
-class Connection;
 class TcpConnector;
 class TcpEndPoint;
+class TcpConnection;
 
 namespace http {
 
@@ -59,8 +59,8 @@ class HttpConnectionFactory {
   /** Access to the @c Date response header generator. */
   HttpDateGenerator* dateGenerator() noexcept;
 
-  virtual std::unique_ptr<xzero::Connection> create(TcpConnector* connector,
-                                                    TcpEndPoint* endpoint) = 0;
+  virtual std::unique_ptr<TcpConnection> create(TcpConnector* connector,
+                                                TcpEndPoint* endpoint) = 0;
 
  private:
   std::string protocolName_;

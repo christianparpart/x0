@@ -14,7 +14,7 @@
 #include <xzero/http/http2/FrameListener.h>
 #include <xzero/http/http2/ErrorCode.h>
 #include <xzero/http/HttpHandler.h>
-#include <xzero/net/Connection.h>
+#include <xzero/net/TcpConnection.h>
 #include <xzero/net/EndPointWriter.h>
 #include <xzero/Buffer.h>
 #include <memory>
@@ -35,7 +35,7 @@ class HttpOutputCompressor;
 namespace http2 {
 
 class Connection
-  : public ::xzero::Connection,
+  : public TcpConnection,
     public FrameListener {
  public:
   typedef std::vector<std::pair<http2::SettingParameter, unsigned long>>

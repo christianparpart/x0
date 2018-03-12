@@ -24,8 +24,8 @@ class ConnectionFactory : public HttpConnectionFactory {
   ConnectionFactory(size_t maxRequestUriLength,
                     size_t maxRequestBodyLength);
 
-  std::unique_ptr<xzero::Connection> create(TcpConnector* connector,
-                                            TcpEndPoint* endpoint) override;
+  std::unique_ptr<TcpConnection> create(TcpConnector* connector,
+                                        TcpEndPoint* endpoint) override;
 };
 
 }  // namespace http1

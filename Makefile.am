@@ -147,10 +147,10 @@ libXzero_a_SOURCES = \
 	src/xzero/io/SystemPipe.cc \
 	src/xzero/logging.cc \
 	src/xzero/net/Cidr.cc \
-	src/xzero/net/Connection.cc \
 	src/xzero/net/DnsClient.cc \
 	src/xzero/net/EndPointWriter.cc \
 	src/xzero/net/InetAddress.cc \
+	src/xzero/net/TcpConnection.cc \
 	src/xzero/net/TcpConnector.cc \
 	src/xzero/net/TcpEndPoint.cc \
 	src/xzero/net/TcpUtil.cc \
@@ -337,12 +337,12 @@ nobase_libXzero_HEADERS = \
 	src/xzero/io/MemoryMap.h \
 	src/xzero/io/SystemPipe.h \
 	src/xzero/net/Cidr.h \
-	src/xzero/net/Connection.h \
 	src/xzero/net/DnsClient.h \
 	src/xzero/net/EndPointWriter.h \
 	src/xzero/net/IPAddress.h \
 	src/xzero/net/InetAddress-inl.h \
 	src/xzero/net/InetAddress.h \
+	src/xzero/net/TcpConnection.h \
 	src/xzero/net/TcpConnector.h \
 	src/xzero/net/TcpEndPoint.h \
 	src/xzero/net/TcpUtil.h \

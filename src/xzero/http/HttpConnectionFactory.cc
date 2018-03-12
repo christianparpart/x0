@@ -6,7 +6,6 @@
 // the License at: http://opensource.org/licenses/MIT
 
 #include <xzero/http/HttpConnectionFactory.h>
-#include <xzero/net/Connection.h>
 #include <xzero/WallClock.h>
 
 namespace xzero {

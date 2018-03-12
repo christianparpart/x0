@@ -9,6 +9,7 @@
 #include <xzero/http/fastcgi/Connection.h>
 #include <xzero/net/TcpConnector.h>
 #include <xzero/net/TcpEndPoint.h>
+#include <xzero/net/TcpConnection.h>
 #include <xzero/WallClock.h>
 
 namespace xzero {
@@ -34,7 +35,7 @@ ConnectionFactory::ConnectionFactory(
 ConnectionFactory::~ConnectionFactory() {
 }
 
-std::unique_ptr<xzero::Connection> ConnectionFactory::create(TcpConnector* connector,
+std::unique_ptr<TcpConnection> ConnectionFactory::create(TcpConnector* connector,
                                                              TcpEndPoint* endpoint) {
   return std::make_unique<Connection>(endpoint,
                                       connector->executor(),

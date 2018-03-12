@@ -25,7 +25,7 @@ namespace raft {
  * Reading is performed non-blocking whereas writing is performed blocking.
  */
 class PeerConnection
-  : public Connection,
+  : public TcpConnection,
     public Listener {
  public:
   PeerConnection(InetTransport* mgr,
@@ -35,7 +35,7 @@ class PeerConnection
                  Id peerId = 0);
   ~PeerConnection();
 
-  // Connection override (connection-endpoint hooks)
+  // TcpConnection override (connection-endpoint hooks)
   void onOpen(bool dataReady) override;
   void onReadable() override;
   void onWriteable() override;
@@ -65,7 +65,7 @@ PeerConnection::PeerConnection(InetTransport* manager,
                                Handler* handler,
                                TcpEndPoint* endpoint,
                                Id peerId)
-  : Connection(endpoint, executor),
+  : TcpConnection(endpoint, executor),
     manager_(manager),
     peerId_(peerId),
     inputBuffer_(4096),
@@ -82,7 +82,7 @@ PeerConnection::~PeerConnection() {
 }
 
 void PeerConnection::onOpen(bool dataReady) {
-  Connection::onOpen(dataReady);
+  TcpConnection::onOpen(dataReady);
 
   if (peerId_ == 0) {
     // XXX this is an incoming connection.
@@ -215,8 +215,8 @@ void InetTransport::setHandler(Handler* handler) {
   handler_ = handler;
 }
 
-std::unique_ptr<Connection> InetTransport::create(TcpConnector* connector,
-                                                  TcpEndPoint* endpoint) {
+std::unique_ptr<TcpConnection> InetTransport::create(TcpConnector* connector,
+                                                     TcpEndPoint* endpoint) {
   return std::make_unique<PeerConnection>(this,
                                           connector->executor(),
                                           handler_,

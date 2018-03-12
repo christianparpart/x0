@@ -26,7 +26,7 @@ namespace client {
 Http1Connection::Http1Connection(HttpListener* channel,
                                  TcpEndPoint* endpoint,
                                  Executor* executor)
-    : Connection(endpoint, executor),
+    : TcpConnection(endpoint, executor),
       channel_(channel),
       onComplete_(),
       writer_(),

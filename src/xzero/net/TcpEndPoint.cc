@@ -8,7 +8,7 @@
 #include <xzero/net/TcpEndPoint.h>
 #include <xzero/net/TcpConnector.h>
 #include <xzero/net/TcpUtil.h>
-#include <xzero/net/Connection.h>
+#include <xzero/net/TcpConnection.h>
 #include <xzero/util/BinaryReader.h>
 #include <xzero/io/FileUtil.h>
 #include <xzero/executor/Executor.h>
@@ -110,7 +110,7 @@ void TcpEndPoint::close() {
   }
 }
 
-void TcpEndPoint::setConnection(std::unique_ptr<Connection>&& c) {
+void TcpEndPoint::setConnection(std::unique_ptr<TcpConnection>&& c) {
   connection_ = std::move(c);
 }
 
@@ -176,7 +176,7 @@ void TcpEndPoint::onDetectProtocol(ProtocolCallback createConnection) {
     inputOffset_ = inputBuffer_.size() - reader.pending();
     createConnection(protocol, this);
   } else {
-    // create Connection object for given endpoint
+    // create TcpConnection object for given endpoint
     TRACE("$0 protocol-switch not detected.", this);
     createConnection("", this);
   }

@@ -30,8 +30,8 @@ class ConnectionFactory : public HttpConnectionFactory {
   Duration maxKeepAlive() const noexcept { return maxKeepAlive_; }
   void setMaxKeepAlive(Duration value) { maxKeepAlive_ = value; }
 
-  std::unique_ptr<xzero::Connection> create(TcpConnector* connector,
-                                            TcpEndPoint* endpoint) override;
+  std::unique_ptr<TcpConnection> create(TcpConnector* connector,
+                                        TcpEndPoint* endpoint) override;
 
  private:
   Duration maxKeepAlive_;

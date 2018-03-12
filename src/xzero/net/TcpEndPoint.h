@@ -18,7 +18,7 @@
 namespace xzero {
 
 class TcpConnector;
-class Connection;
+class TcpConnection;
 class FileView;
 
 /**
@@ -97,12 +97,12 @@ class TcpEndPoint : public RefCounted {
   /**
    * Retrieves the connection object associated with this TcpEndPoint.
    */
-  Connection* connection() const { return connection_.get(); }
+  TcpConnection* connection() const { return connection_.get(); }
 
   /**
-   * Associates a Connection associated with this TcpEndPoint.
+   * Associates a TcpConnection associated with this TcpEndPoint.
    */
-  void setConnection(std::unique_ptr<Connection>&& connection);
+  void setConnection(std::unique_ptr<TcpConnection>&& connection);
 
   /**
    * Tests whether this endpoint is blocking on I/O.
@@ -180,9 +180,9 @@ class TcpEndPoint : public RefCounted {
    * Registers an interest on reading input data.
    *
    * When a fill-interest can be satisfied you will be notified via your
-   * associated Connection object to process the event.
+   * associated TcpConnection object to process the event.
    *
-   * @see Connection::onSelectable()
+   * @see TcpConnection::onSelectable()
    */
   virtual void wantRead();
 
@@ -190,9 +190,9 @@ class TcpEndPoint : public RefCounted {
    * Registers an interest on writing output data.
    *
    * When a flush-interest can be satisfied you will be notified via your
-   * associated Connection object to process the event.
+   * associated TcpConnection object to process the event.
    *
-   * @see Connection::onSelectable()
+   * @see TcpConnection::onSelectable()
    */
   virtual void wantWrite();
 
@@ -238,7 +238,7 @@ class TcpEndPoint : public RefCounted {
   int addressFamily_;
   bool isCorking_;
   Callback onEndPointClosed_;
-  std::unique_ptr<Connection> connection_;
+  std::unique_ptr<TcpConnection> connection_;
 };
 
 inline size_t TcpEndPoint::readBufferSize() const {

@@ -25,7 +25,7 @@ Connection::Connection(TcpEndPoint* endpoint,
                        HttpOutputCompressor* outputCompressor,
                        size_t maxRequestBodyLength,
                        size_t maxRequestCount)
-    : xzero::Connection(endpoint, executor),
+    : TcpConnection(endpoint, executor),
       inputFlow_(),
       inputBuffer_(1024),
       inputOffset_(0),
@@ -150,7 +150,7 @@ void Connection::getAllDependentStreams(StreamID parentStreamID,
 // {{{ net::Connection overrides
 void Connection::onOpen(bool dataReady) {
   TRACE("onOpen");
-  ::xzero::Connection::onOpen(dataReady);
+  TcpConnection::onOpen(dataReady);
 
   // send initial server connection preface
   generator_.generateSettings({}); // leave settings at defaults

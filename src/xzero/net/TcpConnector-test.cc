@@ -9,7 +9,7 @@
 #include <xzero/net/TcpConnector.h>
 #include <xzero/net/TcpEndPoint.h>
 #include <xzero/net/InetAddress.h>
-#include <xzero/net/Connection.h>
+#include <xzero/net/TcpConnection.h>
 #include <xzero/net/IPAddress.h>
 #include <xzero/executor/PosixScheduler.h>
 #include <xzero/util/BinaryWriter.h>
@@ -19,7 +19,7 @@
 
 using namespace xzero;
 
-class EchoServerConnection : public xzero::Connection { // {{{
+class EchoServerConnection : public xzero::TcpConnection { // {{{
  public:
   EchoServerConnection(TcpEndPoint* endpoint, Executor* executor);
   void onOpen(bool dataReady) override;
@@ -28,11 +28,11 @@ class EchoServerConnection : public xzero::Connection { // {{{
 };
 
 EchoServerConnection::EchoServerConnection(TcpEndPoint* endpoint, Executor* executor)
-    : Connection(endpoint, executor) {
+    : TcpConnection(endpoint, executor) {
 }
 
 void EchoServerConnection::onOpen(bool dataReady) {
-  Connection::onOpen(dataReady);
+  TcpConnection::onOpen(dataReady);
 
   if (dataReady)
     onReadable();
@@ -57,7 +57,7 @@ void EchoServerConnection::onWriteable() {
   // not needed, as we're doing blocking writes
 }
 // }}}
-class EchoClientConnection : public xzero::Connection { // {{{
+class EchoClientConnection : public xzero::TcpConnection { // {{{
  public:
   EchoClientConnection(TcpEndPoint* endpoint, Executor* executor,
                        const BufferRef& text,
@@ -75,7 +75,7 @@ EchoClientConnection::EchoClientConnection(
     Executor* executor,
     const BufferRef& text,
     std::function<void(const BufferRef&)> responder)
-    : Connection(endpoint, executor),
+    : TcpConnection(endpoint, executor),
       text_(text),
       responder_(responder) {
 }
@@ -102,8 +102,8 @@ auto EH(xzero::testing::Test* test) {
 TEST(TcpConnector, echoServer) {
   PosixScheduler sched(EH(this));
 
-  auto connectionFactory = [&](TcpConnector* connector, TcpEndPoint* ep) -> Connection* {
-    return ep->setConnection<EchoServerConnection>(ep, &sched);
+  auto connectionFactory = [&](TcpConnector* connector, TcpEndPoint* ep) {
+    return std::make_unique<EchoServerConnection>(ep, &sched);
   };
 
   std::shared_ptr<TcpConnector> connector = std::make_shared<TcpConnector>(
@@ -135,7 +135,7 @@ TEST(TcpConnector, echoServer) {
   };
 
   auto onConnectionEstablished = [&](RefPtr<TcpEndPoint> ep) {
-    ep->setConnection<EchoClientConnection>(ep.get(), &sched, "ping", onClientReceived);
+    ep->setConnection(std::make_unique<EchoClientConnection>(ep.get(), &sched, "ping", onClientReceived));
     ep->connection()->onOpen(false);
   };
 
@@ -166,15 +166,15 @@ TEST(TcpConnector, detectProtocols) {
       false); // reusePort
 
   int echoCreated = 0;
-  auto echoFactory = [&](TcpConnector* connector, TcpEndPoint* ep) -> Connection* {
+  auto echoFactory = [&](TcpConnector* connector, TcpEndPoint* ep) {
     echoCreated++;
-    return ep->setConnection<EchoServerConnection>(ep, &sched);
+    return std::make_unique<EchoServerConnection>(ep, &sched);
   };
 
   int yeahCreated = 0;
-  auto yeahFactory = [&](TcpConnector* connector, TcpEndPoint* ep) -> Connection* {
+  auto yeahFactory = [&](TcpConnector* connector, TcpEndPoint* ep) {
     yeahCreated++;
-    return ep->setConnection<EchoServerConnection>(ep, &sched);
+    return std::make_unique<EchoServerConnection>(ep, &sched);
   };
 
   connector->addConnectionFactory("echo", echoFactory);
@@ -198,7 +198,7 @@ TEST(TcpConnector, detectProtocols) {
     Buffer text;
     connector->loadConnectionFactorySelector("yeah", &text);
     text.push_back("blurrrb");
-    ep->setConnection<EchoClientConnection>(ep.get(), &sched, text, onClientReceived);
+    ep->setConnection(std::make_unique<EchoClientConnection>(ep.get(), &sched, text, onClientReceived));
     ep->connection()->onOpen(false);
   };
 

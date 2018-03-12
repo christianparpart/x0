@@ -9,7 +9,7 @@
 #include <xzero/raft/Transport.h>
 #include <xzero/net/TcpConnector.h>
 #include <xzero/net/TcpEndPoint.h>
-#include <xzero/net/Connection.h>
+#include <xzero/net/TcpConnection.h>
 #include <unordered_map>
 #include <memory>
 #include <mutex>
@@ -62,7 +62,7 @@ class InetTransport : public Transport {
   TcpConnector* connector() const { return connector_.get(); }
 
  private:
-  std::unique_ptr<Connection> create(TcpConnector* connector, TcpEndPoint* endpoint);
+  std::unique_ptr<TcpConnection> create(TcpConnector* connector, TcpEndPoint* endpoint);
 
  private:
   RefPtr<TcpEndPoint> getEndPoint(Id target);

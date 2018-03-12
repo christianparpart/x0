@@ -11,7 +11,7 @@
 #include <xzero/net/IPAddress.h>
 #include <xzero/io/FileDescriptor.h>
 #include <xzero/executor/Executor.h> // for Executor::HandleRef
-#include <xzero/net/Connection.h>
+#include <xzero/net/TcpConnection.h>
 #include <xzero/Duration.h>
 #include <xzero/RefPtr.h>
 #include <unordered_map>
@@ -22,7 +22,7 @@
 
 namespace xzero {
 
-class Connection;
+class TcpConnection;
 class TcpEndPoint;
 class SslEndPoint;
 class Buffer;
@@ -40,17 +40,17 @@ class TcpConnector {
   typedef std::function<Executor*()> ExecutorSelector;
 
   /**
-   * Creates a new Connection instance for the given @p connector
+   * Creates a new TcpConnection instance for the given @p connector
    * and @p endpoint.
    *
    * @param connector the Connector that accepted the incoming connection.
    * @param endpoint the endpoint that corresponds to this connection.
    *
-   * @return pointer to the newly created Connection instance.
+   * @return pointer to the newly created TcpConnection instance.
    *
-   * The newly created Connection instance will be owned by its TcpEndPoint.
+   * The newly created TcpConnection instance will be owned by its TcpEndPoint.
    */
-  typedef std::function<std::unique_ptr<Connection>(TcpConnector*, TcpEndPoint*)>
+  typedef std::function<std::unique_ptr<TcpConnection>(TcpConnector*, TcpEndPoint*)>
       ConnectionFactory;
 
   /**
@@ -284,7 +284,7 @@ class TcpConnector {
   int port() const noexcept;
 
   /**
-   * Creates a Connection object and assigns it to the @p endpoint.
+   * Creates a TcpConnection object and assigns it to the @p endpoint.
    *
    * When no connection factory is matching the @p protocolName, then
    * the default connection factory will be used instead.
@@ -352,9 +352,9 @@ class TcpConnector {
   virtual RefPtr<TcpEndPoint> createEndPoint(int cfd, Executor* executor);
 
   /**
-   * By default, creates Connection from default connection factory and initiates it.
+   * By default, creates TcpConnection from default connection factory and initiates it.
    *
-   * Initiated via @c Connection::onOpen().
+   * Initiated via @c TcpConnection::onOpen().
    */
   virtual void onEndPointCreated(RefPtr<TcpEndPoint> endpoint);
 

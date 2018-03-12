@@ -10,6 +10,7 @@
 #include <xzero/http/fastcgi/RequestParser.h>
 #include <xzero/http/fastcgi/Generator.h>
 #include <xzero/net/EndPointWriter.h>
+#include <xzero/net/TcpConnection.h>
 #include <xzero/http/HttpTransport.h>
 #include <xzero/http/HttpHandler.h>
 #include <xzero/Buffer.h>
@@ -34,7 +35,7 @@ class HttpFastCgiTransport;
 /**
  * @brief Implements a HTTP/1.1 transport connection.
  */
-class Connection : public ::xzero::Connection {
+class Connection : public TcpConnection {
   friend class HttpFastCgiTransport;
  public:
   Connection(TcpEndPoint* endpoint,
@@ -53,7 +54,7 @@ class Connection : public ::xzero::Connection {
   bool isPersistent() const noexcept { return persistent_; }
   void setPersistent(bool enable);
 
-  // xzero::net::Connection overrides
+  // TcpConnection overrides
   void onOpen(bool dataReady) override;
 
  private:

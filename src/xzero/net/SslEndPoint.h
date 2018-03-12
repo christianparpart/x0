@@ -20,7 +20,6 @@
 
 namespace xzero {
 
-class Connection;
 class SslConnector;
 class SslContext;
 

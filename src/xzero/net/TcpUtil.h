@@ -16,11 +16,11 @@ namespace xzero {
 
 class FileView;
 class Executor;
-class Connection;
+class TcpConnection;
 
 class TcpUtil {
  public:
-  using ConnectionFactory = std::function<Connection*(const std::string&)>;
+  using ConnectionFactory = std::function<TcpConnection*(const std::string&)>;
 
   static Result<int> openTcpSocket(int addressFamily);
 

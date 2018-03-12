@@ -9,7 +9,7 @@
 #include <xzero/net/TcpConnector.h>
 #include <xzero/net/TcpEndPoint.h>
 #include <xzero/net/TcpUtil.h>
-#include <xzero/net/Connection.h>
+#include <xzero/net/TcpConnection.h>
 #include <xzero/net/IPAddress.h>
 #include <xzero/io/FileUtil.h>
 #include <xzero/util/BinaryWriter.h>
@@ -541,7 +541,7 @@ void TcpConnector::onEndPointCreated(RefPtr<TcpEndPoint> endpoint) {
                   std::placeholders::_1,
                   std::placeholders::_2));
   } else {
-    std::unique_ptr<Connection> c =
+    std::unique_ptr<TcpConnection> c =
         defaultConnectionFactory()(this, endpoint.get());
     endpoint->setConnection(std::move(c));
     endpoint->connection()->onOpen(deferAccept());
@@ -592,7 +592,7 @@ void TcpConnector::createConnection(const std::string& protocolName,
                                     TcpEndPoint* endpoint) {
   TRACE("createConnection: \"$0\"", protocolName);
   auto factory = connectionFactory(protocolName);
-  std::unique_ptr<Connection> c = factory
+  std::unique_ptr<TcpConnection> c = factory
       ? factory(this, endpoint)
       : defaultConnectionFactory()(this, endpoint);
   endpoint->setConnection(std::move(c));

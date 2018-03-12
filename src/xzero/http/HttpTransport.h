@@ -9,7 +9,6 @@
 
 #include <xzero/http/HeaderFieldList.h>
 #include <xzero/http/HttpStatus.h>
-#include <xzero/net/Connection.h>
 #include <xzero/CompletionHandler.h>
 #include <xzero/Buffer.h>
 #include <memory>

@@ -7,7 +7,7 @@
 
 #include <xzero/net/SslConnector.h>
 #include <xzero/net/SslContext.h>
-#include <xzero/net/Connection.h>
+#include <xzero/net/TcpConnection.h>
 #include <xzero/logging.h>
 #include <xzero/sysconfig.h>
 #include <xzero/RuntimeError.h>

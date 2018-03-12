@@ -9,7 +9,7 @@
 
 #include <xzero/Buffer.h>
 #include <xzero/CompletionHandler.h>
-#include <xzero/net/Connection.h>
+#include <xzero/net/TcpConnection.h>
 #include <xzero/net/EndPointWriter.h>
 #include <xzero/http/http1/Generator.h>
 #include <xzero/http/http1/Parser.h>
@@ -24,7 +24,7 @@ namespace client {
  * HTTP/1 client-side transport protocol implementation.
  */
 class Http1Connection
-    : public Connection,
+    : public TcpConnection,
       public HttpTransport,
       private HttpListener {
 public:
@@ -61,7 +61,7 @@ public:
   void completed() override;
   void abort() override;
 
-  // Connection overrides
+  // TcpConnection overrides
   void onReadable() override;
   void onWriteable() override;
   void onInterestFailure(const std::exception& error) override;

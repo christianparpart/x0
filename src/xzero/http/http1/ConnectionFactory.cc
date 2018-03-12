@@ -8,6 +8,7 @@
 #include <xzero/http/http1/ConnectionFactory.h>
 #include <xzero/http/http1/Connection.h>
 #include <xzero/net/TcpConnector.h>
+#include <xzero/net/TcpConnection.h>
 #include <xzero/net/TcpEndPoint.h>
 
 namespace xzero {
@@ -47,9 +48,8 @@ ConnectionFactory::ConnectionFactory(
 ConnectionFactory::~ConnectionFactory() {
 }
 
-std::unique_ptr<::xzero::Connection> ConnectionFactory::create(
-    TcpConnector* connector,
-    TcpEndPoint* endpoint) {
+std::unique_ptr<TcpConnection> ConnectionFactory::create(TcpConnector* connector,
+                                                         TcpEndPoint* endpoint) {
 
   if (tcpNoDelay_) {
     endpoint->setTcpNoDelay(true);
@@ -58,17 +58,17 @@ std::unique_ptr<::xzero::Connection> ConnectionFactory::create(
   const size_t inputBufferSize =
       requestHeaderBufferSize_ + requestBodyBufferSize_;
 
-  return std::make_unique<http1::Connection>(endpoint,
-                                             connector->executor(),
-                                             handler(),
-                                             dateGenerator(),
-                                             outputCompressor(),
-                                             maxRequestUriLength(),
-                                             maxRequestBodyLength(),
-                                             maxRequestCount(),
-                                             maxKeepAlive(),
-                                             inputBufferSize,
-                                             corkStream());
+  return std::make_unique<Connection>(endpoint,
+                                      connector->executor(),
+                                      handler(),
+                                      dateGenerator(),
+                                      outputCompressor(),
+                                      maxRequestUriLength(),
+                                      maxRequestBodyLength(),
+                                      maxRequestCount(),
+                                      maxKeepAlive(),
+                                      inputBufferSize,
+                                      corkStream());
 }
 
 }  // namespace http1

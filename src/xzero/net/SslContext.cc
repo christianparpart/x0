@@ -7,7 +7,7 @@
 
 #include <xzero/net/SslContext.h>
 #include <xzero/net/SslEndPoint.h> // for makeProtocolList, SslErrorCategory
-#include <xzero/net/Connection.h>
+#include <xzero/net/TcpConnection.h>
 #include <xzero/util/BinaryWriter.h>
 #include <xzero/BufferUtil.h>
 #include <xzero/RuntimeError.h>

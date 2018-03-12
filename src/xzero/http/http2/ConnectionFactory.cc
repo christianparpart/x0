@@ -26,15 +26,15 @@ ConnectionFactory::ConnectionFactory(
                             maxRequestBodyLength) {
 }
 
-std::unique_ptr<xzero::Connection> ConnectionFactory::create(TcpConnector* connector,
-                                                             TcpEndPoint* endpoint) {
-  return std::make_unique<http2::Connection>(endpoint,
-                                             connector->executor(),
-                                             handler(),
-                                             dateGenerator(),
-                                             outputCompressor(),
-                                             maxRequestUriLength(),
-                                             maxRequestBodyLength());
+std::unique_ptr<TcpConnection> ConnectionFactory::create(TcpConnector* connector,
+                                                         TcpEndPoint* endpoint) {
+  return std::make_unique<Connection>(endpoint,
+                                      connector->executor(),
+                                      handler(),
+                                      dateGenerator(),
+                                      outputCompressor(),
+                                      maxRequestUriLength(),
+                                      maxRequestBodyLength());
 }
 
 }  // namespace http1

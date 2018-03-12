@@ -10,27 +10,28 @@
 #include <xzero/Buffer.h>
 #include <xzero/Duration.h>
 #include <xzero/net/EndPointWriter.h>
+#include <xzero/net/TcpConnection.h>
 #include <xzero/http/HttpTransport.h>
 #include <xzero/http/HttpHandler.h>
 #include <xzero/http/http1/Parser.h>
 #include <xzero/http/http1/Generator.h>
 #include <memory>
 
-namespace xzero {
-namespace http {
+namespace xzero::http {
+  class HttpDateGenerator;
+  class HttpOutputCompressor;
+}
 
-class HttpDateGenerator;
-class HttpOutputCompressor;
-
-namespace http1 {
+namespace xzero::http::http1 {
 
 class Channel;
 
 /**
  * @brief Implements a HTTP/1.1 transport connection.
  */
-class Connection : public ::xzero::Connection,
-                                   public HttpTransport {
+class Connection
+    : public TcpConnection,
+      public HttpTransport {
  public:
   Connection(TcpEndPoint* endpoint,
              Executor* executor,
@@ -85,7 +86,7 @@ class Connection : public ::xzero::Connection,
   void parseFragment();
   void onResponseComplete(bool succeed);
 
-  // Connection overrides
+  // TcpConnection overrides
   void onOpen(bool dataReady) override;
   void onReadable() override;
   void onWriteable() override;
@@ -111,6 +112,4 @@ class Connection : public ::xzero::Connection,
   std::function<void(TcpEndPoint*)> upgradeCallback_;
 };
 
-}  // namespace http1
-}  // namespace http
-}  // namespace xzero
+}  // namespace xzero::http::http1

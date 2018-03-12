@@ -12,7 +12,7 @@
 #include <xzero/http/HttpResponse.h>
 #include <xzero/http/HttpRequest.h>
 #include <xzero/http/BadMessage.h>
-#include <xzero/net/Connection.h>
+#include <xzero/net/TcpConnection.h>
 #include <xzero/net/TcpEndPoint.h>
 #include <xzero/net/EndPointWriter.h>
 #include <xzero/executor/Executor.h>
@@ -215,7 +215,7 @@ Connection::Connection(TcpEndPoint* endpoint,
                        size_t maxRequestUriLength,
                        size_t maxRequestBodyLength,
                        Duration maxKeepAlive)
-    : ::xzero::Connection(endpoint, executor),
+    : TcpConnection(endpoint, executor),
       handler_(handler),
       maxRequestUriLength_(maxRequestUriLength),
       maxRequestBodyLength_(maxRequestBodyLength),
@@ -242,7 +242,7 @@ Connection::~Connection() {
 
 void Connection::onOpen(bool dataReady) {
   TRACE_CONN("$0 onOpen", this);
-  xzero::Connection::onOpen(dataReady);
+  TcpConnection::onOpen(dataReady);
 
   if (dataReady)
     onReadable();
