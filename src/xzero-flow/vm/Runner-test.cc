@@ -9,7 +9,6 @@ using namespace xzero;
 using namespace xzero::flow;
 using namespace xzero::flow::vm;
 
-using Value = Runner::Value;
 using Code = ConstantPool::Code;
 
 std::unique_ptr<Runner> run(Code&& code) {
@@ -18,7 +17,7 @@ std::unique_ptr<Runner> run(Code&& code) {
   cp.makeInteger(4);
   cp.setHandler("main", std::move(code));
   Program program(std::move(cp));
-  std::unique_ptr<Runner> vm = program.findHandler("main")->createRunner();
+  std::unique_ptr<Runner> vm = std::make_unique<Runner>(program.findHandler("main"));
   vm->run();
   return vm;
 }
