@@ -59,11 +59,11 @@ void Transport::run(HttpVersion version, const std::string& method,
   responseInfo_.reset();
   responseBody_.clear();
 
-  channel_.reset(new HttpChannel(this, executor_, handler_,
-                                 maxRequestUriLength_, maxRequestBodyLength_,
-                                 dateGenerator_,
-                                 outputCompressor_));
-
+  channel_ = std::make_unique<HttpChannel>(this, executor_, handler_,
+                                           maxRequestUriLength_,
+                                           maxRequestBodyLength_,
+                                           dateGenerator_,
+                                           outputCompressor_);
 
   try {
     channel_->onMessageBegin(BufferRef(method), BufferRef(entity), version);

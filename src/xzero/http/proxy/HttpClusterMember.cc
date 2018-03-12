@@ -54,7 +54,7 @@ HttpClusterMember::HttpClusterMember(
       connectTimeout_(connectTimeout),
       readTimeout_(readTimeout),
       writeTimeout_(writeTimeout),
-      healthMonitor_(new HttpHealthMonitor(
+      healthMonitor_(std::make_unique<HttpHealthMonitor>(
           executor,
           inetAddress,
           healthCheckHostHeader,

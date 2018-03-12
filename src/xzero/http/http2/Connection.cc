@@ -88,7 +88,7 @@ Stream* Connection::createStream(const HttpRequestInfo& info,
   if (streams_.size() >= maxConcurrentStreams_)
     return nullptr;
 
-  streams_[sid] = std::unique_ptr<Stream>(new Stream(
+  streams_[sid] = std::make_unique<Stream>(
       sid,
       parentStream,
       exclusive,
@@ -99,7 +99,7 @@ Stream* Connection::createStream(const HttpRequestInfo& info,
       maxRequestUriLength_,
       maxRequestBodyLength_,
       dateGenerator_,
-      outputCompressor_));
+      outputCompressor_);
 
   Stream* stream = streams_[sid].get();
   HttpChannel* channel = stream->channel();

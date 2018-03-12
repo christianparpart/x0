@@ -47,7 +47,7 @@ Connection::Connection(TcpEndPoint* endpoint,
                        size_t inputBufferSize,
                        bool corkStream)
     : TcpConnection(endpoint, executor),
-      channel_(new Channel(
+      channel_(std::make_unique<Channel>(
           this, executor, handler,
           maxRequestUriLength, maxRequestBodyLength,
           dateGenerator, outputCompressor)),

@@ -105,7 +105,7 @@ HttpCluster::HttpCluster(const std::string& name,
       healthCheckInterval_(healthCheckInterval),
       healthCheckSuccessThreshold_(healthCheckSuccessThreshold),
       healthCheckSuccessCodes_(healthCheckSuccessCodes),
-      scheduler_(new HttpClusterScheduler::RoundRobin(&members_)),
+      scheduler_(std::make_unique<HttpClusterScheduler::RoundRobin>(&members_)),
       load_(),
       queued_(),
       dropped_() {
@@ -562,10 +562,10 @@ void HttpCluster::loadBucket(const IniFile& settings, const std::string& key) {
 
 bool HttpCluster::setScheduler(const std::string& value) {
   if (value == "rr") {
-    setScheduler(std::unique_ptr<HttpClusterScheduler>(new HttpClusterScheduler::RoundRobin(&members_)));
+    setScheduler(std::make_unique<HttpClusterScheduler::RoundRobin>(&members_));
     return true;
   } else if (value == "chance") {
-    setScheduler(std::unique_ptr<HttpClusterScheduler>(new HttpClusterScheduler::Chance(&members_)));
+    setScheduler(std::make_unique<HttpClusterScheduler::Chance>(&members_));
     return true;
   } else {
     return false;
