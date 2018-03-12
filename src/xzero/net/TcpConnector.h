@@ -11,6 +11,7 @@
 #include <xzero/net/IPAddress.h>
 #include <xzero/io/FileDescriptor.h>
 #include <xzero/executor/Executor.h> // for Executor::HandleRef
+#include <xzero/net/Connection.h>
 #include <xzero/Duration.h>
 #include <xzero/RefPtr.h>
 #include <unordered_map>
@@ -49,7 +50,8 @@ class TcpConnector {
    *
    * The newly created Connection instance will be owned by its TcpEndPoint.
    */
-  typedef std::function<Connection*(TcpConnector*, TcpEndPoint*)> ConnectionFactory;
+  typedef std::function<std::unique_ptr<Connection>(TcpConnector*, TcpEndPoint*)>
+      ConnectionFactory;
 
   /**
    * Initializes this connector.

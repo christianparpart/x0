@@ -105,12 +105,6 @@ class TcpEndPoint : public RefCounted {
   void setConnection(std::unique_ptr<Connection>&& connection);
 
   /**
-   * Associates a Connection associated with this TcpEndPoint.
-   */
-  template<typename T, typename... Args>
-  T* setConnection(Args&&... args);
-
-  /**
    * Tests whether this endpoint is blocking on I/O.
    */
   bool isBlocking() const;
@@ -249,12 +243,6 @@ class TcpEndPoint : public RefCounted {
 
 inline size_t TcpEndPoint::readBufferSize() const {
   return inputBuffer_.size() - inputOffset_;
-}
-
-template<typename T, typename... Args>
-inline T* TcpEndPoint::setConnection(Args&&... args) {
-  setConnection(std::make_unique<T>(std::forward<Args>(args)...));
-  return static_cast<T*>(connection());
 }
 
 } // namespace xzero

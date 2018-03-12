@@ -48,8 +48,8 @@ class ConnectionFactory : public HttpConnectionFactory {
   bool corkStream() const noexcept { return corkStream_; }
   bool tcpNoDelay() const noexcept { return tcpNoDelay_; }
 
-  ::xzero::Connection* create(TcpConnector* connector,
-                              TcpEndPoint* endpoint) override;
+  std::unique_ptr<::xzero::Connection> create(TcpConnector* connector,
+                                              TcpEndPoint* endpoint) override;
 
  private:
   size_t requestHeaderBufferSize_;

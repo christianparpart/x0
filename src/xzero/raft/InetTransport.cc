@@ -215,12 +215,12 @@ void InetTransport::setHandler(Handler* handler) {
   handler_ = handler;
 }
 
-Connection* InetTransport::create(TcpConnector* connector,
-                                  TcpEndPoint* endpoint) {
-  return endpoint->setConnection<PeerConnection>(this,
-                                                 connector->executor(),
-                                                 handler_,
-                                                 endpoint);
+std::unique_ptr<Connection> InetTransport::create(TcpConnector* connector,
+                                                  TcpEndPoint* endpoint) {
+  return std::make_unique<PeerConnection>(this,
+                                          connector->executor(),
+                                          handler_,
+                                          endpoint);
 }
 
 RefPtr<TcpEndPoint> InetTransport::getEndPoint(Id target) {
@@ -241,11 +241,11 @@ RefPtr<TcpEndPoint> InetTransport::getEndPoint(Id target) {
 
   RefPtr<TcpEndPoint> ep = endpointCreator_(*address);
   if (ep) {
-    ep->setConnection<PeerConnection>(this,
-                                      handlerExecutor_,
-                                      handler_,
-                                      ep.get(),
-                                      target);
+    ep->setConnection(std::make_unique<PeerConnection>(this,
+                                                       handlerExecutor_,
+                                                       handler_,
+                                                       ep.get(),
+                                                       target));
   }
 
   return ep;

@@ -62,7 +62,7 @@ class InetTransport : public Transport {
   TcpConnector* connector() const { return connector_.get(); }
 
  private:
-  Connection* create(TcpConnector* connector, TcpEndPoint* endpoint);
+  std::unique_ptr<Connection> create(TcpConnector* connector, TcpEndPoint* endpoint);
 
  private:
   RefPtr<TcpEndPoint> getEndPoint(Id target);

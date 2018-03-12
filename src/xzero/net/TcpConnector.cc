@@ -541,7 +541,9 @@ void TcpConnector::onEndPointCreated(RefPtr<TcpEndPoint> endpoint) {
                   std::placeholders::_1,
                   std::placeholders::_2));
   } else {
-    defaultConnectionFactory()(this, endpoint.get());
+    std::unique_ptr<Connection> c =
+        defaultConnectionFactory()(this, endpoint.get());
+    endpoint->setConnection(std::move(c));
     endpoint->connection()->onOpen(deferAccept());
   }
 }
@@ -575,7 +577,7 @@ void TcpConnector::onEndPointClosed(TcpEndPoint* endpoint) {
 }
 
 void TcpConnector::addConnectionFactory(const std::string& protocolName,
-                                         ConnectionFactory factory) {
+                                        ConnectionFactory factory) {
   assert(protocolName != "");
   assert(!!factory);
 
@@ -590,11 +592,10 @@ void TcpConnector::createConnection(const std::string& protocolName,
                                     TcpEndPoint* endpoint) {
   TRACE("createConnection: \"$0\"", protocolName);
   auto factory = connectionFactory(protocolName);
-  if (factory) {
-    factory(this, endpoint);
-  } else {
-    defaultConnectionFactory()(this, endpoint);
-  }
+  std::unique_ptr<Connection> c = factory
+      ? factory(this, endpoint)
+      : defaultConnectionFactory()(this, endpoint);
+  endpoint->setConnection(std::move(c));
   endpoint->connection()->onOpen(endpoint->readBufferSize() > 0);
 }
 

@@ -21,11 +21,11 @@ class ConnectionFactory : public HttpConnectionFactory {
  public:
   ConnectionFactory();
 
-  ConnectionFactory(
-      size_t maxRequestUriLength,
-      size_t maxRequestBodyLength);
+  ConnectionFactory(size_t maxRequestUriLength,
+                    size_t maxRequestBodyLength);
 
-  xzero::Connection* create(TcpConnector* connector, TcpEndPoint* endpoint) override;
+  std::unique_ptr<xzero::Connection> create(TcpConnector* connector,
+                                            TcpEndPoint* endpoint) override;
 };
 
 }  // namespace http1

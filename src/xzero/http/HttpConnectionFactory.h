@@ -59,7 +59,8 @@ class HttpConnectionFactory {
   /** Access to the @c Date response header generator. */
   HttpDateGenerator* dateGenerator() noexcept;
 
-  virtual xzero::Connection* create(TcpConnector* connector, TcpEndPoint* endpoint) = 0;
+  virtual std::unique_ptr<xzero::Connection> create(TcpConnector* connector,
+                                                    TcpEndPoint* endpoint) = 0;
 
  private:
   std::string protocolName_;

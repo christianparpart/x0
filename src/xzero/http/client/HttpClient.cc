@@ -189,9 +189,9 @@ Future<RefPtr<TcpEndPoint>> HttpClient::createTcp(InetAddress address,
     TRACE("createTcp: https");
     auto createApplicationConnection = [this](const std::string& protocolName,
                                               TcpEndPoint* endpoint) {
-      endpoint->setConnection<Http1Connection>(listener_,
-                                               endpoint,
-                                               executor_);
+      endpoint->setConnection(std::make_unique<Http1Connection>(listener_,
+                                                                endpoint,
+                                                                executor_));
     };
     Promise<RefPtr<TcpEndPoint>> promise;
     std::string sni = request_.headers().get("Host");
@@ -261,7 +261,8 @@ void HttpClient::execute() {
 
     if (!endpoint_->connection()) {
       TRACE("creating connection: http/1.1");
-      endpoint_->setConnection<Http1Connection>(listener_, endpoint_.get(), executor_);
+      endpoint_->setConnection(std::make_unique<Http1Connection>(
+            listener_, endpoint_.get(), executor_));
     }
 
     // dynamic_cast, as we're having most-likely multiple inheritance here

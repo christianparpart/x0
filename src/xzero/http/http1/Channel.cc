@@ -185,7 +185,7 @@ void Channel::h2cUpgrade(const Http2Settings& settings,
   HttpRequestInfo info;
   HugeBuffer body(16384);
 
-  endpoint->setConnection<http2::Connection>(
+  endpoint->setConnection(std::make_unique<http2::Connection>(
       endpoint,
       executor,
       handler,
@@ -195,7 +195,7 @@ void Channel::h2cUpgrade(const Http2Settings& settings,
       maxRequestCount,
       settings,
       std::move(info),
-      std::move(body));
+      std::move(body)));
 }
 
 void Channel::onError(std::error_code ec) {

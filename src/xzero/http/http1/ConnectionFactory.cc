@@ -47,8 +47,10 @@ ConnectionFactory::ConnectionFactory(
 ConnectionFactory::~ConnectionFactory() {
 }
 
-::xzero::Connection* ConnectionFactory::create(TcpConnector* connector,
-                                               TcpEndPoint* endpoint) {
+std::unique_ptr<::xzero::Connection> ConnectionFactory::create(
+    TcpConnector* connector,
+    TcpEndPoint* endpoint) {
+
   if (tcpNoDelay_) {
     endpoint->setTcpNoDelay(true);
   }
@@ -56,17 +58,17 @@ ConnectionFactory::~ConnectionFactory() {
   const size_t inputBufferSize =
       requestHeaderBufferSize_ + requestBodyBufferSize_;
 
-  return endpoint->setConnection<http1::Connection>(endpoint,
-                                                    connector->executor(),
-                                                    handler(),
-                                                    dateGenerator(),
-                                                    outputCompressor(),
-                                                    maxRequestUriLength(),
-                                                    maxRequestBodyLength(),
-                                                    maxRequestCount(),
-                                                    maxKeepAlive(),
-                                                    inputBufferSize,
-                                                    corkStream());
+  return std::make_unique<http1::Connection>(endpoint,
+                                             connector->executor(),
+                                             handler(),
+                                             dateGenerator(),
+                                             outputCompressor(),
+                                             maxRequestUriLength(),
+                                             maxRequestBodyLength(),
+                                             maxRequestCount(),
+                                             maxKeepAlive(),
+                                             inputBufferSize,
+                                             corkStream());
 }
 
 }  // namespace http1

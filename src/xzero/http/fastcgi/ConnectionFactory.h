@@ -21,17 +21,17 @@ class ConnectionFactory : public HttpConnectionFactory {
  public:
   ConnectionFactory();
 
-  ConnectionFactory(
-      size_t maxRequestUriLength,
-      size_t maxRequestBodyLength,
-      Duration maxKeepAlive);
+  ConnectionFactory(size_t maxRequestUriLength,
+                    size_t maxRequestBodyLength,
+                    Duration maxKeepAlive);
 
   ~ConnectionFactory();
 
   Duration maxKeepAlive() const noexcept { return maxKeepAlive_; }
   void setMaxKeepAlive(Duration value) { maxKeepAlive_ = value; }
 
-  xzero::Connection* create(TcpConnector* connector, TcpEndPoint* endpoint) override;
+  std::unique_ptr<xzero::Connection> create(TcpConnector* connector,
+                                            TcpEndPoint* endpoint) override;
 
  private:
   Duration maxKeepAlive_;

@@ -34,16 +34,16 @@ ConnectionFactory::ConnectionFactory(
 ConnectionFactory::~ConnectionFactory() {
 }
 
-xzero::Connection* ConnectionFactory::create(TcpConnector* connector,
-                                             TcpEndPoint* endpoint) {
-  return endpoint->setConnection<Connection>(endpoint,
-                                             connector->executor(),
-                                             handler(),
-                                             dateGenerator(),
-                                             outputCompressor(),
-                                             maxRequestUriLength(),
-                                             maxRequestBodyLength(),
-                                             maxKeepAlive());
+std::unique_ptr<xzero::Connection> ConnectionFactory::create(TcpConnector* connector,
+                                                             TcpEndPoint* endpoint) {
+  return std::make_unique<Connection>(endpoint,
+                                      connector->executor(),
+                                      handler(),
+                                      dateGenerator(),
+                                      outputCompressor(),
+                                      maxRequestUriLength(),
+                                      maxRequestBodyLength(),
+                                      maxKeepAlive());
 }
 
 } // namespace fastcgi
