@@ -5,7 +5,7 @@
 // file except in compliance with the License. You may obtain a copy of
 // the License at: http://opensource.org/licenses/MIT
 
-#include <xzero/http/http2/Generator.h>
+#include <xzero/http/http2/FrameGenerator.h>
 #include <xzero/http/http2/SettingParameter.h>
 #include <xzero/http/HttpRequestInfo.h>
 #include <xzero/http/HeaderFieldList.h>
@@ -15,12 +15,10 @@
 #include <xzero/logging.h>
 #include <assert.h>
 
-namespace xzero {
-namespace http {
-namespace http2 {
+namespace xzero::http::http2 {
 
 #if !defined(NDEBUG)
-#define TRACE(msg...) logTrace("http.http2.Generator: " msg)
+#define TRACE(msg...) logTrace("http.http2.FrameGenerator: " msg)
 #else
 #define TRACE(msg...) do {} while (0)
 #endif
@@ -33,34 +31,34 @@ constexpr size_t InitialHeaderTableSize = 4096;
 constexpr size_t InitialMaxFrameSize = 16384;
 constexpr size_t InitialMaxHeaderListSize = 0x7fffffff; // (infinite)
 
-Generator::Generator(DataChain* sink)
-    : Generator(sink,
-                InitialMaxFrameSize,
-                InitialHeaderTableSize,
-                InitialMaxHeaderListSize) {
+FrameGenerator::FrameGenerator(DataChain* sink)
+    : FrameGenerator(sink,
+                     InitialMaxFrameSize,
+                     InitialHeaderTableSize,
+                     InitialMaxHeaderListSize) {
 }
 
-Generator::Generator(DataChain* sink,
-                     size_t maxFrameSize,
-                     size_t headerTableSize,
-                     size_t maxHeaderListSize)
+FrameGenerator::FrameGenerator(DataChain* sink,
+                               size_t maxFrameSize,
+                               size_t headerTableSize,
+                               size_t maxHeaderListSize)
     : sink_(sink),
       maxFrameSize_(maxFrameSize),
       headerGenerator_(headerTableSize/*TODO: solve this, maxHeaderListSize*/) {
   assert(maxFrameSize_ > FrameHeaderSize + 1);
 }
 
-void Generator::setMaxFrameSize(size_t value) {
+void FrameGenerator::setMaxFrameSize(size_t value) {
   value = std::max(value, static_cast<size_t>(16384));
 
   maxFrameSize_ = value;
 }
 
-void Generator::generateClientConnectionPreface() {
+void FrameGenerator::generateClientConnectionPreface() {
   sink_->write("PRI * HTTP/2.0\r\n\r\nSM\r\n\r\n");
 }
 
-void Generator::generateData(StreamID sid, const BufferRef& data, bool last) {
+void FrameGenerator::generateData(StreamID sid, const BufferRef& data, bool last) {
   /*
    * +---------------+
    * |Pad Length? (8)|
@@ -99,7 +97,7 @@ void Generator::generateData(StreamID sid, const BufferRef& data, bool last) {
   }
 }
 
-void Generator::generateHeaders(StreamID sid, const HeaderFieldList& headers,
+void FrameGenerator::generateHeaders(StreamID sid, const HeaderFieldList& headers,
                                 bool last) {
   StreamID dependsOnSID = 0;
   bool isExclusive = false;
@@ -107,11 +105,11 @@ void Generator::generateHeaders(StreamID sid, const HeaderFieldList& headers,
   generateHeaders(sid, headers, last, dependsOnSID, isExclusive, weight);
 }
 
-void Generator::generateHeaders(StreamID sid, const HeaderFieldList& headers,
-                                StreamID dependsOnSID,
-                                bool isExclusive,
-                                uint8_t weight,
-                                bool last) {
+void FrameGenerator::generateHeaders(StreamID sid, const HeaderFieldList& headers,
+                                     StreamID dependsOnSID,
+                                     bool isExclusive,
+                                     uint8_t weight,
+                                     bool last) {
   /* +---------------+
    * |Pad Length? (8)|
    * +-+-------------+-----------------------------------------------+
@@ -171,8 +169,8 @@ void Generator::generateHeaders(StreamID sid, const HeaderFieldList& headers,
   }
 }
 
-void Generator::generatePriority(StreamID sid, bool exclusive,
-                                 StreamID dependantStreamID, unsigned weight) {
+void FrameGenerator::generatePriority(StreamID sid, bool exclusive,
+                                      StreamID dependantStreamID, unsigned weight) {
   /*
    * +-+-------------------------------------------------------------+
    * |E|                  Stream Dependency (31)                     |
@@ -189,7 +187,7 @@ void Generator::generatePriority(StreamID sid, bool exclusive,
   write8(weight - 1);
 }
 
-void Generator::generateResetStream(StreamID sid, ErrorCode errorCode) {
+void FrameGenerator::generateResetStream(StreamID sid, ErrorCode errorCode) {
   /*
    *  +---------------------------------------------------------------+
    *  |                        Error Code (32)                        |
@@ -203,7 +201,7 @@ void Generator::generateResetStream(StreamID sid, ErrorCode errorCode) {
   write32(payload);
 }
 
-void Generator::generateSettings(
+void FrameGenerator::generateSettings(
     const std::vector<std::pair<SettingParameter, unsigned>>& settings) {
   /* a multiple of:
    *
@@ -223,14 +221,14 @@ void Generator::generateSettings(
   }
 }
 
-void Generator::generateSettingsAck() {
+void FrameGenerator::generateSettingsAck() {
   constexpr unsigned ACK = 0x01;
 
   generateFrameHeader(FrameType::Settings, ACK, 0, 0);
 }
 
-void Generator::generatePushPromise(StreamID sid, StreamID psid,
-                                    const HttpRequestInfo& info) {
+void FrameGenerator::generatePushPromise(StreamID sid, StreamID psid,
+                                         const HttpRequestInfo& info) {
   /*
    * +---------------+
    * |Pad Length? (8)|
@@ -272,7 +270,7 @@ void Generator::generatePushPromise(StreamID sid, StreamID psid,
   }
 }
 
-void Generator::generateContinuations(StreamID sid, const BufferRef& payload) {
+void FrameGenerator::generateContinuations(StreamID sid, const BufferRef& payload) {
   static constexpr unsigned END_HEADERS = 0x04;
 
   auto pos = payload.data();
@@ -292,7 +290,7 @@ void Generator::generateContinuations(StreamID sid, const BufferRef& payload) {
   sink_->write(pos, count);
 }
 
-void Generator::generatePing(uint64_t payload) {
+void FrameGenerator::generatePing(uint64_t payload) {
   /*
    * +---------------------------------------------------------------+
    * |                      Opaque Data (64)                         |
@@ -303,7 +301,7 @@ void Generator::generatePing(uint64_t payload) {
   write64(payload);
 }
 
-void Generator::generatePing(const BufferRef& payload) {
+void FrameGenerator::generatePing(const BufferRef& payload) {
   /*
    * +---------------------------------------------------------------+
    * |                      Opaque Data (64)                         |
@@ -315,7 +313,7 @@ void Generator::generatePing(const BufferRef& payload) {
   sink_->write(payload);
 }
 
-void Generator::generatePingAck(const BufferRef& payload) {
+void FrameGenerator::generatePingAck(const BufferRef& payload) {
   /*
    * +---------------------------------------------------------------+
    * |                      Opaque Data (64)                         |
@@ -328,7 +326,7 @@ void Generator::generatePingAck(const BufferRef& payload) {
   sink_->write(payload);
 }
 
-void Generator::generatePingAck(uint64_t payload) {
+void FrameGenerator::generatePingAck(uint64_t payload) {
   /*
    * +---------------------------------------------------------------+
    * |                      Opaque Data (64)                         |
@@ -340,9 +338,9 @@ void Generator::generatePingAck(uint64_t payload) {
   write64(payload);
 }
 
-void Generator::generateGoAway(StreamID lastStreamID,
-                               ErrorCode errorCode,
-                               const BufferRef& debugData) {
+void FrameGenerator::generateGoAway(StreamID lastStreamID,
+                                    ErrorCode errorCode,
+                                    const BufferRef& debugData) {
   /*
    * +-+-------------------------------------------------------------+
    * |R|                  Last-Stream-ID (31)                        |
@@ -363,7 +361,7 @@ void Generator::generateGoAway(StreamID lastStreamID,
   sink_->write(debugData.data(), debugDataSize);
 }
 
-void Generator::generateWindowUpdate(StreamID sid, size_t size) {
+void FrameGenerator::generateWindowUpdate(StreamID sid, size_t size) {
   /*
    * +-+-------------------------------------------------------------+
    * |R|              Window Size Increment (31)                     |
@@ -376,8 +374,8 @@ void Generator::generateWindowUpdate(StreamID sid, size_t size) {
   write32(size & ~(1 << 31)); // R-bit cleared out
 }
 
-void Generator::generateFrameHeader(FrameType frameType, unsigned frameFlags,
-                                    StreamID streamID, size_t payloadSize) {
+void FrameGenerator::generateFrameHeader(FrameType frameType, unsigned frameFlags,
+                                         StreamID streamID, size_t payloadSize) {
   /*
    * +-----------------------------------------------+
    * |                 Length (24)                   |
@@ -399,26 +397,24 @@ void Generator::generateFrameHeader(FrameType frameType, unsigned frameFlags,
   write32(streamID & ~(1 << 31)); // XXX bit 31 is cleared out (reserved)
 }
 
-void Generator::write8(unsigned value) {
+void FrameGenerator::write8(unsigned value) {
   sink_->write8(value);
 }
 
-void Generator::write16(unsigned value) {
+void FrameGenerator::write16(unsigned value) {
   sink_->write16(value);
 }
 
-void Generator::write24(unsigned value) {
+void FrameGenerator::write24(unsigned value) {
   sink_->write24(value);
 }
 
-void Generator::write32(unsigned value) {
+void FrameGenerator::write32(unsigned value) {
   sink_->write32(value);
 }
 
-void Generator::write64(uint64_t value) {
+void FrameGenerator::write64(uint64_t value) {
   sink_->write64(value);
 }
 
-} // namespace http2
-} // namespace http
-} // namespace xzero
+} // namespace xzero::http::http2

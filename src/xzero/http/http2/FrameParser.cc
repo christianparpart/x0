@@ -5,7 +5,7 @@
 // file except in compliance with the License. You may obtain a copy of
 // the License at: http://opensource.org/licenses/MIT
 
-#include <xzero/http/http2/Parser.h>
+#include <xzero/http/http2/FrameParser.h>
 #include <xzero/http/http2/FrameType.h>
 #include <xzero/http/http2/FrameListener.h>
 #include <xzero/http/HttpRequestInfo.h>
@@ -60,13 +60,13 @@ constexpr uint8_t END_HEADERS = 0x04;
 constexpr uint8_t PADDED = 0x08;
 constexpr uint8_t PRIORITY = 0x20;
 
-Parser::Parser(FrameListener* listener)
-    : Parser(listener, 1 << 14, 4096) {
+FrameParser::FrameParser(FrameListener* listener)
+    : FrameParser(listener, 1 << 14, 4096) {
 }
 
-Parser::Parser(FrameListener* listener,
-               size_t maxFrameSize,
-               size_t maxHeaderTableSize)
+FrameParser::FrameParser(FrameListener* listener,
+                         size_t maxFrameSize,
+                         size_t maxHeaderTableSize)
     : state_(State::ConnectionPreface),
       listener_(listener),
       maxFrameSize_(maxFrameSize),
@@ -81,18 +81,18 @@ Parser::Parser(FrameListener* listener,
       isExclusiveDependency_(false) {
 }
 
-void Parser::setState(State newState) {
+void FrameParser::setState(State newState) {
   state_ = newState;
 }
 
-size_t Parser::parseFragment(const BufferRef& chunk) {
+size_t FrameParser::parseFragment(const BufferRef& chunk) {
   constexpr BufferRef ConnectionPreface = "PRI * HTTP/2.0\r\n\r\nSM\r\n\r\n";
   size_t offset = 0;
 
   if (state_ == State::ConnectionPreface) {
-    printf("http2.Parser: state in preface\n");
+    printf("http2.FrameParser: state in preface\n");
     if (BufferUtil::beginsWith(chunk, ConnectionPreface)) {
-      printf("http2.Parser: preface found, skipping %zu bytes\n", ConnectionPreface.size());
+      printf("http2.FrameParser: preface found, skipping %zu bytes\n", ConnectionPreface.size());
       setState(State::Framing);
       offset += ConnectionPreface.size();
     } else {
@@ -112,7 +112,7 @@ size_t Parser::parseFragment(const BufferRef& chunk) {
   return offset;
 }
 
-void Parser::parseFrame(const BufferRef& frame) {
+void FrameParser::parseFrame(const BufferRef& frame) {
   /*
    * +-----------------------------------------------+
    * |                 Length (24)                   |
@@ -130,7 +130,7 @@ void Parser::parseFrame(const BufferRef& frame) {
   StreamID sid = read32(frame.data() + 5) & ~(1 << 31);
   BufferRef payload = frame.ref(9);
 
-  printf("Parser.parseFrame: %s (0x%02x), flags=%02x, sid=%d, len=%zu\n",
+  printf("FrameParser.parseFrame: %s (0x%02x), flags=%02x, sid=%d, len=%zu\n",
          to_string(type).c_str(), (int)type, flags, sid, payload.size());
 
   if (payload.size() > maxFrameSize_) {
@@ -186,7 +186,7 @@ void Parser::parseFrame(const BufferRef& frame) {
   lastStreamID_ = sid;
 }
 
-void Parser::parseData(uint8_t flags, StreamID sid, const BufferRef& payload) {
+void FrameParser::parseData(uint8_t flags, StreamID sid, const BufferRef& payload) {
   /* +---------------+
    * |Pad Length? (8)|
    * +---------------+-----------------------------------------------+
@@ -228,9 +228,9 @@ void Parser::parseData(uint8_t flags, StreamID sid, const BufferRef& payload) {
   listener_->onData(sid, payload.ref(0, contentLength), last);
 }
 
-void Parser::parseHeaders(uint8_t flags,
-                          StreamID sid,
-                          const BufferRef& payload) {
+void FrameParser::parseHeaders(uint8_t flags,
+                               StreamID sid,
+                               const BufferRef& payload) {
   /* +---------------+
    * |Pad Length? (8)|
    * +-+-------------+-----------------------------------------------+
@@ -294,7 +294,7 @@ void Parser::parseHeaders(uint8_t flags,
   }
 }
 
-void Parser::parsePriority(StreamID sid, const BufferRef& payload) {
+void FrameParser::parsePriority(StreamID sid, const BufferRef& payload) {
   /* +-+-------------------------------------------------------------+
    * |E|                  Stream Dependency (31)                     |
    * +-+-------------+-----------------------------------------------+
@@ -324,7 +324,7 @@ void Parser::parsePriority(StreamID sid, const BufferRef& payload) {
   listener_->onPriority(sid, isExclusiveDependency, streamDependency, weight);
 }
 
-void Parser::parseResetStream(StreamID sid, const BufferRef& payload) {
+void FrameParser::parseResetStream(StreamID sid, const BufferRef& payload) {
   /* +---------------------------------------------------------------+
    * |                        Error Code (32)                        |
    * +---------------------------------------------------------------+
@@ -356,9 +356,9 @@ void Parser::parseResetStream(StreamID sid, const BufferRef& payload) {
   listener_->onResetStream(sid, errorCode);
 }
 
-void Parser::parseSettings(uint8_t flags,
-                           StreamID sid,
-                           const BufferRef& payload) {
+void FrameParser::parseSettings(uint8_t flags,
+                                StreamID sid,
+                                const BufferRef& payload) {
   /* +-------------------------------+
    * |       Identifier (16)         |
    * +-------------------------------+-------------------------------+
@@ -410,7 +410,7 @@ void Parser::parseSettings(uint8_t flags,
   listener_->onSettings(settings);
 }
 
-ErrorCode Parser::decodeSettings(
+ErrorCode FrameParser::decodeSettings(
     const BufferRef& payload,
     std::vector<std::pair<SettingParameter, unsigned long>>* settings,
     std::string* debugData) {
@@ -461,7 +461,7 @@ ErrorCode Parser::decodeSettings(
   return ErrorCode::NoError;
 }
 
-void Parser::parsePushPromise(uint8_t flags, StreamID sid, const BufferRef& payload) {
+void FrameParser::parsePushPromise(uint8_t flags, StreamID sid, const BufferRef& payload) {
   /* +---------------+
    * |Pad Length? (8)|
    * +-+-------------+-----------------------------------------------+
@@ -501,7 +501,7 @@ void Parser::parsePushPromise(uint8_t flags, StreamID sid, const BufferRef& payl
   }
 }
 
-void Parser::parsePing(uint8_t flags, StreamID sid, const BufferRef& payload) {
+void FrameParser::parsePing(uint8_t flags, StreamID sid, const BufferRef& payload) {
   /* +---------------------------------------------------------------+
    * |                      Opaque Data (64)                         |
    * +---------------------------------------------------------------+
@@ -521,7 +521,7 @@ void Parser::parsePing(uint8_t flags, StreamID sid, const BufferRef& payload) {
   }
 }
 
-void Parser::parseGoAway(uint8_t flags, StreamID sid, const BufferRef& payload) {
+void FrameParser::parseGoAway(uint8_t flags, StreamID sid, const BufferRef& payload) {
   /* +-+-------------------------------------------------------------+
    * |R|                  Last-Stream-ID (31)                        |
    * +-+-------------------------------------------------------------+
@@ -558,7 +558,7 @@ void Parser::parseGoAway(uint8_t flags, StreamID sid, const BufferRef& payload) 
   listener_->onGoAway(lastStreamID, errorCode, debugData);
 }
 
-void Parser::parseWindowUpdate(uint8_t flags, StreamID sid, const BufferRef& payload) {
+void FrameParser::parseWindowUpdate(uint8_t flags, StreamID sid, const BufferRef& payload) {
   /* +-+-------------------------------------------------------------+
    * |R|              Window Size Increment (31)                     |
    * +-+-------------------------------------------------------------+
@@ -583,9 +583,9 @@ void Parser::parseWindowUpdate(uint8_t flags, StreamID sid, const BufferRef& pay
   listener_->onWindowUpdate(sid, windowSizeUpdate);
 }
 
-void Parser::parseContinuation(uint8_t flags,
-                               StreamID sid,
-                               const BufferRef& payload) {
+void FrameParser::parseContinuation(uint8_t flags,
+                                    StreamID sid,
+                                    const BufferRef& payload) {
   if (lastStreamID_ != sid) {
     listener_->onConnectionError(
         ErrorCode::ProtocolError,
@@ -618,7 +618,7 @@ void Parser::parseContinuation(uint8_t flags,
   }
 }
 
-bool Parser::verifyPadding(const BufferRef& padding) {
+bool FrameParser::verifyPadding(const BufferRef& padding) {
   for (auto ch: padding) {
     if (ch != 0x00) {
       listener_->onConnectionError(
@@ -638,7 +638,7 @@ static inline bool isAnyUpper(const std::string& text) {
   return false;
 }
 
-void Parser::onRequestBegin() {
+void FrameParser::onRequestBegin() {
   HttpRequestInfo info;
   unsigned protoErrors = 0;
 

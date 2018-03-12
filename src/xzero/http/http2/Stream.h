@@ -29,7 +29,7 @@ class Stream;
 
 bool streamCompare(Stream* a, Stream* b);
 
-class Stream : public ::xzero::http::HttpTransport {
+class Stream : public HttpTransport {
  public:
   Stream(StreamID id,
          Stream* parentStream,

@@ -122,9 +122,9 @@ libXzero_a_SOURCES = \
 	src/xzero/http/http2/Connection.cc \
 	src/xzero/http/http2/ConnectionFactory.cc \
 	src/xzero/http/http2/ErrorCode.cc \
+	src/xzero/http/http2/FrameGenerator.cc \
+	src/xzero/http/http2/FrameParser.cc \
 	src/xzero/http/http2/FrameType.cc \
-	src/xzero/http/http2/Generator.cc \
-	src/xzero/http/http2/Parser.cc \
 	src/xzero/http/http2/SettingParameter.cc \
 	src/xzero/http/http2/Settings.cc \
 	src/xzero/http/http2/Stream.cc \
@@ -311,10 +311,10 @@ nobase_libXzero_HEADERS = \
 	src/xzero/http/http2/ErrorCode.h \
 	src/xzero/http/http2/Flow-inl.h \
 	src/xzero/http/http2/Flow.h \
+	src/xzero/http/http2/FrameGenerator.h \
 	src/xzero/http/http2/FrameListener.h \
+	src/xzero/http/http2/FrameParser.h \
 	src/xzero/http/http2/FrameType.h \
-	src/xzero/http/http2/Generator.h \
-	src/xzero/http/http2/Parser.h \
 	src/xzero/http/http2/SettingParameter.h \
 	src/xzero/http/http2/Settings.h \
 	src/xzero/http/http2/Stream.h \
@@ -575,8 +575,8 @@ xzero_test_SOURCES = \
 	src/xzero/http/http1/Parser-test.cc \
 	src/xzero/http/http2/Connection-test.cc \
 	src/xzero/http/http2/Flow-test.cc \
-	src/xzero/http/http2/Generator-test.cc \
-	src/xzero/http/http2/Parser-test.cc \
+	src/xzero/http/http2/FrameGenerator-test.cc \
+	src/xzero/http/http2/FrameParser-test.cc \
 	src/xzero/http/http2/Stream-test.cc \
 	src/xzero/io/DataChain-test.cc \
 	src/xzero/io/MemoryFile-test.cc \

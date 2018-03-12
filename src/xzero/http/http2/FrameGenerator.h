@@ -17,29 +17,29 @@
 #include <stdint.h>
 
 namespace xzero {
+  class BufferRef;
+  class FileView;
+  class DataChain;
+}
 
-class BufferRef;
-class FileView;
-class DataChain;
+namespace xzero::http {
+  class HeaderFieldList;
+  class HttpRequestInfo;
+}
 
-namespace http {
-
-class HeaderFieldList;
-class HttpRequestInfo;
-
-namespace http2 {
+namespace xzero::http::http2 {
 
 enum class ErrorCode;
 
 /**
  * Generates HTTP/2 compliant binary frames.
  */
-class Generator {
+class FrameGenerator {
  public:
   /**
    * Initializes the HTTP/2 generator with standard @c SETTINGS parameter.
    */
-  explicit Generator(DataChain* sink);
+  explicit FrameGenerator(DataChain* sink);
 
   /**
    * Initializes the HTTP/2 generator with custom @c SETTINGS parameter.
@@ -49,15 +49,15 @@ class Generator {
    * @param headerTableSize initial @c HEADER_TABLE_SIZE to honor in HPACK.
    * @param maxHeaderListSize initial @c MAX_HEADER_LIST_SIZE to honor in HPACK.
    */
-  Generator(DataChain* sink,
-            size_t maxFrameSize,
-            size_t headerTableSize,
-            size_t maxHeaderListSize);
+  FrameGenerator(DataChain* sink,
+                 size_t maxFrameSize,
+                 size_t headerTableSize,
+                 size_t maxHeaderListSize);
 
   /**
    * Updates the maximum frame size in bytes a frame may fill its payload with.
    *
-   * @param value frame size in bytes this Generator is allowed to use per
+   * @param value frame size in bytes this FrameGenerator is allowed to use per
    *              frame.
    *
    * @note This value is excluding the 9 bytes frame header.
@@ -237,11 +237,9 @@ class Generator {
 };
 
 // {{{ inlines
-inline size_t Generator::maxFrameSize() const noexcept {
+inline size_t FrameGenerator::maxFrameSize() const noexcept {
   return maxFrameSize_;
 }
 // }}}
 
-} // namespace http2
-} // namespace http
-} // namespace xzero
+} // namespace xzero::http::http2

@@ -7,11 +7,11 @@
 
 #pragma once
 
-#include <xzero/http/http2/Parser.h>
-#include <xzero/http/http2/Generator.h>
+#include <xzero/http/http2/FrameGenerator.h>
+#include <xzero/http/http2/FrameListener.h>
+#include <xzero/http/http2/FrameParser.h>
 #include <xzero/http/http2/Stream.h>
 #include <xzero/http/http2/Flow.h>
-#include <xzero/http/http2/FrameListener.h>
 #include <xzero/http/http2/ErrorCode.h>
 #include <xzero/http/HttpHandler.h>
 #include <xzero/net/TcpConnection.h>
@@ -124,7 +124,7 @@ class Connection
   Flow inputFlow_;
   Buffer inputBuffer_;
   size_t inputOffset_;
-  Parser parser_;
+  FrameParser parser_;
 
   size_t maxRequestUriLength_;
   size_t maxRequestBodyLength_;
@@ -137,7 +137,7 @@ class Connection
   // output management
   Flow outputFlow_;
   EndPointWriter writer_;
-  Generator generator_;
+  FrameGenerator generator_;
 
   // stream management
   size_t lowestStreamIdLocal_;

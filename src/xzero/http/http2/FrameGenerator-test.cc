@@ -6,7 +6,7 @@
 // the License at: http://opensource.org/licenses/MIT
 
 #include <xzero/testing.h>
-#include <xzero/http/http2/Generator.h>
+#include <xzero/http/http2/FrameGenerator.h>
 #include <xzero/http/http2/ErrorCode.h>
 #include <xzero/io/DataChain.h>
 
@@ -46,7 +46,7 @@ inline uint64_t read64(const BufferRef& buf, size_t offset) {
 
 TEST(http_http2_Generator, data_single_frame) {
   DataChain chain;
-  Generator generator(&chain);
+  FrameGenerator generator(&chain);
 
   generator.generateData(42, "Hello World", true);
 
@@ -79,7 +79,7 @@ TEST(http_http2_Generator, data_single_frame) {
 TEST(http_http2_Generator, data_split_frames) {
   static constexpr size_t InitialMaxFrameSize = 16384;
   DataChain chain;
-  Generator generator(&chain);
+  FrameGenerator generator(&chain);
 
   Buffer payload(InitialMaxFrameSize, 'x');
   payload.push_back('y'); // force to exceed MAX_FRAME_SIZE
@@ -101,7 +101,7 @@ TEST(http_http2_Generator, data_split_frames) {
 
 TEST(http_http2_Generator, priority) {
   DataChain chain;
-  Generator generator(&chain);
+  FrameGenerator generator(&chain);
 
   generator.generatePriority(42, true, 28, 256);
 
@@ -122,7 +122,7 @@ TEST(http_http2_Generator, priority) {
 
 TEST(http_http2_Generator, reset_stream) {
   DataChain chain;
-  Generator generator(&chain);
+  FrameGenerator generator(&chain);
 
   generator.generateResetStream(42, ErrorCode::EnhanceYourCalm);
 
@@ -142,7 +142,7 @@ TEST(http_http2_Generator, reset_stream) {
 
 TEST(http_http2_Generator, settings) {
   DataChain chain;
-  Generator generator(&chain);
+  FrameGenerator generator(&chain);
 
   generator.generateSettings({
       {SettingParameter::EnablePush, 1},
@@ -160,7 +160,7 @@ TEST(http_http2_Generator, settings) {
 
 TEST(http_http2_Generator, settingsAck) {
   DataChain chain;
-  Generator generator(&chain);
+  FrameGenerator generator(&chain);
 
   generator.generateSettingsAck();
 
@@ -173,7 +173,7 @@ TEST(http_http2_Generator, settingsAck) {
 
 TEST(http_http2_Generator, ping) {
   DataChain chain;
-  Generator generator(&chain);
+  FrameGenerator generator(&chain);
 
   generator.generatePing("pingpong");
 
@@ -189,7 +189,7 @@ TEST(http_http2_Generator, ping) {
 
 TEST(http_http2_Generator, pingAck) {
   DataChain chain;
-  Generator generator(&chain);
+  FrameGenerator generator(&chain);
 
   generator.generatePingAck("Welcome!");
 

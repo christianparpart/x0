@@ -29,13 +29,13 @@ class FrameListener;
  *
  * This API implements parsing HTTP/2 frames on a single connection,
  */
-class Parser {
+class FrameParser {
  public:
   /**
    * Initializes the parser with a FrameListener and default limits as set by
    * RFC 7540.
    */
-  explicit Parser(FrameListener* listener);
+  explicit FrameParser(FrameListener* listener);
 
   /**
    * Initializes the parser for a connection.
@@ -45,11 +45,11 @@ class Parser {
    * @param maxHeaderTableSize customize the initial default decoding table
    *                           size in bytes (default: 4096).
    */
-  Parser(FrameListener* listener,
-         size_t maxFrameSize,
-         size_t maxHeaderTableSize);
+  FrameParser(FrameListener* listener,
+              size_t maxFrameSize,
+              size_t maxHeaderTableSize);
 
-  /** Available HTTP/2 Parser States. */
+  /** Available HTTP/2 parser States. */
   enum class State {
     ConnectionPreface,
     Framing,

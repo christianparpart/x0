@@ -138,9 +138,9 @@ void Channel::h2cVerifyUpgrade(std::string&& settingsPayload) {
 
   std::string debugData;
   Http2Settings settings;
-  http2::ErrorCode errorCode = http2::Parser::decodeSettings(settingsBuffer,
-                                                             &settings,
-                                                             &debugData);
+  http2::ErrorCode errorCode = http2::FrameParser::decodeSettings(settingsBuffer,
+                                                                  &settings,
+                                                                  &debugData);
 
   if (errorCode != http2::ErrorCode::NoError) {
     logDebug("http1.Channel: Upgrade to h2c failed. $0. $1",

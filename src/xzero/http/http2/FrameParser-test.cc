@@ -5,7 +5,7 @@
 // file except in compliance with the License. You may obtain a copy of
 // the License at: http://opensource.org/licenses/MIT
 
-#include <xzero/http/http2/Parser.h>
+#include <xzero/http/http2/FrameParser.h>
 #include <xzero/http/http2/FrameListener.h>
 #include <xzero/testing.h>
 
@@ -32,6 +32,6 @@ class NoopFrameListener : public http2::FrameListener {
 
 TEST(http_http2_Parser, wip) {
   NoopFrameListener listener;
-  http2::Parser parser(&listener);
+  http2::FrameParser parser(&listener);
   // TODO: next time
 }
