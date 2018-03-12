@@ -181,9 +181,9 @@ set(libXzero_SRC src/xzero/AnsiColor.cc
                  src/xzero/http/http2/Connection.cc
                  src/xzero/http/http2/ConnectionFactory.cc
                  src/xzero/http/http2/ErrorCode.cc
+                 src/xzero/http/http2/FrameGenerator.cc
+                 src/xzero/http/http2/FrameParser.cc
                  src/xzero/http/http2/FrameType.cc
-                 src/xzero/http/http2/Generator.cc
-                 src/xzero/http/http2/Parser.cc
                  src/xzero/http/http2/SettingParameter.cc
                  src/xzero/http/http2/Settings.cc
                  src/xzero/http/http2/Stream.cc
@@ -206,10 +206,10 @@ set(libXzero_SRC src/xzero/AnsiColor.cc
                  src/xzero/io/SystemPipe.cc
                  src/xzero/logging.cc
                  src/xzero/net/Cidr.cc
-                 src/xzero/net/Connection.cc
                  src/xzero/net/DnsClient.cc
                  src/xzero/net/EndPointWriter.cc
                  src/xzero/net/InetAddress.cc
+                 src/xzero/net/TcpConnection.cc
                  src/xzero/net/TcpConnector.cc
                  src/xzero/net/TcpEndPoint.cc
                  src/xzero/net/TcpUtil.cc
@@ -403,7 +403,7 @@ set(xzero_test_SRC
 		src/xzero/http/http2/Connection-test.cc
 		src/xzero/http/http2/Flow-test.cc
 		src/xzero/http/http2/Generator-test.cc
-		src/xzero/http/http2/Parser-test.cc
+		src/xzero/http/http2/FrameParser-test.cc
 		src/xzero/http/http2/Stream-test.cc
 		src/xzero/io/DataChain-test.cc
 		src/xzero/io/MemoryFile-test.cc
