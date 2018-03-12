@@ -72,7 +72,7 @@ IRHandler* IRBuilder::setHandler(IRHandler* hn) {
 BasicBlock* IRBuilder::createBlock(const std::string& name) {
   std::string n = makeName(name);
   TRACE(1, "createBlock() $0", n);
-  return handler_->createBlock(name);
+  return handler_->createBlock(n);
 }
 
 void IRBuilder::setInsertPoint(BasicBlock* bb) {
