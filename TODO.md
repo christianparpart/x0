@@ -1,18 +1,31 @@
 
-## Incomplete TODO items
+# Incomplete TODO items
 
-- flow: add DebugInfo section so that Runner knows which source code lines are
-  currently being executed
+All the things I've found out on the way, that need retouching
+
+- [ ] flow: NativeCallback: replace operator new/delete with `std::variant` + `bool hasDefault_`
+- [ ] flow: two constant if expr's fail optimization
+- [ ] flow: nested scopes with local variables must be initialized in this block
+      currently also initialized in entry block;
+      the problem is already how the AST is created.
+- [ ] http: rework HttpClient API (so it's becoming dead-easy to be used within proxy code)
+- [ ] net: clarify object ownership along the TCP/HTTP API
+
+## TcpConnector TcpEndPoint, Connection
+
+- TcpConnector owns TcpEndPoint (XXX should own, currently a RefPtr)
+- TcpEndPoint owns Connection
+
+## Intermediate 0
+
 - unit tests: adapt to API changes
   - raft::InetTransport (<- LocalTransport)
   - http1::Connection (<- LocalTransport)
   - HttpClient (<- local HttpServer)
-- rewrite some `throw`'s to `Result<>`|`std::error_code` returns
+- ??? rewrite some `throw`'s to `Result<>`|`std::error_code` returns
 - eliminate DataChainListener and/or greatly simplify DataChain
 - eliminate need of EndPointWriter via DataChain
-- eliminate TcpUtil?
-
-### Intermediate 0
+- ??? eliminate TcpUtil
 
 - [ ] HttpListener: onMessagecontent(HugeBuffer&&) instead
 - [ ] extend FCGI connector to tweak maxKeepAlive (just like in HTTP/1)
@@ -21,7 +34,7 @@
 - [ ] http2: use wireshark to get binary expected data for the Parser & Generator tests
 - [ ] easy enablement of FCGI in all http examples.
 
-### General
+## General
 
 - [ ] SSL: SslConnector: add optional support to also allow plaintext connections
 - [ ] SSL: ability to setup a certificate password challenge callback
@@ -30,23 +43,22 @@
 - [ ] SSL: ensure we can reconfigure cipher priorities to counter BEAST attack - http://www.g-loaded.eu/2011/09/27/mod_gnutls-rc4-cipher-beast/
 - [ ] http: ensure `TCP_CORK` / `TCP_NOPUSH` is set/cleared implicitely in plaintext vs interactive http responses
 
-### HTTP load balancer (catch-up, rewrite, testing, polishing)
+## HTTP load balancer (catch-up, rewrite, testing, polishing)
 
 - [ ] test: test each public API is well tested
 - [ ] raise 504 (gateway timeout) if backend page load takes too long and no result has been sent to the client yet (close connection directly otherwise).
 
-### Flow
-- [ ] SSA: mem2reg propagation (pass manager stage: before, one-time)
-- [ ] SSA: reg2mem propagation (pass manager stage: after, one-time)
+## Flow
+
 - [ ] SSA: constant propagation (pass manager stage: main)
 
-### x0d
+## x0d
 
 - [ ] stdout/stderr to point to log stream/handler directly,
 - [ ] add `x0d --dump-du` (dump flow's def-use chain)
 - [ ] resource management (at least for `max_core_size`) must be evaluated *after* privilege dropping, in case there is some, or they're lost.
 
-### Musclelicious
+## miscellaneous
 
 - [ ] core: Process (QA: prefer `posix_spawn()` over `vfork()` to exec child processes)
 - [ ] net: improved EndPoint timeout handling (distinguish between read/write/keepalive timeouts)
@@ -57,7 +69,7 @@
 - [ ] test: attempt to write more data than contentLength in non-chunked mode (shall be transport generic)
 - [ ] logging: improve (debug) logging facility
 
-### ALREADY DONE
+## ALREADY DONE
 
 - [x] BUG: testing: EXPECTxx failures do also increment success count?
 - [x] test: ensure `HttpStatus::NoResponse` actually terminates the transport instant
