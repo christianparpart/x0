@@ -62,7 +62,7 @@ class RegExpContext {
  public:
   RegExp::Result* regexMatch() {
     if (!regexMatch_) {
-      regexMatch_.reset(new RegExp::Result());
+      regexMatch_ = std::make_unique<RegExp::Result>();
     }
 
     return regexMatch_.get();

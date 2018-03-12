@@ -55,9 +55,8 @@ struct CustomData {
                                                                            \
   template <typename T, typename... Args>                                  \
   T* setCustomData(const void* key, Args&&... args) {                      \
-    T* value = new T(std::forward<Args>(args)...);                         \
-    customData_[key].reset(value);                                         \
-    return value;                                                          \
+    customData_[key] = std::make_unique<T>(std::forward<Args>(args)...);   \
+    return static_cast<T*>(customData_[key].get());                        \
   }
 
 }  // namespace xzero

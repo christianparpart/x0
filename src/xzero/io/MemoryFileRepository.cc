@@ -14,7 +14,7 @@ namespace xzero {
 MemoryFileRepository::MemoryFileRepository(MimeTypes& mimetypes)
     : mimetypes_(mimetypes),
       files_(),
-      notFound_(new MemoryFile()) {
+      notFound_(std::make_shared<MemoryFile>()) {
   notFound_->setErrorCode(static_cast<int>(std::errc::no_such_file_or_directory));
 }
 

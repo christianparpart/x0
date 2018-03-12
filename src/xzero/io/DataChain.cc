@@ -45,7 +45,7 @@ class DataChain::FileChunk : public Chunk {
 // }}}
 // {{{ BufferChunk impl
 std::unique_ptr<DataChain::Chunk> DataChain::BufferChunk::get(size_t n) {
-  std::unique_ptr<Chunk> chunk(new BufferChunk(buffer_.ref(offset_, n)));
+  auto chunk = std::make_unique<BufferChunk>(buffer_.ref(offset_, n));
   offset_ += n;
   return chunk;
 }
@@ -62,7 +62,7 @@ size_t DataChain::BufferChunk::size() const {
 // }}}
 // {{{ FileChunk impl
 std::unique_ptr<DataChain::Chunk> DataChain::FileChunk::get(size_t n) {
-  std::unique_ptr<Chunk> chunk(new FileChunk(file_.view(0, n)));
+  auto chunk = std::make_unique<FileChunk>(file_.view(0, n));
 
   file_.setSize(file_.size() - n);
   file_.setOffset(file_.offset() + n);
@@ -147,7 +147,7 @@ void DataChain::write(Buffer&& buf) {
 void DataChain::write(FileView&& file) {
   flushBuffer();
   if (!file.empty()) {
-    chunks_.emplace_back(new FileChunk(std::move(file)));
+    chunks_.emplace_back(std::make_unique<FileChunk>(std::move(file)));
     size_ += chunks_.back()->size();
   }
 }
@@ -204,7 +204,7 @@ void DataChain::write64(uint64_t bin) {
 
 void DataChain::flushBuffer() {
   if (!buffer_.empty()) {
-    chunks_.emplace_back(new BufferChunk(std::move(buffer_)));
+    chunks_.emplace_back(std::make_unique<BufferChunk>(std::move(buffer_)));
   }
 }
 

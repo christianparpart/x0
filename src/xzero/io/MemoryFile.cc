@@ -159,9 +159,9 @@ std::unique_ptr<MemoryMap> MemoryFile::createMemoryMap(bool rw) {
   if (fd < 0)
     RAISE_ERRNO(errno);
 
-  return std::unique_ptr<MemoryMap>(new MemoryMap(fd, 0, size(), rw));
+  return std::make_unique<MemoryMap>(fd, 0, size(), rw);
 #else
-  return std::unique_ptr<MemoryMap>(new MemoryMap(fd_, 0, size(), rw));
+  return std::make_unique<MemoryMap>(fd_, 0, size(), rw);
 #endif
 }
 

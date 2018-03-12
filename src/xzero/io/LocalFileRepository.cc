@@ -25,7 +25,7 @@ LocalFileRepository::LocalFileRepository(MimeTypes& mt,
 }
 
 std::shared_ptr<File> LocalFileRepository::getFile(const std::string& path) {
-  return std::shared_ptr<File>(new LocalFile(*this, path, mimetypes_.getMimeType(path)));
+  return std::make_unique<LocalFile>(*this, path, mimetypes_.getMimeType(path));
 }
 
 void LocalFileRepository::listFiles(

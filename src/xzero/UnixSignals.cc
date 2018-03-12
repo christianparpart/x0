@@ -74,13 +74,13 @@ std::string UnixSignals::toString(int signo) {
 std::unique_ptr<UnixSignals> UnixSignals::create(Executor* executor) {
 #if defined(XZERO_WSL)
   // WSL doesn't support signalfd() yet (2017-06-19)
-  return std::unique_ptr<UnixSignals>(new PosixSignals(executor));
+  return std::make_unique<PosixSignals>(executor);
 #elif defined(XZERO_OS_LINUX)
-  return std::unique_ptr<UnixSignals>(new LinuxSignals(executor));
+  return std::make_unique<LinuxSignals>(executor);
 #elif defined(XZERO_OS_DARWIN)
-  return std::unique_ptr<UnixSignals>(new KQueueSignals(executor));
+  return std::make_unique<KQueueSignals>(executor);
 #else
-  return std::unique_ptr<UnixSignals>(new PosixSignals(executor));
+  return std::make_unique<PosixSignals>(executor);
 #endif
 }
 

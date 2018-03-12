@@ -50,8 +50,9 @@ void SslConnector::addConnectionFactory(const std::string& protocol,
 
 void SslConnector::addContext(const std::string& crtFilePath,
                               const std::string& keyFilePath) {
-  contexts_.emplace_back(new SslContext(crtFilePath, keyFilePath, protocolList(),
-      std::bind(&SslConnector::getContextByDnsName, this, std::placeholders::_1)));
+  contexts_.emplace_back(std::make_unique<SslContext>(
+        crtFilePath, keyFilePath, protocolList(),
+        std::bind(&SslConnector::getContextByDnsName, this, std::placeholders::_1)));
 }
 
 SslContext* SslConnector::getContextByDnsName(const char* servername) const {
