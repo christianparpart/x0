@@ -120,7 +120,7 @@ std::vector<std::string> StackTrace::symbols() const {
     for (int i = SKIP_FRAMES; i <= frameCount_; ++i) {
       Dl_info info;
       if (dladdr(frames_[i], &info)) {
-        if (info.dli_sname) {
+        if (info.dli_sname && *info.dli_sname) {
           output.push_back(demangleSymbol(info.dli_sname));
         } else {
           char buf[512];
@@ -132,10 +132,12 @@ std::vector<std::string> StackTrace::symbols() const {
               frames_[i]);
           output.push_back(std::string(buf, n));
         }
-      } else {
+      } else if (frames_[i] != nullptr) {
         char buf[512];
         int n = snprintf(buf, sizeof(buf), "%p", frames_[i]);
         output.push_back(std::string(buf, n));
+      } else {
+        break;
       }
     }
 
