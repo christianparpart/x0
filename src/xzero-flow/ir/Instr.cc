@@ -40,19 +40,17 @@ Instr::Instr(FlowType ty, const std::vector<Value*>& ops,
 }
 
 Instr::~Instr() {
-  logTrace("Instr($0).dtor", name());
-  dump();
   for (Value* op : operands_) {
-    // if (!op)
-    //   continue;
+    if (op != nullptr) {
+      // remove this instruction as user of that operand
+      op->removeUse(this);
 
-    op->removeUse(this);
-
-    if (!getBasicBlock())
-      continue;
-
-    if (BasicBlock* oldBB = dynamic_cast<BasicBlock*>(op)) {
-      getBasicBlock()->unlinkSuccessor(oldBB);
+      // if operand is a BasicBlock, unlink it as successor
+      if (BasicBlock* parent = getBasicBlock(); parent != nullptr) {
+        if (BasicBlock* oldBB = dynamic_cast<BasicBlock*>(op)) {
+          parent->unlinkSuccessor(oldBB);
+        }
+      }
     }
   }
 }
@@ -198,9 +196,13 @@ void Instr::dumpOne(const char* mnemonic) {
     }
     printf("%%%s", arg->name().c_str());
   }
-  if (type() == FlowType::Void) {
-    printf("\t; (%%%s)", name().c_str());
-  }
+
+  // XXX sometimes u're interested in the name of the instr, even though it
+  // doesn't yield a result value on the stack
+  // if (type() == FlowType::Void) {
+  //   printf("\t; (%%%s)", name().c_str());
+  // }
+
   printf("\n");
 }
 
