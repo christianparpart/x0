@@ -280,7 +280,7 @@ void XzeroDaemon::patchProgramIR(flow::IRProgram* programIR,
       //
       // TODO: we could add an attribute to native handlers, so we can
       // distinguish between never-returning handlers and those who may do.
-      irgen->createRet(irgen->getBoolean(false));
+      irgen->createRet(irgen->get(false));
     }
   }
 }
