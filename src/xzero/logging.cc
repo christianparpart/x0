@@ -7,6 +7,7 @@
 
 #include <xzero/logging.h>
 #include <xzero/inspect.h>
+#include <xzero/StackTrace.h>
 #include <xzero/AnsiColor.h>
 #include <xzero/Application.h>
 #include <xzero/RuntimeError.h>
@@ -98,6 +99,12 @@ Logger::Logger() :
 
 void Logger::fatal(const std::string& message) {
   log(LogLevel::Fatal, message);
+
+  std::vector<std::string> st = StackTrace().symbols();
+  for (size_t i = 0, e = st.size(); i != e; ++i) {
+    log(LogLevel::Fatal, StringUtil::format("[$0] $1", i, st[i]));
+  }
+
   abort();
 }
 
