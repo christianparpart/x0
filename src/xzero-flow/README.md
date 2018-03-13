@@ -1,6 +1,40 @@
-Flow Control Configuration Language
-===================================
+# Flow Control Configuration Language
 
+### AST
+```
+- SymbolTable
+- ASTNode
+  - Symbol
+    - Variable            -> VariableSym / VarSym
+    - ScopedSymbol        -> ScopedSym
+      - Unit              -> UnitSym
+    - Callable            -> CallableSym
+      - Handler           -> HandlerSym
+      - BuiltinFunction   -> BuiltinFunctionSym
+      - BuiltinHandler    -> BuiltinHandlerSym
+  - Expr
+    - UnaryExpr
+    - BinaryExpr
+    - ArrayExpr
+    - LiteralExpr
+    - CallExpr
+    - VariableExpr        -> VariableRefExpr
+    - HandlerRefExpr
+  - Stmt
+    - ExprStmt
+    - CompoundStmt
+    - AssignStmt        -> IfStmt
+    - CondStmt
+    - MatchStmt
+    - ForStmt           DELETE
+- ParamList
+```
+
+### IR
+
+### Byte Code
+
+### misc
 ```!sh
 # Example Flow:
 handler main {
@@ -14,22 +48,7 @@ handler main {
 }
 ```
 
-```
-NPUSH     42          ; i
-CALL      req.path
-SPUSH     '/private/'
-SCMPBEG
-JZ        +2
-MOV       @STACK[0], 17
-NPUSH     403
-HANDLER   @return
-
-SPUSH     '/var/www'
-HANDLER   @docroot
-HANDLER   @staticfile
-```
-
-### Features
+## Features
 
 * Dedicated language for programming control flow (without loops).
 * Optimizing Compiler.
@@ -38,8 +57,7 @@ HANDLER   @staticfile
 * Powerful C++ API to extend Flow with functions and handlers.
 * ...
 
-Flow Engine Rewrite
-===================
+## Flow Engine Rewrite
 
 An instruction is a 64-bit fixed sized code with network byte order:
 - opcode: from 0..15
@@ -65,8 +83,4 @@ An instruction is a 64-bit fixed sized code with network byte order:
   - handler always pushes a boolean onto the stack as result
   - the callee optionally leaves a single result value on the stack
   - function may push a single value onto the stack
-
-
-
-
 
