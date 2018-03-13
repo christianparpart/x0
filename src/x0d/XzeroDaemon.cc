@@ -219,11 +219,6 @@ std::unique_ptr<flow::vm::Program> XzeroDaemon::loadConfigStream(
       pm.registerPass(std::make_unique<flow::InstructionElimination>());
     }
 
-    if (printIR) {
-      logTrace("; Program IR ***BEFORE*** PassManager run");
-      programIR->dump();
-    }
-
     pm.run(programIR.get());
   }
 
