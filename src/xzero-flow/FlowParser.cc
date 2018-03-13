@@ -1427,7 +1427,7 @@ std::unique_ptr<Stmt> FlowParser::matchStmt() {
       return nullptr;
     }
 
-    MatchCase one;
+    MatchStmt::Case one;
 
     // first label
     auto label = literalExpr();

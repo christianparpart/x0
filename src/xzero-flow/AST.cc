@@ -553,7 +553,7 @@ bool CallExpr::setArgs(ParamList&& args) {
 }
 
 MatchStmt::MatchStmt(const FlowLocation& loc, std::unique_ptr<Expr>&& cond,
-                     vm::MatchClass op, std::list<MatchCase>&& cases,
+                     vm::MatchClass op, std::list<Case>&& cases,
                      std::unique_ptr<Stmt>&& elseStmt)
     : Stmt(loc),
       cond_(std::move(cond)),

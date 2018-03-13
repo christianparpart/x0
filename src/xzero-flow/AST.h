@@ -555,15 +555,14 @@ class CondStmt : public Stmt {
   virtual void visit(ASTVisitor&);
 };
 
-typedef std::pair<std::list<std::unique_ptr<Expr>>, std::unique_ptr<Stmt>>
-MatchCase;
 
 class MatchStmt : public Stmt {
  public:
-  typedef std::list<MatchCase> CaseList;
+  using Case = std::pair<std::list<std::unique_ptr<Expr>>, std::unique_ptr<Stmt>>;
+  using CaseList = std::list<Case>;
 
   MatchStmt(const FlowLocation& loc, std::unique_ptr<Expr>&& cond,
-            vm::MatchClass op, std::list<MatchCase>&& cases,
+            vm::MatchClass op, std::list<Case>&& cases,
             std::unique_ptr<Stmt>&& elseStmt);
   MatchStmt(MatchStmt&& other);
   MatchStmt& operator=(MatchStmt&& other);

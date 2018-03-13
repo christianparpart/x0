@@ -533,7 +533,7 @@ void IRGenerator::accept(MatchStmt& matchStmt) {
   BasicBlock* contBlock = createBlock("match.cont");
   MatchInstr* matchInstr = createMatch(matchStmt.op(), cond);
 
-  for (const MatchCase& one : matchStmt.cases()) {
+  for (const MatchStmt::Case& one : matchStmt.cases()) {
     BasicBlock* bb = createBlock("match.case");
     setInsertPoint(bb);
     codegen(one.second.get());
