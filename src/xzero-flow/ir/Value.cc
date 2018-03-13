@@ -36,18 +36,9 @@ Value::Value(FlowType ty, const std::string& name)
 }
 
 Value::~Value() {
-  logTrace("Value($0).dtor", name());
-  if (isUsed()) {
-    logTrace("BUG! Value $0 is still in use by: $1",
-             name(), StringUtil::join(uses_, ", ", &Value::name));
-    for (auto* instr : uses_) {
-      logTrace("In use by: $0 of block $1:", instr->name(),
-          instr->getBasicBlock()->name());
-      instr->dump();
-      instr->getBasicBlock()->getHandler()->dump();
-    }
-  }
-  assert(!isUsed() && "Value being destroyed is still in use.");
+  XZERO_ASSERT(!isUsed(), StringUtil::format(
+      "Value being destroyed is still in use by: $0.",
+      StringUtil::join(uses_, ", ", &Instr::name)));
 }
 
 void Value::addUse(Instr* user) {
