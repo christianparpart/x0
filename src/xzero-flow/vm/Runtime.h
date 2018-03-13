@@ -48,7 +48,7 @@ class Runtime {
   /**
    * Verifies all call instructions.
    */
-  bool verify(IRProgram* program, IRBuilder* builder);
+  bool verifyNativeCalls(IRProgram* program, IRBuilder* builder);
 
  private:
   std::vector<std::unique_ptr<NativeCallback>> builtins_;

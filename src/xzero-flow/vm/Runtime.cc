@@ -42,7 +42,7 @@ NativeCallback* Runtime::find(const Signature& signature) {
   return find(signature.to_s());
 }
 
-bool Runtime::verify(IRProgram* program, IRBuilder* builder) {
+bool Runtime::verifyNativeCalls(IRProgram* program, IRBuilder* builder) {
   std::list<std::pair<Instr*, NativeCallback*>> calls;
 
   for (IRHandler* handler : program->handlers()) {
