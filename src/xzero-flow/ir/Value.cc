@@ -7,6 +7,9 @@
 
 #include <xzero-flow/ir/Value.h>
 #include <xzero-flow/ir/Instr.h>
+#include <xzero-flow/ir/BasicBlock.h>
+#include <xzero-flow/ir/IRHandler.h>
+#include <xzero/logging.h>
 #include <algorithm>
 #include <assert.h>
 
@@ -16,7 +19,7 @@ static unsigned long long valueCounter = 1;
 
 Value::Value(const Value& v) : type_(v.type_), name_(), uses_() {
   char buf[256];
-  snprintf(buf, sizeof(buf), "%s%llu", v.name().c_str(), valueCounter);
+  snprintf(buf, sizeof(buf), "%s_%llu", v.name().c_str(), valueCounter);
   valueCounter++;
   name_ = buf;
 }
@@ -33,10 +36,23 @@ Value::Value(FlowType ty, const std::string& name)
 }
 
 Value::~Value() {
+  logTrace("Value($0).dtor", name());
+  if (isUsed()) {
+    logTrace("BUG! Value $0 is still in use by: $1",
+             name(), StringUtil::join(uses_, ", ", &Value::name));
+    for (auto* instr : uses_) {
+      logTrace("In use by: $0 of block $1:", instr->name(),
+          instr->getBasicBlock()->name());
+      instr->dump();
+      instr->getBasicBlock()->getHandler()->dump();
+    }
+  }
   assert(!isUsed() && "Value being destroyed is still in use.");
 }
 
-void Value::addUse(Instr* user) { uses_.push_back(user); }
+void Value::addUse(Instr* user) {
+  uses_.push_back(user);
+}
 
 void Value::removeUse(Instr* user) {
   auto i = std::find(uses_.begin(), uses_.end(), user);

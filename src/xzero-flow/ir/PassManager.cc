@@ -33,8 +33,10 @@ void PassManager::run(IRHandler* handler) {
   for (;;) {
     int changes = 0;
     for (auto& pass : handlerPasses_) {
-      logTrace("flow: Running optimization pass: $0", pass->name());
+      //logTrace("flow: Running optimization pass: $0", pass->name());
       while (pass->run(handler)) {
+        logTrace("flow: Pass $0 changed IR", pass->name());
+        handler->verify();
         changes++;
       }
     }

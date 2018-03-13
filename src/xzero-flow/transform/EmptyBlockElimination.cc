@@ -14,7 +14,7 @@
 namespace xzero::flow {
 
 bool EmptyBlockElimination::run(IRHandler* handler) {
-  std::list<const BasicBlock*> eliminated;
+  std::list<BasicBlock*> eliminated;
 
   for (BasicBlock* bb : handler->basicBlocks()) {
     if (bb->size() != 1)
@@ -34,7 +34,7 @@ bool EmptyBlockElimination::run(IRHandler* handler) {
     }
   }
 
-  for (const BasicBlock* bb : eliminated) {
+  for (BasicBlock* bb : eliminated) {
     bb->getHandler()->erase(bb);
   }
 

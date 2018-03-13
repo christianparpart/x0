@@ -48,7 +48,7 @@ class IRHandler : public Constant {
    *
    * @note \p bb will be a dangling pointer after this call.
    */
-  void erase(const BasicBlock* bb);
+  void erase(BasicBlock* bb);
 
   bool isAfter(const BasicBlock* bb, const BasicBlock* afterThat) const;
   void moveAfter(const BasicBlock* moveable, const BasicBlock* afterThat);

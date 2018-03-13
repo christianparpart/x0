@@ -60,14 +60,17 @@ bool InstructionElimination::rewriteCondBrToSameBranches(BasicBlock* bb) {
 bool InstructionElimination::eliminateLinearBr(BasicBlock* bb) {
   // attempt to eliminate useless linear br
   if (BrInstr* br = dynamic_cast<BrInstr*>(bb->getTerminator())) {
-    if (br->targetBlock()->predecessors().size() != 1) return false;
+    if (br->targetBlock()->predecessors().size() != 1)
+      return false;
 
-    if (br->targetBlock()->predecessors().front() != bb) return false;
+    if (br->targetBlock()->predecessors().front() != bb)
+      return false;
 
     // we are the only predecessor of BR's target block, so merge them
-    logTrace("flow: eliminate linear BR-instruction");
-
     BasicBlock* nextBB = br->targetBlock();
+
+    logTrace("flow: eliminate linear BR-instruction from $0 to $1",
+        bb->name(), nextBB->name());
 
     // remove old terminator
     bb->remove(br);
@@ -76,7 +79,7 @@ bool InstructionElimination::eliminateLinearBr(BasicBlock* bb) {
     bb->merge_back(nextBB);
 
     // destroy unused BB
-    bb->getHandler()->erase(nextBB);
+    //bb->getHandler()->erase(nextBB);
 
     return true;
   }
@@ -87,18 +90,24 @@ bool InstructionElimination::eliminateLinearBr(BasicBlock* bb) {
 bool InstructionElimination::foldConstantCondBr(BasicBlock* bb) {
   if (auto condbr = dynamic_cast<CondBrInstr*>(bb->getTerminator())) {
     if (auto cond = dynamic_cast<ConstantBoolean*>(condbr->condition())) {
-      logTrace("flow: rewrite condbr with constant expression");
+      logTrace("flow: rewrite condbr %$0 with constant expression %$1",
+          condbr->name(), cond->name());
+      condbr->dump();
+      cond->dump();
       std::pair<BasicBlock*, BasicBlock*> use;
 
       if (cond->get()) {
-        // printf("condition is always true");
+        logTrace("if-condition is always true");
         use = std::make_pair(condbr->trueBlock(), condbr->falseBlock());
       } else {
-        // printf("condition is always false");
+        logTrace("if-condition is always false");
         use = std::make_pair(condbr->falseBlock(), condbr->trueBlock());
       }
 
-      bb->remove(condbr);
+      auto x = bb->remove(condbr);
+      logTrace("removed CONDBR:");
+      x->dump();
+      x.reset(nullptr);
       bb->push_back(std::make_unique<BrInstr>(use.first));
       return true;
     }

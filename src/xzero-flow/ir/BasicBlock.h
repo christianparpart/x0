@@ -100,9 +100,11 @@ class BasicBlock : public Value {
   /**
    * Merges given basic block's instructions into this ones end.
    *
-   * The passed basic block's instructions will not be touched.
+   * The passed basic block's instructions <b>WILL</b> be touched, that is
+   * - all instructions will have been moved.
+   * - any successor BBs will have been relinked
    */
-  void merge_back(const BasicBlock* bb);
+  void merge_back(BasicBlock* bb);
 
   /**
    * Moves this basic block after the other basic block, \p otherBB.

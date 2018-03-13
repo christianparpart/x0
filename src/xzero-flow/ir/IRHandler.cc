@@ -116,11 +116,15 @@ void IRHandler::moveBefore(const BasicBlock* moveable, const BasicBlock* before)
   blocks_.insert(i, std::move(m));
 }
 
-void IRHandler::erase(const BasicBlock* bb) {
+void IRHandler::erase(BasicBlock* bb) {
   auto i = std::find_if(blocks_.begin(), blocks_.end(),
                         [&](const auto& obj) { return obj.get() == bb; });
   XZERO_ASSERT(i != blocks_.end(),
          "Given basic block must be a member of this handler to be removed.");
+
+  for (Instr* instr : bb->instructions()) {
+    instr->clearOperands();
+  }
 
   if (TerminateInstr* terminator = bb->getTerminator()) {
     (*i)->remove(terminator);

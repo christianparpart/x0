@@ -48,7 +48,9 @@ BasicBlock::~BasicBlock() {
 }
 
 TerminateInstr* BasicBlock::getTerminator() const {
-  return dynamic_cast<TerminateInstr*>(code_.back().get());
+  return code_.empty()
+      ? nullptr
+      : dynamic_cast<TerminateInstr*>(code_.back().get());
 }
 
 std::unique_ptr<Instr> BasicBlock::remove(Instr* instr) {
@@ -125,12 +127,32 @@ Instr* BasicBlock::push_back(std::unique_ptr<Instr> instr) {
   return code_.back().get();
 }
 
-void BasicBlock::merge_back(const BasicBlock* bb) {
+void BasicBlock::merge_back(BasicBlock* bb) {
   assert(getTerminator() == nullptr);
 
+#if 0
   for (const std::unique_ptr<Instr>& instr : bb->code_) {
     push_back(instr->clone());
   }
+#else
+  for (std::unique_ptr<Instr>& instr : bb->code_) {
+    instr->setParent(this);
+    if (dynamic_cast<TerminateInstr*>(instr.get())) {
+      // then check for possible successors
+      for (auto operand : instr->operands()) {
+        if (BasicBlock* succ = dynamic_cast<BasicBlock*>(operand)) {
+          linkSuccessor(succ);
+        }
+      }
+    }
+    code_.push_back(std::move(instr));
+  }
+  bb->code_.clear();
+  for (BasicBlock* succ : bb->successors_) {
+    unlinkSuccessor(succ);
+  }
+  bb->getHandler()->erase(bb);
+#endif
 }
 
 void BasicBlock::moveAfter(const BasicBlock* otherBB) {
@@ -214,19 +236,17 @@ void BasicBlock::collectIDom(std::vector<BasicBlock*>& output) {
 
 void BasicBlock::verify() {
   if (code_.size() < 1) {
-    logFatal("BasicBlock.verify: Must contain at least one instruction.");
+    logFatal("BasicBlock $0: verify: Must contain at least one instruction.", name());
   }
 
   for (size_t i = 0, e = code_.size() - 1; i != e; ++i) {
     if (dynamic_cast<TerminateInstr*>(code_[i].get()) != nullptr) {
-      logFatal("BasicBlock.verify: Found a terminate instruction in the middle "
-               "of the block.");
+      logFatal("BasicBlock $0: verify: Found a terminate instruction in the middle of the block.", name());
     }
   }
 
   if (getTerminator() == nullptr) {
-    logFatal("BasicBlock.verify: Last instruction must be a terminator "
-             "instruction.");
+    logFatal("BasicBlock $0: verify: Last instruction must be a terminator instruction.", name());
   }
 }
 

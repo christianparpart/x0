@@ -34,9 +34,26 @@ class Value {
   const std::string& name() const { return name_; }
   void setName(const std::string& n) { name_ = n; }
 
+  /**
+   * adds @p user to the list of instructions that are "using" this value.
+   */
   void addUse(Instr* user);
+
+  /**
+   * removes @p user from the list of instructions that determines the list of
+   * instructions that are using this value.
+   */
   void removeUse(Instr* user);
+
+  /**
+   * Determines whether or not this value is being used by at least one other
+   * instruction.
+   */
   bool isUsed() const { return !uses_.empty(); }
+
+  /**
+   * Retrieves a range instructions that are *using* this value.
+   */
   const std::vector<Instr*>& uses() const { return uses_; }
 
   /**

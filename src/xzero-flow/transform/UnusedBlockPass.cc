@@ -10,6 +10,7 @@
 #include <xzero-flow/ir/Instructions.h>
 #include <xzero-flow/ir/IRHandler.h>
 #include <xzero-flow/ir/Instructions.h>
+#include <xzero/logging.h>
 #include <list>
 
 namespace xzero::flow {
@@ -28,6 +29,8 @@ bool UnusedBlockPass::run(IRHandler* handler) {
   }
 
   for (BasicBlock* bb : unused) {
+    logTrace("flow: removing unused BasicBlock $0", bb->name());
+    bb->dump();
     handler->erase(bb);
   }
 

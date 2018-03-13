@@ -11,6 +11,7 @@
 #include <xzero-flow/ir/IRBuiltinHandler.h>
 #include <xzero-flow/ir/IRBuiltinFunction.h>
 #include <xzero-flow/ir/BasicBlock.h>
+#include <xzero/logging.h>
 #include <utility>
 #include <assert.h>
 #include <inttypes.h>
@@ -39,9 +40,11 @@ Instr::Instr(FlowType ty, const std::vector<Value*>& ops,
 }
 
 Instr::~Instr() {
+  logTrace("Instr($0).dtor", name());
+  dump();
   for (Value* op : operands_) {
-    if (!op)
-      continue;
+    // if (!op)
+    //   continue;
 
     op->removeUse(this);
 
@@ -194,6 +197,9 @@ void Instr::dumpOne(const char* mnemonic) {
       }
     }
     printf("%%%s", arg->name().c_str());
+  }
+  if (type() == FlowType::Void) {
+    printf("\t; (%%%s)", name().c_str());
   }
   printf("\n");
 }
