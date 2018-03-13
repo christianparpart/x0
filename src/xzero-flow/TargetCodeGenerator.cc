@@ -332,7 +332,7 @@ void TargetCodeGenerator::visit(HandlerCallInstr& handlerCallInstr) {
 }
 
 Operand TargetCodeGenerator::getConstantInt(Value* value) {
-  assert(dynamic_cast<ConstantInt*>(value) != nullptr && "Must be ConstantInt");
+  XZERO_ASSERT(dynamic_cast<ConstantInt*>(value) != nullptr, "Must be ConstantInt");
   return static_cast<ConstantInt*>(value)->get();
 }
 
