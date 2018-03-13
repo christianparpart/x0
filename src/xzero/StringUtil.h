@@ -5,10 +5,11 @@
 // file except in compliance with the License. You may obtain a copy of
 // the License at: http://opensource.org/licenses/MIT
 
-#ifndef _XZERO_BASE_STRINGUTIL_H_
-#define _XZERO_BASE_STRINGUTIL_H_
+#pragma once
 
 #include <xzero/Buffer.h>
+#include <sstream>
+#include <type_traits>
 
 #include <stdlib.h>
 #include <stdint.h>
@@ -175,8 +176,67 @@ public:
   /**
    * Join the provided string array with the provided join string
    */
-  static std::string join(const std::vector<std::string>& list, const std::string& join);
-  static std::string join(const std::set<std::string>& list, const std::string& join);
+  static std::string join(const std::vector<std::string>& list, const std::string& separator);
+
+  static std::string join(const std::set<std::string>& list, const std::string& separator);
+
+  /**
+   * Joins all items from @p list into a string.
+   *
+   * @param list      list of items to join
+   * @param separator item separator
+   * @param mapfn     pointer-to-member function that maps the an item into a string
+   *
+   * @returns joined list of items or an empty string if @p list is empty.
+   */
+  template<typename Container>
+  static std::string join(const Container& list,
+                          const std::string& separator,
+                          std::string (std::remove_pointer<typename Container::value_type>::type::* mapfn)() const) {
+    std::stringstream sstr;
+    int i = 0;
+    for (const auto& item: list) {
+      if (i) {
+        sstr << separator;
+      }
+      if constexpr (std::is_pointer<typename Container::value_type>::value) {
+        sstr << (item->*mapfn)();
+      } else {
+        sstr << (item.*mapfn)();
+      }
+      i++;
+    }
+    return sstr.str();
+  }
+
+  /**
+   * Joins all items from @p list into a string.
+   *
+   * @param list      list of items to join
+   * @param separator item separator
+   * @param mapfn     pointer-to-member function that maps the an item into a string
+   *
+   * @returns joined list of items or an empty string if @p list is empty.
+   */
+  template<typename Container>
+  static std::string join(const Container& list,
+                          const std::string& separator,
+                          const std::string& (std::remove_pointer<typename Container::value_type>::type::* mapfn)() const) {
+    std::stringstream sstr;
+    int i = 0;
+    for (const auto& item: list) {
+      if (i) {
+        sstr << separator;
+      }
+      if constexpr (std::is_pointer<typename Container::value_type>::value) {
+        sstr << (item->*mapfn)();
+      } else {
+        sstr << (item.*mapfn)();
+      }
+      i++;
+    }
+    return sstr.str();
+  }
 
   /**
    * Converts the provided string to all lowercase
@@ -392,4 +452,4 @@ template<typename T> std::string to_string(T&& value);
 } // namespace xzero
 
 #include <xzero/StringUtil-impl.h>
-#endif
+
