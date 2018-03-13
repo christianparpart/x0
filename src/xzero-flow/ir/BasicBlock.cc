@@ -141,6 +141,7 @@ void BasicBlock::merge_back(BasicBlock* bb) {
       // then check for possible successors
       for (auto operand : instr->operands()) {
         if (BasicBlock* succ = dynamic_cast<BasicBlock*>(operand)) {
+          bb->unlinkSuccessor(succ);
           linkSuccessor(succ);
         }
       }
