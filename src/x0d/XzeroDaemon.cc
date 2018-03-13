@@ -273,6 +273,14 @@ void XzeroDaemon::patchProgramIR(flow::IRProgram* programIR,
       irgen->setInsertPoint(bb);
       irgen->createInvokeHandler(returnFn, { irgen->get(404),   // status
                                              irgen->get(0) });  // statusOverride
+
+      // XXX every basic block *must* have one terminate instr at the end
+      // and since the returnFn handler doesn't hint that, we've to add this
+      // here (but will never be reached).
+      //
+      // TODO: we could add an attribute to native handlers, so we can
+      // distinguish between never-returning handlers and those who may do.
+      irgen->createRet(irgen->getBoolean(false));
     }
   }
 }
