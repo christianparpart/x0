@@ -204,6 +204,8 @@ std::unique_ptr<flow::vm::Program> XzeroDaemon::loadConfigStream(
 
   patchProgramIR(programIR.get(), &irgen);
 
+  verifyNativeCalls(programIR.get(), &irgen);
+
   {
     flow::PassManager pm;
 
@@ -219,8 +221,6 @@ std::unique_ptr<flow::vm::Program> XzeroDaemon::loadConfigStream(
 
     pm.run(programIR.get());
   }
-
-  verify(programIR.get(), &irgen);
 
   if (printIR) {
     programIR->dump();
