@@ -92,21 +92,17 @@ bool InstructionElimination::foldConstantCondBr(BasicBlock* bb) {
     if (auto cond = dynamic_cast<ConstantBoolean*>(condbr->condition())) {
       logTrace("flow: rewrite condbr %$0 with constant expression %$1",
           condbr->name(), cond->name());
-      condbr->dump();
-      cond->dump();
       std::pair<BasicBlock*, BasicBlock*> use;
 
       if (cond->get()) {
-        logTrace("if-condition is always true");
+        // logTrace("if-condition is always true");
         use = std::make_pair(condbr->trueBlock(), condbr->falseBlock());
       } else {
-        logTrace("if-condition is always false");
+        // logTrace("if-condition is always false");
         use = std::make_pair(condbr->falseBlock(), condbr->trueBlock());
       }
 
       auto x = bb->remove(condbr);
-      logTrace("removed CONDBR:");
-      x->dump();
       x.reset(nullptr);
       bb->push_back(std::make_unique<BrInstr>(use.first));
       return true;

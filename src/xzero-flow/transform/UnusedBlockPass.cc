@@ -30,7 +30,6 @@ bool UnusedBlockPass::run(IRHandler* handler) {
 
   for (BasicBlock* bb : unused) {
     logTrace("flow: removing unused BasicBlock $0", bb->name());
-    bb->dump();
     handler->erase(bb);
   }
 
