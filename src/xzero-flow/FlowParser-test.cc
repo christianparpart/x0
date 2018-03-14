@@ -17,7 +17,7 @@ using namespace xzero::flow;
 TEST(FlowParser, handlerDecl) {
   auto parser = std::make_shared<FlowParser>(nullptr, nullptr, nullptr);
   parser->openString("handler main {}");
-  std::unique_ptr<Unit> unit = parser->parse();
+  std::unique_ptr<UnitSym> unit = parser->parse();
 
   auto h = unit->findHandler("main");
   ASSERT_TRUE(h != nullptr);
@@ -30,7 +30,7 @@ TEST(FlowParser, handlerDecl) {
 TEST(FlowParser, varDecl) {
   auto parser = std::make_shared<FlowParser>(nullptr, nullptr, nullptr);
   parser->openString("handler main { var i = 42; }");
-  std::unique_ptr<Unit> unit = parser->parse();
+  std::unique_ptr<UnitSym> unit = parser->parse();
 
   auto h = unit->findHandler("main");
   ASSERT_TRUE(h != nullptr);
@@ -54,20 +54,6 @@ TEST(FlowParser, varDecl) {
 // TEST(FlowParser, castExpr) {} // TODO
 // TEST(FlowParser, ifStmt) {} // TODO
 // TEST(FlowParser, matchStmt) {} // TODO
-
-TEST(FlowParser, forStmt_range2) {
-  FlowParser parser;
-  parser.openString("handler main { for var i, k in ['hello', 'world'] {} }");
-  std::unique_ptr<Unit> unit = parser.parse();
-
-  auto main = unit->findHandler("main");
-  ASSERT_TRUE(main != nullptr);
-
-  if (Logger::get()->getMinimumLogLevel() >= LogLevel::Debug) {
-    ASTPrinter::print(main);
-  }
-}
-
 // TEST(FlowParser, compoundStmt) {} // TODO
 // TEST(FlowParser, callStmt) {} // TODO
 // TEST(FlowParser, postscriptStmt) {} // TODO

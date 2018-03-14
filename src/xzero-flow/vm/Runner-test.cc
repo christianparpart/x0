@@ -7,7 +7,6 @@
 
 using namespace xzero;
 using namespace xzero::flow;
-using namespace xzero::flow::vm;
 
 using Code = ConstantPool::Code;
 

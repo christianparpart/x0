@@ -60,11 +60,29 @@ class IRProgram {
   // const std::vector<ConstantArray*>& constantArrays() const { return
   // constantArrays_; }
 
-  IRBuiltinHandler* getBuiltinHandler(const vm::Signature& sig) {
-    return get<IRBuiltinHandler>(builtinHandlers_, sig);
+  IRBuiltinHandler* findBuiltinHandler(const Signature& sig) {
+    for (size_t i = 0, e = builtinHandlers_.size(); i != e; ++i)
+      if (builtinHandlers_[i]->get() == sig)
+        return builtinHandlers_[i].get();
+
+    return nullptr;
   }
-  IRBuiltinFunction* getBuiltinFunction(const vm::Signature& sig) {
-    return get<IRBuiltinFunction>(builtinFunctions_, sig);
+
+  IRBuiltinHandler* getBuiltinHandler(const Signature& sig, bool neverReturning) {
+    if (auto h = findBuiltinHandler(sig); h != nullptr)
+      return h;
+
+    builtinHandlers_.emplace_back(std::make_unique<IRBuiltinHandler>(sig, neverReturning));
+    return builtinHandlers_.back().get();
+  }
+
+  IRBuiltinFunction* getBuiltinFunction(const Signature& sig, bool ro) {
+    for (size_t i = 0, e = builtinFunctions_.size(); i != e; ++i)
+      if (builtinFunctions_[i]->get() == sig)
+        return builtinFunctions_[i].get();
+
+    builtinFunctions_.emplace_back(std::make_unique<IRBuiltinFunction>(sig, ro));
+    return builtinFunctions_.back().get();
   }
 
   template <typename T, typename U> T* get(std::vector<T>& table, const U& literal);

@@ -16,12 +16,10 @@
 #include <xzero/RegExp.h>
 
 namespace xzero::flow {
-  class IRHandler;
-  class IRBuiltinFunction;
-  class IRBuiltinHandler;
-}
 
-namespace xzero::flow::vm {
+class IRHandler;
+class IRBuiltinFunction;
+class IRBuiltinHandler;
 
 /**
  * Provides a pool of constant that can be built dynamically during code
@@ -144,4 +142,4 @@ class ConstantPool {
   std::vector<std::string> nativeFunctionSignatures_;
 };
 
-}  // namespace xzero::flow::vm
+}  // namespace xzero::flow

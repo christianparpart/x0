@@ -4,16 +4,13 @@
 // Licensed under the MIT License (the "License"); you may not use this
 // file except in compliance with the License. You may obtain a copy of
 // the License at: http://opensource.org/licenses/MIT
-
-#ifndef sw_flow_Flow_h
-#define sw_flow_Flow_h
+#pragma once
 
 #include <xzero-flow/ASTVisitor.h>
 #include <xzero/defines.h>
 #include <vector>
 
-namespace xzero {
-namespace flow {
+namespace xzero::flow {
 
 //! \addtogroup Flow
 //@{
@@ -36,11 +33,11 @@ class FlowCallVisitor : public ASTVisitor {
 
  protected:
   // symbols
-  virtual void accept(Unit& symbol);
-  virtual void accept(Variable& variable);
-  virtual void accept(Handler& handler);
-  virtual void accept(BuiltinFunction& symbol);
-  virtual void accept(BuiltinHandler& symbol);
+  virtual void accept(UnitSym& symbol);
+  virtual void accept(VariableSym& variable);
+  virtual void accept(HandlerSym& handler);
+  virtual void accept(BuiltinFunctionSym& symbol);
+  virtual void accept(BuiltinHandlerSym& symbol);
 
   // expressions
   virtual void accept(UnaryExpr& expr);
@@ -68,7 +65,4 @@ class FlowCallVisitor : public ASTVisitor {
 
 //!@}
 
-}  // namespace flow
-}  // namespace xzero
-
-#endif
+}  // namespace xzero::flow

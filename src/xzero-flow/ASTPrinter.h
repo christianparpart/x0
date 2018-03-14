@@ -40,11 +40,12 @@ class ASTPrinter : public ASTVisitor {
     std::printf(fmt, args...);
   }
 
-  virtual void accept(Variable& variable);
-  virtual void accept(Handler& handler);
-  virtual void accept(BuiltinFunction& symbol);
-  virtual void accept(BuiltinHandler& symbol);
-  virtual void accept(Unit& symbol);
+  virtual void accept(VariableSym& variable);
+  virtual void accept(HandlerSym& handler);
+  virtual void accept(BuiltinFunctionSym& symbol);
+  virtual void accept(BuiltinHandlerSym& symbol);
+  virtual void accept(UnitSym& symbol);
+
   virtual void accept(UnaryExpr& expr);
   virtual void accept(BinaryExpr& expr);
   virtual void accept(CallExpr& expr);
@@ -58,6 +59,7 @@ class ASTPrinter : public ASTVisitor {
   virtual void accept(CidrExpr& cidr);
   virtual void accept(ArrayExpr& array);
   virtual void accept(ExprStmt& stmt);
+
   virtual void accept(CompoundStmt& stmt);
   virtual void accept(CondStmt& stmt);
   virtual void accept(MatchStmt& stmt);

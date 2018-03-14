@@ -290,6 +290,8 @@ set(XzeroFlow_SRC src/xzero-flow/AST.cc
                   src/xzero-flow/FlowToken.cc
                   src/xzero-flow/FlowType.cc
                   src/xzero-flow/IRGenerator.cc
+                  src/xzero-flow/MatchClass.cc
+                  src/xzero-flow/NativeCallback.cc
                   src/xzero-flow/TargetCodeGenerator.cc
                   src/xzero-flow/ir/BasicBlock.cc
                   src/xzero-flow/ir/Constant.cc
@@ -311,8 +313,6 @@ set(XzeroFlow_SRC src/xzero-flow/AST.cc
                   src/xzero-flow/vm/Handler.cc
                   src/xzero-flow/vm/Instruction.cc
                   src/xzero-flow/vm/Match.cc
-                  src/xzero-flow/vm/MatchClass.cc
-                  src/xzero-flow/vm/NativeCallback.cc
                   src/xzero-flow/vm/Program.cc
                   src/xzero-flow/vm/Runner.cc
                   src/xzero-flow/vm/Runtime.cc

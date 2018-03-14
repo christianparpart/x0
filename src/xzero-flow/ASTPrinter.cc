@@ -78,7 +78,7 @@ void ASTPrinter::print(const std::pair<std::string, Expr*>& node, size_t pos) {
   print(buf, node.second);
 }
 
-void ASTPrinter::accept(Variable& variable) {
+void ASTPrinter::accept(VariableSym& variable) {
   if (variable.initializer()) {
     printf("Variable: %s as %s\n", variable.name().c_str(),
            tos(variable.initializer()->getType()).c_str());
@@ -88,7 +88,7 @@ void ASTPrinter::accept(Variable& variable) {
   }
 }
 
-void ASTPrinter::accept(Handler& handler) {
+void ASTPrinter::accept(HandlerSym& handler) {
   printf("Handler: %s\n", handler.name().c_str());
 
   enter();
@@ -108,15 +108,15 @@ void ASTPrinter::accept(Handler& handler) {
   leave();
 }
 
-void ASTPrinter::accept(BuiltinFunction& symbol) {
+void ASTPrinter::accept(BuiltinFunctionSym& symbol) {
   printf("BuiltinFunction: %s\n", symbol.signature().to_s().c_str());
 }
 
-void ASTPrinter::accept(BuiltinHandler& symbol) {
+void ASTPrinter::accept(BuiltinHandlerSym& symbol) {
   printf("BuiltinHandler: %s\n", symbol.signature().to_s().c_str());
 }
 
-void ASTPrinter::accept(Unit& unit) {
+void ASTPrinter::accept(UnitSym& unit) {
   printf("Unit: %s\n", unit.name().c_str());
 
   enter();

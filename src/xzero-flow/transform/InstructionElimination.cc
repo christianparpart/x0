@@ -6,18 +6,22 @@
 // the License at: http://opensource.org/licenses/MIT
 
 #include <xzero-flow/transform/InstructionElimination.h>
+#include <xzero-flow/ir/IRBuiltinFunction.h>
+#include <xzero-flow/ir/IRBuiltinHandler.h>
 #include <xzero-flow/ir/BasicBlock.h>
 #include <xzero-flow/ir/Instructions.h>
 #include <xzero-flow/ir/IRHandler.h>
 #include <xzero-flow/ir/Instructions.h>
 #include <xzero/logging.h>
 #include <list>
+#include <unordered_map>
 
 namespace xzero::flow {
 
 bool InstructionElimination::run(IRHandler* handler) {
   for (BasicBlock* bb : handler->basicBlocks()) {
     if (rewriteCondBrToSameBranches(bb)) return true;
+    if (eliminateUnusedInstr(bb)) return true;
     if (eliminateLinearBr(bb)) return true;
     if (foldConstantCondBr(bb)) return true;
     if (branchToExit(bb)) return true;
@@ -48,6 +52,29 @@ bool InstructionElimination::rewriteCondBrToSameBranches(BasicBlock* bb) {
     return true;
   }
 
+  return false;
+}
+
+bool InstructionElimination::eliminateUnusedInstr(BasicBlock* bb) {
+  static std::unordered_map<Instr*, bool> found;
+  for (Instr* instr : bb->instructions()) {
+    if (found[instr]) continue;
+
+    if (auto f = dynamic_cast<CallInstr*>(instr)) {
+      if (f->callee()->isSideEffectFree()) {
+        if (instr->type() != FlowType::Void && !instr->isUsed()) {
+          found[instr] = true;
+          logDebug("XXX would remove instr!");
+          instr->dump();
+
+          // bb->remove(instr);
+          // return true;
+        }
+      } else {
+        logDebug("no side effect free: $0", f->callee()->signature());
+      }
+    }
+  }
   return false;
 }
 

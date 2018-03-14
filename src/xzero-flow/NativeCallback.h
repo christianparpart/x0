@@ -8,8 +8,10 @@
 #pragma once
 
 #include <xzero/defines.h>
-#include <xzero-flow/FlowType.h>
 #include <xzero-flow/vm/Signature.h>
+#include <xzero-flow/vm/Runner.h>       // Runner*, Runner::Value
+#include <xzero-flow/FlowType.h>
+// TODO(delete?) #include <xzero-flow/Params.h>
 #include <xzero/net/IPAddress.h>
 #include <xzero/net/Cidr.h>
 #include <xzero/RegExp.h>
@@ -18,16 +20,10 @@
 #include <functional>
 
 namespace xzero::flow {
-  class Instr;
-  class IRBuilder;
-}
-
-namespace xzero::flow::vm {
-
-typedef uint64_t Value;
 
 class Params;
-class Runner;
+class Instr;
+class IRBuilder;
 class Runtime;
 
 class NativeCallback {
@@ -41,6 +37,10 @@ class NativeCallback {
   Verifier verifier_;
   Functor function_;
   Signature signature_;
+
+  // function attributes
+  bool neverReturning_; // XXX can only be set on handlers
+  bool sideEffectFree_; // XXX can only be set on functions with non-void return
 
   // following attribs are irrelevant to the VM but useful for the frontend
   std::vector<std::string> names_;
@@ -93,6 +93,13 @@ class NativeCallback {
   const std::string& getNameAt(size_t i) const;
   const void* getDefaultAt(size_t i) const;
   int find(const std::string& name) const;
+
+  // attributes
+  bool isNeverReturning() const { return neverReturning_; }
+  bool isSideEffectFree() const { return sideEffectFree_; }
+
+  NativeCallback& setNoReturn();
+  NativeCallback& setReadonly();
 
   // runtime
   void invoke(Params& args) const;
@@ -344,4 +351,4 @@ inline const void* NativeCallback::getDefaultAt(size_t i) const {
 }
 // }}}
 
-}  // namespace xzero::flow::vm
+}  // namespace xzero::flow

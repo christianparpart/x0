@@ -30,7 +30,7 @@ class IRGenerator : public IRBuilder, public ASTVisitor {
   ~IRGenerator();
 
   static std::unique_ptr<IRProgram> generate(
-      Unit* unit, const std::vector<std::string>& exportedHandlers);
+      UnitSym* unit, const std::vector<std::string>& exportedHandlers);
 
   void setErrorCallback(std::function<void(const std::string&)>&& handler) {
     onError_ = std::move(handler);
@@ -40,7 +40,7 @@ class IRGenerator : public IRBuilder, public ASTVisitor {
     exports_ = exports;
   }
 
-  std::unique_ptr<IRProgram> generate(Unit* unit);
+  std::unique_ptr<IRProgram> generate(UnitSym* unit);
 
  private:
   class Scope;
@@ -48,7 +48,7 @@ class IRGenerator : public IRBuilder, public ASTVisitor {
   std::vector<std::string> exports_;
   std::unique_ptr<Scope> scope_;
   Value* result_;
-  std::deque<Handler*> handlerStack_;
+  std::deque<HandlerSym*> handlerStack_;
 
   size_t errorCount_;
   std::function<void(const std::string&)> onError_;
@@ -57,18 +57,18 @@ class IRGenerator : public IRBuilder, public ASTVisitor {
   Value* codegen(Expr* expr);
   Value* codegen(Stmt* stmt);
   Value* codegen(Symbol* sym);
-  void codegenInline(Handler& handlerSym);
+  void codegenInline(HandlerSym& handlerSym);
 
   Constant* getConstant(Expr* expr);
 
   Scope& scope() { return *scope_; }
 
   // symbols
-  virtual void accept(Unit& symbol);
-  virtual void accept(Variable& variable);
-  virtual void accept(Handler& handler);
-  virtual void accept(BuiltinFunction& symbol);
-  virtual void accept(BuiltinHandler& symbol);
+  virtual void accept(UnitSym& symbol);
+  virtual void accept(VariableSym& variable);
+  virtual void accept(HandlerSym& handler);
+  virtual void accept(BuiltinFunctionSym& symbol);
+  virtual void accept(BuiltinHandlerSym& symbol);
 
   // expressions
   virtual void accept(UnaryExpr& expr);

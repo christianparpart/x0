@@ -4,9 +4,7 @@
 // Licensed under the MIT License (the "License"); you may not use this
 // file except in compliance with the License. You may obtain a copy of
 // the License at: http://opensource.org/licenses/MIT
-
-#ifndef sw_flow_parser_h
-#define sw_flow_parser_h (1)
+#pragma once
 
 #include <list>
 #include <vector>
@@ -19,28 +17,24 @@
 #include <xzero-flow/AST.h>  // SymbolTable
 #include <xzero/Utility.h>
 
-namespace xzero {
-namespace flow {
+namespace xzero::flow {
 
 //! \addtogroup Flow
 //@{
 
-namespace vm {
-class Runtime;
-class NativeCallback;
-};
-
 class FlowLexer;
+class NativeCallback;
+class Runtime;
 
 class FlowParser {
   std::unique_ptr<FlowLexer> lexer_;
   SymbolTable* scopeStack_;
-  vm::Runtime* runtime_;
+  Runtime* runtime_;
 
  public:
   typedef std::function<void(const std::string&)> ErrorHandler;
   typedef std::function<bool(const std::string&, const std::string&,
-                     std::vector<vm::NativeCallback*>*)> ImportHandler;
+                     std::vector<NativeCallback*>*)> ImportHandler;
 
   ErrorHandler errorHandler;
   ImportHandler importHandler;
@@ -48,7 +42,7 @@ class FlowParser {
   FlowParser() : FlowParser(nullptr, nullptr, nullptr) {}
 
   explicit FlowParser(
-      vm::Runtime* runtime,
+      Runtime* runtime,
       ImportHandler importHandler = nullptr,
       ErrorHandler errorHandler = nullptr);
 
@@ -58,9 +52,9 @@ class FlowParser {
   void openLocalFile(const std::string& filename);
   void openStream(std::unique_ptr<std::istream>&& ifs, const std::string& filename);
 
-  std::unique_ptr<Unit> parse();
+  std::unique_ptr<UnitSym> parse();
 
-  vm::Runtime* runtime() const { return runtime_; }
+  Runtime* runtime() const { return runtime_; }
 
  private:
   class Scope;
@@ -126,15 +120,15 @@ class FlowParser {
   }
 
   void importRuntime();
-  void declareBuiltin(const vm::NativeCallback* native);
+  void declareBuiltin(const NativeCallback* native);
 
   // syntax: decls
-  std::unique_ptr<Unit> unit();
-  bool importDecl(Unit* unit);
+  std::unique_ptr<UnitSym> unit();
+  bool importDecl(UnitSym* unit);
   bool importOne(std::list<std::string>& names);
   std::unique_ptr<Symbol> decl();
-  std::unique_ptr<Variable> varDecl();
-  std::unique_ptr<Handler> handlerDecl(bool keyword);
+  std::unique_ptr<VariableSym> varDecl();
+  std::unique_ptr<HandlerSym> handlerDecl(bool keyword);
 
   // syntax: expressions
   std::unique_ptr<Expr> expr();
@@ -163,7 +157,7 @@ class FlowParser {
   std::unique_ptr<Stmt> compoundStmt();
   std::unique_ptr<Stmt> identStmt();
   std::unique_ptr<CallExpr> callStmt(const std::list<Symbol*>& callables);
-  std::unique_ptr<CallExpr> resolve(const std::list<Callable*>& symbols,
+  std::unique_ptr<CallExpr> resolve(const std::list<CallableSym*>& symbols,
                                     ParamList&& params);
   std::unique_ptr<Stmt> postscriptStmt(std::unique_ptr<Stmt> baseStmt);
 };
@@ -203,7 +197,4 @@ inline bool FlowParser::testTokens(A1 a1, Args... tokens) const {
 
 //!@}
 
-}  // namespace flow
-}  // namespace xzero
-
-#endif
+}  // namespace xzero::flow

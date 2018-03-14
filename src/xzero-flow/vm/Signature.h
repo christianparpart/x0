@@ -12,7 +12,7 @@
 #include <string>
 #include <iosfwd>
 
-namespace xzero::flow::vm {
+namespace xzero::flow {
 
 class Signature {
  private:
@@ -53,4 +53,4 @@ char signatureType(FlowType t);
 
 std::ostream& operator<<(std::ostream& os, const Signature& signature);
 
-}  // namespace xzero::flow::vm
+}  // namespace xzero::flow

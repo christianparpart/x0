@@ -7,8 +7,8 @@
 
 #include <xzero-flow/AST.h>
 #include <xzero-flow/ASTPrinter.h>
+#include <xzero-flow/NativeCallback.h>
 #include <xzero-flow/vm/Signature.h>
-#include <xzero-flow/vm/NativeCallback.h>
 #include <xzero/StringUtil.h>
 #include <xzero/Buffer.h>
 #include <xzero/Utility.h> // make_unique
@@ -98,21 +98,22 @@ Symbol* SymbolTable::lookup(const std::string& name, Lookup method,
   return !result->empty() ? result->front() : nullptr;
 }
 // }}}
-// {{{ Callable
-Callable::Callable(Type t, const vm::NativeCallback* cb,
-                   const FlowLocation& loc)
+// {{{ CallableSym
+CallableSym::CallableSym(Type t, const NativeCallback* cb,
+                         const FlowLocation& loc)
     : Symbol(t, cb->signature().name(), loc),
       nativeCallback_(cb),
       sig_(nativeCallback_->signature()) {}
 
-Callable::Callable(const std::string& name, const FlowLocation& loc)
+CallableSym::CallableSym(const std::string& name, const FlowLocation& loc)
     : Symbol(Type::Handler, name, loc), nativeCallback_(nullptr), sig_() {
   sig_.setName(name);
   sig_.setReturnType(FlowType::Boolean);
 }
 
-const vm::Signature& Callable::signature() const {
-  if (nativeCallback_) return nativeCallback_->signature();
+const Signature& CallableSym::signature() const {
+  if (nativeCallback_)
+    return nativeCallback_->signature();
 
   return sig_;
 }
@@ -179,8 +180,9 @@ static inline void completeDefaultValue(ParamList& args, FlowType type,
   }
 }  // }}}
 
-bool Callable::isDirectMatch(const ParamList& params) const {
-  if (params.size() != nativeCallback_->signature().args().size()) return false;
+bool CallableSym::isDirectMatch(const ParamList& params) const {
+  if (params.size() != nativeCallback_->signature().args().size())
+    return false;
 
   for (size_t i = 0, e = params.size(); i != e; ++i) {
     if (params.isNamed() && nativeCallback_->getNameAt(i) != params[i].first)
@@ -196,10 +198,10 @@ bool Callable::isDirectMatch(const ParamList& params) const {
   return true;
 }
 
-bool Callable::tryMatch(ParamList& params, Buffer* errorMessage) const {
-  // printf("Callable(%s).tryMatch()\n", name().c_str());
+bool CallableSym::tryMatch(ParamList& params, Buffer* errorMessage) const {
+  // printf("CallableSym(%s).tryMatch()\n", name().c_str());
 
-  const vm::NativeCallback* native = nativeCallback();
+  const NativeCallback* native = nativeCallback();
 
   if (params.empty() && (!native || native->signature().args().empty()))
     return true;
@@ -280,7 +282,7 @@ bool Callable::tryMatch(ParamList& params, Buffer* errorMessage) const {
       completeDefaultValue(params, type, defaultValue, name);
     }
 
-    vm::Signature sig;
+    Signature sig;
     sig.setName(this->name());
     sig.setReturnType(signature().returnType());  // XXX cheetah
     std::vector<FlowType> argTypes;
@@ -383,7 +385,7 @@ std::pair<std::string, Expr*> ParamList::at(size_t offset) const {
   return std::make_pair(isNamed() ? names_[offset] : "", values_[offset]);
 }
 
-void ParamList::reorder(const vm::NativeCallback* native,
+void ParamList::reorder(const NativeCallback* native,
                         std::vector<std::string>* superfluous) {
   // dump("ParamList::reorder (before)");
 
@@ -481,23 +483,23 @@ std::unique_ptr<Expr> Expr::createDefaultInitializer(FlowType type) {
   }
 }
 
-void Variable::visit(ASTVisitor& v) { v.accept(*this); }
+void VariableSym::visit(ASTVisitor& v) { v.accept(*this); }
 
-Handler* Unit::findHandler(const std::string& name) {
-  if (class Handler* handler =
-          dynamic_cast<class Handler*>(scope()->lookup(name, Lookup::Self)))
+HandlerSym* UnitSym::findHandler(const std::string& name) {
+  if (class HandlerSym* handler =
+          dynamic_cast<class HandlerSym*>(scope()->lookup(name, Lookup::Self)))
     return handler;
 
   return nullptr;
 }
 
-void Unit::visit(ASTVisitor& v) { v.accept(*this); }
+void UnitSym::visit(ASTVisitor& v) { v.accept(*this); }
 
-void Handler::visit(ASTVisitor& v) { v.accept(*this); }
+void HandlerSym::visit(ASTVisitor& v) { v.accept(*this); }
 
 void UnaryExpr::visit(ASTVisitor& v) { v.accept(*this); }
 
-BinaryExpr::BinaryExpr(vm::Opcode op, std::unique_ptr<Expr>&& lhs,
+BinaryExpr::BinaryExpr(Opcode op, std::unique_ptr<Expr>&& lhs,
                        std::unique_ptr<Expr>&& rhs)
     : Expr(rhs->location() - lhs->location()),
       operator_(op),
@@ -527,7 +529,7 @@ void ExprStmt::visit(ASTVisitor& v) { v.accept(*this); }
 
 void CallExpr::visit(ASTVisitor& v) { v.accept(*this); }
 
-void BuiltinFunction::visit(ASTVisitor& v) { v.accept(*this); }
+void BuiltinFunctionSym::visit(ASTVisitor& v) { v.accept(*this); }
 
 void VariableExpr::visit(ASTVisitor& v) { v.accept(*this); }
 
@@ -535,10 +537,10 @@ void CondStmt::visit(ASTVisitor& v) { v.accept(*this); }
 
 void AssignStmt::visit(ASTVisitor& v) { v.accept(*this); }
 
-void BuiltinHandler::visit(ASTVisitor& v) { v.accept(*this); }
+void BuiltinHandlerSym::visit(ASTVisitor& v) { v.accept(*this); }
 
-void Handler::implement(std::unique_ptr<SymbolTable>&& table,
-                        std::unique_ptr<Stmt>&& body) {
+void HandlerSym::implement(std::unique_ptr<SymbolTable>&& table,
+                           std::unique_ptr<Stmt>&& body) {
   scope_ = std::move(table);
   body_ = std::move(body);
 }
@@ -553,7 +555,7 @@ bool CallExpr::setArgs(ParamList&& args) {
 }
 
 MatchStmt::MatchStmt(const FlowLocation& loc, std::unique_ptr<Expr>&& cond,
-                     vm::MatchClass op, std::list<Case>&& cases,
+                     MatchClass op, std::list<Case>&& cases,
                      std::unique_ptr<Stmt>&& elseStmt)
     : Stmt(loc),
       cond_(std::move(cond)),
@@ -582,8 +584,8 @@ void MatchStmt::visit(ASTVisitor& v) { v.accept(*this); }
 
 ForStmt::ForStmt(const FlowLocation& loc,
                  std::unique_ptr<SymbolTable>&& scope,
-                 Variable* index,
-                 Variable* value,
+                 VariableSym* index,
+                 VariableSym* value,
                  std::unique_ptr<Expr>&& range,
                  std::unique_ptr<Stmt>&& body)
   : Stmt(loc),

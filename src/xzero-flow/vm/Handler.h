@@ -15,7 +15,7 @@
 #include <memory>
 #include <cstdint>
 
-namespace xzero::flow::vm {
+namespace xzero::flow {
 
 class Program;
 class Runner;
@@ -62,4 +62,4 @@ class Handler {
 #endif
 };
 
-}  // namespace xzero::flow::vm
+}  // namespace xzero::flow

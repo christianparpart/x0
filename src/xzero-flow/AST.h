@@ -9,11 +9,11 @@
 
 #include <xzero-flow/vm/Signature.h>
 #include <xzero-flow/vm/Instruction.h>  // Opcode
-#include <xzero-flow/vm/MatchClass.h>
-#include <xzero-flow/FlowType.h>
-#include <xzero-flow/FlowToken.h>
-#include <xzero-flow/FlowLocation.h>
 #include <xzero-flow/ASTVisitor.h>
+#include <xzero-flow/FlowLocation.h>
+#include <xzero-flow/FlowToken.h>
+#include <xzero-flow/FlowType.h>
+#include <xzero-flow/MatchClass.h>
 #include <xzero/defines.h>
 #include <xzero/RegExp.h>
 #include <utility>
@@ -21,18 +21,13 @@
 #include <vector>
 #include <list>
 
-namespace xzero {
-namespace flow {
+namespace xzero::flow {
 
 //! \addtogroup Flow
 //@{
 
-namespace vm {
 class NativeCallback;
-}
-
 class ASTVisitor;
-class FlowBackend;
 class SymbolTable;
 class Expr;
 
@@ -128,17 +123,17 @@ class SymbolTable {
   std::string name_;
 };
 
-class ScopedSymbol : public Symbol {
+class ScopedSym : public Symbol {
  protected:
   std::unique_ptr<SymbolTable> scope_;
 
  protected:
-  ScopedSymbol(Type t, SymbolTable* outer, const std::string& name,
-               const FlowLocation& loc)
+  ScopedSym(Type t, SymbolTable* outer, const std::string& name,
+            const FlowLocation& loc)
       : Symbol(t, name, loc), scope_(new SymbolTable(outer, name)) {}
 
-  ScopedSymbol(Type t, std::unique_ptr<SymbolTable>&& scope,
-               const std::string& name, const FlowLocation& loc)
+  ScopedSym(Type t, std::unique_ptr<SymbolTable>&& scope,
+            const std::string& name, const FlowLocation& loc)
       : Symbol(t, name, loc), scope_(std::move(scope)) {}
 
  public:
@@ -149,13 +144,13 @@ class ScopedSymbol : public Symbol {
   }
 };
 
-class Variable : public Symbol {
+class VariableSym : public Symbol {
  private:
   std::unique_ptr<Expr> initializer_;
 
  public:
-  Variable(const std::string& name, std::unique_ptr<Expr>&& initializer,
-           const FlowLocation& loc)
+  VariableSym(const std::string& name, std::unique_ptr<Expr>&& initializer,
+              const FlowLocation& loc)
       : Symbol(Symbol::Variable, name, loc),
         initializer_(std::move(initializer)) {}
 
@@ -174,14 +169,14 @@ class Variable : public Symbol {
 
 class ParamList;
 
-class Callable : public Symbol {
+class CallableSym : public Symbol {
  protected:
-  const vm::NativeCallback* nativeCallback_;
-  vm::Signature sig_;
+  const NativeCallback* nativeCallback_;
+  Signature sig_;
 
  public:
-  Callable(Type t, const vm::NativeCallback* cb, const FlowLocation& loc);
-  Callable(const std::string& name, const FlowLocation& loc);
+  CallableSym(Type t, const NativeCallback* cb, const FlowLocation& loc);
+  CallableSym(const std::string& name, const FlowLocation& loc);
 
   bool isHandler() const {
     return type() == Symbol::Handler || type() == Symbol::BuiltinHandler;
@@ -192,9 +187,9 @@ class Callable : public Symbol {
            type() == Symbol::BuiltinFunction;
   }
 
-  const vm::Signature& signature() const;
+  const Signature& signature() const;
 
-  const vm::NativeCallback* nativeCallback() const {
+  const NativeCallback* nativeCallback() const {
     return nativeCallback_;
   }
 
@@ -209,20 +204,20 @@ class Callable : public Symbol {
   bool tryMatch(ParamList& params, Buffer* errorMessage) const;
 };
 
-class Handler : public Callable {
+class HandlerSym : public CallableSym {
  private:
   std::unique_ptr<SymbolTable> scope_;
   std::unique_ptr<Stmt> body_;
 
  public:
   /** create forward-declared handler. */
-  Handler(const std::string& name, const FlowLocation& loc)
-      : Callable(name, loc), scope_(), body_(nullptr /*forward declared*/) {}
+  HandlerSym(const std::string& name, const FlowLocation& loc)
+      : CallableSym(name, loc), scope_(), body_(nullptr /*forward declared*/) {}
 
   /** create handler. */
-  Handler(const std::string& name, std::unique_ptr<SymbolTable>&& scope,
+  HandlerSym(const std::string& name, std::unique_ptr<SymbolTable>&& scope,
           std::unique_ptr<Stmt>&& body, const FlowLocation& loc)
-      : Callable(name, loc), scope_(std::move(scope)), body_(std::move(body)) {}
+      : CallableSym(name, loc), scope_(std::move(scope)), body_(std::move(body)) {}
 
   SymbolTable* scope() { return scope_.get(); }
   const SymbolTable* scope() const { return scope_.get(); }
@@ -236,29 +231,29 @@ class Handler : public Callable {
   virtual void visit(ASTVisitor& v);
 };
 
-class BuiltinFunction : public Callable {
+class BuiltinFunctionSym : public CallableSym {
  public:
-  explicit BuiltinFunction(const vm::NativeCallback* cb)
-      : Callable(Symbol::BuiltinFunction, cb, FlowLocation()) {}
+  explicit BuiltinFunctionSym(const NativeCallback* cb)
+      : CallableSym(Symbol::BuiltinFunction, cb, FlowLocation()) {}
 
   virtual void visit(ASTVisitor& v);
 };
 
-class BuiltinHandler : public Callable {
+class BuiltinHandlerSym : public CallableSym {
  public:
-  explicit BuiltinHandler(const vm::NativeCallback* cb)
-      : Callable(Symbol::BuiltinHandler, cb, FlowLocation()) {}
+  explicit BuiltinHandlerSym(const NativeCallback* cb)
+      : CallableSym(Symbol::BuiltinHandler, cb, FlowLocation()) {}
 
   virtual void visit(ASTVisitor& v);
 };
 
-class Unit : public ScopedSymbol {
+class UnitSym : public ScopedSym {
  private:
   std::vector<std::pair<std::string, std::string>> modules_;
 
  public:
-  Unit()
-      : ScopedSymbol(Symbol::Unit, nullptr, "#unit", FlowLocation()),
+  UnitSym()
+      : ScopedSym(Symbol::Unit, nullptr, "#unit", FlowLocation()),
         modules_() {}
 
   // plugins
@@ -270,7 +265,7 @@ class Unit : public ScopedSymbol {
     return modules_;
   }
 
-  class Handler* findHandler(const std::string& name);
+  class HandlerSym* findHandler(const std::string& name);
 
   virtual void visit(ASTVisitor& v);
 };
@@ -288,15 +283,15 @@ class Expr : public ASTNode {
 
 class UnaryExpr : public Expr {
  private:
-  vm::Opcode operator_;
+  Opcode operator_;
   std::unique_ptr<Expr> subExpr_;
 
  public:
-  UnaryExpr(vm::Opcode op, std::unique_ptr<Expr>&& subExpr,
+  UnaryExpr(Opcode op, std::unique_ptr<Expr>&& subExpr,
             const FlowLocation& loc)
       : Expr(loc), operator_(op), subExpr_(std::move(subExpr)) {}
 
-  vm::Opcode op() const { return operator_; }
+  Opcode op() const { return operator_; }
   Expr* subExpr() const { return subExpr_.get(); }
 
   virtual void visit(ASTVisitor& v);
@@ -305,15 +300,15 @@ class UnaryExpr : public Expr {
 
 class BinaryExpr : public Expr {
  private:
-  vm::Opcode operator_;
+  Opcode operator_;
   std::unique_ptr<Expr> lhs_;
   std::unique_ptr<Expr> rhs_;
 
  public:
-  BinaryExpr(vm::Opcode op, std::unique_ptr<Expr>&& lhs,
+  BinaryExpr(Opcode op, std::unique_ptr<Expr>&& lhs,
              std::unique_ptr<Expr>&& rhs);
 
-  vm::Opcode op() const { return operator_; }
+  Opcode op() const { return operator_; }
   Expr* leftExpr() const { return lhs_.get(); }
   Expr* rightExpr() const { return rhs_.get(); }
 
@@ -385,7 +380,7 @@ class ParamList {
 
   bool contains(const std::string& name) const;
   void swap(size_t source, size_t dest);
-  void reorder(const vm::NativeCallback* source,
+  void reorder(const NativeCallback* source,
                std::vector<std::string>* superfluous);
   int find(const std::string& name) const;
 
@@ -411,19 +406,19 @@ class ParamList {
 /**
  * Call to native function, native handler or source handler.
  *
- * @see Callable
+ * @see CallableSym
  * @see ParamList
  */
 class CallExpr : public Expr {
  private:
-  Callable* callee_;
+  CallableSym* callee_;
   ParamList args_;
 
  public:
-  CallExpr(const FlowLocation& loc, Callable* callee, ParamList&& args)
+  CallExpr(const FlowLocation& loc, CallableSym* callee, ParamList&& args)
       : Expr(loc), callee_(callee), args_(std::move(args)) {}
 
-  Callable* callee() const { return callee_; }
+  CallableSym* callee() const { return callee_; }
   const ParamList& args() const { return args_; }
   ParamList& args() { return args_; }
   bool setArgs(ParamList&& args);
@@ -434,14 +429,14 @@ class CallExpr : public Expr {
 
 class VariableExpr : public Expr {
  private:
-  Variable* variable_;
+  VariableSym* variable_;
 
  public:
-  VariableExpr(Variable* var, const FlowLocation& loc)
+  VariableExpr(VariableSym* var, const FlowLocation& loc)
       : Expr(loc), variable_(var) {}
 
-  Variable* variable() const { return variable_; }
-  void setVariable(Variable* var) { variable_ = var; }
+  VariableSym* variable() const { return variable_; }
+  void setVariable(VariableSym* var) { variable_ = var; }
 
   virtual void visit(ASTVisitor& v);
   virtual FlowType getType() const;
@@ -449,14 +444,14 @@ class VariableExpr : public Expr {
 
 class HandlerRefExpr : public Expr {
  private:
-  Handler* handler_;
+  HandlerSym* handler_;
 
  public:
-  HandlerRefExpr(Handler* ref, const FlowLocation& loc)
+  HandlerRefExpr(HandlerSym* ref, const FlowLocation& loc)
       : Expr(loc), handler_(ref) {}
 
-  Handler* handler() const { return handler_; }
-  void setHandler(Handler* handler) { handler_ = handler; }
+  HandlerSym* handler() const { return handler_; }
+  void setHandler(HandlerSym* handler) { handler_ = handler; }
 
   virtual void visit(ASTVisitor& v);
   virtual FlowType getType() const;
@@ -513,15 +508,15 @@ class CompoundStmt : public Stmt {
 
 class AssignStmt : public Stmt {
  private:
-  Variable* variable_;
+  VariableSym* variable_;
   std::unique_ptr<Expr> expr_;
 
  public:
-  AssignStmt(Variable* var, std::unique_ptr<Expr> expr, const FlowLocation& loc)
+  AssignStmt(VariableSym* var, std::unique_ptr<Expr> expr, const FlowLocation& loc)
       : Stmt(loc), variable_(var), expr_(std::move(expr)) {}
 
-  Variable* variable() const { return variable_; }
-  void setVariable(Variable* var) { variable_ = var; }
+  VariableSym* variable() const { return variable_; }
+  void setVariable(VariableSym* var) { variable_ = var; }
 
   Expr* expression() const { return expr_.get(); }
   void setExpression(std::unique_ptr<Expr> expr) { expr_ = std::move(expr); }
@@ -562,14 +557,14 @@ class MatchStmt : public Stmt {
   using CaseList = std::list<Case>;
 
   MatchStmt(const FlowLocation& loc, std::unique_ptr<Expr>&& cond,
-            vm::MatchClass op, std::list<Case>&& cases,
+            MatchClass op, std::list<Case>&& cases,
             std::unique_ptr<Stmt>&& elseStmt);
   MatchStmt(MatchStmt&& other);
   MatchStmt& operator=(MatchStmt&& other);
   ~MatchStmt();
 
   Expr* condition() { return cond_.get(); }
-  vm::MatchClass op() const { return op_; }
+  MatchClass op() const { return op_; }
   CaseList& cases() { return cases_; }
 
   Stmt* elseStmt() const { return elseStmt_.get(); }
@@ -579,7 +574,7 @@ class MatchStmt : public Stmt {
 
  private:
   std::unique_ptr<Expr> cond_;
-  vm::MatchClass op_;
+  MatchClass op_;
   CaseList cases_;
   std::unique_ptr<Stmt> elseStmt_;
 };
@@ -598,24 +593,24 @@ class ForStmt : public Stmt {
    */
   ForStmt(const FlowLocation& loc,
           std::unique_ptr<SymbolTable>&& scope,
-          Variable* index,
-          Variable* value,
+          VariableSym* index,
+          VariableSym* value,
           std::unique_ptr<Expr>&& range,
           std::unique_ptr<Stmt>&& body);
 
   void visit(ASTVisitor&) override;
 
   SymbolTable* scope() const { return scope_.get(); }
-  Variable* indexSymbol() const { return index_; }
-  Variable* valueSymbol() const { return value_; }
+  VariableSym* indexSymbol() const { return index_; }
+  VariableSym* valueSymbol() const { return value_; }
 
   Expr* range() const { return range_.get(); }
   Stmt* body() const { return body_.get(); }
 
  private:
   std::unique_ptr<SymbolTable> scope_;
-  Variable* index_;
-  Variable* value_;
+  VariableSym* index_;
+  VariableSym* value_;
   std::unique_ptr<Expr> range_;
   std::unique_ptr<Stmt> body_;
 };
@@ -623,5 +618,4 @@ class ForStmt : public Stmt {
 
 //!@}
 
-}  // namespace flow
-}  // namespace xzero
+}  // namespace xzero::flow

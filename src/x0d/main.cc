@@ -145,7 +145,7 @@ int main(int argc, const char* argv[]) {
     return 1;
   }
 
-  std::unique_ptr<xzero::flow::vm::Program> config;
+  std::unique_ptr<xzero::flow::Program> config;
 
   if (!flags.getString("instant").empty()) {
     std::string spec = flags.getString("instant");

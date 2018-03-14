@@ -6,13 +6,13 @@
 // the License at: http://opensource.org/licenses/MIT
 
 #include <xzero-flow/vm/Runtime.h>
-#include <xzero-flow/vm/NativeCallback.h>
 #include <xzero-flow/ir/IRProgram.h>
 #include <xzero-flow/ir/IRHandler.h>
 #include <xzero-flow/ir/BasicBlock.h>
 #include <xzero-flow/ir/Instructions.h>
+#include <xzero-flow/NativeCallback.h>
 
-namespace xzero::flow::vm {
+namespace xzero::flow {
 
 Runtime::~Runtime() {
 }
@@ -70,4 +70,4 @@ bool Runtime::verifyNativeCalls(IRProgram* program, IRBuilder* builder) {
   return true;
 }
 
-}  // namespace xzero::flow::vm
+}  // namespace xzero::flow

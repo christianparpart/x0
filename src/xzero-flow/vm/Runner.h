@@ -11,7 +11,6 @@
 #include <xzero/logging.h>
 #include <xzero-flow/FlowType.h>
 #include <xzero-flow/vm/Handler.h>
-#include <xzero-flow/vm/Instruction.h>
 #include <xzero/CustomDataMgr.h>
 #include <xzero/RegExp.h>
 #include <algorithm>
@@ -26,7 +25,7 @@
 #include <string>
 #include <iosfwd>
 
-namespace xzero::flow::vm {
+namespace xzero::flow {
 
 // ExecutionEngine
 // VM
@@ -195,4 +194,4 @@ class Runner : public CustomData {
 std::ostream& operator<<(std::ostream& os, Runner::State state);
 std::ostream& operator<<(std::ostream& os, const Runner& vm);
 
-}  // namespace xzero::flow::vm
+}  // namespace xzero::flow

@@ -13,8 +13,6 @@
 
 namespace xzero::flow {
 
-using namespace vm;
-
 IRProgram::IRProgram()
     : modules_(),
       trueLiteral_(true, "trueLiteral"),
@@ -103,11 +101,5 @@ template ConstantCidr* IRProgram::get<ConstantCidr, Cidr>(
 
 template ConstantRegExp* IRProgram::get<ConstantRegExp, RegExp>(
     std::vector<std::unique_ptr<ConstantRegExp>>&, const RegExp&);
-
-template IRBuiltinHandler* IRProgram::get<IRBuiltinHandler, Signature>(
-    std::vector<std::unique_ptr<IRBuiltinHandler>>&, const Signature&);
-
-template IRBuiltinFunction* IRProgram::get<IRBuiltinFunction, Signature>(
-    std::vector<std::unique_ptr<IRBuiltinFunction>>&, const Signature&);
 
 }  // namespace xzero::flow

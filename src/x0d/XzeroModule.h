@@ -10,7 +10,7 @@
 #include <x0d/XzeroDaemon.h>
 #include <x0d/XzeroContext.h>
 #include <xzero/Buffer.h>
-#include <xzero-flow/vm/Params.h>
+#include <xzero-flow/Params.h>
 #include <string>
 #include <list>
 #include <vector>
@@ -25,10 +25,7 @@ namespace xzero {
   }
 
   namespace flow {
-    namespace vm {
-      class NativeCallback;
-      class Params;
-    }
+    class NativeCallback;
   }
 }
 
@@ -45,8 +42,8 @@ class XzeroModule {
   XzeroDaemon& daemon() const;
 
  protected:
-  using Params = xzero::flow::vm::Params;
-  using NativeCallback = xzero::flow::vm::NativeCallback;
+  using Params = xzero::flow::Params;
+  using NativeCallback = xzero::flow::NativeCallback;
   using FlowType = xzero::flow::FlowType;
 
   // flow configuration API
@@ -90,13 +87,13 @@ class XzeroModule {
   void onRequestDone(std::function<void(xzero::http::HttpRequest*, xzero::http::HttpResponse*)> callback);
 
  private:
-  xzero::flow::vm::NativeCallback& addNative(xzero::flow::vm::NativeCallback& cb);
+  xzero::flow::NativeCallback& addNative(xzero::flow::NativeCallback& cb);
 
  protected:
   XzeroDaemon* daemon_;
   std::string name_;
   std::list<std::function<void()>> cleanups_;
-  std::vector<xzero::flow::vm::NativeCallback*> natives_;
+  std::vector<xzero::flow::NativeCallback*> natives_;
 
   friend class XzeroDaemon;
 };
@@ -111,29 +108,29 @@ inline XzeroDaemon& XzeroModule::daemon() const {
 }
 // }}}
 // {{{ flow integration
-inline xzero::flow::vm::NativeCallback& XzeroModule::addNative(
-    xzero::flow::vm::NativeCallback& cb) {
+inline xzero::flow::NativeCallback& XzeroModule::addNative(
+    xzero::flow::NativeCallback& cb) {
   natives_.push_back(&cb);
   return cb;
 }
 
 template <typename Class, typename... ArgTypes>
-inline xzero::flow::vm::NativeCallback& XzeroModule::setupFunction(
-    const std::string& name, void (Class::*method)(xzero::flow::vm::Params&),
+inline xzero::flow::NativeCallback& XzeroModule::setupFunction(
+    const std::string& name, void (Class::*method)(xzero::flow::Params&),
     ArgTypes... argTypes) {
   return addNative(daemon_->setupFunction(
-      name, [=](xzero::flow::vm::Params& args) { (((Class*)this)->*method)(args); },
+      name, [=](xzero::flow::Params& args) { (((Class*)this)->*method)(args); },
       argTypes...));
 }
 
 template <typename Class, typename... ArgTypes>
-inline xzero::flow::vm::NativeCallback& XzeroModule::sharedFunction(
+inline xzero::flow::NativeCallback& XzeroModule::sharedFunction(
     const std::string& name,
-    void (Class::*method)(XzeroContext*, xzero::flow::vm::Params&),
+    void (Class::*method)(XzeroContext*, xzero::flow::Params&),
     ArgTypes... argTypes) {
   return addNative(daemon_->sharedFunction(
       name,
-      [=](xzero::flow::vm::Params& args) {
+      [=](xzero::flow::Params& args) {
         auto cx = (XzeroContext*) args.caller()->userdata();
         (((Class*)this)->*method)(cx, args);
       },
@@ -141,14 +138,14 @@ inline xzero::flow::vm::NativeCallback& XzeroModule::sharedFunction(
 }
 
 template <typename Class, typename... ArgTypes>
-inline xzero::flow::vm::NativeCallback& XzeroModule::sharedFunction(
+inline xzero::flow::NativeCallback& XzeroModule::sharedFunction(
     const std::string& name,
-    void (Class::*setupCall)(xzero::flow::vm::Params&),
-    void (Class::*mainCall)(XzeroContext*, xzero::flow::vm::Params&),
+    void (Class::*setupCall)(xzero::flow::Params&),
+    void (Class::*mainCall)(XzeroContext*, xzero::flow::Params&),
     ArgTypes... argTypes) {
   return addNative(daemon_->sharedFunction(
       name,
-      [=](xzero::flow::vm::Params& args) {
+      [=](xzero::flow::Params& args) {
         auto cx = (XzeroContext*) args.caller()->userdata();
         if (cx) {
           (((Class*)this)->*mainCall)(cx, args);
@@ -160,13 +157,13 @@ inline xzero::flow::vm::NativeCallback& XzeroModule::sharedFunction(
 }
 
 template <typename Class, typename... ArgTypes>
-inline xzero::flow::vm::NativeCallback& XzeroModule::mainFunction(
+inline xzero::flow::NativeCallback& XzeroModule::mainFunction(
     const std::string& name,
-    void (Class::*method)(XzeroContext*, xzero::flow::vm::Params&),
+    void (Class::*method)(XzeroContext*, xzero::flow::Params&),
     ArgTypes... argTypes) {
   return addNative(daemon_->mainFunction(
       name,
-      [=](xzero::flow::vm::Params& args) {
+      [=](xzero::flow::Params& args) {
         auto cx = (XzeroContext*) args.caller()->userdata();
         (((Class*)this)->*method)(cx, args);
       },
@@ -174,13 +171,13 @@ inline xzero::flow::vm::NativeCallback& XzeroModule::mainFunction(
 }
 
 template <typename Class, typename... ArgTypes>
-inline xzero::flow::vm::NativeCallback& XzeroModule::mainHandler(
+inline xzero::flow::NativeCallback& XzeroModule::mainHandler(
     const std::string& name,
-    bool (Class::*method)(XzeroContext*, xzero::flow::vm::Params&),
+    bool (Class::*method)(XzeroContext*, xzero::flow::Params&),
     ArgTypes... argTypes) {
   return addNative(daemon_->mainHandler(
       name,
-      [=](xzero::flow::vm::Params& args) {
+      [=](xzero::flow::Params& args) {
         auto cx = (XzeroContext*) args.caller()->userdata();
         args.setResult((((Class*)this)->*method)(cx, args));
       },

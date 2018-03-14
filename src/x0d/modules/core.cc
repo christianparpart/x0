@@ -177,24 +177,33 @@ CoreModule::CoreModule(XzeroDaemon* d)
 
   // shared properties (read-only)
   sharedFunction("sys.cpu_count", &CoreModule::sys_cpu_count)
+      .setReadonly()
       .returnType(FlowType::Number);
   sharedFunction("sys.env", &CoreModule::sys_env, FlowType::String)
+      .setReadonly()
       .returnType(FlowType::String)
       .verifier(&CoreModule::preproc_sys_env, this);
   sharedFunction("sys.env", &CoreModule::sys_env2, FlowType::String, FlowType::String)
+      .setReadonly()
       .returnType(FlowType::String)
       .verifier(&CoreModule::preproc_sys_env2, this);
   sharedFunction("sys.cwd", &CoreModule::sys_cwd)
+      .setReadonly()
       .returnType(FlowType::String);
   sharedFunction("sys.pid", &CoreModule::sys_pid)
+      .setReadonly()
       .returnType(FlowType::Number);
   sharedFunction("sys.now", &CoreModule::sys_now)
+      .setReadonly()
       .returnType(FlowType::Number);
   sharedFunction("sys.now_str", &CoreModule::sys_now_str)
+      .setReadonly()
       .returnType(FlowType::String);
   sharedFunction("sys.hostname", &CoreModule::sys_hostname)
+      .setReadonly()
       .returnType(FlowType::String);
   sharedFunction("sys.domainname", &CoreModule::sys_domainname)
+      .setReadonly()
       .returnType(FlowType::String);
 
   // shared functions
@@ -298,8 +307,12 @@ CoreModule::CoreModule(XzeroDaemon* d)
   mainHandler("alias", &CoreModule::alias, FlowType::String, FlowType::String);
   mainHandler("staticfile", &CoreModule::staticfile);
   mainHandler("precompressed", &CoreModule::precompressed);
-  mainHandler("return", &CoreModule::redirect_with_to, FlowType::Number, FlowType::String);
+  mainHandler("return", &CoreModule::redirect_with_to)
+      .setNoReturn()
+      .param<FlowNumber>("status")
+      .param<FlowString>("to");
   mainHandler("return", &CoreModule::return_with)
+      .setNoReturn()
       .param<FlowNumber>("status")
       .param<FlowNumber>("override", 0);
   mainHandler("echo", &CoreModule::echo, FlowType::String);
@@ -689,7 +702,7 @@ void CoreModule::sleep(XzeroContext* cx, Params& args) {
   cx->runner()->suspend();
   cx->response()->executor()->executeAfter(
       Duration::fromSeconds(args.getInt(1)),
-      std::bind(&flow::vm::Runner::resume, cx->runner()));
+      std::bind(&flow::Runner::resume, cx->runner()));
 }
 
 bool verifyErrorPageConfig(HttpStatus status, const std::string& uri) {

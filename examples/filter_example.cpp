@@ -14,9 +14,8 @@
 #include <base/Types.h>
 #include <x0d/sysconfig.h>
 
-using namespace base;
-using namespace flow;
 using namespace xzero;
+using namespace xzero::flow;
 
 // {{{ ExampleFilter
 class ExampleFilter : public Filter {
@@ -66,7 +65,7 @@ class filter_plugin : public x0d::XzeroPlugin {
                  flow::FlowType::String);
   }
 
-  void install_filter(HttpRequest* r, flow::vm::Params& args) {
+  void install_filter(HttpRequest* r, flow::Params& args) {
     auto algo = args.getString(1);
     if (equals(algo, "identity"))
       r->outputFilters.push_back(

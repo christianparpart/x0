@@ -15,14 +15,38 @@ namespace xzero::flow {
 
 class IRBuiltinFunction : public Constant {
  public:
-  IRBuiltinFunction(const vm::Signature& sig)
+  IRBuiltinFunction(const IRBuiltinFunction&) = default;
+  IRBuiltinFunction& operator=(const IRBuiltinFunction&) = default;
+
+  IRBuiltinFunction(IRBuiltinFunction&&) = default;
+  IRBuiltinFunction& operator=(IRBuiltinFunction&&) = default;
+
+  IRBuiltinFunction(const Signature& sig, bool isSideEffectFree)
       : Constant(sig.returnType(), sig.name()), signature_(sig) {}
 
-  const vm::Signature& signature() const { return signature_; }
-  const vm::Signature& get() const { return signature_; }
+  const Signature& signature() const { return signature_; }
+  const Signature& get() const { return signature_; }
+  bool isSideEffectFree() const noexcept { return isSideEffectFree_; }
 
  private:
-  vm::Signature signature_;
+  Signature signature_;
+  bool isSideEffectFree_;
 };
+
+inline bool operator==(const IRBuiltinFunction& f, const Signature& sig) {
+  return sig == f.signature();
+}
+
+inline bool operator!=(const IRBuiltinFunction& f, const Signature& sig) {
+  return sig != f.signature();
+}
+
+inline bool operator==(const Signature& sig, const IRBuiltinFunction& f) {
+  return sig == f.signature();
+}
+
+inline bool operator!=(const Signature& sig, const IRBuiltinFunction& f) {
+  return sig != f.signature();
+}
 
 }  // namespace xzero::flow

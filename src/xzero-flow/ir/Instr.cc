@@ -18,8 +18,6 @@
 
 namespace xzero::flow {
 
-using namespace vm;
-
 Instr::Instr(const Instr& v)
     : Value(v), basicBlock_(nullptr), operands_(v.operands_) {
   for (Value* op : operands_) {

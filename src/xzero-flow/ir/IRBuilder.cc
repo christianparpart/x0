@@ -17,8 +17,6 @@
 
 namespace xzero::flow {
 
-using namespace vm;
-
 //#define FLOW_DEBUG_IR 1
 
 #if defined(FLOW_DEBUG_IR)
@@ -661,7 +659,7 @@ Instr* IRBuilder::createCondBr(Value* condValue, BasicBlock* trueBlock,
   return insert<CondBrInstr>(condValue, trueBlock, falseBlock);
 }
 
-MatchInstr* IRBuilder::createMatch(vm::MatchClass opc, Value* cond) {
+MatchInstr* IRBuilder::createMatch(MatchClass opc, Value* cond) {
   return static_cast<MatchInstr*>(insert<MatchInstr>(opc, cond));
 }
 

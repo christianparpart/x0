@@ -20,14 +20,14 @@
 #include <utility>
 #include <memory>
 
-namespace xzero::flow::vm {
+namespace xzero::flow {
 
+class NativeCallback;
 class Runner;
 class Runtime;
 class Handler;
 class Match;
 class MatchDef;
-class NativeCallback;
 class ConstantPool;
 
 class Program {
@@ -90,4 +90,4 @@ class Program {
   std::vector<NativeCallback*> nativeFunctions_;
 };
 
-}  // namespace xzero::flow::vm
+}  // namespace xzero::flow

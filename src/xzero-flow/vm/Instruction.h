@@ -12,7 +12,7 @@
 #include <stdint.h>
 #include <vector>
 
-namespace xzero::flow::vm {
+namespace xzero::flow {
 
 class ConstantPool;
 
@@ -225,4 +225,4 @@ std::string disassemble(Instruction pc, size_t ip,
                         size_t* sp,
                         const ConstantPool* cp);
 
-} // namespace xzero::flow::vm
+} // namespace xzero::flow

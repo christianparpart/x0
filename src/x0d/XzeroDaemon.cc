@@ -117,7 +117,7 @@ XzeroDaemon::~XzeroDaemon() {
 bool XzeroDaemon::import(
     const std::string& name,
     const std::string& path,
-    std::vector<flow::vm::NativeCallback*>* builtins) {
+    std::vector<flow::NativeCallback*>* builtins) {
 
   if (path.empty())
     logDebug("Loading plugin \"$0\"", name);
@@ -130,12 +130,12 @@ bool XzeroDaemon::import(
 }
 
 // for instant-mode
-std::unique_ptr<flow::vm::Program> XzeroDaemon::loadConfigEasy(
+std::unique_ptr<flow::Program> XzeroDaemon::loadConfigEasy(
     const std::string& docroot, int port) {
   return loadConfigEasy(docroot, port, false, false, false);
 }
 
-std::unique_ptr<flow::vm::Program> XzeroDaemon::loadConfigEasy(
+std::unique_ptr<flow::Program> XzeroDaemon::loadConfigEasy(
     const std::string& docroot, int port,
     bool printAST, bool printIR, bool printTC) {
   std::string flow =
@@ -157,12 +157,12 @@ std::unique_ptr<flow::vm::Program> XzeroDaemon::loadConfigEasy(
       "instant-mode.conf", printAST, printIR, printTC);
 }
 
-std::unique_ptr<flow::vm::Program> XzeroDaemon::loadConfigFile(
+std::unique_ptr<flow::Program> XzeroDaemon::loadConfigFile(
     const std::string& configFileName) {
   return loadConfigFile(configFileName, false, false, false);
 }
 
-std::unique_ptr<flow::vm::Program> XzeroDaemon::loadConfigFile(
+std::unique_ptr<flow::Program> XzeroDaemon::loadConfigFile(
     const std::string& configFileName,
     bool printAST, bool printIR, bool printTC) {
   configFilePath_ = configFileName;
@@ -171,7 +171,7 @@ std::unique_ptr<flow::vm::Program> XzeroDaemon::loadConfigFile(
       printAST, printIR, printTC);
 }
 
-std::unique_ptr<flow::vm::Program> XzeroDaemon::loadConfigStream(
+std::unique_ptr<flow::Program> XzeroDaemon::loadConfigStream(
     std::unique_ptr<std::istream>&& is,
     const std::string& fakeFilename,
     bool printAST, bool printIR, bool printTC) {
@@ -185,7 +185,7 @@ std::unique_ptr<flow::vm::Program> XzeroDaemon::loadConfigStream(
       });
 
   parser.openStream(std::move(is), fakeFilename);
-  std::unique_ptr<flow::Unit> unit = parser.parse();
+  std::unique_ptr<flow::UnitSym> unit = parser.parse();
 
   validateConfig(unit.get());
 
@@ -227,7 +227,7 @@ std::unique_ptr<flow::vm::Program> XzeroDaemon::loadConfigStream(
     return nullptr;
   }
 
-  std::unique_ptr<flow::vm::Program> program =
+  std::unique_ptr<flow::Program> program =
       flow::TargetCodeGenerator().generate(programIR.get());
 
   program->link(this);
@@ -248,7 +248,7 @@ void XzeroDaemon::patchProgramIR(flow::IRProgram* programIR,
   // this function will never return, thus, we're not injecting
   // our return(I)V before the RET instruction but replace it.
   IRBuiltinHandler* returnFn =
-      irgen->getBuiltinHandler(vm::Signature("return(II)B"));
+      irgen->findBuiltinHandler(Signature("return(II)B"));
 
   // remove RetInstr if prior instr never returns
   // replace RetInstr with `handler return(II)V 404, 0`
@@ -285,7 +285,7 @@ void XzeroDaemon::patchProgramIR(flow::IRProgram* programIR,
   }
 }
 
-bool XzeroDaemon::applyConfiguration(std::unique_ptr<flow::vm::Program>&& program) {
+bool XzeroDaemon::applyConfiguration(std::unique_ptr<flow::Program>&& program) {
   try {
     program->findHandler("setup")->run();
 
@@ -360,7 +360,7 @@ void XzeroDaemon::reloadConfiguration() {
     stopThreads();
 
     // load new config file into Flow
-    std::unique_ptr<flow::vm::Program> program = loadConfigFile(configFilePath_);
+    std::unique_ptr<flow::Program> program = loadConfigFile(configFilePath_);
 
     threadedExecutor_.joinAll();
     stop();
@@ -485,7 +485,7 @@ std::unique_ptr<EventLoop> XzeroDaemon::createEventLoop() {
 
 void XzeroDaemon::handleRequest(HttpRequest* request, HttpResponse* response) {
   // XXX the XzeroContext instance is getting deleted upon response completion
-  XzeroContext* cx = new XzeroContext(std::make_unique<flow::vm::Runner>(main_),
+  XzeroContext* cx = new XzeroContext(std::make_unique<flow::Runner>(main_),
                                       request,
                                       response,
                                       &config_->errorPages,
@@ -493,21 +493,21 @@ void XzeroDaemon::handleRequest(HttpRequest* request, HttpResponse* response) {
 
   if (request->expect100Continue()) {
     response->send100Continue([cx, request](bool succeed) {
-      request->consumeContent(std::bind(&flow::vm::Runner::run, cx->runner()));
+      request->consumeContent(std::bind(&flow::Runner::run, cx->runner()));
     });
   } else {
-    request->consumeContent(std::bind(&flow::vm::Runner::run, cx->runner()));
+    request->consumeContent(std::bind(&flow::Runner::run, cx->runner()));
   }
 }
 
-void XzeroDaemon::validateConfig(flow::Unit* unit) {
+void XzeroDaemon::validateConfig(flow::UnitSym* unit) {
   validateContext("setup", setupApi_, unit);
   validateContext("main", mainApi_, unit);
 }
 
 void XzeroDaemon::validateContext(const std::string& entrypointHandlerName,
                                   const std::vector<std::string>& api,
-                                  flow::Unit* unit) {
+                                  flow::UnitSym* unit) {
   auto entrypointFn = unit->findHandler(entrypointHandlerName);
   if (!entrypointFn)
     RAISE(RuntimeError, "No handler with name %s found.",

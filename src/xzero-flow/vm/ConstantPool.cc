@@ -13,7 +13,7 @@
 #include <iomanip>
 #include <inttypes.h>
 
-namespace xzero::flow::vm {
+namespace xzero::flow {
 
 // {{{ helpers
 template <typename T, typename S>
@@ -328,4 +328,4 @@ void ConstantPool::dump() const {
   printf("\n\n");
 }
 
-}  // namespace xzero::flow::vm
+}  // namespace xzero::flow

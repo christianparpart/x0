@@ -12,7 +12,7 @@
 #include <xzero/logging.h>
 #include <xzero/sysconfig.h>
 
-namespace xzero::flow::vm {
+namespace xzero::flow {
 
 #define TRACE(msg...) logTrace("flow.vm.Handler" msg)
 
@@ -96,8 +96,8 @@ void Handler::disassemble() {
          name().c_str(),
          stackSize(),
          code().size());
-  printf("%s", vm::disassemble(code_.data(), code_.size(), "  ",
-                               &program_->constants()).c_str());
+  printf("%s", flow::disassemble(code_.data(), code_.size(), "  ",
+                                 &program_->constants()).c_str());
 }
 
-}  // namespace xzero::flow::vm
+}  // namespace xzero::flow

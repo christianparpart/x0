@@ -451,6 +451,8 @@ libXzeroFlow_a_SOURCES = \
 	src/xzero-flow/FlowToken.cc \
 	src/xzero-flow/FlowType.cc \
 	src/xzero-flow/IRGenerator.cc \
+	src/xzero-flow/MatchClass.cc \
+	src/xzero-flow/NativeCallback.cc \
 	src/xzero-flow/TargetCodeGenerator.cc \
 	src/xzero-flow/ir/BasicBlock.cc \
 	src/xzero-flow/ir/Constant.cc \
@@ -472,8 +474,6 @@ libXzeroFlow_a_SOURCES = \
 	src/xzero-flow/vm/Handler.cc \
 	src/xzero-flow/vm/Instruction.cc \
 	src/xzero-flow/vm/Match.cc \
-	src/xzero-flow/vm/MatchClass.cc \
-	src/xzero-flow/vm/NativeCallback.cc \
 	src/xzero-flow/vm/Program.cc \
 	src/xzero-flow/vm/Runner.cc \
 	src/xzero-flow/vm/Runtime.cc \
@@ -492,6 +492,9 @@ nobase_libXzeroFlow_HEADERS = \
 	src/xzero-flow/FlowToken.h \
 	src/xzero-flow/FlowType.h \
 	src/xzero-flow/IRGenerator.h \
+	src/xzero-flow/MatchClass.h \
+	src/xzero-flow/NativeCallback.h \
+	src/xzero-flow/Params.h \
 	src/xzero-flow/TargetCodeGenerator.h \
 	src/xzero-flow/ir/BasicBlock.h \
 	src/xzero-flow/ir/Constant.h \
@@ -516,9 +519,6 @@ nobase_libXzeroFlow_HEADERS = \
 	src/xzero-flow/vm/Handler.h \
 	src/xzero-flow/vm/Instruction.h \
 	src/xzero-flow/vm/Match.h \
-	src/xzero-flow/vm/MatchClass.h \
-	src/xzero-flow/vm/NativeCallback.h \
-	src/xzero-flow/vm/Params.h \
 	src/xzero-flow/vm/Program.h \
 	src/xzero-flow/vm/Runner.h \
 	src/xzero-flow/vm/Runtime.h \

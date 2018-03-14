@@ -13,8 +13,8 @@
 #include <xzero-flow/ir/IRBuiltinHandler.h>
 #include <xzero-flow/ir/IRBuiltinFunction.h>
 #include <xzero-flow/ir/IRProgram.h>
-#include <xzero-flow/vm/MatchClass.h>
 #include <xzero-flow/vm/Signature.h>
+#include <xzero-flow/MatchClass.h>
 #include <xzero/net/IPAddress.h>
 #include <xzero/net/Cidr.h>
 #include <xzero/RegExp.h>
@@ -80,11 +80,14 @@ class IRBuilder {
   ConstantIP* get(const IPAddress& literal) { return program_->get(literal); }
   ConstantCidr* get(const Cidr& literal) { return program_->get(literal); }
   ConstantRegExp* get(const RegExp& literal) { return program_->get(literal); }
-  IRBuiltinHandler* getBuiltinHandler(const vm::Signature& sig) {
-    return program_->getBuiltinHandler(sig);
+  IRBuiltinHandler* findBuiltinHandler(const Signature& sig) {
+    return program_->findBuiltinHandler(sig);
   }
-  IRBuiltinFunction* getBuiltinFunction(const vm::Signature& sig) {
-    return program_->getBuiltinFunction(sig);
+  IRBuiltinHandler* getBuiltinHandler(const Signature& sig, bool neverReturning) {
+    return program_->getBuiltinHandler(sig, neverReturning);
+  }
+  IRBuiltinFunction* getBuiltinFunction(const Signature& sig, bool ro) {
+    return program_->getBuiltinFunction(sig, ro);
   }
   ConstantArray* get(const std::vector<Constant*>& arrayElements) {
     return program_->get(arrayElements);
@@ -193,7 +196,7 @@ class IRBuilder {
   Instr* createBr(BasicBlock* block);
   Instr* createCondBr(Value* condValue, BasicBlock* trueBlock,
                       BasicBlock* falseBlock);
-  MatchInstr* createMatch(vm::MatchClass opc, Value* cond);
+  MatchInstr* createMatch(MatchClass opc, Value* cond);
   Value* createMatchSame(Value* cond);
   Value* createMatchHead(Value* cond);
   Value* createMatchTail(Value* cond);

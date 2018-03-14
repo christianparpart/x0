@@ -5,12 +5,12 @@
 // file except in compliance with the License. You may obtain a copy of
 // the License at: http://opensource.org/licenses/MIT
 
-#include <xzero-flow/vm/NativeCallback.h>
+#include <xzero-flow/NativeCallback.h>
 #include <xzero/net/IPAddress.h>
 #include <xzero/net/Cidr.h>
 #include <xzero/RegExp.h>
 
-namespace xzero::flow::vm {
+namespace xzero::flow {
 
 // constructs a handler callback
 NativeCallback::NativeCallback(Runtime* runtime, const std::string& _name)
@@ -18,7 +18,9 @@ NativeCallback::NativeCallback(Runtime* runtime, const std::string& _name)
       isHandler_(true),
       verifier_(),
       function_(),
-      signature_() {
+      signature_(),
+      neverReturning_(false),
+      sideEffectFree_(false) {
   signature_.setName(_name);
   signature_.setReturnType(FlowType::Boolean);
 }
@@ -30,7 +32,9 @@ NativeCallback::NativeCallback(Runtime* runtime, const std::string& _name,
       isHandler_(false),
       verifier_(),
       function_(),
-      signature_() {
+      signature_(),
+      neverReturning_(false),
+      sideEffectFree_(false) {
   signature_.setName(_name);
   signature_.setReturnType(_returnType);
 }
@@ -86,8 +90,18 @@ int NativeCallback::find(const std::string& name) const {
   return -1;
 }
 
+NativeCallback& NativeCallback::setNoReturn() {
+  neverReturning_ = true;
+  return *this;
+}
+
+NativeCallback& NativeCallback::setReadonly() {
+  sideEffectFree_ = true;
+  return *this;
+}
+
 void NativeCallback::invoke(Params& args) const {
   function_(args);
 }
 
-}  // namespace xzero::flow::vm
+}  // namespace xzero::flow

@@ -77,7 +77,6 @@ struct fntrace4 {
 #define CTRACE(msg)         do {} while (0)
 #define TRACE(msg...)       do {} while (0)
 #endif
-using namespace vm;
 
 template <typename T, typename S>
 std::vector<T> convert(const std::vector<Constant*>& source) {

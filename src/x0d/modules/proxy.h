@@ -53,18 +53,18 @@ class ProxyModule : public XzeroModule,
 
  private:
   // setup functions
-  void proxy_pseudonym(xzero::flow::vm::Params& args);
+  void proxy_pseudonym(xzero::flow::Params& args);
 
   // main handlers
   xzero::http::client::HttpCluster* findLocalCluster(const std::string& host);
-  bool proxy_cluster_auto(XzeroContext* cx, xzero::flow::vm::Params& args);
+  bool proxy_cluster_auto(XzeroContext* cx, xzero::flow::Params& args);
   bool verify_proxy_cluster(xzero::flow::Instr* call, xzero::flow::IRBuilder* builder);
   bool proxy_cluster(XzeroContext* cx, Params& args);
-  bool proxy_api(XzeroContext* cx, xzero::flow::vm::Params& args);
-  bool proxy_fcgi(XzeroContext* cx, xzero::flow::vm::Params& args);
-  bool proxy_http(XzeroContext* cx, xzero::flow::vm::Params& args);
+  bool proxy_api(XzeroContext* cx, xzero::flow::Params& args);
+  bool proxy_fcgi(XzeroContext* cx, xzero::flow::Params& args);
+  bool proxy_http(XzeroContext* cx, xzero::flow::Params& args);
   bool proxy_roadwarrior_verify(xzero::flow::Instr* instr, xzero::flow::IRBuilder* builder);
-  void proxy_cache(XzeroContext* cx, xzero::flow::vm::Params& args);
+  void proxy_cache(XzeroContext* cx, xzero::flow::Params& args);
   bool tryHandleTrace(XzeroContext* cx);
 
  private:

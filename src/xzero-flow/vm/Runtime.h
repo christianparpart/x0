@@ -9,31 +9,28 @@
 
 #include <xzero/defines.h>
 #include <xzero/util/UnboxedRange.h>
-#include <xzero-flow/FlowType.h>
-#include <xzero-flow/vm/Params.h>
 #include <xzero-flow/vm/Signature.h>
+#include <xzero-flow/FlowType.h>
 #include <string>
 #include <vector>
 #include <functional>
+#include <memory>
 
 namespace xzero::flow {
-  class IRProgram;
-  class IRBuilder;
-}
 
-namespace xzero::flow::vm {
-
-typedef uint64_t Value;
-
-class Runner;
+class IRProgram;
+class IRBuilder;
 class NativeCallback;
+class Runner;
 
 class Runtime {
  public:
+  using Value = uint64_t;
+
   virtual ~Runtime();
 
   virtual bool import(const std::string& name, const std::string& path,
-                      std::vector<vm::NativeCallback*>* builtins) = 0;
+                      std::vector<NativeCallback*>* builtins) = 0;
 
   bool contains(const std::string& signature) const;
   NativeCallback* find(const std::string& signature);
@@ -54,4 +51,4 @@ class Runtime {
   std::vector<std::unique_ptr<NativeCallback>> builtins_;
 };
 
-}  // xzero::flow::vm
+}  // xzero::flow

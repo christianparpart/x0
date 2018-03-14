@@ -9,9 +9,8 @@
 #include <xzero/HttpRequest.h>
 #include <base/io/BufferRefSource.h>
 
-using namespace base;
 using namespace xzero;
-using namespace flow;
+using namespace xzero::flow;
 
 /**
  * \ingroup plugins
@@ -27,7 +26,7 @@ class EchoPlugin : public x0d::XzeroPlugin {
   ~EchoPlugin() {}
 
  private:
-  virtual bool handleRequest(HttpRequest* r, vm::Params& args) {
+  virtual bool handleRequest(HttpRequest* r, Params& args) {
     r->status = HttpStatus::Ok;
 
     if (r->contentAvailable()) {

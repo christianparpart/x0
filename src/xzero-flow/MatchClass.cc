@@ -5,10 +5,10 @@
 // file except in compliance with the License. You may obtain a copy of
 // the License at: http://opensource.org/licenses/MIT
 
-#include <xzero-flow/vm/MatchClass.h>
+#include <xzero-flow/MatchClass.h>
 #include <cassert>
 
-namespace xzero::flow::vm {
+namespace xzero::flow {
 
 std::string tos(MatchClass mc) {
   switch (mc) {
@@ -26,4 +26,4 @@ std::string tos(MatchClass mc) {
   }
 }
 
-}  // namespace xzero::flow::vm
+}  // namespace xzero::flow

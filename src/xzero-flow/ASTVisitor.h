@@ -14,26 +14,23 @@
 #include <utility>
 #include <memory>
 
-namespace xzero {
-namespace flow {
+namespace xzero::flow {
 
 //! \addtogroup Flow
 //@{
 
 class Symbol;
 class SymbolTable;
-class ScopedSymbol;
-class Variable;
-class Handler;
-class BuiltinFunction;
-class BuiltinHandler;
-class Unit;
+class VariableSym;
+class HandlerSym;
+class BuiltinFunctionSym;
+class BuiltinHandlerSym;
+class UnitSym;
 
 class Expr;
 class BinaryExpr;
 class UnaryExpr;
-template <typename>
-class LiteralExpr;
+template <typename> class LiteralExpr;
 class CallExpr;
 class VariableExpr;
 class HandlerRefExpr;
@@ -59,11 +56,11 @@ class ASTVisitor {
   virtual ~ASTVisitor() {}
 
   // symbols
-  virtual void accept(Unit& symbol) = 0;
-  virtual void accept(Variable& variable) = 0;
-  virtual void accept(Handler& handler) = 0;
-  virtual void accept(BuiltinFunction& symbol) = 0;
-  virtual void accept(BuiltinHandler& symbol) = 0;
+  virtual void accept(UnitSym& symbol) = 0;
+  virtual void accept(VariableSym& variable) = 0;
+  virtual void accept(HandlerSym& handler) = 0;
+  virtual void accept(BuiltinFunctionSym& symbol) = 0;
+  virtual void accept(BuiltinHandlerSym& symbol) = 0;
 
   // expressions
   virtual void accept(UnaryExpr& expr) = 0;
@@ -91,5 +88,4 @@ class ASTVisitor {
 
 //!@}
 
-}  // namespace flow
-}  // namespace xzero
+}  // namespace xzero::flow

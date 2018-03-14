@@ -46,13 +46,13 @@ class TargetCodeGenerator : public InstructionVisitor {
   TargetCodeGenerator();
   ~TargetCodeGenerator();
 
-  std::unique_ptr<vm::Program> generate(IRProgram* program);
+  std::unique_ptr<Program> generate(IRProgram* program);
 
  protected:
-  using Opcode = vm::Opcode;
-  using Operand = vm::Operand;
-  using Instruction = vm::Instruction;
-  using ConstantPool = vm::ConstantPool;
+  using Opcode = Opcode;
+  using Operand = Operand;
+  using Instruction = Instruction;
+  using ConstantPool = ConstantPool;
 
   void generate(IRHandler* handler);
 
@@ -64,16 +64,16 @@ class TargetCodeGenerator : public InstructionVisitor {
   void emitLoad(Value* value);
 
   void emitInstr(Opcode opc) {
-    emitInstr(vm::makeInstruction(opc));
+    emitInstr(makeInstruction(opc));
   }
   void emitInstr(Opcode opc, Operand op1) {
-    emitInstr(vm::makeInstruction(opc, op1));
+    emitInstr(makeInstruction(opc, op1));
   }
   void emitInstr(Opcode opc, Operand op1, Operand op2) {
-    emitInstr(vm::makeInstruction(opc, op1, op2));
+    emitInstr(makeInstruction(opc, op1, op2));
   }
   void emitInstr(Opcode opc, Operand op1, Operand op2, Operand op3) {
-    emitInstr(vm::makeInstruction(opc, op1, op2, op3));
+    emitInstr(makeInstruction(opc, op1, op2, op3));
   }
   void emitInstr(Instruction instr);
 

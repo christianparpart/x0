@@ -15,8 +15,6 @@
 
 namespace xzero::flow {
 
-using namespace vm;
-
 template <typename T, typename U>
 inline std::vector<U> join(const T& a, const std::vector<U>& vec)  // {{{
 {

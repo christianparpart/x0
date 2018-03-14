@@ -5,7 +5,7 @@
 // file except in compliance with the License. You may obtain a copy of
 // the License at: http://opensource.org/licenses/MIT
 
-#include <xzero-flow/vm/NativeCallback.h>
+#include <xzero-flow/NativeCallback.h>
 #include <xzero-flow/FlowParser.h>
 #include <xzero-flow/FlowLexer.h>
 #include <xzero-flow/AST.h>
@@ -37,8 +37,6 @@ struct hash<OpSig> {
 
 namespace xzero {
 namespace flow {
-
-using vm::Opcode;
 
 //#define FLOW_DEBUG_PARSER 1
 
@@ -104,7 +102,7 @@ class FlowParser::Scope {
     parser_->enterScope(table_);
   }
 
-  Scope(FlowParser* parser, ScopedSymbol* symbol)
+  Scope(FlowParser* parser, ScopedSym* symbol)
       : parser_(parser), table_(symbol->scope()), flipped_(false) {
     parser_->enterScope(table_);
   }
@@ -131,7 +129,7 @@ class FlowParser::Scope {
   for (FlowParser::Scope _(this, (SCOPED_SYMBOL)); _.flip();)
 // }}}
 
-FlowParser::FlowParser(vm::Runtime* runtime,
+FlowParser::FlowParser(Runtime* runtime,
                        ImportHandler importHandler,
                        ErrorHandler errorHandler)
     : lexer_(std::make_unique<FlowLexer>()),
@@ -204,7 +202,9 @@ SymbolTable* FlowParser::leaveScope() {
   return popped;
 }
 
-std::unique_ptr<Unit> FlowParser::parse() { return unit(); }
+std::unique_ptr<UnitSym> FlowParser::parse() {
+  return unit();
+}
 
 // {{{ type system
 /**
@@ -217,7 +217,7 @@ std::unique_ptr<Unit> FlowParser::parse() { return unit(); }
  * @return opcode that matches given expressions operator or EXIT if operands
  *incompatible.
  */
-vm::Opcode makeOperator(FlowToken token, Expr* left, Expr* right) {
+Opcode makeOperator(FlowToken token, Expr* left, Expr* right) {
   // (bool, bool)     == !=
   // (num, num)       + - * / % ** << >> & | ^ and or xor == != <= >= < >
   // (string, string) + == != <= >= < > =^ =$ in
@@ -411,8 +411,8 @@ bool FlowParser::consumeUntil(FlowToken value) {
 }
 // }}}
 // {{{ decls
-std::unique_ptr<Unit> FlowParser::unit() {
-  auto unit = std::make_unique<Unit>();
+std::unique_ptr<UnitSym> FlowParser::unit() {
+  auto unit = std::make_unique<UnitSym>();
 
   scoped(unit) {
     importRuntime();
@@ -441,13 +441,13 @@ void FlowParser::importRuntime() {
   }
 }
 
-void FlowParser::declareBuiltin(const vm::NativeCallback* native) {
+void FlowParser::declareBuiltin(const NativeCallback* native) {
   TRACE("declareBuiltin (scope:$0): $1", currentScope(), native->signature().to_s());
 
   if (native->isHandler()) {
-    createSymbol<BuiltinHandler>(native);
+    createSymbol<BuiltinHandlerSym>(native);
   } else {
-    createSymbol<BuiltinFunction>(native);
+    createSymbol<BuiltinFunctionSym>(native);
   }
 }
 
@@ -467,7 +467,7 @@ std::unique_ptr<Symbol> FlowParser::decl() {
 }
 
 // 'var' IDENT ['=' EXPR] ';'
-std::unique_ptr<Variable> FlowParser::varDecl() {
+std::unique_ptr<VariableSym> FlowParser::varDecl() {
   FNTRACE();
   FlowLocation loc(lexer_->location());
 
@@ -485,10 +485,10 @@ std::unique_ptr<Variable> FlowParser::varDecl() {
   loc.update(initializer->location().end);
   consume(FlowToken::Semicolon);
 
-  return std::make_unique<Variable>(name, std::move(initializer), loc);
+  return std::make_unique<VariableSym>(name, std::move(initializer), loc);
 }
 
-bool FlowParser::importDecl(Unit* unit) {
+bool FlowParser::importDecl(UnitSym* unit) {
   FNTRACE();
 
   // 'import' NAME_OR_NAMELIST ['from' PATH] ';'
@@ -529,13 +529,13 @@ bool FlowParser::importDecl(Unit* unit) {
   }
 
   for (auto i = names.begin(), e = names.end(); i != e; ++i) {
-    std::vector<vm::NativeCallback*> builtins;
+    std::vector<NativeCallback*> builtins;
 
     if (importHandler && !importHandler(*i, path, &builtins)) return false;
 
     unit->import(*i, path);
 
-    for (vm::NativeCallback* native : builtins) {
+    for (NativeCallback* native : builtins) {
       declareBuiltin(native);
     }
   }
@@ -571,7 +571,7 @@ bool FlowParser::importOne(std::list<std::string>& names) {
 }
 
 // handlerDecl ::= 'handler' IDENT (';' | [do] stmt)
-std::unique_ptr<Handler> FlowParser::handlerDecl(bool keyword) {
+std::unique_ptr<HandlerSym> FlowParser::handlerDecl(bool keyword) {
   FNTRACE();
 
   FlowLocation loc(location());
@@ -584,7 +584,7 @@ std::unique_ptr<Handler> FlowParser::handlerDecl(bool keyword) {
   std::string name = stringValue();
   if (consumeIf(FlowToken::Semicolon)) {  // forward-declaration
     loc.update(end());
-    return std::make_unique<Handler>(name, loc);
+    return std::make_unique<HandlerSym>(name, loc);
   }
 
   std::unique_ptr<SymbolTable> st = enterScope("handler-" + name);
@@ -596,7 +596,7 @@ std::unique_ptr<Handler> FlowParser::handlerDecl(bool keyword) {
   loc.update(body->location().end);
 
   // forward-declared / previousely -declared?
-  if (Handler* handler = currentScope()->lookup<Handler>(name, Lookup::Self)) {
+  if (HandlerSym* handler = currentScope()->lookup<HandlerSym>(name, Lookup::Self)) {
     if (handler->body() != nullptr) {
       // TODO say where we found the other hand, compared to this one.
       reportError("Redeclaring handler \"%s\"", handler->name().c_str());
@@ -604,10 +604,10 @@ std::unique_ptr<Handler> FlowParser::handlerDecl(bool keyword) {
     }
     handler->implement(std::move(st), std::move(body));
     handler->owner()->removeSymbol(handler);
-    return std::unique_ptr<Handler>(handler);
+    return std::unique_ptr<HandlerSym>(handler);
   }
 
-  return std::make_unique<Handler>(name, std::move(st), std::move(body), loc);
+  return std::make_unique<HandlerSym>(name, std::move(st), std::move(body), loc);
 }
 // }}}
 // {{{ expr
@@ -665,7 +665,7 @@ std::unique_ptr<Expr> FlowParser::notExpr() {
 
   if ((nots % 2) == 0) return subExpr;
 
-  vm::Opcode op = makeOperator(FlowToken::Not, subExpr.get());
+  Opcode op = makeOperator(FlowToken::Not, subExpr.get());
   if (op == Opcode::EXIT) {
     reportError(
         "Type cast error in unary 'not'-operator. Invalid source type <%s>.",
@@ -819,7 +819,7 @@ std::unique_ptr<Expr> FlowParser::negExpr() {
     std::unique_ptr<Expr> e = negExpr();
     if (!e) return nullptr;
 
-    vm::Opcode op = makeOperator(FlowToken::Minus, e.get());
+    Opcode op = makeOperator(FlowToken::Minus, e.get());
     if (op == Opcode::EXIT) {
       reportError(
           "Type cast error in unary 'neg'-operator. Invalid source type <%s>.",
@@ -844,7 +844,7 @@ std::unique_ptr<Expr> FlowParser::bitNotExpr() {
     std::unique_ptr<Expr> e = bitNotExpr();
     if (!e) return nullptr;
 
-    vm::Opcode op = makeOperator(FlowToken::BitNot, e.get());
+    Opcode op = makeOperator(FlowToken::BitNot, e.get());
     if (op == Opcode::EXIT) {
       reportError(
           "Type cast error in unary 'not'-operator. Invalid source type <%s>.",
@@ -891,21 +891,21 @@ std::unique_ptr<Expr> FlowParser::primaryExpr() {
       Symbol* symbol = currentScope()->lookup(name, Lookup::All, &symbols);
       if (!symbol) {
         // XXX assume that given symbol is a auto forward-declared handler.
-        Handler* href = (Handler*)globalScope()->appendSymbol(
-            std::make_unique<Handler>(name, loc));
+        HandlerSym* href = (HandlerSym*)globalScope()->appendSymbol(
+            std::make_unique<HandlerSym>(name, loc));
         return std::make_unique<HandlerRefExpr>(href, loc);
       }
 
-      if (auto variable = dynamic_cast<Variable*>(symbol))
+      if (auto variable = dynamic_cast<VariableSym*>(symbol))
         return std::make_unique<VariableExpr>(variable, loc);
 
-      if (auto handler = dynamic_cast<Handler*>(symbol))
+      if (auto handler = dynamic_cast<HandlerSym*>(symbol))
         return std::make_unique<HandlerRefExpr>(handler, loc);
 
       if (symbol->type() == Symbol::BuiltinFunction) {
-        std::list<Callable*> callables;
+        std::list<CallableSym*> callables;
         for (Symbol* s : symbols) {
-          if (auto c = dynamic_cast<BuiltinFunction*>(s)) {
+          if (auto c = dynamic_cast<BuiltinFunctionSym*>(s)) {
             callables.push_back(c);
           }
         }
@@ -961,8 +961,8 @@ std::unique_ptr<Expr> FlowParser::primaryExpr() {
 
       loc.update(body->location().end);
 
-      Handler* handler = static_cast<Handler*>(currentScope()->appendSymbol(
-          std::make_unique<Handler>(name, std::move(st), std::move(body), loc)));
+      HandlerSym* handler = static_cast<HandlerSym*>(currentScope()->appendSymbol(
+          std::make_unique<HandlerSym>(name, std::move(st), std::move(body), loc)));
 
       return std::make_unique<HandlerRefExpr>(handler, loc);
     }
@@ -1390,20 +1390,20 @@ std::unique_ptr<Stmt> FlowParser::matchStmt() {
   }
 
   // [MATCH_OP]
-  vm::MatchClass op;
+  MatchClass op;
   if (FlowTokenTraits::isOperator(token())) {
     switch (token()) {
       case FlowToken::Equal:
-        op = vm::MatchClass::Same;
+        op = MatchClass::Same;
         break;
       case FlowToken::PrefixMatch:
-        op = vm::MatchClass::Head;
+        op = MatchClass::Head;
         break;
       case FlowToken::SuffixMatch:
-        op = vm::MatchClass::Tail;
+        op = MatchClass::Tail;
         break;
       case FlowToken::RegexMatch:
-        op = vm::MatchClass::RegExp;
+        op = MatchClass::RegExp;
         break;
       default:
         reportError("Expected match oeprator, found \"%s\" instead.",
@@ -1412,10 +1412,10 @@ std::unique_ptr<Stmt> FlowParser::matchStmt() {
     }
     nextToken();
   } else {
-    op = vm::MatchClass::Same;
+    op = MatchClass::Same;
   }
 
-  if (op == vm::MatchClass::RegExp) matchType = FlowType::RegExp;
+  if (op == MatchClass::RegExp) matchType = FlowType::RegExp;
 
   // '{'
   if (!consume(FlowToken::Begin)) return nullptr;
@@ -1518,12 +1518,12 @@ std::unique_ptr<Stmt> FlowParser::forStmt() {
 
   std::unique_ptr<SymbolTable> st = enterScope("for-" + valueName);
 
-  Variable* index = static_cast<Variable*>(st->appendSymbol(
-      std::make_unique<Variable>(indexName,
-                                 std::make_unique<NumberExpr>(0),
-                                 sloc)));
+  VariableSym* index = static_cast<VariableSym*>(st->appendSymbol(
+      std::make_unique<VariableSym>(indexName,
+                                    std::make_unique<NumberExpr>(0),
+                                    sloc)));
 
-  Variable* value = static_cast<Variable*>(st->appendSymbol(std::make_unique<Variable>(
+  VariableSym* value = static_cast<VariableSym*>(st->appendSymbol(std::make_unique<VariableSym>(
       valueName,
       Expr::createDefaultInitializer(elementTypeOf(range->getType())),
       sloc)));
@@ -1551,7 +1551,7 @@ std::unique_ptr<Stmt> FlowParser::compoundStmt() {
   std::unique_ptr<CompoundStmt> cs = std::make_unique<CompoundStmt>(sloc);
 
   while (token() == FlowToken::Var) {
-    if (std::unique_ptr<Variable> var = varDecl())
+    if (std::unique_ptr<VariableSym> var = varDecl())
       currentScope()->appendSymbol(std::move(var));
     else
       return nullptr;
@@ -1594,8 +1594,8 @@ std::unique_ptr<Stmt> FlowParser::identStmt() {
       return nullptr;
     }
 
-    callee = (Handler*)globalScope()->appendSymbol(
-        std::make_unique<Handler>(name, loc));
+    callee = (HandlerSym*)globalScope()->appendSymbol(
+        std::make_unique<HandlerSym>(name, loc));
     symbols.push_back(callee);
   }
 
@@ -1606,7 +1606,7 @@ std::unique_ptr<Stmt> FlowParser::identStmt() {
       std::unique_ptr<Expr> value = expr();
       if (!value) return nullptr;
 
-      Variable* var = static_cast<Variable*>(callee);
+      VariableSym* var = static_cast<VariableSym*>(callee);
       FlowType leftType = var->initializer()->getType();
       FlowType rightType = value->getType();
       if (leftType != rightType) {
@@ -1630,7 +1630,7 @@ std::unique_ptr<Stmt> FlowParser::identStmt() {
     }
     case Symbol::Handler:
       stmt = std::make_unique<ExprStmt>(
-          std::make_unique<CallExpr>(loc, (Callable*)callee, ParamList()));
+          std::make_unique<CallExpr>(loc, (CallableSym*)callee, ParamList()));
       break;
     default:
       break;
@@ -1656,9 +1656,9 @@ std::unique_ptr<CallExpr> FlowParser::callStmt(
   // callStmt ::= NAME ['(' paramList ')' | paramList] (';' | LF)
   // namedArg ::= NAME ':' expr
 
-  std::list<Callable*> callables;
+  std::list<CallableSym*> callables;
   for (Symbol* s : symbols) {
-    if (auto c = dynamic_cast<Callable*>(s)) {
+    if (auto c = dynamic_cast<CallableSym*>(s)) {
       callables.push_back(c);
     }
   }
@@ -1699,9 +1699,9 @@ std::unique_ptr<CallExpr> FlowParser::callStmt(
   return resolve(callables, std::move(params));
 }
 
-vm::Signature makeSignature(const Callable* callee,
-                                const ParamList& params) {
-  vm::Signature sig;
+Signature makeSignature(const CallableSym* callee,
+                            const ParamList& params) {
+  Signature sig;
 
   sig.setName(callee->name());
 
@@ -1716,13 +1716,13 @@ vm::Signature makeSignature(const Callable* callee,
 };
 
 std::unique_ptr<CallExpr> FlowParser::resolve(
-    const std::list<Callable*>& callables, ParamList&& params) {
+    const std::list<CallableSym*>& callables, ParamList&& params) {
   FNTRACE();
 
   auto inputSignature = makeSignature(callables.front(), params);
 
   // attempt to find a full match first
-  for (Callable* callee : callables) {
+  for (CallableSym* callee : callables) {
     if (callee->isDirectMatch(params)) {
       return std::make_unique<CallExpr>(callee->location(), callee,
                                         std::move(params));
@@ -1731,10 +1731,10 @@ std::unique_ptr<CallExpr> FlowParser::resolve(
 
   // attempt to find something with default values or parameter-reordering (if
   // named args)
-  std::list<Callable*> result;
-  std::list<std::pair<Callable*, Buffer>> matchErrors;
+  std::list<CallableSym*> result;
+  std::list<std::pair<CallableSym*, Buffer>> matchErrors;
 
-  for (Callable* callee : callables) {
+  for (CallableSym* callee : callables) {
     Buffer msg;
     if (callee->tryMatch(params, &msg)) {
       result.push_back(callee);

@@ -14,7 +14,7 @@
 #include <climits>
 #include <unordered_map>
 
-namespace xzero::flow::vm {
+namespace xzero::flow {
 
 // {{{ InstructionInfo
 struct InstructionInfo {
@@ -350,4 +350,4 @@ std::string disassemble(Instruction pc, size_t ip, size_t* sp,
   return line.str();
 }
 
-}  // namespace xzero::flow::vm
+}  // namespace xzero::flow

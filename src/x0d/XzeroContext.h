@@ -12,9 +12,9 @@
 #include <xzero/Duration.h>
 #include <xzero/io/File.h>
 #include <xzero/CustomDataMgr.h>
+#include <xzero/net/IPAddress.h>
 #include <xzero/logging.h>
 #include <xzero/http/HttpStatus.h>
-#include <xzero-flow/vm/Params.h>
 #include <xzero-flow/vm/Runner.h>
 #include <string>
 #include <list>
@@ -24,6 +24,7 @@
 
 namespace xzero {
   class UnixTime;
+
   namespace http {
     class HttpRequest;
     class HttpResponse;
@@ -42,7 +43,7 @@ class XzeroContext {
   CUSTOMDATA_API_INLINE
  public:
   XzeroContext(
-      std::unique_ptr<xzero::flow::vm::Runner>&& runner,
+      std::unique_ptr<xzero::flow::Runner>&& runner,
       xzero::http::HttpRequest* request,
       xzero::http::HttpResponse* response,
       std::unordered_map<xzero::http::HttpStatus, std::string>* globalErrorPages,
@@ -68,7 +69,7 @@ class XzeroContext {
   void setFile(std::shared_ptr<xzero::File> file) { file_ = file; }
   std::shared_ptr<xzero::File> file() const { return file_; }
 
-  xzero::flow::vm::Runner* runner() const noexcept { return runner_.get(); }
+  xzero::flow::Runner* runner() const noexcept { return runner_.get(); }
 
   const xzero::IPAddress& remoteIP() const;
   int remotePort() const;
@@ -145,7 +146,7 @@ class XzeroContext {
   // }}}
 
  private:
-  std::unique_ptr<xzero::flow::vm::Runner> runner_; //!< Flow VM execution unit.
+  std::unique_ptr<xzero::flow::Runner> runner_; //!< Flow VM execution unit.
   const xzero::UnixTime createdAt_; //!< When the request started
   std::list<xzero::http::HttpRequest*> requests_; //!< HTTP request
   xzero::http::HttpResponse* response_; //!< HTTP response

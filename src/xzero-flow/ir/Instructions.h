@@ -10,7 +10,7 @@
 #include <xzero/defines.h>
 #include <xzero-flow/ir/Instr.h>
 #include <xzero-flow/ir/ConstantValue.h>
-#include <xzero-flow/vm/MatchClass.h>
+#include <xzero-flow/MatchClass.h>
 
 #include <string>
 #include <vector>
@@ -271,9 +271,9 @@ class RetInstr : public TerminateInstr {
 class MatchInstr : public TerminateInstr {
  public:
   MatchInstr(const MatchInstr&);
-  MatchInstr(vm::MatchClass op, Value* cond);
+  MatchInstr(MatchClass op, Value* cond);
 
-  vm::MatchClass op() const { return op_; }
+  MatchClass op() const { return op_; }
 
   Value* condition() const { return operand(0); }
 
@@ -288,7 +288,7 @@ class MatchInstr : public TerminateInstr {
   void accept(InstructionVisitor& v) override;
 
  private:
-  vm::MatchClass op_;
+  MatchClass op_;
   std::vector<std::pair<Constant*, BasicBlock*>> cases_;
 };
 

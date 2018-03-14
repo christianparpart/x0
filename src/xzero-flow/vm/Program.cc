@@ -18,7 +18,7 @@
 #include <vector>
 #include <memory>
 
-namespace xzero::flow::vm {
+namespace xzero::flow {
 
 #define TRACE(msg...) logTrace("flow.vm.Program" msg)
 
@@ -198,4 +198,4 @@ bool Program::link(Runtime* runtime) {
   return errors == 0;
 }
 
-}  // namespace xzero::flow::vm
+}  // namespace xzero::flow

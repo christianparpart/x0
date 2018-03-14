@@ -6,12 +6,12 @@
 // the License at: http://opensource.org/licenses/MIT
 
 #include <xzero-flow/vm/Runner.h>
-#include <xzero-flow/vm/Params.h>
-#include <xzero-flow/vm/NativeCallback.h>
 #include <xzero-flow/vm/Handler.h>
 #include <xzero-flow/vm/Program.h>
 #include <xzero-flow/vm/Match.h>
 #include <xzero-flow/vm/Instruction.h>
+#include <xzero-flow/NativeCallback.h>
+#include <xzero-flow/Params.h>
 #include <xzero/StringUtil.h>
 #include <xzero/logging.h>
 #include <xzero/sysconfig.h>
@@ -32,7 +32,7 @@
 #define DEBUG(msg...) do {} while (0)
 #endif
 
-namespace xzero::flow::vm {
+namespace xzero::flow {
 
 // {{{ VM helper preprocessor definitions
 #define OP opcode((Instruction) * pc)
@@ -717,4 +717,4 @@ std::ostream& operator<<(std::ostream& os, const Runner& vm) {
   return os;
 }
 
-}  // namespace xzero::flow::vm
+}  // namespace xzero::flow

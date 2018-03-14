@@ -24,11 +24,11 @@ void FlowCallVisitor::visit(ASTNode* node) {
 }
 
 // {{{ symbols
-void FlowCallVisitor::accept(Variable& variable) {
+void FlowCallVisitor::accept(VariableSym& variable) {
   visit(variable.initializer());
 }
 
-void FlowCallVisitor::accept(Handler& handler) {
+void FlowCallVisitor::accept(HandlerSym& handler) {
   if (handler.scope()) {
     for (auto sym : *handler.scope()) {
       visit(sym);
@@ -38,11 +38,11 @@ void FlowCallVisitor::accept(Handler& handler) {
   visit(handler.body());
 }
 
-void FlowCallVisitor::accept(BuiltinFunction& v) {}
+void FlowCallVisitor::accept(BuiltinFunctionSym& v) {}
 
-void FlowCallVisitor::accept(BuiltinHandler& v) {}
+void FlowCallVisitor::accept(BuiltinHandlerSym& v) {}
 
-void FlowCallVisitor::accept(Unit& unit) {
+void FlowCallVisitor::accept(UnitSym& unit) {
   for (auto s : *unit.scope()) {
     visit(s);
   }

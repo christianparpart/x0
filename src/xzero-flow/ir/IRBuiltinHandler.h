@@ -19,14 +19,35 @@ namespace xzero::flow {
 
 class IRBuiltinHandler : public Constant {
  public:
-  IRBuiltinHandler(const vm::Signature& sig)
-      : Constant(FlowType::Boolean, sig.name()), signature_(sig) {}
+  IRBuiltinHandler(const IRBuiltinHandler&) = default;
+  IRBuiltinHandler& operator=(const IRBuiltinHandler&) = default;
 
-  const vm::Signature& signature() const { return signature_; }
-  const vm::Signature& get() const { return signature_; }
+  IRBuiltinHandler(IRBuiltinHandler&&) = default;
+  IRBuiltinHandler& operator=(IRBuiltinHandler&&) = default;
+
+  IRBuiltinHandler(const Signature& sig, bool isNeverReturning)
+      : Constant(FlowType::Boolean, sig.name()),
+        signature_(sig),
+        isNeverReturning_(isNeverReturning) {}
+
+  const Signature& signature() const { return signature_; }
+  const Signature& get() const { return signature_; }
+  bool isNeverReturning() const { return isNeverReturning_; }
+
+  bool operator==(const Signature& sig) const { return sig == signature_; }
+  bool operator!=(const Signature& sig) const { return sig != signature_; }
 
  private:
-  vm::Signature signature_;
+  Signature signature_;
+  bool isNeverReturning_;
 };
+
+inline bool operator==(const Signature& a, const IRBuiltinHandler& b) {
+  return b == a;
+}
+
+inline bool operator!=(const Signature& a, const IRBuiltinHandler& b) {
+  return b == a;
+}
 
 }  // namespace xzero::flow

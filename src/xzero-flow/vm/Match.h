@@ -9,7 +9,7 @@
 
 #include <xzero/defines.h>
 #include <xzero-flow/vm/Instruction.h>
-#include <xzero-flow/vm/MatchClass.h>
+#include <xzero-flow/MatchClass.h>
 #include <xzero-flow/FlowType.h>
 #include <xzero/PrefixTree.h>
 #include <xzero/SuffixTree.h>
@@ -20,7 +20,7 @@
 #include <memory>
 #include <unordered_map>
 
-namespace xzero::flow::vm {
+namespace xzero::flow {
 
 struct MatchCaseDef {
   //!< offset into the string pool (or regexp pool) of the associated program.
@@ -110,4 +110,4 @@ class MatchRegEx : public Match {
   std::vector<std::pair<RegExp, uint64_t>> map_;
 };
 
-}  // namespace xzero::flow::vm
+}  // namespace xzero::flow

@@ -25,6 +25,7 @@ class InstructionElimination : public HandlerPass {
 
  private:
   bool rewriteCondBrToSameBranches(BasicBlock* bb);
+  bool eliminateUnusedInstr(BasicBlock* bb);
   bool eliminateLinearBr(BasicBlock* bb);
   bool foldConstantCondBr(BasicBlock* bb);
   bool branchToExit(BasicBlock* bb);

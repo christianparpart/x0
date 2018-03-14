@@ -6,6 +6,7 @@
 // the License at: http://opensource.org/licenses/MIT
 
 #include <xzero-flow/IRGenerator.h>
+#include <xzero-flow/NativeCallback.h>
 #include <xzero-flow/AST.h>
 #include <xzero-flow/ir/IRProgram.h>
 #include <xzero-flow/ir/IRHandler.h>
@@ -84,13 +85,13 @@ IRGenerator::~IRGenerator() {
 }
 
 std::unique_ptr<IRProgram> IRGenerator::generate(
-    Unit* unit, const std::vector<std::string>& exportedHandlers) {
+    UnitSym* unit, const std::vector<std::string>& exportedHandlers) {
   IRGenerator ir;
   ir.setExports(exportedHandlers);
   return ir.generate(unit);
 }
 
-std::unique_ptr<IRProgram> IRGenerator::generate(Unit* unit) {
+std::unique_ptr<IRProgram> IRGenerator::generate(UnitSym* unit) {
   codegen(unit);
 
   if (errorCount_ > 0)
@@ -118,7 +119,7 @@ Value* IRGenerator::codegen(Symbol* sym) {
   return result_;
 }
 
-void IRGenerator::accept(Unit& unit) {
+void IRGenerator::accept(UnitSym& unit) {
   FNTRACE();
 
   setProgram(std::make_unique<IRProgram>());
@@ -146,7 +147,7 @@ void IRGenerator::accept(Unit& unit) {
 // NADD
 // NPOP STACK[0]
 
-void IRGenerator::accept(Variable& variable) {
+void IRGenerator::accept(VariableSym& variable) {
   FNTRACE();
 
   AllocaInstr* var = createAlloca(variable.initializer()->getType(),
@@ -162,7 +163,7 @@ void IRGenerator::accept(Variable& variable) {
   result_ = var;
 }
 
-void IRGenerator::accept(Handler& handlerSym) {
+void IRGenerator::accept(HandlerSym& handlerSym) {
   FNTRACE();
 
   assert(handlerStack_.empty());
@@ -186,7 +187,7 @@ void IRGenerator::accept(Handler& handlerSym) {
   assert(handlerStack_.empty());
 }
 
-void IRGenerator::codegenInline(Handler& handlerSym) {
+void IRGenerator::codegenInline(HandlerSym& handlerSym) {
   auto i = std::find(handlerStack_.begin(), handlerStack_.end(), &handlerSym);
   if (i != handlerStack_.end()) {
     reportError("Cannot recursively call handler %s.",
@@ -215,33 +216,33 @@ void IRGenerator::codegenInline(Handler& handlerSym) {
   handlerStack_.pop_back();
 }
 
-void IRGenerator::accept(BuiltinFunction& builtin) {
+void IRGenerator::accept(BuiltinFunctionSym& builtin) {
   FNTRACE();
 
-  result_ = getBuiltinFunction(builtin.signature());
+  result_ = getBuiltinFunction(builtin.signature(), builtin.nativeCallback()->isSideEffectFree());
 }
 
-void IRGenerator::accept(BuiltinHandler& builtin) {
+void IRGenerator::accept(BuiltinHandlerSym& builtin) {
   FNTRACE();
 
-  result_ = getBuiltinHandler(builtin.signature());
+  result_ = getBuiltinHandler(builtin.signature(), builtin.nativeCallback()->isNeverReturning());
 }
 
 void IRGenerator::accept(UnaryExpr& expr) {
   FNTRACE();
 
   static const std::unordered_map<
-      int /*vm::Opcode*/,
+      int /*Opcode*/,
       Value* (IRGenerator::*)(Value*, const std::string&)> ops =
-      {{vm::Opcode::N2S, &IRGenerator::createN2S},
-       {vm::Opcode::P2S, &IRGenerator::createP2S},
-       {vm::Opcode::C2S, &IRGenerator::createC2S},
-       {vm::Opcode::R2S, &IRGenerator::createR2S},
-       {vm::Opcode::S2N, &IRGenerator::createS2N},
-       {vm::Opcode::NNEG, &IRGenerator::createNeg},
-       {vm::Opcode::NNOT, &IRGenerator::createNot},
-       {vm::Opcode::BNOT, &IRGenerator::createBNot},
-       {vm::Opcode::SLEN, &IRGenerator::createSLen}, };
+      {{Opcode::N2S, &IRGenerator::createN2S},
+       {Opcode::P2S, &IRGenerator::createP2S},
+       {Opcode::C2S, &IRGenerator::createC2S},
+       {Opcode::R2S, &IRGenerator::createR2S},
+       {Opcode::S2N, &IRGenerator::createS2N},
+       {Opcode::NNEG, &IRGenerator::createNeg},
+       {Opcode::NNOT, &IRGenerator::createNot},
+       {Opcode::BNOT, &IRGenerator::createBNot},
+       {Opcode::SLEN, &IRGenerator::createSLen}, };
 
   Value* rhs = codegen(expr.subExpr());
 
@@ -259,51 +260,51 @@ void IRGenerator::accept(BinaryExpr& expr) {
   FNTRACE();
 
   static const std::unordered_map<
-      int /*vm::Opcode*/,
+      int /*Opcode*/,
       Value* (IRGenerator::*)(Value*, Value*, const std::string&)> ops =
       {// boolean
-       {vm::Opcode::BAND, &IRGenerator::createBAnd},
-       {vm::Opcode::BXOR, &IRGenerator::createBXor},
+       {Opcode::BAND, &IRGenerator::createBAnd},
+       {Opcode::BXOR, &IRGenerator::createBXor},
        // numerical
-       {vm::Opcode::NADD, &IRGenerator::createAdd},
-       {vm::Opcode::NSUB, &IRGenerator::createSub},
-       {vm::Opcode::NMUL, &IRGenerator::createMul},
-       {vm::Opcode::NDIV, &IRGenerator::createDiv},
-       {vm::Opcode::NREM, &IRGenerator::createRem},
-       {vm::Opcode::NSHL, &IRGenerator::createShl},
-       {vm::Opcode::NSHR, &IRGenerator::createShr},
-       {vm::Opcode::NPOW, &IRGenerator::createPow},
-       {vm::Opcode::NAND, &IRGenerator::createAnd},
-       {vm::Opcode::NOR, &IRGenerator::createOr},
-       {vm::Opcode::NXOR, &IRGenerator::createXor},
-       {vm::Opcode::NCMPEQ, &IRGenerator::createNCmpEQ},
-       {vm::Opcode::NCMPNE, &IRGenerator::createNCmpNE},
-       {vm::Opcode::NCMPLE, &IRGenerator::createNCmpLE},
-       {vm::Opcode::NCMPGE, &IRGenerator::createNCmpGE},
-       {vm::Opcode::NCMPLT, &IRGenerator::createNCmpLT},
-       {vm::Opcode::NCMPGT, &IRGenerator::createNCmpGT},
+       {Opcode::NADD, &IRGenerator::createAdd},
+       {Opcode::NSUB, &IRGenerator::createSub},
+       {Opcode::NMUL, &IRGenerator::createMul},
+       {Opcode::NDIV, &IRGenerator::createDiv},
+       {Opcode::NREM, &IRGenerator::createRem},
+       {Opcode::NSHL, &IRGenerator::createShl},
+       {Opcode::NSHR, &IRGenerator::createShr},
+       {Opcode::NPOW, &IRGenerator::createPow},
+       {Opcode::NAND, &IRGenerator::createAnd},
+       {Opcode::NOR, &IRGenerator::createOr},
+       {Opcode::NXOR, &IRGenerator::createXor},
+       {Opcode::NCMPEQ, &IRGenerator::createNCmpEQ},
+       {Opcode::NCMPNE, &IRGenerator::createNCmpNE},
+       {Opcode::NCMPLE, &IRGenerator::createNCmpLE},
+       {Opcode::NCMPGE, &IRGenerator::createNCmpGE},
+       {Opcode::NCMPLT, &IRGenerator::createNCmpLT},
+       {Opcode::NCMPGT, &IRGenerator::createNCmpGT},
 
        // string
-       {vm::Opcode::SADD, &IRGenerator::createSAdd},
-       {vm::Opcode::SCMPEQ, &IRGenerator::createSCmpEQ},
-       {vm::Opcode::SCMPNE, &IRGenerator::createSCmpNE},
-       {vm::Opcode::SCMPLE, &IRGenerator::createSCmpLE},
-       {vm::Opcode::SCMPGE, &IRGenerator::createSCmpGE},
-       {vm::Opcode::SCMPLT, &IRGenerator::createSCmpLT},
-       {vm::Opcode::SCMPGT, &IRGenerator::createSCmpGT},
-       {vm::Opcode::SCMPBEG, &IRGenerator::createSCmpEB},
-       {vm::Opcode::SCMPEND, &IRGenerator::createSCmpEE},
-       {vm::Opcode::SCONTAINS, &IRGenerator::createSIn},
+       {Opcode::SADD, &IRGenerator::createSAdd},
+       {Opcode::SCMPEQ, &IRGenerator::createSCmpEQ},
+       {Opcode::SCMPNE, &IRGenerator::createSCmpNE},
+       {Opcode::SCMPLE, &IRGenerator::createSCmpLE},
+       {Opcode::SCMPGE, &IRGenerator::createSCmpGE},
+       {Opcode::SCMPLT, &IRGenerator::createSCmpLT},
+       {Opcode::SCMPGT, &IRGenerator::createSCmpGT},
+       {Opcode::SCMPBEG, &IRGenerator::createSCmpEB},
+       {Opcode::SCMPEND, &IRGenerator::createSCmpEE},
+       {Opcode::SCONTAINS, &IRGenerator::createSIn},
 
        // regex
-       {vm::Opcode::SREGMATCH, &IRGenerator::createSCmpRE},
+       {Opcode::SREGMATCH, &IRGenerator::createSCmpRE},
 
        // ip
-       {vm::Opcode::PCMPEQ, &IRGenerator::createPCmpEQ},
-       {vm::Opcode::PCMPNE, &IRGenerator::createPCmpNE},
-       {vm::Opcode::PINCIDR, &IRGenerator::createPInCidr}, };
+       {Opcode::PCMPEQ, &IRGenerator::createPCmpEQ},
+       {Opcode::PCMPNE, &IRGenerator::createPCmpNE},
+       {Opcode::PINCIDR, &IRGenerator::createPInCidr}, };
 
-  if (expr.op() == vm::Opcode::BOR) {
+  if (expr.op() == Opcode::BOR) {
     // (lhs || rhs)
     //
     //   L = lhs();
@@ -373,7 +374,7 @@ void IRGenerator::accept(CallExpr& call) {
     result_ = createInvokeHandler(static_cast<IRBuiltinHandler*>(callee), args);
   } else {
     // source handler
-    codegenInline(*static_cast<Handler*>(call.callee()));
+    codegenInline(*static_cast<HandlerSym*>(call.callee()));
     result_ = nullptr;
   }
 }
@@ -473,8 +474,8 @@ void IRGenerator::accept(ArrayExpr& arrayExpr) {
     result_ = get(constants);
   } else {
     // TODO: print line:col hint where this exact message occured.
-    // via: reportError(arrayExpr, "Variable array elements not allowed.");
-    reportError("Variable array elements not allowed.");
+    // via: reportError(arrayExpr, "VariableSym array elements not allowed.");
+    reportError("VariableSym array elements not allowed.");
     result_ = nullptr;
   }
 }

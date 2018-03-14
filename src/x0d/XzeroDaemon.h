@@ -22,11 +22,11 @@
 #include <xzero/http/HttpFileHandler.h>
 #include <xzero/http/http1/ConnectionFactory.h>
 #include <xzero-flow/AST.h>
+#include <xzero-flow/NativeCallback.h>
 #include <xzero-flow/ir/IRProgram.h>
 #include <xzero-flow/vm/Runtime.h>
 #include <xzero-flow/vm/Program.h>
 #include <xzero-flow/vm/Handler.h>
-#include <xzero-flow/vm/NativeCallback.h>
 #include <list>
 #include <vector>
 #include <string>
@@ -56,7 +56,7 @@ namespace x0d {
 class XzeroModule;
 class XzeroEventHandler;
 
-class XzeroDaemon : public xzero::flow::vm::Runtime {
+class XzeroDaemon : public xzero::flow::Runtime {
  public:
   typedef xzero::Callback<void(xzero::Connection*)> ConnectionHook;
   typedef xzero::Callback<void(xzero::http::HttpRequest*, xzero::http::HttpResponse*)> RequestHook;
@@ -69,21 +69,21 @@ class XzeroDaemon : public xzero::flow::vm::Runtime {
   void setOptimizationLevel(int level) { optimizationLevel_ = level; }
 
   // {{{ config management
-  std::unique_ptr<xzero::flow::vm::Program> loadConfigFile(
+  std::unique_ptr<xzero::flow::Program> loadConfigFile(
       const std::string& configFileName);
-  std::unique_ptr<xzero::flow::vm::Program> loadConfigFile(
+  std::unique_ptr<xzero::flow::Program> loadConfigFile(
       const std::string& configFileName,
       bool printAST, bool printIR, bool printTC);
-  std::unique_ptr<xzero::flow::vm::Program> loadConfigEasy(
+  std::unique_ptr<xzero::flow::Program> loadConfigEasy(
       const std::string& docroot, int port);
-  std::unique_ptr<xzero::flow::vm::Program> loadConfigEasy(
+  std::unique_ptr<xzero::flow::Program> loadConfigEasy(
       const std::string& docroot, int port,
       bool printAST, bool printIR, bool printTC);
-  std::unique_ptr<xzero::flow::vm::Program> loadConfigStream(
+  std::unique_ptr<xzero::flow::Program> loadConfigStream(
       std::unique_ptr<std::istream>&& is, const std::string& name,
       bool printAST, bool printIR, bool printTC);
   void reloadConfiguration();
-  bool applyConfiguration(std::unique_ptr<xzero::flow::vm::Program>&& program);
+  bool applyConfiguration(std::unique_ptr<xzero::flow::Program>&& program);
   // }}}
 
   void run();
@@ -105,37 +105,37 @@ class XzeroDaemon : public xzero::flow::vm::Runtime {
                       bool reuseAddr, bool deferAccept, bool reusePort);
 
   template <typename... ArgTypes>
-  xzero::flow::vm::NativeCallback& setupFunction(
-      const std::string& name, xzero::flow::vm::NativeCallback::Functor cb,
+  xzero::flow::NativeCallback& setupFunction(
+      const std::string& name, xzero::flow::NativeCallback::Functor cb,
       ArgTypes... argTypes);
 
   template <typename... ArgTypes>
-  xzero::flow::vm::NativeCallback& sharedFunction(
-      const std::string& name, xzero::flow::vm::NativeCallback::Functor cb,
+  xzero::flow::NativeCallback& sharedFunction(
+      const std::string& name, xzero::flow::NativeCallback::Functor cb,
       ArgTypes... argTypes);
 
   template <typename... ArgTypes>
-  xzero::flow::vm::NativeCallback& mainFunction(
-      const std::string& name, xzero::flow::vm::NativeCallback::Functor cb,
+  xzero::flow::NativeCallback& mainFunction(
+      const std::string& name, xzero::flow::NativeCallback::Functor cb,
       ArgTypes... argTypes);
 
   template <typename... ArgTypes>
-  xzero::flow::vm::NativeCallback& mainHandler(
-      const std::string& name, xzero::flow::vm::NativeCallback::Functor cb,
+  xzero::flow::NativeCallback& mainHandler(
+      const std::string& name, xzero::flow::NativeCallback::Functor cb,
       ArgTypes... argTypes);
 
  public:
-  // flow::vm::Runtime overrides
+  // flow::Runtime overrides
   virtual bool import(
       const std::string& name,
       const std::string& path,
-      std::vector<xzero::flow::vm::NativeCallback*>* builtins);
+      std::vector<xzero::flow::NativeCallback*>* builtins);
 
  private:
-  void validateConfig(xzero::flow::Unit* unit);
+  void validateConfig(xzero::flow::UnitSym* unit);
   void validateContext(const std::string& entrypointHandlerName,
                        const std::vector<std::string>& api,
-                       xzero::flow::Unit* unit);
+                       xzero::flow::UnitSym* unit);
   void stopThreads();
   void startThreads();
 
@@ -203,8 +203,8 @@ class XzeroDaemon : public xzero::flow::vm::Runtime {
   std::list<std::unique_ptr<xzero::TcpConnector>> connectors_; //!< TCP (HTTP) connectors
 
   // Flow configuration
-  std::unique_ptr<xzero::flow::vm::Program> program_; // kept to preserve strong reference count
-  xzero::flow::vm::Handler* main_;
+  std::unique_ptr<xzero::flow::Program> program_; // kept to preserve strong reference count
+  xzero::flow::Handler* main_;
   std::vector<std::string> setupApi_;
   std::vector<std::string> mainApi_;
   int optimizationLevel_;
@@ -222,8 +222,8 @@ class XzeroDaemon : public xzero::flow::vm::Runtime {
 
 // {{{ inlines
 template <typename... ArgTypes>
-inline xzero::flow::vm::NativeCallback& XzeroDaemon::setupFunction(
-    const std::string& name, xzero::flow::vm::NativeCallback::Functor cb,
+inline xzero::flow::NativeCallback& XzeroDaemon::setupFunction(
+    const std::string& name, xzero::flow::NativeCallback::Functor cb,
     ArgTypes... argTypes) {
   setupApi_.push_back(name);
   return registerFunction(name, xzero::flow::FlowType::Void).bind(cb).params(
@@ -231,8 +231,8 @@ inline xzero::flow::vm::NativeCallback& XzeroDaemon::setupFunction(
 }
 
 template <typename... ArgTypes>
-inline xzero::flow::vm::NativeCallback& XzeroDaemon::sharedFunction(
-    const std::string& name, xzero::flow::vm::NativeCallback::Functor cb,
+inline xzero::flow::NativeCallback& XzeroDaemon::sharedFunction(
+    const std::string& name, xzero::flow::NativeCallback::Functor cb,
     ArgTypes... argTypes) {
   setupApi_.push_back(name);
   mainApi_.push_back(name);
@@ -241,8 +241,8 @@ inline xzero::flow::vm::NativeCallback& XzeroDaemon::sharedFunction(
 }
 
 template <typename... ArgTypes>
-inline xzero::flow::vm::NativeCallback& XzeroDaemon::mainFunction(
-    const std::string& name, xzero::flow::vm::NativeCallback::Functor cb,
+inline xzero::flow::NativeCallback& XzeroDaemon::mainFunction(
+    const std::string& name, xzero::flow::NativeCallback::Functor cb,
     ArgTypes... argTypes) {
   mainApi_.push_back(name);
   return registerFunction(name, xzero::flow::FlowType::Void).bind(cb).params(
@@ -250,8 +250,8 @@ inline xzero::flow::vm::NativeCallback& XzeroDaemon::mainFunction(
 }
 
 template <typename... ArgTypes>
-inline xzero::flow::vm::NativeCallback& XzeroDaemon::mainHandler(
-    const std::string& name, xzero::flow::vm::NativeCallback::Functor cb,
+inline xzero::flow::NativeCallback& XzeroDaemon::mainHandler(
+    const std::string& name, xzero::flow::NativeCallback::Functor cb,
     ArgTypes... argTypes) {
   mainApi_.push_back(name);
   return registerHandler(name).bind(cb).params(argTypes...);

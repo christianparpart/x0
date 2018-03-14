@@ -117,7 +117,7 @@ ProxyModule::ProxyModule(XzeroDaemon* d)
 ProxyModule::~ProxyModule() {
 }
 
-void ProxyModule::proxy_pseudonym(xzero::flow::vm::Params& args) {
+void ProxyModule::proxy_pseudonym(xzero::flow::Params& args) {
   std::string value = args.getString(1);
 
   for (char ch: value) {
@@ -320,7 +320,7 @@ bool ProxyModule::proxy_cluster(XzeroContext* cx, Params& args) {
   return true;
 }
 
-bool ProxyModule::proxy_api(XzeroContext* cx, xzero::flow::vm::Params& args) {
+bool ProxyModule::proxy_api(XzeroContext* cx, xzero::flow::Params& args) {
   std::string prefix = args.getString(1);
 
   if (!StringUtil::beginsWithIgnoreCase(cx->request()->path(), prefix))
@@ -332,12 +332,12 @@ bool ProxyModule::proxy_api(XzeroContext* cx, xzero::flow::vm::Params& args) {
   return handler->run();
 }
 
-bool ProxyModule::proxy_fcgi(XzeroContext* cx, xzero::flow::vm::Params& args) {
+bool ProxyModule::proxy_fcgi(XzeroContext* cx, xzero::flow::Params& args) {
   cx->logError("proxy.fcgi: Not yet reimplemented");
   return false; // TODO
 }
 
-bool ProxyModule::proxy_http(XzeroContext* cx, xzero::flow::vm::Params& args) {
+bool ProxyModule::proxy_http(XzeroContext* cx, xzero::flow::Params& args) {
   const FlowString onClientAbortStr = args.getString(1);
   const InetAddress upstreamAddr(args.getIPAddress(2), args.getInt(3));
   const Duration connectTimeout = Duration::fromSeconds(args.getInt(4));
@@ -451,7 +451,7 @@ bool ProxyModule::proxy_roadwarrior_verify(xzero::flow::Instr* instr, xzero::flo
   return true; // TODO
 }
 
-void ProxyModule::proxy_cache(XzeroContext* cx, xzero::flow::vm::Params& args) {
+void ProxyModule::proxy_cache(XzeroContext* cx, xzero::flow::Params& args) {
   // TODO
 }
 

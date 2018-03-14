@@ -14,8 +14,6 @@
 
 namespace xzero::flow {
 
-using namespace vm;
-
 IRHandler::IRHandler(const std::string& name, IRProgram* program)
     : Constant(FlowType::Handler, name), program_(program), blocks_() {
 }

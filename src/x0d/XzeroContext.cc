@@ -20,7 +20,7 @@ using namespace xzero::http;
 namespace x0d {
 
 XzeroContext::XzeroContext(
-    std::unique_ptr<xzero::flow::vm::Runner>&& runner,
+    std::unique_ptr<xzero::flow::Runner>&& runner,
     xzero::http::HttpRequest* request,
     xzero::http::HttpResponse* response,
     std::unordered_map<xzero::http::HttpStatus, std::string>* globalErrorPages,

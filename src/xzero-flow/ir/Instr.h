@@ -11,8 +11,8 @@
 #include <xzero-flow/ir/Value.h>
 #include <xzero-flow/ir/InstructionVisitor.h>
 #include <xzero-flow/vm/Instruction.h>
-#include <xzero-flow/vm/MatchClass.h>
 #include <xzero-flow/vm/Signature.h>
+#include <xzero-flow/MatchClass.h>
 #include <xzero/net/IPAddress.h>
 #include <xzero/net/Cidr.h>
 #include <xzero/RegExp.h>

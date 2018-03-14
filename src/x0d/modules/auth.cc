@@ -238,14 +238,14 @@ AuthModule::AuthModule(x0d::XzeroDaemon* d)
 AuthModule::~AuthModule() {
 }
 
-void AuthModule::auth_realm(XzeroContext* cx, flow::vm::Params& args) {
+void AuthModule::auth_realm(XzeroContext* cx, flow::Params& args) {
   if (!cx->customData<AuthBasic>(this))
     cx->setCustomData<AuthBasic>(this);
 
   cx->customData<AuthBasic>(this)->realm = args.getString(1);
 }
 
-void AuthModule::auth_userfile(XzeroContext* cx, flow::vm::Params& args) {
+void AuthModule::auth_userfile(XzeroContext* cx, flow::Params& args) {
   if (!cx->customData<AuthBasic>(this))
     cx->setCustomData<AuthBasic>(this);
 
@@ -253,7 +253,7 @@ void AuthModule::auth_userfile(XzeroContext* cx, flow::vm::Params& args) {
 }
 
 #if defined(HAVE_SECURITY_PAM_APPL_H)
-void AuthModule::auth_pam(XzeroContext* cx, flow::vm::Params& args) {
+void AuthModule::auth_pam(XzeroContext* cx, flow::Params& args) {
   if (!cx->customData<AuthBasic>(this))
     cx->setCustomData<AuthBasic>(this);
 
@@ -261,7 +261,7 @@ void AuthModule::auth_pam(XzeroContext* cx, flow::vm::Params& args) {
 }
 #endif
 
-bool AuthModule::auth_require(XzeroContext* cx, flow::vm::Params& args) {
+bool AuthModule::auth_require(XzeroContext* cx, flow::Params& args) {
   AuthBasic* auth = cx->customData<AuthBasic>(this);
   if (!auth || !auth->backend) {
     cx->logError("auth: auth.require: used without specifying a backend");
