@@ -11,7 +11,6 @@
 #include <xzero-flow/vm/Signature.h>
 #include <xzero-flow/vm/Runner.h>       // Runner*, Runner::Value
 #include <xzero-flow/FlowType.h>
-// TODO(delete?) #include <xzero-flow/Params.h>
 #include <xzero/net/IPAddress.h>
 #include <xzero/net/Cidr.h>
 #include <xzero/RegExp.h>
