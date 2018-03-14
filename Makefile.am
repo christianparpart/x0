@@ -453,6 +453,7 @@ libXzeroFlow_a_SOURCES = \
 	src/xzero-flow/IRGenerator.cc \
 	src/xzero-flow/MatchClass.cc \
 	src/xzero-flow/NativeCallback.cc \
+	src/xzero-flow/Signature.cc \
 	src/xzero-flow/TargetCodeGenerator.cc \
 	src/xzero-flow/ir/BasicBlock.cc \
 	src/xzero-flow/ir/Constant.cc \
@@ -476,8 +477,7 @@ libXzeroFlow_a_SOURCES = \
 	src/xzero-flow/vm/Match.cc \
 	src/xzero-flow/vm/Program.cc \
 	src/xzero-flow/vm/Runner.cc \
-	src/xzero-flow/vm/Runtime.cc \
-	src/xzero-flow/vm/Signature.cc
+	src/xzero-flow/vm/Runtime.cc
 
 libXzeroFlowdir = $(includedir)
 nobase_libXzeroFlow_HEADERS = \
@@ -495,6 +495,7 @@ nobase_libXzeroFlow_HEADERS = \
 	src/xzero-flow/MatchClass.h \
 	src/xzero-flow/NativeCallback.h \
 	src/xzero-flow/Params.h \
+	src/xzero-flow/Signature.h \
 	src/xzero-flow/TargetCodeGenerator.h \
 	src/xzero-flow/ir/BasicBlock.h \
 	src/xzero-flow/ir/Constant.h \
@@ -521,8 +522,7 @@ nobase_libXzeroFlow_HEADERS = \
 	src/xzero-flow/vm/Match.h \
 	src/xzero-flow/vm/Program.h \
 	src/xzero-flow/vm/Runner.h \
-	src/xzero-flow/vm/Runtime.h \
-	src/xzero-flow/vm/Signature.h
+	src/xzero-flow/vm/Runtime.h
 
 ####### TESTS #################################################################
 

@@ -7,7 +7,7 @@
 
 #pragma once
 
-#include <xzero-flow/vm/Signature.h>
+#include <xzero-flow/Signature.h>
 #include <xzero-flow/vm/Instruction.h>  // Opcode
 #include <xzero-flow/ASTVisitor.h>
 #include <xzero-flow/FlowLocation.h>

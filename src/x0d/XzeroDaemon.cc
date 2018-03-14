@@ -41,10 +41,10 @@
 #include <xzero-flow/ASTPrinter.h>
 #include <xzero-flow/FlowParser.h>
 #include <xzero-flow/IRGenerator.h>
+#include <xzero-flow/Signature.h>
 #include <xzero-flow/TargetCodeGenerator.h>
 #include <xzero-flow/ir/IRProgram.h>
 #include <xzero-flow/ir/PassManager.h>
-#include <xzero-flow/vm/Signature.h>
 #include <xzero-flow/vm/Runner.h>
 #include <xzero-flow/transform/MergeBlockPass.h>
 #include <xzero-flow/transform/UnusedBlockPass.h>

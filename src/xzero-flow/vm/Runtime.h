@@ -9,7 +9,7 @@
 
 #include <xzero/defines.h>
 #include <xzero/util/UnboxedRange.h>
-#include <xzero-flow/vm/Signature.h>
+#include <xzero-flow/Signature.h>
 #include <xzero-flow/FlowType.h>
 #include <string>
 #include <vector>

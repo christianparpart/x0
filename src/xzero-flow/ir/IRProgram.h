@@ -14,7 +14,7 @@
 #include <xzero-flow/ir/IRBuiltinFunction.h>
 #include <xzero-flow/ir/Instructions.h>
 #include <xzero-flow/ir/IRHandler.h>
-#include <xzero-flow/vm/Signature.h>
+#include <xzero-flow/Signature.h>
 #include <xzero/util/UnboxedRange.h>
 #include <xzero/net/IPAddress.h>
 #include <xzero/net/Cidr.h>

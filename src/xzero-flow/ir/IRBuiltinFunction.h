@@ -9,7 +9,7 @@
 
 #include <xzero/defines.h>
 #include <xzero-flow/ir/Constant.h>
-#include <xzero-flow/vm/Signature.h>
+#include <xzero-flow/Signature.h>
 #include <xzero-flow/NativeCallback.h>
 
 namespace xzero::flow {

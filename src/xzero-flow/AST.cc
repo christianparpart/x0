@@ -8,7 +8,7 @@
 #include <xzero-flow/AST.h>
 #include <xzero-flow/ASTPrinter.h>
 #include <xzero-flow/NativeCallback.h>
-#include <xzero-flow/vm/Signature.h>
+#include <xzero-flow/Signature.h>
 #include <xzero/StringUtil.h>
 #include <xzero/Buffer.h>
 #include <xzero/Utility.h> // make_unique

@@ -292,6 +292,7 @@ set(XzeroFlow_SRC src/xzero-flow/AST.cc
                   src/xzero-flow/IRGenerator.cc
                   src/xzero-flow/MatchClass.cc
                   src/xzero-flow/NativeCallback.cc
+                  src/xzero-flow/Signature.cc
                   src/xzero-flow/TargetCodeGenerator.cc
                   src/xzero-flow/ir/BasicBlock.cc
                   src/xzero-flow/ir/Constant.cc
@@ -316,7 +317,6 @@ set(XzeroFlow_SRC src/xzero-flow/AST.cc
                   src/xzero-flow/vm/Program.cc
                   src/xzero-flow/vm/Runner.cc
                   src/xzero-flow/vm/Runtime.cc
-                  src/xzero-flow/vm/Signature.cc
                   )
 
 add_library(XzeroFlow STATIC ${XzeroFlow_SRC})

@@ -13,7 +13,7 @@
 #include <xzero-flow/ir/IRBuiltinHandler.h>
 #include <xzero-flow/ir/IRBuiltinFunction.h>
 #include <xzero-flow/ir/IRProgram.h>
-#include <xzero-flow/vm/Signature.h>
+#include <xzero-flow/Signature.h>
 #include <xzero-flow/MatchClass.h>
 #include <xzero/net/IPAddress.h>
 #include <xzero/net/Cidr.h>

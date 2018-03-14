@@ -8,7 +8,7 @@
 #pragma once
 
 #include <xzero/defines.h>
-#include <xzero-flow/vm/Signature.h>
+#include <xzero-flow/Signature.h>
 #include <xzero-flow/vm/Runner.h>       // Runner*, Runner::Value
 #include <xzero-flow/FlowType.h>
 #include <xzero/net/IPAddress.h>
