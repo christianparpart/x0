@@ -582,24 +582,6 @@ MatchStmt::~MatchStmt() {}
 
 void MatchStmt::visit(ASTVisitor& v) { v.accept(*this); }
 
-ForStmt::ForStmt(const FlowLocation& loc,
-                 std::unique_ptr<SymbolTable>&& scope,
-                 VariableSym* index,
-                 VariableSym* value,
-                 std::unique_ptr<Expr>&& range,
-                 std::unique_ptr<Stmt>&& body)
-  : Stmt(loc),
-    scope_(std::move(scope)),
-    index_(index),
-    value_(value),
-    range_(std::move(range)),
-    body_(std::move(body)) {
-}
-
-void ForStmt::visit(ASTVisitor& v) {
-  v.accept(*this);
-}
-
 // {{{ type system
 FlowType UnaryExpr::getType() const { return resultType(op()); }
 

@@ -63,7 +63,6 @@ class ASTPrinter : public ASTVisitor {
   virtual void accept(CompoundStmt& stmt);
   virtual void accept(CondStmt& stmt);
   virtual void accept(MatchStmt& stmt);
-  virtual void accept(ForStmt& stmt);
   virtual void accept(AssignStmt& stmt);
 };
 

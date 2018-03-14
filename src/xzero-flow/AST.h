@@ -576,42 +576,6 @@ class MatchStmt : public Stmt {
   CaseList cases_;
   std::unique_ptr<Stmt> elseStmt_;
 };
-
-class ForStmt : public Stmt {
- public:
-  /**
-   * Initializes the for-statement.
-   *
-   * @param loc source code location range of given for statement.
-   * @param scope the entailing scope that is being created for this statement.
-   * @param index symbol to index-iterator
-   * @param value symbol to value-iterator
-   * @param range range-typed expression that is to be iterated through.
-   * @param body the statement to execute for each element in @p range.
-   */
-  ForStmt(const FlowLocation& loc,
-          std::unique_ptr<SymbolTable>&& scope,
-          VariableSym* index,
-          VariableSym* value,
-          std::unique_ptr<Expr>&& range,
-          std::unique_ptr<Stmt>&& body);
-
-  void visit(ASTVisitor&) override;
-
-  SymbolTable* scope() const { return scope_.get(); }
-  VariableSym* indexSymbol() const { return index_; }
-  VariableSym* valueSymbol() const { return value_; }
-
-  Expr* range() const { return range_.get(); }
-  Stmt* body() const { return body_.get(); }
-
- private:
-  std::unique_ptr<SymbolTable> scope_;
-  VariableSym* index_;
-  VariableSym* value_;
-  std::unique_ptr<Expr> range_;
-  std::unique_ptr<Stmt> body_;
-};
 // }}}
 
 //!@}

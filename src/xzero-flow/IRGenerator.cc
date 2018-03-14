@@ -560,11 +560,6 @@ void IRGenerator::accept(MatchStmt& matchStmt) {
   setInsertPoint(contBlock);
 }
 
-void IRGenerator::accept(ForStmt& forStmt) {
-  FNTRACE();
-  throw "TODO";
-}
-
 void IRGenerator::accept(AssignStmt& assignStmt) {
   FNTRACE();
 

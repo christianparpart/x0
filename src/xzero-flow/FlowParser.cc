@@ -1309,8 +1309,6 @@ std::unique_ptr<Stmt> FlowParser::stmt() {
       return ifStmt();
     case FlowToken::Match:
       return matchStmt();
-    case FlowToken::For:
-      return forStmt();
     case FlowToken::Begin:
       return compoundStmt();
     case FlowToken::Ident:
@@ -1475,71 +1473,6 @@ std::unique_ptr<Stmt> FlowParser::matchStmt() {
 
   return std::make_unique<MatchStmt>(sloc.update(end()), std::move(cond), op,
                                      std::move(cases), std::move(elseStmt));
-}
-
-// forStmt ::= 'for' 'var' NAME, [',' NAME] 'in' expr stmt
-std::unique_ptr<Stmt> FlowParser::forStmt() {
-  FNTRACE();
-
-  FlowLocation sloc(location());
-  nextToken(); // 'for'
-  if (!consume(FlowToken::Var))
-    return nullptr;
-
-  std::string indexName;
-  std::string valueName = stringValue();
-
-  if (!consume(FlowToken::Ident))
-    return nullptr;
-
-  if (consumeIf(FlowToken::Comma)) {
-    indexName = valueName;
-    valueName = stringValue();
-    if (!consume(FlowToken::Ident)) {
-      return nullptr;
-    }
-  } else {
-    indexName = "$$";
-  }
-
-  if (!consume(FlowToken::In))
-    return nullptr;
-
-  std::unique_ptr<Expr> range = expr();
-  if (!range)
-    return nullptr;
-
-  if (!isArrayType(range->getType())) {
-    reportError("Unexpected type in for statement's range expression. "
-                    "Expects an array type but received %s.",
-                tos(range->getType()).c_str());
-    return nullptr;
-  }
-
-  std::unique_ptr<SymbolTable> st = enterScope("for-" + valueName);
-
-  VariableSym* index = static_cast<VariableSym*>(st->appendSymbol(
-      std::make_unique<VariableSym>(indexName,
-                                    std::make_unique<NumberExpr>(0),
-                                    sloc)));
-
-  VariableSym* value = static_cast<VariableSym*>(st->appendSymbol(std::make_unique<VariableSym>(
-      valueName,
-      Expr::createDefaultInitializer(elementTypeOf(range->getType())),
-      sloc)));
-
-  std::unique_ptr<Stmt> body = stmt();
-  leaveScope();
-
-  if (!body)
-    return nullptr;
-
-  return std::make_unique<ForStmt>(sloc.update(end()),
-                                   std::move(st),
-                                   index,
-                                   value,
-                                   std::move(range),
-                                   std::move(body));
 }
 
 // compoundStmt ::= '{' varDecl* stmt* '}'

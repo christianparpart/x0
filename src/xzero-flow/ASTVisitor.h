@@ -48,7 +48,6 @@ class ExprStmt;
 class CompoundStmt;
 class CondStmt;
 class MatchStmt;
-class ForStmt;
 class AssignStmt;
 
 class ASTVisitor {
@@ -82,7 +81,6 @@ class ASTVisitor {
   virtual void accept(CompoundStmt& stmt) = 0;
   virtual void accept(CondStmt& stmt) = 0;
   virtual void accept(MatchStmt& stmt) = 0;
-  virtual void accept(ForStmt& stmt) = 0;
   virtual void accept(AssignStmt& stmt) = 0;
 };
 
