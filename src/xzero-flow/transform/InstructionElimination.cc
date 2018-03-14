@@ -56,23 +56,13 @@ bool InstructionElimination::rewriteCondBrToSameBranches(BasicBlock* bb) {
 }
 
 bool InstructionElimination::eliminateUnusedInstr(BasicBlock* bb) {
-  static std::unordered_map<Instr*, bool> found;
   for (Instr* instr : bb->instructions()) {
-    if (found[instr]) continue;
-
     if (auto f = dynamic_cast<CallInstr*>(instr)) {
       if (f->callee()->getNative().isReadOnly()) {
         if (instr->type() != FlowType::Void && !instr->isUsed()) {
-          found[instr] = true;
-          logDebug("XXX would remove instr!");
-          instr->dump();
-
           bb->remove(instr);
           return true;
         }
-      } else {
-        found[instr] = true;
-        logDebug("no side effect free: $0", f->callee()->signature());
       }
     }
   }
