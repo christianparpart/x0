@@ -177,33 +177,33 @@ CoreModule::CoreModule(XzeroDaemon* d)
 
   // shared properties (read-only)
   sharedFunction("sys.cpu_count", &CoreModule::sys_cpu_count)
-      .setReadonly()
+      .setReadOnly()
       .returnType(FlowType::Number);
   sharedFunction("sys.env", &CoreModule::sys_env, FlowType::String)
-      .setReadonly()
+      .setReadOnly()
       .returnType(FlowType::String)
       .verifier(&CoreModule::preproc_sys_env, this);
   sharedFunction("sys.env", &CoreModule::sys_env2, FlowType::String, FlowType::String)
-      .setReadonly()
+      .setReadOnly()
       .returnType(FlowType::String)
       .verifier(&CoreModule::preproc_sys_env2, this);
   sharedFunction("sys.cwd", &CoreModule::sys_cwd)
-      .setReadonly()
+      .setReadOnly()
       .returnType(FlowType::String);
   sharedFunction("sys.pid", &CoreModule::sys_pid)
-      .setReadonly()
+      .setReadOnly()
       .returnType(FlowType::Number);
   sharedFunction("sys.now", &CoreModule::sys_now)
-      .setReadonly()
+      .setReadOnly()
       .returnType(FlowType::Number);
   sharedFunction("sys.now_str", &CoreModule::sys_now_str)
-      .setReadonly()
+      .setReadOnly()
       .returnType(FlowType::String);
   sharedFunction("sys.hostname", &CoreModule::sys_hostname)
-      .setReadonly()
+      .setReadOnly()
       .returnType(FlowType::String);
   sharedFunction("sys.domainname", &CoreModule::sys_domainname)
-      .setReadonly()
+      .setReadOnly()
       .returnType(FlowType::String);
 
   // shared functions
@@ -212,12 +212,16 @@ CoreModule::CoreModule(XzeroDaemon* d)
       .param<FlowNumber>("status")
       .param<FlowString>("uri");
   sharedFunction("file.exists", &CoreModule::file_exists, FlowType::String)
+      .setReadOnly()
       .returnType(FlowType::Boolean);
   sharedFunction("file.is_reg", &CoreModule::file_is_reg, FlowType::String)
+      .setReadOnly()
       .returnType(FlowType::Boolean);
   sharedFunction("file.is_dir", &CoreModule::file_is_dir, FlowType::String)
+      .setReadOnly()
       .returnType(FlowType::Boolean);
   sharedFunction("file.is_exe", &CoreModule::file_is_exe, FlowType::String)
+      .setReadOnly()
       .returnType(FlowType::Boolean);
   sharedFunction("log.err", &CoreModule::log_err, FlowType::String);
   sharedFunction("log.warn", &CoreModule::log_warn, FlowType::String);
@@ -233,59 +237,85 @@ CoreModule::CoreModule(XzeroDaemon* d)
 
   // main: read-only attributes
   mainFunction("req.method", &CoreModule::req_method)
+      .setReadOnly()
       .returnType(FlowType::String);
   mainFunction("req.url", &CoreModule::req_url)
+      .setReadOnly()
       .returnType(FlowType::String);
   mainFunction("req.path", &CoreModule::req_path)
+      .setReadOnly()
       .returnType(FlowType::String);
   mainFunction("req.query", &CoreModule::req_query)
+      .setReadOnly()
       .returnType(FlowType::String);
   mainFunction("req.header", &CoreModule::req_header, FlowType::String)
+      .setReadOnly()
       .returnType(FlowType::String);
   mainFunction("req.cookie", &CoreModule::req_cookie, FlowType::String)
+      .setReadOnly()
       .returnType(FlowType::String);
   mainFunction("req.host", &CoreModule::req_host)
+      .setReadOnly()
       .returnType(FlowType::String);
   mainFunction("req.pathinfo", &CoreModule::req_pathinfo)
+      .setReadOnly()
       .returnType(FlowType::String);
   mainFunction("req.is_secure", &CoreModule::req_is_secure)
+      .setReadOnly()
       .returnType(FlowType::Boolean);
   mainFunction("req.scheme", &CoreModule::req_scheme)
+      .setReadOnly()
       .returnType(FlowType::String);
   mainFunction("req.status", &CoreModule::req_status_code)
+      .setReadOnly()
       .returnType(FlowType::Number);
   mainFunction("req.remoteip", &CoreModule::conn_remote_ip)
+      .setReadOnly()
       .returnType(FlowType::IPAddress);
   mainFunction("req.remoteport", &CoreModule::conn_remote_port)
+      .setReadOnly()
       .returnType(FlowType::Number);
   mainFunction("req.localip", &CoreModule::conn_local_ip)
+      .setReadOnly()
       .returnType(FlowType::IPAddress);
   mainFunction("req.localport", &CoreModule::conn_local_port)
+      .setReadOnly()
       .returnType(FlowType::Number);
   mainFunction("phys.path", &CoreModule::phys_path)
+      .setReadOnly()
       .returnType(FlowType::String);
   mainFunction("phys.exists", &CoreModule::phys_exists)
+      .setReadOnly()
       .returnType(FlowType::Boolean);
   mainFunction("phys.is_reg", &CoreModule::phys_is_reg)
+      .setReadOnly()
       .returnType(FlowType::Boolean);
   mainFunction("phys.is_dir", &CoreModule::phys_is_dir)
+      .setReadOnly()
       .returnType(FlowType::Boolean);
   mainFunction("phys.is_exe", &CoreModule::phys_is_exe)
+      .setReadOnly()
       .returnType(FlowType::Boolean);
   mainFunction("phys.mtime", &CoreModule::phys_mtime)
+      .setReadOnly()
       .returnType(FlowType::Number);
   mainFunction("phys.size", &CoreModule::phys_size)
+      .setReadOnly()
       .returnType(FlowType::Number);
   mainFunction("phys.etag", &CoreModule::phys_etag)
+      .setReadOnly()
       .returnType(FlowType::String);
   mainFunction("phys.mimetype", &CoreModule::phys_mimetype)
+      .setReadOnly()
       .returnType(FlowType::String);
 
   // main: getter functions
   mainFunction("req.accept_language", &CoreModule::req_accept_language, FlowType::StringArray)
+      .setReadOnly()
       .returnType(FlowType::String)
       .verifier(&CoreModule::verify_req_accept_language, this);
   mainFunction("regex.group", &CoreModule::regex_group, FlowType::Number)
+      .setReadOnly()
       .returnType(FlowType::String);
 
   // main: manipulation functions
