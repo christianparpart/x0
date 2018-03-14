@@ -64,33 +64,33 @@ class IRGenerator : public IRBuilder, public ASTVisitor {
   Scope& scope() { return *scope_; }
 
   // symbols
-  virtual void accept(UnitSym& symbol);
-  virtual void accept(VariableSym& variable);
-  virtual void accept(HandlerSym& handler);
-  virtual void accept(BuiltinFunctionSym& symbol);
-  virtual void accept(BuiltinHandlerSym& symbol);
+  void accept(UnitSym& symbol) override;
+  void accept(VariableSym& variable) override;
+  void accept(HandlerSym& handler) override;
+  void accept(BuiltinFunctionSym& symbol) override;
+  void accept(BuiltinHandlerSym& symbol) override;
 
   // expressions
-  virtual void accept(UnaryExpr& expr);
-  virtual void accept(BinaryExpr& expr);
-  virtual void accept(CallExpr& expr);
-  virtual void accept(VariableExpr& expr);
-  virtual void accept(HandlerRefExpr& expr);
+  void accept(UnaryExpr& expr) override;
+  void accept(BinaryExpr& expr) override;
+  void accept(CallExpr& expr) override;
+  void accept(VariableExpr& expr) override;
+  void accept(HandlerRefExpr& expr) override;
 
-  virtual void accept(StringExpr& expr);
-  virtual void accept(NumberExpr& expr);
-  virtual void accept(BoolExpr& expr);
-  virtual void accept(RegExpExpr& expr);
-  virtual void accept(IPAddressExpr& expr);
-  virtual void accept(CidrExpr& cidr);
-  virtual void accept(ArrayExpr& array);
+  void accept(StringExpr& expr) override;
+  void accept(NumberExpr& expr) override;
+  void accept(BoolExpr& expr) override;
+  void accept(RegExpExpr& expr) override;
+  void accept(IPAddressExpr& expr) override;
+  void accept(CidrExpr& cidr) override;
+  void accept(ArrayExpr& array) override;
 
   // statements
-  virtual void accept(ExprStmt& stmt);
-  virtual void accept(CompoundStmt& stmt);
-  virtual void accept(CondStmt& stmt);
-  virtual void accept(MatchStmt& stmt);
-  virtual void accept(AssignStmt& stmt);
+  void accept(ExprStmt& stmt) override;
+  void accept(CompoundStmt& stmt) override;
+  void accept(CondStmt& stmt) override;
+  void accept(MatchStmt& stmt) override;
+  void accept(AssignStmt& stmt) override;
 
   // error handling
   void reportError(const std::string& message);

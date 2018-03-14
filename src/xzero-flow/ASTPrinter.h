@@ -40,30 +40,30 @@ class ASTPrinter : public ASTVisitor {
     std::printf(fmt, args...);
   }
 
-  virtual void accept(VariableSym& variable);
-  virtual void accept(HandlerSym& handler);
-  virtual void accept(BuiltinFunctionSym& symbol);
-  virtual void accept(BuiltinHandlerSym& symbol);
-  virtual void accept(UnitSym& symbol);
+  void accept(VariableSym& variable) override;
+  void accept(HandlerSym& handler) override;
+  void accept(BuiltinFunctionSym& symbol) override;
+  void accept(BuiltinHandlerSym& symbol) override;
+  void accept(UnitSym& symbol) override;
 
-  virtual void accept(UnaryExpr& expr);
-  virtual void accept(BinaryExpr& expr);
-  virtual void accept(CallExpr& expr);
-  virtual void accept(VariableExpr& expr);
-  virtual void accept(HandlerRefExpr& expr);
-  virtual void accept(StringExpr& expr);
-  virtual void accept(NumberExpr& expr);
-  virtual void accept(BoolExpr& expr);
-  virtual void accept(RegExpExpr& expr);
-  virtual void accept(IPAddressExpr& expr);
-  virtual void accept(CidrExpr& cidr);
-  virtual void accept(ArrayExpr& array);
-  virtual void accept(ExprStmt& stmt);
+  void accept(UnaryExpr& expr) override;
+  void accept(BinaryExpr& expr) override;
+  void accept(CallExpr& expr) override;
+  void accept(VariableExpr& expr) override;
+  void accept(HandlerRefExpr& expr) override;
+  void accept(StringExpr& expr) override;
+  void accept(NumberExpr& expr) override;
+  void accept(BoolExpr& expr) override;
+  void accept(RegExpExpr& expr) override;
+  void accept(IPAddressExpr& expr) override;
+  void accept(CidrExpr& cidr) override;
+  void accept(ArrayExpr& array) override;
+  void accept(ExprStmt& stmt) override;
 
-  virtual void accept(CompoundStmt& stmt);
-  virtual void accept(CondStmt& stmt);
-  virtual void accept(MatchStmt& stmt);
-  virtual void accept(AssignStmt& stmt);
+  void accept(CompoundStmt& stmt) override;
+  void accept(CondStmt& stmt) override;
+  void accept(MatchStmt& stmt) override;
+  void accept(AssignStmt& stmt) override;
 };
 
 //!@}

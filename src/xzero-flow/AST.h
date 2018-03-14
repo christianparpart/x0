@@ -164,7 +164,7 @@ class VariableSym : public Symbol {
   //nullptr; }
   //	bool isGlobal() const { return !isLocal(); }
 
-  virtual void visit(ASTVisitor& v);
+  void visit(ASTVisitor& v) override;
 };
 
 class ParamList;
@@ -226,7 +226,7 @@ class HandlerSym : public CallableSym {
   void implement(std::unique_ptr<SymbolTable>&& table,
                  std::unique_ptr<Stmt>&& body);
 
-  virtual void visit(ASTVisitor& v);
+  void visit(ASTVisitor& v) override;
 };
 
 class BuiltinFunctionSym : public CallableSym {
@@ -234,7 +234,7 @@ class BuiltinFunctionSym : public CallableSym {
   explicit BuiltinFunctionSym(const NativeCallback& cb)
       : CallableSym(Symbol::BuiltinFunction, &cb, FlowLocation()) {}
 
-  virtual void visit(ASTVisitor& v);
+  void visit(ASTVisitor& v) override;
 };
 
 class BuiltinHandlerSym : public CallableSym {
@@ -242,7 +242,7 @@ class BuiltinHandlerSym : public CallableSym {
   explicit BuiltinHandlerSym(const NativeCallback& cb)
       : CallableSym(Symbol::BuiltinHandler, &cb, FlowLocation()) {}
 
-  virtual void visit(ASTVisitor& v);
+  void visit(ASTVisitor& v) override;
 };
 
 class UnitSym : public ScopedSym {
@@ -265,7 +265,7 @@ class UnitSym : public ScopedSym {
 
   class HandlerSym* findHandler(const std::string& name);
 
-  virtual void visit(ASTVisitor& v);
+  void visit(ASTVisitor& v) override;
 };
 // }}}
 // {{{ Expr
@@ -292,8 +292,8 @@ class UnaryExpr : public Expr {
   Opcode op() const { return operator_; }
   Expr* subExpr() const { return subExpr_.get(); }
 
-  virtual void visit(ASTVisitor& v);
-  virtual FlowType getType() const;
+  void visit(ASTVisitor& v) override;
+  FlowType getType() const override;
 };
 
 class BinaryExpr : public Expr {
@@ -310,8 +310,8 @@ class BinaryExpr : public Expr {
   Expr* leftExpr() const { return lhs_.get(); }
   Expr* rightExpr() const { return rhs_.get(); }
 
-  virtual void visit(ASTVisitor& v);
-  virtual FlowType getType() const;
+  void visit(ASTVisitor& v) override;
+  FlowType getType() const override;
 };
 
 class ArrayExpr : public Expr {
@@ -325,9 +325,8 @@ class ArrayExpr : public Expr {
   const std::vector<std::unique_ptr<Expr>>& values() const { return values_; }
   std::vector<std::unique_ptr<Expr>>& values() { return values_; }
 
-  virtual FlowType getType() const;
-
-  virtual void visit(ASTVisitor& v);
+  FlowType getType() const override;
+  void visit(ASTVisitor& v) override;
 };
 
 template <typename T>
@@ -347,9 +346,9 @@ class LiteralExpr : public Expr {
   const T& value() const { return value_; }
   void setValue(const T& value) { value_ = value; }
 
-  virtual FlowType getType() const;
+  FlowType getType() const override;
 
-  virtual void visit(ASTVisitor& v) { v.accept(*this); }
+  void visit(ASTVisitor& v) override { v.accept(*this); }
 };
 
 class ParamList {
@@ -421,8 +420,8 @@ class CallExpr : public Expr {
   ParamList& args() { return args_; }
   bool setArgs(ParamList&& args);
 
-  virtual void visit(ASTVisitor& v);
-  virtual FlowType getType() const;
+  void visit(ASTVisitor& v) override;
+  FlowType getType() const override;
 };
 
 class VariableExpr : public Expr {
@@ -436,8 +435,8 @@ class VariableExpr : public Expr {
   VariableSym* variable() const { return variable_; }
   void setVariable(VariableSym* var) { variable_ = var; }
 
-  virtual void visit(ASTVisitor& v);
-  virtual FlowType getType() const;
+  void visit(ASTVisitor& v) override;
+  FlowType getType() const override;
 };
 
 class HandlerRefExpr : public Expr {
@@ -451,8 +450,8 @@ class HandlerRefExpr : public Expr {
   HandlerSym* handler() const { return handler_; }
   void setHandler(HandlerSym* handler) { handler_ = handler; }
 
-  virtual void visit(ASTVisitor& v);
-  virtual FlowType getType() const;
+  void visit(ASTVisitor& v) override;
+  FlowType getType() const override;
 };
 // }}}
 // {{{ Stmt
@@ -474,7 +473,7 @@ class ExprStmt : public Stmt {
     expression_ = std::move(expr);
   }
 
-  virtual void visit(ASTVisitor&);
+  void visit(ASTVisitor&) override;
 };
 
 class CompoundStmt : public Stmt {
@@ -501,7 +500,7 @@ class CompoundStmt : public Stmt {
   }
   std::list<std::unique_ptr<Stmt>>::iterator end() { return statements_.end(); }
 
-  virtual void visit(ASTVisitor&);
+  void visit(ASTVisitor&) override;
 };
 
 class AssignStmt : public Stmt {
@@ -519,7 +518,7 @@ class AssignStmt : public Stmt {
   Expr* expression() const { return expr_.get(); }
   void setExpression(std::unique_ptr<Expr> expr) { expr_ = std::move(expr); }
 
-  virtual void visit(ASTVisitor&);
+  void visit(ASTVisitor&) override;
 };
 
 class CondStmt : public Stmt {
@@ -545,7 +544,7 @@ class CondStmt : public Stmt {
   Stmt* elseStmt() const { return elseStmt_.get(); }
   void setElseStmt(std::unique_ptr<Stmt> stmt) { elseStmt_ = std::move(stmt); }
 
-  virtual void visit(ASTVisitor&);
+  void visit(ASTVisitor&) override;
 };
 
 
@@ -568,7 +567,7 @@ class MatchStmt : public Stmt {
   Stmt* elseStmt() const { return elseStmt_.get(); }
   void setElseStmt(std::unique_ptr<Stmt> stmt) { elseStmt_ = std::move(stmt); }
 
-  virtual void visit(ASTVisitor&);
+  void visit(ASTVisitor&) override;
 
  private:
   std::unique_ptr<Expr> cond_;
