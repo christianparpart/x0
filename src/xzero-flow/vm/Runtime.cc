@@ -28,7 +28,7 @@ NativeCallback& Runtime::registerFunction(const std::string& name,
   return *builtins_[builtins_.size() - 1];
 }
 
-NativeCallback* Runtime::find(const std::string& signature) {
+NativeCallback* Runtime::find(const std::string& signature) const noexcept {
   for (auto& callback : builtins_) {
     if (callback->signature().to_s() == signature) {
       return callback.get();
@@ -38,7 +38,7 @@ NativeCallback* Runtime::find(const std::string& signature) {
   return nullptr;
 }
 
-NativeCallback* Runtime::find(const Signature& signature) {
+NativeCallback* Runtime::find(const Signature& signature) const noexcept {
   return find(signature.to_s());
 }
 

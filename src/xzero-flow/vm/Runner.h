@@ -125,13 +125,6 @@ class Runner : public CustomData {
 
   std::list<std::string> stringGarbage_;
 
- private:
-  void push(Value value) { stack_.push(value); }
-  Value pop() { return stack_.pop(); }
-  void discard(size_t n) { stack_.discard(n); }
-
-  void pushString(const FlowString* value) { push((Value) value); }
-
  public:
   explicit Runner(Handler* handler);
   ~Runner();
@@ -144,40 +137,40 @@ class Runner : public CustomData {
   size_t getInstructionPointer() const noexcept { return sp_; }
   size_t getStackPointer() const noexcept { return sp_; }
 
-  size_t instructionOffset() const { return pc_; }
-  State state() const { return state_; }
-  bool isInactive() const { return state_ == Inactive; }
-  bool isRunning() const { return state_ == Running; }
-  bool isSuspended() const { return state_ == Suspended; }
+  size_t instructionOffset() const noexcept { return pc_; }
+  State state() const noexcept { return state_; }
+  bool isInactive() const noexcept { return state_ == Inactive; }
+  bool isRunning() const noexcept { return state_ == Running; }
+  bool isSuspended() const noexcept { return state_ == Suspended; }
 
-  Handler* handler() const { return handler_; }
-  Program* program() const { return program_; }
-  void* userdata() const { return userdata_.first; }
-  void* userdata2() const { return userdata_.second; }
-  void setUserData(void* p, void* q = nullptr) {
+  Handler* handler() const noexcept { return handler_; }
+  Program* program() const noexcept { return program_; }
+  void* userdata() const noexcept { return userdata_.first; }
+  void* userdata2() const noexcept { return userdata_.second; }
+  void setUserData(void* p, void* q = nullptr) noexcept {
     userdata_.first = p;
     userdata_.second = q;
   }
 
   template<typename P, typename Q>
-  inline void setUserData(std::pair<P, Q> udata) {
+  inline void setUserData(std::pair<P, Q> udata) noexcept {
     setUserData(udata.first, udata.second);
   }
 
   const RegExpContext* regexpContext() const noexcept { return &regexpContext_; }
   RegExpContext* regexpContext() noexcept { return &regexpContext_; }
 
-  const Stack& stack() const { return stack_; }
+  const Stack& stack() const noexcept { return stack_; }
   Value stack(int si) const { return stack_[si]; }
 
-  FlowNumber getNumber(int si) { return static_cast<FlowNumber>(stack_[si]); }
-  const FlowString& getString(int si) { return *(FlowString*) stack_[si]; }
-  const IPAddress& getIPAddress(int si) { return *(IPAddress*) stack_[si]; }
-  const Cidr& getCidr(int si) { return *(Cidr*) stack_[si]; }
-  const RegExp& getRegExp(int si) { return *(RegExp*) stack_[si]; }
+  FlowNumber getNumber(int si) const { return static_cast<FlowNumber>(stack_[si]); }
+  const FlowString& getString(int si) const { return *(FlowString*) stack_[si]; }
+  const IPAddress& getIPAddress(int si) const { return *(IPAddress*) stack_[si]; }
+  const Cidr& getCidr(int si) const { return *(Cidr*) stack_[si]; }
+  const RegExp& getRegExp(int si) const { return *(RegExp*) stack_[si]; }
 
-  const FlowString* getStringPtr(int si) { return (FlowString*) stack_[si]; }
-  const Cidr* getCidrPtr(int si) { return (Cidr*) stack_[si]; }
+  const FlowString* getStringPtr(int si) const { return (FlowString*) stack_[si]; }
+  const Cidr* getCidrPtr(int si) const { return (Cidr*) stack_[si]; }
 
   FlowString* newString(const std::string& value);
   FlowString* newString(const char* p, size_t n);
@@ -185,7 +178,12 @@ class Runner : public CustomData {
   const FlowString* emptyString() const { return &*stringGarbage_.begin(); }
 
  private:
-  inline bool loop();
+  void push(Value value) { stack_.push(value); }
+  Value pop() { return stack_.pop(); }
+  void discard(size_t n) { stack_.discard(n); }
+  void pushString(const FlowString* value) { push((Value) value); }
+
+  bool loop();
 
   Runner(Runner&) = delete;
   Runner& operator=(Runner&) = delete;

@@ -91,7 +91,7 @@ bool Handler::run(void* userdata, void* userdata2) {
   return runner.run();
 }
 
-void Handler::disassemble() {
+void Handler::disassemble() const noexcept {
   printf("\n.handler %-27s ; (%zu stack size, %zu instructions)\n",
          name().c_str(),
          stackSize(),

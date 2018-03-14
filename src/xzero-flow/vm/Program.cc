@@ -102,7 +102,7 @@ Handler* Program::createHandler(const std::string& name, const Code& code) {
   return handlers_.back().get();
 }
 
-Handler* Program::findHandler(const std::string& name) const {
+Handler* Program::findHandler(const std::string& name) const noexcept {
   for (auto& handler: handlers_)
     if (handler->name() == name)
       return handler.get();
@@ -127,7 +127,7 @@ std::vector<std::string> Program::handlerNames() const {
   return result;
 }
 
-int Program::indexOf(const Handler* that) const {
+int Program::indexOf(const Handler* that) const noexcept {
   for (int i = 0, e = handlers_.size(); i != e; ++i)
     if (handlers_[i].get() == that)
       return i;

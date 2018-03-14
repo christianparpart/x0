@@ -37,8 +37,8 @@ class Program {
   Program& operator=(Program&) = delete;
   ~Program();
 
-  const ConstantPool& constants() const { return cp_; }
-  ConstantPool& constants() { return cp_; }
+  const ConstantPool& constants() const noexcept { return cp_; }
+  ConstantPool& constants() noexcept { return cp_; }
 
   // accessors to linked data
   const Match* match(size_t index) const { return matches_[index].get(); }
@@ -54,8 +54,8 @@ class Program {
   auto matches() { return unbox(matches_); }
 
   std::vector<std::string> handlerNames() const;
-  int indexOf(const Handler* handler) const;
-  Handler* findHandler(const std::string& name) const;
+  int indexOf(const Handler* handler) const noexcept;
+  Handler* findHandler(const std::string& name) const noexcept;
 
   /**
    * Convenience method to run a handler.

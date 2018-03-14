@@ -4,7 +4,6 @@
 All the things I've found out on the way, that need retouching
 
 - [ ] flow: NativeCallback: replace operator new/delete with `std::variant` + `bool hasDefault_`
-- [ ] flow: two constant if expr's fail optimization
 - [ ] flow: nested scopes with local variables must be initialized in this block
       currently also initialized in entry block;
       the problem is already how the AST is created.

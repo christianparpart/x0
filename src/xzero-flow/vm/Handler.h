@@ -30,27 +30,27 @@ class Handler {
   Handler(Handler&& handler);
   ~Handler();
 
-  Program* program() const { return program_; }
+  Program* program() const noexcept { return program_; }
 
-  const std::string& name() const { return name_; }
+  const std::string& name() const noexcept { return name_; }
   void setName(const std::string& name) { name_ = name; }
 
-  size_t stackSize() const { return stackSize_; }
+  size_t stackSize() const noexcept { return stackSize_; }
 
-  const std::vector<Instruction>& code() const { return code_; }
+  const std::vector<Instruction>& code() const noexcept { return code_; }
   void setCode(const std::vector<Instruction>& code);
   void setCode(std::vector<Instruction>&& code);
 
 #if defined(ENABLE_FLOW_DIRECT_THREADED_VM)
-  const std::vector<uint64_t>& directThreadedCode() const {
+  const std::vector<uint64_t>& directThreadedCode() const noexcept {
     return directThreadedCode_;
   }
-  std::vector<uint64_t>& directThreadedCode() { return directThreadedCode_; }
+  std::vector<uint64_t>& directThreadedCode() noexcept { return directThreadedCode_; }
 #endif
 
   bool run(void* userdata = nullptr, void* userdata2 = nullptr);
 
-  void disassemble();
+  void disassemble() const noexcept;
 
  private:
   Program* program_;

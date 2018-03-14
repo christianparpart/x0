@@ -32,9 +32,8 @@ class Runtime {
   virtual bool import(const std::string& name, const std::string& path,
                       std::vector<NativeCallback*>* builtins) = 0;
 
-  bool contains(const std::string& signature) const;
-  NativeCallback* find(const std::string& signature);
-  NativeCallback* find(const Signature& signature);
+  NativeCallback* find(const std::string& signature) const noexcept;
+  NativeCallback* find(const Signature& signature) const noexcept;
   auto builtins() { return unbox(builtins_); }
 
   NativeCallback& registerHandler(const std::string& name);
