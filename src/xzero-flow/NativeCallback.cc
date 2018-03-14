@@ -82,7 +82,7 @@ const Signature& NativeCallback::signature() const {
   return signature_;
 }
 
-int NativeCallback::find(const std::string& name) const {
+int NativeCallback::findParamByName(const std::string& name) const {
   for (int i = 0, e = names_.size(); i != e; ++i)
     if (names_[i] == name)
       return i;

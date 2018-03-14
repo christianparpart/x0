@@ -185,7 +185,7 @@ bool CallableSym::isDirectMatch(const ParamList& params) const {
     return false;
 
   for (size_t i = 0, e = params.size(); i != e; ++i) {
-    if (params.isNamed() && nativeCallback_->getNameAt(i) != params[i].first)
+    if (params.isNamed() && nativeCallback_->getParamNameAt(i) != params[i].first)
       return false;
 
     FlowType expectedType = signature().args()[i];
@@ -207,7 +207,7 @@ bool CallableSym::tryMatch(ParamList& params, Buffer* errorMessage) const {
     return true;
 
   if (params.isNamed()) {
-    if (!native->isNamed()) {
+    if (!native->parametersNamed()) {
       errorMessage->printf(
           "Callee \"%s\" invoked with named parameters, but no names provided "
           "by runtime.",
@@ -217,9 +217,9 @@ bool CallableSym::tryMatch(ParamList& params, Buffer* errorMessage) const {
 
     int argc = signature().args().size();
     for (int i = 0; i != argc; ++i) {
-      const auto& name = native->getNameAt(i);
+      const auto& name = native->getParamNameAt(i);
       if (!params.contains(name)) {
-        const void* defaultValue = native->getDefaultAt(i);
+        const void* defaultValue = native->getDefaultParamAt(i);
         if (!defaultValue) {
           errorMessage->printf(
               "Callee \"%s\" invoked without required named parameter \"%s\".",
@@ -269,7 +269,7 @@ bool CallableSym::tryMatch(ParamList& params, Buffer* errorMessage) const {
     }
 
     for (size_t i = params.size(), e = signature().args().size(); i != e; ++i) {
-      const void* defaultValue = native->getDefaultAt(i);
+      const void* defaultValue = native->getDefaultParamAt(i);
       if (!defaultValue) {
         errorMessage->printf(
             "No default value provided for positional parameter %d, callee %s.",
@@ -277,7 +277,7 @@ bool CallableSym::tryMatch(ParamList& params, Buffer* errorMessage) const {
         return false;
       }
 
-      const std::string& name = native->getNameAt(i);
+      const std::string& name = native->getParamNameAt(i);
       FlowType type = native->signature().args()[i];
       completeDefaultValue(params, type, defaultValue, name);
     }
@@ -396,8 +396,8 @@ void ParamList::reorder(const NativeCallback* native,
   // printf("reorder: argc=%zu, names#=%zu\n", argc, names_.size());
   for (size_t i = 0; i != argc; ++i) {
     const std::string& localName = names_[i];
-    const std::string& otherName = native->getNameAt(i);
-    int nativeIndex = native->find(localName);
+    const std::string& otherName = native->getParamNameAt(i);
+    int nativeIndex = native->findParamByName(localName);
 
     // printf("reorder: localName=%s, otherName=%s, nindex=%i\n",
     // localName.c_str(), otherName.c_str(), nativeIndex);

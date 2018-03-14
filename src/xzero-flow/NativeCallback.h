@@ -89,10 +89,10 @@ class NativeCallback {
   NativeCallback& bind(void (Class::*method)(Params&));
 
   // named parameter handling
-  bool isNamed() const;
-  const std::string& getNameAt(size_t i) const;
-  const void* getDefaultAt(size_t i) const;
-  int find(const std::string& name) const;
+  bool parametersNamed() const;
+  const std::string& getParamNameAt(size_t i) const;
+  const void* getDefaultParamAt(size_t i) const;
+  int findParamByName(const std::string& name) const;
 
   // attributes
   bool isNeverReturning() const { return neverReturning_; }
@@ -339,14 +339,14 @@ inline NativeCallback& NativeCallback::bind(void (Class::*method)(Params&)) {
   return *this;
 }
 
-inline bool NativeCallback::isNamed() const { return !names_.empty(); }
+inline bool NativeCallback::parametersNamed() const { return !names_.empty(); }
 
-inline const std::string& NativeCallback::getNameAt(size_t i) const {
+inline const std::string& NativeCallback::getParamNameAt(size_t i) const {
   assert(i < names_.size());
   return names_[i];
 }
 
-inline const void* NativeCallback::getDefaultAt(size_t i) const {
+inline const void* NativeCallback::getDefaultParamAt(size_t i) const {
   return i < defaults_.size() ? defaults_[i] : nullptr;
 }
 // }}}
