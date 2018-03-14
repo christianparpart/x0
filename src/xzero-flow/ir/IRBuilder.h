@@ -83,11 +83,11 @@ class IRBuilder {
   IRBuiltinHandler* findBuiltinHandler(const Signature& sig) {
     return program_->findBuiltinHandler(sig);
   }
-  IRBuiltinHandler* getBuiltinHandler(const Signature& sig, bool neverReturning) {
-    return program_->getBuiltinHandler(sig, neverReturning);
+  IRBuiltinHandler* getBuiltinHandler(const NativeCallback& cb) {
+    return program_->getBuiltinHandler(cb);
   }
-  IRBuiltinFunction* getBuiltinFunction(const Signature& sig, bool ro) {
-    return program_->getBuiltinFunction(sig, ro);
+  IRBuiltinFunction* getBuiltinFunction(const NativeCallback& cb) {
+    return program_->getBuiltinFunction(cb);
   }
   ConstantArray* get(const std::vector<Constant*>& arrayElements) {
     return program_->get(arrayElements);

@@ -51,9 +51,10 @@ class NativeCallback {
                  FlowType _returnType);
   ~NativeCallback();
 
-  bool isHandler() const;
-  const std::string name() const;
-  const Signature& signature() const;
+  bool isHandler() const noexcept;
+  bool isFunction() const noexcept;
+  const std::string name() const noexcept;
+  const Signature& signature() const noexcept;
 
   // signature builder
 
@@ -94,11 +95,11 @@ class NativeCallback {
   int findParamByName(const std::string& name) const;
 
   // attributes
-  bool isNeverReturning() const { return neverReturning_; }
-  bool isSideEffectFree() const { return sideEffectFree_; }
-
   NativeCallback& setNoReturn();
-  NativeCallback& setReadonly();
+  bool isNeverReturning() const noexcept { return neverReturning_; }
+
+  NativeCallback& setReadOnly();
+  bool isReadOnly() const noexcept { return sideEffectFree_; }
 
   // runtime
   void invoke(Params& args) const;

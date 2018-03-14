@@ -219,13 +219,13 @@ void IRGenerator::codegenInline(HandlerSym& handlerSym) {
 void IRGenerator::accept(BuiltinFunctionSym& builtin) {
   FNTRACE();
 
-  result_ = getBuiltinFunction(builtin.signature(), builtin.nativeCallback()->isSideEffectFree());
+  result_ = getBuiltinFunction(*builtin.nativeCallback());
 }
 
 void IRGenerator::accept(BuiltinHandlerSym& builtin) {
   FNTRACE();
 
-  result_ = getBuiltinHandler(builtin.signature(), builtin.nativeCallback()->isNeverReturning());
+  result_ = getBuiltinHandler(*builtin.nativeCallback());
 }
 
 void IRGenerator::accept(UnaryExpr& expr) {

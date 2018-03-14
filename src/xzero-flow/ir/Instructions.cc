@@ -208,13 +208,17 @@ CallInstr::CallInstr(IRBuiltinFunction* callee, const std::vector<Value*>& args,
                      const std::string& name)
     : Instr(callee->signature().returnType(), join(callee, args), name) {}
 
-void CallInstr::dump() { dumpOne("call"); }
+void CallInstr::dump() {
+  dumpOne("call");
+}
 
 std::unique_ptr<Instr> CallInstr::clone() {
   return std::make_unique<CallInstr>(operands(), name());
 }
 
-void CallInstr::accept(InstructionVisitor& visitor) { visitor.visit(*this); }
+void CallInstr::accept(InstructionVisitor& visitor) {
+  visitor.visit(*this);
+}
 // }}}
 // {{{ HandlerCallInstr
 HandlerCallInstr::HandlerCallInstr(const std::vector<Value*>& args)

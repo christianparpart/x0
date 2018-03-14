@@ -57,31 +57,29 @@ class IRProgram {
     return get<ConstantArray>(constantArrays_, elems);
   }
 
-  // const std::vector<ConstantArray*>& constantArrays() const { return
-  // constantArrays_; }
-
-  IRBuiltinHandler* findBuiltinHandler(const Signature& sig) {
+  IRBuiltinHandler* findBuiltinHandler(const Signature& sig) const {
     for (size_t i = 0, e = builtinHandlers_.size(); i != e; ++i)
-      if (builtinHandlers_[i]->get() == sig)
+      if (builtinHandlers_[i]->signature() == sig)
         return builtinHandlers_[i].get();
 
     return nullptr;
   }
 
-  IRBuiltinHandler* getBuiltinHandler(const Signature& sig, bool neverReturning) {
-    if (auto h = findBuiltinHandler(sig); h != nullptr)
-      return h;
+  IRBuiltinHandler* getBuiltinHandler(const NativeCallback& cb) {
+    for (size_t i = 0, e = builtinHandlers_.size(); i != e; ++i)
+      if (builtinHandlers_[i]->signature() == cb.signature())
+        return builtinHandlers_[i].get();
 
-    builtinHandlers_.emplace_back(std::make_unique<IRBuiltinHandler>(sig, neverReturning));
+    builtinHandlers_.emplace_back(std::make_unique<IRBuiltinHandler>(cb));
     return builtinHandlers_.back().get();
   }
 
-  IRBuiltinFunction* getBuiltinFunction(const Signature& sig, bool ro) {
+  IRBuiltinFunction* getBuiltinFunction(const NativeCallback& cb) {
     for (size_t i = 0, e = builtinFunctions_.size(); i != e; ++i)
-      if (builtinFunctions_[i]->get() == sig)
+      if (builtinFunctions_[i]->signature() == cb.signature())
         return builtinFunctions_[i].get();
 
-    builtinFunctions_.emplace_back(std::make_unique<IRBuiltinFunction>(sig, ro));
+    builtinFunctions_.emplace_back(std::make_unique<IRBuiltinFunction>(cb));
     return builtinFunctions_.back().get();
   }
 

@@ -10,43 +10,21 @@
 #include <xzero/defines.h>
 #include <xzero-flow/ir/Constant.h>
 #include <xzero-flow/vm/Signature.h>
+#include <xzero-flow/NativeCallback.h>
 
 namespace xzero::flow {
 
 class IRBuiltinFunction : public Constant {
  public:
-  IRBuiltinFunction(const IRBuiltinFunction&) = default;
-  IRBuiltinFunction& operator=(const IRBuiltinFunction&) = default;
+  explicit IRBuiltinFunction(const NativeCallback& cb)
+      : Constant(cb.signature().returnType(), cb.signature().name()),
+        native_(cb) {}
 
-  IRBuiltinFunction(IRBuiltinFunction&&) = default;
-  IRBuiltinFunction& operator=(IRBuiltinFunction&&) = default;
-
-  IRBuiltinFunction(const Signature& sig, bool isSideEffectFree)
-      : Constant(sig.returnType(), sig.name()), signature_(sig) {}
-
-  const Signature& signature() const { return signature_; }
-  const Signature& get() const { return signature_; }
-  bool isSideEffectFree() const noexcept { return isSideEffectFree_; }
+  const Signature& signature() const { return native_.signature(); }
+  const NativeCallback& getNative() const { return native_; }
 
  private:
-  Signature signature_;
-  bool isSideEffectFree_;
+  const NativeCallback& native_;
 };
-
-inline bool operator==(const IRBuiltinFunction& f, const Signature& sig) {
-  return sig == f.signature();
-}
-
-inline bool operator!=(const IRBuiltinFunction& f, const Signature& sig) {
-  return sig != f.signature();
-}
-
-inline bool operator==(const Signature& sig, const IRBuiltinFunction& f) {
-  return sig == f.signature();
-}
-
-inline bool operator!=(const Signature& sig, const IRBuiltinFunction& f) {
-  return sig != f.signature();
-}
 
 }  // namespace xzero::flow

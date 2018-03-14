@@ -445,9 +445,9 @@ void FlowParser::declareBuiltin(const NativeCallback* native) {
   TRACE("declareBuiltin (scope:$0): $1", currentScope(), native->signature().to_s());
 
   if (native->isHandler()) {
-    createSymbol<BuiltinHandlerSym>(native);
+    createSymbol<BuiltinHandlerSym>(*native);
   } else {
-    createSymbol<BuiltinFunctionSym>(native);
+    createSymbol<BuiltinFunctionSym>(*native);
   }
 }
 

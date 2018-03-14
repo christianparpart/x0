@@ -8,6 +8,8 @@ All the things I've found out on the way, that need retouching
 - [ ] flow: nested scopes with local variables must be initialized in this block
       currently also initialized in entry block;
       the problem is already how the AST is created.
+- [ ] flow: eliminate unused variables (with side-effect-free initialization)
+- [ ] flow: add sparce simple constant propagation SSCP
 - [ ] http: rework HttpClient API (so it's becoming dead-easy to be used within proxy code)
 - [ ] net: clarify object ownership along the TCP/HTTP API
 
@@ -47,10 +49,6 @@ All the things I've found out on the way, that need retouching
 
 - [ ] test: test each public API is well tested
 - [ ] raise 504 (gateway timeout) if backend page load takes too long and no result has been sent to the client yet (close connection directly otherwise).
-
-## Flow
-
-- [ ] SSA: constant propagation (pass manager stage: main)
 
 ## x0d
 

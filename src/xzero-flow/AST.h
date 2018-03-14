@@ -178,20 +178,18 @@ class CallableSym : public Symbol {
   CallableSym(Type t, const NativeCallback* cb, const FlowLocation& loc);
   CallableSym(const std::string& name, const FlowLocation& loc);
 
-  bool isHandler() const {
+  bool isHandler() const noexcept {
     return type() == Symbol::Handler || type() == Symbol::BuiltinHandler;
   }
-  bool isFunction() const { return type() == Symbol::BuiltinFunction; }
-  bool isBuiltin() const {
+  bool isFunction() const noexcept { return type() == Symbol::BuiltinFunction; }
+  bool isBuiltin() const noexcept {
     return type() == Symbol::BuiltinHandler ||
            type() == Symbol::BuiltinFunction;
   }
 
   const Signature& signature() const;
 
-  const NativeCallback* nativeCallback() const {
-    return nativeCallback_;
-  }
+  const NativeCallback* nativeCallback() const noexcept { return nativeCallback_; }
 
   /** checks whether given parameter list is a concrete match (without any
    * completions) to this symbol.
@@ -233,16 +231,16 @@ class HandlerSym : public CallableSym {
 
 class BuiltinFunctionSym : public CallableSym {
  public:
-  explicit BuiltinFunctionSym(const NativeCallback* cb)
-      : CallableSym(Symbol::BuiltinFunction, cb, FlowLocation()) {}
+  explicit BuiltinFunctionSym(const NativeCallback& cb)
+      : CallableSym(Symbol::BuiltinFunction, &cb, FlowLocation()) {}
 
   virtual void visit(ASTVisitor& v);
 };
 
 class BuiltinHandlerSym : public CallableSym {
  public:
-  explicit BuiltinHandlerSym(const NativeCallback* cb)
-      : CallableSym(Symbol::BuiltinHandler, cb, FlowLocation()) {}
+  explicit BuiltinHandlerSym(const NativeCallback& cb)
+      : CallableSym(Symbol::BuiltinHandler, &cb, FlowLocation()) {}
 
   virtual void visit(ASTVisitor& v);
 };

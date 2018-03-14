@@ -61,16 +61,17 @@ bool InstructionElimination::eliminateUnusedInstr(BasicBlock* bb) {
     if (found[instr]) continue;
 
     if (auto f = dynamic_cast<CallInstr*>(instr)) {
-      if (f->callee()->isSideEffectFree()) {
+      if (f->callee()->getNative().isReadOnly()) {
         if (instr->type() != FlowType::Void && !instr->isUsed()) {
           found[instr] = true;
           logDebug("XXX would remove instr!");
           instr->dump();
 
-          // bb->remove(instr);
-          // return true;
+          bb->remove(instr);
+          return true;
         }
       } else {
+        found[instr] = true;
         logDebug("no side effect free: $0", f->callee()->signature());
       }
     }

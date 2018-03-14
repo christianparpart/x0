@@ -145,11 +145,11 @@ void Instr::dumpOne(const char* mnemonic) {
         continue;
       }
       if (auto bh = dynamic_cast<IRBuiltinHandler*>(arg)) {
-        printf("%s", bh->get().to_s().c_str());
+        printf("%s", bh->signature().to_s().c_str());
         continue;
       }
       if (auto bf = dynamic_cast<IRBuiltinFunction*>(arg)) {
-        printf("%s", bf->get().to_s().c_str());
+        printf("%s", bf->signature().to_s().c_str());
         continue;
       }
       if (auto ar = dynamic_cast<ConstantArray*>(arg)) {

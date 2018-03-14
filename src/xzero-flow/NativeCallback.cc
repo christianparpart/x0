@@ -70,15 +70,19 @@ NativeCallback::~NativeCallback() {
   }
 }
 
-bool NativeCallback::isHandler() const {
+bool NativeCallback::isHandler() const noexcept {
   return isHandler_;
 }
 
-const std::string NativeCallback::name() const {
+bool NativeCallback::isFunction() const noexcept {
+  return !isHandler_;
+}
+
+const std::string NativeCallback::name() const noexcept {
   return signature_.name();
 }
 
-const Signature& NativeCallback::signature() const {
+const Signature& NativeCallback::signature() const noexcept {
   return signature_;
 }
 
@@ -95,7 +99,7 @@ NativeCallback& NativeCallback::setNoReturn() {
   return *this;
 }
 
-NativeCallback& NativeCallback::setReadonly() {
+NativeCallback& NativeCallback::setReadOnly() {
   sideEffectFree_ = true;
   return *this;
 }
