@@ -1699,8 +1699,7 @@ std::unique_ptr<CallExpr> FlowParser::callStmt(
   return resolve(callables, std::move(params));
 }
 
-Signature makeSignature(const CallableSym* callee,
-                            const ParamList& params) {
+Signature makeSignature(const CallableSym* callee, const ParamList& params) {
   Signature sig;
 
   sig.setName(callee->name());
