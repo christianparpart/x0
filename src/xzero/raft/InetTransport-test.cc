@@ -112,11 +112,11 @@ TEST(raft_InetTransport, handshake) {
   StaticDiscovery discovery { {1, "127.0.0.1:1708"},
                               {2, "127.0.0.2:1708"} };
 
-  std::shared_ptr<TcpConnector> connector(new TcpConnector(&executor));
+  auto connector = std::make_shared<TcpConnector>(&executor);
   auto endpointCreator = [&](const std::string& address) -> RefPtr<EndPoint> {
     return nullptr;
   };
-  std::shared_ptr<InetTransport> transport(new InetTransport(
+  auto transport = std::make_shared<InetTransport>(
       &discovery, &executor, endpointCreator, connector));
   connector->start();
 
@@ -136,12 +136,12 @@ TEST(raft_InetTransport, no_handshake) {
   StaticDiscovery discovery { {1, "127.0.0.1:1708"},
                               {2, "127.0.0.2:1708"} };
 
-  std::shared_ptr<TcpConnector> connector(new TcpConnector(&executor));
+  auto connector = std::make_shared<TcpConnector>(&executor);
   auto endpointCreator = [&](const std::string& address) -> RefPtr<EndPoint> {
     return nullptr;
   };
-  std::shared_ptr<InetTransport> transport(new InetTransport(
-      &discovery, &executor, endpointCreator, connector));
+  auto transport = std::make_shared<InetTransport>(
+      &discovery, &executor, endpointCreator, connector);
   connector->start();
 
   RaftTestHandler handler;
@@ -160,12 +160,12 @@ TEST(raft_InetTransport, receive_framed_response) {
   StaticDiscovery discovery { {1, "127.0.0.1:1708"},
                               {2, "127.0.0.2:1708"} };
 
-  std::shared_ptr<TcpConnector> connector(new TcpConnector(&executor));
+  auto connector = std::make_shared<TcpConnector>(&executor);
   auto endpointCreator = [&](const std::string& address) -> RefPtr<EndPoint> {
     return nullptr;
   };
-  std::shared_ptr<InetTransport> transport(new InetTransport(
-      &discovery, &executor, endpointCreator, connector));
+  auto transport = std::make_shared<InetTransport>(
+      &discovery, &executor, endpointCreator, connector);
   connector->start();
 
   RaftTestHandler handler;
@@ -185,12 +185,12 @@ TEST(raft_InetTransport, unknown_message) {
   StaticDiscovery discovery { {1, "127.0.0.1:1708"},
                               {2, "127.0.0.2:1708"} };
 
-  std::shared_ptr<TcpConnector> connector(new TcpConnector(&executor));
+  auto connector = std::make_shared<TcpConnector>(&executor);
   auto endpointCreator = [&](const std::string& address) -> RefPtr<EndPoint> {
     return nullptr;
   };
-  std::shared_ptr<InetTransport> transport(new InetTransport(
-      &discovery, &executor, endpointCreator, connector));
+  auto transport = std::make_shared<InetTransport>(
+      &discovery, &executor, endpointCreator, connector);
   connector->start();
 
   RaftTestHandler handler;
@@ -209,12 +209,12 @@ TEST(raft_InetTransport, zero_length_message) {
   StaticDiscovery discovery { {1, "127.0.0.1:1708"},
                               {2, "127.0.0.2:1708"} };
 
-  std::shared_ptr<TcpConnector> connector(new TcpConnector(&executor));
+  auto connector = std::make_shared<TcpConnector>(&executor);
   auto endpointCreator = [&](const std::string& address) -> RefPtr<EndPoint> {
     return nullptr;
   };
-  std::shared_ptr<InetTransport> transport(new InetTransport(
-      &discovery, &executor, endpointCreator, connector));
+  auto transport = std::make_shared<InetTransport>(
+      &discovery, &executor, endpointCreator, connector);
   connector->start();
 
   RaftTestHandler handler;
