@@ -85,7 +85,7 @@ namespace xzero::flow {
 
 static FlowString* t = nullptr;
 
-Runner::Runner(Handler* handler)
+Runner::Runner(const Handler* handler)
     : handler_(handler),
       program_(handler->program()),
       userdata_(nullptr, nullptr),

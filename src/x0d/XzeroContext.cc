@@ -20,10 +20,10 @@ using namespace xzero::http;
 namespace x0d {
 
 XzeroContext::XzeroContext(
-    xzero::flow::Handler* requestHandler,
+    const xzero::flow::Handler* requestHandler,
     xzero::http::HttpRequest* request,
     xzero::http::HttpResponse* response,
-    std::unordered_map<xzero::http::HttpStatus, std::string>* globalErrorPages,
+    const std::unordered_map<xzero::http::HttpStatus, std::string>* globalErrorPages,
     size_t maxInternalRedirectCount)
     : requestHandler_(requestHandler),
       runner_(),

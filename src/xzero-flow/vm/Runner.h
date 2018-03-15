@@ -102,7 +102,7 @@ class Runner : public CustomData {
   // }}}
 
  private:
-  Handler* handler_;
+  const Handler* handler_;
 
   /**
    * We especially keep this ref to prevent ensure handler has
@@ -110,7 +110,7 @@ class Runner : public CustomData {
    * as it is only having a weak reference to the program (to avoid cycling
    * references).
    */
-  Program* program_;
+  const Program* program_;
 
   //! pointer to the currently evaluated HttpRequest/HttpResponse our case
   std::pair<void*,void*> userdata_;
@@ -126,7 +126,7 @@ class Runner : public CustomData {
   std::list<std::string> stringGarbage_;
 
  public:
-  explicit Runner(Handler* handler);
+  explicit Runner(const Handler* handler);
   ~Runner();
 
   bool run();
@@ -143,8 +143,8 @@ class Runner : public CustomData {
   bool isRunning() const noexcept { return state_ == Running; }
   bool isSuspended() const noexcept { return state_ == Suspended; }
 
-  Handler* handler() const noexcept { return handler_; }
-  Program* program() const noexcept { return program_; }
+  const Handler* handler() const noexcept { return handler_; }
+  const Program* program() const noexcept { return program_; }
   void* userdata() const noexcept { return userdata_.first; }
   void* userdata2() const noexcept { return userdata_.second; }
   void setUserData(void* p, void* q = nullptr) noexcept {

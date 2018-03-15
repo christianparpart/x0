@@ -85,7 +85,7 @@ void Handler::setCode(std::vector<Instruction>&& code) {
 #endif
 }
 
-bool Handler::run(void* userdata, void* userdata2) {
+bool Handler::run(void* userdata, void* userdata2) const {
   Runner runner(this);
   runner.setUserData(userdata, userdata2);
   return runner.run();

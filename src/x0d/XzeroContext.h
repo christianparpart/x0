@@ -44,10 +44,10 @@ class XzeroContext {
   CUSTOMDATA_API_INLINE
  public:
   XzeroContext(
-      /*TODO: const */ xzero::flow::Handler* requestHandler,
+      const xzero::flow::Handler* requestHandler,
       xzero::http::HttpRequest* request,
       xzero::http::HttpResponse* response,
-      std::unordered_map<xzero::http::HttpStatus, std::string>* globalErrorPages,
+      const std::unordered_map<xzero::http::HttpStatus, std::string>* globalErrorPages,
       size_t maxInternalRedirectCount);
 
   XzeroContext(XzeroContext&&) = default;
@@ -157,17 +157,17 @@ class XzeroContext {
   // }}}
 
  private:
-  xzero::flow::Handler* requestHandler_; //!< HTTP request handler as flow program
+  const xzero::flow::Handler* requestHandler_; //!< HTTP request handler as flow program
   std::unique_ptr<xzero::flow::Runner> runner_; //!< Flow VM execution unit.
-  xzero::UnixTime createdAt_; //!< When the request started
+  const xzero::UnixTime createdAt_; //!< When the request started
   std::list<xzero::http::HttpRequest*> requests_; //!< HTTP request
   xzero::http::HttpResponse* response_; //!< HTTP response
   std::string documentRoot_; //!< associated document root
   std::string pathInfo_; //!< info-part of the request-path
   std::shared_ptr<xzero::File> file_; //!< local file associated with this request
   std::unordered_map<xzero::http::HttpStatus, std::string> errorPages_; //!< custom error page request paths
-  std::unordered_map<xzero::http::HttpStatus, std::string>* globalErrorPages_;
-  size_t maxInternalRedirectCount_;
+  const std::unordered_map<xzero::http::HttpStatus, std::string>* globalErrorPages_;
+  const size_t maxInternalRedirectCount_;
 };
 
 } // namespace x0d
