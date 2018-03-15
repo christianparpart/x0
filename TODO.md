@@ -8,7 +8,7 @@ All the things I've found out on the way, that need retouching
       currently also initialized in entry block;
       the problem is already how the AST is created.
 - [ ] flow: eliminate unused variables (with side-effect-free initialization)
-- [ ] flow: add sparce simple constant propagation SSCP
+- [ ] flow: add sparse simple constant propagation SSCP
 - [ ] http: rework HttpClient API (so it's becoming dead-easy to be used within proxy code)
 
 ## Intermediate 0
@@ -22,7 +22,7 @@ All the things I've found out on the way, that need retouching
 - eliminate need of EndPointWriter via DataChain
 - ??? eliminate TcpUtil
 
-- [ ] HttpListener: onMessagecontent(HugeBuffer&&) instead
+- [ ] HttpListener: onMessageContent(HugeBuffer&&) instead
 - [ ] extend FCGI connector to tweak maxKeepAlive (just like in HTTP/1)
   - make sure the keepalive-timeout is fired correctly
     - test cancellation (due to io) and fire (due to timeout).
