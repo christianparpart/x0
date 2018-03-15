@@ -38,7 +38,7 @@ PosixSignals::HandleRef PosixSignals::notify(int signo, SignalHandler task) {
   RefPtr<SignalWatcher> hr(new SignalWatcher(task));
 
   if (watchers_[signo].empty()) {
-    TRACE("installing signal handler");
+    TRACE("installing signal handler $0 ($1)", signo, toString(signo));
     struct sigaction sa;
     memset(&sa, 0, sizeof(sa));
     sa.sa_sigaction = PosixSignals::onSignal;
