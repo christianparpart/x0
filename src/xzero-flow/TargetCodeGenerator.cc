@@ -166,7 +166,7 @@ void TargetCodeGenerator::generate(IRHandler* handler) {
   cp_.getHandler(handlerId_).second = std::move(code_);
 
   // cleanup remaining handler-local work vars
-  logTrace("flow: stack depth after handler code generation: $0\n", stack_.size());
+  logTrace("flow: stack depth after handler code generation: $0", stack_.size());
   stack_.clear();
 }
 
