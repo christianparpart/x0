@@ -297,13 +297,13 @@ void LinuxScheduler::runLoop() {
   breakLoopCounter_.store(0);
 
   TRACE("runLoop: referenceCount=$0", referenceCount());
-  now_ = MonotonicClock::now();
   while (referenceCount() > 0 && breakLoopCounter_.load() == 0) {
     runLoopOnce();
   }
 }
 
 void LinuxScheduler::runLoopOnce() {
+  now_ = MonotonicClock::now();
   int rv;
 
   const uint64_t timeoutMillis = nextTimeout().milliseconds();
@@ -322,20 +322,24 @@ void LinuxScheduler::runLoopOnce() {
 
   now_ = MonotonicClock::now();
 
-  std::list<Task> activeTasks;
-  {
-    std::lock_guard<std::mutex> lk(lock_);
-
-    unref(tasks_.size());
-    activeTasks = std::move(tasks_);
-
-    collectActiveHandles(static_cast<size_t>(rv), &activeTasks);
-    collectTimeouts(&activeTasks);
-  }
-
+  std::list<Task> activeTasks = collectEvents(static_cast<size_t>(rv));
   safeCall(onPreInvokePending_);
   safeCallEach(activeTasks);
   safeCall(onPostInvokePending_);
+}
+
+std::list<EventLoop::Task> LinuxScheduler::collectEvents(size_t count) {
+  std::lock_guard<std::mutex> lk(lock_);
+
+  std::list<Task> activeTasks;
+
+  unref(tasks_.size());
+  activeTasks = std::move(tasks_);
+
+  collectActiveHandles(count, &activeTasks);
+  collectTimeouts(&activeTasks);
+
+  return activeTasks;
 }
 
 void LinuxScheduler::breakLoop() {

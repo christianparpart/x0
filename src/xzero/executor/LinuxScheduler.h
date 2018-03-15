@@ -91,6 +91,7 @@ class LinuxScheduler : public EventLoop {
 
  private:
   inline static int makeEvent(Mode mode);
+  std::list<Task> collectEvents(size_t count);
 
   /**
    * Wakes up loop if currently waiting for events without breaking out.
