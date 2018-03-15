@@ -37,6 +37,7 @@ class AccesslogModule : public XzeroModule {
   void accesslog_format(Params& args);
 
   void accesslog_syslog(XzeroContext* cx, Params& args);
+  void accesslog_console(XzeroContext* cx, Params& args);
   void accesslog_file(XzeroContext* cx, Params& args);
 
   using FlowString = xzero::flow::FlowString;

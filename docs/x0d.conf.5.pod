@@ -1020,6 +1020,18 @@ logged into the given logfile_path.
      staticfile;
  }
 
+=item B<accesslog.console> (string format = "main")
+
+is a function to ensure the current request is being logged
+onto B<x0d>'s console (stdout).
+
+ main {
+   accesslog.console;
+
+   docroot '/var/www';
+   staticfile;
+ }
+
 =item B<accesslog.syslog> (string format = "main")
 
 is a function to ensure the currently handled request is being

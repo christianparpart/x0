@@ -98,7 +98,7 @@ if exists("flow_x0")
 	syn keyword flowCoreVar tcp_fin_timeout max_internal_redirect_count max_read_idle max_write_idle max_keepalive_idle max_keepalive_requests max_connections max_files max_address_space max_core_size tcp_cork tcp_nodelay lingering
 	syn keyword flowCoreVar max_request_uri_size max_request_header_size max_request_header_count max_request_body_size request_header_buffer_size request_body_buffer_size
 	syn keyword flowCoreFunctions header rewrite
-	syn keyword flowCoreFunctions expire
+	syn keyword flowCoreFunctions expire autoindex
 	syn keyword flowCoreFunctions docroot alias
 
 	" core handlers
@@ -112,8 +112,7 @@ if exists("flow_x0")
 	syn match flowCoreHandler '\<access\.\(deny\|deny_except\)\>'
 
     " plugin: accesslog
-	syn keyword flowCoreFunctions accesslog autoindex
-	syn match flowCoreFunctions '\<accesslog\.\(format\)\>'
+	syn match flowCoreFunctions '\<accesslog\(\.\(format\|console\)\>\)\?'
 
 	" plugin: status
 	syn match flowCoreHandler '\<status\(\.\(api\|nginx_compat\)\)\?\>'

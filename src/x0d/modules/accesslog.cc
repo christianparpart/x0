@@ -248,6 +248,7 @@ struct RequestLogger : public CustomData { // {{{
 
   std::list<std::pair<FlowString /*format*/, LogFile* /*log*/>> targets_;
   std::list<std::pair<FlowString /*format*/, LogTarget* /*target*/>> logTargets_;
+  std::string consoleFormat_;
 
   explicit RequestLogger(XzeroContext* cx)
       : context_(cx), targets_() {
@@ -256,6 +257,10 @@ struct RequestLogger : public CustomData { // {{{
   RequestLogger(XzeroContext* cx, const FlowString& format, LogFile* log)
       : RequestLogger(cx) {
     addTarget(format, log);
+  }
+
+  void enableConsole(const FlowString& format) {
+    consoleFormat_ = format;
   }
 
   void addTarget(const FlowString& format, LogFile* log) {
@@ -276,6 +281,11 @@ struct RequestLogger : public CustomData { // {{{
       std::string line = formatLog(context_, target.first);
       target.second->log(LogLevel::Info, line);
     }
+
+    if (!consoleFormat_.empty()) {
+      std::string line = formatLog(context_, consoleFormat_);
+      printf("%s", line.c_str());
+    }
   }
 };  // }}}
 
@@ -293,6 +303,9 @@ AccesslogModule::AccesslogModule(XzeroDaemon* d)
   setupFunction("accesslog.format", &AccesslogModule::accesslog_format)
       .param<FlowString>("id")
       .param<FlowString>("format");
+
+  mainFunction("accesslog.console", &AccesslogModule::accesslog_console)
+      .param<FlowString>("format", "main");
 
   mainFunction("accesslog", &AccesslogModule::accesslog_file)
       .param<FlowString>("file")
@@ -336,7 +349,7 @@ void AccesslogModule::accesslog_syslog(XzeroContext* cx, Params& args) {
   Option<FlowString> format = lookupFormat(id);
   if (format.isNone()) {
     cx->logError(
-         "Could not write to accesslog.syslog with format id '$0'. $1",
+         "Could not write accesslog to syslog with format id '$0'. $1",
          BufferRef(id.data(), id.size()),
          "Accesslog format not found.");
     return;
@@ -350,6 +363,26 @@ void AccesslogModule::accesslog_syslog(XzeroContext* cx, Params& args) {
   }
 }
 
+// accesslog.console(format = "main");
+void AccesslogModule::accesslog_console(XzeroContext* cx, Params& args) {
+  FlowString id = args.getString(1);
+
+  Option<FlowString> format = lookupFormat(id);
+  if (format.isNone()) {
+    cx->logError(
+         "Could not write accesslog to console with format id '$0'. $1",
+         id,
+         "Accesslog format not found.");
+    return;
+  }
+
+  if (auto rl = cx->customData<RequestLogger>(this)) {
+    rl->enableConsole(format.get());
+  } else {
+    cx->setCustomData<RequestLogger>(this, cx)->enableConsole(format.get());
+  }
+}
+
 // accesslog(filename, format = "main");
 void AccesslogModule::accesslog_file(XzeroContext* cx, Params& args) {
   FlowString filename = args.getString(1);
@@ -358,7 +391,7 @@ void AccesslogModule::accesslog_file(XzeroContext* cx, Params& args) {
   Option<FlowString> format = lookupFormat(id);
   if (format.isNone()) {
     cx->logError(
-         "Could not write to accesslog '$0' with format id '$1'. $2",
+         "Could not write accesslog to '$0' with format id '$1'. $2",
          BufferRef(filename),
          BufferRef(id),
          "Accesslog format not found.");
