@@ -28,8 +28,7 @@ namespace testing {
   ::xzero::testing::Callback* const                                           \
   _CALLBACK_NAME(Name)::ref_ =                                                \
       ::xzero::testing::UnitTest::instance()->addInitializer(                 \
-          std::unique_ptr<::xzero::testing::Callback>(                        \
-                new _CALLBACK_NAME(Name)));                                   \
+          std::make_unique<_CALLBACK_NAME>(Name));                            \
                                                                               \
   void _CALLBACK_NAME(Name)::invoke()
 
@@ -257,9 +256,9 @@ class _TEST_CLASS_NAME(testCaseName, testName) : public ParentClass {         \
 _TEST_CLASS_NAME(testCaseName, testName)::test_info_ =                        \
     ::xzero::testing::UnitTest::instance()->addTest(                          \
         #testCaseName, #testName,                                             \
-        std::unique_ptr<::xzero::testing::TestFactory>(                       \
-            new ::xzero::testing::TestFactoryTemplate<                        \
-                _TEST_CLASS_NAME(testCaseName, testName)>));                  \
+        std::make_unique<                                                     \
+            ::xzero::testing::TestFactoryTemplate<                            \
+                _TEST_CLASS_NAME(testCaseName, testName)>>());                \
                                                                               \
 void _TEST_CLASS_NAME(testCaseName, testName)::TestBody()
 
@@ -323,7 +322,7 @@ template<typename TheTestClass>
 class TestFactoryTemplate : public TestFactory {
  public:
   std::unique_ptr<Test> createTest() override {
-    return std::unique_ptr<Test>(new TheTestClass());
+    return std::make_unique<TheTestClass>();
   }
 };
 
