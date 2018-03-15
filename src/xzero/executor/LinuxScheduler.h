@@ -39,6 +39,7 @@ class LinuxScheduler : public EventLoop {
   ~LinuxScheduler();
 
   MonotonicTime now() const;
+  void updateTime();
 
  public:
   using EventLoop::executeOnReadable;

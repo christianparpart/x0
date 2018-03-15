@@ -78,6 +78,10 @@ LinuxScheduler::LinuxScheduler()
 LinuxScheduler::~LinuxScheduler() {
 }
 
+void LinuxScheduler::updateTime() {
+  now_ = MonotonicClock::now();
+}
+
 MonotonicTime LinuxScheduler::now() const {
   return now_;
 }
@@ -272,11 +276,11 @@ Duration LinuxScheduler::nextTimeout() const {
     return Duration::Zero;
 
   const Duration a = !timers_.empty()
-                 ? timers_.front()->when - now_
+                 ? timers_.front()->when - now()
                  : 60_seconds;
 
   const Duration b = firstWatcher_ != nullptr
-                 ? firstWatcher_->timeout - now_
+                 ? firstWatcher_->timeout - now()
                  : 61_seconds;
 
   return std::min(a, b);
@@ -303,7 +307,7 @@ void LinuxScheduler::runLoop() {
 }
 
 void LinuxScheduler::runLoopOnce() {
-  now_ = MonotonicClock::now();
+  updateTime();
   int rv;
 
   const uint64_t timeoutMillis = nextTimeout().milliseconds();
@@ -320,7 +324,7 @@ void LinuxScheduler::runLoopOnce() {
     RAISE_ERRNO(errno);
   }
 
-  now_ = MonotonicClock::now();
+  updateTime();
 
   std::list<Task> activeTasks = collectEvents(static_cast<size_t>(rv));
   safeCall(onPreInvokePending_);
@@ -428,7 +432,7 @@ void LinuxScheduler::collectActiveHandles(size_t count,
 
 void LinuxScheduler::collectTimeouts(std::list<Task>* result) {
   const auto nextTimedout = [this]() -> Watcher* {
-    return firstWatcher_ && firstWatcher_->timeout <= now_
+    return firstWatcher_ && firstWatcher_->timeout <= now()
         ? firstWatcher_
         : nullptr;
   };
@@ -444,7 +448,7 @@ void LinuxScheduler::collectTimeouts(std::list<Task>* result) {
   }
 
   const auto nextTimer = [this]() -> Timer* {
-    return !timers_.empty() && timers_.front()->when <= now_
+    return !timers_.empty() && timers_.front()->when <= now()
         ? timers_.front().get()
         : nullptr;
   };
