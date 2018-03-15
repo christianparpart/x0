@@ -29,12 +29,12 @@ namespace http1 {
 
 Channel::Channel(Connection* transport,
                  Executor* executor,
-                 const HttpHandler& handler,
+                 const HttpHandlerFactory& handlerFactory,
                  size_t maxRequestUriLength,
                  size_t maxRequestBodyLength,
                  HttpDateGenerator* dateGenerator,
                  HttpOutputCompressor* outputCompressor)
-    : HttpChannel(transport, executor, handler,
+    : HttpChannel(transport, executor, handlerFactory,
                   maxRequestUriLength, maxRequestBodyLength,
                   dateGenerator, outputCompressor),
       persistent_(false),
@@ -148,11 +148,12 @@ void Channel::h2cVerifyUpgrade(std::string&& settingsPayload) {
     return;
   }
 
-  handler_ = std::bind(&Channel::h2cUpgradeHandler, this,
-                       handler_, settings);
+  handlerFactory_ = [handlerFactory = handlerFactory_, settings, this](auto, auto) {
+    return std::bind(&Channel::h2cUpgradeHandler, this, handlerFactory, settings);
+  };
 }
 
-void Channel::h2cUpgradeHandler(const HttpHandler& nextHandler,
+void Channel::h2cUpgradeHandler(HttpHandlerFactory nextHandlerFactory,
                                 const Http2Settings& settings) {
   // TODO: fully consume body first
 
@@ -162,7 +163,7 @@ void Channel::h2cUpgradeHandler(const HttpHandler& nextHandler,
                            settings,
                            std::placeholders::_1,
                            executor_,
-                           nextHandler,
+                           nextHandlerFactory,
                            dateGenerator_,
                            outputCompressor_,
                            maxRequestBodyLength_,
@@ -172,7 +173,7 @@ void Channel::h2cUpgradeHandler(const HttpHandler& nextHandler,
 void Channel::h2cUpgrade(const Http2Settings& settings,
                          TcpEndPoint* endpoint,
                          Executor* executor,
-                         const HttpHandler& handler,
+                         HttpHandlerFactory handlerFactory,
                          HttpDateGenerator* dateGenerator,
                          HttpOutputCompressor* outputCompressor,
                          size_t maxRequestBodyLength,
@@ -188,7 +189,7 @@ void Channel::h2cUpgrade(const Http2Settings& settings,
   endpoint->setConnection(std::make_unique<http2::Connection>(
       endpoint,
       executor,
-      handler,
+      handlerFactory,
       dateGenerator,
       outputCompressor,
       maxRequestBodyLength,

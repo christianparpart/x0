@@ -28,7 +28,7 @@ class Channel : public HttpChannel {
  public:
   Channel(Connection* transport,
           Executor* executor,
-          const HttpHandler& handler,
+          const HttpHandlerFactory& handlerFactory,
           size_t maxRequestUriLength,
           size_t maxRequestBodyLength,
           HttpDateGenerator* dateGenerator,
@@ -67,13 +67,13 @@ class Channel : public HttpChannel {
 
   void h2cVerifyUpgrade(std::string&& settings);
 
-  void h2cUpgradeHandler(const HttpHandler& nextHandler,
+  void h2cUpgradeHandler(HttpHandlerFactory nextHandlerFactory,
                          const Http2Settings& settings);
 
   static void h2cUpgrade(const Http2Settings& settings,
                          TcpEndPoint* endpoint,
                          Executor* executor,
-                         const HttpHandler& handler,
+                         HttpHandlerFactory nextHandlerFactory,
                          HttpDateGenerator* dateGenerator,
                          HttpOutputCompressor* outputCompressor,
                          size_t maxRequestBodyLength,

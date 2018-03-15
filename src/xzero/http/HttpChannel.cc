@@ -52,7 +52,7 @@ std::ostream& operator<<(std::ostream& os, HttpChannelState state) {
 
 HttpChannel::HttpChannel(HttpTransport* transport,
                          Executor* executor,
-                         const HttpHandler& handler,
+                         const HttpHandlerFactory& handlerFactory,
                          size_t maxRequestUriLength,
                          size_t maxRequestBodyLength,
                          HttpDateGenerator* dateGenerator,
@@ -67,7 +67,8 @@ HttpChannel::HttpChannel(HttpTransport* transport,
       dateGenerator_(dateGenerator),
       outputFilters_(),
       outputCompressor_(outputCompressor),
-      handler_(handler) {
+      handlerFactory_(handlerFactory),
+      handler_() {
   //.
 }
 
@@ -77,6 +78,7 @@ HttpChannel::~HttpChannel() {
 }
 
 void HttpChannel::reset() {
+  TRACE("$0 reset", this);
   setState(HttpChannelState::READING);
   request_->recycle();
   response_->recycle();
@@ -318,7 +320,8 @@ void HttpChannel::handleRequest() {
   }
 
   try {
-    handler_(request(), response());
+    handler_ = handlerFactory_(request(), response());
+    handler_();
   } catch (std::exception& e) {
     // TODO: reportException(e);
     // TODO logError("HttpChannel", e, "unhandled exception");
@@ -402,6 +405,9 @@ void HttpChannel::onResponseEnd(std::function<void()> callback) {
 }
 
 void HttpChannel::responseEnd() {
+  // reset handler to potentially destruct local state
+  handler_ = std::function<void()>();
+
   auto cb = std::move(onResponseEnd_);
   onResponseEnd_.clear();
   cb();

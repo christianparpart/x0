@@ -50,8 +50,8 @@ class HttpConnectionFactory {
   size_t maxRequestBodyLength() const noexcept { return maxRequestBodyLength_; }
   void setMaxRequestBodyLength(size_t value) { maxRequestBodyLength_ = value; }
 
-  const HttpHandler& handler() const noexcept { return handler_; }
-  void setHandler(HttpHandler&& handler);
+  const HttpHandlerFactory& handlerFactory() const noexcept { return handlerFactory_; }
+  void setHandlerFactory(HttpHandlerFactory&& factory);
 
   /** Access to the output compression service. */
   HttpOutputCompressor* outputCompressor() const noexcept;
@@ -66,7 +66,7 @@ class HttpConnectionFactory {
   std::string protocolName_;
   size_t maxRequestUriLength_;
   size_t maxRequestBodyLength_;
-  HttpHandler handler_;
+  HttpHandlerFactory handlerFactory_;
   std::unique_ptr<HttpOutputCompressor> outputCompressor_;
   HttpDateGenerator dateGenerator_;
 };

@@ -27,17 +27,17 @@ namespace xzero {
 namespace http {
 namespace http1 {
 
-#define ERROR(msg...) logError("http.http1.Connection" msg)
+#define ERROR(msg...) logError("http.http1.Connection: " msg)
 
 #if !defined(NDEBUG)
-#define TRACE(msg...) logTrace("http.http1.Connection" msg)
+#define TRACE(msg...) logTrace("http.http1.Connection: " msg)
 #else
 #define TRACE(msg...) do {} while (0)
 #endif
 
 Connection::Connection(TcpEndPoint* endpoint,
                        Executor* executor,
-                       const HttpHandler& handler,
+                       HttpHandlerFactory handlerFactory,
                        HttpDateGenerator* dateGenerator,
                        HttpOutputCompressor* outputCompressor,
                        size_t maxRequestUriLength,
@@ -48,7 +48,7 @@ Connection::Connection(TcpEndPoint* endpoint,
                        bool corkStream)
     : TcpConnection(endpoint, executor),
       channel_(std::make_unique<Channel>(
-          this, executor, handler,
+          this, executor, handlerFactory,
           maxRequestUriLength, maxRequestBodyLength,
           dateGenerator, outputCompressor)),
       parser_(Parser::REQUEST, channel_.get()),

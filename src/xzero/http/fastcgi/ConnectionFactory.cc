@@ -39,7 +39,7 @@ std::unique_ptr<TcpConnection> ConnectionFactory::create(TcpConnector* connector
                                                              TcpEndPoint* endpoint) {
   return std::make_unique<Connection>(endpoint,
                                       connector->executor(),
-                                      handler(),
+                                      handlerFactory(),
                                       dateGenerator(),
                                       outputCompressor(),
                                       maxRequestUriLength(),

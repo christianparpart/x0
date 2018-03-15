@@ -414,7 +414,7 @@ void XzeroDaemon::postConfig() {
       config_->tcpCork,
       config_->tcpNoDelay);
 
-  http1_->setHandler(std::bind(&XzeroDaemon::handleRequest, this,
+  http1_->setHandlerFactory(std::bind(&XzeroDaemon::createHandler, this,
         std::placeholders::_1, std::placeholders::_2));
 
   // mimetypes
@@ -483,21 +483,13 @@ std::unique_ptr<EventLoop> XzeroDaemon::createEventLoop() {
         nullptr /* postInvoke */);
 }
 
-void XzeroDaemon::handleRequest(HttpRequest* request, HttpResponse* response) {
-  // XXX the XzeroContext instance is getting deleted upon response completion
-  XzeroContext* cx = new XzeroContext(std::make_unique<flow::Runner>(main_),
-                                      request,
-                                      response,
-                                      &config_->errorPages,
-                                      config_->maxInternalRedirectCount);
-
-  if (request->expect100Continue()) {
-    response->send100Continue([cx, request](bool succeed) {
-      request->consumeContent(std::bind(&flow::Runner::run, cx->runner()));
-    });
-  } else {
-    request->consumeContent(std::bind(&flow::Runner::run, cx->runner()));
-  }
+std::function<void()> XzeroDaemon::createHandler(HttpRequest* request,
+                                                 HttpResponse* response) {
+  return XzeroContext{main_,
+                      request,
+                      response,
+                      &config_->errorPages,
+                      config_->maxInternalRedirectCount};
 }
 
 void XzeroDaemon::validateConfig(flow::UnitSym* unit) {

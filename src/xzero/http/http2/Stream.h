@@ -37,7 +37,7 @@ class Stream : public HttpTransport {
          unsigned weight,
          Connection* connection,
          Executor* executor,
-         const HttpHandler& handler,
+         const HttpHandlerFactory& handlerFactory,
          size_t maxRequestUriLength,
          size_t maxRequestBodyLength,
          HttpDateGenerator* dateGenerator,

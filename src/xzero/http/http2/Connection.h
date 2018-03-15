@@ -43,7 +43,7 @@ class Connection
 
   Connection(TcpEndPoint* endpoint,
              Executor* executor,
-             const HttpHandler& handler,
+             const HttpHandlerFactory& handlerFactory,
              HttpDateGenerator* dateGenerator,
              HttpOutputCompressor* outputCompressor,
              size_t maxRequestBodyLength,
@@ -51,7 +51,7 @@ class Connection
 
   Connection(TcpEndPoint* endpoint,
              Executor* executor,
-             const HttpHandler& handler,
+             const HttpHandlerFactory& handlerFactory,
              HttpDateGenerator* dateGenerator,
              HttpOutputCompressor* outputCompressor,
              size_t maxRequestBodyLength,
@@ -130,7 +130,7 @@ class Connection
   size_t maxRequestBodyLength_;
   size_t maxRequestCount_;
 
-  HttpHandler handler_;
+  HttpHandlerFactory handlerFactory_;
   HttpDateGenerator* dateGenerator_;
   HttpOutputCompressor* outputCompressor_;
 

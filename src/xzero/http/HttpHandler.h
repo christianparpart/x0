@@ -8,14 +8,23 @@
 #pragma once
 
 #include <functional>
+#include <memory>
 
-namespace xzero {
-namespace http {
+namespace xzero::http {
 
 class HttpRequest;
 class HttpResponse;
 
 typedef std::function<void(HttpRequest*, HttpResponse*)> HttpHandler;
 
-}  // namespace http
-}  // namespace xzero
+/**
+ * Creates a new HTTP request handler to serve the given @p request.
+ *
+ * @param request  request object to serve
+ * @param response resonse object used for the reply
+ *
+ * @returns An HttpHandler used to serve the given @p request.
+ */
+typedef std::function<std::function<void()>(HttpRequest*, HttpResponse*)> HttpHandlerFactory;
+
+}  // namespace xzero::http

@@ -40,7 +40,7 @@ class Connection : public TcpConnection {
  public:
   Connection(TcpEndPoint* endpoint,
              Executor* executor,
-             const HttpHandler& handler,
+             const HttpHandlerFactory& handlerFactory,
              HttpDateGenerator* dateGenerator,
              HttpOutputCompressor* outputCompressor,
              size_t maxRequestUriLength,
@@ -70,7 +70,7 @@ class Connection : public TcpConnection {
   void onAbortRequest(int request);
 
  private:
-  HttpHandler handler_;
+  HttpHandlerFactory handlerFactory_;
   size_t maxRequestUriLength_;
   size_t maxRequestBodyLength_;
   HttpDateGenerator* dateGenerator_;

@@ -15,6 +15,7 @@
 #include <xzero/net/IPAddress.h>
 #include <xzero/logging.h>
 #include <xzero/http/HttpStatus.h>
+#include <xzero/http/HttpHandler.h>
 #include <xzero-flow/vm/Runner.h>
 #include <string>
 #include <list>
@@ -43,22 +44,32 @@ class XzeroContext {
   CUSTOMDATA_API_INLINE
  public:
   XzeroContext(
-      std::unique_ptr<xzero::flow::Runner>&& runner,
+      /*TODO: const */ xzero::flow::Handler* requestHandler,
       xzero::http::HttpRequest* request,
       xzero::http::HttpResponse* response,
       std::unordered_map<xzero::http::HttpStatus, std::string>* globalErrorPages,
       size_t maxInternalRedirectCount);
+
+  XzeroContext(XzeroContext&&) = default;
+  XzeroContext& operator=(XzeroContext&&) = default;
+
+  XzeroContext(const XzeroContext&);
+  XzeroContext& operator=(const XzeroContext&) = delete;
+
   ~XzeroContext();
+
+  void operator()();
+  void handleRequest();
 
   xzero::http::HttpRequest* masterRequest() const noexcept { return requests_.back(); }
   xzero::http::HttpRequest* request() const noexcept { return requests_.front(); }
   xzero::http::HttpResponse* response() const noexcept { return response_; }
 
-  size_t internalRedirectCount() const { return requests_.size() - 1; }
+  size_t internalRedirectCount() const noexcept { return requests_.size() - 1; }
 
-  xzero::UnixTime createdAt() const { return createdAt_; }
-  xzero::UnixTime now() const;
-  xzero::Duration age() const;
+  xzero::UnixTime createdAt() const noexcept { return createdAt_; }
+  xzero::UnixTime now() const noexcept;
+  xzero::Duration age() const noexcept;
 
   const std::string& documentRoot() const noexcept { return documentRoot_; }
   void setDocumentRoot(const std::string& path) { documentRoot_ = path; }
@@ -77,8 +88,8 @@ class XzeroContext {
   const xzero::IPAddress& localIP() const;
   int localPort() const;
 
-  size_t bytesReceived() const;
-  size_t bytesTransmitted() const;
+  size_t bytesReceived() const noexcept;
+  size_t bytesTransmitted() const noexcept;
 
   void setErrorPage(xzero::http::HttpStatus status, const std::string& uri);
   bool getErrorPage(xzero::http::HttpStatus status, std::string* uri) const;
@@ -146,16 +157,17 @@ class XzeroContext {
   // }}}
 
  private:
+  xzero::flow::Handler* requestHandler_; //!< HTTP request handler as flow program
   std::unique_ptr<xzero::flow::Runner> runner_; //!< Flow VM execution unit.
-  const xzero::UnixTime createdAt_; //!< When the request started
+  xzero::UnixTime createdAt_; //!< When the request started
   std::list<xzero::http::HttpRequest*> requests_; //!< HTTP request
   xzero::http::HttpResponse* response_; //!< HTTP response
   std::string documentRoot_; //!< associated document root
   std::string pathInfo_; //!< info-part of the request-path
   std::shared_ptr<xzero::File> file_; //!< local file associated with this request
   std::unordered_map<xzero::http::HttpStatus, std::string> errorPages_; //!< custom error page request paths
-  const std::unordered_map<xzero::http::HttpStatus, std::string>* globalErrorPages_;
-  const size_t maxInternalRedirectCount_;
+  std::unordered_map<xzero::http::HttpStatus, std::string>* globalErrorPages_;
+  size_t maxInternalRedirectCount_;
 };
 
 } // namespace x0d

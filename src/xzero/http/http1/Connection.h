@@ -35,7 +35,7 @@ class Connection
  public:
   Connection(TcpEndPoint* endpoint,
              Executor* executor,
-             const HttpHandler& handler,
+             HttpHandlerFactory handlerFactory,
              HttpDateGenerator* dateGenerator,
              HttpOutputCompressor* outputCompressor,
              size_t maxRequestUriLength,

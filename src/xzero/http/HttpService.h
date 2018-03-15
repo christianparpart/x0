@@ -96,11 +96,14 @@ class HttpService {
             HugeBuffer&& requestBody,
             HttpListener* responseListener);
 
+  const std::vector<Handler*>& handlers() const noexcept { return handlers_; }
+
  private:
   static Protocol getDefaultProtocol();
   void attachProtocol(TcpConnector* connector);
   void attachHttp1(TcpConnector* connector);
   void attachFCGI(TcpConnector* connector);
+  std::function<void()> createHandler(HttpRequest* request, HttpResponse* response);
   void handleRequest(HttpRequest* request, HttpResponse* response);
   void onAllDataRead(HttpRequest* request, HttpResponse* response);
 

@@ -23,18 +23,24 @@ namespace xzero {
 namespace http {
 namespace mock {
 
-Transport::Transport(Executor* executor, const HttpHandler& handler)
-    : Transport(executor, handler, 32, 64, nullptr, nullptr) {
+Transport::Transport(Executor* executor, HttpHandlerFactory handlerFactory)
+    : Transport(executor, handlerFactory, 32, 64, nullptr, nullptr) {
+}
+
+Transport::Transport(Executor* executor, HttpHandler handler)
+    : Transport(executor,
+                [handler](auto a, auto b) { return std::bind(handler, a, b); },
+                32, 64, nullptr, nullptr) {
 }
 
 Transport::Transport(Executor* executor,
-                             const HttpHandler& handler,
-                             size_t maxRequestUriLength,
-                             size_t maxRequestBodyLength,
-                             HttpDateGenerator* dateGenerator,
-                             HttpOutputCompressor* outputCompressor)
+                     const HttpHandlerFactory& handlerFactory,
+                     size_t maxRequestUriLength,
+                     size_t maxRequestBodyLength,
+                     HttpDateGenerator* dateGenerator,
+                     HttpOutputCompressor* outputCompressor)
     : executor_(executor),
-      handler_(handler),
+      handlerFactory_(handlerFactory),
       maxRequestUriLength_(maxRequestUriLength),
       maxRequestBodyLength_(maxRequestBodyLength),
       dateGenerator_(dateGenerator),
@@ -59,7 +65,7 @@ void Transport::run(HttpVersion version, const std::string& method,
   responseInfo_.reset();
   responseBody_.clear();
 
-  channel_ = std::make_unique<HttpChannel>(this, executor_, handler_,
+  channel_ = std::make_unique<HttpChannel>(this, executor_, handlerFactory_,
                                            maxRequestUriLength_,
                                            maxRequestBodyLength_,
                                            dateGenerator_,

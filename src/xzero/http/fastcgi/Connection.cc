@@ -175,7 +175,7 @@ class HttpFastCgiChannel : public HttpChannel { // {{{
  public:
   HttpFastCgiChannel(HttpTransport* transport,
                      Executor* executor,
-                     const HttpHandler& handler,
+                     const HttpHandlerFactory& handlerFactory,
                      size_t maxRequestUriLength,
                      size_t maxRequestBodyLength,
                      HttpDateGenerator* dateGenerator,
@@ -186,14 +186,14 @@ class HttpFastCgiChannel : public HttpChannel { // {{{
 HttpFastCgiChannel::HttpFastCgiChannel(
     HttpTransport* transport,
     Executor* executor,
-    const HttpHandler& handler,
+    const HttpHandlerFactory& handlerFactory,
     size_t maxRequestUriLength,
     size_t maxRequestBodyLength,
     HttpDateGenerator* dateGenerator,
     HttpOutputCompressor* outputCompressor)
     : HttpChannel(transport,
                   executor,
-                  handler,
+                  handlerFactory,
                   maxRequestUriLength,
                   maxRequestBodyLength,
                   dateGenerator,
@@ -209,14 +209,14 @@ HttpFastCgiChannel::~HttpFastCgiChannel() {
 
 Connection::Connection(TcpEndPoint* endpoint,
                        Executor* executor,
-                       const HttpHandler& handler,
+                       const HttpHandlerFactory& handlerFactory,
                        HttpDateGenerator* dateGenerator,
                        HttpOutputCompressor* outputCompressor,
                        size_t maxRequestUriLength,
                        size_t maxRequestBodyLength,
                        Duration maxKeepAlive)
     : TcpConnection(endpoint, executor),
-      handler_(handler),
+      handlerFactory_(handlerFactory),
       maxRequestUriLength_(maxRequestUriLength),
       maxRequestBodyLength_(maxRequestBodyLength),
       dateGenerator_(dateGenerator),
@@ -348,7 +348,7 @@ HttpChannel* Connection::createChannel(int request) {
     std::unique_ptr<HttpFastCgiChannel> channel(new HttpFastCgiChannel(
        transport,
        executor(),
-       handler_,
+       handlerFactory_,
        maxRequestUriLength_,
        maxRequestBodyLength_,
        dateGenerator_,

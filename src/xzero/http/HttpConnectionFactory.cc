@@ -27,8 +27,8 @@ HttpConnectionFactory::~HttpConnectionFactory() {
   //.
 }
 
-void HttpConnectionFactory::setHandler(HttpHandler&& handler) {
-  handler_ = std::move(handler);
+void HttpConnectionFactory::setHandlerFactory(HttpHandlerFactory&& factory) {
+  handlerFactory_ = std::move(factory);
 }
 
 }  // namespace http

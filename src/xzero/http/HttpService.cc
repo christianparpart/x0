@@ -107,9 +107,9 @@ void HttpService::attachHttp1(TcpConnector* connector) {
       corkStream,
       tcpNoDelay);
 
-  http1->setHandler(std::bind(&HttpService::handleRequest, this,
-                              std::placeholders::_1,
-                              std::placeholders::_2));
+  http1->setHandlerFactory(std::bind(&HttpService::createHandler, this,
+                                     std::placeholders::_1,
+                                     std::placeholders::_2));
 
   connector->addConnectionFactory(
       http1->protocolName(),
@@ -128,8 +128,9 @@ void HttpService::attachFCGI(TcpConnector* connector) {
   auto fcgi = std::make_unique<http::fastcgi::ConnectionFactory>(
       maxRequestUriLength, maxRequestBodyLength, maxKeepAlive);
 
-  fcgi->setHandler(std::bind(&HttpService::handleRequest, this,
-                   std::placeholders::_1, std::placeholders::_2));
+  fcgi->setHandlerFactory(std::bind(&HttpService::createHandler, this,
+                                    std::placeholders::_1,
+                                    std::placeholders::_2));
 
   connector->addConnectionFactory(
     fcgi->protocolName(),
@@ -158,6 +159,38 @@ void HttpService::start() {
 void HttpService::stop() {
   if (inetConnector_)
     inetConnector_->stop();
+}
+
+class HttpServiceHandler {
+ public:
+  HttpServiceHandler(HttpService& svc, HttpRequest* in, HttpResponse* out)
+    : service(svc), request(in), response(out)
+  {}
+
+  void handleRequest() {
+    if (request->expect100Continue())
+      response->send100Continue(nullptr);
+
+    request->consumeContent(std::bind(&HttpServiceHandler::onAllDataRead, this));
+  }
+
+  void onAllDataRead() {
+    for (auto& handler: service.handlers())
+      if (handler->handleRequest(request, response))
+        return;
+
+    response->setStatus(HttpStatus::NotFound);
+    response->completed();
+  }
+
+  const HttpService& service;
+  HttpRequest* request;
+  HttpResponse* response;
+};
+
+std::function<void()> HttpService::createHandler(HttpRequest* request,
+                                                 HttpResponse* response) {
+  return std::bind(&HttpService::handleRequest, this, request, response);
 }
 
 void HttpService::handleRequest(HttpRequest* request, HttpResponse* response) {

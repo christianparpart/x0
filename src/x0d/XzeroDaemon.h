@@ -139,6 +139,7 @@ class XzeroDaemon : public xzero::flow::Runtime {
   void stopThreads();
   void startThreads();
 
+  std::function<void()> createHandler(xzero::http::HttpRequest* request, xzero::http::HttpResponse* response);
   void handleRequest(xzero::http::HttpRequest* request, xzero::http::HttpResponse* response);
 
  public: // signals raised on request in order
@@ -164,7 +165,7 @@ class XzeroDaemon : public xzero::flow::Runtime {
   xzero::LocalFileRepository& vfs() noexcept { return vfs_; }
   xzero::http::HttpFileHandler& fileHandler() noexcept { return fileHandler_; }
 
-  Config& config() const { return *config_; }
+  Config& config() const noexcept { return *config_; }
 
   template<typename T>
   T* loadModule();
@@ -196,7 +197,7 @@ class XzeroDaemon : public xzero::flow::Runtime {
   xzero::MimeTypes mimetypes_;
   xzero::LocalFileRepository vfs_;
 
-  size_t lastWorker_;                          //!< offset to the last elected worker
+  size_t lastWorker_;                         //!< offset to the last elected worker
   xzero::ThreadedExecutor threadedExecutor_;  //!< non-main worker executor
   std::vector<std::unique_ptr<xzero::EventLoop>> eventLoops_; //!< one for each thread
   std::list<std::unique_ptr<XzeroModule>> modules_; //!< list of loaded modules
@@ -259,7 +260,7 @@ inline xzero::flow::NativeCallback& XzeroDaemon::mainHandler(
 
 template<typename T>
 inline T* XzeroDaemon::loadModule() {
-  modules_.emplace_back(new T(this));
+  modules_.emplace_back(std::make_unique<T>(this));
   return static_cast<T*>(modules_.back().get());
 }
 

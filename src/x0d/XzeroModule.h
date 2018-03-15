@@ -189,9 +189,9 @@ inline xzero::flow::NativeCallback& XzeroModule::mainHandler(
   X0D_EXPORT_MODULE_CLASS(moduleName##_module)
 
 #define X0D_EXPORT_MODULE_CLASS(className)                                     \
-  extern "C" BASE_EXPORT x0d::XzeroModule* x0module_init(                      \
+  extern "C" XZERO_EXPORT std::unique_ptr<x0d::XzeroModule> x0module_init(     \
       x0d::XzeroDaemon* d, const std::string& name) {                          \
-    return new className(d, name);                                             \
+    return std::make_unique<className>(d, name);                               \
   }
 
 } // namespace x0d

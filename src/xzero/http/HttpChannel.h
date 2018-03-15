@@ -52,7 +52,7 @@ class HttpChannel : public HttpListener {
  public:
   HttpChannel(HttpTransport* transport,
               Executor* executor,
-              const HttpHandler& handler,
+              const HttpHandlerFactory& handlerFactory,
               size_t maxRequestUriLength,
               size_t maxRequestBodyLength,
               HttpDateGenerator* dateGenerator,
@@ -194,7 +194,8 @@ class HttpChannel : public HttpListener {
   HttpDateGenerator* dateGenerator_;
   std::list<std::shared_ptr<Filter>> outputFilters_;
   HttpOutputCompressor* outputCompressor_;
-  HttpHandler handler_;
+  HttpHandlerFactory handlerFactory_;
+  std::function<void()> handler_;
 
   Callback<void()> onPostProcess_;
   Callback<void()> onResponseEnd_;

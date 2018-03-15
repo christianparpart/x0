@@ -45,7 +45,8 @@ class Transport : public HttpTransport {
    * @param executor The executor service used for completion handlers.
    * @param handler The handler to run for incoming HTTP request messages.
    */
-  Transport(Executor* executor, const HttpHandler& handler);
+  Transport(Executor* executor, HttpHandlerFactory handlerFactory);
+  Transport(Executor* executor, HttpHandler handlerFactory);
 
   /**
    * Initializes the mock transport object.
@@ -58,7 +59,7 @@ class Transport : public HttpTransport {
    * @param outputCompressor HTTP response body compression service.
    */
   Transport(Executor* executor,
-                const HttpHandler& handler,
+                const HttpHandlerFactory& handlerFactory,
                 size_t maxRequestUriLength,
                 size_t maxRequestBodyLength,
                 HttpDateGenerator* dateGenerator,
@@ -113,7 +114,7 @@ class Transport : public HttpTransport {
 
  private:
   Executor* executor_;
-  HttpHandler handler_;
+  HttpHandlerFactory handlerFactory_;
   size_t maxRequestUriLength_;
   size_t maxRequestBodyLength_;
   HttpDateGenerator* dateGenerator_;

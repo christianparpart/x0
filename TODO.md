@@ -10,12 +10,6 @@ All the things I've found out on the way, that need retouching
 - [ ] flow: eliminate unused variables (with side-effect-free initialization)
 - [ ] flow: add sparce simple constant propagation SSCP
 - [ ] http: rework HttpClient API (so it's becoming dead-easy to be used within proxy code)
-- [ ] net: clarify object ownership along the TCP/HTTP API
-
-## TcpConnector TcpEndPoint, Connection
-
-- TcpConnector owns TcpEndPoint (XXX should own, currently a RefPtr)
-- TcpEndPoint owns Connection
 
 ## Intermediate 0
 

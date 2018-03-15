@@ -20,12 +20,13 @@ using namespace xzero::http;
 namespace x0d {
 
 XzeroContext::XzeroContext(
-    std::unique_ptr<xzero::flow::Runner>&& runner,
+    xzero::flow::Handler* requestHandler,
     xzero::http::HttpRequest* request,
     xzero::http::HttpResponse* response,
     std::unordered_map<xzero::http::HttpStatus, std::string>* globalErrorPages,
     size_t maxInternalRedirectCount)
-    : runner_(std::move(runner)),
+    : requestHandler_(requestHandler),
+      runner_(),
       createdAt_(now()),
       requests_({request}),
       response_(response),
@@ -35,27 +36,54 @@ XzeroContext::XzeroContext(
       errorPages_(),
       globalErrorPages_(globalErrorPages),
       maxInternalRedirectCount_(maxInternalRedirectCount) {
-  runner_->setUserData(this);
-  response_->onResponseEnd([this] {
-    // explicitely wipe customdata before we're actually deleting the context
-    clearCustomData();
-    delete this;
-  });
+}
+
+XzeroContext::XzeroContext(const XzeroContext& v)
+    : requestHandler_(v.requestHandler_),
+      runner_(),
+      createdAt_(v.createdAt_),
+      requests_({v.masterRequest()}),
+      response_(v.response_),
+      documentRoot_(v.documentRoot_),
+      pathInfo_(v.pathInfo_),
+      file_(v.file_),
+      errorPages_(v.errorPages_),
+      globalErrorPages_(v.globalErrorPages_),
+      maxInternalRedirectCount_(v.maxInternalRedirectCount_) {
 }
 
 XzeroContext::~XzeroContext() {
   // ensure all internal redirect requests are freed
   while (request() != masterRequest()) {
-    delete requests_.front();
+    delete requests_.front(); // TODO: eliminate the need to explicitly *delete*
     requests_.pop_front();
+  }
+
+  clearCustomData();
+}
+
+void XzeroContext::operator()() {
+  handleRequest();
+}
+
+void XzeroContext::handleRequest() {
+  runner_ = std::make_unique<flow::Runner>(requestHandler_);
+  runner_->setUserData(this);
+
+  if (request()->expect100Continue()) {
+    response()->send100Continue([this](bool succeed) {
+      request()->consumeContent(std::bind(&flow::Runner::run, runner()));
+    });
+  } else {
+    request()->consumeContent(std::bind(&flow::Runner::run, runner()));
   }
 }
 
-xzero::UnixTime XzeroContext::now() const {
+xzero::UnixTime XzeroContext::now() const noexcept {
   return WallClock::now();
 }
 
-xzero::Duration XzeroContext::age() const {
+xzero::Duration XzeroContext::age() const noexcept {
   return now() - createdAt();
 }
 
@@ -87,11 +115,11 @@ int XzeroContext::localPort() const {
   RAISE(RuntimeError, "Non-IP transport channels not supported");
 }
 
-size_t XzeroContext::bytesReceived() const {
+size_t XzeroContext::bytesReceived() const noexcept {
   return requests_.back()->bytesReceived();
 }
 
-size_t XzeroContext::bytesTransmitted() const {
+size_t XzeroContext::bytesTransmitted() const noexcept {
   return response_->bytesTransmitted();
 }
 
