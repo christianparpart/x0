@@ -275,7 +275,7 @@ bool ProxyModule::proxy_cluster_auto(XzeroContext* cx, Params& args) {
   HttpClusterRequest* cr = cx->setCustomData<HttpClusterRequest>(this,
       *cx->request(),
       //cx->request()->getContent(),
-      std::unique_ptr<HttpListener>(new HttpResponseBuilder(cx->response())),
+      std::make_unique<HttpResponseBuilder>(cx->response()),
       cx->response()->executor(),
       daemon().config().responseBodyBufferSize,
       pseudonym);
@@ -310,7 +310,7 @@ bool ProxyModule::proxy_cluster(XzeroContext* cx, Params& args) {
   HttpClusterRequest* cr = cx->setCustomData<HttpClusterRequest>(this,
       *cx->request(),
       // cx->request()->getContentBuffer(),
-      std::unique_ptr<HttpListener>(new HttpResponseBuilder(cx->response())),
+      std::make_unique<HttpResponseBuilder>(cx->response()),
       cx->response()->executor(),
       daemon().config().responseBodyBufferSize,
       pseudonym_);
@@ -426,7 +426,8 @@ HttpCluster* ProxyModule::createCluster(const std::string& name,
     return clusterMap_[name].get();
 
   Executor* executor = daemon().selectClientExecutor();
-  std::shared_ptr<HttpCluster> cluster(new HttpCluster(name, path, executor));
+  std::shared_ptr<HttpCluster> cluster =
+      std::make_shared<HttpCluster>(name, path, executor);
   clusterMap_[name] = cluster;
 
   if (FileUtil::exists(path)) {

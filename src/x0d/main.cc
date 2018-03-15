@@ -118,7 +118,7 @@ int main(int argc, const char* argv[]) {
     std::shared_ptr<File> file = x0d.vfs().getFile(filename);
     File::OpenFlags openFlags = File::Write | File::Create | File::Append;
     FileDescriptor out = file->createPosixChannel(openFlags);
-    fileLogTarget.reset(new FileLogTarget(std::move(out)));
+    fileLogTarget = std::make_unique<FileLogTarget>(std::move(out));
     Logger::get()->addTarget(fileLogTarget.get());
   } else if (logTarget == "syslog") {
     ; // TODO Logger::get()->addTarget(SyslogTarget::get());

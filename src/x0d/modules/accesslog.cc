@@ -382,10 +382,8 @@ LogFile* AccesslogModule::getLogFile(const FlowString& filename) {
 
   std::string path = filename;
   std::shared_ptr<File> file = daemon().vfs().getFile(path);
-  LogFile* logFile = new LogFile(file);
 
-  logfiles_[path].reset(logFile);
-  return logFile;
+  return (logfiles_[path] = std::make_unique<LogFile>(file)).get();
 }
 
 } // namespace x0d

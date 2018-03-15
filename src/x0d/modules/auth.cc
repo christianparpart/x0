@@ -207,12 +207,12 @@ struct AuthBasic : public CustomData {  // {{{
   ~AuthBasic() {}
 
   void setupUserfile(const std::string& userfile) {
-    backend.reset(new AuthUserFile(userfile));
+    backend = std::make_unique<AuthUserFile>(userfile);
   }
 
 #if defined(HAVE_SECURITY_PAM_APPL_H)
   void setupPAM(const std::string& service) {
-    backend.reset(new AuthPAM(service));
+    backend = std::make_unique<AuthPAM>(service);
   }
 #endif
 
