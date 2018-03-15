@@ -41,7 +41,7 @@
 #endif
 
 #if !defined(NDEBUG)
-#define TRACE(msg...) logTrace("TcpConnector" msg)
+#define TRACE(msg...) logTrace("TcpConnector: " msg)
 #else
 #define TRACE(msg...) do {} while (0)
 #endif

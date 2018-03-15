@@ -26,8 +26,8 @@
 namespace xzero {
 
 #if !defined(NDEBUG)
-#define TRACE(msg...) logTrace("TcpEndPoint" msg)
-#define DEBUG(msg...) logDebug("TcpEndPoint" msg)
+#define TRACE(msg...) logTrace("TcpEndPoint: " msg)
+#define DEBUG(msg...) logDebug("TcpEndPoint: " msg)
 #else
 #define TRACE(msg...) do {} while (0)
 #define DEBUG(msg...) do {} while (0)
