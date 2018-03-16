@@ -3,7 +3,6 @@
 
 All the things I've found out on the way, that need retouching
 
-- [ ] fix LinuxScheduler (see unit tests)
 - [ ] flow: NativeCallback: replace operator new/delete with `std::variant` + `bool hasDefault_`
 - [ ] flow: nested scopes with local variables must be initialized in this block
       currently also initialized in entry block;
