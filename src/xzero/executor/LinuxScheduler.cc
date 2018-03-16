@@ -80,9 +80,10 @@ LinuxScheduler::~LinuxScheduler() {
 
 void LinuxScheduler::updateTime() {
   now_ = MonotonicClock::now();
+  TRACE("updateTime: now $0", now_);
 }
 
-MonotonicTime LinuxScheduler::now() const {
+MonotonicTime LinuxScheduler::now() const noexcept {
   return now_;
 }
 
@@ -100,8 +101,8 @@ std::string LinuxScheduler::toString() const {
 }
 
 Executor::HandleRef LinuxScheduler::executeAfter(Duration delay, Task task) {
-  MonotonicTime time = now() + delay;
-  TRACE("executeAfter: $0", time);
+  MonotonicTime time = MonotonicClock::now() + delay;
+  TRACE("executeAfter: delay=$0, abs=$1", delay, time);
   return insertIntoTimersList(time, task);
 }
 
@@ -271,17 +272,17 @@ Executor::HandleRef LinuxScheduler::findWatcher(int fd) {
   }
 }
 
-Duration LinuxScheduler::nextTimeout() const {
+MonotonicTime LinuxScheduler::nextTimeout() const noexcept {
   if (!tasks_.empty())
-    return Duration::Zero;
+    return now();
 
-  const Duration a = !timers_.empty()
-                 ? timers_.front()->when - now()
-                 : 60_seconds;
+  const MonotonicTime a = !timers_.empty()
+                        ? timers_.front()->when
+                        : now() + 60_seconds;
 
-  const Duration b = firstWatcher_ != nullptr
-                 ? firstWatcher_->timeout - now()
-                 : 61_seconds;
+  const MonotonicTime b = firstWatcher_ != nullptr
+                        ? firstWatcher_->timeout
+                        : now() + 61_seconds;
 
   return std::min(a, b);
 }
@@ -307,30 +308,9 @@ void LinuxScheduler::runLoopOnce() {
 }
 
 void LinuxScheduler::loop(bool repeat) {
-  updateTime();
   while (referenceCount() > 0 && breakLoopCounter_.load() == 0) {
-    int rv;
-
-    const uint64_t timeoutMillis = nextTimeout().milliseconds();
-
-    TRACE("loop: referenceCount=$0, breakLoopCounter=$1, timeout=$2ms",
-          referenceCount(), breakLoopCounter_.load(),
-          timeoutMillis);
-
-    do rv = epoll_wait(epollfd_, &activeEvents_[0], activeEvents_.size(),
-                       timeoutMillis);
-    while (rv < 0 && errno == EINTR);
-
-    TRACE("runLoopOnce: epoll_wait(fd=$0, count=$1, timeout=$2) = $3 $4",
-          epollfd_.get(), activeEvents_.size(), timeoutMillis, rv,
-          rv < 0 ? strerror(rv) : "");
-
-    if (rv < 0)
-      logFatal("epoll_wait returned unexpected error code: $0", strerror(errno));
-
-    updateTime();
-
-    std::list<Task> activeTasks = collectEvents(static_cast<size_t>(rv));
+    size_t numEvents = waitForEvents();
+    std::list<Task> activeTasks = collectEvents(numEvents);
     safeCall(onPreInvokePending_);
     safeCallEach(activeTasks);
     safeCall(onPostInvokePending_);
@@ -339,6 +319,44 @@ void LinuxScheduler::loop(bool repeat) {
       break;
     }
   }
+}
+
+size_t LinuxScheduler::waitForEvents() noexcept {
+  updateTime();
+
+  const MonotonicTime timeout = nextTimeout();
+
+  TRACE("waitForEvents: referenceCount=$0, breakLoopCounter=$1, timeout=$2",
+        referenceCount(), breakLoopCounter_.load(),
+        timeout);
+
+  // XXX on Windows Subsystem for Linux (WSL), I found out, that
+  // epoll_wait() (even with no watches active) is returning *before*
+  // the timeout has been passed. Hence, I have to loop here
+  // until either an event has been triggered or the timeout has
+  // *truely* been reached.
+  // In the tests, this loop some times needs 12 iterations. and around
+  // half of the many tests needed re-iterating in order to hit the timeout.
+
+  int rv = 0;
+  do {
+    const Duration maxWait = timeout - now();
+    do rv = epoll_wait(epollfd_, &activeEvents_[0], activeEvents_.size(),
+                       maxWait.milliseconds());
+    while (rv < 0 && errno == EINTR);
+
+    TRACE("runLoopOnce: epoll_wait(fd=$0, count=$1, timeout=$2) = $3 $4",
+          epollfd_.get(), activeEvents_.size(), maxWait, rv,
+          rv < 0 ? strerror(rv) : "");
+
+    if (rv < 0)
+      logFatal("epoll_wait returned unexpected error code: $0", strerror(errno));
+
+    updateTime();
+  } while (rv == 0 && timeout >= now());
+
+  TRACE("waitForEvents: got $0 events", rv);
+  return static_cast<size_t>(rv);
 }
 
 std::list<EventLoop::Task> LinuxScheduler::collectEvents(size_t count) {
@@ -447,6 +465,7 @@ void LinuxScheduler::collectTimeouts(std::list<Task>* result) {
   };
 
   while (Watcher* w = nextTimedout()) {
+    TRACE("collectTimeouts: i/o fd=$0, mode=$1", w->fd, w->mode);
     switch (w->mode) {
       case Mode::READABLE: readerCount_--; break;
       case Mode::WRITABLE: writerCount_--; break;
@@ -462,13 +481,16 @@ void LinuxScheduler::collectTimeouts(std::list<Task>* result) {
         : nullptr;
   };
 
+  unsigned t = 0;
   while (Timer* job = nextTimer()) {
-    TRACE("collectTimeouts: job $0", job->when);
+    TRACE("collectTimeouts: collecting job at time $0", job->when);
+    t++;
     job->ref();
     result->push_back([job] { job->fire(job->action); job->unref(); });
     timers_.pop_front();
     unref();
   }
+  TRACE("collectTimeouts: $0 timeouts collected", t);
 }
 
 void LinuxScheduler::Watcher::clear() {

@@ -38,7 +38,7 @@ class LinuxScheduler : public EventLoop {
   LinuxScheduler();
   ~LinuxScheduler();
 
-  MonotonicTime now() const;
+  MonotonicTime now() const noexcept;
   void updateTime();
 
  public:
@@ -93,6 +93,7 @@ class LinuxScheduler : public EventLoop {
  private:
   inline static int makeEvent(Mode mode);
   void loop(bool repeat);
+  size_t waitForEvents() noexcept;
   std::list<Task> collectEvents(size_t count);
 
   /**
@@ -149,7 +150,7 @@ class LinuxScheduler : public EventLoop {
    *
    * @note requires the caller to lock the object mutex.
    */
-  Duration nextTimeout() const;
+  MonotonicTime nextTimeout() const noexcept;
 
   void collectActiveHandles(size_t count, std::list<Task>* result);
 
