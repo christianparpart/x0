@@ -483,39 +483,20 @@ void PosixScheduler::runLoopOnce() {
   FD_ZERO(&output);
   FD_ZERO(&error);
 
-  int wmark = 0;
   timeval tv;
   int incount = 0;
   int outcount = 0;
   int errcount = 0;
+  int wmark = 0;
 
   FD_SET(wakeupPipe_[PIPE_READ_END], &input);
   wmark = std::max(wmark, wakeupPipe_[PIPE_READ_END]);
 
-  {
-    std::lock_guard<std::mutex> lk(lock_);
+  collectWatches(&input, &incount, &output, &outcount, &wmark);
 
-    for (const Watcher* w = firstWatcher_; w; w = w->next) {
-      if (w->fd < 0)
-        continue;
-
-      switch (w->mode) {
-        case Mode::READABLE:
-          FD_SET(w->fd, &input);
-          incount++;
-          break;
-        case Mode::WRITABLE:
-          FD_SET(w->fd, &output);
-          outcount++;
-          break;
-      }
-      wmark = std::max(wmark, w->fd);
-    }
-
-    Duration nt = nextTimeout();
-    TRACE("runLoopOnce(): nextTimeout = $0", nt);
-    tv = nt;
-  }
+  Duration nt = nextTimeout();
+  TRACE("runLoopOnce(): nextTimeout = $0", nt);
+  tv = nt;
 
   TRACE("runLoopOnce: select(wmark=$0, in=$1, out=$2, err=$3, tmo=$4), timers=$5, tasks=$6",
         wmark + 1, incount, outcount, errcount, Duration(tv), timers_.size(), tasks_.size());
@@ -552,6 +533,27 @@ void PosixScheduler::runLoopOnce() {
   safeCall(onPreInvokePending_);
   safeCallEach(activeTasks);
   safeCall(onPostInvokePending_);
+}
+
+void PosixScheduler::collectWatches(fd_set* input, int* incount, fd_set* output, int* outcount, int* wmark) {
+  std::lock_guard<std::mutex> lk(lock_);
+
+  for (const Watcher* w = firstWatcher_; w; w = w->next) {
+    if (w->fd < 0)
+      continue;
+
+    switch (w->mode) {
+      case Mode::READABLE:
+        FD_SET(w->fd, input);
+        (*incount)++;
+        break;
+      case Mode::WRITABLE:
+        FD_SET(w->fd, output);
+        (*outcount)++;
+        break;
+    }
+    *wmark = std::max(*wmark, w->fd);
+  }
 }
 
 Duration PosixScheduler::nextTimeout() const {

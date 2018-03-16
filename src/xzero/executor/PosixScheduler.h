@@ -139,6 +139,8 @@ class PosixScheduler : public EventLoop {
   }; // }}}
 
  protected:
+  void collectWatches(fd_set* input, int* incount, fd_set* output, int* outcount, int* wmark);
+
   /**
    * Adds given timer-handle to the timer-list.
    *
