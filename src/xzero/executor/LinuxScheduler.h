@@ -92,6 +92,7 @@ class LinuxScheduler : public EventLoop {
 
  private:
   inline static int makeEvent(Mode mode);
+  void loop(bool repeat);
   std::list<Task> collectEvents(size_t count);
 
   /**

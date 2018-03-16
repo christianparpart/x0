@@ -100,13 +100,13 @@ std::string LinuxScheduler::toString() const {
 }
 
 Executor::HandleRef LinuxScheduler::executeAfter(Duration delay, Task task) {
-  MonotonicTime time = MonotonicClock::now() + delay;
+  MonotonicTime time = now() + delay;
   TRACE("executeAfter: $0", time);
   return insertIntoTimersList(time, task);
 }
 
 Executor::HandleRef LinuxScheduler::executeAt(UnixTime when, Task task) {
-  MonotonicTime time = MonotonicClock::now() + (when - WallClock::now());
+  MonotonicTime time = now() + (when - WallClock::now());
   TRACE("executeAt: $0", time);
   return insertIntoTimersList(time, task);
 }
@@ -299,37 +299,46 @@ void LinuxScheduler::executeOnWakeup(Task task, Wakeup* wakeup, long generation)
 
 void LinuxScheduler::runLoop() {
   breakLoopCounter_.store(0);
-
-  TRACE("runLoop: referenceCount=$0", referenceCount());
-  while (referenceCount() > 0 && breakLoopCounter_.load() == 0) {
-    runLoopOnce();
-  }
+  loop(true);
 }
 
 void LinuxScheduler::runLoopOnce() {
+  loop(false);
+}
+
+void LinuxScheduler::loop(bool repeat) {
   updateTime();
-  int rv;
+  while (referenceCount() > 0 && breakLoopCounter_.load() == 0) {
+    int rv;
 
-  const uint64_t timeoutMillis = nextTimeout().milliseconds();
+    const uint64_t timeoutMillis = nextTimeout().milliseconds();
 
-  do rv = epoll_wait(epollfd_, &activeEvents_[0], activeEvents_.size(),
-                     timeoutMillis);
-  while (rv < 0 && errno == EINTR);
+    TRACE("loop: referenceCount=$0, breakLoopCounter=$1, timeout=$2ms",
+          referenceCount(), breakLoopCounter_.load(),
+          timeoutMillis);
 
-  TRACE("runLoopOnce: epoll_wait(fd=$0, count=$1, timeout=$2) = $3 $4",
-        epollfd_.get(), activeEvents_.size(), timeoutMillis, rv,
-        rv < 0 ? strerror(rv) : "");
+    do rv = epoll_wait(epollfd_, &activeEvents_[0], activeEvents_.size(),
+                       timeoutMillis);
+    while (rv < 0 && errno == EINTR);
 
-  if (rv < 0) {
-    RAISE_ERRNO(errno);
+    TRACE("runLoopOnce: epoll_wait(fd=$0, count=$1, timeout=$2) = $3 $4",
+          epollfd_.get(), activeEvents_.size(), timeoutMillis, rv,
+          rv < 0 ? strerror(rv) : "");
+
+    if (rv < 0)
+      logFatal("epoll_wait returned unexpected error code: $0", strerror(errno));
+
+    updateTime();
+
+    std::list<Task> activeTasks = collectEvents(static_cast<size_t>(rv));
+    safeCall(onPreInvokePending_);
+    safeCallEach(activeTasks);
+    safeCall(onPostInvokePending_);
+
+    if (!repeat) {
+      break;
+    }
   }
-
-  updateTime();
-
-  std::list<Task> activeTasks = collectEvents(static_cast<size_t>(rv));
-  safeCall(onPreInvokePending_);
-  safeCallEach(activeTasks);
-  safeCall(onPostInvokePending_);
 }
 
 std::list<EventLoop::Task> LinuxScheduler::collectEvents(size_t count) {
