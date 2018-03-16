@@ -10,6 +10,7 @@
 #include <xzero/Api.h>
 #include <xzero/executor/Executor.h>
 #include <xzero/net/IPAddress.h>
+#include <xzero/RefPtr.h>
 #include <functional>
 
 namespace xzero {
