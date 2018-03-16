@@ -60,6 +60,28 @@ TEST(LinuxSchedulerTest, timeoutBreak) {
   EXPECT_NEAR(100,  (b_timeout_at - start).milliseconds(), 50);
 }
 
+TEST(LinuxSchedulerTest, executeAfter_with_handle) {
+  TheScheduler scheduler;
+  MonotonicTime start;
+  MonotonicTime firedAt;
+  int fireCount = 0;
+
+  auto handle = scheduler.executeAfter(50_milliseconds, [&](){
+    firedAt = MonotonicClock::now();
+    fireCount++;
+  });
+
+  start = MonotonicClock::now();
+  firedAt = start;
+
+  scheduler.runLoopOnce();
+
+  Duration diff = firedAt - start;
+
+  EXPECT_EQ(1, fireCount);
+  EXPECT_NEAR(50, diff.milliseconds(), 10);
+}
+
 TEST(LinuxSchedulerTest, executeAfter_without_handle) {
   TheScheduler scheduler;
   MonotonicTime start;
@@ -100,7 +122,7 @@ TEST(LinuxSchedulerTest, executeAfter_cancel_beforeRun) {
   int fireCount = 0;
 
   auto handle = scheduler.executeAfter(1_seconds, [&](){
-    printf("****** cancel_beforeRun: running action\n");
+    logf("****** cancel_beforeRun: running action");
     fireCount++;
   });
 
