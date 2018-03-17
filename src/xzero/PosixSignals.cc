@@ -35,7 +35,7 @@ PosixSignals::~PosixSignals() {
 PosixSignals::HandleRef PosixSignals::notify(int signo, SignalHandler task) {
   std::lock_guard<std::mutex> _l(mutex_);
 
-  RefPtr<SignalWatcher> hr(new SignalWatcher(task));
+  std::shared_ptr<SignalWatcher> hr(new SignalWatcher(task));
 
   if (watchers_[signo].empty()) {
     TRACE("installing signal handler $0 ($1)", signo, toString(signo));
@@ -48,7 +48,7 @@ PosixSignals::HandleRef PosixSignals::notify(int signo, SignalHandler task) {
 
   watchers_[signo].emplace_back(hr);
 
-  return hr.as<Executor::Handle>();
+  return hr;
 }
 
 void PosixSignals::onSignal(int signo, siginfo_t* info, void* ptr) {
@@ -56,16 +56,16 @@ void PosixSignals::onSignal(int signo, siginfo_t* info, void* ptr) {
 }
 
 void PosixSignals::onSignal2(int signo, siginfo_t* info, void* ptr) {
-  std::vector<RefPtr<SignalWatcher>> pending;
+  std::vector<std::shared_ptr<SignalWatcher>> pending;
   {
     std::lock_guard<std::mutex> _l(mutex_);
-    std::list<RefPtr<SignalWatcher>>& watchers = watchers_[signo];
+    std::list<std::shared_ptr<SignalWatcher>>& watchers = watchers_[signo];
     pending.reserve(watchers.size());
     pending.insert(pending.end(), watchers.begin(), watchers.end());
     watchers.clear();
   }
 
-  for (RefPtr<SignalWatcher>& p: pending) {
+  for (std::shared_ptr<SignalWatcher>& p: pending) {
     p->info.signal = info->si_signo;
     p->info.pid = info->si_pid;
     p->info.uid = info->si_uid;

@@ -56,7 +56,7 @@ UnixSignals::HandleRef LinuxSignals::notify(int signo, SignalHandler task) {
   sigprocmask(SIG_BLOCK, &signalMask_, nullptr);
 
   TRACE("notify: $0", toString(signo));
-  RefPtr<SignalWatcher> hr(new SignalWatcher(task));
+  std::shared_ptr<SignalWatcher> hr(new SignalWatcher(task));
   watchers_[signo].emplace_back(hr);
 
   if (interests_.load() == 0) {
@@ -66,7 +66,7 @@ UnixSignals::HandleRef LinuxSignals::notify(int signo, SignalHandler task) {
 
   interests_++;
 
-  return hr.as<Executor::Handle>();
+  return hr;
 }
 
 void LinuxSignals::onSignal() {
@@ -90,21 +90,21 @@ void LinuxSignals::onSignal() {
   }
 
   // move pending signals out of the watchers
-  std::vector<RefPtr<SignalWatcher>> pending;
+  std::vector<std::shared_ptr<SignalWatcher>> pending;
   n /= sizeof(*events);
   pending.reserve(n);
   {
     for (int i = 0; i < n; ++i) {
       const signalfd_siginfo& event = events[i];
       int signo = event.ssi_signo;
-      std::list<RefPtr<SignalWatcher>>& watchers = watchers_[signo];
+      std::list<std::shared_ptr<SignalWatcher>>& watchers = watchers_[signo];
 
       DEBUG("Caught signal $0 from PID $1 UID $2.",
             toString(signo),
             event.ssi_pid,
             event.ssi_uid);
 
-      for (RefPtr<SignalWatcher>& watcher: watchers) {
+      for (std::shared_ptr<SignalWatcher>& watcher: watchers) {
         watcher->info.signal = signo;
         watcher->info.pid = event.ssi_pid;
         watcher->info.uid = event.ssi_uid;
@@ -128,7 +128,7 @@ void LinuxSignals::onSignal() {
   signalfd(fd_, &signalMask_, 0);
 
   // notify interests (XXX must not be invoked on local stack)
-  for (RefPtr<SignalWatcher>& hr: pending)
+  for (std::shared_ptr<SignalWatcher>& hr: pending)
     executor_->execute(std::bind(&SignalWatcher::fire, hr));
 }
 

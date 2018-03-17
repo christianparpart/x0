@@ -10,7 +10,6 @@
 #include <xzero/executor/SafeCall.h>
 #include <xzero/ExceptionHandler.h>
 #include <xzero/RefCounted.h>
-#include <xzero/RefPtr.h>
 #include <xzero/Duration.h>
 #include <xzero/UnixTime.h>
 
@@ -43,7 +42,7 @@ class Executor {
   typedef std::function<void()> Task;
   typedef std::function<void(const UnixSignalInfo&)> SignalHandler;
 
-  struct Handle : public RefCounted { // {{{
+  struct Handle : public std::enable_shared_from_this<Handle> { // {{{
    public:
     Handle()
         : Handle(nullptr) {}
@@ -67,7 +66,7 @@ class Executor {
     std::atomic<bool> isCancelled_;
     Task onCancel_;
   }; // }}}
-  typedef RefPtr<Handle> HandleRef;
+  typedef std::shared_ptr<Handle> HandleRef;
 
   explicit Executor(ExceptionHandler eh);
 

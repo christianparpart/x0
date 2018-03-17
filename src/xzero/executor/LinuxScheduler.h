@@ -8,7 +8,6 @@
 #pragma once
 
 #include <xzero/Api.h>
-#include <xzero/RefPtr.h>
 #include <xzero/MonotonicTime.h>
 #include <xzero/executor/EventLoop.h>
 #include <xzero/io/FileDescriptor.h>
@@ -129,7 +128,7 @@ class LinuxScheduler : public EventLoop {
    *
    * @note requires the caller to lock the object mutex.
    */
-  Watcher* linkWatcher(Watcher* w, Watcher* pred);
+  HandleRef linkWatcher(Watcher* w, Watcher* pred);
 
   /**
    * Removes given watcher from ordered list of watchers.
@@ -164,12 +163,12 @@ class LinuxScheduler : public EventLoop {
 
   std::mutex lock_; //!< mutex, to protect access to tasks, timers
 
-  std::unordered_map<int, RefPtr<Watcher>> watchers_;  //!< I/O watchers
+  std::unordered_map<int, std::shared_ptr<Watcher>> watchers_;  //!< I/O watchers
   Watcher* firstWatcher_;                      //!< I/O watcher with the smallest timeout
   Watcher* lastWatcher_;                       //!< I/O watcher with the largest timeout
 
   std::list<Task> tasks_;                       //!< list of pending tasks
-  std::list<RefPtr<Timer>> timers_;             //!< ASC-sorted list of timers
+  std::list<std::shared_ptr<Timer>> timers_;    //!< ASC-sorted list of timers
 
   FileDescriptor epollfd_;
   FileDescriptor eventfd_;

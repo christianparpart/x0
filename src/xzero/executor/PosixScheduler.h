@@ -7,7 +7,6 @@
 
 #pragma once
 
-#include <xzero/RefPtr.h>
 #include <xzero/MonotonicTime.h>
 #include <xzero/executor/EventLoop.h>
 #include <sys/select.h>
@@ -96,10 +95,6 @@ class PosixScheduler : public EventLoop {
         : fd(_fd), mode(_mode), onIO(_onIO),
           timeout(_timeout), onTimeout(_onTimeout),
           prev(nullptr), next(nullptr) {
-      // Manually ref because we're not holding it in a
-      // RefPtr<Watcher> vector in PosixScheduler.
-      // - Though, no need to manually unref() either.
-      incRef();
     }
 
     void reset(int _fd, Mode _mode, Task _onIO,
@@ -176,7 +171,7 @@ class PosixScheduler : public EventLoop {
    *
    * @note requires the caller to lock the object mutex.
    */
-  Watcher* linkWatcher(Watcher* w, Watcher* pred);
+  HandleRef linkWatcher(Watcher* w, Watcher* pred);
 
   /**
    * Removes given watcher from ordered list of watchers.
@@ -215,9 +210,9 @@ class PosixScheduler : public EventLoop {
   Task onPostInvokePending_; //!< callback to be invoked after any other hot CB
 
   std::list<Task> tasks_;            //!< list of pending tasks
-  std::list<RefPtr<Timer>> timers_;  //!< ASC-sorted list of timers
+  std::list<std::shared_ptr<Timer>> timers_;  //!< ASC-sorted list of timers
 
-  std::vector<Watcher> watchers_;   //!< I/O watchers
+  std::vector<std::shared_ptr<Watcher>> watchers_; //!< I/O watchers
   Watcher* firstWatcher_;           //!< I/O watcher with the smallest timeout
   Watcher* lastWatcher_;            //!< I/O watcher with the largest timeout
 

@@ -8,7 +8,7 @@
 #pragma once
 
 #include <xzero/UnixSignals.h>
-#include <xzero/RefPtr.h>
+#include <memory>
 #include <vector>
 #include <list>
 #include <mutex>
@@ -35,7 +35,7 @@ class PosixSignals : public UnixSignals {
 
  private:
   Executor* executor_;
-  std::vector<std::list<RefPtr<SignalWatcher>>> watchers_;
+  std::vector<std::list<std::shared_ptr<SignalWatcher>>> watchers_;
   std::mutex mutex_;
 };
 

@@ -65,7 +65,7 @@ std::string inspect(PosixScheduler::Mode mode) {
   return modes[static_cast<size_t>(mode)];
 }
 
-std::string inspect(const std::list<RefPtr<PosixScheduler::Timer>>& list) {
+std::string inspect(const std::list<std::shared_ptr<PosixScheduler::Timer>>& list) {
   std::string result;
   MonotonicTime now = MonotonicClock::now();
   result += "{";
@@ -125,6 +125,8 @@ PosixScheduler::PosixScheduler(
                 : 65535;
 
   watchers_.resize(nofile);
+  for (auto& w: watchers_)
+    w = std::make_shared<Watcher>();
 
   TRACE("ctor: wakeupPipe {read=$0, write=$1, nofile=$2}",
       wakeupPipe_[PIPE_READ_END],
@@ -178,7 +180,7 @@ EventLoop::HandleRef PosixScheduler::executeAt(UnixTime when, Task task) {
 
 EventLoop::HandleRef PosixScheduler::insertIntoTimersList(MonotonicTime dt,
                                                           Task task) {
-  RefPtr<Timer> t(new Timer(dt, task));
+  std::shared_ptr<Timer> t(new Timer(dt, task));
 
   auto onCancel = [this, t]() {
     std::lock_guard<std::mutex> _l(lock_);
@@ -206,13 +208,13 @@ EventLoop::HandleRef PosixScheduler::insertIntoTimersList(MonotonicTime dt,
 
   while (i != e) {
     i--;
-    const RefPtr<Timer>& current = *i;
+    const std::shared_ptr<Timer>& current = *i;
     if (t->when >= current->when) {
       TRACE("insertIntoTimersList: test if $0 >= $1 (yes, insert before)",
             inspect(*current), inspect(*t));
       i++;
       i = timers_.insert(i, t);
-      return t.as<Handle>();
+      return t;
     }
     TRACE("insertIntoTimersList: test if $0 >= $1 (no)",
           inspect(*current), inspect(*t));
@@ -220,7 +222,7 @@ EventLoop::HandleRef PosixScheduler::insertIntoTimersList(MonotonicTime dt,
 
   timers_.push_front(t);
   i = timers_.begin();
-  return t.as<Handle>();
+  return t;
 
   // return std::make_shared<Handle>([this, i]() {
   //   std::lock_guard<std::mutex> lk(lock_);
@@ -246,13 +248,13 @@ void PosixScheduler::collectTimeouts(std::list<Task>* result) {
     w = unlinkWatcher(w);
   }
 
-  const auto nextTimer = [this]() -> RefPtr<Timer> {
+  const auto nextTimer = [this]() -> std::shared_ptr<Timer> {
     return !timers_.empty() && timers_.front()->when <= now()
         ? timers_.front()
         : nullptr;
   };
 
-  while (RefPtr<Timer> job = nextTimer()) {
+  while (std::shared_ptr<Timer> job = nextTimer()) {
     TRACE("collect next timer");
     result->push_back([job] { job->fire(job->action); });
     timers_.pop_front();
@@ -260,7 +262,7 @@ void PosixScheduler::collectTimeouts(std::list<Task>* result) {
   }
 }
 
-PosixScheduler::Watcher* PosixScheduler::linkWatcher(Watcher* w, Watcher* pred) {
+PosixScheduler::HandleRef PosixScheduler::linkWatcher(Watcher* w, Watcher* pred) {
   Watcher* succ = pred ? pred->next : firstWatcher_;
 
   w->prev = pred;
@@ -282,7 +284,7 @@ PosixScheduler::Watcher* PosixScheduler::linkWatcher(Watcher* w, Watcher* pred) 
 
   wakeupLoop();
 
-  return w;
+  return w->shared_from_this();
 }
 
 PosixScheduler::Watcher* PosixScheduler::unlinkWatcher(Watcher* w) {
@@ -309,8 +311,7 @@ Executor::HandleRef PosixScheduler::findWatcher(int fd) {
   std::lock_guard<std::mutex> lk(lock_);
 
   if (static_cast<size_t>(fd) < watchers_.size()) {
-    Watcher* w = &watchers_[fd];
-    return HandleRef(w);
+    return watchers_[fd];
   } else {
     return nullptr;
   }
@@ -382,7 +383,7 @@ PosixScheduler::HandleRef PosixScheduler::setupWatcher(
     RAISE(IOError, "fd number too high");
   }
 
-  Watcher* interest = &watchers_[fd];
+  Watcher* interest = watchers_[fd].get();
 
   if (interest->fd >= 0)
     RAISE(AlreadyWatchingOnResource, "Already watching on resource");

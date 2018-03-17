@@ -8,8 +8,8 @@
 
 #include <xzero/UnixSignals.h>
 #include <xzero/io/FileDescriptor.h>
-#include <xzero/RefPtr.h>
 
+#include <memory>
 #include <vector>
 #include <list>
 #include <atomic>
@@ -40,7 +40,7 @@ class LinuxSignals : public UnixSignals {
   sigset_t signalMask_;
   std::mutex mutex_;
   std::atomic<size_t> interests_;
-  std::vector<std::list<RefPtr<SignalWatcher>>> watchers_;
+  std::vector<std::list<std::shared_ptr<SignalWatcher>>> watchers_;
 };
 
 } // namespace xzero

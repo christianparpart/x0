@@ -149,7 +149,7 @@ Executor::HandleRef LinuxScheduler::createWatcher(
   }
 
   Watcher* interest = new Watcher(fd, mode, task, MonotonicClock::now() + timeout, tcb);
-  watchers_[fd] = RefPtr<Watcher>(interest);
+  watchers_[fd] = std::shared_ptr<Watcher>(interest);
 
   interest->setCancelHandler([this, interest] () {
     std::lock_guard<std::mutex> _l(lock_);
@@ -212,7 +212,7 @@ LinuxScheduler::Watcher* LinuxScheduler::findPrecedingWatcher(Watcher* interest)
   }
 }
 
-LinuxScheduler::Watcher* LinuxScheduler::linkWatcher(Watcher* w, Watcher* pred) {
+LinuxScheduler::HandleRef LinuxScheduler::linkWatcher(Watcher* w, Watcher* pred) {
   TRACE("linkWatcher: w: $0, pred: $1", w, pred);
   Watcher* succ = pred ? pred->next : firstWatcher_;
 
@@ -233,7 +233,7 @@ LinuxScheduler::Watcher* LinuxScheduler::linkWatcher(Watcher* w, Watcher* pred) 
 
   wakeupLoop();
 
-  return w;
+  return w->shared_from_this();
 }
 
 LinuxScheduler::Watcher* LinuxScheduler::unlinkWatcher(Watcher* w) {
@@ -266,7 +266,7 @@ Executor::HandleRef LinuxScheduler::findWatcher(int fd) {
 
   auto wi = watchers_.find(fd);
   if (wi != watchers_.end()) {
-    return wi->second.as<Handle>();
+    return wi->second;
   } else {
     return nullptr;
   }
@@ -345,7 +345,7 @@ size_t LinuxScheduler::waitForEvents() noexcept {
                        maxWait.milliseconds());
     while (rv < 0 && errno == EINTR);
 
-    TRACE("runLoopOnce: epoll_wait(fd=$0, count=$1, timeout=$2) = $3 $4",
+    TRACE("waitForEvents: epoll_wait(fd=$0, count=$1, timeout=$2) = $3 $4",
           epollfd_.get(), activeEvents_.size(), maxWait, rv,
           rv < 0 ? strerror(rv) : "");
 
@@ -382,7 +382,7 @@ void LinuxScheduler::breakLoop() {
 EventLoop::HandleRef LinuxScheduler::insertIntoTimersList(MonotonicTime dt,
                                                           Task task) {
   TRACE("insertIntoTimersList() $0", dt);
-  RefPtr<Timer> tref(new Timer(dt, task));
+  std::shared_ptr<Timer> tref(new Timer(dt, task));
   Timer* t = tref.get();
 
   t->setCancelHandler([this, t]() {
@@ -410,17 +410,17 @@ EventLoop::HandleRef LinuxScheduler::insertIntoTimersList(MonotonicTime dt,
 
   while (i != e) {
     i--;
-    const RefPtr<Timer>& current = *i;
+    const std::shared_ptr<Timer>& current = *i;
     if (t->when >= current->when) {
       i++;
       i = timers_.insert(i, tref);
-      return tref.as<Handle>();
+      return tref;
     }
   }
 
   timers_.push_front(tref);
   i = timers_.begin();
-  return tref.as<Handle>();
+  return tref;
 
   // return std::make_shared<Handle>([this, i]() {
   //   std::lock_guard<std::mutex> lk(lock_);
@@ -432,19 +432,19 @@ void LinuxScheduler::collectActiveHandles(size_t count,
                                           std::list<Task>* result) {
   for (size_t i = 0; i < count; ++i) {
     epoll_event& event = activeEvents_[i];
-    if (Watcher* w = static_cast<Watcher*>(event.data.ptr)) {
+    if (event.data.ptr) {
+      auto w = std::static_pointer_cast<Watcher>(
+          static_cast<Handle*>(event.data.ptr)->shared_from_this());
       if (event.events & EPOLLIN) {
         TRACE("collectActiveHandles: $0 READABLE", w->fd);
         readerCount_--;
-        w->ref();
-        result->push_back([w] { w->fire(w->onIO); w->unref(); });
-        unlinkWatcher(w);
+        result->push_back([w] { w->fire(w->onIO); });
+        unlinkWatcher(w.get());
       } else if (event.events & EPOLLOUT) {
         TRACE("collectActiveHandles: $0 WRITABLE", w->fd);
         writerCount_--;
-        w->ref();
-        result->push_back([w] { w->fire(w->onIO); w->unref(); });
-        unlinkWatcher(w);
+        result->push_back([w] { w->fire(w->onIO); });
+        unlinkWatcher(w.get());
       } else {
         TRACE("collectActiveHandles: unknown event fd $0", w->fd);
       }
@@ -458,35 +458,33 @@ void LinuxScheduler::collectActiveHandles(size_t count,
 }
 
 void LinuxScheduler::collectTimeouts(std::list<Task>* result) {
-  const auto nextTimedout = [this]() -> Watcher* {
+  const auto nextTimedout = [this]() -> std::shared_ptr<Watcher> {
     return firstWatcher_ && firstWatcher_->timeout <= now()
-        ? firstWatcher_
-        : nullptr;
+        ? std::static_pointer_cast<Watcher>(firstWatcher_->shared_from_this())
+        : std::shared_ptr<Watcher>();
   };
 
-  while (Watcher* w = nextTimedout()) {
+  while (std::shared_ptr<Watcher> w = nextTimedout()) {
     TRACE("collectTimeouts: i/o fd=$0, mode=$1", w->fd, w->mode);
     switch (w->mode) {
       case Mode::READABLE: readerCount_--; break;
       case Mode::WRITABLE: writerCount_--; break;
     }
-    w->ref();
-    result->push_back([w] { w->fire(w->onTimeout); w->unref(); });
-    w = unlinkWatcher(w);
+    result->push_back([w] { w->fire(w->onTimeout); });
+    unlinkWatcher(w.get());
   }
 
-  const auto nextTimer = [this]() -> Timer* {
+  const auto nextTimer = [this]() -> std::shared_ptr<Timer> {
     return !timers_.empty() && timers_.front()->when <= now()
-        ? timers_.front().get()
-        : nullptr;
+        ? std::static_pointer_cast<Timer>(timers_.front())
+        : std::shared_ptr<Timer>{};
   };
 
   unsigned t = 0;
-  while (Timer* job = nextTimer()) {
+  while (std::shared_ptr<Timer> job = nextTimer()) {
     TRACE("collectTimeouts: collecting job at time $0", job->when);
     t++;
-    job->ref();
-    result->push_back([job] { job->fire(job->action); job->unref(); });
+    result->push_back([job] { job->fire(job->action); });
     timers_.pop_front();
     unref();
   }

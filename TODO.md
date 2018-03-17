@@ -3,6 +3,21 @@
 
 All the things I've found out on the way, that need retouching
 
+- eliminate RefPtr<> and replace it with `shared_ptr` and its `enable_shared_from_this`
+  - [x] PosixSignals
+  - [x] LinuxSignals
+  - [x] executor/Executor
+  - [x] executor/PosixScheduler
+  - [x] executor/LinuxScheduler
+  - [ ] executor/KQueueSignals
+  - [ ] http/client/HttpClient
+  - [ ] net/SslConnector
+  - [ ] net/SslEndPoint
+  - [ ] net/TcpConnector
+  - [ ] net/TcpEndPoint
+  - [ ] net/UdpConnector
+  - [ ] raft/InetTransport
+  - [ ] thread/Future
 - [ ] flow: NativeCallback: replace operator new/delete with `std::variant` + `bool hasDefault_`
 - [ ] flow: nested scopes with local variables must be initialized in this block
       currently also initialized in entry block;
