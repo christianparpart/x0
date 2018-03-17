@@ -10,23 +10,21 @@
 #include <xzero/Api.h>
 #include <xzero/net/IPAddress.h>
 #include <xzero/Buffer.h>
-#include <xzero/RefCounted.h>
 
 namespace xzero {
 
 class UdpConnector;
 class IPAddress;
 
-class UdpEndPoint : public RefCounted {
+class UdpEndPoint {
  public:
-  UdpEndPoint(
-      UdpConnector* connector, Buffer&& msg,
-      struct sockaddr* remoteSock, int remoteSockLen);
+  UdpEndPoint(UdpConnector* connector, Buffer&& msg,
+              struct sockaddr* remoteSock, int remoteSockLen);
   ~UdpEndPoint();
 
   UdpConnector* connector() const noexcept { return connector_; }
 
-  const Buffer& message() const { return message_; }
+  const Buffer& message() const noexcept { return message_; }
 
   size_t send(const BufferRef& response);
 

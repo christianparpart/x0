@@ -173,8 +173,8 @@ void UdpConnector::onMessage() {
 
   if (handler_) {
     message.resize(n);
-    RefPtr<UdpEndPoint> client(new UdpEndPoint(
-        this, std::move(message), remoteAddr, remoteAddrLen));
+    auto client = std::make_shared<UdpEndPoint>(
+        this, std::move(message), remoteAddr, remoteAddrLen);
     executor_->execute(std::bind(handler_, client));
   } else {
     logTrace("UdpConnector: Ignoring incoming message of %i bytes. No handler set.", n);

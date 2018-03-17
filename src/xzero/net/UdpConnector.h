@@ -10,8 +10,8 @@
 #include <xzero/Api.h>
 #include <xzero/executor/Executor.h>
 #include <xzero/net/IPAddress.h>
-#include <xzero/RefPtr.h>
 #include <functional>
+#include <memory>
 
 namespace xzero {
 
@@ -24,7 +24,7 @@ class UdpEndPoint;
  */
 class UdpConnector {
  public:
-  typedef std::function<void(RefPtr<UdpEndPoint>)> Handler;
+  typedef std::function<void(std::shared_ptr<UdpEndPoint>)> Handler;
 
   /**
    * Initializes the UDP connector.
