@@ -24,7 +24,6 @@
 namespace xzero {
 
 class Wakeup;
-class UnixSignals;
 struct UnixSignalInfo;
 
 /**
@@ -214,7 +213,6 @@ class Executor {
 
  protected:
   SafeCall safeCall_;
-  std::unique_ptr<UnixSignals> unixSignals_;
   std::atomic<int> refs_;
 };
 

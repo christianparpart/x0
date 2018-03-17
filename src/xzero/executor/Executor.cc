@@ -6,7 +6,6 @@
 // the License at: http://opensource.org/licenses/MIT
 
 #include <xzero/executor/Executor.h>
-#include <xzero/UnixSignals.h>
 #include <xzero/StringUtil.h>
 #include <xzero/thread/Wakeup.h>
 #include <iostream>
