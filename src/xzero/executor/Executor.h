@@ -51,14 +51,14 @@ class Executor {
           isCancelled_(false),
           onCancel_(onCancel) {}
 
-    bool isCancelled() const;
+    bool isCancelled() const noexcept;
 
-    void cancel();
+    void cancel() noexcept;
     void fire(Task task);
 
-    void reset(Task onCancel);
+    void reset(Task onCancel) noexcept;
 
-    void setCancelHandler(Task task);
+    void setCancelHandler(Task task) noexcept;
 
    private:
     std::mutex mutex_;
@@ -185,21 +185,21 @@ class Executor {
    *
    * @see referenceCount() const noexcept;
    */
-  void ref();
+  void ref() noexcept;
 
   /**
    * Decrements the reference count by 1.
    *
    * @see referenceCount() const noexcept;
    */
-  void unref();
+  void unref() noexcept;
 
   /**
    * Decrements the reference count by @p count.
    *
    * @see referenceCount() const noexcept;
    */
-  void unref(int count);
+  void unref(int count) noexcept;
 
  protected:
   void safeCall(std::function<void()> callee) noexcept;

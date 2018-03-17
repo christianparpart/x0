@@ -10,23 +10,23 @@
 
 namespace xzero {
 
-inline void Executor::Handle::reset(Task onCancel) {
+inline void Executor::Handle::reset(Task onCancel) noexcept {
   std::lock_guard<std::mutex> lk(mutex_);
 
   isCancelled_.store(false);
   onCancel_ = onCancel;
 }
 
-inline bool Executor::Handle::isCancelled() const {
+inline bool Executor::Handle::isCancelled() const noexcept {
   return isCancelled_.load();
 }
 
-inline void Executor::Handle::setCancelHandler(Task task) {
+inline void Executor::Handle::setCancelHandler(Task task) noexcept {
   std::lock_guard<std::mutex> lk(mutex_);
   onCancel_ = task;
 }
 
-inline void Executor::Handle::cancel() {
+inline void Executor::Handle::cancel() noexcept {
   std::lock_guard<std::mutex> lk(mutex_);
 
   for (;;) {
@@ -66,15 +66,15 @@ inline int Executor::referenceCount() const noexcept {
   return refs_.load();
 }
 
-inline void Executor::ref() {
+inline void Executor::ref() noexcept {
   refs_++;
 }
 
-inline void Executor::unref() {
+inline void Executor::unref() noexcept {
   refs_--;
 }
 
-inline void Executor::unref(int count) {
+inline void Executor::unref(int count) noexcept {
   refs_ -= count;
 }
 
