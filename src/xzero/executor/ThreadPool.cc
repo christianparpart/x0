@@ -156,7 +156,7 @@ void ThreadPool::execute(Task task) {
 
 ThreadPool::HandleRef ThreadPool::executeOnReadable(int fd, Task task, Duration tmo, Task tcb) {
   // TODO: honor timeout
-  HandleRef hr(new Handle(nullptr));
+  HandleRef hr = std::make_shared<Handle>(nullptr);
   activeReaders_++;
   execute([this, task, hr, fd] {
     PosixScheduler::waitForReadable(fd);
@@ -168,7 +168,7 @@ ThreadPool::HandleRef ThreadPool::executeOnReadable(int fd, Task task, Duration 
 
 ThreadPool::HandleRef ThreadPool::executeOnWritable(int fd, Task task, Duration tmo, Task tcb) {
   // TODO: honor timeout
-  HandleRef hr(new Handle(nullptr));
+  HandleRef hr = std::make_shared<Handle>(nullptr);
   activeWriters_++;
   execute([this, task, hr, fd] {
     PosixScheduler::waitForWritable(fd);
@@ -182,7 +182,7 @@ void ThreadPool::cancelFD(int fd) {
 }
 
 ThreadPool::HandleRef ThreadPool::executeAfter(Duration delay, Task task) {
-  HandleRef hr(new Handle(nullptr));
+  HandleRef hr = std::make_shared<Handle>(nullptr);
   activeTimers_++;
   execute([this, task, hr, delay] {
     usleep(delay.microseconds());
@@ -193,7 +193,7 @@ ThreadPool::HandleRef ThreadPool::executeAfter(Duration delay, Task task) {
 }
 
 ThreadPool::HandleRef ThreadPool::executeAt(UnixTime dt, Task task) {
-  HandleRef hr(new Handle(nullptr));
+  HandleRef hr = std::make_shared<Handle>(nullptr);
   activeTimers_++;
   execute([this, task, hr, dt] {
     UnixTime now = WallClock::now();

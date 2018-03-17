@@ -502,8 +502,7 @@ Callback* UnitTest::addInitializer(std::unique_ptr<Callback>&& cb) {
 TestInfo* UnitTest::addTest(const char* testCaseName,
                             const char* testName,
                             std::unique_ptr<TestFactory>&& testFactory) {
-  testCases_.emplace_back(
-      new TestInfo(
+  testCases_.emplace_back(std::make_unique<TestInfo>(
           testCaseName,
           testName,
           !StringUtil::beginsWith(testCaseName, "DISABLED_")

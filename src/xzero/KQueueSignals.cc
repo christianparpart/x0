@@ -46,7 +46,7 @@ KQueueSignals::HandleRef KQueueSignals::notify(int signo, SignalHandler task) {
     blockSignal(signo);
   }
 
-  std::shared_ptr<SignalWatcher> hr(new SignalWatcher(task));
+  auto hr = std::make_shared<SignalWatcher>(task);
   watchers_[signo].emplace_back(hr);
 
   if (interests_.load() == 0) {
@@ -56,7 +56,7 @@ KQueueSignals::HandleRef KQueueSignals::notify(int signo, SignalHandler task) {
 
   interests_++;
 
-  return hr.as<Executor::Handle>();
+  return hr;
 }
 
 void KQueueSignals::onSignal() {

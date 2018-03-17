@@ -18,7 +18,7 @@ HttpConnectionFactory::HttpConnectionFactory(
     : protocolName_(protocolName),
       maxRequestUriLength_(maxRequestUriLength),
       maxRequestBodyLength_(maxRequestBodyLength),
-      outputCompressor_(new HttpOutputCompressor()),
+      outputCompressor_(std::make_unique<HttpOutputCompressor>()),
       dateGenerator_() {
   //.
 }

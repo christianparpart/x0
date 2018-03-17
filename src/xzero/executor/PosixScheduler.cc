@@ -180,7 +180,7 @@ EventLoop::HandleRef PosixScheduler::executeAt(UnixTime when, Task task) {
 
 EventLoop::HandleRef PosixScheduler::insertIntoTimersList(MonotonicTime dt,
                                                           Task task) {
-  std::shared_ptr<Timer> t(new Timer(dt, task));
+  auto t = std::make_shared<Timer>(dt, task);
 
   auto onCancel = [this, t]() {
     std::lock_guard<std::mutex> _l(lock_);

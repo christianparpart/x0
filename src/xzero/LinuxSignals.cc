@@ -56,7 +56,7 @@ UnixSignals::HandleRef LinuxSignals::notify(int signo, SignalHandler task) {
   sigprocmask(SIG_BLOCK, &signalMask_, nullptr);
 
   TRACE("notify: $0", toString(signo));
-  std::shared_ptr<SignalWatcher> hr(new SignalWatcher(task));
+  auto hr = std::make_shared<SignalWatcher>(task);
   watchers_[signo].emplace_back(hr);
 
   if (interests_.load() == 0) {

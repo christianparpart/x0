@@ -130,7 +130,7 @@ class ScopedSym : public Symbol {
  protected:
   ScopedSym(Type t, SymbolTable* outer, const std::string& name,
             const FlowLocation& loc)
-      : Symbol(t, name, loc), scope_(new SymbolTable(outer, name)) {}
+      : Symbol(t, name, loc), scope_(std::make_unique<SymbolTable>(outer, name)) {}
 
   ScopedSym(Type t, std::unique_ptr<SymbolTable>&& scope,
             const std::string& name, const FlowLocation& loc)

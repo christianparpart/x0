@@ -382,7 +382,7 @@ void LinuxScheduler::breakLoop() {
 EventLoop::HandleRef LinuxScheduler::insertIntoTimersList(MonotonicTime dt,
                                                           Task task) {
   TRACE("insertIntoTimersList() $0", dt);
-  std::shared_ptr<Timer> tref(new Timer(dt, task));
+  auto tref = std::make_shared<Timer>(dt, task);
   Timer* t = tref.get();
 
   t->setCancelHandler([this, t]() {

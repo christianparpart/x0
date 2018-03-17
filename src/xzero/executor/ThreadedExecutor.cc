@@ -122,7 +122,7 @@ void ThreadedExecutor::cancelFD(int fd) {
 }
 
 Executor::HandleRef ThreadedExecutor::executeAfter(Duration delay, Task task) {
-  HandleRef hr(new Handle(nullptr));
+  HandleRef hr = std::make_shared<Handle>(nullptr);
   execute([this, task, hr, delay] {
     usleep(delay.microseconds());
     safeCall([&] { hr->fire(task); });
@@ -131,7 +131,7 @@ Executor::HandleRef ThreadedExecutor::executeAfter(Duration delay, Task task) {
 }
 
 Executor::HandleRef ThreadedExecutor::executeAt(UnixTime dt, Task task) {
-  HandleRef hr(new Handle(nullptr));
+  HandleRef hr = std::make_shared<Handle>(nullptr);
   execute([this, task, hr, dt] {
     UnixTime now = WallClock::now();
     if (dt > now) {

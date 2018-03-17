@@ -18,7 +18,6 @@
 #include <string>
 #include <stdexcept>
 #include <iosfwd>
-#include <new>
 
 namespace xzero {
 

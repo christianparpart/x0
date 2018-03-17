@@ -174,7 +174,7 @@ Result<T> Future<T>::waitAndGetResult() const {
 }
 
 template <typename T>
-Promise<T>::Promise() : state_(new PromiseState<T>()) {}
+Promise<T>::Promise() : state_(std::make_shared<PromiseState<T>>()) {}
 
 template <typename T>
 Promise<T>::Promise(const Promise<T>& other) : state_(other.state_) {}
