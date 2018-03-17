@@ -9,7 +9,6 @@
 
 #include <xzero/executor/SafeCall.h>
 #include <xzero/ExceptionHandler.h>
-#include <xzero/RefCounted.h>
 #include <xzero/Duration.h>
 #include <xzero/UnixTime.h>
 

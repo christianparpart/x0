@@ -87,9 +87,9 @@ int SslConnector::selectContext(
   return SSL_TLSEXT_ERR_OK;
 }
 
-RefPtr<TcpEndPoint> SslConnector::createEndPoint(int cfd, Executor* executor) {
+std::shared_ptr<TcpEndPoint> SslConnector::createEndPoint(int cfd, Executor* executor) {
   TRACE("createEndPoint: cfd=$0", cfd);
-  return make_ref<SslEndPoint>(
+  return std::make_shared<SslEndPoint>(
       FileDescriptor(cfd),
       addressFamily(),
       readTimeout(),
@@ -97,12 +97,12 @@ RefPtr<TcpEndPoint> SslConnector::createEndPoint(int cfd, Executor* executor) {
       defaultContext(),
       std::bind(&SslConnector::createConnection, this, std::placeholders::_1, std::placeholders::_2),
       std::bind(&SslConnector::onEndPointClosed, this, std::placeholders::_1),
-      executor).as<TcpEndPoint>();
+      executor);
 }
 
-void SslConnector::onEndPointCreated(RefPtr<TcpEndPoint> endpoint) {
+void SslConnector::onEndPointCreated(std::shared_ptr<TcpEndPoint> endpoint) {
   TRACE("onEndPointCreated fd=$0", endpoint->handle());
-  endpoint.weak_as<SslEndPoint>()->onServerHandshake();
+  std::static_pointer_cast<SslEndPoint>(endpoint)->onServerHandshake();
 }
 
 } // namespace xzero

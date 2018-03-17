@@ -373,7 +373,6 @@ set(xzero_test_SRC
 		src/xzero/raft/Parser-test.cc
 		src/xzero/raft/Server-test.cc
 		src/xzero/raft/ServerUtil-test.cc
-		src/xzero/RefPtr-test.cc
 		src/xzero/Result-test.cc
 		src/xzero/StringUtil-test.cc
 		src/xzero/TokenShaper-test.cc

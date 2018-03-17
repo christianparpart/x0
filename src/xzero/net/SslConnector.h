@@ -67,8 +67,8 @@ class SslConnector : public TcpConnector {
   void addContext(const std::string& crtFilePath,
                   const std::string& keyFilePath);
 
-  RefPtr<TcpEndPoint> createEndPoint(int cfd, Executor* executor) override;
-  void onEndPointCreated(RefPtr<TcpEndPoint> endpoint) override;
+  std::shared_ptr<TcpEndPoint> createEndPoint(int cfd, Executor* executor) override;
+  void onEndPointCreated(std::shared_ptr<TcpEndPoint> endpoint) override;
 
   SslContext* getContextByDnsName(const char* servername) const;
   SslContext* defaultContext() const;

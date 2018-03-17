@@ -146,7 +146,7 @@ HttpClient::HttpClient(Executor* executor,
 }
 
 HttpClient::HttpClient(Executor* executor,
-                       RefPtr<TcpEndPoint> upstream,
+                       std::shared_ptr<TcpEndPoint> upstream,
                        Duration keepAlive)
     : executor_(executor),
       createEndPoint_(),
@@ -180,10 +180,11 @@ HttpClient::HttpClient(HttpClient&& other)
   other.isListenerOwned_ = false;
 }
 
-Future<RefPtr<TcpEndPoint>> HttpClient::createTcp(InetAddress address,
-                                                  Duration connectTimeout,
-                                                  Duration readTimeout,
-                                                  Duration writeTimeout) {
+Future<std::shared_ptr<TcpEndPoint>> HttpClient::createTcp(
+    InetAddress address,
+    Duration connectTimeout,
+    Duration readTimeout,
+    Duration writeTimeout) {
   TRACE("createTcp: scheme = '$0'", request_.scheme());
   if (request_.scheme() == "https") {
     TRACE("createTcp: https");
@@ -193,20 +194,23 @@ Future<RefPtr<TcpEndPoint>> HttpClient::createTcp(InetAddress address,
                                                                 endpoint,
                                                                 executor_));
     };
-    Promise<RefPtr<TcpEndPoint>> promise;
+    Promise<std::shared_ptr<TcpEndPoint>> promise;
     std::string sni = request_.headers().get("Host");
     size_t i = sni.find(':');
     if (i != std::string::npos) {
       sni = sni.substr(0, i);
     }
-    Future<RefPtr<SslEndPoint>> f = SslEndPoint::connect(address, 
-                                            connectTimeout,
-                                            readTimeout,
-                                            writeTimeout,
-                                            executor_,
-                                            sni,
-                                            {"http/1.1"},
-                                            createApplicationConnection);
+
+    Future<std::shared_ptr<SslEndPoint>> f = SslEndPoint::connect(
+        address,
+        connectTimeout,
+        readTimeout,
+        writeTimeout,
+        executor_,
+        sni,
+        {"http/1.1"},
+        createApplicationConnection);
+
     f.onSuccess(promise);
     f.onFailure(promise);
     return promise.future();
@@ -253,9 +257,9 @@ void HttpClient::send(const Request& request,
 }
 
 void HttpClient::execute() {
-  Future<RefPtr<TcpEndPoint>> f = createEndPoint_();
+  Future<std::shared_ptr<TcpEndPoint>> f = createEndPoint_();
 
-  f.onSuccess([this](RefPtr<TcpEndPoint> ep) {
+  f.onSuccess([this](std::shared_ptr<TcpEndPoint> ep) {
     TRACE("endpoint created");
     endpoint_ = ep;
 

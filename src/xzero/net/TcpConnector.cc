@@ -466,7 +466,7 @@ void TcpConnector::onConnect() {
     TRACE("onConnect: fd=$0", cfd);
 
     Executor* clientExecutor = selectClientExecutor_();
-    RefPtr<TcpEndPoint> ep = createEndPoint(cfd, clientExecutor);
+    std::shared_ptr<TcpEndPoint> ep = createEndPoint(cfd, clientExecutor);
     {
       std::lock_guard<std::mutex> _lk(mutex_);
       connectedEndPoints_.push_back(ep);
@@ -527,13 +527,13 @@ int TcpConnector::acceptOne() {
   return cfd;
 }
 
-RefPtr<TcpEndPoint> TcpConnector::createEndPoint(int cfd, Executor* executor) {
-  return make_ref<TcpEndPoint>(cfd, addressFamily(),
+std::shared_ptr<TcpEndPoint> TcpConnector::createEndPoint(int cfd, Executor* executor) {
+  return std::make_shared<TcpEndPoint>(cfd, addressFamily(),
       readTimeout_, writeTimeout_, executor_,
       std::bind(&TcpConnector::onEndPointClosed, this, std::placeholders::_1));
 }
 
-void TcpConnector::onEndPointCreated(RefPtr<TcpEndPoint> endpoint) {
+void TcpConnector::onEndPointCreated(std::shared_ptr<TcpEndPoint> endpoint) {
   if (connectionFactoryCount() > 1) {
     endpoint->startDetectProtocol(
         deferAccept(),
@@ -548,10 +548,10 @@ void TcpConnector::onEndPointCreated(RefPtr<TcpEndPoint> endpoint) {
   }
 }
 
-std::list<RefPtr<TcpEndPoint>> TcpConnector::connectedEndPoints() {
-  std::list<RefPtr<TcpEndPoint>> result;
+std::list<std::shared_ptr<TcpEndPoint>> TcpConnector::connectedEndPoints() {
+  std::list<std::shared_ptr<TcpEndPoint>> result;
   std::lock_guard<std::mutex> _lk(mutex_);
-  for (const RefPtr<TcpEndPoint>& ep : connectedEndPoints_) {
+  for (const std::shared_ptr<TcpEndPoint>& ep : connectedEndPoints_) {
     result.push_back(ep);
   }
   return result;
@@ -566,8 +566,8 @@ void TcpConnector::onEndPointClosed(TcpEndPoint* endpoint) {
 
   std::lock_guard<std::mutex> _lk(mutex_);
 
-  auto i = std::find(connectedEndPoints_.begin(), connectedEndPoints_.end(),
-                     endpoint);
+  auto i = std::find_if(connectedEndPoints_.begin(), connectedEndPoints_.end(),
+      [endpoint](auto obj) { return obj.get() == endpoint; });
 
   assert(i != connectedEndPoints_.end());
 

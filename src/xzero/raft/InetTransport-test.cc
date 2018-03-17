@@ -113,7 +113,7 @@ TEST(raft_InetTransport, handshake) {
                               {2, "127.0.0.2:1708"} };
 
   auto connector = std::make_shared<TcpConnector>(&executor);
-  auto endpointCreator = [&](const std::string& address) -> RefPtr<EndPoint> {
+  auto endpointCreator = [&](const std::string& address) -> std::shared_ptr<EndPoint> {
     return nullptr;
   };
   auto transport = std::make_shared<InetTransport>(
@@ -123,7 +123,7 @@ TEST(raft_InetTransport, handshake) {
   RaftTestHandler handler;
   transport->setHandler(&handler);
 
-  RefPtr<TcpEndPoint> cli = connector->createClient("\x06\x07\x42\x03psk");
+  std::shared_ptr<TcpEndPoint> cli = connector->createClient("\x06\x07\x42\x03psk");
   cli->write("");
 
   executor.runLoop();
@@ -137,7 +137,7 @@ TEST(raft_InetTransport, no_handshake) {
                               {2, "127.0.0.2:1708"} };
 
   auto connector = std::make_shared<TcpConnector>(&executor);
-  auto endpointCreator = [&](const std::string& address) -> RefPtr<EndPoint> {
+  auto endpointCreator = [&](const std::string& address) -> std::shared_ptr<EndPoint> {
     return nullptr;
   };
   auto transport = std::make_shared<InetTransport>(
@@ -147,7 +147,7 @@ TEST(raft_InetTransport, no_handshake) {
   RaftTestHandler handler;
   transport->setHandler(&handler);
 
-  RefPtr<TcpEndPoint> cli = connector->createClient("\x05\x01\x11\x22\x33\x44");
+  std::shared_ptr<TcpEndPoint> cli = connector->createClient("\x05\x01\x11\x22\x33\x44");
 
   executor.runLoop();
 
@@ -161,7 +161,7 @@ TEST(raft_InetTransport, receive_framed_response) {
                               {2, "127.0.0.2:1708"} };
 
   auto connector = std::make_shared<TcpConnector>(&executor);
-  auto endpointCreator = [&](const std::string& address) -> RefPtr<EndPoint> {
+  auto endpointCreator = [&](const std::string& address) -> std::shared_ptr<EndPoint> {
     return nullptr;
   };
   auto transport = std::make_shared<InetTransport>(
@@ -171,7 +171,7 @@ TEST(raft_InetTransport, receive_framed_response) {
   RaftTestHandler handler;
   transport->setHandler(&handler);
 
-  RefPtr<TcpEndPoint> cli = connector->createClient(
+  std::shared_ptr<TcpEndPoint> cli = connector->createClient(
       "\x06\x07\x42\x03psk"
       "\x05\x01\x11\x22\x33\x44");
 
@@ -186,7 +186,7 @@ TEST(raft_InetTransport, unknown_message) {
                               {2, "127.0.0.2:1708"} };
 
   auto connector = std::make_shared<TcpConnector>(&executor);
-  auto endpointCreator = [&](const std::string& address) -> RefPtr<EndPoint> {
+  auto endpointCreator = [&](const std::string& address) -> std::shared_ptr<EndPoint> {
     return nullptr;
   };
   auto transport = std::make_shared<InetTransport>(
@@ -196,7 +196,7 @@ TEST(raft_InetTransport, unknown_message) {
   RaftTestHandler handler;
   transport->setHandler(&handler);
 
-  RefPtr<TcpEndPoint> cli = connector->createClient("\x02\x19\xFF");
+  std::shared_ptr<TcpEndPoint> cli = connector->createClient("\x02\x19\xFF");
 
   executor.runLoop();
 
@@ -210,7 +210,7 @@ TEST(raft_InetTransport, zero_length_message) {
                               {2, "127.0.0.2:1708"} };
 
   auto connector = std::make_shared<TcpConnector>(&executor);
-  auto endpointCreator = [&](const std::string& address) -> RefPtr<EndPoint> {
+  auto endpointCreator = [&](const std::string& address) -> std::shared_ptr<EndPoint> {
     return nullptr;
   };
   auto transport = std::make_shared<InetTransport>(
@@ -220,7 +220,7 @@ TEST(raft_InetTransport, zero_length_message) {
   RaftTestHandler handler;
   transport->setHandler(&handler);
 
-  RefPtr<TcpEndPoint> cli = connector->createClient("\x00\x01\x02");
+  std::shared_ptr<TcpEndPoint> cli = connector->createClient("\x00\x01\x02");
 
   executor.runLoop();
 

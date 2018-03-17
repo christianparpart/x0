@@ -43,7 +43,7 @@ class PeerConnection;
  */
 class InetTransport : public Transport {
  public:
-  typedef std::function<RefPtr<TcpEndPoint>(const std::string&)>
+  typedef std::function<std::shared_ptr<TcpEndPoint>(const std::string&)>
       EndPointCreator;
 
   InetTransport(const Discovery* discovery,
@@ -65,8 +65,8 @@ class InetTransport : public Transport {
   std::unique_ptr<TcpConnection> create(TcpConnector* connector, TcpEndPoint* endpoint);
 
  private:
-  RefPtr<TcpEndPoint> getEndPoint(Id target);
-  void watchEndPoint(Id target, RefPtr<TcpEndPoint> ep);
+  std::shared_ptr<TcpEndPoint> getEndPoint(Id target);
+  void watchEndPoint(Id target, std::shared_ptr<TcpEndPoint> ep);
   void onClose(Id target);
   friend class PeerConnection;
 
@@ -78,7 +78,7 @@ class InetTransport : public Transport {
   std::shared_ptr<TcpConnector> connector_;
 
   std::mutex endpointLock_;
-  std::unordered_map<Id, RefPtr<TcpEndPoint>> endpoints_;
+  std::unordered_map<Id, std::shared_ptr<TcpEndPoint>> endpoints_;
 };
 
 } // namespace raft

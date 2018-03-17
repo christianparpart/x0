@@ -8,8 +8,6 @@
 #pragma once
 
 #include <xzero/Api.h>
-#include <xzero/RefCounted.h>
-#include <xzero/RefPtr.h>
 #include <xzero/Result.h>
 #include <xzero/Duration.h>
 #include <xzero/RuntimeError.h>
@@ -38,7 +36,7 @@ inline bool operator!(PromiseStatus s) {
 }
 
 template <typename T>
-class PromiseState : public RefCounted {
+class PromiseState : public std::enable_shared_from_this<PromiseState<T>> {
  public:
   PromiseState();
   ~PromiseState();
@@ -60,7 +58,7 @@ class PromiseState : public RefCounted {
 };
 
 template <>
-class PromiseState<void> : public RefCounted {
+class PromiseState<void> : public std::enable_shared_from_this<PromiseState<void>> {
  public:
   PromiseState();
   ~PromiseState();
@@ -83,7 +81,7 @@ class Future {
  public:
   typedef T value_type;
 
-  Future(RefPtr<PromiseState<T>> promise_state);
+  Future(std::shared_ptr<PromiseState<T>> promise_state);
   Future(const Future<T>& other);
   Future(Future<T>&& other);
   ~Future();
@@ -138,7 +136,7 @@ class Future {
   }
 
  protected:
-  RefPtr<PromiseState<T>> state_;
+  std::shared_ptr<PromiseState<T>> state_;
 };
 
 template<>
@@ -146,7 +144,7 @@ class Future<void> {
  public:
   typedef void value_type;
 
-  Future(RefPtr<PromiseState<value_type>> promise_state);
+  Future(std::shared_ptr<PromiseState<value_type>> promise_state);
   Future(const Future<value_type>& other);
   Future(Future<value_type>&& other);
   ~Future();
@@ -194,7 +192,7 @@ class Future<void> {
   }
 
  protected:
-  RefPtr<PromiseState<value_type>> state_;
+  std::shared_ptr<PromiseState<value_type>> state_;
 };
 
 template <typename T>
@@ -217,7 +215,7 @@ class Promise {
   bool isFulfilled() const;
 
  protected:
-  mutable RefPtr<PromiseState<T>> state_;
+  mutable std::shared_ptr<PromiseState<T>> state_;
 };
 
 template <>
@@ -241,7 +239,7 @@ class Promise<void> {
   bool isFulfilled() const;
 
  protected:
-  mutable RefPtr<PromiseState<value_type>> state_;
+  mutable std::shared_ptr<PromiseState<value_type>> state_;
 };
 } // namespace xzero
 

@@ -35,7 +35,7 @@ PromiseState<T>::~PromiseState() {
 }
 
 template <typename T>
-Future<T>::Future(RefPtr<PromiseState<T>> state) : state_(state) {}
+Future<T>::Future(std::shared_ptr<PromiseState<T>> state) : state_(state) {}
 
 template <typename T>
 Future<T>::Future(const Future<T>& other) : state_(other.state_) {}
@@ -280,7 +280,7 @@ inline PromiseState<void>::~PromiseState() {
 }
 // }}}
 // {{{ Future<void>
-inline Future<void>::Future(RefPtr<PromiseState<void>> state) : state_(state) {}
+inline Future<void>::Future(std::shared_ptr<PromiseState<void>> state) : state_(state) {}
 
 inline Future<void>::Future(const Future<void>& other) : state_(other.state_) {}
 

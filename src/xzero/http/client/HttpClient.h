@@ -10,7 +10,6 @@
 #include <xzero/Uri.h>
 #include <xzero/Buffer.h>
 #include <xzero/HugeBuffer.h>
-#include <xzero/RefPtr.h>
 #include <xzero/Option.h>
 #include <xzero/Duration.h>
 #include <xzero/CustomDataMgr.h>
@@ -69,10 +68,10 @@ class HttpClient : public CustomData {
              Duration keepAlive);
 
   HttpClient(Executor* executor,
-             RefPtr<TcpEndPoint> upstream,
+             std::shared_ptr<TcpEndPoint> upstream,
              Duration keepAlive);
 
-  using CreateEndPoint = std::function<Future<RefPtr<TcpEndPoint>>()>;
+  using CreateEndPoint = std::function<Future<std::shared_ptr<TcpEndPoint>>()>;
 
   HttpClient(Executor* executor,
              CreateEndPoint endpointCreator,
@@ -106,10 +105,10 @@ class HttpClient : public CustomData {
             HttpListener* responseListener);
 
  private:
-  Future<RefPtr<TcpEndPoint>> createTcp(InetAddress addr,
-                                        Duration connectTimeout,
-                                        Duration readTimeout,
-                                        Duration writeTimeout);
+  Future<std::shared_ptr<TcpEndPoint>> createTcp(InetAddress addr,
+                                                 Duration connectTimeout,
+                                                 Duration readTimeout,
+                                                 Duration writeTimeout);
   void execute();
 
   class ResponseBuilder;
@@ -118,7 +117,7 @@ class HttpClient : public CustomData {
   Executor* executor_;
   CreateEndPoint createEndPoint_;
   Duration keepAlive_;
-  RefPtr<TcpEndPoint> endpoint_;
+  std::shared_ptr<TcpEndPoint> endpoint_;
 
   Request request_;
   HttpListener* listener_;

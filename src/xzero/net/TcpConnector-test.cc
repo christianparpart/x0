@@ -123,7 +123,7 @@ TEST(TcpConnector, echoServer) {
   connector->start();
   logf("Listening on port $0", connector->port());
 
-  Future<RefPtr<TcpEndPoint>> f = TcpEndPoint::connect(
+  Future<std::shared_ptr<TcpEndPoint>> f = TcpEndPoint::connect(
       InetAddress("127.0.0.1", connector->port()),
       5_seconds, 5_seconds, 5_seconds, &sched);
 
@@ -134,7 +134,7 @@ TEST(TcpConnector, echoServer) {
     connector->stop();
   };
 
-  auto onConnectionEstablished = [&](RefPtr<TcpEndPoint> ep) {
+  auto onConnectionEstablished = [&](std::shared_ptr<TcpEndPoint> ep) {
     ep->setConnection(std::make_unique<EchoClientConnection>(ep.get(), &sched, "ping", onClientReceived));
     ep->connection()->onOpen(false);
   };
@@ -182,7 +182,7 @@ TEST(TcpConnector, detectProtocols) {
   connector->start();
   logf("Listening on port $0", connector->port());
 
-  Future<RefPtr<TcpEndPoint>> f = TcpEndPoint::connect(
+  Future<std::shared_ptr<TcpEndPoint>> f = TcpEndPoint::connect(
       InetAddress("127.0.0.1", connector->port()),
       5_seconds, 5_seconds, 5_seconds, &sched);
 
@@ -193,7 +193,7 @@ TEST(TcpConnector, detectProtocols) {
     connector->stop();
   };
 
-  auto onConnectionEstablished = [&](RefPtr<TcpEndPoint> ep) {
+  auto onConnectionEstablished = [&](std::shared_ptr<TcpEndPoint> ep) {
     log("onConnectionEstablished");
     Buffer text;
     connector->loadConnectionFactorySelector("yeah", &text);

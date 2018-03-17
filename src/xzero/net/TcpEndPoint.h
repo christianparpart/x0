@@ -13,6 +13,7 @@
 #include <xzero/thread/Future.h>
 #include <xzero/net/InetAddress.h>
 #include <xzero/executor/Executor.h>
+#include <memory>
 #include <atomic>
 
 namespace xzero {
@@ -26,7 +27,7 @@ class FileView;
  *
  * @see TcpConnector
  */
-class TcpEndPoint : public RefCounted {
+class TcpEndPoint : public std::enable_shared_from_this<TcpEndPoint> {
  public:
   using Callback = std::function<void(TcpEndPoint*)>;
   using ProtocolCallback = std::function<void(const std::string&, TcpEndPoint*)>;
@@ -63,11 +64,11 @@ class TcpEndPoint : public RefCounted {
    * @param writeTimeout TcpEndPoint-write timeout.
    * @param executor Task scheduler used for I/O.
    */
-  static Future<RefPtr<TcpEndPoint>> connect(const InetAddress& address,
-                                             Duration connectTimeout,
-                                             Duration readTimeout,
-                                             Duration writeTimeout,
-                                             Executor* executor);
+  static Future<std::shared_ptr<TcpEndPoint>> connect(const InetAddress& address,
+                                                      Duration connectTimeout,
+                                                      Duration readTimeout,
+                                                      Duration writeTimeout,
+                                                      Executor* executor);
 
   /**
    * Native operating system handle to the file descriptor.

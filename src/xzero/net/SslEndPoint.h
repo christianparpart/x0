@@ -51,7 +51,7 @@ class SslEndPoint : public TcpEndPoint {
    * @param createApplicationConnection Factory method for instanciating the
    *                                    application protocol
    */
-  static Future<RefPtr<SslEndPoint>> connect(
+  static Future<std::shared_ptr<SslEndPoint>> connect(
       const InetAddress& target,
       Executor* executor,
       const std::string& sni,
@@ -75,7 +75,7 @@ class SslEndPoint : public TcpEndPoint {
    * @param createApplicationConnection Factory method for instanciating the
    *                                    application protocol
    */
-  static Future<RefPtr<SslEndPoint>> connect(
+  static Future<std::shared_ptr<SslEndPoint>> connect(
       const InetAddress& target,
       Duration connectTimeout,
       Duration readTimeout,
@@ -99,7 +99,7 @@ class SslEndPoint : public TcpEndPoint {
    * @param createApplicationConnection Factory method for instanciating the
    *                                    application protocol
    */
-  static Future<RefPtr<SslEndPoint>> start(
+  static Future<std::shared_ptr<SslEndPoint>> start(
       FileDescriptor&& fd,
       int addressFamily,
       Duration readTimeout,
@@ -184,8 +184,8 @@ class SslEndPoint : public TcpEndPoint {
   static Buffer makeProtocolList(const std::vector<std::string>& protos);
 
  private:
-  void onClientHandshake(Promise<RefPtr<SslEndPoint>> promise);
-  void onClientHandshakeDone(Promise<RefPtr<SslEndPoint>> promise);
+  void onClientHandshake(Promise<std::shared_ptr<SslEndPoint>> promise);
+  void onClientHandshakeDone(Promise<std::shared_ptr<SslEndPoint>> promise);
   void onServerHandshake();
   void fillable();
   void flushable();

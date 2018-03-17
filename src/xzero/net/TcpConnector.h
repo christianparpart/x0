@@ -13,7 +13,6 @@
 #include <xzero/executor/Executor.h> // for Executor::HandleRef
 #include <xzero/net/TcpConnection.h>
 #include <xzero/Duration.h>
-#include <xzero/RefPtr.h>
 #include <unordered_map>
 #include <vector>
 #include <list>
@@ -273,7 +272,7 @@ class TcpConnector {
   /**
    * Retrieves list of currently connected endpoints.
    */
-  std::list<RefPtr<TcpEndPoint>> connectedEndPoints();
+  std::list<std::shared_ptr<TcpEndPoint>> connectedEndPoints();
 
   /**
    * Registeres a new connection factory.
@@ -349,14 +348,14 @@ class TcpConnector {
    * @param cfd       client's file descriptor
    * @param executor  client's designated I/O scheduler
    */
-  virtual RefPtr<TcpEndPoint> createEndPoint(int cfd, Executor* executor);
+  virtual std::shared_ptr<TcpEndPoint> createEndPoint(int cfd, Executor* executor);
 
   /**
    * By default, creates TcpConnection from default connection factory and initiates it.
    *
    * Initiated via @c TcpConnection::onOpen().
    */
-  virtual void onEndPointCreated(RefPtr<TcpEndPoint> endpoint);
+  virtual void onEndPointCreated(std::shared_ptr<TcpEndPoint> endpoint);
 
   /**
    * Accepts as many pending connections as possible.
@@ -386,7 +385,7 @@ class TcpConnector {
   IPAddress bindAddress_;
   int port_;
 
-  std::list<RefPtr<TcpEndPoint>> connectedEndPoints_;
+  std::list<std::shared_ptr<TcpEndPoint>> connectedEndPoints_;
   std::mutex mutex_;
   FileDescriptor socket_;
   int addressFamily_;

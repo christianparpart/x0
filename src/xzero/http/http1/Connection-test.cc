@@ -143,7 +143,7 @@ static const Duration maxKeepAlive = 30_seconds;
 TEST(http_http1_Connection, ConnectionClose_1_1) {
   MOCK_HTTP1_SERVER(connector, executor);
 
-  xzero::RefPtr<LocalEndPoint> ep;
+  std::shared_ptr<LocalEndPoint> ep;
   executor.execute([&] {
     ep = connector.createClient("GET / HTTP/1.1\r\n"
                                 "Host: test\r\n"
@@ -162,7 +162,7 @@ TEST(http_http1_Connection, ConnectionClose_1_1) {
 TEST(http_http1_Connection, ConnectionClose_1_0) {
   MOCK_HTTP1_SERVER(connector, executor);
 
-  xzero::RefPtr<LocalEndPoint> ep;
+  std::shared_ptr<LocalEndPoint> ep;
   executor.execute([&] {
     ep = connector.createClient("GET / HTTP/1.0\r\n"
                                 "\r\n");
@@ -180,7 +180,7 @@ TEST(http_http1_Connection, ConnectionClose_1_0) {
 TEST(http_http1_Connection, ConnectionKeepAlive_1_0) {
   MOCK_HTTP1_SERVER(connector, executor);
 
-  xzero::RefPtr<LocalEndPoint> ep;
+  std::shared_ptr<LocalEndPoint> ep;
   executor.execute([&] {
     ep = connector.createClient("GET /hello HTTP/1.0\r\n"
                                 "Connection: Keep-Alive\r\n"
@@ -200,7 +200,7 @@ TEST(http_http1_Connection, ConnectionKeepAlive_1_0) {
 TEST(http_http1_Connection, ConnectionKeepAlive_1_1) {
   MOCK_HTTP1_SERVER(connector, executor);
 
-  xzero::RefPtr<LocalEndPoint> ep;
+  std::shared_ptr<LocalEndPoint> ep;
   executor.execute([&] {
     ep = connector.createClient("GET /hello HTTP/1.1\r\n"
                                 "Host: test\r\n"
@@ -225,7 +225,7 @@ TEST(http_http1_Connection, ConnectionKeepAlive_1_1) {
 TEST(http_http1_Connection, ConnectionKeepAlive3_pipelined) {
   //SCOPED_LOGGER();
   MOCK_HTTP1_SERVER(connector, executor);
-  xzero::RefPtr<LocalEndPoint> ep;
+  std::shared_ptr<LocalEndPoint> ep;
   executor.execute([&] {
     ep = connector.createClient("GET /one HTTP/1.1\r\nHost: test\r\n\r\n"
                                 "GET /two HTTP/1.1\r\nHost: test\r\n\r\n"
@@ -261,7 +261,7 @@ TEST(http_http1_Connection, ConnectionKeepAlive3_pipelined) {
 TEST(http_http1_Connection, protocolErrorShouldRaise400) {
   // SCOPED_LOGGER();
   MOCK_HTTP1_SERVER(connector, executor);
-  xzero::RefPtr<TcpEndPoint> ep;
+  std::shared_ptr<TcpEndPoint> ep;
   executor.execute([&] {
     // FIXME HTTP/1.1 (due to keep-alive) SEGV's on LocalEndPoint.
     ep = connector.createClient("GET\r\n\r\n");

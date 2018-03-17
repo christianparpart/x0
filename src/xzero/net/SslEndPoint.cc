@@ -49,7 +49,7 @@ std::error_category& SslErrorCategory::get() {
 }
 // }}}
 
-Future<RefPtr<SslEndPoint>> SslEndPoint::connect(
+Future<std::shared_ptr<SslEndPoint>> SslEndPoint::connect(
       const InetAddress& target,
       Duration connectTimeout,
       Duration readTimeout,
@@ -59,24 +59,24 @@ Future<RefPtr<SslEndPoint>> SslEndPoint::connect(
       const std::vector<std::string>& applicationProtocolsSupported,
       ProtocolCallback connectionFactory) {
 
-  Promise<RefPtr<SslEndPoint>> promise;
+  Promise<std::shared_ptr<SslEndPoint>> promise;
 
   Future<int> fd = TcpUtil::connect(target, connectTimeout, executor);
   fd.onFailure(promise);
 
-  fd.onSuccess([=](int& socket) {
+  fd.onSuccess([=, endpoint = std::shared_ptr<SslEndPoint>{}](int& socket) mutable {
     TRACE("connect: fd $0 connected", socket);
-    auto endpoint = make_ref<SslEndPoint>(FileDescriptor{socket},
-                                          target.family(),
-                                          readTimeout,
-                                          writeTimeout,
-                                          executor,
-                                          sni,
-                                          applicationProtocolsSupported,
-                                          connectionFactory);
+    endpoint = std::make_shared<SslEndPoint>(FileDescriptor{socket},
+                                             target.family(),
+                                             readTimeout,
+                                             writeTimeout,
+                                             executor,
+                                             sni,
+                                             applicationProtocolsSupported,
+                                             connectionFactory);
 
     // XXX inc ref to keep it alive during async Ops
-    endpoint->ref();
+    // TODO: FIXME^^: endpoint->ref();
 
     endpoint->onClientHandshake(promise);
   });
@@ -178,7 +178,7 @@ void SslEndPoint::close() {
 #else
   TcpEndPoint::close();
 #endif
-  unref(); // XXX: <- incremented in client connect
+  // FIXME unref(); // XXX: <- incremented in client connect
 }
 
 void SslEndPoint::shutdown() {
@@ -187,7 +187,7 @@ void SslEndPoint::shutdown() {
   TRACE("$0 close: SSL_shutdown -> $1", this, rv);
   if (rv == 1) {
     TcpEndPoint::close();
-    unref(); // XXX: <- incremented in client connect
+    // FIXME unref(); // XXX: <- incremented in client connect
   } else if (rv == 0) {
     // call again
     shutdown();
@@ -196,7 +196,7 @@ void SslEndPoint::shutdown() {
       case SSL_ERROR_SYSCALL:
         // consider done
         TcpEndPoint::close();
-        unref(); // XXX: <- incremented in client connect
+        // FIXME unref(); // XXX: <- incremented in client connect
         break;
       case SSL_ERROR_WANT_READ:
         io_ = executor_->executeOnReadable(
@@ -319,7 +319,7 @@ void SslEndPoint::wantRead() {
 
 void SslEndPoint::fillable() {
   TRACE("$0 fillable()", this);
-  RefPtr<TcpEndPoint> _guard(this);
+  std::shared_ptr<TcpEndPoint> _guard(shared_from_this());
   try {
     io_.reset();
     bioDesire_ = Desire::None;
@@ -358,7 +358,7 @@ std::string SslEndPoint::toString() const {
   return std::string(buf, n);
 }
 
-void SslEndPoint::onClientHandshake(Promise<RefPtr<SslEndPoint>> promise) {
+void SslEndPoint::onClientHandshake(Promise<std::shared_ptr<SslEndPoint>> promise) {
   int rv = SSL_connect(ssl_);
   switch (SSL_get_error(ssl_, rv)) {
     case SSL_ERROR_NONE:
@@ -377,13 +377,13 @@ void SslEndPoint::onClientHandshake(Promise<RefPtr<SslEndPoint>> promise) {
       promise.failure(ec);
       logDebug("SslEndPoint: Client handshake error. $0", ec.message());
       TcpEndPoint::close();
-      unref(); // XXX: <- incremented in client connect
+      // FIXME unref(); // XXX: <- incremented in client connect
       break;
     }
   }
 }
 
-void SslEndPoint::onClientHandshakeDone(Promise<RefPtr<SslEndPoint>> promise) {
+void SslEndPoint::onClientHandshakeDone(Promise<std::shared_ptr<SslEndPoint>> promise) {
   if (X509* cert = SSL_get_peer_certificate(ssl_)) {
     // ...
     X509_free(cert);
@@ -394,7 +394,7 @@ void SslEndPoint::onClientHandshakeDone(Promise<RefPtr<SslEndPoint>> promise) {
 
   if (connection()) {
     connection()->onOpen(false);
-    promise.success(RefPtr<SslEndPoint>(this));
+    promise.success(std::shared_ptr<SslEndPoint>(this));
   } else {
     TRACE("Couldn't create application protocol layer. closing.");
     close();
@@ -428,7 +428,7 @@ void SslEndPoint::onServerHandshake() {
   } else {
     // create associated TcpConnection object and run it
     bioDesire_ = Desire::None;
-    RefPtr<TcpEndPoint> _guard(this);
+    std::shared_ptr<TcpEndPoint> _guard = shared_from_this();
     std::string protocolName = applicationProtocolName().str();
     TRACE("$0 handshake complete (next protocol: \"$1\")", this, protocolName.c_str());
 
@@ -443,7 +443,7 @@ void SslEndPoint::onServerHandshake() {
 
 void SslEndPoint::flushable() {
   TRACE("$0 flushable()", this);
-  RefPtr<TcpEndPoint> _guard(this);
+  std::shared_ptr<TcpEndPoint> _guard = shared_from_this();
   try {
     io_.reset();
     bioDesire_ = Desire::None;

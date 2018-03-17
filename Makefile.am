@@ -215,8 +215,6 @@ nobase_libXzero_HEADERS = \
 	src/xzero/Option.h \
 	src/xzero/PrefixTree.h \
 	src/xzero/Random.h \
-	src/xzero/RefCounted.h \
-	src/xzero/RefPtr.h \
 	src/xzero/RegExp.h \
 	src/xzero/Result-inl.h \
 	src/xzero/Result.h \
@@ -546,7 +544,6 @@ xzero_test_SOURCES = \
 	src/xzero/raft/Parser-test.cc \
 	src/xzero/raft/Server-test.cc \
 	src/xzero/raft/ServerUtil-test.cc \
-	src/xzero/RefPtr-test.cc \
 	src/xzero/Result-test.cc \
 	src/xzero/StringUtil-test.cc \
 	src/xzero/TokenShaper-test.cc \

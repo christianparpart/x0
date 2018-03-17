@@ -223,12 +223,12 @@ std::unique_ptr<TcpConnection> InetTransport::create(TcpConnector* connector,
                                           endpoint);
 }
 
-RefPtr<TcpEndPoint> InetTransport::getEndPoint(Id target) {
+std::shared_ptr<TcpEndPoint> InetTransport::getEndPoint(Id target) {
   {
     std::lock_guard<decltype(endpointLock_)> lk(endpointLock_);
     auto i = endpoints_.find(target);
     if (i != endpoints_.end()) {
-      RefPtr<TcpEndPoint> ep = i->second;
+      std::shared_ptr<TcpEndPoint> ep = i->second;
       endpoints_.erase(i);
       ep->setBlocking(false);
       return ep;
@@ -239,7 +239,7 @@ RefPtr<TcpEndPoint> InetTransport::getEndPoint(Id target) {
   if (address.isFailure())
     return nullptr;
 
-  RefPtr<TcpEndPoint> ep = endpointCreator_(*address);
+  std::shared_ptr<TcpEndPoint> ep = endpointCreator_(*address);
   if (ep) {
     ep->setConnection(std::make_unique<PeerConnection>(this,
                                                        handlerExecutor_,
@@ -251,7 +251,7 @@ RefPtr<TcpEndPoint> InetTransport::getEndPoint(Id target) {
   return ep;
 }
 
-void InetTransport::watchEndPoint(Id target, RefPtr<TcpEndPoint> ep) {
+void InetTransport::watchEndPoint(Id target, std::shared_ptr<TcpEndPoint> ep) {
   std::lock_guard<decltype(endpointLock_)> lk(endpointLock_);
 
   endpoints_[target] = ep;
@@ -269,7 +269,7 @@ void InetTransport::onClose(Id target) {
 }
 
 void InetTransport::send(Id target, const VoteRequest& msg) {
-  if (RefPtr<TcpEndPoint> ep = getEndPoint(target)) {
+  if (std::shared_ptr<TcpEndPoint> ep = getEndPoint(target)) {
     Buffer buffer;
     Generator(BufferUtil::writer(&buffer)).generateVoteRequest(msg);
     ep->write(buffer);
@@ -278,7 +278,7 @@ void InetTransport::send(Id target, const VoteRequest& msg) {
 }
 
 void InetTransport::send(Id target, const AppendEntriesRequest& msg) {
-  if (RefPtr<TcpEndPoint> ep = getEndPoint(target)) {
+  if (std::shared_ptr<TcpEndPoint> ep = getEndPoint(target)) {
     Buffer buffer;
     Generator(BufferUtil::writer(&buffer)).generateAppendEntriesRequest(msg);
     ep->write(buffer);
@@ -287,7 +287,7 @@ void InetTransport::send(Id target, const AppendEntriesRequest& msg) {
 }
 
 void InetTransport::send(Id target, const InstallSnapshotRequest& msg) {
-  if (RefPtr<TcpEndPoint> ep = getEndPoint(target)) {
+  if (std::shared_ptr<TcpEndPoint> ep = getEndPoint(target)) {
     Buffer buffer;
     Generator(BufferUtil::writer(&buffer)).generateInstallSnapshotRequest(msg);
     ep->write(buffer);

@@ -16,7 +16,6 @@
 #include <xzero/RuntimeError.h>
 #include <xzero/Buffer.h>
 #include <xzero/sysconfig.h>
-#include <xzero/RefPtr.h>
 #include <stdexcept>
 #include <netinet/tcp.h>
 #include <unistd.h>
@@ -276,7 +275,7 @@ void TcpEndPoint::wantRead() {
 }
 
 void TcpEndPoint::fillable() {
-  RefPtr<TcpEndPoint> _guard(this);
+  std::shared_ptr<TcpEndPoint> _guard = shared_from_this();
 
   try {
     io_.reset();
@@ -304,7 +303,8 @@ void TcpEndPoint::wantWrite() {
 
 void TcpEndPoint::flushable() {
   TRACE("$0 flushable()", this);
-  RefPtr<TcpEndPoint> _guard(this);
+  std::shared_ptr<TcpEndPoint> _guard = shared_from_this();
+
   try {
     io_.reset();
     connection()->onWriteable();
@@ -332,7 +332,7 @@ class TcpConnectState {
   Duration readTimeout;
   Duration writeTimeout;
   Executor* executor;
-  Promise<RefPtr<TcpEndPoint>> promise;
+  Promise<std::shared_ptr<TcpEndPoint>> promise;
 
   void onTimeout() {
     TRACE("$0 onTimeout: connecting timed out", this);
@@ -346,12 +346,12 @@ class TcpConnectState {
     if (getsockopt(fd, SOL_SOCKET, SO_ERROR, &val, &vlen) == 0) {
       if (val == 0) {
         TRACE("$0 onConnectComplete: Connected.", this);
-        promise.success(make_ref<TcpEndPoint>(FileDescriptor{fd},
-                                              address.family(),
-                                              readTimeout,
-                                              writeTimeout,
-                                              executor,
-                                              nullptr));
+        promise.success(std::make_shared<TcpEndPoint>(FileDescriptor{fd},
+                                                      address.family(),
+                                                      readTimeout,
+                                                      writeTimeout,
+                                                      executor,
+                                                      nullptr));
       } else {
         DEBUG("Connecting to $0 failed. $1", address, strerror(val));
         promise.failure(std::make_error_code(static_cast<std::errc>(val)));
@@ -364,11 +364,11 @@ class TcpConnectState {
   }
 };
 
-Future<RefPtr<TcpEndPoint>> TcpEndPoint::connect(const InetAddress& address,
-                                                 Duration connectTimeout,
-                                                 Duration readTimeout,
-                                                 Duration writeTimeout,
-                                                 Executor* executor) {
+Future<std::shared_ptr<TcpEndPoint>> TcpEndPoint::connect(const InetAddress& address,
+                                                          Duration connectTimeout,
+                                                          Duration readTimeout,
+                                                          Duration writeTimeout,
+                                                          Executor* executor) {
   int flags = 0;
 #if defined(SOCK_CLOEXEC)
   flags |= SOCK_CLOEXEC;
@@ -377,7 +377,7 @@ Future<RefPtr<TcpEndPoint>> TcpEndPoint::connect(const InetAddress& address,
   flags |= SOCK_NONBLOCK;
 #endif
 
-  Promise<RefPtr<TcpEndPoint>> promise;
+  Promise<std::shared_ptr<TcpEndPoint>> promise;
 
   int fd = socket(address.family(), SOCK_STREAM | flags, IPPROTO_TCP);
   if (fd < 0) {
@@ -392,12 +392,12 @@ Future<RefPtr<TcpEndPoint>> TcpEndPoint::connect(const InetAddress& address,
   std::error_code ec = TcpUtil::connect(fd, address);
   if (!ec) {
     TRACE("connect: connected instantly");
-    promise.success(make_ref<TcpEndPoint>(FileDescriptor{fd},
-                                          address.family(),
-                                          readTimeout,
-                                          writeTimeout,
-                                          executor,
-                                          nullptr));
+    promise.success(std::make_shared<TcpEndPoint>(FileDescriptor{fd},
+                                                  address.family(),
+                                                  readTimeout,
+                                                  writeTimeout,
+                                                  executor,
+                                                  nullptr));
   } else if (ec == std::errc::operation_in_progress) {
     TRACE("connect: backgrounding");
     auto state = new TcpConnectState{address, fd, readTimeout, writeTimeout,

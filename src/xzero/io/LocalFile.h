@@ -9,7 +9,6 @@
 
 #include <xzero/Api.h>
 #include <xzero/io/File.h>
-#include <xzero/RefPtr.h>
 #include <string>
 #include <functional>
 #include <unordered_map>
