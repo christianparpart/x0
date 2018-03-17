@@ -7,7 +7,7 @@
 
 #include <xzero/UnixSignals.h>
 #include <xzero/io/FileDescriptor.h>
-#include <xzero/RefPtr.h>
+#include <memory>
 #include <mutex>
 #include <atomic>
 #include <vector>
@@ -29,7 +29,7 @@ class KQueueSignals : public UnixSignals {
   Executor* executor_;
   FileDescriptor fd_;
   sigset_t oldSignalMask_;
-  std::vector<std::list<RefPtr<SignalWatcher>>> watchers_;
+  std::vector<std::list<std::shared_ptr<SignalWatcher>>> watchers_;
   std::atomic<size_t> interests_;
   std::mutex mutex_;
 };

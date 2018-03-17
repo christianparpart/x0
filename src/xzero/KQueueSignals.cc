@@ -46,7 +46,7 @@ KQueueSignals::HandleRef KQueueSignals::notify(int signo, SignalHandler task) {
     blockSignal(signo);
   }
 
-  RefPtr<SignalWatcher> hr(new SignalWatcher(task));
+  std::shared_ptr<SignalWatcher> hr(new SignalWatcher(task));
   watchers_[signo].emplace_back(hr);
 
   if (interests_.load() == 0) {
@@ -80,18 +80,18 @@ void KQueueSignals::onSignal() {
     break;
   }
 
-  std::vector<RefPtr<SignalWatcher>> pending;
+  std::vector<std::shared_ptr<SignalWatcher>> pending;
   pending.reserve(rv);
   {
     // move pending signals out of the watchers
     std::lock_guard<std::mutex> _l(mutex_);
     for (int i = 0; i < rv; ++i) {
       int signo = events[i].ident;
-      std::list<RefPtr<SignalWatcher>>& watchers = watchers_[signo];
+      std::list<std::shared_ptr<SignalWatcher>>& watchers = watchers_[signo];
 
       logDebug("KQueueSignals: Caught signal $0.", toString(signo));
 
-      for (RefPtr<SignalWatcher>& watcher: watchers) {
+      for (std::shared_ptr<SignalWatcher>& watcher: watchers) {
         watcher->info.signal = signo;
       }
 
@@ -108,7 +108,7 @@ void KQueueSignals::onSignal() {
   }
 
   // notify interests
-  for (RefPtr<SignalWatcher>& hr: pending) {
+  for (std::shared_ptr<SignalWatcher>& hr: pending) {
     executor_->execute(std::bind(&SignalWatcher::fire, hr));
   }
 }
