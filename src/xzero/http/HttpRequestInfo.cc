@@ -11,11 +11,11 @@
 namespace xzero {
 namespace http {
 
+#define DEBUG(msg...) logDebug(msg)
+
 #ifndef NDEBUG
-# define DEBUG(msg...) logDebug("http.HttpRequestInfo: " msg)
 # define TRACE(msg...) logTrace("http.HttpRequestInfo: " msg)
 #else
-# define DEBUG(msg...) do {} while (0)
 # define TRACE(msg...) do {} while (0)
 #endif
 
@@ -301,7 +301,7 @@ bool HttpRequestInfo::setUri(const std::string& uri) {
         query_ = unparsedUri_.substr((i - unparsedUri_.data()) - 1, e - i);
         goto done;
       default:
-        throw std::runtime_error("Internal error. Unhandled URI-parse state.");
+        logFatal("Internal error. Unhandled URI-parse state.");
     }
   }
 
