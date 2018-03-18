@@ -50,7 +50,6 @@ enum class Status {
   SslPrivateKeyCheckError,
   OptionUncheckedAccessToInstance,
   CaughtUnknownExceptionError,
-  ConfigurationError,
   AlreadyWatchingOnResource,
   CompressionError,
   ProtocolError,

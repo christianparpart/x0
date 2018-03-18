@@ -72,7 +72,6 @@ std::string StatusCategory::message(int ec) const {
     case Status::SslPrivateKeyCheckError: return "Private Key Check Error";
     case Status::OptionUncheckedAccessToInstance: return "Unchecked access to Option instance";
     case Status::CaughtUnknownExceptionError: return "Caught Unknown exception Error";
-    case Status::ConfigurationError: return "Configuration Error";
     case Status::AlreadyWatchingOnResource: return "Already watching on resource";
     case Status::CompressionError: return "Compression error";
     case Status::ProtocolError: return "Protocol error";
