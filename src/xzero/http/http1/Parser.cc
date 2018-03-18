@@ -8,7 +8,6 @@
 #include <xzero/http/http1/Parser.h>
 #include <xzero/http/HttpListener.h>
 #include <xzero/http/HttpStatus.h>
-#include <xzero/http/BadMessage.h>
 #include <xzero/StringUtil.h>
 #include <xzero/logging.h>
 
