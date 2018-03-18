@@ -570,16 +570,16 @@ void CoreModule::workers_affinity(Params& args) {
   const FlowIntArray& affinities = args.getIntArray(1);
 
   if (affinities.empty())
-    RAISE(ConfigurationError, "invalid array size");
+    throw ConfigurationError{"invalid array size"};
 
   FlowNumber numCPU = cpuCount();
 
   for (FlowNumber affinity: affinities)
     if (affinity >= numCPU)
-      RAISE(ConfigurationError,
+      throw ConfigurationError{StringUtil::format(
             "Worker's CPU affinity $0 too high. "
             "The value must be between 0 and $1.",
-            numCPU);
+            affinity, numCPU)};
 
   daemon().config_->workers = affinities.size();
 

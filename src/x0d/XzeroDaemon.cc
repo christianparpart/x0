@@ -296,13 +296,9 @@ bool XzeroDaemon::applyConfiguration(std::unique_ptr<flow::Program>&& program) {
 
     postConfig();
     return true;
-  } catch (const RuntimeError& e) {
-    if (e == Status::ConfigurationError) {
-      logError("Configuration failed. $0", e.what());
-      return false;
-    }
-
-    throw;
+  } catch (const ConfigurationError& e) {
+    logError("Configuration failed. $0", e.what());
+    return false;
   }
 }
 
@@ -392,7 +388,7 @@ void XzeroDaemon::startThreads() {
 
 void XzeroDaemon::postConfig() {
   if (config_->listeners.empty()) {
-    RAISE(ConfigurationError, "No listeners configured.");
+    throw ConfigurationError{"No listeners configured."};
   }
 
 #if defined(XZERO_WSL)
@@ -444,7 +440,7 @@ void XzeroDaemon::postConfig() {
   for (const ListenerConfig& l: config_->listeners) {
     if (l.ssl) {
       if (config_->sslContexts.empty()) {
-        RAISE(ConfigurationError, "SSL listeners found but no SSL contexts configured.");
+        throw ConfigurationError{"SSL listeners found but no SSL contexts configured."};
       }
       logNotice("Starting HTTPS listener on $0:$1", l.bindAddress, l.port);
       setupConnector<SslConnector>(
@@ -502,8 +498,8 @@ void XzeroDaemon::validateContext(const std::string& entrypointHandlerName,
                                   flow::UnitSym* unit) {
   auto entrypointFn = unit->findHandler(entrypointHandlerName);
   if (!entrypointFn)
-    RAISE(RuntimeError, "No handler with name %s found.",
-                        entrypointHandlerName.c_str());
+      throw ConfigurationError{StringUtil::format("No handler with name $0 found.",
+                                                  entrypointHandlerName)};
 
   flow::FlowCallVisitor callVisitor(entrypointFn);
   auto calls = callVisitor.calls();
@@ -526,7 +522,7 @@ void XzeroDaemon::validateContext(const std::string& entrypointHandlerName,
   }
 
   if (errorCount) {
-    RAISE(RuntimeError, "Configuration validation failed.");
+    throw ConfigurationError{"Configuration validation failed."};
   }
 }
 

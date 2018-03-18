@@ -122,7 +122,7 @@ void ProxyModule::proxy_pseudonym(xzero::flow::Params& args) {
 
   for (char ch: value) {
     if (!std::isalnum(ch) && ch != '_' && ch != '-' && ch != '.') {
-      RAISE(ConfigurationError, "Invalid character found in proxy.pseudonym");
+      throw ConfigurationError{"Invalid character found in proxy.pseudonym"};
     }
   }
 

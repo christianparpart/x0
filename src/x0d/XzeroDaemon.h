@@ -56,6 +56,11 @@ namespace x0d {
 class XzeroModule;
 class XzeroEventHandler;
 
+class ConfigurationError : public std::runtime_error {
+ public:
+  explicit ConfigurationError(const std::string& diagnostics) : std::runtime_error(diagnostics) {}
+};
+
 class XzeroDaemon : public xzero::flow::Runtime {
  public:
   typedef xzero::Callback<void(xzero::Connection*)> ConnectionHook;
