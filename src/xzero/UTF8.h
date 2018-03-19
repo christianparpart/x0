@@ -18,6 +18,10 @@ namespace xzero {
 
 class UTF8 {
 public:
+  class EncodingError : public std::runtime_error {
+   public:
+    EncodingError(const char* what) : std::runtime_error(what) {}
+  };
 
   static char32_t nextCodepoint(const char** cur, const char* end);
 

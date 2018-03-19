@@ -8,6 +8,7 @@
 #pragma once
 
 #include <cassert>
+#include <stdexcept>
 #include <xzero/RuntimeError.h>
 
 namespace xzero {
@@ -24,6 +25,7 @@ template <typename T>
 PromiseState<T>::~PromiseState() {
   switch (status) {
   case PromiseStatus::UNDEFINED:
+    throw std::future_error{};
     //RAISE_STATUS(FutureError);
     break;
   case PromiseStatus::SUCCESS:
@@ -115,7 +117,8 @@ T& Future<T>::get() {
   std::unique_lock<std::mutex> lk(state_->mutex);
 
   if (!state_->status) {
-    RAISE(FutureError, "get() called on pending future");
+    // RAISE(FutureError, "get() called on pending future");
+    throw std::future_error{};
   }
 
   if (state_->error)
@@ -129,7 +132,8 @@ const T& Future<T>::get() const {
   std::unique_lock<std::mutex> lk(state_->mutex);
 
   if (!state_->status) {
-    RAISE(FutureError, "get() called on pending future");
+    // RAISE(FutureError, "get() called on pending future");
+    throw std::future_error{};
   }
 
   if (state_->error)
@@ -143,11 +147,12 @@ const std::error_code& Future<T>::error() const {
   std::unique_lock<std::mutex> lk(state_->mutex);
 
   if (!state_->status) {
-    RAISE(FutureError, "error() called on pending future");
+    // RAISE(FutureError, "error() called on pending future");
+    throw std::future_error{};
   }
 
   if (!state_->error)
-    RAISE(InternalError, "erorr() called but no error received");
+    logFatal("error() called but no error received");
 
   return state_->error;
 }
@@ -211,7 +216,8 @@ template <typename T>
 void Promise<T>::failure(const std::error_code& error) const {
   std::unique_lock<std::mutex> lk(state_->mutex);
   if (state_->status != PromiseStatus::UNDEFINED) {
-    RAISE(FutureError, "promise was already fulfilled");
+    // (FutureError, "promise was already fulfilled");
+    throw std::future_error{};
   }
 
   state_->error = error;

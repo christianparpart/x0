@@ -25,6 +25,11 @@ namespace xzero {
 class Wakeup;
 struct UnixSignalInfo;
 
+class TimeoutError : public std::runtime_error {
+ public:
+  TimeoutError(const std::string& msg) : std::runtime_error(msg) {}
+};
+
 /**
  * Closure Execution Service API.
  *

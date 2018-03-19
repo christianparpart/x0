@@ -95,7 +95,7 @@ HttpStatus HttpFileHandler::handle(HttpRequest* request,
       // 412
       return status;
     default:
-      RAISE(InternalError); // internal bug; unhandled status code
+      logFatal("internal bug; unhandled status code");
   }
 
   switch (transferFile->errorCode()) {

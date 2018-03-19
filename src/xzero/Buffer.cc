@@ -94,7 +94,7 @@ std::string BufferRef::hexdump(
     case HexDumpMode::PrettyAscii:
       return hexdumpPrettyAscii(bytes, length);
     default:
-      RAISE(InvalidArgumentError);
+      throw std::invalid_argument{"mode"};
   }
 }
 

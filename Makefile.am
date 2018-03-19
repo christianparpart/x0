@@ -62,7 +62,6 @@ libXzero_a_SOURCES = \
 	src/xzero/RegExp.cc \
 	src/xzero/RuntimeError.cc \
 	src/xzero/StackTrace.cc \
-	src/xzero/Status.cc \
 	src/xzero/StringUtil.cc \
 	src/xzero/TokenShaper.cc \
 	src/xzero/Tokenizer.cc \
@@ -220,7 +219,6 @@ nobase_libXzero_HEADERS = \
 	src/xzero/Result.h \
 	src/xzero/RuntimeError.h \
 	src/xzero/StackTrace.h \
-	src/xzero/Status.h \
 	src/xzero/StringUtil-impl.h \
 	src/xzero/StringUtil.h \
 	src/xzero/SuffixTree.h \

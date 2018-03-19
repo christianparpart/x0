@@ -95,7 +95,7 @@ void ResponseParser::onMessageEnd() {
 }
 
 void ResponseParser::onError(std::error_code ec) {
-  // TODO promise_->failure(Status::ForeignError);
+  // TODO promise_->failure(ec);
 }
 // }}}
 class ScopedLogger { // {{{

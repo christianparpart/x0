@@ -85,25 +85,6 @@ namespace testing {
         #actual, (actual));                                                   \
   }
 
-#define EXPECT_THROW_STATUS(status, program)                                  \
-  do {                                                                        \
-    try {                                                                     \
-      program;                                                                \
-      ::xzero::testing::UnitTest::instance()->reportEH(                       \
-          __FILE__, __LINE__, false, #program, #status,                       \
-          "<no exception thrown>");                                           \
-    } catch (const RuntimeError& rt) {                                        \
-      if (rt != ::xzero::Status:: status) {                                   \
-        ::xzero::testing::UnitTest::instance()->reportEH(                     \
-            __FILE__, __LINE__, false, #program, #status, rt.what());         \
-      }                                                                       \
-      break;                                                                  \
-    } catch (...) {                                                           \
-      ::xzero::testing::UnitTest::instance()->reportEH(                       \
-          __FILE__, __LINE__, false, #program, #status, "<foreign>");         \
-    }                                                                         \
-  } while (0)
-
 #define EXPECT_THROW(program, ExceptionType)                                  \
   do {                                                                        \
     try {                                                                     \
@@ -171,25 +152,6 @@ namespace testing {
         #expected, (expected),                                                \
         #actual, (actual));                                                   \
   }
-
-#define ASSERT_THROW_STATUS(status, program)                                  \
-  do {                                                                        \
-    try {                                                                     \
-      program;                                                                \
-      ::xzero::testing::UnitTest::instance()->reportEH(                       \
-          __FILE__, __LINE__, true, #program, #status,                        \
-          "<no exception thrown>");                                           \
-    } catch (const RuntimeError& rt) {                                        \
-      if (rt != ::xzero::Status:: status) {                                   \
-        ::xzero::testing::UnitTest::instance()->reportEH(                     \
-            __FILE__, __LINE__, true, #program, #status, rt.what());          \
-      }                                                                       \
-      break;                                                                  \
-    } catch (...) {                                                           \
-      ::xzero::testing::UnitTest::instance()->reportEH(                       \
-          __FILE__, __LINE__, true, #program, #status, "<foreign>");          \
-    }                                                                         \
-  } while (0)
 
 #define ASSERT_THROW(program, ExceptionType)                                  \
   do {                                                                        \

@@ -96,14 +96,14 @@ void HttpChannel::setState(HttpChannelState newState) {
 
 void HttpChannel::addOutputFilter(std::shared_ptr<Filter> filter) {
   if (response()->isCommitted())
-    RAISE(IllegalStateError, "Invalid State. Cannot add output filters after commit.");
+    throw std::domain_error{"Invalid State. Cannot add output filters after commit."};
 
   outputFilters_.push_back(filter);
 }
 
 void HttpChannel::removeAllOutputFilters() {
   if (response()->isCommitted())
-    RAISE(IllegalStateError, "Invalid State. Cannot add output filters after commit.");
+    throw std::domain_error{"Invalid State. Cannot add output filters after commit."};
 
   outputFilters_.clear();
 }
@@ -188,7 +188,7 @@ void HttpChannel::onBeforeSend() {
 
   if (state() != HttpChannelState::HANDLING &&
       state() != HttpChannelState::READING) {
-    RAISE(IllegalStateError, "Invalid state (" + as_string(state()) + ". Creating a new send object not allowed.");
+    std::domain_error{"Invalid state (" + as_string(state()) + ". Creating a new send object not allowed."};
   }
 
   //XXX setState(HttpChannelState::SENDING);
@@ -207,7 +207,7 @@ void HttpChannel::onBeforeSend() {
 
 HttpResponseInfo& HttpChannel::commitInline() {
   if (!response_->status())
-    RAISE(IllegalStateError, "No HTTP response status set yet.");
+    std::domain_error{"No HTTP response status set yet."};
 
   onPostProcess_();
 
@@ -241,7 +241,7 @@ void HttpChannel::commit(CompletionHandler onComplete) {
 
 void HttpChannel::send100Continue(CompletionHandler onComplete) {
   if (!request()->expect100Continue())
-    RAISE(IllegalStateError, "Illegal State. no 100-continue expected.");
+    throw std::domain_error{"Illegal State. no 100-continue expected."};
 
   request()->setExpect100Continue(false);
 
@@ -367,14 +367,14 @@ void HttpChannel::completed() {
   if (request_->method() != HttpMethod::HEAD &&
       response_->hasContentLength() &&
       response_->actualContentLength() < response_->contentLength()) {
-    RAISE(RuntimeError,
+    throw std::domain_error{StringUtil::format(
           "Attempt to complete() a response before having written the full response body (%zu of %zu).",
           response_->actualContentLength(),
-          response_->contentLength());
+          response_->contentLength())};
   }
 
   if (state() != HttpChannelState::HANDLING) {
-    RAISE(IllegalStateError, "HttpChannel.completed invoked but state is not in HANDLING.");
+    throw std::domain_error{"HttpChannel.completed invoked but state is not in HANDLING."};
   }
 
   if (!outputFilters_.empty()) {

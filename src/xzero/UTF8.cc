@@ -24,7 +24,7 @@ char32_t UTF8::nextCodepoint(const char** cur, const char* end_) {
 
   if ((*begin & 0b11100000) == 0b11000000) {
     if (begin + 1 >= end) {
-      RAISE(EncodingError, "invalid UTF8 encoding");
+      throw EncodingError{"invalid UTF8 encoding"};
     }
 
     char32_t chr;
@@ -36,7 +36,7 @@ char32_t UTF8::nextCodepoint(const char** cur, const char* end_) {
 
   if ((*begin & 0b11110000) == 0b11100000) {
     if (begin + 2 >= end) {
-      RAISE(EncodingError, "invalid UTF8 encoding");
+      throw EncodingError{"invalid UTF8 encoding"};
     }
 
     char32_t chr;
@@ -49,7 +49,7 @@ char32_t UTF8::nextCodepoint(const char** cur, const char* end_) {
 
   if ((*begin & 0b11111000) == 0b11110000) {
     if (begin + 3 >= end) {
-      RAISE(EncodingError, "invalid UTF8 encoding");
+      throw EncodingError{"invalid UTF8 encoding"};
     }
 
     char32_t chr;
@@ -63,7 +63,7 @@ char32_t UTF8::nextCodepoint(const char** cur, const char* end_) {
 
   if ((*begin & 0b11111100) == 0b11111000) {
     if (begin + 4 >= end) {
-      RAISE(EncodingError, "invalid UTF8 encoding");
+      throw EncodingError{"invalid UTF8 encoding"};
     }
 
     char32_t chr;
@@ -78,7 +78,7 @@ char32_t UTF8::nextCodepoint(const char** cur, const char* end_) {
 
   if ((*begin & 0b11111110) == 0b11111100) {
     if (begin + 5 >= end) {
-      RAISE(EncodingError, "invalid UTF8 encoding");
+      throw EncodingError{"invalid UTF8 encoding"};
     }
 
     char32_t chr;
@@ -92,7 +92,7 @@ char32_t UTF8::nextCodepoint(const char** cur, const char* end_) {
     return chr;
   }
 
-  RAISE(EncodingError, "invalid UTF8 encoding");
+  throw EncodingError{"invalid UTF8 encoding"};
 }
 
 bool UTF8::isValidUTF8(const std::string& str) {

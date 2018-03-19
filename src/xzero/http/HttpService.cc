@@ -13,6 +13,7 @@
 #include <xzero/net/TcpConnector.h>
 #include <xzero/RuntimeError.h>
 #include <xzero/WallClock.h>
+#include <xzero/logging.h>
 #include <algorithm>
 #include <stdexcept>
 
@@ -40,9 +41,9 @@ HttpService::Protocol HttpService::getDefaultProtocol() {
   if (strcmp(env, "http1") == 0)
     return HttpService::HTTP1;
 
-  RAISE(RuntimeError,
-        "Invalid value for environment variable HTTP_TRANSPORT: \"%s\".",
-        env);
+  throw std::invalid_argument{"HTTP_TRANSPORT"};
+  // RuntimeError{"Invalid value for environment variable HTTP_TRANSPORT: \"%s\".",
+  //       env};
 }
 
 HttpService::HttpService(Protocol protocol)
@@ -62,7 +63,7 @@ TcpConnector* HttpService::configureTcp(Executor* executor,
                                         const IPAddress& ipaddress,
                                         int port, int backlog) {
   if (inetConnector_ != nullptr)
-    RAISE(RuntimeError, "Multiple inet connectors not yet supported.");
+    logFatal("Multiple inet connectors not yet supported.");
 
   inetConnector_ = std::make_unique<TcpConnector>(
       "http", executor,

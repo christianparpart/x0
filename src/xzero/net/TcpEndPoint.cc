@@ -282,10 +282,6 @@ void TcpEndPoint::fillable() {
     connection()->onReadable();
   } catch (const std::exception& e) {
     connection()->onInterestFailure(e);
-  } catch (...) {
-    connection()->onInterestFailure(
-        EXCEPTION(RuntimeError, (int) Status::CaughtUnknownExceptionError,
-                  StatusCategory::get()));
   }
 }
 
@@ -310,10 +306,6 @@ void TcpEndPoint::flushable() {
     connection()->onWriteable();
   } catch (const std::exception& e) {
     connection()->onInterestFailure(e);
-  } catch (...) {
-    connection()->onInterestFailure(
-        EXCEPTION(RuntimeError, (int) Status::CaughtUnknownExceptionError,
-                  StatusCategory::get()));
   }
 }
 

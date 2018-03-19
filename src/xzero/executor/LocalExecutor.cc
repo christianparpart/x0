@@ -73,19 +73,19 @@ Executor::HandleRef LocalExecutor::executeOnWritable(int fd, Task task, Duration
 }
 
 void LocalExecutor::cancelFD(int fd) {
-  RAISE(NotImplementedError); // TODO
+  logFatal("NotImplementedError"); // TODO
 }
 
 Executor::HandleRef LocalExecutor::executeAfter(Duration delay, Task task) {
-  RAISE(NotImplementedError); // TODO
+  logFatal("NotImplementedError"); // TODO
 }
 
 Executor::HandleRef LocalExecutor::executeAt(UnixTime ts, Task task) {
-  RAISE(NotImplementedError); // TODO
+  logFatal("NotImplementedError"); // TODO
 }
 
 void LocalExecutor::executeOnWakeup(Task task, Wakeup* wakeup, long generation) {
-  RAISE(NotImplementedError); // TODO
+  logFatal("NotImplementedError"); // TODO
 }
 
 std::string LocalExecutor::toString() const {

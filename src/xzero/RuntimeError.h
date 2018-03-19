@@ -8,7 +8,6 @@
 #pragma once
 
 #include <xzero/Api.h>
-#include <xzero/Status.h>
 #include <xzero/StackTrace.h>
 #include <iosfwd>
 #include <vector>
@@ -29,12 +28,6 @@ class RuntimeError : public std::system_error {
   template<typename... Args>
   RuntimeError(int ev, const std::error_category& ec, const char* fmt, Args... args);
 
-  explicit RuntimeError(Status ev);
-  RuntimeError(Status ev, const std::string& what);
-
-  template<typename... Args>
-  RuntimeError(Status ev, const char* fmt, Args... args);
-
   ~RuntimeError();
 
   template<typename T = RuntimeError>
@@ -45,10 +38,6 @@ class RuntimeError : public std::system_error {
 
   // XXX for backwards-compatibility only
   [[deprecated]] const char* typeName() const;
-  [[deprecated]] bool ofType(Status ev) const;
-
-  bool operator==(Status status) const;
-  bool operator!=(Status status) const;
 
   std::vector<std::string> backtrace() const;
 
@@ -81,16 +70,6 @@ template<typename... Args>
 inline RuntimeError::RuntimeError(int ev, const std::error_category& ec,
                                   const char* fmt, Args... args)
   : RuntimeError(ev, ec, cformat(fmt, args...)) {
-}
-
-template<typename... Args>
-inline RuntimeError::RuntimeError(
-    Status ev,
-    const char* fmt,
-    Args... args)
-  : RuntimeError((int) ev,
-                 StatusCategory::get(),
-                 cformat(fmt, args...)) {
 }
 
 inline RuntimeError::RuntimeError(const std::error_code& ec)
@@ -156,31 +135,10 @@ inline RuntimeError::RuntimeError(const std::error_code& ec)
 }
 
 /**
- * Raises a RuntimeError for error codes of type Status.
- *
- * @param StatusCode must be a member field of Status.
- */
-#define RAISE_STATUS(StatusCode)                                              \
-  RAISE_CATEGORY((::xzero::Status:: StatusCode), ::xzero::StatusCategory::get())
-
-/**
- * Alias to RAISE_STATUS(StatusCode).
- *
- * @param StatusCode must be a member of the enum class Status.
- */
-#define RAISE(...) {                                                          \
-  throw (RuntimeError(Status:: __VA_ARGS__).setSource(__FILE__, __LINE__, __PRETTY_FUNCTION__));  \
-}
-  //RAISE_EXCEPTION(RuntimeError, (int) Status:: __VA_ARGS__);
-
-/**
  * Raises an exception on given evaluated expression conditional.
  */
 #define BUG_ON(cond) {                                                        \
   if (unlikely(cond)) {                                                       \
-    RAISE_EXCEPTION(RuntimeError,                                             \
-        (int) Status::InternalError,                                          \
-        StatusCategory::get(),                                                \
-        "BUG ON: (" #cond ")");                                               \
+    logFatal(#cond);                                                          \
   }                                                                           \
 }

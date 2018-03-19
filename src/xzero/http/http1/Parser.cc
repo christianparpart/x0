@@ -8,6 +8,7 @@
 #include <xzero/http/http1/Parser.h>
 #include <xzero/http/HttpListener.h>
 #include <xzero/http/HttpStatus.h>
+#include <xzero/http/BadMessage.h>
 #include <xzero/StringUtil.h>
 #include <xzero/logging.h>
 
@@ -1018,7 +1019,7 @@ void Parser::onMessageBegin(const BufferRef& method,
   HttpVersion version = make_version(versionMajor, versionMinor);
 
   if (version == HttpVersion::UNKNOWN)
-    RAISE_HTTP(HttpVersionNotSupported);
+    throw BadMessage{HttpStatus::HttpVersionNotSupported};
 
   if (listener_)
     listener_->onMessageBegin(method, entity, version);
@@ -1028,7 +1029,7 @@ void Parser::onMessageBegin(int versionMajor, int versionMinor,
                                 int status, const BufferRef& text) {
   HttpVersion version = make_version(versionMajor, versionMinor);
   if (version == HttpVersion::UNKNOWN)
-    RAISE_HTTP(HttpVersionNotSupported);
+    throw BadMessage{HttpStatus::HttpVersionNotSupported};
 
   if (!listener_)
     return;

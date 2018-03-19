@@ -114,11 +114,11 @@ Executor::HandleRef ThreadedExecutor::executeOnReadable(int fd, Task task, Durat
 }
 
 Executor::HandleRef ThreadedExecutor::executeOnWritable(int fd, Task task, Duration timeout, Task onTimeout) {
-  RAISE(NotImplementedError); // TODO
+  logFatal("NotImplementedError"); // TODO
 }
 
 void ThreadedExecutor::cancelFD(int fd) {
-  RAISE(NotImplementedError); // TODO
+  logFatal("NotImplementedError"); // TODO
 }
 
 Executor::HandleRef ThreadedExecutor::executeAfter(Duration delay, Task task) {

@@ -7,12 +7,12 @@
 
 #include <xzero/Uri.h>
 #include <xzero/StringUtil.h>
-#include <xzero/RuntimeError.h>
+#include <xzero/logging.h>
 
 namespace xzero {
 
 std::string Uri::encode(const std::string& str) {
-  RAISE_STATUS(NotImplementedError);
+  logFatal("NotImplementedError");
 }
 
 std::string Uri::decode(const std::string& str) {
@@ -24,7 +24,7 @@ std::string Uri::decode(const std::string& str) {
     if (*begin == '%') {
       char hex[3];
       if (++begin + 2 > end) {
-        RAISE_STATUS(EncodingError);
+        throw std::invalid_argument{"Decoding error"};
       }
       hex[0] = *begin++;
       hex[1] = *begin++;
@@ -234,7 +234,7 @@ void Uri::parseURI(
           try {
             *port = std::stoi(port_str);
           } catch (const std::exception& e) {
-            RAISE_STATUS(InvalidUriPortError);
+            throw std::invalid_argument{"Decoding error. Invalid URI port."};
           }
         }
       }

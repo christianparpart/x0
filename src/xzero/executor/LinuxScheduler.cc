@@ -145,7 +145,8 @@ Executor::HandleRef LinuxScheduler::createWatcher(
   TRACE("createWatcher(fd: $0, mode: $1, timeout: $2)", fd, mode, timeout);
 
   if (watchers_.find(fd) != watchers_.end()) {
-    RAISE(AlreadyWatchingOnResource, "Already watching on resource");
+    // RAISE(AlreadyWatchingOnResource, "Already watching on resource");
+    logFatal("LinuxScheduler: Already watching on resource");
   }
 
   Watcher* interest = new Watcher(fd, mode, task, MonotonicClock::now() + timeout, tcb);

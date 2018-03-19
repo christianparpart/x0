@@ -1095,7 +1095,7 @@ inline bool MutableBuffer<ensure>::resize(size_t value) {
 template <void (*ensure)(void*, size_t)>
 inline void MutableBuffer<ensure>::truncate(size_t value) {
   if (value > capacity_) {
-    RAISE(IndexError, "requested size out of bounds");
+    throw std::out_of_range{"out of range"};
   }
 
   size_ = value;

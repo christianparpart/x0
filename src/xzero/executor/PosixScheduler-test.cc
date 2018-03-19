@@ -204,20 +204,20 @@ TEST(PosixSchedulerTest, executeOnReadable_timeout_on_cancelled) {
 //   AlreadyWatchingOnResource()
 //       : RuntimeError("Already watching on resource") {}
 // };
+
+// TEST(PosixSchedulerTest, executeOnReadable_twice_on_same_fd) {
+//   TheScheduler sched;
+//   SystemPipe pipe;
 // 
-TEST(PosixSchedulerTest, executeOnReadable_twice_on_same_fd) {
-  TheScheduler sched;
-  SystemPipe pipe;
-
-  sched.executeOnReadable(pipe.readerFd(), [] () {});
-
-  EXPECT_THROW_STATUS(AlreadyWatchingOnResource,
-                      sched.executeOnReadable(pipe.readerFd(), [] () {}));
-
-  // same fd, different mode
-  EXPECT_THROW_STATUS(AlreadyWatchingOnResource,
-                      sched.executeOnWritable(pipe.readerFd(), [] () {}));
-}
+//   sched.executeOnReadable(pipe.readerFd(), [] () {});
+// 
+//   EXPECT_THROW_STATUS(AlreadyWatchingOnResource,
+//                       sched.executeOnReadable(pipe.readerFd(), [] () {}));
+// 
+//   // same fd, different mode
+//   EXPECT_THROW_STATUS(AlreadyWatchingOnResource,
+//                       sched.executeOnWritable(pipe.readerFd(), [] () {}));
+// }
 
 TEST(PosixSchedulerTest, executeOnWritable) {
   TheScheduler sched;

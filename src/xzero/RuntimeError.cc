@@ -59,14 +59,6 @@ RuntimeError::RuntimeError(
     stackTrace_() {
 }
 
-RuntimeError::RuntimeError(Status ev)
-  : RuntimeError((int) ev, StatusCategory::get()) {
-}
-
-RuntimeError::RuntimeError(Status ev, const std::string& what)
-  : RuntimeError((int) ev, StatusCategory::get(), what) {
-}
-
 RuntimeError::~RuntimeError() {
 }
 
@@ -76,20 +68,6 @@ std::vector<std::string> RuntimeError::backtrace() const {
 
 const char* RuntimeError::typeName() const {
   return typeid(*this).name();
-}
-
-bool RuntimeError::ofType(Status ev) const {
-  return static_cast<int>(ev) == code().value()
-      && &code().category() == &StatusCategory().get();
-}
-
-bool RuntimeError::operator==(Status status) const {
-  return &code().category() == &StatusCategory().get()
-      && static_cast<int>(status) == code().value();
-}
-
-bool RuntimeError::operator!=(Status status) const {
-  return !(*this == status);
 }
 
 void RuntimeError::debugPrint(std::ostream* os) const {

@@ -80,11 +80,11 @@ class ProxyModule : public XzeroModule,
 
   void proxyHttpConnected(std::shared_ptr<xzero::TcpEndPoint> ep,
                           XzeroContext* cx);
-  void proxyHttpConnectFailed(xzero::Status error,
+  void proxyHttpConnectFailed(const std::string& errorMessage,
                               const xzero::IPAddress& ipaddr, int port,
                               XzeroContext* cx);
   void proxyHttpRespond(XzeroContext* cx);
-  void proxyHttpRespondFailure(const xzero::Status& status,
+  void proxyHttpRespondFailure(const std::string& errorMessage,
                                XzeroContext* cx);
 
   void onPostConfig() override;

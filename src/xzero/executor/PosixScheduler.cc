@@ -380,14 +380,16 @@ PosixScheduler::HandleRef PosixScheduler::setupWatcher(
   if (static_cast<size_t>(fd) >= watchers_.size()) {
     // we cannot dynamically resize here without also updating the doubly linked
     // list as a realloc() can potentially change memory locations.
-    RAISE(IOError, "fd number too high");
+    logFatal("fd number too high");
   }
 
   Watcher* interest = watchers_[fd].get();
 
-  if (interest->fd >= 0)
-    RAISE(AlreadyWatchingOnResource, "Already watching on resource");
+  if (interest->fd >= 0) {
+    logFatal("PosixScheduler: Already watching on resource");
+    //RAISE(AlreadyWatchingOnResource, "Already watching on resource");
     //RAISE_STATUS(AlreadyWatchingOnResource);
+  }
 
   interest->reset(fd, mode, task, timeout, tcb);
 
@@ -597,7 +599,7 @@ void PosixScheduler::waitForReadable(int fd, Duration timeout) {
   int res = select(fd + 1, &input, &output, &input, &tv);
 
   if (res == 0) {
-    RAISE(IOError, "unexpected timeout while select()ing");
+    throw TimeoutError{"unexpected timeout while select()ing"};
   }
 
   if (res == -1) {
@@ -615,7 +617,7 @@ void PosixScheduler::waitForReadable(int fd) {
   int res = select(fd + 1, &input, &output, &input, nullptr);
 
   if (res == 0) {
-    RAISE(IOError, "unexpected timeout while select()ing");
+    throw TimeoutError{"unexpected timeout while select()ing"};
   }
 
   if (res == -1) {
@@ -636,7 +638,7 @@ void PosixScheduler::waitForWritable(int fd, Duration timeout) {
   int res = select(fd + 1, &input, &output, &input, &tv);
 
   if (res == 0) {
-    RAISE(IOError, "unexpected timeout while select()ing");
+    throw TimeoutError{"unexpected timeout while select()ing"};
   }
 
   if (res == -1) {
@@ -655,7 +657,7 @@ void PosixScheduler::waitForWritable(int fd) {
   int res = select(fd + 1, &input, &output, &input, nullptr);
 
   if (res == 0) {
-    RAISE(IOError, "unexpected timeout while select()ing");
+    throw TimeoutError{"unexpected timeout while select()ing"};
   }
 
   if (res == -1) {

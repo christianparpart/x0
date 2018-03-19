@@ -6,7 +6,7 @@
 // the License at: http://opensource.org/licenses/MIT
 
 #include <xzero-flow/FlowType.h>
-#include <xzero/RuntimeError.h>
+#include <xzero/logging.h>
 
 namespace xzero {
 namespace flow {
@@ -38,7 +38,7 @@ std::string tos(FlowType type) {
     case FlowType::CidrArray:
       return "CidrArray";
     default:
-      RAISE_STATUS(InvalidArgumentError);
+      logFatal("InvalidArgumentError");
   }
 }
 
@@ -74,7 +74,7 @@ FlowType elementTypeOf(FlowType type) {
     case FlowType::CidrArray:
       return FlowType::Cidr;
     default:
-      RAISE_STATUS(InvalidArgumentError);
+      logFatal("InvalidArgumentError");
   }
 }
 

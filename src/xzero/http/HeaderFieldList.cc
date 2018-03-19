@@ -39,14 +39,14 @@ void HeaderFieldList::push_back(HeaderFieldList&& list) {
 
 void HeaderFieldList::push_back(const HeaderField& field) {
   if (field.name().empty())
-    RAISE(RuntimeError, "Invalid field name.");
+    throw std::invalid_argument{"field"};
 
   entries_.emplace_back(field);
 }
 
 void HeaderFieldList::push_back(HeaderField&& field) {
   if (field.name().empty())
-    RAISE(RuntimeError, "Invalid field name.");
+    throw std::invalid_argument{"field"};
 
   entries_.emplace_back(std::move(field));
 }
@@ -54,7 +54,7 @@ void HeaderFieldList::push_back(HeaderField&& field) {
 void HeaderFieldList::push_back(const std::string& name,
                                 const std::string& value) {
   if (name.empty())
-    RAISE(RuntimeError, "Invalid field name.");
+    throw std::invalid_argument{"field"};
 
   entries_.emplace_back(name, value);
 }
@@ -63,7 +63,7 @@ void HeaderFieldList::push_back(const std::string& name,
                                 const std::string& value,
                                 bool sensitive) {
   if (name.empty())
-    RAISE(RuntimeError, "Invalid field name.");
+    throw std::invalid_argument{"field"};
 
   entries_.emplace_back(name, value, sensitive);
 }
@@ -71,7 +71,7 @@ void HeaderFieldList::push_back(const std::string& name,
 void HeaderFieldList::overwrite(const std::string& name,
                                 const std::string& value) {
   if (name.empty())
-    RAISE(RuntimeError, "Invalid field name.");
+    throw std::invalid_argument{"field"};
 
   remove(name);
   push_back(name, value);
@@ -154,7 +154,7 @@ const std::string& HeaderFieldList::operator[](const std::string& name) const {
 
 const HeaderField& HeaderFieldList::operator[](size_t index) const {
   if (index >= entries_.size())
-    RAISE(IndexError, "Index out of bounds");
+    throw std::out_of_range{"Index out of bounds"};
 
   auto i = entries_.begin();
   auto e = entries_.end();

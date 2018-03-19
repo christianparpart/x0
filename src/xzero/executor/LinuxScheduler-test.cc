@@ -233,19 +233,19 @@ TEST(LinuxSchedulerTest, executeOnReadable_timeout_on_cancelled) {
 //       : RuntimeError("Already watching on resource") {}
 // };
 
-TEST(LinuxSchedulerTest, executeOnReadable_twice_on_same_fd) {
-  TheScheduler sched;
-  SystemPipe pipe;
-
-  sched.executeOnReadable(pipe.readerFd(), [] () {});
-
-  EXPECT_THROW_STATUS(AlreadyWatchingOnResource,
-                      sched.executeOnReadable(pipe.readerFd(), [] () {}));
-
-  // same fd, different mode
-  EXPECT_THROW_STATUS(AlreadyWatchingOnResource,
-                      sched.executeOnWritable(pipe.readerFd(), [] () {}));
-}
+// TEST(LinuxSchedulerTest, executeOnReadable_twice_on_same_fd) {
+//   TheScheduler sched;
+//   SystemPipe pipe;
+// 
+//   sched.executeOnReadable(pipe.readerFd(), [] () {});
+// 
+//   EXPECT_THROW_STATUS(AlreadyWatchingOnResource,
+//                       sched.executeOnReadable(pipe.readerFd(), [] () {}));
+// 
+//   // same fd, different mode
+//   EXPECT_THROW_STATUS(AlreadyWatchingOnResource,
+//                       sched.executeOnWritable(pipe.readerFd(), [] () {}));
+// }
 
 TEST(LinuxSchedulerTest, executeOnWritable) {
   TheScheduler sched;

@@ -13,7 +13,6 @@
 #include <xzero/util/BinaryReader.h>
 #include <xzero/util/BinaryWriter.h>
 #include <xzero/BufferUtil.h>
-#include <xzero/Status.h>
 #include <xzero/logging.h>
 #include <stdlib.h>
 #include <assert.h>
@@ -117,11 +116,11 @@ void MemoryStore::truncateLog(Index last) {
 }
 
 std::error_code MemoryStore::saveSnapshot(std::unique_ptr<std::ostream>&& state, Term term, Index lastIndex) {
-  return makeErrorCode(Status::NotImplementedError);
+  logFatal("Not implemented yet.");
 }
 
 std::error_code MemoryStore::loadSnapshot(std::unique_ptr<std::istream>&& state, Term* term, Index* lastIndex) {
-  return makeErrorCode(Status::NotImplementedError);
+  logFatal("Not implemented yet.");
 }
 // }}}
 
@@ -197,7 +196,7 @@ std::error_code FileStore::setVotedFor(Id id, Term term) {
 }
 
 std::error_code FileStore::setCurrentTerm(Term currentTerm) {
-  return makeErrorCode(Status::NotImplementedError);
+  logFatal("Not implemented yet.");
 }
 
 Term FileStore::currentTerm() {
@@ -268,18 +267,18 @@ void FileStore::writeLoop() {
 }
 
 Result<LogEntry> FileStore::getLogEntry(Index index) {
-  return makeErrorCode(Status::NotImplementedError);
+  logFatal("Not implemented yet.");
 }
 
 void FileStore::truncateLog(Index last) {
 }
 
 std::error_code FileStore::saveSnapshot(std::unique_ptr<std::ostream>&& state, Term term, Index lastIndex) {
-  return makeErrorCode(Status::NotImplementedError);
+  logFatal("Not implemented yet.");
 }
 
 std::error_code FileStore::loadSnapshot(std::unique_ptr<std::istream>&& state, Term* term, Index* lastIndex) {
-  return makeErrorCode(Status::NotImplementedError);
+  logFatal("Not implemented yet.");
 }
 // }}}
 

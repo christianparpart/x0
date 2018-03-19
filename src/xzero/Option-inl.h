@@ -5,6 +5,8 @@
 // file except in compliance with the License. You may obtain a copy of
 // the License at: http://opensource.org/licenses/MIT
 
+#include <stdexcept>
+
 namespace xzero {
 
 template<typename T>
@@ -152,13 +154,13 @@ inline const T* Option<T>::operator->() const {
 template<typename T>
 inline void Option<T>::require() const {
   if (isNone())
-    RAISE(OptionUncheckedAccessToInstance);
+    std::runtime_error{"OptionUncheckedAccessToInstance"};
 }
 
 template<typename T>
 inline void Option<T>::requireNone() const {
   if (!isNone())
-    RAISE(OptionUncheckedAccessToInstance);
+    std::runtime_error{"OptionUncheckedAccessToInstance"};
 }
 
 template<typename T>

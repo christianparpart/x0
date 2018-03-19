@@ -47,7 +47,7 @@ void HttpResponse::recycle() {
 
 void HttpResponse::requireMutableInfo() {
   if (isCommitted())
-    RAISE(IllegalStateError, "Response already committed.");
+    throw std::domain_error{"Response already committed."};
 
   requireNotSendingAlready();
 }
@@ -60,7 +60,7 @@ void HttpResponse::requireNotSendingAlready() {
     case HttpChannelState::SENDING:
     default:
       // "Attempt to modify response while in wrong channel state."
-      RAISE(IllegalStateError, "Require not sending already.");
+      throw std::domain_error{"Require not sending already."};
   }
 }
 
@@ -111,7 +111,7 @@ static const std::vector<std::string> connectionHeaderFields = {
 inline void requireValidHeader(const std::string& name) {
   for (const auto& test: connectionHeaderFields)
     if (iequals(name, test)) {
-      RAISE(InvalidArgumentError);
+      throw std::invalid_argument{"name"};
     }
 }
 
@@ -175,7 +175,7 @@ void HttpResponse::send100Continue(CompletionHandler onComplete) {
 
 void HttpResponse::sendError(HttpStatus code, const std::string& message) {
   if (!isError(code))
-    RAISE(InvalidArgumentError);
+    throw std::invalid_argument{"code"};
 
   requireNotSendingAlready();
   channel_->setState(HttpChannelState::HANDLING);
@@ -194,7 +194,7 @@ void HttpResponse::registerTrailer(const std::string& name) {
 
   if (info_.trailers().contains(name))
     // "Trailer already registered."
-    RAISE(InvalidArgumentError);
+    throw std::invalid_argument{"name"};
 
   info_.trailers().push_back(name, "");
 }
@@ -206,7 +206,7 @@ void HttpResponse::appendTrailer(const std::string& name,
   requireValidHeader(name);
 
   if (!info_.trailers().contains(name))
-    RAISE(IllegalStateError, "Trailer not registered yet.");
+    throw std::invalid_argument{"name"}; // "Trailer not registered yet."
 
   info_.trailers().append(name, value, delim);
 }
@@ -216,7 +216,7 @@ void HttpResponse::setTrailer(const std::string& name, const std::string& value)
   requireValidHeader(name);
 
   if (!info_.trailers().contains(name))
-    RAISE(IllegalStateError, "Trailer not registered yet.");
+    throw std::invalid_argument{"name"}; // "Trailer not registered yet."
 
   info_.trailers().overwrite(name, value);
 }
