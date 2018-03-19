@@ -59,7 +59,7 @@ ThreadPool::ThreadPool(size_t num_threads, ExceptionHandler eh)
       activeWriters_(0) {
 
   if (num_threads < 1)
-    throw std::runtime_error("Invalid argument.");
+    throw std::invalid_argument{"num_threads"};
 
   for (size_t i = 0; i < num_threads; i++) {
     threads_.emplace_back(std::bind(&ThreadPool::work, this, i));

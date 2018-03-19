@@ -23,7 +23,7 @@ void FileView::read(Buffer* output) const {
     throw std::system_error(errno, std::system_category());
 
   if (static_cast<size_t>(n) != size())
-    RAISE(RuntimeError, "Did not read all required bytes from FileView.");
+    throw std::runtime_error{"Did not read all required bytes from FileView."};
 
   output->resize(output->size() + n);
 #else

@@ -80,8 +80,7 @@ void HttpFastCgiTransport::setCompleter(CompletionHandler onComplete) {
     return;
 
   if (onComplete_) {
-    // "there is still another completion hook."
-    RAISE(IllegalStateError);
+    throw InvalidState{"there is still another completion hook."};
   }
 
   onComplete_ = onComplete;
@@ -113,7 +112,7 @@ HttpFastCgiTransport::~HttpFastCgiTransport() {
 
 void HttpFastCgiTransport::abort() { // TODO
   TRACE_TRANSPORT("$0 abort!", this);
-  RAISE(NotImplementedError);
+  logFatal("NotImplementedError");
 
   // channel_->response()->setBytesTransmitted(generator_.bytesTransmitted());
   // channel_->responseEnd();
@@ -124,7 +123,7 @@ void HttpFastCgiTransport::completed() {
   TRACE_TRANSPORT("$0 completed()", this);
 
   if (onComplete_)
-    RAISE(IllegalStateError, "there is still another completion hook.");
+    throw InvalidState{"there is still another completion hook."};
 
   generator_.generateEnd();
 
@@ -256,8 +255,8 @@ void Connection::onReadable() {
   TRACE_CONN("$0 onReadable: calling read()", this);
   if (endpoint()->read(&inputBuffer_) == 0) {
     TRACE_CONN("$0 onReadable: read() returned 0", this);
-    // RAISE("client EOF");
     endpoint()->close();
+    // throw RemoteDisconnected{};
     return;
   }
 
@@ -338,9 +337,7 @@ void Connection::onAbortRequest(int request) {
 
 HttpChannel* Connection::createChannel(int request) {
   if (channels_.find(request) != channels_.end()) {
-    RAISE(IllegalStateError,
-          "FastCGI channel with ID %i already present.",
-          request);
+    throw InvalidState{"FastCGI channel with ID $0 already present.", request};
   }
 
   try {

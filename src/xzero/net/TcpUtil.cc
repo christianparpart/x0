@@ -107,7 +107,7 @@ int TcpUtil::getLocalPort(int socket, int addressFamily) {
       return ntohs(saddr.sin_port);
     }
     default: {
-      RAISE(IllegalStateError, "Invalid address family.");
+      throw std::logic_error{"TcpUtil::getLocalPort() invoked on invalid address family"};
     }
   }
 }

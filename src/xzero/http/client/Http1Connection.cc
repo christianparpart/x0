@@ -6,6 +6,7 @@
 // the License at: http://opensource.org/licenses/MIT
 
 #include <xzero/http/client/Http1Connection.h>
+#include <xzero/http/BadMessage.h>
 #include <xzero/http/HttpRequestInfo.h>
 #include <xzero/http/HttpRequestInfo.h>
 #include <xzero/net/TcpEndPoint.h>
@@ -149,7 +150,7 @@ void Http1Connection::send(HugeBuffer&& chunk, CompletionHandler onComplete) {
 
 void Http1Connection::completed() {
   if (!generator_.isChunked() && generator_.remainingContentLength() > 0)
-    RAISE(IllegalStateError, "Invalid State. Request not fully written but completed() invoked.");
+    throw InvalidState{"Request not fully written but completed() invoked."};
 
   setCompleter(std::bind(&Http1Connection::onRequestComplete, this,
                          std::placeholders::_1));
@@ -220,7 +221,7 @@ void Http1Connection::onInterestFailure(const std::exception& error) {
 
 void Http1Connection::setCompleter(CompletionHandler onComplete) {
   if (onComplete && onComplete_)
-    RAISE(IllegalStateError, "There is still another completion hook.");
+    throw InvalidState{"There is still another completion hook."};
 
   onComplete_ = std::move(onComplete);
 }

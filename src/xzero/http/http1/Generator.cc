@@ -138,7 +138,8 @@ void Generator::generateBody(const BufferRef& chunk) {
       actualContentLength_ += chunk.size();
       writer_->write(chunk);
     } else {
-      RAISE(RuntimeError, "HTTP body exceeds the expected content length.");
+      throw std::invalid_argument("chunk");
+      // ("HTTP body exceeds the expected content length.");
     }
   }
 }
@@ -175,7 +176,8 @@ void Generator::generateBody(Buffer&& chunk) {
       actualContentLength_ += chunk.size();
       writer_->write(std::move(chunk));
     } else {
-      RAISE(RuntimeError, "HTTP body exceeds the expected content length.");
+      throw std::invalid_argument{"chunk"};
+      // "HTTP body exceeds the expected content length.");
     }
   }
 }
@@ -202,7 +204,8 @@ void Generator::generateBody(FileView&& chunk) {
       actualContentLength_ += chunk.size();
       writer_->write(std::move(chunk));
     } else {
-      RAISE(RuntimeError, "HTTP body chunk exceeds content length.");
+      throw std::invalid_argument{"chunk"};
+      // "HTTP body chunk exceeds content length.");
     }
   }
 }
@@ -231,7 +234,7 @@ void Generator::generateRequestLine(const HttpRequestInfo& info) {
       buffer_.push_back(" HTTP/1.1\r\n");
       break;
     default:
-      RAISE(InvalidArgumentError, "Invalid HttpVersion passed.");
+      throw std::invalid_argument{"info.version"};
   }
 }
 
@@ -247,7 +250,7 @@ void Generator::generateResponseLine(const HttpResponseInfo& info) {
       buffer_.push_back("HTTP/1.1 ");
       break;
     default:
-      RAISE(IllegalStateError, "Invalid HTTP version.");
+      throw std::invalid_argument{"info.version"};
   }
 
   buffer_.push_back(static_cast<int>(info.status()));

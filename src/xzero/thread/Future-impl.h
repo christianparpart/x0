@@ -9,7 +9,7 @@
 
 #include <cassert>
 #include <stdexcept>
-#include <xzero/RuntimeError.h>
+#include <xzero/logging.h>
 
 namespace xzero {
 
@@ -25,8 +25,7 @@ template <typename T>
 PromiseState<T>::~PromiseState() {
   switch (status) {
   case PromiseStatus::UNDEFINED:
-    throw std::future_error{};
-    //RAISE_STATUS(FutureError);
+    logFatal("PromiseState is in undefined state.");
     break;
   case PromiseStatus::SUCCESS:
     value().~T();
@@ -117,8 +116,7 @@ T& Future<T>::get() {
   std::unique_lock<std::mutex> lk(state_->mutex);
 
   if (!state_->status) {
-    // RAISE(FutureError, "get() called on pending future");
-    throw std::future_error{};
+    logFatal("Future<T>::get() called on pending future.");
   }
 
   if (state_->error)
@@ -132,8 +130,7 @@ const T& Future<T>::get() const {
   std::unique_lock<std::mutex> lk(state_->mutex);
 
   if (!state_->status) {
-    // RAISE(FutureError, "get() called on pending future");
-    throw std::future_error{};
+    logFatal("Future<T>::get() called on pending future.");
   }
 
   if (state_->error)
@@ -147,12 +144,11 @@ const std::error_code& Future<T>::error() const {
   std::unique_lock<std::mutex> lk(state_->mutex);
 
   if (!state_->status) {
-    // RAISE(FutureError, "error() called on pending future");
-    throw std::future_error{};
+    logFatal("Future<T>::error() called on pending future.");
   }
 
   if (!state_->error)
-    logFatal("error() called but no error received");
+    logFatal("Future<T>::error() called but no error received.");
 
   return state_->error;
 }
@@ -216,8 +212,7 @@ template <typename T>
 void Promise<T>::failure(const std::error_code& error) const {
   std::unique_lock<std::mutex> lk(state_->mutex);
   if (state_->status != PromiseStatus::UNDEFINED) {
-    // (FutureError, "promise was already fulfilled");
-    throw std::future_error{};
+    logFatal("Future<T>::failure() called, but promise was already fulfilled.");
   }
 
   state_->error = error;
@@ -235,7 +230,7 @@ template <typename T>
 void Promise<T>::success(const T& value) const {
   std::unique_lock<std::mutex> lk(state_->mutex);
   if (state_->status != PromiseStatus::UNDEFINED) {
-    RAISE(FutureError, "promise was already fulfilled");
+    logFatal("Future<T>::success() called, but promise was already fulfilled");
   }
 
   new (state_->value_data) T(value);
@@ -253,7 +248,7 @@ template <typename T>
 void Promise<T>::success(T&& value) const {
   std::unique_lock<std::mutex> lk(state_->mutex);
   if (state_->status != PromiseStatus::UNDEFINED) {
-    RAISE(FutureError, "promise was already fulfilled");
+    logFatal("Future<T>::success() called, but promise was already fulfilled");
   }
 
   new (state_->value_data) T(std::move(value));
@@ -347,11 +342,11 @@ inline const std::error_code& Future<void>::error() const {
   std::unique_lock<std::mutex> lk(state_->mutex);
 
   if (!state_->status) {
-    RAISE(FutureError, "error() called on pending future");
+    logFatal("Future<>::error() called on pending future");
   }
 
   if (!state_->error)
-    RAISE(InternalError, "erorr() called but no error received");
+    logFatal("Future<>::error() called on pending future");
 
   return state_->error;
 }
@@ -390,7 +385,7 @@ inline void Promise<void>::failure(std::errc ec) const {
 inline void Promise<void>::failure(const std::error_code& error) const {
   std::unique_lock<std::mutex> lk(state_->mutex);
   if (state_->status != PromiseStatus::UNDEFINED) {
-    RAISE(FutureError, "promise was already fulfilled");
+    logFatal("Future<>::failure() called, but promise was already fulfilled.");
   }
 
   state_->error = error;
@@ -407,7 +402,7 @@ inline void Promise<void>::failure(const std::error_code& error) const {
 inline void Promise<void>::success() const {
   std::unique_lock<std::mutex> lk(state_->mutex);
   if (state_->status != PromiseStatus::UNDEFINED) {
-    RAISE(FutureError, "promise was already fulfilled");
+    logFatal("Future<>::success() called, but promise was already fulfilled.");
   }
 
   state_->status = PromiseStatus::SUCCESS;

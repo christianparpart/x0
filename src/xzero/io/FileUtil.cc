@@ -327,7 +327,7 @@ void FileUtil::write(int fd, const FileView& fileView) {
 }
 
 void FileUtil::copy(const std::string& from, const std::string& to) {
-  RAISE_STATUS(NotImplementedError);
+  logFatal("NotImplementedError");
 }
 
 void FileUtil::truncate(const std::string& path, size_t size) {
@@ -362,10 +362,9 @@ void FileUtil::mkdir_p(const std::string& dirname, int mode) {
     if (isDirectory(dirname)) {
       return;
     } else {
-      RAISE(
-          IOError,
-          "file '%s' exists but is not a directory",
-          dirname.c_str());
+      throw std::logic_error{StringUtil::format(
+          "file '$0' exists but is not a directory",
+          dirname)};
     }
   }
 
@@ -379,10 +378,9 @@ void FileUtil::mkdir_p(const std::string& dirname, int mode) {
       if (isDirectory(path)) {
         continue;
       } else {
-        RAISE(
-            IOError,
-            "file '%s' exists but is not a directory",
-            path.c_str());
+        throw std::logic_error{StringUtil::format(
+            "file '$0' exists but is not a directory",
+            path)};
       }
     }
 
@@ -416,7 +414,8 @@ void FileUtil::chown(const std::string& path,
     if (errno != 0) {
       RAISE_ERRNO(errno);
     } else {
-      RAISE(RuntimeError, "Unknown user name.");
+      // ("Unknown user name.");
+      throw std::invalid_argument{"user"};
     }
   }
   int uid = pw->pw_uid;
@@ -426,7 +425,7 @@ void FileUtil::chown(const std::string& path,
     if (errno != 0) {
       RAISE_ERRNO(errno);
     } else {
-      RAISE(RuntimeError, "Unknown group name.");
+      throw std::invalid_argument{"group"}; // "Unknown group name.");
     }
   }
   int gid = gr->gr_gid;

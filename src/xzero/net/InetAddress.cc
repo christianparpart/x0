@@ -10,6 +10,7 @@
 #include <xzero/RuntimeError.h>
 #include <xzero/StringUtil.h>
 #include <xzero/Option.h>
+#include <stdexcept>
 
 namespace xzero {
 
@@ -21,7 +22,8 @@ InetAddress::InetAddress()
 InetAddress::InetAddress(const std::string& spec) : InetAddress() {
   size_t n = spec.rfind(':');
   if (n == std::string::npos)
-    RAISE(RuntimeError, "Invalid InetAddress argument. Missing port.");
+    // ("Invalid InetAddress argument. Missing port.");
+    throw std::invalid_argument{"spec"};
 
   setIP(IPAddress(spec.substr(0, n)));
   setPort(std::stoi(spec.substr(n + 1)));

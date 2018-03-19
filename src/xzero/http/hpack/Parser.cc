@@ -28,6 +28,12 @@ namespace hpack {
 // LSB from 0 to n set, rest cleared
 #define BITMASK(n) (BIT(n) - 1)
 
+class CompressionError : public std::logic_error {
+ public:
+  CompressionError(const std::string& what_arg)
+      : std::logic_error(what_arg) {}
+};
+
 Parser::Parser(DynamicTable* dynamicTable, size_t maxSize, Emitter emitter)
     : maxSize_(maxSize),
       dynamicTable_(dynamicTable),
@@ -127,7 +133,7 @@ Parser::const_iterator Parser::updateTableSize(const_iterator pos,
   pos += n;
 
   if (newMaxSize > maxSize_)
-    RAISE(CompressionError, "Received a MAX_SIZE value larger than allowed.");
+    throw CompressionError{"Received a MAX_SIZE value larger than allowed."};
 
   dynamicTable_->setMaxSize(newMaxSize);
 
@@ -203,7 +209,7 @@ Parser::const_iterator Parser::literalHeaderNeverIndex(
 
 const TableEntry& Parser::at(size_t index) {
   if (index == 0)
-    RAISE(CompressionError, "Invalid index (must not be 0)");
+    throw std::out_of_range{"Invalid index (must not be 0)"};
 
   index--;
 
@@ -215,16 +221,16 @@ const TableEntry& Parser::at(size_t index) {
   if (index < dynamicTable_->length())
     return dynamicTable_->at(index);
 
-  RAISE(CompressionError, "Index out of bounds");
+  throw std::out_of_range{"Index out of bounds."};
 }
 
 size_t Parser::decodeInt(uint8_t prefixBits, uint64_t* output,
                          const_iterator pos, const_iterator end) {
   if (!(prefixBits >= 1 && prefixBits <= 8))
-    RAISE(InternalError, "prefixBits must be between 0 and 8 (not %u)", prefixBits);
+    logFatal("prefixBits must be between 0 and 8 (not $0)", prefixBits);
 
   if (pos == end)
-    RAISE(CompressionError, "Need more data");
+    throw CompressionError{"Need more data"};
 
   *output = *pos & BITMASK(prefixBits);
 
@@ -249,7 +255,7 @@ size_t Parser::decodeInt(uint8_t prefixBits, uint64_t* output,
     shift += 7;
   }
 
-  RAISE(CompressionError, "Need more data");
+  throw CompressionError{"Need more data"};
 }
 
 size_t Parser::decodeString(std::string* output,
@@ -263,7 +269,7 @@ size_t Parser::decodeString(std::string* output,
   pos += n;
 
   if (slen > static_cast<size_t>(end - pos))
-    RAISE(CompressionError, "Need more data");
+    throw CompressionError{"Need more data"};
 
   if (compressed)
     Huffman::decode(output, pos, pos + slen);

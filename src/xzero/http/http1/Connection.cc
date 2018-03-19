@@ -97,7 +97,7 @@ void Connection::completed() {
   if (channel_->request()->method() != HttpMethod::HEAD &&
       !generator_.isChunked() &&
       generator_.remainingContentLength() > 0)
-    RAISE(IllegalStateError, "Invalid State. Response not fully written but completed() invoked.");
+    throw InvalidState{"Response not fully written but completed() invoked."};
 
   generator_.generateTrailer(channel_->response()->trailers());
 
@@ -223,7 +223,7 @@ void Connection::send(HttpResponseInfo& responseInfo,
 
 void Connection::setCompleter(CompletionHandler cb) {
   if (cb && onComplete_)
-    RAISE(IllegalStateError, "There is still another completion hook.");
+    throw InvalidState{"There is still another completion hook."};
 
   onComplete_ = std::move(cb);
 }
@@ -301,7 +301,7 @@ void Connection::onReadable() {
   TRACE("$0 onReadable: calling read()", this);
   if (endpoint()->read(&inputBuffer_) == 0) {
     TRACE("$0 onReadable: read() returned 0", this);
-    // RAISE("client EOF");
+    // ??? throw RemoteDisconnected{};
     abort();
     return;
   }

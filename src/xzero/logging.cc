@@ -10,10 +10,10 @@
 #include <xzero/StackTrace.h>
 #include <xzero/AnsiColor.h>
 #include <xzero/Application.h>
-#include <xzero/RuntimeError.h>
 #include <xzero/StringUtil.h>
 #include <xzero/UnixTime.h>
 #include <xzero/WallClock.h>
+#include <xzero/logging.h>
 #include <xzero/io/FileDescriptor.h>
 #include <xzero/io/FileUtil.h>
 #include <stdexcept>
@@ -48,7 +48,7 @@ std::string as_string(LogLevel value) {
     case LogLevel::Trace:
       return "trace";
     default:
-      RAISE(IllegalStateError, "Invalid State. Unknown LogLevel.");
+      logFatal("Illegal LogLevel enum value.");
   }
 }
 
@@ -79,7 +79,7 @@ LogLevel make_loglevel(const std::string& str) {
   if (value == "trace")
     return LogLevel::Trace;
 
-  RAISE(IllegalStateError, "Invalid State. Unknown LogLevel.");
+  logFatal("Illegal LogLevel enum value.");
 }
 // }}}
 // {{{ Logger

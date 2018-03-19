@@ -6,7 +6,8 @@
 // the License at: http://opensource.org/licenses/MIT
 
 #include <xzero/http/hpack/Huffman.h>
-#include <xzero/RuntimeError.h>
+#include <xzero/http/BadMessage.h>
+#include <xzero/logging.h>
 
 namespace xzero {
 namespace http {
@@ -31,7 +32,7 @@ size_t Huffman::encodeLength(const std::string& value) {
 }
 
 std::string Huffman::encode(const std::string& value) {
-  RAISE(NotImplementedError, "Huffman encoding not implemented yet");
+  logFatal("Huffman encoding not implemented yet");
 }
 
 std::string Huffman::decode(const uint8_t* pos, const uint8_t* end) {
@@ -41,7 +42,7 @@ std::string Huffman::decode(const uint8_t* pos, const uint8_t* end) {
 }
 
 void Huffman::decode(std::string* output, const uint8_t* pos, const uint8_t* end) {
-  RAISE(NotImplementedError, "Huffman decoding not implemented yet");
+  logFatal("Huffman decoding not implemented yet");
 }
 
 } // namespace hpack

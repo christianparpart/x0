@@ -7,6 +7,7 @@
 
 #include <xzero/http/http2/Stream.h>
 #include <xzero/http/http2/Connection.h>
+#include <xzero/http/BadMessage.h>
 #include <xzero/http/HttpChannel.h>
 #include <xzero/io/DataChain.h>
 #include <xzero/RuntimeError.h>
@@ -128,7 +129,7 @@ void Stream::handleRequest() {
 
 void Stream::setCompleter(CompletionHandler cb) {
   if (cb && onComplete_)
-    RAISE(IllegalStateError, "There is still another completion hook.");
+    throw InvalidState{"There is still another completion hook."};
 
   onComplete_ = std::move(cb);
 }

@@ -11,6 +11,7 @@
 #include <xzero/http/HttpTransport.h>
 #include <xzero/http/HttpRequest.h>
 #include <xzero/http/HttpResponse.h>
+#include <xzero/http/BadMessage.h>
 #include <xzero/net/TcpEndPoint.h>
 #include <xzero/Tokenizer.h>
 #include <xzero/RuntimeError.h>
@@ -75,7 +76,7 @@ void Channel::onMessageBegin(const BufferRef& method,
       persistent_ = false;
       break;
     default:
-      RAISE(IllegalStateError, "Invalid State. Illegal version passed.");
+      throw InvalidState{"Illegal version passed."};
   }
 
   HttpChannel::onMessageBegin(method, entity, version);

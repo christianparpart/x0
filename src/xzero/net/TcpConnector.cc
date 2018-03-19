@@ -19,6 +19,7 @@
 #include <xzero/sysconfig.h>
 #include <algorithm>
 #include <mutex>
+#include <stdexcept>
 #include <system_error>
 
 #include <netinet/tcp.h>
@@ -99,7 +100,7 @@ const std::string& TcpConnector::name() const {
 void TcpConnector::open(const IPAddress& ipaddress, int port, int backlog,
                          bool reuseAddr, bool reusePort) {
   if (isOpen())
-    RAISE_STATUS(IllegalStateError);
+    logFatal("TcpConnector already open.");
 
   socket_ = ::socket(ipaddress.family(), SOCK_STREAM, 0);
 
@@ -162,18 +163,17 @@ void TcpConnector::listen(int backlog) {
 #endif
 
   if (backlog > somaxconn) {
-    RAISE(
-        RuntimeError,
-        "Listener %s:%d configured with a backlog higher than the system"
-        " permits (%ld > %ld)."
+    throw std::runtime_error{StringUtil::format(
+        "Listener $0:$1 configured with a backlog higher than the system"
+        " permits ($2 > $3)."
 #if defined(XZERO_OS_LINUX)
         " See /proc/sys/net/core/somaxconn for your system limits."
 #endif
         ,
-        bindAddress_.str().c_str(),
+        bindAddress_.str(),
         port_,
         backlog,
-        somaxconn);
+        somaxconn)};
   }
 
   if (backlog <= 0) {
@@ -210,7 +210,7 @@ size_t TcpConnector::backlog() const XZERO_NOEXCEPT {
 
 void TcpConnector::setBacklog(size_t value) {
   if (isStarted()) {
-    RAISE_STATUS(IllegalStateError);
+    throw std::logic_error{"TcpConnector.setBacklog cannot be invoked when already opened."};
   }
 
   backlog_ = value;
@@ -417,7 +417,7 @@ void TcpConnector::setTcpFinTimeout(Duration value) {
 void TcpConnector::start() {
   TRACE("start: ip=$0, port=$1", bindAddress_, port_);
   if (!isOpen()) {
-    RAISE_STATUS(IllegalStateError);
+    throw std::logic_error{"TcpConnector is already started."};
   }
 
   if (isStarted()) {
@@ -626,7 +626,7 @@ size_t TcpConnector::connectionFactoryCount() const {
 void TcpConnector::setDefaultConnectionFactory(const std::string& protocolName) {
   auto i = connectionFactories_.find(protocolName);
   if (i == connectionFactories_.end())
-    throw std::runtime_error("Invalid argument.");
+    throw std::invalid_argument{"protocolName"};
 
   defaultConnectionFactory_ = protocolName;
 }
@@ -634,16 +634,16 @@ void TcpConnector::setDefaultConnectionFactory(const std::string& protocolName) 
 TcpConnector::ConnectionFactory TcpConnector::defaultConnectionFactory() const {
   auto i = connectionFactories_.find(defaultConnectionFactory_);
   if (i == connectionFactories_.end())
-    RAISE_STATUS(InternalError);
+    throw std::logic_error{"No connection factories available in TcpConnector yet."};
 
   return i->second;
 }
 
 void TcpConnector::loadConnectionFactorySelector(const std::string& protocolName,
-                                                  Buffer* sink) {
+                                                 Buffer* sink) {
   auto i = connectionFactories_.find(defaultConnectionFactory_);
   if (i == connectionFactories_.end())
-    RAISE(InvalidArgumentError, "Invalid protocol name.");
+    throw std::invalid_argument{"protocolName"};
 
   sink->push_back((char) MagicProtocolSwitchByte);
   BinaryWriter(BufferUtil::writer(sink)).writeString(protocolName);

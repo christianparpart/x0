@@ -8,6 +8,7 @@
 #include <xzero/http/HttpResponse.h>
 #include <xzero/http/HttpRequest.h>
 #include <xzero/http/HttpChannel.h>
+#include <xzero/http/BadMessage.h>
 #include <xzero/RuntimeError.h>
 #include <xzero/io/FileView.h>
 #include <xzero/io/Filter.h>
@@ -47,7 +48,7 @@ void HttpResponse::recycle() {
 
 void HttpResponse::requireMutableInfo() {
   if (isCommitted())
-    throw std::domain_error{"Response already committed."};
+    throw InvalidState{"Response already committed."};
 
   requireNotSendingAlready();
 }
@@ -60,7 +61,7 @@ void HttpResponse::requireNotSendingAlready() {
     case HttpChannelState::SENDING:
     default:
       // "Attempt to modify response while in wrong channel state."
-      throw std::domain_error{"Require not sending already."};
+      throw InvalidState{"Require not sending already."};
   }
 }
 

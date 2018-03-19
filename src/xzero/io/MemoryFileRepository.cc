@@ -8,6 +8,7 @@
 #include <xzero/io/MemoryFileRepository.h>
 #include <xzero/RuntimeError.h>
 #include <xzero/MimeTypes.h>
+#include <xzero/logging.h>
 
 namespace xzero {
 
@@ -40,7 +41,7 @@ void MemoryFileRepository::deleteAllFiles() {
 }
 
 int MemoryFileRepository::createTempFile(std::string* filename) {
-  RAISE_STATUS(NotImplementedError);
+  logFatal("NotImplementedError");
 }
 
 void MemoryFileRepository::insert(const std::string& path,

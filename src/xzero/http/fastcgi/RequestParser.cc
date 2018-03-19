@@ -93,9 +93,8 @@ void RequestParser::StreamState::onParam(
 
 RequestParser::StreamState* RequestParser::registerStreamState(int requestId) {
   if (streams_.find(requestId)  != streams_.end())
-    RAISE(RuntimeError,
-          "FastCGI stream with requestID %d already available.",
-          requestId);
+    throw std::invalid_argument{"requestId"};
+    // ("FastCGI stream with requestID %d already available.", requestId);
 
   return &streams_[requestId];
 }

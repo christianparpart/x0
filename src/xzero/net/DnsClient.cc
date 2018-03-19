@@ -59,8 +59,9 @@ std::vector<IPAddress> DnsClient::ip(const std::string& name) {
   } catch (...) {
   }
 
-  if (result.empty())
-    RAISE_STATUS(ResolveError);
+  // XXX I don't think we should throw here, should we?
+  // if (result.empty())
+  //   throw ResolveError{};
 
   return result;
 }
@@ -177,7 +178,7 @@ std::vector<std::string> DnsClient::txt(const std::string& fqdn) {
 }
 
 std::vector<std::pair<int, std::string>> DnsClient::mx(const std::string& name) {
-  RAISE_STATUS(NotImplementedError);
+  logFatal("NotImplementedError");
 }
 
 std::vector<DnsClient::SRV> DnsClient::srv(const std::string& service,
