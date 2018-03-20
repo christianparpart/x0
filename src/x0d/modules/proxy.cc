@@ -79,9 +79,11 @@ ProxyModule::ProxyModule(Daemon* d)
   setupFunction("proxy.pseudonym", &ProxyModule::proxy_pseudonym,
                 FlowType::String);
 
-  mainHandler("proxy.cluster", &ProxyModule::proxy_cluster_auto);
+  mainHandler("proxy.cluster", &ProxyModule::proxy_cluster_auto)
+      .setExperimental(); // TODO
 
   mainHandler("proxy.cluster", &ProxyModule::proxy_cluster)
+      .setExperimental() // TODO
       .param<FlowString>("name")
       .param<FlowString>("path", "")
       .param<FlowString>("bucket", "")
@@ -89,9 +91,11 @@ ProxyModule::ProxyModule(Daemon* d)
       .verifier(&ProxyModule::verify_proxy_cluster, this);
 
   mainHandler("proxy.api", &ProxyModule::proxy_api)
+      .setExperimental() // TODO
       .param<FlowString>("prefix", "/");
 
   mainHandler("proxy.fcgi", &ProxyModule::proxy_fcgi)
+      .setExperimental() // TODO
       .verifier(&ProxyModule::proxy_roadwarrior_verify, this)
       .param<FlowString>("on_client_abort", "close")
       .param<IPAddress>("address", IPAddress("0.0.0.0"))
@@ -107,6 +111,7 @@ ProxyModule::ProxyModule(Daemon* d)
       .param<int>("write_timeout", 10);
 
   mainFunction("proxy.cache", &ProxyModule::proxy_cache)
+      .setExperimental() // TODO
       .param<bool>("enabled", true)
       .param<FlowString>("key", "")
       .param<int>("ttl", 0);
