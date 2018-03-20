@@ -9,6 +9,8 @@
 #include <xzero/http/HttpRequest.h>
 #include <xzero/http/HttpResponse.h>
 #include <xzero/http/HttpStatus.h>
+#include <xzero/http/http1/Generator.h>
+#include <xzero/net/EndPointWriter.h>
 #include <xzero/net/IPAddress.h>
 #include <xzero/WallClock.h>
 #include <xzero/UnixTime.h>
@@ -78,6 +80,66 @@ void Context::handleRequest() {
   } else {
     request()->consumeContent(std::bind(&flow::Runner::run, runner()));
   }
+}
+
+bool Context::tryServeTraceProxy() {
+  if (request()->method() != HttpMethod::TRACE)
+    return false;
+
+  if (!request()->hasHeader("Max-Forwards")) {
+    response()->setStatus(HttpStatus::BadRequest);
+    response()->setReason("Max-Forwards header missing.");
+    response()->completed();
+    return true;
+  }
+
+  // TODO: stoi raises, catch that and return 400 (Bad Request) instead
+  try {
+    int maxForwards = std::stoi(request()->getHeader("Max-Forwards"));
+    if (maxForwards != 0) {
+      request()->headers().overwrite("Max-Forwards",
+                                     to_string(maxForwards - 1));
+      return false;
+    }
+  } catch (...) {
+    response()->setStatus(HttpStatus::BadRequest);
+    response()->setReason("Invalid Max-Forwards header");
+    response()->completed();
+    return true;
+  }
+
+  serveTraceOrigin();
+  return true;
+}
+
+bool Context::tryServeTraceOrigin() {
+  if (request()->method() != HttpMethod::TRACE)
+    return false;
+
+  serveTraceOrigin();
+  return true;
+}
+
+void Context::serveTraceOrigin() {
+  HttpRequestInfo requestInfo(
+      request()->version(),
+      request()->unparsedMethod(),
+      request()->unparsedUri(),
+      0 /* body size */,
+      request()->headers());
+
+  EndPointWriter writer;
+  http1::Generator generator(&writer);
+  generator.generateRequest(requestInfo);
+
+  Buffer message;
+  writer.flushTo(&message);
+
+  response()->setStatus(HttpStatus::Ok);
+  response()->addHeader("Content-Type", "message/http");
+  response()->setContentLength(message.size());
+  response()->write(std::move(message));
+  response()->completed();
 }
 
 xzero::UnixTime Context::now() const noexcept {

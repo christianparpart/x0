@@ -175,6 +175,9 @@ DirlistingModule::DirlistingModule(x0d::Daemon* d)
 }
 
 bool DirlistingModule::dirlisting(Context* cx, Params& args) {
+  if (cx->tryServeTraceOrigin())
+    return true;
+
   if (cx->request()->directoryDepth() < 0) {
     cx->logError("Directory traversal detected: $0", cx->request()->path());
     return cx->sendErrorPage(HttpStatus::BadRequest);

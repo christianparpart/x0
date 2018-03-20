@@ -73,6 +73,9 @@ EmptyGifModule::EmptyGifModule(Daemon* d)
 }
 
 bool EmptyGifModule::empty_gif(Context* cx, Params& args) {
+  if (cx->tryServeTraceOrigin())
+    return true;
+
   const size_t len = sizeof(empty_gif_data);
 
   cx->response()->setStatus(HttpStatus::Ok);

@@ -65,7 +65,6 @@ class ProxyModule : public Module,
   bool proxy_http(Context* cx, xzero::flow::Params& args);
   bool proxy_roadwarrior_verify(xzero::flow::Instr* instr, xzero::flow::IRBuilder* builder);
   void proxy_cache(Context* cx, xzero::flow::Params& args);
-  bool tryHandleTrace(Context* cx);
 
  private:
   bool internalServerError(Context* cx);

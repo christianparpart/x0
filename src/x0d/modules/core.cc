@@ -863,6 +863,9 @@ bool CoreModule::alias(Context* cx, Params& args) {
 }
 
 bool CoreModule::redirect_with_to(Context* cx, Params& args) {
+  if (cx->tryServeTraceOrigin())
+    return true;
+
   int status = args.getInt(1);
   FlowString location = args.getString(2);
 
@@ -879,6 +882,9 @@ bool CoreModule::redirect_with_to(Context* cx, Params& args) {
 }
 
 bool CoreModule::return_with(Context* cx, Params& args) {
+  if (cx->tryServeTraceOrigin())
+    return true;
+
   HttpStatus status = static_cast<HttpStatus>(args.getInt(1));
   HttpStatus overrideStatus = static_cast<HttpStatus>(args.getInt(2));
 
@@ -888,6 +894,9 @@ bool CoreModule::return_with(Context* cx, Params& args) {
 }
 
 bool CoreModule::echo(Context* cx, Params& args) {
+  if (cx->tryServeTraceOrigin())
+    return true;
+
   auto content = args.getString(1);
 
   if (!cx->response()->status())
@@ -901,12 +910,18 @@ bool CoreModule::echo(Context* cx, Params& args) {
 }
 
 bool CoreModule::blank(Context* cx, Params& args) {
+  if (cx->tryServeTraceOrigin())
+    return true;
+
   cx->response()->setStatus(HttpStatus::Ok);
   cx->response()->completed();
   return true;
 }
 
 bool CoreModule::staticfile(Context* cx, Params& args) {
+  if (cx->tryServeTraceOrigin())
+    return true;
+
   if (cx->request()->directoryDepth() < 0) {
     cx->logError("Directory traversal detected: $0", cx->request()->path());
     return cx->sendErrorPage(HttpStatus::BadRequest);
@@ -925,6 +940,9 @@ bool CoreModule::staticfile(Context* cx, Params& args) {
 }
 
 bool CoreModule::precompressed(Context* cx, Params& args) {
+  if (cx->tryServeTraceOrigin())
+    return true;
+
   if (cx->request()->directoryDepth() < 0) {
     cx->logError("Directory traversal detected: $0", cx->request()->path());
     return cx->sendErrorPage(HttpStatus::BadRequest);

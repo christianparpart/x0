@@ -61,6 +61,21 @@ class Context {
   void operator()();
   void handleRequest();
 
+  /**
+   * Tries to serve a TRACE request.
+   */
+  bool tryServeTraceProxy();
+
+  /**
+   * Tries to serve a TRACE request as the ORIGIN server.
+   */
+  bool tryServeTraceOrigin();
+
+  /**
+   * Actually serves TRACE response without checking request method or headers.
+   */
+  void serveTraceOrigin();
+
   xzero::http::HttpRequest* masterRequest() const noexcept { return requests_.back(); }
   xzero::http::HttpRequest* request() const noexcept { return requests_.front(); }
   xzero::http::HttpResponse* response() const noexcept { return response_; }

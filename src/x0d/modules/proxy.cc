@@ -20,9 +20,7 @@
 #include <xzero/http/client/HttpClient.h>
 #include <xzero/http/HttpRequest.h>
 #include <xzero/http/HttpResponse.h>
-#include <xzero/http/http1/Generator.h>
 #include <xzero/http/HeaderFieldList.h>
-#include <xzero/net/EndPointWriter.h>
 #include <xzero/net/TcpEndPoint.h>
 #include <xzero/io/FileUtil.h>
 #include <xzero/WallClock.h>
@@ -291,7 +289,7 @@ bool ProxyModule::proxy_cluster(Context* cx, Params& args) {
   std::string bucketName = args.getString(3);
   std::string backendName = args.getString(4);
 
-  if (tryHandleTrace(cx))
+  if (cx->tryServeTraceProxy())
     return true;
 
   TRACE("proxy.cluster: $0", cluster->name());
@@ -346,7 +344,11 @@ bool ProxyModule::proxy_http(Context* cx, xzero::flow::Params& args) {
   constexpr Duration keepAlive = 0_seconds;
   Executor* executor = cx->response()->executor();
 
-  if (tryHandleTrace(cx))
+  // TODO: handle onClientAbortStr == ("close" | "ignore")
+  // - if set to close, also close upstream
+  // - if set to ignore, finish receiving upstream response
+
+  if (cx->tryServeTraceProxy())
     return true;
 
   HttpClient* client = cx->setCustomData<HttpClient>(this,
@@ -454,52 +456,6 @@ bool ProxyModule::proxy_roadwarrior_verify(xzero::flow::Instr* instr, xzero::flo
 
 void ProxyModule::proxy_cache(Context* cx, xzero::flow::Params& args) {
   // TODO
-}
-
-bool ProxyModule::tryHandleTrace(Context* cx) {
-  if (cx->request()->method() != HttpMethod::TRACE)
-    return false;
-
-  if (!cx->request()->hasHeader("Max-Forwards")) {
-    cx->response()->setStatus(HttpStatus::BadRequest);
-    cx->response()->setReason("Max-Forwards header missing.");
-    cx->response()->completed();
-    return true;
-  }
-
-  int maxForwards = std::stoi(cx->request()->getHeader("Max-Forwards"));
-  if (maxForwards != 0) {
-    cx->request()->headers().overwrite("Max-Forwards",
-                                       to_string(maxForwards - 1));
-    return false;
-  }
-
-  BufferRef body = cx->request()->getContent().getBuffer();
-
-  HttpRequestInfo requestInfo(
-      cx->request()->version(),
-      cx->request()->unparsedMethod(),
-      cx->request()->unparsedUri(),
-      body.size(),
-      cx->request()->headers());
-  HeaderFieldList trailers;
-
-  EndPointWriter writer;
-  http1::Generator generator(&writer);
-  generator.generateRequest(requestInfo);
-  generator.generateBody(body);
-  generator.generateTrailer(trailers);
-
-  Buffer message;
-  writer.flushTo(&message);
-
-  cx->response()->setStatus(HttpStatus::Ok);
-  cx->response()->addHeader("Content-Type", "message/http");
-  cx->response()->setContentLength(message.size());
-  cx->response()->write(std::move(message));
-  cx->response()->completed();
-
-  return true;
 }
 
 } // namespace x0d
