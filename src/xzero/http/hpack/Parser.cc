@@ -31,7 +31,7 @@ namespace hpack {
 class CompressionError : public std::logic_error {
  public:
   CompressionError(const std::string& what_arg)
-      : std::logic_error(what_arg) {}
+      : std::logic_error{what_arg} {}
 };
 
 Parser::Parser(DynamicTable* dynamicTable, size_t maxSize, Emitter emitter)

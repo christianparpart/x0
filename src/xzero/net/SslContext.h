@@ -11,9 +11,15 @@
 #include <xzero/Buffer.h>
 #include <string>
 #include <functional>
+#include <stdexcept>
 #include <openssl/ssl.h>
 
 namespace xzero {
+
+class SslPrivateKeyError : public std::runtime_error {
+ public:
+  SslPrivateKeyError() : std::runtime_error("SSL private key error.") {}
+};
 
 /**
  * An SSL context (certificate & keyfile).

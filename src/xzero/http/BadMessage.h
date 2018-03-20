@@ -34,10 +34,10 @@ class BadMessage : public RuntimeError {
 class InvalidState : public std::logic_error {
  public:
   InvalidState()
-      : std::logic_error("Invalid HTTP channel state.") {}
+      : std::logic_error{"Invalid HTTP state."} {}
 
   explicit InvalidState(const std::string& diag)
-      : std::logic_error("Invalid HTTP channel state. " + diag) {}
+      : std::logic_error{"Invalid HTTP state. " + diag} {}
 
   template<typename... Args>
   explicit InvalidState(const std::string& diag, Args... args)
@@ -48,10 +48,10 @@ class InvalidState : public std::logic_error {
 class ResponseAlreadyCommitted : public std::logic_error {
  public:
   ResponseAlreadyCommitted()
-      : std::logic_error("HTTP response was already committed.") {}
+      : std::logic_error{"HTTP response was already committed."} {}
 
   explicit ResponseAlreadyCommitted(const std::string& diag)
-      : std::logic_error("HTTP response was already committed. " + diag) {}
+      : std::logic_error{"HTTP response was already committed. " + diag} {}
 };
 
 } // namespace http

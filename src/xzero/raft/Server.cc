@@ -20,8 +20,8 @@
 
 namespace xzero::raft {
 
-std::ostream& operator<<(std::ostream& os, ServerState s) {
-  switch (s) {
+std::ostream& operator<<(std::ostream& os, ServerState serverState) {
+  switch (serverState) {
     case ServerState::Follower:
       return os << "Follower";
     case ServerState::Candidate:
@@ -29,7 +29,7 @@ std::ostream& operator<<(std::ostream& os, ServerState s) {
     case ServerState::Leader:
       return os << "Leader";
     default:
-      RAISE_STATUS(InvalidArgumentError);
+      throw std::invalid_argument{"serverState"};
   }
 }
 
@@ -526,13 +526,13 @@ InstallSnapshotResponse Server::handleRequest(
   std::lock_guard<decltype(serverLock_)> _lk(serverLock_);
 
   logDebug("raft: $0: received from $1: $2", id_, peerId, req);
-  RAISE(NotImplementedError); // TODO
+  logFatal("Not implemented yet."); // TODO
 }
 
 void Server::handleResponse(Id peerId, const InstallSnapshotResponse& res) {
   logDebug("raft: $0: received from $1: $2", id_, peerId, res);
 
-  RAISE(NotImplementedError); // TODO
+  logFatal("Not implemented yet."); // TODO
 }
 // }}}
 // {{{ Server: receiver helper
@@ -706,7 +706,7 @@ void Server::applyLogs() {
       }
     } else {
       // TODO: LOG_PEER_ADD, LOG_PEER_REMOVE
-      RAISE(NotImplementedError);
+      logFatal("Not implemented yet."); // TODO
     }
 
     lastApplied_ = index; // equals lastApplied_++

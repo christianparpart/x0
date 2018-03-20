@@ -13,6 +13,11 @@
 #include <xzero/Option.h>
 #include <ostream>
 
+namespace xzero::flow {
+  class Instr;
+  class IRBuilder;
+};
+
 namespace x0d {
 
 class LogFile {
@@ -28,6 +33,13 @@ class LogFile {
   xzero::FileDescriptor fd_;
 };
 
+class AccesslogFormatError : public ConfigurationError {
+ public:
+  explicit AccesslogFormatError(const std::string& msg)
+      : ConfigurationError{"accesslog format error. " + msg}
+  {}
+};
+
 class AccesslogModule : public XzeroModule {
  public:
   explicit AccesslogModule(XzeroDaemon* d);
@@ -35,6 +47,8 @@ class AccesslogModule : public XzeroModule {
 
  private:
   void accesslog_format(Params& args);
+  bool accesslog_format_verifier(xzero::flow::Instr* call,
+                                 xzero::flow::IRBuilder* builder);
 
   void accesslog_syslog(XzeroContext* cx, Params& args);
   void accesslog_console(XzeroContext* cx, Params& args);

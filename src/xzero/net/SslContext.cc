@@ -123,7 +123,7 @@ SslContext::SslContext(const std::string& crtFilePath,
     THROW_SSL_ERROR();
 
   if (!SSL_CTX_check_private_key(ctx_))
-    RAISE(SslPrivateKeyCheckError);
+    throw SslPrivateKeyError{};
 
   SSL_CTX_set_tlsext_servername_callback(ctx_, &SslContext::onServerName);
   SSL_CTX_set_tlsext_servername_arg(ctx_, this);

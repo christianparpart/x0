@@ -70,7 +70,7 @@ bool Parser::parseFrame() {
       break;
     default:
       logDebug("raft: Unknown message type $0", messageType);
-      RAISE(ProtocolError, "Invalid message type.");
+      throw ProtocolError{"Invalid message type."};
   }
 
   if (reader_.pending() > 0) {

@@ -285,21 +285,15 @@ void XzeroDaemon::patchProgramIR(flow::IRProgram* programIR,
   }
 }
 
-bool XzeroDaemon::applyConfiguration(std::unique_ptr<flow::Program>&& program) {
-  try {
-    program->findHandler("setup")->run();
+void XzeroDaemon::applyConfiguration(std::unique_ptr<flow::Program>&& program) {
+  program->findHandler("setup")->run();
 
-    // Override main and *then* preserve the program reference.
-    // XXX The order is important to not accidentally generate stale weak ptrs.
-    main_ = program->findHandler("main");
-    program_ = std::move(program);
+  // Override main and *then* preserve the program reference.
+  // XXX The order is important to not accidentally generate stale weak ptrs.
+  main_ = program->findHandler("main");
+  program_ = std::move(program);
 
-    postConfig();
-    return true;
-  } catch (const ConfigurationError& e) {
-    logError("Configuration failed. $0", e.what());
-    return false;
-  }
+  postConfig();
 }
 
 void XzeroDaemon::start() {

@@ -36,7 +36,7 @@ void const* BinaryMessageReader::read(size_t size) {
 
 char const* BinaryMessageReader::readString(size_t size) {
   if ((pos_ + size) > size_) {
-    RAISE(BufferOverflowError);//, "requested read exceeds message bounds");
+    throw BufferOverflowError{"requested read exceeds message bounds"};
   }
 
   auto ptr = static_cast<char const*>(ptr_) + pos_;
@@ -50,7 +50,7 @@ void BinaryMessageReader::rewind() {
 
 void BinaryMessageReader::seekTo(size_t pos) {
   if (pos > size_) {
-    RAISE(BufferOverflowError);//, "requested position exceeds message bounds");
+    throw BufferOverflowError{"requested position exceeds message bounds"};
   }
 
   pos_ = pos;
@@ -59,7 +59,6 @@ void BinaryMessageReader::seekTo(size_t pos) {
 size_t BinaryMessageReader::remaining() const {
   return size_ - pos_;
 }
-
 
 } // namespace util
 } // namespace xzero

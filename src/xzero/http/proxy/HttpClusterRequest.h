@@ -48,7 +48,7 @@ class HttpClusterRequest : public CustomData,
   void onMessageEnd() override;
   void onError(std::error_code ec) override;
 
-  void onFailure(HttpClusterRequest* cr, Status status);
+  // void onFailure(HttpClusterRequest* cr, Status status);
 
  public:
   MonotonicTime ctime;

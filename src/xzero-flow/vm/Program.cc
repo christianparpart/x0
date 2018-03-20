@@ -12,8 +12,9 @@
 #include <xzero-flow/vm/Runtime.h>
 #include <xzero-flow/vm/Runner.h>
 #include <xzero-flow/vm/Match.h>
-#include <xzero/RuntimeError.h>
+#include <xzero/StringUtil.h>
 #include <xzero/logging.h>
+#include <stdexcept>
 #include <utility>
 #include <vector>
 #include <memory>
@@ -114,7 +115,7 @@ bool Program::run(const std::string& handlerName, void* u1, void* u2) {
   if (Handler* handler = findHandler(handlerName); handler != nullptr)
     return handler->run(u1, u2);
 
-  RAISE(RuntimeError, "No handler with name '%s' found.", handlerName.c_str());
+  throw std::runtime_error{StringUtil::format("No handler with name '$0' found.", handlerName)};
 }
 
 std::vector<std::string> Program::handlerNames() const {

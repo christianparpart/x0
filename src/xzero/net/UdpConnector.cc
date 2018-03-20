@@ -66,7 +66,7 @@ bool UdpConnector::isStarted() const {
 
 void UdpConnector::stop() {
   if (!isStarted())
-    RAISE(IllegalStateError);
+    throw std::logic_error{"Trying to stop an UdpConnector that has not been started."};
 
   if (io_) {
     io_->cancel();
@@ -149,7 +149,7 @@ void UdpConnector::onMessage() {
       remoteAddrLen = sizeof(sin6);
       break;
     default:
-      RAISE(IllegalStateError);
+      logFatal("Invalid IP address family.");
   }
 
   Buffer message;

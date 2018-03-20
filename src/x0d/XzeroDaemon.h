@@ -58,7 +58,8 @@ class XzeroEventHandler;
 
 class ConfigurationError : public std::runtime_error {
  public:
-  explicit ConfigurationError(const std::string& diagnostics) : std::runtime_error(diagnostics) {}
+  explicit ConfigurationError(const std::string& diagnostics)
+      : std::runtime_error("Configuration error. " + diagnostics) {}
 };
 
 class XzeroDaemon : public xzero::flow::Runtime {
@@ -88,7 +89,7 @@ class XzeroDaemon : public xzero::flow::Runtime {
       std::unique_ptr<std::istream>&& is, const std::string& name,
       bool printAST, bool printIR, bool printTC);
   void reloadConfiguration();
-  bool applyConfiguration(std::unique_ptr<xzero::flow::Program>&& program);
+  void applyConfiguration(std::unique_ptr<xzero::flow::Program>&& program);
   // }}}
 
   void run();

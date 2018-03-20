@@ -7,9 +7,9 @@
 
 #include <xzero/text/IniFile.h>
 #include <xzero/StringUtil.h>
-#include <xzero/RuntimeError.h>
 
 #include <exception>
+#include <stdexcept>
 #include <iostream>
 #include <sstream>
 #include <fstream>
@@ -51,7 +51,7 @@ void IniFile::load(const std::string& data) {
         sections_[current_title][value] = std::string();
       }
     } else {
-      RAISE(RuntimeError, StringUtil::format("unplaced data. '$0'", value));
+      throw std::runtime_error{StringUtil::format("unplaced data. '$0'", value)};
     }
   }
 }

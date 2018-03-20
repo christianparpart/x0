@@ -53,6 +53,13 @@ class RuntimeError : public std::system_error {
   StackTrace stackTrace_;
 };
 
+class BufferOverflowError : public std::logic_error {
+ public:
+  explicit BufferOverflowError(const std::string& msg)
+      : std::logic_error{"Buffer overflow. " + msg}
+  {}
+};
+
 void logAndPass(const std::exception& e);
 void logAndAbort(const std::exception& e);
 

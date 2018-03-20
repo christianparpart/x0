@@ -20,7 +20,7 @@ BinaryMessageWriter::BinaryMessageWriter(
     used_(0),
     owned_(true) {
   if (ptr_ == nullptr) {
-    RAISE(MallocError);
+    throw std::bad_alloc{};
   }
 }
 
@@ -89,13 +89,13 @@ void BinaryMessageWriter::append(void const* data, size_t size) {
 
   if (resize > size_) {
     if (!owned_) {
-      RAISE(BufferOverflowError);//, "provided buffer is too small");
+      throw BufferOverflowError{"provided buffer is too small"};
     }
 
     auto new_ptr = realloc(ptr_, resize);
 
     if (ptr_ == nullptr) {
-      RAISE(MallocError);//, "realloc() failed");
+      throw std::bad_alloc{};
     }
 
     ptr_ = new_ptr;
@@ -107,7 +107,7 @@ void BinaryMessageWriter::append(void const* data, size_t size) {
 
 void BinaryMessageWriter::update(size_t offset, void const* data, size_t size) {
   if (offset + size > size_) {
-    RAISE(BufferOverflowError);//, "update exceeds buffer boundary");
+    throw BufferOverflowError{"update exceeds buffer boundary"};
   }
 
   memcpy(((char*) ptr_) + offset, data, size);

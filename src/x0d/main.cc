@@ -17,6 +17,7 @@
 #include <typeinfo>
 #include <iostream>
 #include <memory>
+#include <cstdlib>
 #include <unistd.h>
 
 using namespace xzero;
@@ -90,20 +91,20 @@ int main(int argc, const char* argv[]) {
   std::error_code ec = flags.parse(argc, argv);
   if (ec) {
     fprintf(stderr, "Failed to parse flags. %s\n", ec.message().c_str());
-    return 1;
+    return EXIT_FAILURE;
   }
 
   if (flags.getBool("help")) {
     printHelp(flags);
-    return 0;
+    return EXIT_SUCCESS;
   }
 
   if (flags.getBool("version")) {
     printVersion();
-    return 0;
+    return EXIT_SUCCESS;
   }
 
-  x0d::XzeroDaemon x0d;
+  x0d::XzeroDaemon daemon;
 
   // {{{ setup logging
   Logger::get()->setMinimumLogLevel(make_loglevel(flags.getString("log-level")));
@@ -115,7 +116,7 @@ int main(int argc, const char* argv[]) {
     Logger::get()->addTarget(ConsoleLogTarget::get());
   } else if (logTarget == "file") {
     std::string filename = flags.getString("log-file");
-    std::shared_ptr<File> file = x0d.vfs().getFile(filename);
+    std::shared_ptr<File> file = daemon.vfs().getFile(filename);
     File::OpenFlags openFlags = File::Write | File::Create | File::Append;
     FileDescriptor out = file->createPosixChannel(openFlags);
     fileLogTarget = std::make_unique<FileLogTarget>(std::move(out));
@@ -126,11 +127,11 @@ int main(int argc, const char* argv[]) {
     ; // TODO Logger::get()->addTarget(SystemdLogTarget::get());
   } else {
     fprintf(stderr, "Invalid log target \"%s\".\n", logTarget.c_str());
-    return 1;
+    return EXIT_FAILURE;
   }
   // }}}
 
-  x0d.setOptimizationLevel(flags.getNumber("optimization-level"));
+  daemon.setOptimizationLevel(flags.getNumber("optimization-level"));
 
   bool dumpAST = flags.getBool("dump-ast");
   bool dumpIR = flags.getBool("dump-ir");
@@ -142,35 +143,39 @@ int main(int argc, const char* argv[]) {
 
   if (webfile && flags.getString("config") != X0D_CONFIGFILE) {
     logError("Do not use --webfile and --config options at once.");
-    return 1;
+    return EXIT_FAILURE;
   }
 
   std::unique_ptr<xzero::flow::Program> config;
 
-  if (!flags.getString("instant").empty()) {
-    std::string spec = flags.getString("instant");
-    std::vector<std::string> parts = StringUtil::split(spec, ",");
-    if (parts.size() == 2)
-      config = x0d.loadConfigEasy(parts[0], std::stoi(parts[1]),
-                                  dumpAST, dumpIR, dumpTC);
-    else if (parts.size() == 1)
-      config = x0d.loadConfigEasy(FileUtil::currentWorkingDirectory(),
-                                  std::stoi(parts[0]),
-                                  dumpAST, dumpIR, dumpTC);
-    else {
-      logError("Invalid spec passed to --instant command line option.");
-      return 1;
+  try {
+    if (!flags.getString("instant").empty()) {
+      std::string spec = flags.getString("instant");
+      std::vector<std::string> parts = StringUtil::split(spec, ",");
+      if (parts.size() == 2)
+        config = daemon.loadConfigEasy(parts[0], std::stoi(parts[1]),
+                                       dumpAST, dumpIR, dumpTC);
+      else if (parts.size() == 1)
+        config = daemon.loadConfigEasy(FileUtil::currentWorkingDirectory(),
+                                       std::stoi(parts[0]),
+                                       dumpAST, dumpIR, dumpTC);
+      else {
+        logError("Invalid spec passed to --instant command line option.");
+        return EXIT_FAILURE;
+      }
+    } else {
+      config = daemon.loadConfigFile(configFileName, dumpAST, dumpIR, dumpTC);
     }
-  } else {
-    config = x0d.loadConfigFile(configFileName, dumpAST, dumpIR, dumpTC);
+
+    bool exitBeforeRun = dumpAST || dumpIR || dumpTC;
+    if (exitBeforeRun)
+      return EXIT_SUCCESS;
+
+    daemon.applyConfiguration(std::move(config));
+  } catch (const x0d::ConfigurationError& e) {
+    logError(e.what());
+    return EXIT_FAILURE;
   }
-
-  bool exitBeforeRun = dumpAST || dumpIR || dumpTC;
-  if (exitBeforeRun)
-    return 0;
-
-  if (!x0d.applyConfiguration(std::move(config)))
-    return 1;
 
   std::string pidfilepath = FileUtil::absolutePath(flags.getString("pid-file"));
   std::string pidfiledir = FileUtil::dirname(pidfilepath);
@@ -188,6 +193,6 @@ int main(int argc, const char* argv[]) {
 
   PidFile pidFile = pidfilepath;
 
-  x0d.run();
-  return 0;
+  daemon.run();
+  return EXIT_SUCCESS;
 }

@@ -131,7 +131,7 @@ int LinuxScheduler::makeEvent(Mode mode) {
     case Mode::WRITABLE:
       return EPOLLOUT;
     default:
-      RAISE_STATUS(InvalidArgumentError);
+      logFatal("LinuxScheduler::makeEvent() received an illegal mode value.");
   }
 }
 

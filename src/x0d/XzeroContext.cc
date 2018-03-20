@@ -13,6 +13,7 @@
 #include <xzero/WallClock.h>
 #include <xzero/UnixTime.h>
 #include <xzero/logging.h>
+#include <stdexcept>
 
 using namespace xzero;
 using namespace xzero::http;
@@ -91,28 +92,28 @@ const IPAddress& XzeroContext::remoteIP() const {
   if (requests_.back()->remoteAddress().isSome())
     return requests_.back()->remoteAddress()->ip();
 
-  RAISE(RuntimeError, "Non-IP transport channels not supported");
+  throw std::logic_error{"Non-IP transport channels not supported"};
 }
 
 int XzeroContext::remotePort() const {
   if (requests_.back()->remoteAddress().isSome())
     return requests_.back()->remoteAddress()->port();
 
-  RAISE(RuntimeError, "Non-IP transport channels not supported");
+  throw std::logic_error{"Non-IP transport channels not supported"};
 }
 
 const IPAddress& XzeroContext::localIP() const {
   if (requests_.back()->localAddress().isSome())
     return requests_.back()->localAddress()->ip();
 
-  RAISE(RuntimeError, "Non-IP transport channels not supported");
+  throw std::logic_error{"Non-IP transport channels not supported"};
 }
 
 int XzeroContext::localPort() const {
   if (requests_.back()->localAddress().isSome())
     return requests_.back()->localAddress()->port();
 
-  RAISE(RuntimeError, "Non-IP transport channels not supported");
+  throw std::logic_error{"Non-IP transport channels not supported"};
 }
 
 size_t XzeroContext::bytesReceived() const noexcept {

@@ -5,7 +5,7 @@
 // file except in compliance with the License. You may obtain a copy of
 // the License at: http://opensource.org/licenses/MIT
 #include <xzero/util/BinaryReader.h>
-#include <xzero/RuntimeError.h>
+#include <stdexcept>
 
 namespace xzero {
 
@@ -38,7 +38,7 @@ Option<uint64_t> BinaryReader::tryParseVarUInt() {
 uint64_t BinaryReader::parseVarUInt() {
   Option<uint64_t> i = tryParseVarUInt();
   if (i.isNone())
-    RAISE(IOError, "Not enough data.");
+    throw std::logic_error{"Not enough data."};
 
   return i.get();
 }
@@ -59,7 +59,7 @@ std::vector<uint8_t> BinaryReader::parseLengthDelimited() {
 
   if (begin_ + len > end_) {
     begin_ = savePos;
-    RAISE(IOError, "Not enough data.");
+    throw std::logic_error("Not enough data.");
   }
 
   std::vector<uint8_t> result;
@@ -71,7 +71,7 @@ std::vector<uint8_t> BinaryReader::parseLengthDelimited() {
 
 uint64_t BinaryReader::parseFixed64() {
   if (begin_ + sizeof(uint64_t) > end_)
-    RAISE(IOError, "Not enough data.");
+    throw std::logic_error("Not enough data.");
 
   uint64_t result = *reinterpret_cast<const uint64_t*>(begin_);
   begin_ += sizeof(uint64_t);
@@ -80,7 +80,7 @@ uint64_t BinaryReader::parseFixed64() {
 
 uint32_t BinaryReader::parseFixed32() {
   if (begin_ + sizeof(uint32_t) > end_)
-    RAISE(IOError, "Not enough data.");
+    throw std::logic_error("Not enough data.");
 
   uint32_t result = *reinterpret_cast<const uint32_t*>(begin_);
   begin_ += sizeof(uint32_t);
@@ -89,7 +89,7 @@ uint32_t BinaryReader::parseFixed32() {
 
 double BinaryReader::parseDouble() {
   if (begin_ + sizeof(double) > end_)
-    RAISE(IOError, "Not enough data.");
+    throw std::logic_error("Not enough data.");
 
   double result = *reinterpret_cast<const double*>(begin_);
   begin_ += sizeof(double);
@@ -98,7 +98,7 @@ double BinaryReader::parseDouble() {
 
 float BinaryReader::parseFloat() {
   if (begin_ + sizeof(float) > end_)
-    RAISE(IOError, "Not enough data.");
+    throw std::logic_error("Not enough data.");
 
   float result = *reinterpret_cast<const float*>(begin_);
   begin_ += sizeof(float);

@@ -30,6 +30,7 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 
+#include <iterator>
 #include <unordered_map>
 #include <string>
 #include <cerrno>
@@ -63,14 +64,14 @@ std::string getFormatName(std::string::const_iterator& i, std::string::const_ite
   if (i != e && *i == '{') {
     ++i;
   } else {
-    RAISE(RuntimeError, "Expected '{' token.");
+    throw AccesslogFormatError{"Expected '{' token."};
   }
 
   std::string::const_iterator beg = i;
 
   for (;;) {
     if (i == e) {
-      RAISE(RuntimeError, "Expected '}' token.");
+      throw AccesslogFormatError{"Expected '}' token."};
     }
 
     if (*i == '}') {
@@ -81,7 +82,7 @@ std::string getFormatName(std::string::const_iterator& i, std::string::const_ite
     ++i;
   }
 
-  return std::string(beg, i);
+  return std::string(beg, std::prev(i));
 }
 // }}}
 std::string formatLog(XzeroContext* cx, const std::string& format) { // {{{
@@ -235,12 +236,62 @@ std::string formatLog(XzeroContext* cx, const std::string& format) { // {{{
         ++i;
         break;
       default:
-        RAISE(RuntimeError, "Unknown format identifier.");
+        throw AccesslogFormatError{StringUtil::format("Unknown format identifier '%$0'", *i)};
     }
   }
 
   result << '\n';
   return result.str();
+}
+// }}}
+void verifyFormat(const std::string& format) { // {{{
+  auto i = format.begin();
+  auto e = format.end();
+
+  while (i != e) {
+    if (*i != '%') {
+      ++i;
+      continue;
+    }
+
+    ++i;
+
+    if (i == e) {
+      break;
+    }
+
+    switch (*i) {
+      case '>': // request header %>{name}
+      case '<': // response header %<{name}
+      case 'C': { // request cookie %C{name}
+        char id = *i;
+        ++i;
+        if (auto fn = getFormatName(i, e); fn == "") {
+          throw AccesslogFormatError{StringUtil::format(
+              "message field for %$0{} must not be empty.", id)};
+        }
+        break;
+      }
+      case '%': // %
+      case 'c': // response status code
+      case 'h': // remote addr
+      case 'I': // received bytes (transport level)
+      case 'l': // identd user name
+      case 'm': // request method
+      case 'O': // sent bytes (transport level)
+      case 'o': // sent bytes (response body)
+      case 'p': // request path
+      case 'q': // query string with leading '?' or empty if none
+      case 'r': // request line
+      case 'T': // request time duration
+      case 't': // local time
+      case 'U': // URL path (without query string)
+      case 'u': // username
+      case 'v': // request vhost
+      default:
+        throw AccesslogFormatError{StringUtil::format("Unknown format identifier '%$0'", *i)};
+    }
+  }
 }
 // }}}
 struct RequestLogger : public CustomData { // {{{
@@ -301,6 +352,7 @@ AccesslogModule::AccesslogModule(XzeroDaemon* d)
       "%h %l %t \"%r\" %c %O \"%>{User-Agent}\" \"%>{Referer}\"";
 
   setupFunction("accesslog.format", &AccesslogModule::accesslog_format)
+      .verifier(&AccesslogModule::accesslog_format_verifier, this)
       .param<FlowString>("id")
       .param<FlowString>("format");
 
@@ -324,6 +376,22 @@ void AccesslogModule::onCycle() {
   for (auto& logfile: logfiles_) {
     logfile.second->cycle();
   }
+}
+
+bool AccesslogModule::accesslog_format_verifier(xzero::flow::Instr* call,
+                                                xzero::flow::IRBuilder* builder) {
+  if (!dynamic_cast<ConstantString*>(call->operand(1))) {
+    throw AccesslogFormatError{"accesslog.format's id parameter must be constant."};
+  }
+
+  if (const auto arg = dynamic_cast<ConstantString*>(call->operand(2))) {
+    const std::string format = arg->get();
+    verifyFormat(format);
+  } else {
+    throw AccesslogFormatError{"accesslog.format's format parameter must be constant."};
+  }
+
+  return true;
 }
 
 // accesslog.format(literal string id, literal string format);

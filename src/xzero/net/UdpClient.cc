@@ -10,6 +10,7 @@
 #include <xzero/io/FileUtil.h>
 #include <xzero/RuntimeError.h>
 #include <xzero/logging.h>
+#include <stdexcept>
 
 #include <netinet/tcp.h>
 #include <arpa/inet.h>
@@ -34,7 +35,7 @@ UdpClient::UdpClient(const IPAddress& ipaddr, int port)
 
       sockAddr_ = malloc(sockAddrLen_);
       if (!sockAddr_)
-        RAISE(MallocError);
+        throw std::bad_alloc{};
 
       memset(sockAddr_, 0, sockAddrLen_);
 
@@ -48,7 +49,7 @@ UdpClient::UdpClient(const IPAddress& ipaddr, int port)
 
       sockAddr_ = malloc(sockAddrLen_);
       if (!sockAddr_)
-        RAISE(MallocError);
+        throw std::bad_alloc{};
 
       memset(sockAddr_, 0, sockAddrLen_);
 
@@ -58,7 +59,7 @@ UdpClient::UdpClient(const IPAddress& ipaddr, int port)
              ipaddr.data(), ipaddr.size());
       break;
     default:
-      RAISE(IllegalStateError);
+      logFatal("Invalid IPAddress.family()");
   }
 
   socket_ = ::socket(ipaddr.family(), SOCK_DGRAM, 0);

@@ -63,7 +63,7 @@ int ServicePortMapping::tcp(const std::string& name) {
   if (i != tcp_.end())
     return i->second;
 
-  RAISE(RuntimeError, "Unknown service '%s'", name.c_str());
+  throw std::runtime_error{StringUtil::format("Unknown service '$0'", name)};
 }
 // }}}
 
@@ -191,7 +191,7 @@ Uri XUrl::makeUri(const std::string& url) {
 IPAddress XUrl::getIPAddress(const std::string& host) {
   std::vector<IPAddress> ipaddresses = dns_.ipv4(host);
   if (ipaddresses.empty())
-    RAISE(RuntimeError, "Could not resolve %s.", host.c_str());
+    throw std::runtime_error{StringUtil::format("Could not resolve $0.", host)};
 
   return ipaddresses.front();
 }
