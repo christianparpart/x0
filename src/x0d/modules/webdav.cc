@@ -62,6 +62,9 @@ bool WebdavModule::webdav(Context* cx, Params& args) {
 }
 
 bool WebdavModule::webdav_mkcol(Context* cx) {
+  if (cx->tryServeTraceOrigin())
+    return true;
+
   if (!cx->file())
     return false;
 
@@ -108,6 +111,9 @@ bool WebdavModule::webdav_get(Context* cx) {
 }
 
 bool WebdavModule::webdav_put(Context* cx, Params& args) {
+  if (cx->tryServeTraceOrigin())
+    return true;
+
   // TODO: pre-allocate full storage in advance
   // TODO: attempt native file rename/move into target location if possible
 
@@ -151,6 +157,9 @@ bool WebdavModule::webdav_put(Context* cx, Params& args) {
 }
 
 bool WebdavModule::todo(Context* cx) {
+  if (cx->tryServeTraceOrigin())
+    return true;
+
   cx->response()->setStatus(HttpStatus::NotImplemented);
   cx->response()->completed();
   return true;
