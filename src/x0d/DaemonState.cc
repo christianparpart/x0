@@ -5,18 +5,18 @@
 // file except in compliance with the License. You may obtain a copy of
 // the License at: http://opensource.org/licenses/MIT
 
-#include <x0d/XzeroState.h>
+#include <x0d/DaemonState.h>
 #include <xzero/StringUtil.h>
 
 namespace x0d {
 
-std::ostream& operator<<(std::ostream& os, XzeroState state) {
+std::ostream& operator<<(std::ostream& os, DaemonState state) {
   switch (state) {
-    case XzeroState::Inactive: return os << "Inactive";
-    case XzeroState::Initializing: return os << "Initializing";
-    case XzeroState::Running: return os << "Running";
-    case XzeroState::Upgrading: return os << "Upgrading";
-    case XzeroState::GracefullyShuttingdown: return os << "GracefullyShuttingdown";
+    case DaemonState::Inactive: return os << "Inactive";
+    case DaemonState::Initializing: return os << "Initializing";
+    case DaemonState::Running: return os << "Running";
+    case DaemonState::Upgrading: return os << "Upgrading";
+    case DaemonState::GracefullyShuttingdown: return os << "GracefullyShuttingdown";
     default: return os << "UNKNOWN";
   }
 }

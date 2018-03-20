@@ -5,8 +5,8 @@
 // file except in compliance with the License. You may obtain a copy of
 // the License at: http://opensource.org/licenses/MIT
 
-#include <x0d/XzeroModule.h>
-#include <x0d/XzeroDaemon.h>
+#include <x0d/Module.h>
+#include <x0d/Daemon.h>
 
 #include <xzero/sysconfig.h>
 #include <xzero/logging.h>
@@ -104,7 +104,7 @@ int main(int argc, const char* argv[]) {
     return EXIT_SUCCESS;
   }
 
-  x0d::XzeroDaemon daemon;
+  x0d::Daemon daemon;
 
   // {{{ setup logging
   Logger::get()->setMinimumLogLevel(make_loglevel(flags.getString("log-level")));

@@ -40,23 +40,23 @@ namespace x0d {
  * Contains all the necessary references to everything you (may) need
  * during request handling.
  */
-class XzeroContext {
+class Context {
   CUSTOMDATA_API_INLINE
  public:
-  XzeroContext(
+  Context(
       const xzero::flow::Handler* requestHandler,
       xzero::http::HttpRequest* request,
       xzero::http::HttpResponse* response,
       const std::unordered_map<xzero::http::HttpStatus, std::string>* globalErrorPages,
       size_t maxInternalRedirectCount);
 
-  XzeroContext(XzeroContext&&) = default;
-  XzeroContext& operator=(XzeroContext&&) = default;
+  Context(Context&&) = default;
+  Context& operator=(Context&&) = default;
 
-  XzeroContext(const XzeroContext&);
-  XzeroContext& operator=(const XzeroContext&) = delete;
+  Context(const Context&);
+  Context& operator=(const Context&) = delete;
 
-  ~XzeroContext();
+  ~Context();
 
   void operator()();
   void handleRequest();

@@ -5,7 +5,7 @@
 // file except in compliance with the License. You may obtain a copy of
 // the License at: http://opensource.org/licenses/MIT
 
-#include <x0d/XzeroContext.h>
+#include <x0d/Context.h>
 #include <xzero/http/HttpRequest.h>
 #include <xzero/http/HttpResponse.h>
 #include <xzero/http/HttpStatus.h>
@@ -20,7 +20,7 @@ using namespace xzero::http;
 
 namespace x0d {
 
-XzeroContext::XzeroContext(
+Context::Context(
     const xzero::flow::Handler* requestHandler,
     xzero::http::HttpRequest* request,
     xzero::http::HttpResponse* response,
@@ -39,7 +39,7 @@ XzeroContext::XzeroContext(
       maxInternalRedirectCount_(maxInternalRedirectCount) {
 }
 
-XzeroContext::XzeroContext(const XzeroContext& v)
+Context::Context(const Context& v)
     : requestHandler_(v.requestHandler_),
       runner_(),
       createdAt_(v.createdAt_),
@@ -53,7 +53,7 @@ XzeroContext::XzeroContext(const XzeroContext& v)
       maxInternalRedirectCount_(v.maxInternalRedirectCount_) {
 }
 
-XzeroContext::~XzeroContext() {
+Context::~Context() {
   // ensure all internal redirect requests are freed
   while (request() != masterRequest()) {
     delete requests_.front(); // TODO: eliminate the need to explicitly *delete*
@@ -63,11 +63,11 @@ XzeroContext::~XzeroContext() {
   clearCustomData();
 }
 
-void XzeroContext::operator()() {
+void Context::operator()() {
   handleRequest();
 }
 
-void XzeroContext::handleRequest() {
+void Context::handleRequest() {
   runner_ = std::make_unique<flow::Runner>(requestHandler_);
   runner_->setUserData(this);
 
@@ -80,55 +80,55 @@ void XzeroContext::handleRequest() {
   }
 }
 
-xzero::UnixTime XzeroContext::now() const noexcept {
+xzero::UnixTime Context::now() const noexcept {
   return WallClock::now();
 }
 
-xzero::Duration XzeroContext::age() const noexcept {
+xzero::Duration Context::age() const noexcept {
   return now() - createdAt();
 }
 
-const IPAddress& XzeroContext::remoteIP() const {
+const IPAddress& Context::remoteIP() const {
   if (requests_.back()->remoteAddress().isSome())
     return requests_.back()->remoteAddress()->ip();
 
   throw std::logic_error{"Non-IP transport channels not supported"};
 }
 
-int XzeroContext::remotePort() const {
+int Context::remotePort() const {
   if (requests_.back()->remoteAddress().isSome())
     return requests_.back()->remoteAddress()->port();
 
   throw std::logic_error{"Non-IP transport channels not supported"};
 }
 
-const IPAddress& XzeroContext::localIP() const {
+const IPAddress& Context::localIP() const {
   if (requests_.back()->localAddress().isSome())
     return requests_.back()->localAddress()->ip();
 
   throw std::logic_error{"Non-IP transport channels not supported"};
 }
 
-int XzeroContext::localPort() const {
+int Context::localPort() const {
   if (requests_.back()->localAddress().isSome())
     return requests_.back()->localAddress()->port();
 
   throw std::logic_error{"Non-IP transport channels not supported"};
 }
 
-size_t XzeroContext::bytesReceived() const noexcept {
+size_t Context::bytesReceived() const noexcept {
   return requests_.back()->bytesReceived();
 }
 
-size_t XzeroContext::bytesTransmitted() const noexcept {
+size_t Context::bytesTransmitted() const noexcept {
   return response_->bytesTransmitted();
 }
 
-void XzeroContext::setErrorPage(HttpStatus status, const std::string& path) {
+void Context::setErrorPage(HttpStatus status, const std::string& path) {
   errorPages_[status] = path;
 }
 
-bool XzeroContext::getErrorPage(HttpStatus status, std::string* uri) const {
+bool Context::getErrorPage(HttpStatus status, std::string* uri) const {
   auto i = errorPages_.find(status);
   if (i != errorPages_.end()) {
     *uri = i->second;
@@ -148,7 +148,7 @@ bool requiresExternalRedirect(const std::string& uri) {
   return uri[0] != '/';
 }
 
-bool XzeroContext::sendErrorPage(xzero::http::HttpStatus status,
+bool Context::sendErrorPage(xzero::http::HttpStatus status,
                                  bool* internalRedirect,
                                  xzero::http::HttpStatus overrideStatus) {
   if (internalRedirect) {
@@ -196,7 +196,7 @@ bool XzeroContext::sendErrorPage(xzero::http::HttpStatus status,
   }
 }
 
-void XzeroContext::sendTrivialResponse(HttpStatus status, const std::string& reason) {
+void Context::sendTrivialResponse(HttpStatus status, const std::string& reason) {
   if (isContentForbidden(status)) {
     response_->setStatus(status);
     response_->completed();

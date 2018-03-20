@@ -7,15 +7,15 @@
 
 #pragma once
 
-#include <x0d/XzeroModule.h>
+#include <x0d/Module.h>
 #include <xzero/http/HttpOutputCompressor.h>
 #include <string>
 
 namespace x0d {
 
-class UserdirModule : public XzeroModule {
+class UserdirModule : public Module {
  public:
-  explicit UserdirModule(XzeroDaemon* d);
+  explicit UserdirModule(Daemon* d);
   ~UserdirModule();
 
  private:
@@ -24,7 +24,7 @@ class UserdirModule : public XzeroModule {
   std::error_code validate(std::string& path);
 
   // main functions
-  void userdir(XzeroContext* cx, Params& args);
+  void userdir(Context* cx, Params& args);
 
  private:
   std::string dirname_;

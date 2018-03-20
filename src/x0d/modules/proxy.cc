@@ -12,7 +12,7 @@
  */
 
 #include "proxy.h"
-#include <x0d/XzeroContext.h>
+#include <x0d/Context.h>
 #include <xzero/sysconfig.h>
 #include <xzero/http/proxy/HttpCluster.h>
 #include <xzero/http/proxy/HttpClusterRequest.h>
@@ -72,8 +72,8 @@ static bool isConnectionHeader(const T& name) {
   return false;
 }
 
-ProxyModule::ProxyModule(XzeroDaemon* d)
-    : XzeroModule(d, "proxy"),
+ProxyModule::ProxyModule(Daemon* d)
+    : Module(d, "proxy"),
       pseudonym_("x0d"),
       clusterInit_(),
       clusterMap_() {
@@ -248,7 +248,7 @@ HttpCluster* ProxyModule::findLocalCluster(const std::string& host) {
   return cluster;
 }
 
-bool ProxyModule::proxy_cluster_auto(XzeroContext* cx, Params& args) {
+bool ProxyModule::proxy_cluster_auto(Context* cx, Params& args) {
   // determines which cluster to use by request host header
   std::string host = cx->request()->getHeader("Host");
   size_t colon = host.find(':');
@@ -285,7 +285,7 @@ bool ProxyModule::proxy_cluster_auto(XzeroContext* cx, Params& args) {
   return true;
 }
 
-bool ProxyModule::proxy_cluster(XzeroContext* cx, Params& args) {
+bool ProxyModule::proxy_cluster(Context* cx, Params& args) {
   auto& cluster = clusterMap_[args.getString(1)];
   std::string path = args.getString(2);
   std::string bucketName = args.getString(3);
@@ -320,7 +320,7 @@ bool ProxyModule::proxy_cluster(XzeroContext* cx, Params& args) {
   return true;
 }
 
-bool ProxyModule::proxy_api(XzeroContext* cx, xzero::flow::Params& args) {
+bool ProxyModule::proxy_api(Context* cx, xzero::flow::Params& args) {
   std::string prefix = args.getString(1);
 
   if (!StringUtil::beginsWithIgnoreCase(cx->request()->path(), prefix))
@@ -332,12 +332,12 @@ bool ProxyModule::proxy_api(XzeroContext* cx, xzero::flow::Params& args) {
   return handler->run();
 }
 
-bool ProxyModule::proxy_fcgi(XzeroContext* cx, xzero::flow::Params& args) {
+bool ProxyModule::proxy_fcgi(Context* cx, xzero::flow::Params& args) {
   cx->logError("proxy.fcgi: Not yet reimplemented");
   return false; // TODO
 }
 
-bool ProxyModule::proxy_http(XzeroContext* cx, xzero::flow::Params& args) {
+bool ProxyModule::proxy_http(Context* cx, xzero::flow::Params& args) {
   const FlowString onClientAbortStr = args.getString(1);
   const InetAddress upstreamAddr(args.getIPAddress(2), args.getInt(3));
   const Duration connectTimeout = Duration::fromSeconds(args.getInt(4));
@@ -387,7 +387,7 @@ bool ProxyModule::proxy_http(XzeroContext* cx, xzero::flow::Params& args) {
   return true;
 }
 
-void ProxyModule::addVia(XzeroContext* cx) {
+void ProxyModule::addVia(Context* cx) {
   addVia(cx->request(), cx->response());
 }
 
@@ -452,11 +452,11 @@ bool ProxyModule::proxy_roadwarrior_verify(xzero::flow::Instr* instr, xzero::flo
   return true; // TODO
 }
 
-void ProxyModule::proxy_cache(XzeroContext* cx, xzero::flow::Params& args) {
+void ProxyModule::proxy_cache(Context* cx, xzero::flow::Params& args) {
   // TODO
 }
 
-bool ProxyModule::tryHandleTrace(XzeroContext* cx) {
+bool ProxyModule::tryHandleTrace(Context* cx) {
   if (cx->request()->method() != HttpMethod::TRACE)
     return false;
 

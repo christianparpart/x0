@@ -6,8 +6,8 @@
 // the License at: http://opensource.org/licenses/MIT
 
 #include "core.h"
-#include <x0d/XzeroModule.h>
-#include <x0d/XzeroContext.h>
+#include <x0d/Module.h>
+#include <x0d/Context.h>
 #include <xzero/http/HttpRequest.h>
 #include <xzero/http/HttpResponse.h>
 #include <xzero/io/FileUtil.h>
@@ -112,8 +112,8 @@ size_t CoreModule::cpuCount() {
   return static_cast<size_t>(numCPU_);
 }
 
-CoreModule::CoreModule(XzeroDaemon* d)
-    : XzeroModule(d, "core"),
+CoreModule::CoreModule(Daemon* d)
+    : Module(d, "core"),
       rng_() {
 
   // setup functions
@@ -352,7 +352,7 @@ CoreModule::CoreModule(XzeroDaemon* d)
 CoreModule::~CoreModule() {
 }
 
-bool CoreModule::redirectOnIncompletePath(XzeroContext* cx) {
+bool CoreModule::redirectOnIncompletePath(Context* cx) {
   if (!cx->file())
     return false;
 
@@ -588,7 +588,7 @@ void CoreModule::workers_affinity(Params& args) {
     daemon().config_->workerAffinities[i] = (int) affinities[i];
 }
 
-void CoreModule::sys_cpu_count(XzeroContext* cx, Params& args) {
+void CoreModule::sys_cpu_count(Context* cx, Params& args) {
   args.setResult(static_cast<FlowNumber>(cpuCount()));
 }
 
@@ -611,7 +611,7 @@ bool CoreModule::preproc_sys_env(xzero::flow::Instr* call, xzero::flow::IRBuilde
   return true;
 }
 
-void CoreModule::sys_env(XzeroContext* cx, Params& args) {
+void CoreModule::sys_env(Context* cx, Params& args) {
   if (const char* value = getenv(args.getString(1).c_str())) {
     args.setResult(value);
   } else {
@@ -640,7 +640,7 @@ bool CoreModule::preproc_sys_env2(xzero::flow::Instr* call, xzero::flow::IRBuild
   return true;
 }
 
-void CoreModule::sys_env2(XzeroContext* cx, Params& args) {
+void CoreModule::sys_env2(Context* cx, Params& args) {
   if (const char* value = getenv(args.getString(1).c_str())) {
     args.setResult(value);
   } else {
@@ -648,30 +648,30 @@ void CoreModule::sys_env2(XzeroContext* cx, Params& args) {
   }
 }
 
-void CoreModule::sys_cwd(XzeroContext* cx, Params& args) {
+void CoreModule::sys_cwd(Context* cx, Params& args) {
   static char buf[1024];
   args.setResult(getcwd(buf, sizeof(buf)));
 }
 
-void CoreModule::sys_pid(XzeroContext* cx, Params& args) {
+void CoreModule::sys_pid(Context* cx, Params& args) {
   args.setResult(static_cast<FlowNumber>(getpid()));
 }
 
-void CoreModule::sys_now(XzeroContext* cx, Params& args) {
+void CoreModule::sys_now(Context* cx, Params& args) {
   args.setResult(
       static_cast<FlowNumber>(cx->now().unixtime()));
 }
 
-void CoreModule::sys_now_str(XzeroContext* cx, Params& args) {
+void CoreModule::sys_now_str(Context* cx, Params& args) {
   static const char* timeFormat = "%a, %d %b %Y %H:%M:%S GMT";
   args.setResult(cx->now().format(timeFormat));
 }
 
-void CoreModule::sys_hostname(XzeroContext* cx, Params& args) {
+void CoreModule::sys_hostname(Context* cx, Params& args) {
   args.setResult(Application::hostname());
 }
 
-void CoreModule::sys_domainname(XzeroContext* cx, Params& args) {
+void CoreModule::sys_domainname(Context* cx, Params& args) {
   char buf[256];
   if (getdomainname(buf, sizeof(buf)) == 0) {
     args.setResult(buf);
@@ -681,46 +681,46 @@ void CoreModule::sys_domainname(XzeroContext* cx, Params& args) {
   }
 }
 
-void CoreModule::log_err(XzeroContext* cx, Params& args) {
+void CoreModule::log_err(Context* cx, Params& args) {
   if (cx)
     cx->logError("$0", args.getString(1));
   else
     logError("$0", args.getString(1));
 }
 
-void CoreModule::log_warn(XzeroContext* cx, Params& args) {
+void CoreModule::log_warn(Context* cx, Params& args) {
   if (cx)
     cx->logWarning("$0", args.getString(1));
   else
     logWarning("$0", args.getString(1));
 }
 
-void CoreModule::log_notice(XzeroContext* cx, Params& args) {
+void CoreModule::log_notice(Context* cx, Params& args) {
   if (cx)
     cx->logNotice("$0", args.getString(1));
   else
     logNotice("$0", args.getString(1));
 }
 
-void CoreModule::log_info(XzeroContext* cx, Params& args) {
+void CoreModule::log_info(Context* cx, Params& args) {
   if (cx)
     cx->logInfo("$0", args.getString(1));
   else
     logInfo("$0", args.getString(1));
 }
 
-void CoreModule::log_debug(XzeroContext* cx, Params& args) {
+void CoreModule::log_debug(Context* cx, Params& args) {
   if (cx)
     cx->logDebug(args.getString(1));
   else
     logDebug(args.getString(1));
 }
 
-void CoreModule::rand(XzeroContext* cx, Params& args) {
+void CoreModule::rand(Context* cx, Params& args) {
   args.setResult(static_cast<FlowNumber>(rng_.random64()));
 }
 
-void CoreModule::randAB(XzeroContext* cx, Params& args) {
+void CoreModule::randAB(Context* cx, Params& args) {
   FlowNumber a = args.getInt(1);
   FlowNumber b = std::max(args.getInt(2), a);
   FlowNumber y = a + (rng_.random64() % (1 + b - a));
@@ -728,7 +728,7 @@ void CoreModule::randAB(XzeroContext* cx, Params& args) {
   args.setResult(y);
 }
 
-void CoreModule::sleep(XzeroContext* cx, Params& args) {
+void CoreModule::sleep(Context* cx, Params& args) {
   cx->runner()->suspend();
   cx->response()->executor()->executeAfter(
       Duration::fromSeconds(args.getInt(1)),
@@ -749,7 +749,7 @@ bool verifyErrorPageConfig(HttpStatus status, const std::string& uri) {
   return true;
 }
 
-void CoreModule::error_page(XzeroContext* cx, Params& args) {
+void CoreModule::error_page(Context* cx, Params& args) {
   HttpStatus status = static_cast<HttpStatus>(args.getInt(1));
   std::string uri = args.getString(2);
 
@@ -769,7 +769,7 @@ void CoreModule::error_page(Params& args) {
   daemon().config().errorPages[status] = uri;
 }
 
-void CoreModule::file_exists(XzeroContext* cx, Params& args) {
+void CoreModule::file_exists(Context* cx, Params& args) {
   auto fileinfo = daemon().vfs().getFile(args.getString(1));
   if (fileinfo)
     args.setResult(fileinfo->exists());
@@ -777,7 +777,7 @@ void CoreModule::file_exists(XzeroContext* cx, Params& args) {
     args.setResult(false);
 }
 
-void CoreModule::file_is_reg(XzeroContext* cx, Params& args) {
+void CoreModule::file_is_reg(Context* cx, Params& args) {
   auto fileinfo = daemon().vfs().getFile(args.getString(1));
   if (fileinfo)
     args.setResult(fileinfo->isRegular());
@@ -785,7 +785,7 @@ void CoreModule::file_is_reg(XzeroContext* cx, Params& args) {
     args.setResult(false);
 }
 
-void CoreModule::file_is_dir(XzeroContext* cx, Params& args) {
+void CoreModule::file_is_dir(Context* cx, Params& args) {
   auto fileinfo = daemon().vfs().getFile(args.getString(1));
   if (fileinfo)
     args.setResult(fileinfo->isDirectory());
@@ -793,7 +793,7 @@ void CoreModule::file_is_dir(XzeroContext* cx, Params& args) {
     args.setResult(false);
 }
 
-void CoreModule::file_is_exe(XzeroContext* cx, Params& args) {
+void CoreModule::file_is_exe(Context* cx, Params& args) {
   auto fileinfo = daemon().vfs().getFile(args.getString(1));
   if (fileinfo)
     args.setResult(fileinfo->isExecutable());
@@ -821,7 +821,7 @@ bool CoreModule::verify_docroot(xzero::flow::Instr* call, xzero::flow::IRBuilder
   return true;
 }
 
-bool CoreModule::docroot(XzeroContext* cx, Params& args) {
+bool CoreModule::docroot(Context* cx, Params& args) {
   std::string path = args.getString(1);
   Result<std::string> realpath = FileUtil::realpath(path);
   if (realpath.isFailure()) {
@@ -839,7 +839,7 @@ bool CoreModule::docroot(XzeroContext* cx, Params& args) {
   return redirectOnIncompletePath(cx);
 }
 
-bool CoreModule::alias(XzeroContext* cx, Params& args) {
+bool CoreModule::alias(Context* cx, Params& args) {
   // input:
   //    URI: /some/uri/path
   //    Alias '/some' => '/srv/special';
@@ -862,7 +862,7 @@ bool CoreModule::alias(XzeroContext* cx, Params& args) {
   return redirectOnIncompletePath(cx);
 }
 
-bool CoreModule::redirect_with_to(XzeroContext* cx, Params& args) {
+bool CoreModule::redirect_with_to(Context* cx, Params& args) {
   int status = args.getInt(1);
   FlowString location = args.getString(2);
 
@@ -878,7 +878,7 @@ bool CoreModule::redirect_with_to(XzeroContext* cx, Params& args) {
   return true;
 }
 
-bool CoreModule::return_with(XzeroContext* cx, Params& args) {
+bool CoreModule::return_with(Context* cx, Params& args) {
   HttpStatus status = static_cast<HttpStatus>(args.getInt(1));
   HttpStatus overrideStatus = static_cast<HttpStatus>(args.getInt(2));
 
@@ -887,7 +887,7 @@ bool CoreModule::return_with(XzeroContext* cx, Params& args) {
   return cx->sendErrorPage(status);
 }
 
-bool CoreModule::echo(XzeroContext* cx, Params& args) {
+bool CoreModule::echo(Context* cx, Params& args) {
   auto content = args.getString(1);
 
   if (!cx->response()->status())
@@ -900,13 +900,13 @@ bool CoreModule::echo(XzeroContext* cx, Params& args) {
   return true;
 }
 
-bool CoreModule::blank(XzeroContext* cx, Params& args) {
+bool CoreModule::blank(Context* cx, Params& args) {
   cx->response()->setStatus(HttpStatus::Ok);
   cx->response()->completed();
   return true;
 }
 
-bool CoreModule::staticfile(XzeroContext* cx, Params& args) {
+bool CoreModule::staticfile(Context* cx, Params& args) {
   if (cx->request()->directoryDepth() < 0) {
     cx->logError("Directory traversal detected: $0", cx->request()->path());
     return cx->sendErrorPage(HttpStatus::BadRequest);
@@ -924,7 +924,7 @@ bool CoreModule::staticfile(XzeroContext* cx, Params& args) {
   }
 }
 
-bool CoreModule::precompressed(XzeroContext* cx, Params& args) {
+bool CoreModule::precompressed(Context* cx, Params& args) {
   if (cx->request()->directoryDepth() < 0) {
     cx->logError("Directory traversal detected: $0", cx->request()->path());
     return cx->sendErrorPage(HttpStatus::BadRequest);
@@ -986,7 +986,7 @@ bool CoreModule::precompressed(XzeroContext* cx, Params& args) {
   return false;
 }
 
-void CoreModule::autoindex(XzeroContext* cx, Params& args) {
+void CoreModule::autoindex(Context* cx, Params& args) {
   if (cx->documentRoot().empty()) {
     cx->logError("autoindex: No document root set yet. Skipping.");
     // error: must have a document-root set first.
@@ -1009,7 +1009,7 @@ void CoreModule::autoindex(XzeroContext* cx, Params& args) {
   }
 }
 
-bool CoreModule::matchIndex(XzeroContext* cx, const std::string& arg) {
+bool CoreModule::matchIndex(Context* cx, const std::string& arg) {
   std::string ipath = FileUtil::joinPaths(cx->file()->path(), arg);
   std::string path = FileUtil::joinPaths(cx->documentRoot(), ipath);
 
@@ -1023,7 +1023,7 @@ bool CoreModule::matchIndex(XzeroContext* cx, const std::string& arg) {
   return false;
 }
 
-void CoreModule::rewrite(XzeroContext* cx, Params& args) {
+void CoreModule::rewrite(Context* cx, Params& args) {
   std::string filepath = FileUtil::joinPaths(cx->documentRoot(),
                                              args.getString(1));
   auto file = daemon().vfs().getFile(filepath);
@@ -1031,7 +1031,7 @@ void CoreModule::rewrite(XzeroContext* cx, Params& args) {
   args.setResult(file ? file->exists() : false);
 }
 
-void CoreModule::pathinfo(XzeroContext* cx, Params& args) {
+void CoreModule::pathinfo(Context* cx, Params& args) {
   if (!cx->file()) {
     cx->logError("pathinfo: no file information available. "
                  "Please set document root first.");
@@ -1065,7 +1065,7 @@ void CoreModule::pathinfo(XzeroContext* cx, Params& args) {
   }
 }
 
-void CoreModule::header_add(XzeroContext* cx, Params& args) {
+void CoreModule::header_add(Context* cx, Params& args) {
   std::string name = args.getString(1);
   std::string value = args.getString(2);
 
@@ -1074,7 +1074,7 @@ void CoreModule::header_add(XzeroContext* cx, Params& args) {
   });
 }
 
-void CoreModule::header_append(XzeroContext* cx, Params& args) {
+void CoreModule::header_append(Context* cx, Params& args) {
   std::string name = args.getString(1);
   std::string value = args.getString(2);
   std::string delim = args.getString(3);
@@ -1084,7 +1084,7 @@ void CoreModule::header_append(XzeroContext* cx, Params& args) {
   });
 }
 
-void CoreModule::header_overwrite(XzeroContext* cx, Params& args) {
+void CoreModule::header_overwrite(Context* cx, Params& args) {
   std::string name = args.getString(1);
   std::string value = args.getString(2);
 
@@ -1093,7 +1093,7 @@ void CoreModule::header_overwrite(XzeroContext* cx, Params& args) {
   });
 }
 
-void CoreModule::header_remove(XzeroContext* cx, Params& args) {
+void CoreModule::header_remove(Context* cx, Params& args) {
   std::string name = args.getString(1);
 
   cx->response()->onPostProcess([cx, name]() {
@@ -1101,7 +1101,7 @@ void CoreModule::header_remove(XzeroContext* cx, Params& args) {
   });
 }
 
-void CoreModule::expire(XzeroContext* cx, Params& args) {
+void CoreModule::expire(Context* cx, Params& args) {
   time_t now = cx->now().unixtime();
   time_t mtime = cx->file() ? cx->file()->mtime() : now;
   time_t value = args.getInt(1);
@@ -1121,27 +1121,27 @@ void CoreModule::expire(XzeroContext* cx, Params& args) {
       StringUtil::format("max-age=$0", value - now));
 }
 
-void CoreModule::req_method(XzeroContext* cx, Params& args) {
+void CoreModule::req_method(Context* cx, Params& args) {
   args.setResult(cx->request()->unparsedMethod());
 }
 
-void CoreModule::req_url(XzeroContext* cx, Params& args) {
+void CoreModule::req_url(Context* cx, Params& args) {
   args.setResult(cx->request()->unparsedUri());
 }
 
-void CoreModule::req_path(XzeroContext* cx, Params& args) {
+void CoreModule::req_path(Context* cx, Params& args) {
   args.setResult(cx->request()->path());
 }
 
-void CoreModule::req_query(XzeroContext* cx, Params& args) {
+void CoreModule::req_query(Context* cx, Params& args) {
   args.setResult(cx->request()->query());
 }
 
-void CoreModule::req_header(XzeroContext* cx, Params& args) {
+void CoreModule::req_header(Context* cx, Params& args) {
   args.setResult(cx->request()->getHeader(args.getString(1)));
 }
 
-void CoreModule::req_cookie(XzeroContext* cx, Params& args) {
+void CoreModule::req_cookie(Context* cx, Params& args) {
   std::string cookie = cx->request()->getHeader("Cookie");
   if (!cookie.empty()) {
     auto wanted = args.getString(1);
@@ -1165,82 +1165,82 @@ void CoreModule::req_cookie(XzeroContext* cx, Params& args) {
   args.setResult("");
 }
 
-void CoreModule::req_host(XzeroContext* cx, Params& args) {
+void CoreModule::req_host(Context* cx, Params& args) {
   args.setResult(cx->request()->host());
 }
 
-void CoreModule::req_pathinfo(XzeroContext* cx, Params& args) {
+void CoreModule::req_pathinfo(Context* cx, Params& args) {
   args.setResult(cx->pathInfo());
 }
 
-void CoreModule::req_is_secure(XzeroContext* cx, Params& args) {
+void CoreModule::req_is_secure(Context* cx, Params& args) {
   args.setResult(cx->request()->isSecure());
 }
 
-void CoreModule::req_scheme(XzeroContext* cx, Params& args) {
+void CoreModule::req_scheme(Context* cx, Params& args) {
   args.setResult(cx->request()->isSecure() ? "https" : "http");
 }
 
-void CoreModule::req_status_code(XzeroContext* cx, Params& args) {
+void CoreModule::req_status_code(Context* cx, Params& args) {
   args.setResult(static_cast<FlowNumber>(cx->response()->status()));
 }
 
-void CoreModule::conn_remote_ip(XzeroContext* cx, Params& args) {
+void CoreModule::conn_remote_ip(Context* cx, Params& args) {
   args.setResult(&(cx->remoteIP()));
 }
 
-void CoreModule::conn_remote_port(XzeroContext* cx, Params& args) {
+void CoreModule::conn_remote_port(Context* cx, Params& args) {
   args.setResult(static_cast<FlowNumber>(cx->remotePort()));
 }
 
-void CoreModule::conn_local_ip(XzeroContext* cx, Params& args) {
+void CoreModule::conn_local_ip(Context* cx, Params& args) {
   args.setResult(&(cx->localIP()));
 }
 
-void CoreModule::conn_local_port(XzeroContext* cx, Params& args) {
+void CoreModule::conn_local_port(Context* cx, Params& args) {
   args.setResult(static_cast<FlowNumber>(cx->localPort()));
 }
 
-void CoreModule::phys_path(XzeroContext* cx, Params& args) {
+void CoreModule::phys_path(Context* cx, Params& args) {
   static const std::string none;
   args.setResult(cx->file() ? cx->file()->path() : none);
 }
 
-void CoreModule::phys_exists(XzeroContext* cx, Params& args) {
+void CoreModule::phys_exists(Context* cx, Params& args) {
   args.setResult(cx->file() ? cx->file()->exists() : false);
 }
 
-void CoreModule::phys_is_reg(XzeroContext* cx, Params& args) {
+void CoreModule::phys_is_reg(Context* cx, Params& args) {
   args.setResult(cx->file() ? cx->file()->isRegular() : false);
 }
 
-void CoreModule::phys_is_dir(XzeroContext* cx, Params& args) {
+void CoreModule::phys_is_dir(Context* cx, Params& args) {
   args.setResult(cx->file() ? cx->file()->isDirectory() : false);
 }
 
-void CoreModule::phys_is_exe(XzeroContext* cx, Params& args) {
+void CoreModule::phys_is_exe(Context* cx, Params& args) {
   args.setResult(cx->file() ? cx->file()->isExecutable() : false);
 }
 
-void CoreModule::phys_mtime(XzeroContext* cx, Params& args) {
+void CoreModule::phys_mtime(Context* cx, Params& args) {
   args.setResult(static_cast<FlowNumber>(cx->file() ? cx->file()->mtime() : 0));
 }
 
-void CoreModule::phys_size(XzeroContext* cx, Params& args) {
+void CoreModule::phys_size(Context* cx, Params& args) {
   args.setResult(static_cast<FlowNumber>(cx->file() ? cx->file()->size() : 0));
 }
 
-void CoreModule::phys_etag(XzeroContext* cx, Params& args) {
+void CoreModule::phys_etag(Context* cx, Params& args) {
   static const std::string none;
   args.setResult(cx->file() ? cx->file()->etag() : none);
 }
 
-void CoreModule::phys_mimetype(XzeroContext* cx, Params& args) {
+void CoreModule::phys_mimetype(Context* cx, Params& args) {
   static const std::string none;
   args.setResult(cx->file() ? cx->file()->mimetype() : none);
 }
 
-void CoreModule::regex_group(XzeroContext* cx, Params& args) {
+void CoreModule::regex_group(Context* cx, Params& args) {
   FlowNumber position = args.getInt(1);
 
   if (const RegExp::Result* rr = cx->runner()->regexpContext()->regexMatch()) {
@@ -1257,7 +1257,7 @@ void CoreModule::regex_group(XzeroContext* cx, Params& args) {
   }
 }
 
-void CoreModule::req_accept_language(XzeroContext* cx, Params& args) {
+void CoreModule::req_accept_language(Context* cx, Params& args) {
   const FlowStringArray& supportedLanguages = args.getStringArray(1);
   std::string acceptLanguage = cx->request()->getHeader("Accept-Language");
 

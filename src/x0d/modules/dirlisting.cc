@@ -168,13 +168,13 @@ class HtmlFormatter : public OutputFormatter { // {{{
   }
 }; // }}}
 
-DirlistingModule::DirlistingModule(x0d::XzeroDaemon* d)
-    : XzeroModule(d, "dirlisting") {
+DirlistingModule::DirlistingModule(x0d::Daemon* d)
+    : Module(d, "dirlisting") {
 
   mainHandler("dirlisting", &DirlistingModule::dirlisting);
 }
 
-bool DirlistingModule::dirlisting(XzeroContext* cx, Params& args) {
+bool DirlistingModule::dirlisting(Context* cx, Params& args) {
   if (cx->request()->directoryDepth() < 0) {
     cx->logError("Directory traversal detected: $0", cx->request()->path());
     return cx->sendErrorPage(HttpStatus::BadRequest);

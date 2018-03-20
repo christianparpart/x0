@@ -7,16 +7,16 @@
 
 #pragma once
 
-#include <x0d/XzeroModule.h>
+#include <x0d/Module.h>
 
 namespace x0d {
 
-class EmptyGifModule : public XzeroModule {
+class EmptyGifModule : public Module {
  public:
-  explicit EmptyGifModule(XzeroDaemon* d);
+  explicit EmptyGifModule(Daemon* d);
 
  private:
-  bool empty_gif(XzeroContext* cx, Params& args);
+  bool empty_gif(Context* cx, Params& args);
 };
 
 } // namespace x0d

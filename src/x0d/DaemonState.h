@@ -12,7 +12,7 @@
 namespace x0d {
 
 // TODO: probably call me ServiceState
-enum class XzeroState {
+enum class DaemonState {
   Inactive,
   Initializing,
   Running,
@@ -20,6 +20,6 @@ enum class XzeroState {
   GracefullyShuttingdown
 };
 
-std::ostream& operator<<(std::ostream& os, XzeroState state);
+std::ostream& operator<<(std::ostream& os, DaemonState state);
 
 } // namespace x0d

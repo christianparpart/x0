@@ -328,11 +328,11 @@ MIMETYPES_GENERATE_CPP(MT_SRC ${PROJECT_SOURCE_DIR}/3rdparty/mime.types)
 
 set(x0d_SRC src/x0d/main.cc
             ${MT_SRC}
-            src/x0d/XzeroContext.cc
-            src/x0d/XzeroDaemon.cc
-            src/x0d/XzeroEventHandler.cc
-            src/x0d/XzeroModule.cc
-            src/x0d/XzeroState.cc
+            src/x0d/Context.cc
+            src/x0d/Daemon.cc
+            src/x0d/DaemonState.cc
+            src/x0d/Module.cc
+            src/x0d/SignalHandler.cc
             src/x0d/modules/access.cc
             src/x0d/modules/accesslog.cc
             src/x0d/modules/auth.cc

@@ -15,8 +15,8 @@ using namespace xzero::http;
 
 namespace x0d {
 
-AccessModule::AccessModule(x0d::XzeroDaemon* d)
-    : XzeroModule(d, "access") {
+AccessModule::AccessModule(x0d::Daemon* d)
+    : Module(d, "access") {
 
   mainHandler("access.deny", &AccessModule::deny_all);
   mainHandler("access.deny", &AccessModule::deny_ip, FlowType::IPAddress);
@@ -31,25 +31,25 @@ AccessModule::AccessModule(x0d::XzeroDaemon* d)
 }
 
 // {{{ deny()
-bool AccessModule::deny_all(XzeroContext* cx, Params& args) {
+bool AccessModule::deny_all(Context* cx, Params& args) {
   return forbidden(cx);
 }
 
-bool AccessModule::deny_ip(XzeroContext* cx, Params& args) {
+bool AccessModule::deny_ip(Context* cx, Params& args) {
   if (cx->remoteIP() == args.getIPAddress(1))
     return forbidden(cx);
 
   return false;
 }
 
-bool AccessModule::deny_cidr(XzeroContext* cx, Params& args) {
+bool AccessModule::deny_cidr(Context* cx, Params& args) {
   if (args.getCidr(1).contains(cx->remoteIP()))
     return forbidden(cx);
 
   return false;
 }
 
-bool AccessModule::deny_ipArray(XzeroContext* cx, Params& args) {
+bool AccessModule::deny_ipArray(Context* cx, Params& args) {
   const auto& list = args.getIPAddressArray(1);
   for (const auto& ip : list)
     if (ip == cx->remoteIP())
@@ -58,7 +58,7 @@ bool AccessModule::deny_ipArray(XzeroContext* cx, Params& args) {
   return false;
 }
 
-bool AccessModule::deny_cidrArray(XzeroContext* cx, Params& args) {
+bool AccessModule::deny_cidrArray(Context* cx, Params& args) {
   const auto& list = args.getCidrArray(1);
   for (const auto& cidr : list)
     if (cidr.contains(cx->remoteIP()))
@@ -68,21 +68,21 @@ bool AccessModule::deny_cidrArray(XzeroContext* cx, Params& args) {
 }
 // }}}
 // {{{ deny_except()
-bool AccessModule::denyExcept_ip(XzeroContext* cx, Params& args) {
+bool AccessModule::denyExcept_ip(Context* cx, Params& args) {
   if (cx->remoteIP() == args.getIPAddress(1))
     return false;
 
   return forbidden(cx);
 }
 
-bool AccessModule::denyExcept_cidr(XzeroContext* cx, Params& args) {
+bool AccessModule::denyExcept_cidr(Context* cx, Params& args) {
   if (args.getCidr(1).contains(cx->remoteIP()))
     return false;
 
   return forbidden(cx);
 }
 
-bool AccessModule::denyExcept_ipArray(XzeroContext* cx, Params& args) {
+bool AccessModule::denyExcept_ipArray(Context* cx, Params& args) {
   const auto& list = args.getIPAddressArray(1);
   for (const auto& ip : list)
     if (ip == cx->remoteIP())
@@ -91,7 +91,7 @@ bool AccessModule::denyExcept_ipArray(XzeroContext* cx, Params& args) {
   return forbidden(cx);
 }
 
-bool AccessModule::denyExcept_cidrArray(XzeroContext* cx, Params& args) {
+bool AccessModule::denyExcept_cidrArray(Context* cx, Params& args) {
   const auto& list = args.getCidrArray(1);
   for (const auto& cidr : list)
     if (cidr.contains(cx->remoteIP()))
@@ -101,7 +101,7 @@ bool AccessModule::denyExcept_cidrArray(XzeroContext* cx, Params& args) {
 }
 // }}}
 
-bool AccessModule::forbidden(XzeroContext* cx) {
+bool AccessModule::forbidden(Context* cx) {
   cx->response()->setStatus(HttpStatus::Forbidden);
   cx->response()->completed();
 

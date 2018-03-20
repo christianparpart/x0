@@ -5,22 +5,22 @@
 // file except in compliance with the License. You may obtain a copy of
 // the License at: http://opensource.org/licenses/MIT
 
-#include <x0d/XzeroModule.h>
+#include <x0d/Module.h>
 
 namespace x0d {
 
-class WebdavModule : public XzeroModule {
+class WebdavModule : public Module {
  public:
-  explicit WebdavModule(XzeroDaemon* d);
+  explicit WebdavModule(Daemon* d);
 
   // main handler
-  bool webdav(XzeroContext* cx, Params& args);
+  bool webdav(Context* cx, Params& args);
 
  private:
-  bool webdav_mkcol(XzeroContext* cx);
-  bool webdav_get(XzeroContext* cx);
-  bool webdav_put(XzeroContext* cx, Params& args);
-  bool todo(XzeroContext* cx);
+  bool webdav_mkcol(Context* cx);
+  bool webdav_get(Context* cx);
+  bool webdav_put(Context* cx, Params& args);
+  bool todo(Context* cx);
 };
 
 } // namespace x0d

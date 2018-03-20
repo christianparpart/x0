@@ -7,7 +7,7 @@
 
 #pragma once
 
-#include <x0d/XzeroModule.h>
+#include <x0d/Module.h>
 #include <xzero/logging.h>
 #include <xzero/http/proxy/HttpClusterApi.h>
 #include <xzero-flow/AST.h>
@@ -32,16 +32,16 @@ namespace xzero {
 
 namespace x0d {
 
-class ProxyModule : public XzeroModule,
+class ProxyModule : public Module,
                     public xzero::http::client::HttpClusterApi {
  public:
-  explicit ProxyModule(XzeroDaemon* d);
+  explicit ProxyModule(Daemon* d);
   ~ProxyModule();
 
   const std::string& pseudonym() const noexcept { return pseudonym_; }
 
   // helpers
-  void addVia(XzeroContext* cx);
+  void addVia(Context* cx);
   void addVia(const xzero::http::HttpRequestInfo* in,
               xzero::http::HttpResponse* out);
 
@@ -57,35 +57,35 @@ class ProxyModule : public XzeroModule,
 
   // main handlers
   xzero::http::client::HttpCluster* findLocalCluster(const std::string& host);
-  bool proxy_cluster_auto(XzeroContext* cx, xzero::flow::Params& args);
+  bool proxy_cluster_auto(Context* cx, xzero::flow::Params& args);
   bool verify_proxy_cluster(xzero::flow::Instr* call, xzero::flow::IRBuilder* builder);
-  bool proxy_cluster(XzeroContext* cx, Params& args);
-  bool proxy_api(XzeroContext* cx, xzero::flow::Params& args);
-  bool proxy_fcgi(XzeroContext* cx, xzero::flow::Params& args);
-  bool proxy_http(XzeroContext* cx, xzero::flow::Params& args);
+  bool proxy_cluster(Context* cx, Params& args);
+  bool proxy_api(Context* cx, xzero::flow::Params& args);
+  bool proxy_fcgi(Context* cx, xzero::flow::Params& args);
+  bool proxy_http(Context* cx, xzero::flow::Params& args);
   bool proxy_roadwarrior_verify(xzero::flow::Instr* instr, xzero::flow::IRBuilder* builder);
-  void proxy_cache(XzeroContext* cx, xzero::flow::Params& args);
-  bool tryHandleTrace(XzeroContext* cx);
+  void proxy_cache(Context* cx, xzero::flow::Params& args);
+  bool tryHandleTrace(Context* cx);
 
  private:
-  bool internalServerError(XzeroContext* cx);
+  bool internalServerError(Context* cx);
 
-  void balance(XzeroContext* cx,
+  void balance(Context* cx,
                const std::string& clusterName,
                const std::string& bucketName);
 
-  void pass(XzeroContext* cx,
+  void pass(Context* cx,
             const std::string& clusterName,
             const std::string& backendName);
 
   void proxyHttpConnected(std::shared_ptr<xzero::TcpEndPoint> ep,
-                          XzeroContext* cx);
+                          Context* cx);
   void proxyHttpConnectFailed(const std::string& errorMessage,
                               const xzero::IPAddress& ipaddr, int port,
-                              XzeroContext* cx);
-  void proxyHttpRespond(XzeroContext* cx);
+                              Context* cx);
+  void proxyHttpRespond(Context* cx);
   void proxyHttpRespondFailure(const std::string& errorMessage,
-                               XzeroContext* cx);
+                               Context* cx);
 
   void onPostConfig() override;
 

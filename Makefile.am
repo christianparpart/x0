@@ -617,11 +617,11 @@ x0d_LDADD = \
 
 x0d_SOURCES = \
 	$(x0d_types) \
-	src/x0d/XzeroContext.cc \
-	src/x0d/XzeroDaemon.cc \
-	src/x0d/XzeroEventHandler.cc \
-	src/x0d/XzeroModule.cc \
-	src/x0d/XzeroState.cc \
+	src/x0d/Context.cc \
+	src/x0d/Daemon.cc \
+	src/x0d/DaemonState.cc \
+	src/x0d/Module.cc \
+	src/x0d/SignalHandler.cc \
 	src/x0d/modules/access.cc \
 	src/x0d/modules/accesslog.cc \
 	src/x0d/modules/auth.cc \
@@ -640,11 +640,11 @@ endif
 
 x0ddir = $(includedir)/x0d
 x0d_HEADERS = \
-	src/x0d/XzeroContext.h \
-	src/x0d/XzeroDaemon.h \
-	src/x0d/XzeroEventHandler.h \
-	src/x0d/XzeroModule.h \
-	src/x0d/XzeroState.h
+	src/x0d/Context.h \
+	src/x0d/Daemon.h \
+	src/x0d/DaemonState.h \
+	src/x0d/Module.h \
+	src/x0d/SignalHandler.h
 
 nodist_x0d_SOURCES = \
 	@builddir@/3rdparty/mime.mt.cc

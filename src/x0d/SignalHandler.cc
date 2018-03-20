@@ -5,8 +5,8 @@
 // file except in compliance with the License. You may obtain a copy of
 // the License at: http://opensource.org/licenses/MIT
 
-#include <x0d/XzeroEventHandler.h>
-#include <x0d/XzeroDaemon.h>
+#include <x0d/SignalHandler.h>
+#include <x0d/Daemon.h>
 #include <xzero/UnixSignalInfo.h>
 #include <xzero/executor/Executor.h>
 #include <xzero/logging.h>
@@ -16,25 +16,25 @@ namespace x0d {
 
 using namespace xzero;
 
-XzeroEventHandler::XzeroEventHandler(XzeroDaemon* daemon,
+SignalHandler::SignalHandler(Daemon* daemon,
                                      xzero::Executor* executor)
     : daemon_(daemon),
       signals_(UnixSignals::create(executor)),
       executor_(executor),
-      state_(XzeroState::Inactive) {
+      state_(DaemonState::Inactive) {
 
-  signals_->notify(SIGHUP, std::bind(&XzeroEventHandler::onConfigReload, this, std::placeholders::_1));
-  signals_->notify(SIGUSR1, std::bind(&XzeroEventHandler::onCycleLogs, this, std::placeholders::_1));
-  signals_->notify(SIGUSR2, std::bind(&XzeroEventHandler::onUpgradeBinary, this, std::placeholders::_1));
-  signals_->notify(SIGQUIT, std::bind(&XzeroEventHandler::onGracefulShutdown, this, std::placeholders::_1));
-  signals_->notify(SIGTERM, std::bind(&XzeroEventHandler::onQuickShutdown, this, std::placeholders::_1));
-  signals_->notify(SIGINT, std::bind(&XzeroEventHandler::onQuickShutdown, this, std::placeholders::_1));
+  signals_->notify(SIGHUP, std::bind(&SignalHandler::onConfigReload, this, std::placeholders::_1));
+  signals_->notify(SIGUSR1, std::bind(&SignalHandler::onCycleLogs, this, std::placeholders::_1));
+  signals_->notify(SIGUSR2, std::bind(&SignalHandler::onUpgradeBinary, this, std::placeholders::_1));
+  signals_->notify(SIGQUIT, std::bind(&SignalHandler::onGracefulShutdown, this, std::placeholders::_1));
+  signals_->notify(SIGTERM, std::bind(&SignalHandler::onQuickShutdown, this, std::placeholders::_1));
+  signals_->notify(SIGINT, std::bind(&SignalHandler::onQuickShutdown, this, std::placeholders::_1));
 }
 
-XzeroEventHandler::~XzeroEventHandler() {
+SignalHandler::~SignalHandler() {
 }
 
-void XzeroEventHandler::onConfigReload(const xzero::UnixSignalInfo& info) {
+void SignalHandler::onConfigReload(const xzero::UnixSignalInfo& info) {
   logNotice("Reloading configuration. (requested via $0 by UID $1 PID $2)",
             UnixSignals::toString(info.signal),
             info.uid.getOrElse(-1),
@@ -42,10 +42,10 @@ void XzeroEventHandler::onConfigReload(const xzero::UnixSignalInfo& info) {
 
   /* daemon_->reloadConfiguration(); */
 
-  signals_->notify(SIGHUP, std::bind(&XzeroEventHandler::onConfigReload, this, std::placeholders::_1));
+  signals_->notify(SIGHUP, std::bind(&SignalHandler::onConfigReload, this, std::placeholders::_1));
 }
 
-void XzeroEventHandler::onCycleLogs(const xzero::UnixSignalInfo& info) {
+void SignalHandler::onCycleLogs(const xzero::UnixSignalInfo& info) {
   logNotice("Cycling logs. (requested via $0 by UID $1 PID $2)",
             UnixSignals::toString(info.signal),
             info.uid.getOrElse(-1),
@@ -53,10 +53,10 @@ void XzeroEventHandler::onCycleLogs(const xzero::UnixSignalInfo& info) {
 
   daemon_->onCycleLogs();
 
-  signals_->notify(SIGUSR1, std::bind(&XzeroEventHandler::onCycleLogs, this, std::placeholders::_1));
+  signals_->notify(SIGUSR1, std::bind(&SignalHandler::onCycleLogs, this, std::placeholders::_1));
 }
 
-void XzeroEventHandler::onUpgradeBinary(const UnixSignalInfo& info) {
+void SignalHandler::onUpgradeBinary(const UnixSignalInfo& info) {
   logNotice("Upgrading binary. (requested via $0 by UID $1 PID $2)",
             UnixSignals::toString(info.signal),
             info.uid.getOrElse(-1),
@@ -71,7 +71,7 @@ void XzeroEventHandler::onUpgradeBinary(const UnixSignalInfo& info) {
    */
 }
 
-void XzeroEventHandler::onQuickShutdown(const xzero::UnixSignalInfo& info) {
+void SignalHandler::onQuickShutdown(const xzero::UnixSignalInfo& info) {
   logNotice("Initiating quick shutdown. (requested via $0 by UID $1 PID $2)",
             UnixSignals::toString(info.signal),
             info.uid.getOrElse(-1),
@@ -80,7 +80,7 @@ void XzeroEventHandler::onQuickShutdown(const xzero::UnixSignalInfo& info) {
   daemon_->terminate();
 }
 
-void XzeroEventHandler::onGracefulShutdown(const xzero::UnixSignalInfo& info) {
+void SignalHandler::onGracefulShutdown(const xzero::UnixSignalInfo& info) {
   logNotice("Initiating graceful shutdown. (requested via $0 by UID $1 PID $2)",
             UnixSignals::toString(info.signal),
             info.uid.getOrElse(-1),

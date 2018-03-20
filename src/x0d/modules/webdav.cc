@@ -25,14 +25,14 @@ using namespace xzero::flow;
 
 namespace x0d {
 
-WebdavModule::WebdavModule(x0d::XzeroDaemon* d)
-    : XzeroModule(d, "webdav") {
+WebdavModule::WebdavModule(x0d::Daemon* d)
+    : Module(d, "webdav") {
 
   mainHandler("webdav", &WebdavModule::webdav)
       .param<int>("access", 0600);
 }
 
-bool WebdavModule::webdav(XzeroContext* cx, Params& args) {
+bool WebdavModule::webdav(Context* cx, Params& args) {
   switch (cx->request()->method()) {
     case HttpMethod::PROPFIND:    // 9.1
       return todo(cx);
@@ -61,7 +61,7 @@ bool WebdavModule::webdav(XzeroContext* cx, Params& args) {
   }
 }
 
-bool WebdavModule::webdav_mkcol(XzeroContext* cx) {
+bool WebdavModule::webdav_mkcol(Context* cx) {
   if (!cx->file())
     return false;
 
@@ -91,7 +91,7 @@ bool WebdavModule::webdav_mkcol(XzeroContext* cx) {
   return true;
 }
 
-bool WebdavModule::webdav_get(XzeroContext* cx) {
+bool WebdavModule::webdav_get(Context* cx) {
   if (cx->request()->directoryDepth() < 0) {
     cx->logError("Directory traversal detected: $0", cx->request()->path());
     return cx->sendErrorPage(HttpStatus::BadRequest);
@@ -107,7 +107,7 @@ bool WebdavModule::webdav_get(XzeroContext* cx) {
   }
 }
 
-bool WebdavModule::webdav_put(XzeroContext* cx, Params& args) {
+bool WebdavModule::webdav_put(Context* cx, Params& args) {
   // TODO: pre-allocate full storage in advance
   // TODO: attempt native file rename/move into target location if possible
 
@@ -150,7 +150,7 @@ bool WebdavModule::webdav_put(XzeroContext* cx, Params& args) {
   return true;
 }
 
-bool WebdavModule::todo(XzeroContext* cx) {
+bool WebdavModule::todo(Context* cx) {
   cx->response()->setStatus(HttpStatus::NotImplemented);
   cx->response()->completed();
   return true;

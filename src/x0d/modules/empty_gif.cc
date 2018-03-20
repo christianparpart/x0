@@ -6,7 +6,7 @@
 // the License at: http://opensource.org/licenses/MIT
 
 #include "empty_gif.h"
-#include <x0d/XzeroContext.h>
+#include <x0d/Context.h>
 #include <xzero/http/HttpRequest.h>
 #include <xzero/http/HttpResponse.h>
 #include <xzero/Buffer.h>
@@ -66,13 +66,13 @@ static unsigned char empty_gif_data[] = {
     0x3B                           /* trailer                                */
 };
 
-EmptyGifModule::EmptyGifModule(XzeroDaemon* d)
-    : XzeroModule(d, "empty_gif") {
+EmptyGifModule::EmptyGifModule(Daemon* d)
+    : Module(d, "empty_gif") {
 
   mainHandler("empty_gif", &EmptyGifModule::empty_gif);
 }
 
-bool EmptyGifModule::empty_gif(XzeroContext* cx, Params& args) {
+bool EmptyGifModule::empty_gif(Context* cx, Params& args) {
   const size_t len = sizeof(empty_gif_data);
 
   cx->response()->setStatus(HttpStatus::Ok);

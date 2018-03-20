@@ -85,7 +85,7 @@ std::string getFormatName(std::string::const_iterator& i, std::string::const_ite
   return std::string(beg, std::prev(i));
 }
 // }}}
-std::string formatLog(XzeroContext* cx, const std::string& format) { // {{{
+std::string formatLog(Context* cx, const std::string& format) { // {{{
   HttpRequest* request = cx->masterRequest();
   HttpResponse* response = cx->response();
 
@@ -295,17 +295,17 @@ void verifyFormat(const std::string& format) { // {{{
 }
 // }}}
 struct RequestLogger : public CustomData { // {{{
-  XzeroContext* context_;
+  Context* context_;
 
   std::list<std::pair<FlowString /*format*/, LogFile* /*log*/>> targets_;
   std::list<std::pair<FlowString /*format*/, LogTarget* /*target*/>> logTargets_;
   std::string consoleFormat_;
 
-  explicit RequestLogger(XzeroContext* cx)
+  explicit RequestLogger(Context* cx)
       : context_(cx), targets_() {
   }
 
-  RequestLogger(XzeroContext* cx, const FlowString& format, LogFile* log)
+  RequestLogger(Context* cx, const FlowString& format, LogFile* log)
       : RequestLogger(cx) {
     addTarget(format, log);
   }
@@ -340,8 +340,8 @@ struct RequestLogger : public CustomData { // {{{
   }
 };  // }}}
 
-AccesslogModule::AccesslogModule(XzeroDaemon* d)
-    : XzeroModule(d, "accesslog"),
+AccesslogModule::AccesslogModule(Daemon* d)
+    : Module(d, "accesslog"),
       formats_(),
       logfiles_() {
 
@@ -410,7 +410,7 @@ Option<FlowString> AccesslogModule::lookupFormat(const FlowString& id) const {
   return None(); //Error("accesslog format not found.");
 }
 
-void AccesslogModule::accesslog_syslog(XzeroContext* cx, Params& args) {
+void AccesslogModule::accesslog_syslog(Context* cx, Params& args) {
   // TODO: accesslog.syslog()
 
   FlowString id = args.getString(1);
@@ -432,7 +432,7 @@ void AccesslogModule::accesslog_syslog(XzeroContext* cx, Params& args) {
 }
 
 // accesslog.console(format = "main");
-void AccesslogModule::accesslog_console(XzeroContext* cx, Params& args) {
+void AccesslogModule::accesslog_console(Context* cx, Params& args) {
   FlowString id = args.getString(1);
 
   Option<FlowString> format = lookupFormat(id);
@@ -452,7 +452,7 @@ void AccesslogModule::accesslog_console(XzeroContext* cx, Params& args) {
 }
 
 // accesslog(filename, format = "main");
-void AccesslogModule::accesslog_file(XzeroContext* cx, Params& args) {
+void AccesslogModule::accesslog_file(Context* cx, Params& args) {
   FlowString filename = args.getString(1);
   FlowString id = args.getString(2);
 

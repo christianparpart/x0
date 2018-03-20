@@ -6,8 +6,8 @@
 // the License at: http://opensource.org/licenses/MIT
 
 #include "compress.h"
-#include <x0d/XzeroModule.h>
-#include <x0d/XzeroContext.h>
+#include <x0d/Module.h>
+#include <x0d/Context.h>
 
 #include <xzero/http/HttpRequest.h>
 #include <xzero/http/HttpResponse.h>
@@ -33,8 +33,8 @@ using namespace xzero::flow;
 
 namespace x0d {
 
-CompressModule::CompressModule(XzeroDaemon* d)
-    : XzeroModule(d, "compress"),
+CompressModule::CompressModule(Daemon* d)
+    : Module(d, "compress"),
       outputCompressor_() {
 
   onPostProcess(

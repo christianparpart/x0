@@ -7,24 +7,24 @@
 
 #pragma once
 
-#include <x0d/XzeroModule.h>
+#include <x0d/Module.h>
 
 namespace x0d {
 
-class AuthModule : public XzeroModule {
+class AuthModule : public Module {
  public:
-  explicit AuthModule(XzeroDaemon* d);
+  explicit AuthModule(Daemon* d);
   ~AuthModule();
 
   // main functions
-  void auth_realm(XzeroContext* cx, Params& args);
-  void auth_userfile(XzeroContext* cx, Params& args);
-  void auth_pam(XzeroContext* cx, Params& args);
+  void auth_realm(Context* cx, Params& args);
+  void auth_userfile(Context* cx, Params& args);
+  void auth_pam(Context* cx, Params& args);
 
   // main handlers
-  bool auth_require(XzeroContext* cx, Params& args);
+  bool auth_require(Context* cx, Params& args);
 
-  bool sendAuthenticateRequest(XzeroContext* cx, const std::string& realm);
+  bool sendAuthenticateRequest(Context* cx, const std::string& realm);
 };
 
 } // namespace x0d

@@ -222,8 +222,8 @@ struct AuthBasic : public CustomData {  // {{{
 };
 // }}}
 // {{{ AuthModule
-AuthModule::AuthModule(x0d::XzeroDaemon* d)
-    : XzeroModule(d, "auth") {
+AuthModule::AuthModule(x0d::Daemon* d)
+    : Module(d, "auth") {
 
   mainFunction("auth.realm", &AuthModule::auth_realm, flow::FlowType::String);
   mainFunction("auth.userfile", &AuthModule::auth_userfile, flow::FlowType::String);
@@ -238,14 +238,14 @@ AuthModule::AuthModule(x0d::XzeroDaemon* d)
 AuthModule::~AuthModule() {
 }
 
-void AuthModule::auth_realm(XzeroContext* cx, flow::Params& args) {
+void AuthModule::auth_realm(Context* cx, flow::Params& args) {
   if (!cx->customData<AuthBasic>(this))
     cx->setCustomData<AuthBasic>(this);
 
   cx->customData<AuthBasic>(this)->realm = args.getString(1);
 }
 
-void AuthModule::auth_userfile(XzeroContext* cx, flow::Params& args) {
+void AuthModule::auth_userfile(Context* cx, flow::Params& args) {
   if (!cx->customData<AuthBasic>(this))
     cx->setCustomData<AuthBasic>(this);
 
@@ -253,7 +253,7 @@ void AuthModule::auth_userfile(XzeroContext* cx, flow::Params& args) {
 }
 
 #if defined(HAVE_SECURITY_PAM_APPL_H)
-void AuthModule::auth_pam(XzeroContext* cx, flow::Params& args) {
+void AuthModule::auth_pam(Context* cx, flow::Params& args) {
   if (!cx->customData<AuthBasic>(this))
     cx->setCustomData<AuthBasic>(this);
 
@@ -261,7 +261,7 @@ void AuthModule::auth_pam(XzeroContext* cx, flow::Params& args) {
 }
 #endif
 
-bool AuthModule::auth_require(XzeroContext* cx, flow::Params& args) {
+bool AuthModule::auth_require(Context* cx, flow::Params& args) {
   AuthBasic* auth = cx->customData<AuthBasic>(this);
   if (!auth || !auth->backend) {
     cx->logError("auth: auth.require: used without specifying a backend");
@@ -299,7 +299,7 @@ bool AuthModule::auth_require(XzeroContext* cx, flow::Params& args) {
   return sendAuthenticateRequest(cx, auth->realm);
 }
 
-bool AuthModule::sendAuthenticateRequest(XzeroContext* cx, const std::string& realm) {
+bool AuthModule::sendAuthenticateRequest(Context* cx, const std::string& realm) {
   char buf[1024];
   snprintf(buf, sizeof(buf), "Basic realm=\"%s\"", realm.c_str());
 

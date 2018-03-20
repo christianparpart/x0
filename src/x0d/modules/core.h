@@ -7,7 +7,7 @@
 
 #pragma once
 
-#include <x0d/XzeroModule.h>
+#include <x0d/Module.h>
 #include <xzero/MimeTypes.h>
 #include <xzero/Random.h>
 #include <xzero/logging.h>
@@ -23,9 +23,9 @@
 
 namespace x0d {
 
-class CoreModule : public XzeroModule {
+class CoreModule : public Module {
  public:
-  explicit CoreModule(XzeroDaemon* d);
+  explicit CoreModule(Daemon* d);
   ~CoreModule();
 
   static size_t cpuCount();
@@ -34,7 +34,7 @@ class CoreModule : public XzeroModule {
   xzero::Random rng_;
 
   // helper
-  bool redirectOnIncompletePath(XzeroContext* cx);
+  bool redirectOnIncompletePath(Context* cx);
   unsigned long long setrlimit(int resource, unsigned long long value);
 
   // setup properties
@@ -77,86 +77,86 @@ class CoreModule : public XzeroModule {
   void ssl_context(Params& args);
 
   // shared properties
-  void sys_cpu_count(XzeroContext* cx, Params& args);
+  void sys_cpu_count(Context* cx, Params& args);
   bool preproc_sys_env(xzero::flow::Instr* call, xzero::flow::IRBuilder* builder);
-  void sys_env(XzeroContext* cx, Params& args);
+  void sys_env(Context* cx, Params& args);
   bool preproc_sys_env2(xzero::flow::Instr* call, xzero::flow::IRBuilder* builder);
-  void sys_env2(XzeroContext* cx, Params& args);
-  void sys_cwd(XzeroContext* cx, Params& args);
-  void sys_pid(XzeroContext* cx, Params& args);
-  void sys_now(XzeroContext* cx, Params& args);
-  void sys_now_str(XzeroContext* cx, Params& args);
-  void sys_hostname(XzeroContext* cx, Params& args);
-  void sys_domainname(XzeroContext* cx, Params& args);
+  void sys_env2(Context* cx, Params& args);
+  void sys_cwd(Context* cx, Params& args);
+  void sys_pid(Context* cx, Params& args);
+  void sys_now(Context* cx, Params& args);
+  void sys_now_str(Context* cx, Params& args);
+  void sys_hostname(Context* cx, Params& args);
+  void sys_domainname(Context* cx, Params& args);
 
   // {{{ shared functions
   void error_page(Params& args);
-  void error_page(XzeroContext* cx, Params& args);
-  void log_err(XzeroContext* cx, Params& args);
-  void log_warn(XzeroContext* cx, Params& args);
-  void log_notice(XzeroContext* cx, Params& args);
-  void log_info(XzeroContext* cx, Params& args);
-  void log_diag(XzeroContext* cx, Params& args);
-  void log_debug(XzeroContext* cx, Params& args);
-  void sleep(XzeroContext* cx, Params& args);
-  void rand(XzeroContext* cx, Params& args);
-  void randAB(XzeroContext* cx, Params& args);
+  void error_page(Context* cx, Params& args);
+  void log_err(Context* cx, Params& args);
+  void log_warn(Context* cx, Params& args);
+  void log_notice(Context* cx, Params& args);
+  void log_info(Context* cx, Params& args);
+  void log_diag(Context* cx, Params& args);
+  void log_debug(Context* cx, Params& args);
+  void sleep(Context* cx, Params& args);
+  void rand(Context* cx, Params& args);
+  void randAB(Context* cx, Params& args);
 
-  void file_exists(XzeroContext* cx, Params& args);
-  void file_is_reg(XzeroContext* cx, Params& args);
-  void file_is_dir(XzeroContext* cx, Params& args);
-  void file_is_exe(XzeroContext* cx, Params& args);
+  void file_exists(Context* cx, Params& args);
+  void file_is_reg(Context* cx, Params& args);
+  void file_is_dir(Context* cx, Params& args);
+  void file_is_exe(Context* cx, Params& args);
   // }}}
 
   // main handlers
   bool verify_docroot(xzero::flow::Instr* call, xzero::flow::IRBuilder* builder);
-  bool docroot(XzeroContext* cx, Params& args);
-  bool alias(XzeroContext* cx, Params& args);
-  bool redirect_with_to(XzeroContext* cx, Params& args);
-  bool return_with(XzeroContext* cx, Params& args);
-  bool echo(XzeroContext* cx, Params& args);
-  bool blank(XzeroContext* cx, Params& args);
-  bool staticfile(XzeroContext* cx, Params& args);
-  bool precompressed(XzeroContext* cx, Params& args);
+  bool docroot(Context* cx, Params& args);
+  bool alias(Context* cx, Params& args);
+  bool redirect_with_to(Context* cx, Params& args);
+  bool return_with(Context* cx, Params& args);
+  bool echo(Context* cx, Params& args);
+  bool blank(Context* cx, Params& args);
+  bool staticfile(Context* cx, Params& args);
+  bool precompressed(Context* cx, Params& args);
 
   // main functions
-  void autoindex(XzeroContext* cx, Params& args);
-  bool matchIndex(XzeroContext* cx, const std::string& arg);
-  void rewrite(XzeroContext* cx, Params& args);
-  void pathinfo(XzeroContext* cx, Params& args);
-  void header_add(XzeroContext* cx, Params& args);
-  void header_append(XzeroContext* cx, Params& args);
-  void header_overwrite(XzeroContext* cx, Params& args);
-  void header_remove(XzeroContext* cx, Params& args);
-  void expire(XzeroContext* cx, Params& args);
+  void autoindex(Context* cx, Params& args);
+  bool matchIndex(Context* cx, const std::string& arg);
+  void rewrite(Context* cx, Params& args);
+  void pathinfo(Context* cx, Params& args);
+  void header_add(Context* cx, Params& args);
+  void header_append(Context* cx, Params& args);
+  void header_overwrite(Context* cx, Params& args);
+  void header_remove(Context* cx, Params& args);
+  void expire(Context* cx, Params& args);
 
   // main properties
-  void req_method(XzeroContext* cx, Params& args);
-  void req_url(XzeroContext* cx, Params& args);
-  void req_path(XzeroContext* cx, Params& args);
-  void req_query(XzeroContext* cx, Params& args);
-  void req_header(XzeroContext* cx, Params& args);
-  void req_cookie(XzeroContext* cx, Params& args);
-  void req_host(XzeroContext* cx, Params& args);
-  void req_pathinfo(XzeroContext* cx, Params& args);
-  void req_is_secure(XzeroContext* cx, Params& args);
-  void req_scheme(XzeroContext* cx, Params& args);
-  void req_status_code(XzeroContext* cx, Params& args);
-  void conn_remote_ip(XzeroContext* cx, Params& args);
-  void conn_remote_port(XzeroContext* cx, Params& args);
-  void conn_local_ip(XzeroContext* cx, Params& args);
-  void conn_local_port(XzeroContext* cx, Params& args);
-  void phys_path(XzeroContext* cx, Params& args);
-  void phys_exists(XzeroContext* cx, Params& args);
-  void phys_is_reg(XzeroContext* cx, Params& args);
-  void phys_is_dir(XzeroContext* cx, Params& args);
-  void phys_is_exe(XzeroContext* cx, Params& args);
-  void phys_mtime(XzeroContext* cx, Params& args);
-  void phys_size(XzeroContext* cx, Params& args);
-  void phys_etag(XzeroContext* cx, Params& args);
-  void phys_mimetype(XzeroContext* cx, Params& args);
-  void regex_group(XzeroContext* cx, Params& args);
-  void req_accept_language(XzeroContext* cx, Params& args);
+  void req_method(Context* cx, Params& args);
+  void req_url(Context* cx, Params& args);
+  void req_path(Context* cx, Params& args);
+  void req_query(Context* cx, Params& args);
+  void req_header(Context* cx, Params& args);
+  void req_cookie(Context* cx, Params& args);
+  void req_host(Context* cx, Params& args);
+  void req_pathinfo(Context* cx, Params& args);
+  void req_is_secure(Context* cx, Params& args);
+  void req_scheme(Context* cx, Params& args);
+  void req_status_code(Context* cx, Params& args);
+  void conn_remote_ip(Context* cx, Params& args);
+  void conn_remote_port(Context* cx, Params& args);
+  void conn_local_ip(Context* cx, Params& args);
+  void conn_local_port(Context* cx, Params& args);
+  void phys_path(Context* cx, Params& args);
+  void phys_exists(Context* cx, Params& args);
+  void phys_is_reg(Context* cx, Params& args);
+  void phys_is_dir(Context* cx, Params& args);
+  void phys_is_exe(Context* cx, Params& args);
+  void phys_mtime(Context* cx, Params& args);
+  void phys_size(Context* cx, Params& args);
+  void phys_etag(Context* cx, Params& args);
+  void phys_mimetype(Context* cx, Params& args);
+  void regex_group(Context* cx, Params& args);
+  void req_accept_language(Context* cx, Params& args);
   bool verify_req_accept_language(xzero::flow::Instr* call, xzero::flow::IRBuilder* builder);
 };
 

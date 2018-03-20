@@ -5,7 +5,7 @@
 // file except in compliance with the License. You may obtain a copy of
 // the License at: http://opensource.org/licenses/MIT
 
-#include <x0d/XzeroState.h>
+#include <x0d/DaemonState.h>
 #include <xzero/UnixSignals.h>
 
 namespace xzero {
@@ -16,17 +16,17 @@ namespace xzero {
 
 namespace x0d {
 
-class XzeroDaemon;
+class Daemon;
 
-class XzeroEventHandler {
+class SignalHandler {
  public:
-  XzeroEventHandler(XzeroDaemon* daemon, xzero::Executor* executor);
-  ~XzeroEventHandler();
+  SignalHandler(Daemon* daemon, xzero::Executor* executor);
+  ~SignalHandler();
 
   xzero::Executor* executor() const { return executor_; }
 
-  XzeroState state() const { return state_; }
-  void setState(XzeroState newState);
+  DaemonState state() const { return state_; }
+  void setState(DaemonState newState);
 
  private:
   void onConfigReload(const xzero::UnixSignalInfo& info);
@@ -36,10 +36,10 @@ class XzeroEventHandler {
   void onGracefulShutdown(const xzero::UnixSignalInfo& info);
 
  private:
-  XzeroDaemon* daemon_;
+  Daemon* daemon_;
   std::unique_ptr<xzero::UnixSignals> signals_;
   xzero::Executor* executor_;
-  XzeroState state_;
+  DaemonState state_;
 };
 
 }  // namespace x0d

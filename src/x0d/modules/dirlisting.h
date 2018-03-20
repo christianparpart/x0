@@ -7,17 +7,17 @@
 
 #pragma once
 
-#include <x0d/XzeroModule.h>
+#include <x0d/Module.h>
 #include <xzero/io/File.h>
 
 namespace x0d {
 
-class DirlistingModule : public XzeroModule {
+class DirlistingModule : public Module {
  public:
-  explicit DirlistingModule(XzeroDaemon* d);
+  explicit DirlistingModule(Daemon* d);
 
   // main handlers
-  bool dirlisting(XzeroContext* cx, Params& args);
+  bool dirlisting(Context* cx, Params& args);
 
   void appendHeader(xzero::Buffer& os, const std::string& path);
   void appendDirectory(xzero::Buffer& os, const std::string& filename);

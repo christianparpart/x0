@@ -56,7 +56,7 @@ using namespace xzero;
 using namespace flow;
 using namespace base;
 
-DirectorPlugin::DirectorPlugin(x0d::XzeroDaemon* d, const std::string& name)
+DirectorPlugin::DirectorPlugin(x0d::Daemon* d, const std::string& name)
     : x0d::XzeroPlugin(d, name),
       directors_(),
       roadWarrior_(new RoadWarrior(server().selectWorker())),

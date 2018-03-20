@@ -53,8 +53,8 @@ namespace xzero {
 
 namespace x0d {
 
-class XzeroModule;
-class XzeroEventHandler;
+class Module;
+class SignalHandler;
 
 class ConfigurationError : public std::runtime_error {
  public:
@@ -62,15 +62,15 @@ class ConfigurationError : public std::runtime_error {
       : std::runtime_error("Configuration error. " + diagnostics) {}
 };
 
-class XzeroDaemon : public xzero::flow::Runtime {
+class Daemon : public xzero::flow::Runtime {
  public:
   typedef xzero::Callback<void(xzero::Connection*)> ConnectionHook;
   typedef xzero::Callback<void(xzero::http::HttpRequest*, xzero::http::HttpResponse*)> RequestHook;
   typedef xzero::Callback<void()> CycleLogsHook;
 
  public:
-  XzeroDaemon();
-  ~XzeroDaemon();
+  Daemon();
+  ~Daemon();
 
   void setOptimizationLevel(int level) { optimizationLevel_ = level; }
 
@@ -198,7 +198,7 @@ class XzeroDaemon : public xzero::flow::Runtime {
   xzero::UnixTime startupTime_;          //!< process startup time
   std::atomic<bool> terminate_;
 
-  std::unique_ptr<XzeroEventHandler> eventHandler_;
+  std::unique_ptr<SignalHandler> eventHandler_;
 
   xzero::MimeTypes mimetypes_;
   xzero::LocalFileRepository vfs_;
@@ -206,7 +206,7 @@ class XzeroDaemon : public xzero::flow::Runtime {
   size_t lastWorker_;                         //!< offset to the last elected worker
   xzero::ThreadedExecutor threadedExecutor_;  //!< non-main worker executor
   std::vector<std::unique_ptr<xzero::EventLoop>> eventLoops_; //!< one for each thread
-  std::list<std::unique_ptr<XzeroModule>> modules_; //!< list of loaded modules
+  std::list<std::unique_ptr<Module>> modules_; //!< list of loaded modules
   std::list<std::unique_ptr<xzero::TcpConnector>> connectors_; //!< TCP (HTTP) connectors
 
   // Flow configuration
@@ -229,7 +229,7 @@ class XzeroDaemon : public xzero::flow::Runtime {
 
 // {{{ inlines
 template <typename... ArgTypes>
-inline xzero::flow::NativeCallback& XzeroDaemon::setupFunction(
+inline xzero::flow::NativeCallback& Daemon::setupFunction(
     const std::string& name, xzero::flow::NativeCallback::Functor cb,
     ArgTypes... argTypes) {
   setupApi_.push_back(name);
@@ -238,7 +238,7 @@ inline xzero::flow::NativeCallback& XzeroDaemon::setupFunction(
 }
 
 template <typename... ArgTypes>
-inline xzero::flow::NativeCallback& XzeroDaemon::sharedFunction(
+inline xzero::flow::NativeCallback& Daemon::sharedFunction(
     const std::string& name, xzero::flow::NativeCallback::Functor cb,
     ArgTypes... argTypes) {
   setupApi_.push_back(name);
@@ -248,7 +248,7 @@ inline xzero::flow::NativeCallback& XzeroDaemon::sharedFunction(
 }
 
 template <typename... ArgTypes>
-inline xzero::flow::NativeCallback& XzeroDaemon::mainFunction(
+inline xzero::flow::NativeCallback& Daemon::mainFunction(
     const std::string& name, xzero::flow::NativeCallback::Functor cb,
     ArgTypes... argTypes) {
   mainApi_.push_back(name);
@@ -257,7 +257,7 @@ inline xzero::flow::NativeCallback& XzeroDaemon::mainFunction(
 }
 
 template <typename... ArgTypes>
-inline xzero::flow::NativeCallback& XzeroDaemon::mainHandler(
+inline xzero::flow::NativeCallback& Daemon::mainHandler(
     const std::string& name, xzero::flow::NativeCallback::Functor cb,
     ArgTypes... argTypes) {
   mainApi_.push_back(name);
@@ -265,7 +265,7 @@ inline xzero::flow::NativeCallback& XzeroDaemon::mainHandler(
 }
 
 template<typename T>
-inline T* XzeroDaemon::loadModule() {
+inline T* Daemon::loadModule() {
   modules_.emplace_back(std::make_unique<T>(this));
   return static_cast<T*>(modules_.back().get());
 }

@@ -7,15 +7,15 @@
 
 #pragma once
 
-#include <x0d/XzeroModule.h>
+#include <x0d/Module.h>
 #include <xzero/http/HttpOutputCompressor.h>
 #include <string>
 
 namespace x0d {
 
-class CompressModule : public XzeroModule {
+class CompressModule : public Module {
  public:
-  explicit CompressModule(XzeroDaemon* d);
+  explicit CompressModule(Daemon* d);
   ~CompressModule();
 
  private:
@@ -25,7 +25,7 @@ class CompressModule : public XzeroModule {
   void setup_minsize(Params& args);
   void setup_maxsize(Params& args);
 
-  //void postProcess(XzeroContext* cx, Params& args);
+  //void postProcess(Context* cx, Params& args);
   void postProcess(xzero::http::HttpRequest* request, xzero::http::HttpResponse* response);
 
  private:

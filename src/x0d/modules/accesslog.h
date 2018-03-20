@@ -7,7 +7,7 @@
 
 #pragma once
 
-#include <x0d/XzeroModule.h>
+#include <x0d/Module.h>
 #include <xzero/io/File.h>
 #include <xzero/io/FileDescriptor.h>
 #include <xzero/Option.h>
@@ -40,9 +40,9 @@ class AccesslogFormatError : public ConfigurationError {
   {}
 };
 
-class AccesslogModule : public XzeroModule {
+class AccesslogModule : public Module {
  public:
-  explicit AccesslogModule(XzeroDaemon* d);
+  explicit AccesslogModule(Daemon* d);
   ~AccesslogModule() override;
 
  private:
@@ -50,9 +50,9 @@ class AccesslogModule : public XzeroModule {
   bool accesslog_format_verifier(xzero::flow::Instr* call,
                                  xzero::flow::IRBuilder* builder);
 
-  void accesslog_syslog(XzeroContext* cx, Params& args);
-  void accesslog_console(XzeroContext* cx, Params& args);
-  void accesslog_file(XzeroContext* cx, Params& args);
+  void accesslog_syslog(Context* cx, Params& args);
+  void accesslog_console(Context* cx, Params& args);
+  void accesslog_file(Context* cx, Params& args);
 
   using FlowString = xzero::flow::FlowString;
 

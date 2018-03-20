@@ -31,7 +31,7 @@ class DirectorPlugin : public x0d::XzeroPlugin {
   std::string pseudonym_;
 
  public:
-  DirectorPlugin(x0d::XzeroDaemon* d, const std::string& name);
+  DirectorPlugin(x0d::Daemon* d, const std::string& name);
   ~DirectorPlugin();
 
  private:

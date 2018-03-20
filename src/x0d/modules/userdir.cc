@@ -6,7 +6,7 @@
 // the License at: http://opensource.org/licenses/MIT
 
 #include "userdir.h"
-#include <x0d/XzeroContext.h>
+#include <x0d/Context.h>
 #include <xzero/http/HttpRequest.h>
 #include <xzero/http/HttpResponse.h>
 #include <xzero/logging.h>
@@ -20,8 +20,8 @@ using namespace xzero::http;
 
 namespace x0d {
 
-UserdirModule::UserdirModule(XzeroDaemon* d)
-    : XzeroModule(d, "compress"),
+UserdirModule::UserdirModule(Daemon* d)
+    : Module(d, "compress"),
       dirname_("public_html") {
 
   setupFunction("userdir.name", &UserdirModule::userdir_name, flow::FlowType::String);
@@ -58,7 +58,7 @@ std::error_code UserdirModule::validate(std::string& path) {
   return std::error_code();
 }
 
-void UserdirModule::userdir(XzeroContext* cx, Params& args) {
+void UserdirModule::userdir(Context* cx, Params& args) {
   if (dirname_.empty())
     return;
 

@@ -7,29 +7,29 @@
 
 #pragma once
 
-#include <x0d/XzeroModule.h>
+#include <x0d/Module.h>
 
 namespace x0d {
 
-class AccessModule : public XzeroModule {
+class AccessModule : public Module {
  public:
-  explicit AccessModule(XzeroDaemon* d);
+  explicit AccessModule(Daemon* d);
 
  private:
   // deny()
-  bool deny_all(XzeroContext* cx, Params& args);
-  bool deny_ip(XzeroContext* cx, Params& args);
-  bool deny_cidr(XzeroContext* cx, Params& args);
-  bool deny_ipArray(XzeroContext* cx, Params& args);
-  bool deny_cidrArray(XzeroContext* cx, Params& args);
+  bool deny_all(Context* cx, Params& args);
+  bool deny_ip(Context* cx, Params& args);
+  bool deny_cidr(Context* cx, Params& args);
+  bool deny_ipArray(Context* cx, Params& args);
+  bool deny_cidrArray(Context* cx, Params& args);
 
   // deny_except()
-  bool denyExcept_ip(XzeroContext* cx, Params& args);
-  bool denyExcept_cidr(XzeroContext* cx, Params& args);
-  bool denyExcept_ipArray(XzeroContext* cx, Params& args);
-  bool denyExcept_cidrArray(XzeroContext* cx, Params& args);
+  bool denyExcept_ip(Context* cx, Params& args);
+  bool denyExcept_cidr(Context* cx, Params& args);
+  bool denyExcept_ipArray(Context* cx, Params& args);
+  bool denyExcept_cidrArray(Context* cx, Params& args);
 
-  bool forbidden(XzeroContext* cx);
+  bool forbidden(Context* cx);
 };
 
 } // namespace x0d

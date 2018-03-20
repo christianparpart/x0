@@ -6,9 +6,9 @@
 // the License at: http://opensource.org/licenses/MIT
 
 #include <x0d/Config.h>
-#include <x0d/XzeroDaemon.h>
-#include <x0d/XzeroEventHandler.h>
-#include <x0d/XzeroContext.h>
+#include <x0d/Daemon.h>
+#include <x0d/SignalHandler.h>
+#include <x0d/Context.h>
 
 #include "modules/access.h"
 #include "modules/accesslog.h"
@@ -72,7 +72,7 @@ extern std::unordered_map<std::string, std::string> mimetypes2cc;
 
 namespace x0d {
 
-XzeroDaemon::XzeroDaemon()
+Daemon::Daemon()
     : generation_(1),
       startupTime_(),
       terminate_(false),
@@ -109,12 +109,12 @@ XzeroDaemon::XzeroDaemon()
   loadModule<WebdavModule>();
 }
 
-XzeroDaemon::~XzeroDaemon() {
+Daemon::~Daemon() {
   terminate();
   threadedExecutor_.joinAll();
 }
 
-bool XzeroDaemon::import(
+bool Daemon::import(
     const std::string& name,
     const std::string& path,
     std::vector<flow::NativeCallback*>* builtins) {
@@ -130,12 +130,12 @@ bool XzeroDaemon::import(
 }
 
 // for instant-mode
-std::unique_ptr<flow::Program> XzeroDaemon::loadConfigEasy(
+std::unique_ptr<flow::Program> Daemon::loadConfigEasy(
     const std::string& docroot, int port) {
   return loadConfigEasy(docroot, port, false, false, false);
 }
 
-std::unique_ptr<flow::Program> XzeroDaemon::loadConfigEasy(
+std::unique_ptr<flow::Program> Daemon::loadConfigEasy(
     const std::string& docroot, int port,
     bool printAST, bool printIR, bool printTC) {
   std::string flow =
@@ -157,12 +157,12 @@ std::unique_ptr<flow::Program> XzeroDaemon::loadConfigEasy(
       "instant-mode.conf", printAST, printIR, printTC);
 }
 
-std::unique_ptr<flow::Program> XzeroDaemon::loadConfigFile(
+std::unique_ptr<flow::Program> Daemon::loadConfigFile(
     const std::string& configFileName) {
   return loadConfigFile(configFileName, false, false, false);
 }
 
-std::unique_ptr<flow::Program> XzeroDaemon::loadConfigFile(
+std::unique_ptr<flow::Program> Daemon::loadConfigFile(
     const std::string& configFileName,
     bool printAST, bool printIR, bool printTC) {
   configFilePath_ = configFileName;
@@ -171,13 +171,13 @@ std::unique_ptr<flow::Program> XzeroDaemon::loadConfigFile(
       printAST, printIR, printTC);
 }
 
-std::unique_ptr<flow::Program> XzeroDaemon::loadConfigStream(
+std::unique_ptr<flow::Program> Daemon::loadConfigStream(
     std::unique_ptr<std::istream>&& is,
     const std::string& fakeFilename,
     bool printAST, bool printIR, bool printTC) {
   flow::FlowParser parser(
       this,
-      std::bind(&XzeroDaemon::import, this, std::placeholders::_1,
+      std::bind(&Daemon::import, this, std::placeholders::_1,
                                             std::placeholders::_2,
                                             std::placeholders::_3),
       [](const std::string& msg) {
@@ -238,7 +238,7 @@ std::unique_ptr<flow::Program> XzeroDaemon::loadConfigStream(
   return program;
 }
 
-void XzeroDaemon::patchProgramIR(flow::IRProgram* programIR,
+void Daemon::patchProgramIR(flow::IRProgram* programIR,
                                  flow::IRGenerator* irgen) {
   using namespace flow;
 
@@ -285,7 +285,7 @@ void XzeroDaemon::patchProgramIR(flow::IRProgram* programIR,
   }
 }
 
-void XzeroDaemon::applyConfiguration(std::unique_ptr<flow::Program>&& program) {
+void Daemon::applyConfiguration(std::unique_ptr<flow::Program>&& program) {
   program->findHandler("setup")->run();
 
   // Override main and *then* preserve the program reference.
@@ -296,25 +296,25 @@ void XzeroDaemon::applyConfiguration(std::unique_ptr<flow::Program>&& program) {
   postConfig();
 }
 
-void XzeroDaemon::start() {
+void Daemon::start() {
   for (auto& connector: connectors_) {
     connector->start();
   }
 }
 
-void XzeroDaemon::stop() {
+void Daemon::stop() {
   for (auto& connector: connectors_) {
     connector->stop();
   }
 }
 
-void XzeroDaemon::removeAllConnectors() {
+void Daemon::removeAllConnectors() {
   while (!connectors_.empty()) {
     connectors_.erase(std::prev(connectors_.end()));
   }
 }
 
-std::unique_ptr<Config> XzeroDaemon::createDefaultConfig() {
+std::unique_ptr<Config> Daemon::createDefaultConfig() {
   std::unique_ptr<Config> config = std::make_unique<Config>();
 
   // defaulting worker/affinities to total host CPU count
@@ -326,7 +326,7 @@ std::unique_ptr<Config> XzeroDaemon::createDefaultConfig() {
   return config;
 }
 
-void XzeroDaemon::reloadConfiguration() {
+void Daemon::reloadConfiguration() {
   /*
    * 1. suspend the world
    * 2. load new config file
@@ -362,7 +362,7 @@ void XzeroDaemon::reloadConfiguration() {
   logNotice("Configuration reloading done.");
 }
 
-void XzeroDaemon::stopThreads() {
+void Daemon::stopThreads() {
   // suspend all worker threads
   std::for_each(std::next(eventLoops_.begin()), eventLoops_.end(),
                 std::bind(&EventLoop::breakLoop, std::placeholders::_1));
@@ -372,15 +372,15 @@ void XzeroDaemon::stopThreads() {
   }
 }
 
-void XzeroDaemon::startThreads() {
+void Daemon::startThreads() {
   // resume all worker threads
   for (size_t i = 1; i < config_->workers; ++i) {
-    threadedExecutor_.execute(std::bind(&XzeroDaemon::runOneThread, this, i));
+    threadedExecutor_.execute(std::bind(&Daemon::runOneThread, this, i));
     eventLoops_[i]->ref(); // we ref here to keep the loop running
   }
 }
 
-void XzeroDaemon::postConfig() {
+void Daemon::postConfig() {
   if (config_->listeners.empty()) {
     throw ConfigurationError{"No listeners configured."};
   }
@@ -404,7 +404,7 @@ void XzeroDaemon::postConfig() {
       config_->tcpCork,
       config_->tcpNoDelay);
 
-  http1_->setHandlerFactory(std::bind(&XzeroDaemon::createHandler, this,
+  http1_->setHandlerFactory(std::bind(&Daemon::createHandler, this,
         std::placeholders::_1, std::placeholders::_2));
 
   // mimetypes
@@ -456,7 +456,7 @@ void XzeroDaemon::postConfig() {
     }
   }
 
-  for (std::unique_ptr<XzeroModule>& module: modules_) {
+  for (std::unique_ptr<Module>& module: modules_) {
     module->onPostConfig();
   }
 
@@ -464,7 +464,7 @@ void XzeroDaemon::postConfig() {
   startThreads();
 }
 
-std::unique_ptr<EventLoop> XzeroDaemon::createEventLoop() {
+std::unique_ptr<EventLoop> Daemon::createEventLoop() {
   size_t i = eventLoops_.size();
 
   return std::make_unique<NativeScheduler>(
@@ -473,21 +473,21 @@ std::unique_ptr<EventLoop> XzeroDaemon::createEventLoop() {
         nullptr /* postInvoke */);
 }
 
-std::function<void()> XzeroDaemon::createHandler(HttpRequest* request,
+std::function<void()> Daemon::createHandler(HttpRequest* request,
                                                  HttpResponse* response) {
-  return XzeroContext{main_,
+  return Context{main_,
                       request,
                       response,
                       &config_->errorPages,
                       config_->maxInternalRedirectCount};
 }
 
-void XzeroDaemon::validateConfig(flow::UnitSym* unit) {
+void Daemon::validateConfig(flow::UnitSym* unit) {
   validateContext("setup", setupApi_, unit);
   validateContext("main", mainApi_, unit);
 }
 
-void XzeroDaemon::validateContext(const std::string& entrypointHandlerName,
+void Daemon::validateContext(const std::string& entrypointHandlerName,
                                   const std::vector<std::string>& api,
                                   flow::UnitSym* unit) {
   auto entrypointFn = unit->findHandler(entrypointHandlerName);
@@ -520,14 +520,14 @@ void XzeroDaemon::validateContext(const std::string& entrypointHandlerName,
   }
 }
 
-void XzeroDaemon::run() {
-  eventHandler_ = std::make_unique<XzeroEventHandler>(this, eventLoops_[0].get());
+void Daemon::run() {
+  eventHandler_ = std::make_unique<SignalHandler>(this, eventLoops_[0].get());
   runOneThread(0);
   TRACE("Main loop quit. Shutting down.");
   stop();
 }
 
-void XzeroDaemon::runOneThread(size_t index) {
+void Daemon::runOneThread(size_t index) {
   EventLoop* eventLoop = eventLoops_[index].get();
 
   if (index < config_->workerAffinities.size())
@@ -538,7 +538,7 @@ void XzeroDaemon::runOneThread(size_t index) {
   TRACE("worker/$0: Event loop terminated.", index);
 }
 
-void XzeroDaemon::setThreadAffinity(int cpu, int workerId) {
+void Daemon::setThreadAffinity(int cpu, int workerId) {
 #if defined(HAVE_DECL_PTHREAD_SETAFFINITY_NP) && HAVE_DECL_PTHREAD_SETAFFINITY_NP
   cpu_set_t set;
 
@@ -560,7 +560,7 @@ void XzeroDaemon::setThreadAffinity(int cpu, int workerId) {
 #endif
 }
 
-void XzeroDaemon::terminate() {
+void Daemon::terminate() {
   terminate_ = true;
 
   for (auto& eventLoop: eventLoops_) {
@@ -568,7 +568,7 @@ void XzeroDaemon::terminate() {
   }
 }
 
-Executor* XzeroDaemon::selectClientExecutor() {
+Executor* Daemon::selectClientExecutor() {
   // TODO: support least-load
 
   if (++lastWorker_ >= eventLoops_.size())
@@ -580,7 +580,7 @@ Executor* XzeroDaemon::selectClientExecutor() {
 }
 
 template<typename T>
-void XzeroDaemon::setupConnector(
+void Daemon::setupConnector(
     const xzero::IPAddress& bindAddress, int port, int backlog,
     int multiAcceptCount, bool reuseAddr, bool deferAccept, bool reusePort,
     std::function<void(T*)> connectorVisitor) {
@@ -612,7 +612,7 @@ void XzeroDaemon::setupConnector(
   } else {
     T* connector = doSetupConnector<T>(
         eventLoops_[0].get(),
-        std::bind(&XzeroDaemon::selectClientExecutor, this),
+        std::bind(&Daemon::selectClientExecutor, this),
         bindAddress, port, backlog,
         multiAcceptCount, reuseAddr, deferAccept, reusePort);
     if (connectorVisitor) {
@@ -622,7 +622,7 @@ void XzeroDaemon::setupConnector(
 }
 
 template<typename T>
-T* XzeroDaemon::doSetupConnector(
+T* Daemon::doSetupConnector(
     xzero::Executor* executor,
     xzero::TcpConnector::ExecutorSelector clientExecutorSelector,
     const xzero::IPAddress& ipaddr, int port, int backlog,
