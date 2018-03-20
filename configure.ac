@@ -99,7 +99,7 @@ AC_SUBST([X0D_LOGDIR])
 
 AC_ARG_WITH([pidfile], AS_HELP_STRING([--with-pidfile=PATH], [Path to x0d.pid file]))
 AS_IF([test "x$with_pidfile" = "x"],
-      [X0D_PIDFILE="$localstatedir/run/x0d.pid"],
+      [X0D_PIDFILE=""],
       [X0D_PIDFILE="$with_pidfile"])
 AC_SUBST([X0D_PIDFILE])
 

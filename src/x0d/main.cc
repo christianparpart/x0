@@ -53,12 +53,16 @@ class PidFile { // {{{
 PidFile::PidFile(const std::string& path)
     : path_(path) {
   // TODO: sanity-check (flock?) to ensure that we're the one.
-  logInfo("Writing main process ID $0 into file $1", getpid(), path_);
-  FileUtil::write(path_, to_string(getpid()));
+  if (!path_.empty()) {
+    logInfo("Writing main process ID $0 into file $1", getpid(), path_);
+    FileUtil::write(path_, to_string(getpid()));
+  }
 }
 
 PidFile::~PidFile() {
-  FileUtil::rm(path_);
+  if (!path_.empty()) {
+    FileUtil::rm(path_);
+  }
 }
 // }}}
 
@@ -177,12 +181,15 @@ int main(int argc, const char* argv[]) {
     return EXIT_FAILURE;
   }
 
-  std::string pidfilepath = FileUtil::absolutePath(flags.getString("pid-file"));
-  std::string pidfiledir = FileUtil::dirname(pidfilepath);
-  if (!FileUtil::exists(pidfiledir)) {
-    FileUtil::mkdir_p(pidfiledir);
-    FileUtil::chown(pidfiledir, flags.getString("user"),
-                                flags.getString("group"));
+  std::string pidfilepath = flags.getString("pid-file");
+  if (!pidfilepath.empty()) {
+    pidfilepath = FileUtil::absolutePath(pidfilepath);
+    std::string pidfiledir = FileUtil::dirname(pidfilepath);
+    if (!FileUtil::exists(pidfiledir)) {
+      FileUtil::mkdir_p(pidfiledir);
+      FileUtil::chown(pidfiledir, flags.getString("user"),
+                                  flags.getString("group"));
+    }
   }
 
   Application::dropPrivileges(flags.getString("user"), flags.getString("group"));
@@ -191,7 +198,7 @@ int main(int argc, const char* argv[]) {
     Application::daemonize();
   }
 
-  PidFile pidFile = pidfilepath;
+  PidFile pidFile{pidfilepath};
 
   daemon.run();
   return EXIT_SUCCESS;

@@ -74,7 +74,7 @@ fi
 
 exec ${ROOT}/configure --prefix="${HOME}/usr" \
                        --sysconfdir="${HOME}/usr/etc" \
-                       --with-pidfile="${BUILDDIR}/x0d.pid" \
+                       --with-pidfile="" \
                        --with-logdir="${BUILDDIR}" \
                        --enable-proxy \
                        --enable-xurl \
