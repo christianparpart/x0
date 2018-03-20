@@ -27,6 +27,39 @@ namespace http1 {
 #define TRACE(msg...) do {} while (0)
 #endif
 
+bool isContentForbidden(HttpMethod method) {
+  switch (method) {
+    case HttpMethod::UNKNOWN_METHOD:
+       return false;
+    case HttpMethod::OPTIONS:
+       return true;
+    case HttpMethod::GET:
+       return true;
+    case HttpMethod::HEAD:
+       return true;
+    case HttpMethod::POST:
+       return false;
+    case HttpMethod::PUT:
+       return false;
+    case HttpMethod::DELETE:
+       return true;
+    case HttpMethod::TRACE:
+       return true;
+    case HttpMethod::CONNECT:
+    case HttpMethod::PROPFIND:
+    case HttpMethod::PROPPATCH:
+    case HttpMethod::MKCOL:
+    case HttpMethod::COPY:
+    case HttpMethod::MOVE:
+    case HttpMethod::LOCK:
+    case HttpMethod::UNLOCK:
+      // a.k.a. TODO: find out for sure (100%)
+      return false;
+    default:
+      logFatal("Unhandled HTTP method");
+  }
+}
+
 Generator::Generator(EndPointWriter* output)
     : bytesTransmitted_(0),
       contentLength_(Buffer::npos),
@@ -47,17 +80,17 @@ void Generator::reset() {
 }
 
 void Generator::generateRequest(const HttpRequestInfo& info,
-                                    Buffer&& chunk) {
+                                Buffer&& chunk) {
   generateRequestLine(info);
-  generateHeaders(info);
+  generateHeaders(info, isContentForbidden(info.method()));
   flushBuffer();
   generateBody(std::move(chunk));
 }
 
 void Generator::generateRequest(const HttpRequestInfo& info,
-                                    const BufferRef& chunk) {
+                                const BufferRef& chunk) {
   generateRequestLine(info);
-  generateHeaders(info);
+  generateHeaders(info, isContentForbidden(info.method()));
   flushBuffer();
   generateBody(chunk);
 }
@@ -65,7 +98,7 @@ void Generator::generateRequest(const HttpRequestInfo& info,
 void Generator::generateRequest(const HttpRequestInfo& info,
                                 FileView&& chunk) {
   generateRequestLine(info);
-  generateHeaders(info);
+  generateHeaders(info, isContentForbidden(info.method()));
   flushBuffer();
   generateBody(std::move(chunk));
 }
@@ -73,33 +106,33 @@ void Generator::generateRequest(const HttpRequestInfo& info,
 void Generator::generateRequest(const HttpRequestInfo& info,
                                 HugeBuffer&& chunk) {
   generateRequestLine(info);
-  generateHeaders(info);
+  generateHeaders(info, isContentForbidden(info.method()));
   flushBuffer();
   generateBody(std::move(chunk));
 }
 
 void Generator::generateRequest(const HttpRequestInfo& info) {
   generateRequestLine(info);
-  generateHeaders(info);
+  generateHeaders(info, isContentForbidden(info.method()));
   flushBuffer();
 }
 
 void Generator::generateResponse(const HttpResponseInfo& info,
-                                     const BufferRef& chunk) {
+                                 const BufferRef& chunk) {
   generateResponseInfo(info);
   generateBody(chunk);
   flushBuffer();
 }
 
 void Generator::generateResponse(const HttpResponseInfo& info,
-                                     Buffer&& chunk) {
+                                 Buffer&& chunk) {
   generateResponseInfo(info);
   generateBody(std::move(chunk));
   flushBuffer();
 }
 
 void Generator::generateResponse(const HttpResponseInfo& info,
-                                     FileView&& chunk) {
+                                 FileView&& chunk) {
   generateResponseInfo(info);
   generateBody(std::move(chunk));
 }
