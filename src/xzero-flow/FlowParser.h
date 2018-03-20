@@ -62,8 +62,10 @@ class FlowParser {
   // error handling
   void reportUnexpectedToken();
   void reportError(const std::string& message);
-  template <typename... Args>
-  void reportError(const std::string& fmt, Args&&...);
+  template <typename... Args> void reportError(const std::string& fmt, Args&&...);
+
+  void reportWarning(const std::string& message);
+  template <typename... Args> void reportWarning(const std::string& fmt, Args&&...);
 
   // lexing
   FlowToken token() const { return lexer_->token(); }
@@ -167,6 +169,13 @@ inline void FlowParser::reportError(const std::string& fmt, Args&&... args) {
   char buf[1024];
   snprintf(buf, sizeof(buf), fmt.c_str(), args...);
   reportError(buf);
+}
+
+template <typename... Args>
+inline void FlowParser::reportWarning(const std::string& fmt, Args&&... args) {
+  char buf[1024];
+  snprintf(buf, sizeof(buf), fmt.c_str(), args...);
+  reportWarning(buf);
 }
 
 template <typename A1, typename... Args>

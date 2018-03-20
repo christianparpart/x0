@@ -353,8 +353,14 @@ void FlowParser::reportUnexpectedToken() {
   reportError("Unexpected token '%s'", token().c_str());
 }
 
-void FlowParser::reportError(const std::string& message) {
+void FlowParser::reportWarning(const std::string& message) {
+  char buf[1024];
+  snprintf(buf, sizeof(buf), "[%04zu:%02zu] %s", lexer_->line(),
+           lexer_->column(), message.c_str());
+  logWarning(buf);
+}
 
+void FlowParser::reportError(const std::string& message) {
   if (!errorHandler) {
     char buf[1024];
     int n = snprintf(buf, sizeof(buf), "[%04zu:%02zu] %s\n", lexer_->line(),
@@ -1689,7 +1695,14 @@ std::unique_ptr<CallExpr> FlowParser::resolve(
     return nullptr;
   }
 
-  return std::make_unique<CallExpr>(result.front()->location(), result.front(),
+  CallableSym* callableSym = result.front();
+
+  if (callableSym->nativeCallback()->isExperimental()) {
+    reportWarning("Using experimental builtin API %s.",
+                  callableSym->nativeCallback()->signature().to_s().c_str());
+  }
+
+  return std::make_unique<CallExpr>(callableSym->location(), callableSym,
                                     std::move(params));
 }
 

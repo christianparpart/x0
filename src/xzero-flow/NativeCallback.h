@@ -25,6 +25,12 @@ class Instr;
 class IRBuilder;
 class Runtime;
 
+enum class Attribute : unsigned {
+  Experimental    = 0x0001, // implementation is experimental, hence, parser can warn on use
+  NoReturn        = 0x0002, // implementation never returns to program code
+  SideEffectFree  = 0x0004, // implementation is side effect free
+};
+
 class NativeCallback {
  public:
   typedef std::function<void(Params& args)> Functor;
@@ -38,8 +44,7 @@ class NativeCallback {
   Signature signature_;
 
   // function attributes
-  bool neverReturning_; // XXX can only be set on handlers
-  bool sideEffectFree_; // XXX can only be set on functions with non-void return
+  unsigned attributes_;
 
   // following attribs are irrelevant to the VM but useful for the frontend
   std::vector<std::string> names_;
@@ -95,11 +100,14 @@ class NativeCallback {
   int findParamByName(const std::string& name) const;
 
   // attributes
-  NativeCallback& setNoReturn();
-  bool isNeverReturning() const noexcept { return neverReturning_; }
+  NativeCallback& setNoReturn() noexcept;
+  NativeCallback& setReadOnly() noexcept;
+  NativeCallback& setExperimental() noexcept;
 
-  NativeCallback& setReadOnly();
-  bool isReadOnly() const noexcept { return sideEffectFree_; }
+  bool getAttribute(Attribute t) const noexcept { return attributes_ & unsigned(t); };
+  bool isNeverReturning() const noexcept { return getAttribute(Attribute::NoReturn); }
+  bool isReadOnly() const noexcept { return getAttribute(Attribute::SideEffectFree); }
+  bool isExperimental() const noexcept { return getAttribute(Attribute::Experimental); }
 
   // runtime
   void invoke(Params& args) const;

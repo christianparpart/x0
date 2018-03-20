@@ -19,8 +19,7 @@ NativeCallback::NativeCallback(Runtime* runtime, const std::string& _name)
       verifier_(),
       function_(),
       signature_(),
-      neverReturning_(false),
-      sideEffectFree_(false) {
+      attributes_(0) {
   signature_.setName(_name);
   signature_.setReturnType(FlowType::Boolean);
 }
@@ -33,8 +32,7 @@ NativeCallback::NativeCallback(Runtime* runtime, const std::string& _name,
       verifier_(),
       function_(),
       signature_(),
-      neverReturning_(false),
-      sideEffectFree_(false) {
+      attributes_(0) {
   signature_.setName(_name);
   signature_.setReturnType(_returnType);
 }
@@ -94,13 +92,18 @@ int NativeCallback::findParamByName(const std::string& name) const {
   return -1;
 }
 
-NativeCallback& NativeCallback::setNoReturn() {
-  neverReturning_ = true;
+NativeCallback& NativeCallback::setNoReturn() noexcept {
+  attributes_ |= (unsigned) Attribute::NoReturn;
   return *this;
 }
 
-NativeCallback& NativeCallback::setReadOnly() {
-  sideEffectFree_ = true;
+NativeCallback& NativeCallback::setReadOnly() noexcept {
+  attributes_ |= (unsigned) Attribute::SideEffectFree;
+  return *this;
+}
+
+NativeCallback& NativeCallback::setExperimental() noexcept {
+  attributes_ |= (unsigned) Attribute::Experimental;
   return *this;
 }
 
