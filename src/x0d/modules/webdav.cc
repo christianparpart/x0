@@ -29,6 +29,7 @@ WebdavModule::WebdavModule(x0d::Daemon* d)
     : Module(d, "webdav") {
 
   mainHandler("webdav", &WebdavModule::webdav)
+      .setExperimental()
       .param<int>("access", 0600);
 }
 
