@@ -330,7 +330,6 @@ set(x0d_SRC src/x0d/main.cc
             ${MT_SRC}
             src/x0d/Context.cc
             src/x0d/Daemon.cc
-            src/x0d/DaemonState.cc
             src/x0d/Module.cc
             src/x0d/SignalHandler.cc
             src/x0d/modules/access.cc

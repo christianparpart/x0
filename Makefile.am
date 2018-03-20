@@ -619,9 +619,7 @@ x0d_SOURCES = \
 	$(x0d_types) \
 	src/x0d/Context.cc \
 	src/x0d/Daemon.cc \
-	src/x0d/DaemonState.cc \
 	src/x0d/Module.cc \
-	src/x0d/SignalHandler.cc \
 	src/x0d/modules/access.cc \
 	src/x0d/modules/accesslog.cc \
 	src/x0d/modules/auth.cc \
@@ -642,9 +640,7 @@ x0ddir = $(includedir)/x0d
 x0d_HEADERS = \
 	src/x0d/Context.h \
 	src/x0d/Daemon.h \
-	src/x0d/DaemonState.h \
-	src/x0d/Module.h \
-	src/x0d/SignalHandler.h
+	src/x0d/Module.h
 
 nodist_x0d_SOURCES = \
 	@builddir@/3rdparty/mime.mt.cc

@@ -7,7 +7,6 @@
 
 #include <x0d/Config.h>
 #include <x0d/Daemon.h>
-#include <x0d/SignalHandler.h>
 #include <x0d/Context.h>
 
 #include "modules/access.h"
@@ -25,6 +24,7 @@
 #endif
 
 #include <xzero/sysconfig.h>
+#include <xzero/UnixSignalInfo.h>
 #include <xzero/http/HttpRequest.h>
 #include <xzero/http/HttpResponse.h>
 #include <xzero/http/HttpFileHandler.h>
@@ -54,6 +54,7 @@
 #include <iostream>
 #include <sstream>
 #include <fstream>
+#include <signal.h>
 
 using namespace xzero;
 using namespace xzero::http;
@@ -72,11 +73,22 @@ extern std::unordered_map<std::string, std::string> mimetypes2cc;
 
 namespace x0d {
 
+std::ostream& operator<<(std::ostream& os, DaemonState state) {
+  switch (state) {
+    case DaemonState::Inactive: return os << "Inactive";
+    case DaemonState::Initializing: return os << "Initializing";
+    case DaemonState::Running: return os << "Running";
+    case DaemonState::Upgrading: return os << "Upgrading";
+    case DaemonState::GracefullyShuttingdown: return os << "GracefullyShuttingdown";
+    default:
+      logFatal("Invalid DaemonState value should never happen.");
+  }
+}
+
 Daemon::Daemon()
     : generation_(1),
       startupTime_(),
       terminate_(false),
-      eventHandler_(),
       mimetypes_(),
       vfs_(mimetypes_, "/", true, true, false),
       lastWorker_(0),
@@ -91,7 +103,20 @@ Daemon::Daemon()
       fileHandler_(),
       http1_(),
       configFilePath_(),
-      config_(createDefaultConfig()) {
+      config_(createDefaultConfig()),
+      signals_(),
+      state_(DaemonState::Inactive) {
+  // main event loop is always available
+  eventLoops_.emplace_back(createEventLoop());
+
+  // setup singal handling
+  signals_ = UnixSignals::create(eventLoops_[0].get());
+  signals_->notify(SIGHUP, std::bind(&Daemon::onConfigReloadSignal, this, std::placeholders::_1));
+  signals_->notify(SIGUSR1, std::bind(&Daemon::onCycleLogsSignal, this, std::placeholders::_1));
+  signals_->notify(SIGUSR2, std::bind(&Daemon::onUpgradeBinarySignal, this, std::placeholders::_1));
+  signals_->notify(SIGQUIT, std::bind(&Daemon::onGracefulShutdownSignal, this, std::placeholders::_1));
+  signals_->notify(SIGTERM, std::bind(&Daemon::onQuickShutdownSignal, this, std::placeholders::_1));
+  signals_->notify(SIGINT, std::bind(&Daemon::onQuickShutdownSignal, this, std::placeholders::_1));
 
   loadModule<AccessModule>();
   loadModule<AccesslogModule>();
@@ -420,9 +445,6 @@ void Daemon::postConfig() {
   }
 
   // event loops
-  if (eventLoops_.empty())
-    eventLoops_.emplace_back(createEventLoop());
-
   for (size_t i = 1; i < config_->workers; ++i)
     eventLoops_.emplace_back(createEventLoop());
 
@@ -521,7 +543,6 @@ void Daemon::validateContext(const std::string& entrypointHandlerName,
 }
 
 void Daemon::run() {
-  eventHandler_ = std::make_unique<SignalHandler>(this, eventLoops_[0].get());
   runOneThread(0);
   TRACE("Main loop quit. Shutting down.");
   stop();
@@ -652,6 +673,66 @@ T* Daemon::doSetupConnector(
 
   connectors_.emplace_back(std::move(inet));
   return static_cast<T*>(connectors_.back().get());
+}
+
+void Daemon::onConfigReloadSignal(const xzero::UnixSignalInfo& info) {
+  logNotice("Reloading configuration. (requested via $0 by UID $1 PID $2)",
+            UnixSignals::toString(info.signal),
+            info.uid.getOrElse(-1),
+            info.pid.getOrElse(-1));
+
+  /* reloadConfiguration(); */
+
+  signals_->notify(SIGHUP, std::bind(&Daemon::onConfigReloadSignal, this, std::placeholders::_1));
+}
+
+void Daemon::onCycleLogsSignal(const xzero::UnixSignalInfo& info) {
+  logNotice("Cycling logs. (requested via $0 by UID $1 PID $2)",
+            UnixSignals::toString(info.signal),
+            info.uid.getOrElse(-1),
+            info.pid.getOrElse(-1));
+
+  onCycleLogs();
+
+  signals_->notify(SIGUSR1, std::bind(&Daemon::onCycleLogsSignal, this, std::placeholders::_1));
+}
+
+void Daemon::onUpgradeBinarySignal(const UnixSignalInfo& info) {
+  logNotice("Upgrading binary. (requested via $0 by UID $1 PID $2)",
+            UnixSignals::toString(info.signal),
+            info.uid.getOrElse(-1),
+            info.pid.getOrElse(-1));
+
+  /* TODO [x0d] binary upgrade
+   * 1. suspend the world
+   * 2. save state into temporary file with an inheriting file descriptor
+   * 3. exec into new binary
+   * 4. (new process) load state from file descriptor and close fd
+   * 5. (new process) resume the world
+   */
+}
+
+void Daemon::onQuickShutdownSignal(const xzero::UnixSignalInfo& info) {
+  logNotice("Initiating quick shutdown. (requested via $0 by UID $1 PID $2)",
+            UnixSignals::toString(info.signal),
+            info.uid.getOrElse(-1),
+            info.pid.getOrElse(-1));
+
+  terminate();
+}
+
+void Daemon::onGracefulShutdownSignal(const xzero::UnixSignalInfo& info) {
+  logNotice("Initiating graceful shutdown. (requested via $0 by UID $1 PID $2)",
+            UnixSignals::toString(info.signal),
+            info.uid.getOrElse(-1),
+            info.pid.getOrElse(-1));
+
+  /* 1. stop all listeners
+   * 2. wait until all requests have been handled.
+   * 3. orderly shutdown
+   */
+
+  stop();
 }
 
 } // namespace x0d

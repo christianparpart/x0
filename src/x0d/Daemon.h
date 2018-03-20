@@ -39,6 +39,7 @@ namespace xzero {
   class Connection;
   class Connector;
   class EventLoop;
+  struct UnixSignalInfo;
 
   namespace http {
     class HttpRequest;
@@ -61,6 +62,17 @@ class ConfigurationError : public std::runtime_error {
   explicit ConfigurationError(const std::string& diagnostics)
       : std::runtime_error("Configuration error. " + diagnostics) {}
 };
+
+// TODO: probably call me ServiceState
+enum class DaemonState {
+  Inactive,
+  Initializing,
+  Running,
+  Upgrading,
+  GracefullyShuttingdown
+};
+
+std::ostream& operator<<(std::ostream& os, DaemonState state);
 
 class Daemon : public xzero::flow::Runtime {
  public:
@@ -193,12 +205,19 @@ class Daemon : public xzero::flow::Runtime {
   void runOneThread(size_t index);
   void setThreadAffinity(int cpu, int workerId);
 
+  DaemonState state() const { return state_; }
+  void setState(DaemonState newState);
+
+  void onConfigReloadSignal(const xzero::UnixSignalInfo& info);
+  void onCycleLogsSignal(const xzero::UnixSignalInfo& info);
+  void onUpgradeBinarySignal(const xzero::UnixSignalInfo& info);
+  void onQuickShutdownSignal(const xzero::UnixSignalInfo& info);
+  void onGracefulShutdownSignal(const xzero::UnixSignalInfo& info);
+
  private:
   unsigned generation_;                  //!< process generation number
   xzero::UnixTime startupTime_;          //!< process startup time
   std::atomic<bool> terminate_;
-
-  std::unique_ptr<SignalHandler> eventHandler_;
 
   xzero::MimeTypes mimetypes_;
   xzero::LocalFileRepository vfs_;
@@ -223,6 +242,10 @@ class Daemon : public xzero::flow::Runtime {
   // setup phase
   std::string configFilePath_;
   std::unique_ptr<Config> config_;
+
+  // signal handling
+  std::unique_ptr<xzero::UnixSignals> signals_;
+  DaemonState state_;
 
   friend class CoreModule;
 };
