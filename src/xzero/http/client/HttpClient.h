@@ -121,7 +121,7 @@ class HttpClient : public CustomData {
 
   Request request_;
   HttpListener* listener_;
-  bool isListenerOwned_;
+  std::unique_ptr<HttpListener> ownedListener_;
 };
 
 class HttpClient::Response : public HttpResponseInfo {

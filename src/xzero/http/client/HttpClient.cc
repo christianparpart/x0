@@ -88,12 +88,10 @@ void HttpClient::ResponseBuilder::onMessageEnd() {
   TRACE("ResponseBuilder.onMessageEnd()");
   response_.setContentLength(response_.content().size());
   promise_.success(response_);
-  delete this;
 }
 
 void HttpClient::ResponseBuilder::onError(std::error_code ec) {
   promise_.failure(ec);
-  delete this;
 }
 // }}}
 
@@ -142,7 +140,7 @@ HttpClient::HttpClient(Executor* executor,
       endpoint_(),
       request_(),
       listener_(),
-      isListenerOwned_(false) {
+      ownedListener_() {
 }
 
 HttpClient::HttpClient(Executor* executor,
@@ -154,7 +152,7 @@ HttpClient::HttpClient(Executor* executor,
       endpoint_(upstream),
       request_(),
       listener_(),
-      isListenerOwned_(false) {
+      ownedListener_() {
 }
 
 HttpClient::HttpClient(Executor* executor,
@@ -166,7 +164,7 @@ HttpClient::HttpClient(Executor* executor,
       endpoint_(),
       request_(),
       listener_(),
-      isListenerOwned_(false) {
+      ownedListener_() {
 }
 
 HttpClient::HttpClient(HttpClient&& other)
@@ -175,9 +173,8 @@ HttpClient::HttpClient(HttpClient&& other)
       keepAlive_(std::move(other.keepAlive_)),
       endpoint_(std::move(other.endpoint_)),
       request_(std::move(other.request_)),
-      listener_(other.listener_),
-      isListenerOwned_(other.isListenerOwned_) {
-  other.isListenerOwned_ = false;
+      listener_(std::move(other.listener_)),
+      ownedListener_(std::move(other.ownedListener_)) {
 }
 
 Future<std::shared_ptr<TcpEndPoint>> HttpClient::createTcp(
@@ -239,8 +236,8 @@ Future<HttpClient::Response> HttpClient::send(const Request& request) {
   Promise<Response> promise;
 
   request_ = request;
-  listener_ = new ResponseBuilder(promise);
-  isListenerOwned_ = true;
+  ownedListener_ = std::make_unique<ResponseBuilder>(promise);
+  listener_ = ownedListener_.get();
 
   execute();
 
@@ -251,7 +248,7 @@ void HttpClient::send(const Request& request,
                       HttpListener* responseListener) {
   request_ = request;
   listener_ = responseListener;
-  isListenerOwned_ = false;
+  ownedListener_.reset();
 
   execute();
 }
