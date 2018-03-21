@@ -441,6 +441,11 @@ HttpCluster* ProxyModule::createCluster(const std::string& name,
     logInfo("proxy: Loading cluster $0 ($1)", name, path);
     cluster->setConfiguration(FileUtil::read(path).str(), path);
   } else {
+    // auto-create basedir if not present yet
+    std::string abspath = FileUtil::absolutePath(path);
+    std::string dirname = FileUtil::dirname(abspath);
+    FileUtil::mkdir_p(dirname);
+
     logInfo("proxy: Initializing new cluster $0 ($1)", name, path);
     cluster->saveConfiguration();
   }
