@@ -134,7 +134,7 @@ class PosixScheduler : public EventLoop {
   }; // }}}
 
  protected:
-  void collectWatches(fd_set* input, int* incount, fd_set* output, int* outcount, int* wmark);
+  void collectWatches(int* incount, int* outcount, int* wmark);
 
   /**
    * Adds given timer-handle to the timer-list.
@@ -147,12 +147,10 @@ class PosixScheduler : public EventLoop {
   HandleRef insertIntoTimersList(MonotonicTime dt, Task task);
 
   void loop(bool repeat);
-  size_t waitForEvents(fd_set* input, fd_set* output, fd_set* error) noexcept;
-  std::list<EventLoop::Task> collectEvents(fd_set* input, fd_set* output);
+  size_t waitForEvents() noexcept;
+  std::list<EventLoop::Task> collectEvents();
   void collectTimeouts(std::list<Task>* result);
-  void collectActiveHandles(const fd_set* input,
-                            const fd_set* output,
-                            std::list<Task>* result);
+  void collectActiveHandles(std::list<Task>* result);
 
   /**
    * Registers an I/O interest.
@@ -221,6 +219,10 @@ class PosixScheduler : public EventLoop {
   std::atomic<size_t> readerCount_; //!< number of active read interests
   std::atomic<size_t> writerCount_; //!< number of active write interests
   std::atomic<size_t> breakLoopCounter_;
+
+  fd_set input_;
+  fd_set output_;
+  fd_set error_;
 };
 
 std::string inspect(PosixScheduler::Mode mode);

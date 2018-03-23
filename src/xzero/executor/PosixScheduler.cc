@@ -423,10 +423,8 @@ PosixScheduler::HandleRef PosixScheduler::setupWatcher(
   }
 }
 
-void PosixScheduler::collectActiveHandles(const fd_set* input,
-                                          const fd_set* output,
-                                          std::list<Task>* result) {
-  if (FD_ISSET(wakeupPipe_[PIPE_READ_END], input)) {
+void PosixScheduler::collectActiveHandles(std::list<Task>* result) {
+  if (FD_ISSET(wakeupPipe_[PIPE_READ_END], &input_)) {
     bool consumeMore = true;
     while (consumeMore) {
       char buf[sizeof(int) * 128];
@@ -437,13 +435,13 @@ void PosixScheduler::collectActiveHandles(const fd_set* input,
   Watcher* w = firstWatcher_;
 
   while (w != nullptr) {
-    if (FD_ISSET(w->fd, input)) {
+    if (FD_ISSET(w->fd, &input_)) {
       TRACE("collectActiveHandles: + active fd $0 READABLE", w->fd);
       readerCount_--;
       result->push_back(w->onIO);
       w = unlinkWatcher(w);
     }
-    else if (FD_ISSET(w->fd, output)) {
+    else if (FD_ISSET(w->fd, &output_)) {
       TRACE("collectActiveHandles: + active fd $0 WRITABLE", w->fd);
       writerCount_--;
       result->push_back(w->onIO);
@@ -483,9 +481,8 @@ void PosixScheduler::loop(bool repeat) {
     }
 #endif
 
-    fd_set input, output, error;
-    waitForEvents(&input, &output, &error);
-    std::list<Task> activeTasks = collectEvents(&input, &output);
+    waitForEvents();
+    std::list<Task> activeTasks = collectEvents();
     safeCall(onPreInvokePending_);
     safeCallEach(activeTasks);
     safeCall(onPostInvokePending_);
@@ -508,10 +505,10 @@ void PosixScheduler::loop(bool repeat) {
   }
 }
 
-size_t PosixScheduler::waitForEvents(fd_set* input, fd_set* output, fd_set* error) noexcept {
-  FD_ZERO(input);
-  FD_ZERO(output);
-  FD_ZERO(error);
+size_t PosixScheduler::waitForEvents() noexcept {
+  FD_ZERO(&input_);
+  FD_ZERO(&output_);
+  FD_ZERO(&error_);
 
   timeval tv;
   int incount = 0;
@@ -519,10 +516,10 @@ size_t PosixScheduler::waitForEvents(fd_set* input, fd_set* output, fd_set* erro
   int errcount = 0;
   int wmark = 0;
 
-  FD_SET(wakeupPipe_[PIPE_READ_END], input);
+  FD_SET(wakeupPipe_[PIPE_READ_END], &input_);
   wmark = std::max(wmark, wakeupPipe_[PIPE_READ_END]);
 
-  collectWatches(input, &incount, output, &outcount, &wmark);
+  collectWatches(&incount, &outcount, &wmark);
 
   Duration nt = nextTimeout();
   TRACE("waitForEvents: nextTimeout = $0", nt);
@@ -533,7 +530,7 @@ size_t PosixScheduler::waitForEvents(fd_set* input, fd_set* output, fd_set* erro
   TRACE("waitForEvents: $0", inspect(*this).c_str());
 
   int rv;
-  do rv = ::select(wmark + 1, input, output, error, &tv);
+  do rv = ::select(wmark + 1, &input_, &output_, &error_, &tv);
   while (rv < 0 && errno == EINTR);
 
   if (rv < 0)
@@ -543,20 +540,20 @@ size_t PosixScheduler::waitForEvents(fd_set* input, fd_set* output, fd_set* erro
   return rv;
 }
 
-std::list<EventLoop::Task> PosixScheduler::collectEvents(fd_set* input, fd_set* output) {
+std::list<EventLoop::Task> PosixScheduler::collectEvents() {
   std::lock_guard<std::mutex> lk(lock_);
   std::list<Task> activeTasks;
 
   unref(tasks_.size());
   activeTasks = std::move(tasks_);
 
-  collectActiveHandles(input, output, &activeTasks);
+  collectActiveHandles(&activeTasks);
   collectTimeouts(&activeTasks);
 
   return activeTasks;
 }
 
-void PosixScheduler::collectWatches(fd_set* input, int* incount, fd_set* output, int* outcount, int* wmark) {
+void PosixScheduler::collectWatches(int* incount, int* outcount, int* wmark) {
   std::lock_guard<std::mutex> lk(lock_);
 
   for (const Watcher* w = firstWatcher_; w; w = w->next) {
@@ -565,11 +562,11 @@ void PosixScheduler::collectWatches(fd_set* input, int* incount, fd_set* output,
 
     switch (w->mode) {
       case Mode::READABLE:
-        FD_SET(w->fd, input);
+        FD_SET(w->fd, &input_);
         (*incount)++;
         break;
       case Mode::WRITABLE:
-        FD_SET(w->fd, output);
+        FD_SET(w->fd, &output_);
         (*outcount)++;
         break;
     }
