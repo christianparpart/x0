@@ -3,7 +3,9 @@
 
 All the things I've found out on the way, that need retouching
 
-- [ ] ??? eliminate type Status, replace with exceptions
+- [ ] EventLoop: remove pre/post invoke callbacks in EventLoop API (simplification)
+- [ ] EventLoop: add stats (loop/in/out event counter)
+
 - [ ] flow: NativeCallback: replace operator new/delete with `std::variant` + `bool hasDefault_`
 - [ ] flow: nested scopes with local variables must be initialized in this block
       currently also initialized in entry block;
