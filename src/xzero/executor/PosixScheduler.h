@@ -31,7 +31,8 @@ class PosixScheduler : public EventLoop {
 
   ~PosixScheduler();
 
-  MonotonicTime now() const;
+  MonotonicTime now() const noexcept;
+  void updateTime();
 
  public:
   using EventLoop::executeOnReadable;
@@ -151,6 +152,7 @@ class PosixScheduler : public EventLoop {
   std::list<EventLoop::Task> collectEvents();
   void collectTimeouts(std::list<Task>* result);
   void collectActiveHandles(std::list<Task>* result);
+  void logLoopStats(const char* prefix);
 
   /**
    * Registers an I/O interest.
@@ -220,6 +222,7 @@ class PosixScheduler : public EventLoop {
   std::atomic<size_t> writerCount_; //!< number of active write interests
   std::atomic<size_t> breakLoopCounter_;
 
+  MonotonicTime now_;
   fd_set input_;
   fd_set output_;
   fd_set error_;

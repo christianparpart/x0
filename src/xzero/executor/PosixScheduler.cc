@@ -148,9 +148,12 @@ PosixScheduler::~PosixScheduler() {
   ::close(wakeupPipe_[PIPE_WRITE_END]);
 }
 
-MonotonicTime PosixScheduler::now() const {
-  // later to provide cachable value
-  return MonotonicClock::now();
+void PosixScheduler::updateTime() {
+  now_ = MonotonicClock::now();
+}
+
+MonotonicTime PosixScheduler::now() const noexcept {
+  return now_;
 }
 
 void PosixScheduler::execute(Task task) {
@@ -466,43 +469,40 @@ void PosixScheduler::runLoopOnce() {
   loop(false);
 }
 
-void PosixScheduler::loop(bool repeat) {
-  breakLoopCounter_.store(0);
-
-  while (referenceCount() > 0) {
+void PosixScheduler::logLoopStats(const char* prefix) {
 #if !defined(NDEBUG)
-    {
-      std::lock_guard<std::mutex> _l(lock_);
-      size_t watcherCount = 0;
-      for (Watcher* w = firstWatcher_; w != nullptr; w = w->next)
-        watcherCount++;
-      TRACE("loop: tasks=$0, timers=$1, watchers=$2, refs=$3",
-          tasks_.size(), timers_.size(), watcherCount, referenceCount());
-    }
-#endif
+  std::lock_guard<std::mutex> _l(lock_);
+  size_t watcherCount = 0;
 
+  for (Watcher* w = firstWatcher_; w != nullptr; w = w->next)
+    watcherCount++;
+
+  TRACE("$0: tasks=$1, timers=$2, watchers=$3, refs=$4, breakLoop=$5",
+      prefix, tasks_.size(), timers_.size(), watcherCount, referenceCount(),
+      breakLoopCounter_.load());
+#endif
+}
+
+void PosixScheduler::loop(bool repeat) {
+  if (referenceCount() == 0)
+    return;
+
+  breakLoopCounter_.store(0);
+  updateTime();
+
+  do {
+    logLoopStats("loop()");
     waitForEvents();
     std::list<Task> activeTasks = collectEvents();
     safeCall(onPreInvokePending_);
     safeCallEach(activeTasks);
     safeCall(onPostInvokePending_);
-
-    // if (!activeTasks.empty())
-    //   updateTime();
-
-    if (breakLoopCounter_.load() != 0 || !repeat) {
-      break;
+    if (!activeTasks.empty()) {
+      updateTime();
     }
-  }
+  } while (breakLoopCounter_.load() == 0 && repeat && referenceCount() > 0);
 
-  {
-    std::lock_guard<std::mutex> _l(lock_);
-    size_t watcherCount = 0;
-    for (Watcher* w = firstWatcher_; w != nullptr; w = w->next)
-      watcherCount++;
-    TRACE("loop: at exit: tasks=$0, timers=$1, watchers=$2, refs=$3, breakLoop=$4",
-        tasks_.size(), timers_.size(), watcherCount, referenceCount(), breakLoopCounter_.load());
-  }
+  logLoopStats("loop(at exit)");
 }
 
 size_t PosixScheduler::waitForEvents() noexcept {
@@ -535,6 +535,8 @@ size_t PosixScheduler::waitForEvents() noexcept {
 
   if (rv < 0)
     logFatal("select() returned unexpected error code: $0", strerror(errno));
+
+  updateTime();
 
   TRACE("waitForEvents: select returned $0", rv);
   return rv;
