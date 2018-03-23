@@ -33,7 +33,7 @@ namespace xzero {
 #define ERROR(msg...) logError("PosixScheduler: " msg)
 
 #if 0 // !defined(NDEBUG)
-#define TRACE(msg...) logTrace("PosixScheduler", msg)
+#define TRACE(msg...) logTrace("PosixScheduler: " msg)
 #else
 #define TRACE(msg...) do {} while (0)
 #endif
@@ -94,17 +94,21 @@ std::string inspect(const PosixScheduler& s) {
 }
 
 PosixScheduler::PosixScheduler(ExceptionHandler eh)
-    : EventLoop(eh),
-      lock_(),
-      wakeupPipe_(),
-      tasks_(),
-      timers_(),
-      watchers_(),
-      firstWatcher_(nullptr),
-      lastWatcher_(nullptr),
-      readerCount_(0),
-      writerCount_(0),
-      breakLoopCounter_(0) {
+    : EventLoop{eh},
+      lock_{},
+      wakeupPipe_{},
+      tasks_{},
+      timers_{},
+      watchers_{},
+      firstWatcher_{nullptr},
+      lastWatcher_{nullptr},
+      readerCount_{0},
+      writerCount_{0},
+      breakLoopCounter_{0},
+      now_{MonotonicClock::now()},
+      input_{},
+      output_{},
+      error_{} {
   if (pipe(wakeupPipe_) < 0) {
     RAISE_ERRNO(errno);
   }
@@ -140,7 +144,8 @@ PosixScheduler::~PosixScheduler() {
 }
 
 void PosixScheduler::updateTime() {
-  now_ = MonotonicClock::now();
+  now_.update();
+  TRACE("updateTime() -> $0", now_);
 }
 
 MonotonicTime PosixScheduler::now() const noexcept {
@@ -163,7 +168,7 @@ std::string PosixScheduler::toString() const {
 }
 
 EventLoop::HandleRef PosixScheduler::executeAfter(Duration delay, Task task) {
-  TRACE("executeAfter: $0", delay);
+  TRACE("executeAfter: $0 -> $1", delay, now() + delay);
   return insertIntoTimersList(now() + delay, task);
 }
 
@@ -479,7 +484,6 @@ void PosixScheduler::loop(bool repeat) {
     return;
 
   breakLoopCounter_.store(0);
-  updateTime();
 
   do {
     logLoopStats("loop()");
@@ -487,7 +491,7 @@ void PosixScheduler::loop(bool repeat) {
     std::list<Task> activeTasks = collectEvents();
     safeCallEach(activeTasks);
     if (!activeTasks.empty()) {
-      updateTime();
+      now_.update();
     }
   } while (breakLoopCounter_.load() == 0 && repeat && referenceCount() > 0);
 
@@ -499,15 +503,12 @@ size_t PosixScheduler::waitForEvents() noexcept {
   FD_ZERO(&output_);
   FD_ZERO(&error_);
 
-  int incount = 0;
-  int outcount = 0;
-  int errcount = 0;
-  int wmark = 0;
+  auto [incount, outcount, wmark] = collectWatches();
 
   FD_SET(wakeupPipe_[PIPE_READ_END], &input_);
   wmark = std::max(wmark, wakeupPipe_[PIPE_READ_END]);
 
-  collectWatches(&incount, &outcount, &wmark);
+  now_.update();
 
   // Computes the timespan the event loop should wait the most.
   constexpr Duration MaxLoopTimeout = 10_seconds;
@@ -519,8 +520,8 @@ size_t PosixScheduler::waitForEvents() noexcept {
                      firstWatcher_ != nullptr ? firstWatcher_->timeout - now()
                                               : MaxLoopTimeout + 1_seconds);
 
-  TRACE("waitForEvents: select(wmark=$0, in=$1, out=$2, err=$3, tmo=$4), timers=$5, tasks=$6",
-        wmark + 1, incount, outcount, errcount, timeout, timers_.size(), tasks_.size());
+  TRACE("waitForEvents: select(wmark=$0, in=$1, out=$2, tmo=$3), timers=$4, tasks=$5",
+        wmark + 1, incount, outcount, timeout, timers_.size(), tasks_.size());
   TRACE("waitForEvents: $0", inspect(*this).c_str());
 
   int rv;
@@ -529,11 +530,12 @@ size_t PosixScheduler::waitForEvents() noexcept {
   while (rv < 0 && errno == EINTR);
   // XXX select() may have updated the timeout (tv) to reflect how much
   // time is still left until the timeout would have been hit
+  // Hence, (timeout - tv) equals the time waited
 
   if (rv < 0)
     logFatal("select() returned unexpected error code: $0", strerror(errno));
-  else
-    now_ = now_ + (timeout - Duration{tv});
+
+  now_ = now_ + (timeout - Duration{tv});
 
   TRACE("waitForEvents: select returned $0", rv);
   return rv;
@@ -552,8 +554,9 @@ std::list<EventLoop::Task> PosixScheduler::collectEvents() {
   return activeTasks;
 }
 
-void PosixScheduler::collectWatches(int* incount, int* outcount, int* wmark) {
+std::tuple<int, int, int> PosixScheduler::collectWatches() {
   std::lock_guard<std::mutex> lk(lock_);
+  int incount = 0, outcount = 0, wmark = 0;
 
   for (const Watcher* w = firstWatcher_; w; w = w->next) {
     if (w->fd < 0)
@@ -562,15 +565,17 @@ void PosixScheduler::collectWatches(int* incount, int* outcount, int* wmark) {
     switch (w->mode) {
       case Mode::READABLE:
         FD_SET(w->fd, &input_);
-        (*incount)++;
+        incount++;
         break;
       case Mode::WRITABLE:
         FD_SET(w->fd, &output_);
-        (*outcount)++;
+        outcount++;
         break;
     }
-    *wmark = std::max(*wmark, w->fd);
+    wmark = std::max(wmark, w->fd);
   }
+
+  return std::tuple<int, int, int>{incount, outcount, wmark};
 }
 
 void PosixScheduler::breakLoop() {

@@ -10,6 +10,7 @@
 #include <xzero/MonotonicTime.h>
 #include <xzero/executor/EventLoop.h>
 #include <sys/select.h>
+#include <tuple>
 #include <vector>
 #include <list>
 #include <mutex>
@@ -21,6 +22,9 @@ class PosixScheduler : public EventLoop {
   PosixScheduler(const PosixScheduler&) = delete;
   PosixScheduler& operator=(const PosixScheduler&) = delete;
 
+  PosixScheduler(PosixScheduler&&) = default;
+  PosixScheduler& operator=(PosixScheduler&&) = default;
+
   explicit PosixScheduler(ExceptionHandler eh);
 
   PosixScheduler();
@@ -28,6 +32,20 @@ class PosixScheduler : public EventLoop {
   ~PosixScheduler();
 
   MonotonicTime now() const noexcept;
+
+  /**
+   * Updates internal time.
+   *
+   * Call this function when you want to add new timers or timeouts
+   * outside of the event loop, for example from a different thread or
+   * if you're adding a timer or timeout before the event loop has
+   * been entered or if your callbacks just take very long and you
+   * need to refresh the internal time before adding a new time relevant
+   * interest to the event loop.
+   *
+   * @see now(), executeAfter(), executeAt()
+   * @see executeOnReadable(), executeOnWritable()
+   */
   void updateTime();
 
  public:
@@ -131,7 +149,7 @@ class PosixScheduler : public EventLoop {
   }; // }}}
 
  protected:
-  void collectWatches(int* incount, int* outcount, int* wmark);
+  std::tuple<int, int, int> collectWatches();
 
   /**
    * Adds given timer-handle to the timer-list.
