@@ -28,12 +28,7 @@ namespace xzero {
  */
 class LinuxScheduler : public EventLoop {
  public:
-  LinuxScheduler(ExceptionHandler eh,
-                 std::function<void()> preInvoke,
-                 std::function<void()> postInvoke);
-
   explicit LinuxScheduler(ExceptionHandler eh);
-
   LinuxScheduler();
   ~LinuxScheduler();
 
@@ -158,9 +153,6 @@ class LinuxScheduler : public EventLoop {
   void collectTimeouts(std::list<Task>* result);
 
  private:
-  Task onPreInvokePending_;  //!< callback to be invoked before any other hot CB
-  Task onPostInvokePending_; //!< callback to be invoked after any other hot CB
-
   std::mutex lock_; //!< mutex, to protect access to tasks, timers
 
   std::unordered_map<int, std::shared_ptr<Watcher>> watchers_;  //!< I/O watchers

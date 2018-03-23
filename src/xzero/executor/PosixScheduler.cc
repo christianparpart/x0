@@ -93,15 +93,10 @@ std::string inspect(const PosixScheduler& s) {
   return s.inspectImpl();
 }
 
-PosixScheduler::PosixScheduler(
-    ExceptionHandler eh,
-    std::function<void()> preInvoke,
-    std::function<void()> postInvoke)
+PosixScheduler::PosixScheduler(ExceptionHandler eh)
     : EventLoop(eh),
       lock_(),
       wakeupPipe_(),
-      onPreInvokePending_(preInvoke),
-      onPostInvokePending_(postInvoke),
       tasks_(),
       timers_(),
       watchers_(),
@@ -132,10 +127,6 @@ PosixScheduler::PosixScheduler(
       wakeupPipe_[PIPE_READ_END],
       wakeupPipe_[PIPE_WRITE_END],
       nofile);
-}
-
-PosixScheduler::PosixScheduler(ExceptionHandler eh)
-    : PosixScheduler(eh, nullptr, nullptr) {
 }
 
 PosixScheduler::PosixScheduler()
@@ -494,9 +485,7 @@ void PosixScheduler::loop(bool repeat) {
     logLoopStats("loop()");
     waitForEvents();
     std::list<Task> activeTasks = collectEvents();
-    safeCall(onPreInvokePending_);
     safeCallEach(activeTasks);
-    safeCall(onPostInvokePending_);
     if (!activeTasks.empty()) {
       updateTime();
     }

@@ -33,13 +33,8 @@ namespace xzero {
 #define TRACE(msg...) do {} while (0)
 #endif
 
-LinuxScheduler::LinuxScheduler(
-    ExceptionHandler eh,
-    std::function<void()> preInvoke,
-    std::function<void()> postInvoke)
+LinuxScheduler::LinuxScheduler(ExceptionHandler eh)
     : EventLoop(eh),
-      onPreInvokePending_(preInvoke),
-      onPostInvokePending_(postInvoke),
       lock_(),
       watchers_(),
       firstWatcher_(nullptr),
@@ -67,12 +62,8 @@ LinuxScheduler::LinuxScheduler(
   //TODO signalfd_ = ...;
 }
 
-LinuxScheduler::LinuxScheduler(ExceptionHandler eh)
-    : LinuxScheduler(eh, nullptr, nullptr) {
-}
-
 LinuxScheduler::LinuxScheduler()
-    : LinuxScheduler(nullptr, nullptr, nullptr) {
+    : LinuxScheduler(nullptr) {
 }
 
 LinuxScheduler::~LinuxScheduler() {
@@ -312,9 +303,7 @@ void LinuxScheduler::loop(bool repeat) {
   while (referenceCount() > 0 && breakLoopCounter_.load() == 0) {
     size_t numEvents = waitForEvents();
     std::list<Task> activeTasks = collectEvents(numEvents);
-    safeCall(onPreInvokePending_);
     safeCallEach(activeTasks);
-    safeCall(onPostInvokePending_);
 
     if (!repeat) {
       break;

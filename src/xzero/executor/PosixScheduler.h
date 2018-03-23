@@ -21,10 +21,6 @@ class PosixScheduler : public EventLoop {
   PosixScheduler(const PosixScheduler&) = delete;
   PosixScheduler& operator=(const PosixScheduler&) = delete;
 
-  PosixScheduler(ExceptionHandler eh,
-                 std::function<void()> preInvoke,
-                 std::function<void()> postInvoke);
-
   explicit PosixScheduler(ExceptionHandler eh);
 
   PosixScheduler();
@@ -200,9 +196,6 @@ class PosixScheduler : public EventLoop {
   std::mutex lock_;
 
   int wakeupPipe_[2];        //!< system pipe, used to wakeup the waiting syscall
-
-  Task onPreInvokePending_;  //!< callback to be invoked before any other hot CB
-  Task onPostInvokePending_; //!< callback to be invoked after any other hot CB
 
   std::list<Task> tasks_;            //!< list of pending tasks
   std::list<std::shared_ptr<Timer>> timers_;  //!< ASC-sorted list of timers

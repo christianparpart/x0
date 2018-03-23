@@ -490,9 +490,7 @@ std::unique_ptr<EventLoop> Daemon::createEventLoop() {
   size_t i = eventLoops_.size();
 
   return std::make_unique<NativeScheduler>(
-        CatchAndLogExceptionHandler(StringUtil::format("x0d/$0", i)),
-        nullptr /* preInvoke */,
-        nullptr /* postInvoke */);
+        CatchAndLogExceptionHandler{StringUtil::format("x0d/$0", i)});
 }
 
 std::function<void()> Daemon::createHandler(HttpRequest* request,
