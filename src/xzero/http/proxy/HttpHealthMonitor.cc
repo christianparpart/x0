@@ -20,9 +20,7 @@
 # define TRACE(msg...) do {} while (0)
 #endif
 
-namespace xzero {
-namespace http {
-namespace client {
+namespace xzero::http::client {
 
 std::ostream& operator<<(std::ostream& os, HttpHealthMonitor::State state) {
   switch (state) {
@@ -190,13 +188,12 @@ void HttpHealthMonitor::serialize(JsonWriter& json) const {
       .endObject();
 }
 
-} // namespace client
-} // namespace http
+} // namespace xzero::http::client
 
-template<>
-JsonWriter& JsonWriter::value(const http::client::HttpHealthMonitor& monitor) {
-  monitor.serialize(*this);
-  return *this;
+namespace xzero {
+  template<>
+  JsonWriter& JsonWriter::value(const http::client::HttpHealthMonitor& monitor) {
+    monitor.serialize(*this);
+    return *this;
+  }
 }
-
-} // namespace xzero
