@@ -38,19 +38,20 @@ public:
    * @param microseconds the duration in microseconds
    */
   constexpr explicit Duration(uint64_t microseconds);
-/**
+
+  /**
    * Creates a new Duration out of a @c timeval struct.
    *
    * @param value duration as @c timeval.
    */
-  explicit Duration(const struct ::timeval& value);
+  constexpr Duration(const struct ::timeval& value);
 
   /**
    * Creates a new Duration out of a @c timespec struct.
    *
    * @param value duration as @c timespec.
    */
-  explicit Duration(const struct ::timespec& value);
+  constexpr Duration(const struct ::timespec& value);
 
   Duration& operator=(const Duration& other);
 
