@@ -426,6 +426,14 @@ PosixScheduler::HandleRef PosixScheduler::setupWatcher(
 void PosixScheduler::collectActiveHandles(const fd_set* input,
                                           const fd_set* output,
                                           std::list<Task>* result) {
+  if (FD_ISSET(wakeupPipe_[PIPE_READ_END], input)) {
+    bool consumeMore = true;
+    while (consumeMore) {
+      char buf[sizeof(int) * 128];
+      consumeMore = ::read(wakeupPipe_[PIPE_READ_END], buf, sizeof(buf)) > 0;
+    }
+  }
+
   Watcher* w = firstWatcher_;
 
   while (w != nullptr) {
@@ -453,21 +461,41 @@ void PosixScheduler::executeOnWakeup(Task task, Wakeup* wakeup, long generation)
 }
 
 void PosixScheduler::runLoop() {
+  loop(true);
+}
+
+void PosixScheduler::runLoopOnce() {
+  loop(false);
+}
+
+void PosixScheduler::loop(bool repeat) {
   breakLoopCounter_.store(0);
 
-  while (breakLoopCounter_.load() == 0 && referenceCount() > 0) {
+  while (referenceCount() > 0) {
 #if !defined(NDEBUG)
     {
       std::lock_guard<std::mutex> _l(lock_);
       size_t watcherCount = 0;
       for (Watcher* w = firstWatcher_; w != nullptr; w = w->next)
         watcherCount++;
-      TRACE("runLoop: tasks=$0, timers=$1, watchers=$2, refs=$3",
+      TRACE("loop: tasks=$0, timers=$1, watchers=$2, refs=$3",
           tasks_.size(), timers_.size(), watcherCount, referenceCount());
     }
 #endif
 
-    runLoopOnce();
+    fd_set input, output, error;
+    waitForEvents(&input, &output, &error);
+    std::list<Task> activeTasks = collectEvents(&input, &output);
+    safeCall(onPreInvokePending_);
+    safeCallEach(activeTasks);
+    safeCall(onPostInvokePending_);
+
+    // if (!activeTasks.empty())
+    //   updateTime();
+
+    if (breakLoopCounter_.load() != 0 || !repeat) {
+      break;
+    }
   }
 
   {
@@ -475,16 +503,15 @@ void PosixScheduler::runLoop() {
     size_t watcherCount = 0;
     for (Watcher* w = firstWatcher_; w != nullptr; w = w->next)
       watcherCount++;
-    TRACE("runLoop at exit: tasks=$0, timers=$1, watchers=$2, refs=$3, breakLoop=$4",
+    TRACE("loop: at exit: tasks=$0, timers=$1, watchers=$2, refs=$3, breakLoop=$4",
         tasks_.size(), timers_.size(), watcherCount, referenceCount(), breakLoopCounter_.load());
   }
 }
 
-void PosixScheduler::runLoopOnce() {
-  fd_set input, output, error;
-  FD_ZERO(&input);
-  FD_ZERO(&output);
-  FD_ZERO(&error);
+size_t PosixScheduler::waitForEvents(fd_set* input, fd_set* output, fd_set* error) noexcept {
+  FD_ZERO(input);
+  FD_ZERO(output);
+  FD_ZERO(error);
 
   timeval tv;
   int incount = 0;
@@ -492,50 +519,41 @@ void PosixScheduler::runLoopOnce() {
   int errcount = 0;
   int wmark = 0;
 
-  FD_SET(wakeupPipe_[PIPE_READ_END], &input);
+  FD_SET(wakeupPipe_[PIPE_READ_END], input);
   wmark = std::max(wmark, wakeupPipe_[PIPE_READ_END]);
 
-  collectWatches(&input, &incount, &output, &outcount, &wmark);
+  collectWatches(input, &incount, output, &outcount, &wmark);
 
   Duration nt = nextTimeout();
-  TRACE("runLoopOnce(): nextTimeout = $0", nt);
+  TRACE("waitForEvents: nextTimeout = $0", nt);
   tv = nt;
 
-  TRACE("runLoopOnce: select(wmark=$0, in=$1, out=$2, err=$3, tmo=$4), timers=$5, tasks=$6",
+  TRACE("waitForEvents: select(wmark=$0, in=$1, out=$2, err=$3, tmo=$4), timers=$5, tasks=$6",
         wmark + 1, incount, outcount, errcount, Duration(tv), timers_.size(), tasks_.size());
-  TRACE("runLoopOnce: $0", inspect(*this).c_str());
+  TRACE("waitForEvents: $0", inspect(*this).c_str());
 
   int rv;
-  do rv = ::select(wmark + 1, &input, &output, &error, &tv);
+  do rv = ::select(wmark + 1, input, output, error, &tv);
   while (rv < 0 && errno == EINTR);
 
   if (rv < 0)
-    RAISE_ERRNO(errno);
+    logFatal("select() returned unexpected error code: $0", strerror(errno));
 
-  TRACE("runLoopOnce: select returned $0", rv);
+  TRACE("waitForEvents: select returned $0", rv);
+  return rv;
+}
 
-  if (FD_ISSET(wakeupPipe_[PIPE_READ_END], &input)) {
-    bool consumeMore = true;
-    while (consumeMore) {
-      char buf[sizeof(int) * 128];
-      consumeMore = ::read(wakeupPipe_[PIPE_READ_END], buf, sizeof(buf)) > 0;
-    }
-  }
-
+std::list<EventLoop::Task> PosixScheduler::collectEvents(fd_set* input, fd_set* output) {
+  std::lock_guard<std::mutex> lk(lock_);
   std::list<Task> activeTasks;
-  {
-    std::lock_guard<std::mutex> lk(lock_);
 
-    unref(tasks_.size());
-    activeTasks = std::move(tasks_);
+  unref(tasks_.size());
+  activeTasks = std::move(tasks_);
 
-    collectActiveHandles(&input, &output, &activeTasks);
-    collectTimeouts(&activeTasks);
-  }
+  collectActiveHandles(input, output, &activeTasks);
+  collectTimeouts(&activeTasks);
 
-  safeCall(onPreInvokePending_);
-  safeCallEach(activeTasks);
-  safeCall(onPostInvokePending_);
+  return activeTasks;
 }
 
 void PosixScheduler::collectWatches(fd_set* input, int* incount, fd_set* output, int* outcount, int* wmark) {

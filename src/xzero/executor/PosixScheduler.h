@@ -146,8 +146,10 @@ class PosixScheduler : public EventLoop {
    */
   HandleRef insertIntoTimersList(MonotonicTime dt, Task task);
 
+  void loop(bool repeat);
+  size_t waitForEvents(fd_set* input, fd_set* output, fd_set* error) noexcept;
+  std::list<EventLoop::Task> collectEvents(fd_set* input, fd_set* output);
   void collectTimeouts(std::list<Task>* result);
-
   void collectActiveHandles(const fd_set* input,
                             const fd_set* output,
                             std::list<Task>* result);
