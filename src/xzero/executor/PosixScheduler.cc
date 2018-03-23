@@ -490,9 +490,6 @@ void PosixScheduler::loop(bool repeat) {
     waitForEvents();
     std::list<Task> activeTasks = collectEvents();
     safeCallEach(activeTasks);
-    if (!activeTasks.empty()) {
-      now_.update();
-    }
   } while (breakLoopCounter_.load() == 0 && repeat && referenceCount() > 0);
 
   logLoopStats("loop(at exit)");
@@ -515,10 +512,12 @@ size_t PosixScheduler::waitForEvents() noexcept {
   const Duration timeout =
       !tasks_.empty()
           ? Duration::Zero
-          : std::min(!timers_.empty() ? timers_.front()->when - now()
-                                      : MaxLoopTimeout,
-                     firstWatcher_ != nullptr ? firstWatcher_->timeout - now()
-                                              : MaxLoopTimeout + 1_seconds);
+          : std::min(!timers_.empty()
+                          ? distance(now(), timers_.front()->when)
+                          : MaxLoopTimeout,
+                     firstWatcher_ != nullptr
+                          ? distance(now(), firstWatcher_->timeout)
+                          : MaxLoopTimeout + 1_seconds);
 
   TRACE("waitForEvents: select(wmark=$0, in=$1, out=$2, tmo=$3), timers=$4, tasks=$5",
         wmark + 1, incount, outcount, timeout, timers_.size(), tasks_.size());

@@ -45,6 +45,10 @@ public:
   uint64_t nanosecs_;
 };
 
+constexpr Duration distance(MonotonicTime a, MonotonicTime b) {
+  return a - b;
+}
+
 std::string inspect(const MonotonicTime& value);
 std::ostream& operator<<(std::ostream& os, MonotonicTime value);
 

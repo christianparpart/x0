@@ -291,7 +291,6 @@ void LinuxScheduler::executeOnWakeup(Task task, Wakeup* wakeup, long generation)
 }
 
 void LinuxScheduler::runLoop() {
-  breakLoopCounter_.store(0);
   loop(true);
 }
 
@@ -300,15 +299,16 @@ void LinuxScheduler::runLoopOnce() {
 }
 
 void LinuxScheduler::loop(bool repeat) {
-  while (referenceCount() > 0 && breakLoopCounter_.load() == 0) {
+  if (referenceCount() == 0)
+    return;
+
+  breakLoopCounter_.store(0);
+
+  do {
     size_t numEvents = waitForEvents();
     std::list<Task> activeTasks = collectEvents(numEvents);
     safeCallEach(activeTasks);
-
-    if (!repeat) {
-      break;
-    }
-  }
+  } while (breakLoopCounter_.load() == 0 && repeat && referenceCount() > 0);
 }
 
 size_t LinuxScheduler::waitForEvents() noexcept {
@@ -330,7 +330,7 @@ size_t LinuxScheduler::waitForEvents() noexcept {
 
   int rv = 0;
   do {
-    const Duration maxWait = timeout - now();
+    const Duration maxWait = distance(now(), timeout);
     do rv = epoll_wait(epollfd_, &activeEvents_[0], activeEvents_.size(),
                        maxWait.milliseconds());
     while (rv < 0 && errno == EINTR);
