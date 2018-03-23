@@ -32,7 +32,8 @@ namespace xzero::http::client {
 // {{{ ResponseBuilder
 class HttpClient::ResponseBuilder : public HttpListener {
  public:
-  ResponseBuilder(Promise<Response> promise);
+  explicit ResponseBuilder(Promise<Response> promise);
+  ~ResponseBuilder();
 
   void onMessageBegin(HttpVersion version, HttpStatus code, const BufferRef& text) override;
   void onMessageHeader(const BufferRef& name, const BufferRef& value) override;
@@ -51,6 +52,10 @@ HttpClient::ResponseBuilder::ResponseBuilder(Promise<Response> promise)
     : promise_(promise),
       response_() {
   TRACE("ResponseBuilder.ctor");
+}
+
+HttpClient::ResponseBuilder::~ResponseBuilder() {
+  TRACE("ResponseBuilder.dtor");
 }
 
 void HttpClient::ResponseBuilder::onMessageBegin(HttpVersion version,
