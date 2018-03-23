@@ -510,7 +510,6 @@ size_t PosixScheduler::waitForEvents() noexcept {
   FD_ZERO(&output_);
   FD_ZERO(&error_);
 
-  timeval tv;
   int incount = 0;
   int outcount = 0;
   int errcount = 0;
@@ -521,22 +520,31 @@ size_t PosixScheduler::waitForEvents() noexcept {
 
   collectWatches(&incount, &outcount, &wmark);
 
-  Duration nt = nextTimeout();
-  TRACE("waitForEvents: nextTimeout = $0", nt);
-  tv = nt;
+  // Computes the timespan the event loop should wait the most.
+  constexpr Duration MaxLoopTimeout = 10_seconds;
+  const Duration timeout =
+      !tasks_.empty()
+          ? Duration::Zero
+          : std::min(!timers_.empty() ? timers_.front()->when - now()
+                                      : MaxLoopTimeout,
+                     firstWatcher_ != nullptr ? firstWatcher_->timeout - now()
+                                              : MaxLoopTimeout + 1_seconds);
 
   TRACE("waitForEvents: select(wmark=$0, in=$1, out=$2, err=$3, tmo=$4), timers=$5, tasks=$6",
-        wmark + 1, incount, outcount, errcount, Duration(tv), timers_.size(), tasks_.size());
+        wmark + 1, incount, outcount, errcount, timeout, timers_.size(), tasks_.size());
   TRACE("waitForEvents: $0", inspect(*this).c_str());
 
   int rv;
+  timeval tv = timeout;
   do rv = ::select(wmark + 1, &input_, &output_, &error_, &tv);
   while (rv < 0 && errno == EINTR);
+  // XXX select() may have updated the timeout (tv) to reflect how much
+  // time is still left until the timeout would have been hit
 
   if (rv < 0)
     logFatal("select() returned unexpected error code: $0", strerror(errno));
-
-  updateTime();
+  else
+    now_ = now_ + (timeout - Duration{tv});
 
   TRACE("waitForEvents: select returned $0", rv);
   return rv;
@@ -574,23 +582,6 @@ void PosixScheduler::collectWatches(int* incount, int* outcount, int* wmark) {
     }
     *wmark = std::max(*wmark, w->fd);
   }
-}
-
-Duration PosixScheduler::nextTimeout() const {
-  if (!tasks_.empty())
-    return Duration::Zero;
-
-  TRACE("nextTimeout: timers = $0", inspect(timers_));
-
-  const Duration a = !timers_.empty()
-                 ? timers_.front()->when - now()
-                 : 60_seconds;
-
-  const Duration b = firstWatcher_ != nullptr
-                 ? firstWatcher_->timeout - now()
-                 : 61_seconds;
-
-  return std::min(a, b);
 }
 
 void PosixScheduler::breakLoop() {

@@ -189,13 +189,6 @@ class PosixScheduler : public EventLoop {
    */
   HandleRef findWatcher(int fd);
 
-  /**
-   * Computes the timespan the event loop should wait the most.
-   *
-   * @note requires the caller to lock the object mutex.
-   */
-  Duration nextTimeout() const;
-
   std::string inspectImpl() const;
 
   friend std::string inspect(const PosixScheduler&);
