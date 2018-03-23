@@ -30,56 +30,56 @@ public:
   /**
    * Creates a new Duration of zero microseconds.
    */
-  constexpr Duration(ZeroType);
+  constexpr Duration(ZeroType) noexcept;
 
   /**
    * Create a new Duration
    *
    * @param microseconds the duration in microseconds
    */
-  constexpr explicit Duration(uint64_t microseconds);
+  constexpr explicit Duration(uint64_t microseconds) noexcept;
 
   /**
    * Creates a new Duration out of a @c timeval struct.
    *
    * @param value duration as @c timeval.
    */
-  constexpr Duration(const struct ::timeval& value);
+  constexpr Duration(const struct ::timeval& value) noexcept;
 
   /**
    * Creates a new Duration out of a @c timespec struct.
    *
    * @param value duration as @c timespec.
    */
-  constexpr Duration(const struct ::timespec& value);
+  constexpr Duration(const struct ::timespec& value) noexcept;
 
-  Duration& operator=(const Duration& other);
+  Duration& operator=(const Duration& other) noexcept;
 
-  constexpr bool operator==(const Duration& other) const;
-  constexpr bool operator!=(const Duration& other) const;
-  constexpr bool operator<(const Duration& other) const;
-  constexpr bool operator>(const Duration& other) const;
-  constexpr bool operator<=(const Duration& other) const;
-  constexpr bool operator>=(const Duration& other) const;
-  constexpr bool operator!() const;
+  constexpr bool operator==(const Duration& other) const noexcept;
+  constexpr bool operator!=(const Duration& other) const noexcept;
+  constexpr bool operator<(const Duration& other) const noexcept;
+  constexpr bool operator>(const Duration& other) const noexcept;
+  constexpr bool operator<=(const Duration& other) const noexcept;
+  constexpr bool operator>=(const Duration& other) const noexcept;
+  constexpr bool operator!() const noexcept;
 
-  constexpr Duration operator+(const Duration& other) const;
-  constexpr Duration operator-(const Duration& other) const;
-  constexpr Duration operator*(int factor) const;
-  constexpr Duration operator/(int divisor) const;
+  constexpr Duration operator+(const Duration& other) const noexcept;
+  constexpr Duration operator-(const Duration& other) const noexcept;
+  constexpr Duration operator*(int factor) const noexcept;
+  constexpr Duration operator/(int divisor) const noexcept;
 
-  constexpr operator struct timeval() const;
-  constexpr operator struct timespec() const;
-
-  /**
-   * Return the represented duration in microseconds
-   */
-  constexpr explicit operator uint64_t() const;
+  constexpr operator struct timeval() const noexcept;
+  constexpr operator struct timespec() const noexcept;
 
   /**
    * Return the represented duration in microseconds
    */
-  constexpr explicit operator double() const;
+  constexpr explicit operator uint64_t() const noexcept;
+
+  /**
+   * Return the represented duration in microseconds
+   */
+  constexpr explicit operator double() const noexcept;
 
   /**
    * Return the represented duration in microseconds
@@ -100,13 +100,13 @@ public:
   constexpr uint64_t hours() const noexcept;
   constexpr uint64_t days() const noexcept;
 
-  static constexpr Duration fromDays(uint64_t v);
-  static constexpr Duration fromHours(uint64_t v);
-  static constexpr Duration fromMinutes(uint64_t v);
-  static constexpr Duration fromSeconds(uint64_t v);
-  static constexpr Duration fromMilliseconds(uint64_t v);
-  static constexpr Duration fromMicroseconds(uint64_t v);
-  static constexpr Duration fromNanoseconds(uint64_t v);
+  static constexpr Duration fromDays(uint64_t v) noexcept;
+  static constexpr Duration fromHours(uint64_t v) noexcept;
+  static constexpr Duration fromMinutes(uint64_t v) noexcept;
+  static constexpr Duration fromSeconds(uint64_t v) noexcept;
+  static constexpr Duration fromMilliseconds(uint64_t v) noexcept;
+  static constexpr Duration fromMicroseconds(uint64_t v) noexcept;
+  static constexpr Duration fromNanoseconds(uint64_t v) noexcept;
 
 protected:
   uint64_t micros_;

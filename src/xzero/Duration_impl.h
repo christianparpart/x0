@@ -9,52 +9,52 @@
 
 namespace xzero {
 
-inline constexpr Duration::Duration(ZeroType)
+inline constexpr Duration::Duration(ZeroType) noexcept
     : micros_(0) {}
 
-inline constexpr Duration::Duration(uint64_t microseconds)
+inline constexpr Duration::Duration(uint64_t microseconds) noexcept
     : micros_(microseconds) {}
 
-inline constexpr Duration::Duration(const struct ::timeval& value)
+inline constexpr Duration::Duration(const struct ::timeval& value) noexcept
     : micros_(value.tv_usec + value.tv_sec * kMicrosPerSecond) {}
 
-inline constexpr Duration::Duration(const struct ::timespec& value)
+inline constexpr Duration::Duration(const struct ::timespec& value) noexcept
     : micros_(value.tv_nsec / 1000 + value.tv_sec * kMicrosPerSecond) {}
 
-inline Duration& Duration::operator=(const Duration& other) {
+inline Duration& Duration::operator=(const Duration& other) noexcept {
   micros_ = other.micros_;
   return *this;
 }
 
-constexpr bool Duration::operator==(const Duration& other) const {
+constexpr bool Duration::operator==(const Duration& other) const noexcept {
   return micros_ == other.micros_;
 }
 
-constexpr bool Duration::operator!=(const Duration& other) const {
+constexpr bool Duration::operator!=(const Duration& other) const noexcept {
   return micros_ != other.micros_;
 }
 
-constexpr bool Duration::operator<(const Duration& other) const {
+constexpr bool Duration::operator<(const Duration& other) const noexcept {
   return micros_ < other.micros_;
 }
 
-constexpr bool Duration::operator>(const Duration& other) const {
+constexpr bool Duration::operator>(const Duration& other) const noexcept {
   return micros_ > other.micros_;
 }
 
-constexpr bool Duration::operator<=(const Duration& other) const {
+constexpr bool Duration::operator<=(const Duration& other) const noexcept {
   return micros_ <= other.micros_;
 }
 
-constexpr bool Duration::operator>=(const Duration& other) const {
+constexpr bool Duration::operator>=(const Duration& other) const noexcept {
   return micros_ >= other.micros_;
 }
 
-constexpr bool Duration::operator!() const {
+constexpr bool Duration::operator!() const noexcept {
   return micros_ == 0;
 }
 
-inline constexpr Duration::operator struct timeval() const {
+inline constexpr Duration::operator struct timeval() const noexcept {
 #if defined(XZERO_OS_DARWIN)
   // OS/X plays in it's own universe. ;(
   return { static_cast<time_t>(micros_ / kMicrosPerSecond),
@@ -65,7 +65,7 @@ inline constexpr Duration::operator struct timeval() const {
 #endif
 }
 
-inline constexpr Duration::operator struct timespec() const {
+inline constexpr Duration::operator struct timespec() const noexcept {
 #if defined(XZERO_OS_DARWIN)
   // OS/X plays in it's own universe. ;(
   return { static_cast<time_t>(micros_ / kMicrosPerSecond),
@@ -88,22 +88,22 @@ inline constexpr uint64_t Duration::seconds() const noexcept {
   return micros_ / kMicrosPerSecond;
 }
 
-inline constexpr Duration Duration::operator+(const Duration& other) const {
-  return Duration(micros_ + other.micros_);
+inline constexpr Duration Duration::operator+(const Duration& other) const noexcept {
+  return Duration{micros_ + other.micros_};
 }
 
-inline constexpr Duration Duration::operator-(const Duration& other) const {
+inline constexpr Duration Duration::operator-(const Duration& other) const noexcept {
   return micros_ > other.micros_
-      ? Duration(micros_ - other.micros_)
-      : Duration(other.micros_ - micros_);
+      ? Duration{micros_ - other.micros_}
+      : Duration{other.micros_ - micros_};
 }
 
-inline constexpr Duration Duration::operator*(int factor) const {
-  return Duration(micros_ * factor);
+inline constexpr Duration Duration::operator*(int factor) const noexcept {
+  return Duration{micros_ * factor};
 }
 
-inline constexpr Duration Duration::operator/(int divisor) const {
-  return Duration(micros_ / divisor);
+inline constexpr Duration Duration::operator/(int divisor) const noexcept {
+  return Duration{micros_ / divisor};
 }
 
 inline constexpr uint64_t Duration::minutes() const noexcept {
@@ -118,32 +118,32 @@ inline constexpr uint64_t Duration::days() const noexcept {
   return hours() / kHoursPerDay;
 }
 
-constexpr Duration Duration::fromDays(uint64_t v) {
-  return Duration(v * kMicrosPerSecond * kSecondsPerDay);
+constexpr Duration Duration::fromDays(uint64_t v) noexcept {
+  return Duration{v * kMicrosPerSecond * kSecondsPerDay};
 }
 
-constexpr Duration Duration::fromHours(uint64_t v) {
-  return Duration(v * kMicrosPerSecond * kSecondsPerHour);
+constexpr Duration Duration::fromHours(uint64_t v) noexcept {
+  return Duration{v * kMicrosPerSecond * kSecondsPerHour};
 }
 
-constexpr Duration Duration::fromMinutes(uint64_t v) {
-  return Duration(v * kMicrosPerSecond * kSecondsPerMinute);
+constexpr Duration Duration::fromMinutes(uint64_t v) noexcept {
+  return Duration{v * kMicrosPerSecond * kSecondsPerMinute};
 }
 
-constexpr Duration Duration::fromSeconds(uint64_t v) {
-  return Duration(v * kMicrosPerSecond);
+constexpr Duration Duration::fromSeconds(uint64_t v) noexcept {
+  return Duration{v * kMicrosPerSecond};
 }
 
-constexpr Duration Duration::fromMilliseconds(uint64_t v) {
-  return Duration(v * 1000);
+constexpr Duration Duration::fromMilliseconds(uint64_t v) noexcept {
+  return Duration{v * 1000};
 }
 
-constexpr Duration Duration::fromMicroseconds(uint64_t v) {
-  return Duration(v);
+constexpr Duration Duration::fromMicroseconds(uint64_t v) noexcept {
+  return Duration{v};
 }
 
-constexpr Duration Duration::fromNanoseconds(uint64_t v) {
-  return Duration(v / 1000);
+constexpr Duration Duration::fromNanoseconds(uint64_t v) noexcept {
+  return Duration{v / 1000};
 }
 
 } // namespace xzero
