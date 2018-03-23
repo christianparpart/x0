@@ -39,7 +39,9 @@ public:
 
   constexpr bool operator!() const;
 
-private:
+  void update();
+
+ private:
   uint64_t nanosecs_;
 };
 

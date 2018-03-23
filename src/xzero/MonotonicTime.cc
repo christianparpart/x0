@@ -6,9 +6,14 @@
 // the License at: http://opensource.org/licenses/MIT
 
 #include <xzero/MonotonicTime.h>
+#include <xzero/MonotonicClock.h>
 #include <xzero/StringUtil.h>
 
 namespace xzero {
+
+void MonotonicTime::update() {
+  *this = MonotonicClock::now();
+}
 
 std::string inspect(const MonotonicTime& value) {
   return StringUtil::format("$0", value.milliseconds());
