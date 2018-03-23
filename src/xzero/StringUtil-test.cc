@@ -148,6 +148,12 @@ TEST(StringUtilTest, splitByAny) {
   EXPECT_EQ("four", parts[3]);
 }
 
+TEST(StringUtilTest, TestSplit_empty) {
+  auto parts = StringUtil::split("", ",");
+
+  EXPECT_EQ(0, parts.size());
+}
+
 TEST(StringUtilTest, TestSplit) {
   auto parts1 = StringUtil::split("one,two,three", ",");
   EXPECT_EQ(3, parts1.size());

@@ -79,6 +79,9 @@ std::vector<std::string> StringUtil::split(
       const std::string& pattern) {
   std::vector<std::string> parts;
 
+  if (str.empty())
+    return {};
+
   size_t begin = 0;
   for (;;) {
     auto end = str.find(pattern, begin);
