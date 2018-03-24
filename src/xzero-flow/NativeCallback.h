@@ -17,6 +17,8 @@
 #include <string>
 #include <vector>
 #include <functional>
+#include <variant>
+#include <optional>
 
 namespace xzero::flow {
 
@@ -49,6 +51,10 @@ class NativeCallback {
   // following attribs are irrelevant to the VM but useful for the frontend
   std::vector<std::string> names_;
   std::vector<void*> defaults_;
+
+  using DefaultValue = std::variant<bool, FlowString, FlowNumber, IPAddress, Cidr, RegExp>;
+    
+  std::vector<std::optional<DefaultValue>> defaultValues_;
 
  public:
   NativeCallback(Runtime* runtime, const std::string& _name);
