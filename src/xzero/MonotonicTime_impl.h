@@ -45,6 +45,10 @@ inline constexpr Duration MonotonicTime::operator-(const MonotonicTime& other) c
     : Duration(other.microseconds() - microseconds());
 }
 
+inline constexpr Duration distance(MonotonicTime a, MonotonicTime b) {
+  return a - b;
+}
+
 inline constexpr MonotonicTime MonotonicTime::operator+(const Duration& other) const {
   return MonotonicTime(nanosecs_ + other.microseconds() * 1000);
 }
