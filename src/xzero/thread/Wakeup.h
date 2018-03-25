@@ -9,6 +9,7 @@
 #include <xzero/Api.h>
 #include <xzero/Duration.h>
 #include <condition_variable>
+#include <functional>
 #include <atomic>
 #include <mutex>
 #include <list>
