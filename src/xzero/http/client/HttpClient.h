@@ -10,7 +10,6 @@
 #include <xzero/Uri.h>
 #include <xzero/Buffer.h>
 #include <xzero/HugeBuffer.h>
-#include <xzero/Option.h>
 #include <xzero/Duration.h>
 #include <xzero/CustomDataMgr.h>
 #include <xzero/CompletionHandler.h>

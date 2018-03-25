@@ -366,7 +366,6 @@ set(xzero_test_SRC
 		src/xzero/Flags-test.cc
 		src/xzero/HugeBuffer-test.cc
 		src/xzero/MimeTypes-test.cc
-		src/xzero/Option-test.cc
 		src/xzero/raft/Generator-test.cc
 		src/xzero/raft/InetTransport-test.cc
 		src/xzero/raft/Parser-test.cc

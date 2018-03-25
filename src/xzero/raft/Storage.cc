@@ -46,16 +46,16 @@ std::error_code MemoryStore::initialize(Id* id) {
 }
 
 std::error_code MemoryStore::clearVotedFor() {
-  votedFor_ = None();
+  votedFor_ = std::nullopt;
   return std::error_code();
 }
 
 std::error_code MemoryStore::setVotedFor(Id id, Term term) {
-  votedFor_ = Some(std::make_pair(id, term));
+  votedFor_ = std::make_pair(id, term);
   return std::error_code();
 }
 
-Option<std::pair<Id, Term>> MemoryStore::votedFor() {
+std::optional<std::pair<Id, Term>> MemoryStore::votedFor() {
   return votedFor_;
 }
 
@@ -146,15 +146,15 @@ Buffer FileStore::readFile(const std::string& name) {
     return Buffer();
 }
 
-Option<std::pair<Id, Term>> FileStore::parseVote(const BufferRef& data) {
+std::optional<std::pair<Id, Term>> FileStore::parseVote(const BufferRef& data) {
   BinaryReader in(data);
   auto id = in.tryParseVarUInt();
   auto term = in.tryParseVarUInt();
 
   if (id && term) {
-    return Some(std::make_pair((Id) *id, (Term) *term));
+    return std::make_pair((Id) *id, (Term) *term);
   } else {
-    return None();
+    return std::nullopt;
   }
 }
 
@@ -173,7 +173,7 @@ std::error_code FileStore::initialize(Id* id) {
   return std::error_code();
 }
 
-Option<std::pair<Id, Term>> FileStore::votedFor() {
+std::optional<std::pair<Id, Term>> FileStore::votedFor() {
   return votedFor_;
 }
 
@@ -190,7 +190,7 @@ std::error_code FileStore::setVotedFor(Id id, Term term) {
   writer.writeVarUInt(id);
   writer.writeVarUInt(term);
 
-  votedFor_ = Some(std::make_pair(id, term));
+  votedFor_ = std::make_pair(id, term);
 
   return std::error_code();
 }
@@ -237,6 +237,8 @@ Future<Index> FileStore::appendLogEntryAsync(const LogEntry& log) {
   storesPending_.emplace_back(log);
   const Index index = latestIndex + storesPending_.size();
   return storePromises_[index].future();
+#else
+  logFatal("Not implemented yet.");
 #endif
 }
 
@@ -257,6 +259,8 @@ void FileStore::writePendingStores() {
 
   outputBuffer_.clear();
   latestIndex_ += promises.size();
+#else
+  logFatal("Not implemented yet.");
 #endif
 }
 

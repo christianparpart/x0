@@ -208,6 +208,7 @@ void ConsoleLogTarget::log(LogLevel level,
         case LogLevel::Info: return AnsiColor::Green;
         case LogLevel::Debug: return AnsiColor::White;
         case LogLevel::Trace: return AnsiColor::White;
+        default: logFatal("Invalid LogLevel.");
       }
     };
 
@@ -265,6 +266,8 @@ int makeSyslogPriority(LogLevel level) {
     case LogLevel::Debug:
     case LogLevel::Trace:
       return LOG_DEBUG;
+    default:
+      logFatal("Invalid LogLevel.");
   }
 }
 

@@ -300,8 +300,8 @@ VoteResponse Server::handleRequest(Id peerId, const VoteRequest& req) {
     convertToFollower(req.candidateId, req.term);
   }
 
-  const auto votedFor = storage_->votedFor();
-  if (votedFor.isNone()) {
+  const std::optional<std::pair<Id, Term>>& votedFor = storage_->votedFor();
+  if (!votedFor) {
     // Accept vote, as we didn't vote in this term yet.
     storage_->setVotedFor(req.candidateId, req.lastLogTerm);
     return VoteResponse{currentTerm(), true};

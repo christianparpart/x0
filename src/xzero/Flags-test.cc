@@ -238,7 +238,7 @@ TEST(Flags, callbacks_on_explicit) {
   IPAddress bindIP;
 
   Flags flags;
-  flags.defineIPAddress("bind", 'a', "<IP>", "IP address to bind listener address to.", None(),
+  flags.defineIPAddress("bind", 'a', "<IP>", "IP address to bind listener address to.", std::nullopt,
       [&](const IPAddress& ip) {
         bindIP = ip;
       });
@@ -281,7 +281,7 @@ TEST(Flags, callbacks_on_repeated_args) {
   std::vector<IPAddress> hosts;
   Flags flags;
   flags.defineIPAddress(
-      "host", 't', "<IP>", "Host address to talk to.", None(),
+      "host", 't', "<IP>", "Host address to talk to.", std::nullopt,
       [&](const IPAddress& host) { hosts.emplace_back(host); });
 
   std::error_code ec = flags.parse({"--host=127.0.0.1", "--host=192.168.0.1", "-t10.10.20.40"});

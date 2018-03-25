@@ -265,7 +265,7 @@ bool ProxyModule::proxy_cluster_auto(Context* cx, Params& args) {
 
   std::string pseudonym = pseudonym_;
   if (pseudonym.empty()) {
-    if (Option<InetAddress> addr = cx->request()->localAddress()) {
+    if (const std::optional<InetAddress>& addr = cx->request()->localAddress()) {
       pseudonym = StringUtil::format("$0:$1", addr->ip(), addr->port());
     } else {
       pseudonym = Application::hostname();

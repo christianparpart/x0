@@ -70,21 +70,21 @@ std::string UnixTime::toString(const char* fmt) const {
   return std::string(buf);
 }
 
-Option<UnixTime> UnixTime::parseString(
+std::optional<UnixTime> UnixTime::parseString(
     const std::string& str,
     const char* fmt /* = "%Y-%m-%d %H:%M:%S" */) {
   return UnixTime::parseString(str.data(), str.size(), fmt);
 }
 
-Option<UnixTime> UnixTime::parseString(
+std::optional<UnixTime> UnixTime::parseString(
     const char* str,
     size_t strlen,
     const char* fmt /* = "%Y-%m-%d %H:%M:%S" */) {
-  auto ct = CivilTime::parseString(str, strlen, fmt);
-  if (ct.isEmpty()) {
-    return None();
+  std::optional<CivilTime> ct = CivilTime::parseString(str, strlen, fmt);
+  if (!ct) {
+    return std::nullopt;
   } else {
-    return Some(UnixTime(ct.get()));
+    return UnixTime(ct.value());
   }
 }
 

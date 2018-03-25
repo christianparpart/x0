@@ -210,8 +210,6 @@ nobase_libXzero_HEADERS = \
 	src/xzero/MonotonicTime.h \
 	src/xzero/PosixSignals.h \
 	src/xzero/MonotonicTime_impl.h \
-	src/xzero/Option-inl.h \
-	src/xzero/Option.h \
 	src/xzero/PrefixTree.h \
 	src/xzero/Random.h \
 	src/xzero/RegExp.h \
@@ -536,7 +534,6 @@ xzero_test_SOURCES = \
 	src/xzero/Flags-test.cc \
 	src/xzero/HugeBuffer-test.cc \
 	src/xzero/MimeTypes-test.cc \
-	src/xzero/Option-test.cc \
 	src/xzero/raft/Generator-test.cc \
 	src/xzero/raft/InetTransport-test.cc \
 	src/xzero/raft/Parser-test.cc \

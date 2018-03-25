@@ -264,14 +264,14 @@ static bool parseYear(const char* begin, const char* end, CivilTime* date) {
 
 namespace xzero {
 
-Option<CivilTime> ISO8601::parse(const std::string& str) {
+std::optional<CivilTime> ISO8601::parse(const std::string& str) {
   CivilTime date(nullptr);
 
   if (!parseYear(str.c_str(), str.c_str() + str.size(), &date)) {
-    return None();
+    return std::nullopt;
   }
 
-  return Some(date);
+  return date;
 }
 
 bool ISO8601::isLeapYear(uint16_t year) {

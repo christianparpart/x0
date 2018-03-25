@@ -6,7 +6,6 @@
 // the License at: http://opensource.org/licenses/MIT
 
 #pragma once
-#include <xzero/Option.h>
 #include <xzero/CivilTime.h>
 
 namespace xzero {
@@ -14,7 +13,7 @@ namespace xzero {
 class ISO8601 {
 public:
 
-  static Option<CivilTime> parse(const std::string& str);
+  static std::optional<CivilTime> parse(const std::string& str);
 
   static bool isLeapYear(uint16_t year);
 

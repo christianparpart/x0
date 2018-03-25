@@ -67,27 +67,27 @@ TcpEndPoint::~TcpEndPoint() {
   }
 }
 
-Option<InetAddress> TcpEndPoint::remoteAddress() const {
+std::optional<InetAddress> TcpEndPoint::remoteAddress() const {
   Result<InetAddress> addr = TcpUtil::getRemoteAddress(handle_, addressFamily());
   if (addr.isSuccess())
-    return Some(*addr);
+    return *addr;
   else {
     logError("TcpEndPoint: remoteAddress: ($0) $1",
         addr.error().category().name(),
         addr.error().message().c_str());
-    return None();
+    return std::nullopt;
   }
 }
 
-Option<InetAddress> TcpEndPoint::localAddress() const {
+std::optional<InetAddress> TcpEndPoint::localAddress() const {
   Result<InetAddress> addr = TcpUtil::getLocalAddress(handle_, addressFamily());
   if (addr.isSuccess())
-    return Some(*addr);
+    return *addr;
   else {
     logError("TcpEndPoint: localAddress: ($0) $1",
         addr.error().category().name(),
         addr.error().message().c_str());
-    return None();
+    return std::nullopt;
   }
 }
 

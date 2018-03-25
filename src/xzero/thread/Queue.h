@@ -5,14 +5,13 @@
 // file except in compliance with the License. You may obtain a copy of
 // the License at: http://opensource.org/licenses/MIT
 
-#include <xzero/Option.h>
 #include <condition_variable>
 #include <functional>
+#include <optional>
 #include <atomic>
 #include <deque>
 
-namespace xzero {
-namespace thread {
+namespace xzero::thread {
 
 /**
  * A queue is threadsafe
@@ -22,7 +21,7 @@ class Queue {
 public:
   void insert(const T& job);
   T pop();
-  Option<T> poll();
+  std::optional<T> poll();
 
 protected:
   std::deque<T> queue_;
@@ -53,18 +52,17 @@ T Queue<T>::pop() {
 }
 
 template <typename T>
-Option<T> Queue<T>::poll() {
+std::optional<T> Queue<T>::poll() {
   std::unique_lock<std::mutex> lk(mutex_);
 
   if (queue_.size() == 0) {
-    return None();
+    return std::nullopt;
   } else {
-    auto job = Some(queue_.front());
+    auto job = queue_.front();
     queue_.pop_front();
     return job;
   }
 }
 // }}}
 
-} // namespace thread
-} // namespace xzero
+} // namespace xzero::thread

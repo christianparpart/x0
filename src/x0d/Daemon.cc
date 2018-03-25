@@ -676,8 +676,8 @@ T* Daemon::doSetupConnector(
 void Daemon::onConfigReloadSignal(const xzero::UnixSignalInfo& info) {
   logNotice("Reloading configuration. (requested via $0 by UID $1 PID $2)",
             UnixSignals::toString(info.signal),
-            info.uid.getOrElse(-1),
-            info.pid.getOrElse(-1));
+            info.uid.value_or(-1),
+            info.pid.value_or(-1));
 
   /* reloadConfiguration(); */
 
@@ -687,8 +687,8 @@ void Daemon::onConfigReloadSignal(const xzero::UnixSignalInfo& info) {
 void Daemon::onCycleLogsSignal(const xzero::UnixSignalInfo& info) {
   logNotice("Cycling logs. (requested via $0 by UID $1 PID $2)",
             UnixSignals::toString(info.signal),
-            info.uid.getOrElse(-1),
-            info.pid.getOrElse(-1));
+            info.uid.value_or(-1),
+            info.pid.value_or(-1));
 
   onCycleLogs();
 
@@ -698,8 +698,8 @@ void Daemon::onCycleLogsSignal(const xzero::UnixSignalInfo& info) {
 void Daemon::onUpgradeBinarySignal(const UnixSignalInfo& info) {
   logNotice("Upgrading binary. (requested via $0 by UID $1 PID $2)",
             UnixSignals::toString(info.signal),
-            info.uid.getOrElse(-1),
-            info.pid.getOrElse(-1));
+            info.uid.value_or(-1),
+            info.pid.value_or(-1));
 
   /* TODO [x0d] binary upgrade
    * 1. suspend the world
@@ -713,8 +713,8 @@ void Daemon::onUpgradeBinarySignal(const UnixSignalInfo& info) {
 void Daemon::onQuickShutdownSignal(const xzero::UnixSignalInfo& info) {
   logNotice("Initiating quick shutdown. (requested via $0 by UID $1 PID $2)",
             UnixSignals::toString(info.signal),
-            info.uid.getOrElse(-1),
-            info.pid.getOrElse(-1));
+            info.uid.value_or(-1),
+            info.pid.value_or(-1));
 
   terminate();
 }
@@ -722,8 +722,8 @@ void Daemon::onQuickShutdownSignal(const xzero::UnixSignalInfo& info) {
 void Daemon::onGracefulShutdownSignal(const xzero::UnixSignalInfo& info) {
   logNotice("Initiating graceful shutdown. (requested via $0 by UID $1 PID $2)",
             UnixSignals::toString(info.signal),
-            info.uid.getOrElse(-1),
-            info.pid.getOrElse(-1));
+            info.uid.value_or(-1),
+            info.pid.value_or(-1));
 
   /* 1. stop all listeners
    * 2. wait until all requests have been handled.

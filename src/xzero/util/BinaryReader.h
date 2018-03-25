@@ -7,9 +7,9 @@
 #pragma once
 
 #include <xzero/Buffer.h>
-#include <xzero/Option.h>
 
 #include <string>
+#include <optional>
 #include <cstdint>
 
 namespace xzero {
@@ -27,7 +27,7 @@ class BinaryReader {
 
   void reset(const BufferRef& data);
 
-  Option<uint64_t> tryParseVarUInt();
+  std::optional<uint64_t> tryParseVarUInt();
   uint64_t parseVarUInt();
   int64_t parseVarSInt64();
   int32_t parseVarSInt32();

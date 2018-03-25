@@ -151,28 +151,28 @@ xzero::Duration Context::age() const noexcept {
 }
 
 const IPAddress& Context::remoteIP() const {
-  if (requests_.back()->remoteAddress().isSome())
+  if (requests_.back()->remoteAddress())
     return requests_.back()->remoteAddress()->ip();
 
   throw std::logic_error{"Non-IP transport channels not supported"};
 }
 
 int Context::remotePort() const {
-  if (requests_.back()->remoteAddress().isSome())
+  if (requests_.back()->remoteAddress())
     return requests_.back()->remoteAddress()->port();
 
   throw std::logic_error{"Non-IP transport channels not supported"};
 }
 
 const IPAddress& Context::localIP() const {
-  if (requests_.back()->localAddress().isSome())
+  if (requests_.back()->localAddress())
     return requests_.back()->localAddress()->ip();
 
   throw std::logic_error{"Non-IP transport channels not supported"};
 }
 
 int Context::localPort() const {
-  if (requests_.back()->localAddress().isSome())
+  if (requests_.back()->localAddress())
     return requests_.back()->localAddress()->port();
 
   throw std::logic_error{"Non-IP transport channels not supported"};

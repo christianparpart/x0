@@ -9,7 +9,6 @@
 #include <xzero/net/IPAddress.h>
 #include <xzero/RuntimeError.h>
 #include <xzero/StringUtil.h>
-#include <xzero/Option.h>
 #include <stdexcept>
 
 namespace xzero {
@@ -33,9 +32,9 @@ std::ostream& operator<<(std::ostream& os, const InetAddress& addr) {
   return os << StringUtil::format("$0:$1", addr.ip(), addr.port());
 }
 
-std::ostream& operator<<(std::ostream& os, const Option<InetAddress>& addr) {
-  if (addr.isSome()) {
-    return os << StringUtil::format("$0", addr.get());
+std::ostream& operator<<(std::ostream& os, const std::optional<InetAddress>& addr) {
+  if (addr) {
+    return os << StringUtil::format("$0", addr.value());
   } else {
     return os << "NONE";
   }

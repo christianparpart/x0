@@ -16,7 +16,7 @@
 #include <xzero/http/HttpVersion.h>
 #include <xzero/http/HttpMethod.h>
 #include <xzero/net/InetAddress.h>
-#include <xzero/Option.h>
+#include <optional>
 #include <memory>
 
 namespace xzero {
@@ -45,11 +45,11 @@ class HttpRequest : public HttpRequestInfo {
               HugeBuffer&& content);
   HttpRequest(const HttpRequestInfo& info, HugeBuffer&& content);
 
-  void setRemoteAddress(const Option<InetAddress>& addr);
-  const Option<InetAddress>& remoteAddress() const;
+  void setRemoteAddress(const std::optional<InetAddress>& addr);
+  const std::optional<InetAddress>& remoteAddress() const;
 
-  void setLocalAddress(const Option<InetAddress>& addr);
-  const Option<InetAddress>& localAddress() const;
+  void setLocalAddress(const std::optional<InetAddress>& addr);
+  const std::optional<InetAddress>& localAddress() const;
 
   size_t bytesReceived() const noexcept { return bytesReceived_; }
   void setBytesReceived(size_t n) { bytesReceived_ = n; }
@@ -94,8 +94,8 @@ class HttpRequest : public HttpRequestInfo {
   // }}}
 
  private:
-  Option<InetAddress> remoteAddress_;
-  Option<InetAddress> localAddress_;
+  std::optional<InetAddress> remoteAddress_;
+  std::optional<InetAddress> localAddress_;
   size_t bytesReceived_;
 
   std::string host_;

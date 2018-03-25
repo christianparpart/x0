@@ -13,8 +13,9 @@
 #include <xzero/thread/Future.h>
 #include <xzero/net/InetAddress.h>
 #include <xzero/executor/Executor.h>
-#include <memory>
 #include <atomic>
+#include <memory>
+#include <optional>
 
 namespace xzero {
 
@@ -219,8 +220,8 @@ class TcpEndPoint : public std::enable_shared_from_this<TcpEndPoint> {
    */
   void startDetectProtocol(bool dataReady, ProtocolCallback createConnection);
 
-  Option<InetAddress> remoteAddress() const;
-  Option<InetAddress> localAddress() const;
+  std::optional<InetAddress> remoteAddress() const;
+  std::optional<InetAddress> localAddress() const;
 
  protected:
   void onDetectProtocol(ProtocolCallback createConnection);

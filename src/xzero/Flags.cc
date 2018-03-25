@@ -164,7 +164,7 @@ Flags& Flags::define(
     FlagType type,
     const std::string& valuePlaceholder,
     const std::string& helpText,
-    const Option<std::string>& defaultValue,
+    const std::optional<std::string>& defaultValue,
     std::function<void(const std::string&)> callback) {
 
   FlagDef fd;
@@ -187,7 +187,7 @@ Flags& Flags::defineString(
     char shortOpt,
     const std::string& valuePlaceholder,
     const std::string& helpText,
-    Option<std::string> defaultValue,
+    std::optional<std::string> defaultValue,
     std::function<void(const std::string&)> callback) {
 
   return define(longOpt, shortOpt, false, FlagType::String, valuePlaceholder,
@@ -199,13 +199,13 @@ Flags& Flags::defineNumber(
     char shortOpt,
     const std::string& valuePlaceholder,
     const std::string& helpText,
-    Option<long int> defaultValue,
+    std::optional<long int> defaultValue,
     std::function<void(long int)> callback) {
 
   return define(
       longOpt, shortOpt, false, FlagType::Number, valuePlaceholder,
-      helpText, defaultValue.isSome() ? Some(std::to_string(*defaultValue))
-                                      : None(),
+      helpText, defaultValue.has_value() ? std::make_optional(std::to_string(*defaultValue))
+                                         : std::nullopt,
       [=](const std::string& value) {
         if (callback) {
           callback(std::stoi(value));
@@ -218,13 +218,13 @@ Flags& Flags::defineFloat(
     char shortOpt,
     const std::string& valuePlaceholder,
     const std::string& helpText,
-    Option<float> defaultValue,
+    std::optional<float> defaultValue,
     std::function<void(float)> callback) {
 
   return define(
       longOpt, shortOpt, false, FlagType::Float, valuePlaceholder,
-      helpText, defaultValue.isSome() ? Some(std::to_string(defaultValue))
-                                      : None(),
+      helpText, defaultValue.has_value() ? std::make_optional(std::to_string(*defaultValue))
+                                         : std::nullopt,
       [=](const std::string& value) {
         if (callback) {
           callback(std::stof(value));
@@ -237,13 +237,13 @@ Flags& Flags::defineIPAddress(
     char shortOpt,
     const std::string& valuePlaceholder,
     const std::string& helpText,
-    Option<IPAddress> defaultValue,
+    std::optional<IPAddress> defaultValue,
     std::function<void(const IPAddress&)> callback) {
 
   return define(
       longOpt, shortOpt, false, FlagType::IP, valuePlaceholder,
-      helpText, defaultValue.isSome() ? Some(defaultValue->str())
-                                      : None(),
+      helpText, defaultValue.has_value() ? std::make_optional(defaultValue->str())
+                                         : std::nullopt,
       [=](const std::string& value) {
         if (callback) {
           callback(IPAddress(value));
@@ -259,7 +259,7 @@ Flags& Flags::defineBool(
 
   return define(
       longOpt, shortOpt, false, FlagType::Bool, "<bool>",
-      helpText, None(),
+      helpText, std::nullopt,
       [=](const std::string& value) {
         if (callback) {
           callback(value == "true");
@@ -412,9 +412,9 @@ std::error_code Flags::parse(const std::vector<std::string>& args) {
 
   // fill any missing default flags
   for (const FlagDef& fd: flagDefs_) {
-    if (fd.defaultValue.isSome()) {
+    if (fd.defaultValue.has_value()) {
       if (!isSet(fd.longOption)) {
-        invokeCallback(&fd, FlagStyle::LongWithValue, fd.defaultValue.get());
+        invokeCallback(&fd, FlagStyle::LongWithValue, fd.defaultValue.value());
       }
     } else if (fd.type == FlagType::Bool) {
       if (!isSet(fd.longOption)) {
@@ -514,7 +514,7 @@ std::string Flags::FlagDef::makeHelpText(size_t width,
   }
 
   // help output with default value hint.
-  if (type != FlagType::Bool && defaultValue.isSome()) {
+  if (type != FlagType::Bool && defaultValue.has_value()) {
     sstr << wordWrap(helpText + " [" + *defaultValue + "]",
                      column, width, helpTextOffset);
   } else {
@@ -549,6 +549,8 @@ std::string FlagsErrorCategory::message(int ec) const {
     return "Missing Option Value";
   case Flags::Error::NotFound:
     return "Flag Not Found";
+  default:
+    logFatal("Invalid Flags::Error code.");
   }
 }
 // }}}

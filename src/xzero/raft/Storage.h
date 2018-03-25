@@ -8,7 +8,6 @@
 
 #include <xzero/raft/rpc.h>
 #include <xzero/thread/Future.h>
-#include <xzero/Option.h>
 #include <xzero/Result.h>
 #include <cstdint>
 #include <unordered_map>
@@ -18,6 +17,7 @@
 #include <mutex>
 #include <atomic>
 #include <system_error>
+#include <optional>
 #include <iosfwd>
 
 namespace xzero {
@@ -50,7 +50,7 @@ class Storage {
   virtual std::error_code setVotedFor(Id id, Term term) = 0;
 
   //! Candidate's Id that received vote in current term (or null if none).
-  virtual Option<std::pair<Id, Term>> votedFor() = 0;
+  virtual std::optional<std::pair<Id, Term>> votedFor() = 0;
 
   /**
    * Saves the given term as currentTerm to stable storage.
@@ -106,7 +106,7 @@ class MemoryStore : public Storage {
 
   std::error_code initialize(Id* id) override;
 
-  Option<std::pair<Id, Term>> votedFor() override;
+  std::optional<std::pair<Id, Term>> votedFor() override;
   std::error_code clearVotedFor() override;
   std::error_code setVotedFor(Id id, Term term) override;
 
@@ -124,7 +124,7 @@ class MemoryStore : public Storage {
  private:
   Executor* executor_;
 
-  Option<std::pair<Id, Term>> votedFor_;
+  std::optional<std::pair<Id, Term>> votedFor_;
   Term currentTerm_;
   std::vector<LogEntry> log_;
 
@@ -140,7 +140,7 @@ class FileStore : public Storage {
 
   std::error_code initialize(Id* id) override;
 
-  Option<std::pair<Id, Term>> votedFor() override;
+  std::optional<std::pair<Id, Term>> votedFor() override;
   std::error_code clearVotedFor() override;
   std::error_code setVotedFor(Id id, Term term) override;
 
@@ -157,7 +157,7 @@ class FileStore : public Storage {
 
  public: // helpers
   Buffer readFile(const std::string& filename);
-  static Option<std::pair<Id, Term>> parseVote(const BufferRef& data);
+  static std::optional<std::pair<Id, Term>> parseVote(const BufferRef& data);
 
   void writePendingStores();
   void writeLoop();
@@ -169,7 +169,7 @@ class FileStore : public Storage {
   // disk cache
   std::string clusterId_;
   Id serverId_;
-  Option<std::pair<Id, Term>> votedFor_;
+  std::optional<std::pair<Id, Term>> votedFor_;
   std::atomic<Index> latestIndex_;
   Term currentTerm_;
   std::unordered_map<Index, LogEntry> logCache_;

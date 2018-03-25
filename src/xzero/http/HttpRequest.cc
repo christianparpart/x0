@@ -55,19 +55,19 @@ HttpRequest::HttpRequest(HttpVersion version,
       username_() {
 }
 
-void HttpRequest::setRemoteAddress(const Option<InetAddress>& inet) {
+void HttpRequest::setRemoteAddress(const std::optional<InetAddress>& inet) {
   remoteAddress_ = inet;
 }
 
-const Option<InetAddress>& HttpRequest::remoteAddress() const {
+const std::optional<InetAddress>& HttpRequest::remoteAddress() const {
   return remoteAddress_;
 }
 
-void HttpRequest::setLocalAddress(const Option<InetAddress>& inet) {
+void HttpRequest::setLocalAddress(const std::optional<InetAddress>& inet) {
   localAddress_ = inet;
 }
 
-const Option<InetAddress>& HttpRequest::localAddress() const {
+const std::optional<InetAddress>& HttpRequest::localAddress() const {
   return localAddress_;
 }
 

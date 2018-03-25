@@ -7,7 +7,6 @@
 
 #pragma once
 
-#include <xzero/Option.h>
 #include <xzero/Duration.h>
 #include <xzero/net/IPAddress.h>
 #include <xzero/http/HttpStatus.h>

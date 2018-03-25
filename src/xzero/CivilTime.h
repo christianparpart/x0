@@ -6,7 +6,7 @@
 // the License at: http://opensource.org/licenses/MIT
 #pragma once
 
-#include <xzero/Option.h>
+#include <optional>
 
 namespace xzero {
 
@@ -36,7 +36,7 @@ public:
    * @param str the string to parse
    * @param fmt the strftime format string (optional)
    */
-  static Option<CivilTime> parseString(
+  static std::optional<CivilTime> parseString(
       const std::string& str,
       const char* fmt = "%Y-%m-%d %H:%M:%S");
 
@@ -47,7 +47,7 @@ public:
    * @param strlen the size of the string to parse
    * @param fmt the strftime format string (optional)
    */
-  static Option<CivilTime> parseString(
+  static std::optional<CivilTime> parseString(
       const char* str,
       size_t strlen,
       const char* fmt = "%Y-%m-%d %H:%M:%S");

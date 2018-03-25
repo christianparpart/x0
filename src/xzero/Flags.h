@@ -6,9 +6,9 @@
 // the License at: http://opensource.org/licenses/MIT
 #pragma once
 
-#include <xzero/Option.h>
 #include <xzero/net/IPAddress.h>
 
+#include <optional>
 #include <functional>
 #include <system_error>
 #include <unordered_map>
@@ -65,28 +65,28 @@ class Flags {
                       char shortOpt,
                       const std::string& valuePlaceholder,
                       const std::string& helpText,
-                      Option<std::string> defaultValue = None(),
+                      std::optional<std::string> defaultValue = std::nullopt,
                       std::function<void(const std::string&)> callback = nullptr);
 
   Flags& defineNumber(const std::string& longOpt,
                       char shortOpt,
                       const std::string& valuePlaceholder,
                       const std::string& helpText,
-                      Option<long int> defaultValue = None(),
+                      std::optional<long int> defaultValue = std::nullopt,
                       std::function<void(long int)> callback = nullptr);
 
   Flags& defineFloat(const std::string& longOpt,
                      char shortOpt,
                      const std::string& valuePlaceholder,
                      const std::string& helpText,
-                     Option<float> defaultValue = None(),
+                     std::optional<float> defaultValue = std::nullopt,
                      std::function<void(float)> callback = nullptr);
 
   Flags& defineIPAddress(const std::string& longOpt,
                          char shortOpt,
                          const std::string& valuePlaceholder,
                          const std::string& helpText,
-                         Option<IPAddress> defaultValue = None(),
+                         std::optional<IPAddress> defaultValue = std::nullopt,
                          std::function<void(const IPAddress&)> callback = nullptr);
 
   Flags& defineBool(const std::string& longOpt,
@@ -121,7 +121,7 @@ class Flags {
                 FlagType type,
                 const std::string& helpText,
                 const std::string& valuePlaceholder,
-                const Option<std::string>& defaultValue,
+                const std::optional<std::string>& defaultValue,
                 std::function<void(const std::string&)> callback);
 
  private:
@@ -142,7 +142,7 @@ struct Flags::FlagDef {
   bool required;
   std::string valuePlaceholder;
   std::string helpText;
-  Option<std::string> defaultValue;
+  std::optional<std::string> defaultValue;
   std::function<void(const std::string&)> callback;
 
   std::string makeHelpText(size_t width, size_t helpTextOffset) const;

@@ -10,7 +10,7 @@
 #include <x0d/Module.h>
 #include <xzero/io/File.h>
 #include <xzero/io/FileDescriptor.h>
-#include <xzero/Option.h>
+#include <optional>
 #include <ostream>
 
 namespace xzero::flow {
@@ -56,7 +56,7 @@ class AccesslogModule : public Module {
 
   using FlowString = xzero::flow::FlowString;
 
-  xzero::Option<FlowString> lookupFormat(const FlowString& id) const;
+  std::optional<FlowString> lookupFormat(const FlowString& id) const;
   LogFile* getLogFile(const FlowString& filename);
 
   void onCycle();

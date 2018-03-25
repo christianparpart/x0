@@ -11,13 +11,13 @@
 
 namespace xzero {
 
-Option<CivilTime> CivilTime::parseString(
+std::optional<CivilTime> CivilTime::parseString(
     const std::string& str,
     const char* fmt /* = "%Y-%m-%d %H:%M:%S" */) {
   return CivilTime::parseString(str.data(), str.size(), fmt);
 }
 
-Option<CivilTime> CivilTime::parseString(
+std::optional<CivilTime> CivilTime::parseString(
     const char* str,
     size_t strlen,
     const char* fmt /* = "%Y-%m-%d %H:%M:%S" */) {
@@ -25,7 +25,7 @@ Option<CivilTime> CivilTime::parseString(
 
   // FIXME strptime doesn't handle time zone offsets
   if (strptime(str, fmt, &t) == NULL) {
-    return None();
+    return std::nullopt;
   } else {
     CivilTime ct;
     ct.setSecond(t.tm_sec);
@@ -34,7 +34,7 @@ Option<CivilTime> CivilTime::parseString(
     ct.setDay(t.tm_mday);
     ct.setMonth(t.tm_mon + 1);
     ct.setYear(t.tm_year + 1900);
-    return Some(ct);
+    return ct;
   }
 }
 

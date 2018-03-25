@@ -4,9 +4,9 @@
 // Licensed under the MIT License (the "License"); you may not use this
 // file except in compliance with the License. You may obtain a copy of
 // the License at: http://opensource.org/licenses/MIT
-
 #pragma once
-#include <xzero/Option.h>
+
+#include <optional>
 
 namespace xzero {
 
@@ -16,9 +16,9 @@ namespace xzero {
  * @see UnixSignals
  */
 struct UnixSignalInfo {
-  int signal;      //!< signal number
-  Option<int> pid; //!< sender's process-ID
-  Option<int> uid; //!< sender's real user-ID
+  int signal;               //!< signal number
+  std::optional<int> pid;   //!< sender's process-ID
+  std::optional<int> uid;   //!< sender's real user-ID
 };
 
 } // namespace xzero

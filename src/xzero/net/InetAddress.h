@@ -8,6 +8,7 @@
 #pragma once
 
 #include <xzero/net/IPAddress.h>
+#include <optional>
 
 namespace xzero {
 
@@ -37,7 +38,7 @@ class InetAddress {
 };
 
 std::ostream& operator<<(std::ostream& os, const InetAddress& inet);
-std::ostream& operator<<(std::ostream& os, const Option<InetAddress>& inet);
+std::ostream& operator<<(std::ostream& os, const std::optional<InetAddress>& inet);
 
 } // namespace xzero
 

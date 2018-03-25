@@ -7,8 +7,8 @@
 
 #include <xzero/http/hpack/Parser.h>
 #include <xzero/http/HeaderFieldList.h>
-#include <xzero/Option.h>
 #include <xzero/testing.h>
+#include <optional>
 
 using namespace xzero;
 using namespace xzero::http;
@@ -93,12 +93,12 @@ TEST(hpack_Parser, literalHeaderFieldWithIndex) {
 
   std::string name;
   std::string value;
-  Option<bool> sensitive;
+  std::optional<bool> sensitive;
 
   auto gotcha = [&](const std::string& _name, const std::string& _value, bool s) {
     name = _name;
     value = _value;
-    sensitive = Some(s);
+    sensitive = s;
   };
 
   DynamicTable dt(4096);
@@ -108,8 +108,8 @@ TEST(hpack_Parser, literalHeaderFieldWithIndex) {
   ASSERT_EQ(26, nparsed);
   ASSERT_EQ("custom-key", name);
   ASSERT_EQ("custom-header", value);
-  ASSERT_TRUE(sensitive.isSome());
-  ASSERT_FALSE(sensitive.get());
+  ASSERT_TRUE(sensitive.has_value());
+  ASSERT_FALSE(sensitive.value());
 }
 
 TEST(hpack_Parser, literalHeaderWithoutIndexing) {
@@ -126,12 +126,12 @@ TEST(hpack_Parser, literalHeaderWithoutIndexing) {
 
   std::string name;
   std::string value;
-  Option<bool> sensitive;
+  std::optional<bool> sensitive;
 
   auto gotcha = [&](const std::string& _name, const std::string& _value, bool s) {
     name = _name;
     value = _value;
-    sensitive = Some(s);
+    sensitive = s;
   };
 
   DynamicTable dt(4096);
@@ -141,8 +141,8 @@ TEST(hpack_Parser, literalHeaderWithoutIndexing) {
   ASSERT_EQ(14, nparsed);
   ASSERT_EQ(":path", name);
   ASSERT_EQ("/sample/path", value);
-  ASSERT_TRUE(sensitive.isSome());
-  ASSERT_FALSE(sensitive.get());
+  ASSERT_TRUE(sensitive.has_value());
+  ASSERT_FALSE(sensitive.value());
 }
 
 TEST(hpack_Parser, literalHeaderNeverIndex) {
@@ -157,12 +157,12 @@ TEST(hpack_Parser, literalHeaderNeverIndex) {
 
   std::string name;
   std::string value;
-  Option<bool> sensitive;
+  std::optional<bool> sensitive;
 
   auto gotcha = [&](const std::string& _name, const std::string& _value, bool s) {
     name = _name;
     value = _value;
-    sensitive = Some(s);
+    sensitive = s;
   };
 
   DynamicTable dt(4096);
@@ -172,8 +172,8 @@ TEST(hpack_Parser, literalHeaderNeverIndex) {
   ASSERT_EQ(17, nparsed);
   ASSERT_EQ("password", name);
   ASSERT_EQ("secret", value);
-  ASSERT_TRUE(sensitive.isSome());
-  ASSERT_TRUE(sensitive.get());
+  ASSERT_TRUE(sensitive.has_value());
+  ASSERT_TRUE(sensitive.value());
 }
 
 TEST(hpack_Parser, literalHeaderFieldFromIndex) {
@@ -188,12 +188,12 @@ TEST(hpack_Parser, literalHeaderFieldFromIndex) {
 
   std::string name;
   std::string value;
-  Option<bool> sensitive;
+  std::optional<bool> sensitive;
 
   auto gotcha = [&](const std::string& _name, const std::string& _value, bool s) {
     name = _name;
     value = _value;
-    sensitive = Some(s);
+    sensitive = s;
   };
 
   DynamicTable dt(4096);
@@ -203,8 +203,8 @@ TEST(hpack_Parser, literalHeaderFieldFromIndex) {
   ASSERT_EQ(1, nparsed);
   ASSERT_EQ(":method", name);
   ASSERT_EQ("GET", value);
-  ASSERT_TRUE(sensitive.isSome());
-  ASSERT_FALSE(sensitive.get());
+  ASSERT_TRUE(sensitive.has_value());
+  ASSERT_FALSE(sensitive.value());
 }
 
 TEST(hpack_Parser, updateTableSize) {

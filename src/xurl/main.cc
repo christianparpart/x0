@@ -127,7 +127,7 @@ XUrl::XUrl()
   flags_.defineNumber("connect-timeout", 0, "MS", "TCP connect() timeout", 10_seconds .milliseconds());
   flags_.defineString("upload-file", 'T', "PATH", "Uploads given file.", "");
   flags_.defineString("header", 'H', "HEADER", "Adds a custom request header",
-      None(),
+      std::nullopt,
       std::bind(&XUrl::addRequestHeader, this, std::placeholders::_1));
   flags_.defineBool("ipv4", '4', "Favor IPv4 for TCP/IP communication.");
   flags_.defineBool("ipv6", '6', "Favor IPv6 for TCP/IP communication.");

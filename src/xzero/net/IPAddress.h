@@ -9,9 +9,9 @@
 #define x0_IPAddress_h
 
 #include <xzero/Api.h>
-#include <xzero/Option.h>
 
 #include <functional>  // hash<>
+#include <optional>
 #include <stdint.h>
 #include <iostream>
 #include <string>
@@ -62,7 +62,7 @@ class IPAddress {
 };
 
 inline std::ostream& operator<<(std::ostream& os, const IPAddress& ipaddr);
-inline std::ostream& operator<<(std::ostream& os, const Option<IPAddress>& addr);
+inline std::ostream& operator<<(std::ostream& os, const std::optional<IPAddress>& addr);
 
 // {{{ impl
 inline IPAddress::IPAddress() {
@@ -191,8 +191,8 @@ inline std::ostream& operator<<(std::ostream& os, const IPAddress& ipaddr) {
   return os;
 }
 
-inline std::ostream& operator<<(std::ostream& os, const Option<IPAddress>& addr) {
-  if (addr.isSome())
+inline std::ostream& operator<<(std::ostream& os, const std::optional<IPAddress>& addr) {
+  if (addr)
     return os << addr->str();
   else
     return os << "NONE";

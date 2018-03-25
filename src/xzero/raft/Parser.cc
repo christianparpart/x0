@@ -34,8 +34,8 @@ unsigned Parser::parseFragment(const uint8_t* chunk, size_t size) {
 bool Parser::parseFrame() {
   reader_.reset(inputBuffer_.ref(inputOffset_));
 
-  Option<uint64_t> payloadLen = reader_.tryParseVarUInt();
-  if (payloadLen.isNone())
+  std::optional<uint64_t> payloadLen = reader_.tryParseVarUInt();
+  if (!payloadLen)
     return false;
 
   if (reader_.pending() < *payloadLen)

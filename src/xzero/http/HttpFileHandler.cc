@@ -166,7 +166,7 @@ HttpStatus HttpFileHandler::handleClientCache(const File& transferFile,
     const std::string& value = request->headers().get("If-Modified-Since");
     if (value.empty()) continue;
 
-    UnixTime dt(UnixTime::parseString(value, timeFormat).get());
+    UnixTime dt(UnixTime::parseString(value, timeFormat).value());
 
     if (transferFile.mtime() > dt.unixtime()) continue;
 
@@ -178,7 +178,7 @@ HttpStatus HttpFileHandler::handleClientCache(const File& transferFile,
     const std::string& value = request->headers().get("If-Unmodified-Since");
     if (value.empty()) continue;
 
-    UnixTime dt(UnixTime::parseString(value, timeFormat).get());
+    UnixTime dt(UnixTime::parseString(value, timeFormat).value());
 
     if (transferFile.mtime() <= dt.unixtime()) continue;
 

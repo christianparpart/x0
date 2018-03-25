@@ -14,7 +14,7 @@ BinaryReader::BinaryReader(const uint8_t* begin, const uint8_t* end)
     end_(end) {
 }
 
-Option<uint64_t> BinaryReader::tryParseVarUInt() {
+std::optional<uint64_t> BinaryReader::tryParseVarUInt() {
   auto savePos = begin_;
   uint64_t result = 0;
   unsigned i = 0;
@@ -26,21 +26,21 @@ Option<uint64_t> BinaryReader::tryParseVarUInt() {
     result |= (byte & 0x7fllu) << (7 * i);
 
     if ((byte & 0x80u) == 0) {
-      return Some(result);
+      return result;
     }
     ++i;
   }
 
   begin_ = savePos;
-  return None();
+  return std::nullopt;
 }
 
 uint64_t BinaryReader::parseVarUInt() {
-  Option<uint64_t> i = tryParseVarUInt();
-  if (i.isNone())
+  std::optional<uint64_t> i = tryParseVarUInt();
+  if (!i)
     throw std::logic_error{"Not enough data."};
 
-  return i.get();
+  return i.value();
 }
 
 int32_t BinaryReader::parseVarSInt32() {

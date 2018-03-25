@@ -16,7 +16,6 @@
 #include <xzero/DeadlineTimer.h>
 #include <xzero/Duration.h>
 #include <xzero/MonotonicTime.h>
-#include <xzero/Option.h>
 #include <xzero/Result.h>
 #include <initializer_list>
 #include <unordered_map>

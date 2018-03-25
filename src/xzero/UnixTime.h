@@ -4,17 +4,16 @@
 // Licensed under the MIT License (the "License"); you may not use this
 // file except in compliance with the License. You may obtain a copy of
 // the License at: http://opensource.org/licenses/MIT
+#pragma once
 
-#ifndef _libxzero_UTIL_DATETIME_H
-#define _libxzero_UTIL_DATETIME_H
+#include <xzero/time_constants.h>
+#include <xzero/CivilTime.h>
+#include <xzero/Duration.h>
+#include <optional>
 #include <ctime>
 #include <inttypes.h>
 #include <limits>
 #include <string>
-#include <xzero/time_constants.h>
-#include <xzero/CivilTime.h>
-#include <xzero/Duration.h>
-#include <xzero/Option.h>
 
 namespace xzero {
 
@@ -45,7 +44,7 @@ public:
    * @param str the string to parse
    * @param fmt the strftime format string (optional)
    */
-  static Option<UnixTime> parseString(
+  static std::optional<UnixTime> parseString(
       const std::string& str,
       const char* fmt = "%Y-%m-%d %H:%M:%S");
 
@@ -56,7 +55,7 @@ public:
    * @param strlen the size of the string to parse
    * @param fmt the strftime format string (optional)
    */
-  static Option<UnixTime> parseString(
+  static std::optional<UnixTime> parseString(
       const char* str,
       size_t strlen,
       const char* fmt = "%Y-%m-%d %H:%M:%S");
@@ -149,4 +148,3 @@ public:
 }
 
 #include <xzero/UnixTime_impl.h>
-#endif

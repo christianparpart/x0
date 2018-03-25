@@ -32,6 +32,7 @@
 
 #include <iterator>
 #include <unordered_map>
+#include <optional>
 #include <string>
 #include <cerrno>
 
@@ -151,10 +152,10 @@ std::string formatLog(Context* cx, const std::string& format) { // {{{
         ++i;
         break;
       case 'h':  // remote addr
-        if (request->remoteAddress().isSome())
+        if (request->remoteAddress())
           result << request->remoteAddress()->ip().c_str();
         else
-          result << "none";
+          result << "-";
 
         ++i;
         break;
@@ -401,21 +402,21 @@ void AccesslogModule::accesslog_format(Params& args) {
   formats_[id] = format;
 }
 
-Option<FlowString> AccesslogModule::lookupFormat(const FlowString& id) const {
+std::optional<FlowString> AccesslogModule::lookupFormat(const FlowString& id) const {
   auto i = formats_.find(id);
   if (i != formats_.end()) {
     return i->second;
   }
 
-  return None(); //Error("accesslog format not found.");
+  return std::nullopt; //Error("accesslog format not found.");
 }
 
 void AccesslogModule::accesslog_syslog(Context* cx, Params& args) {
   // TODO: accesslog.syslog()
 
   FlowString id = args.getString(1);
-  Option<FlowString> format = lookupFormat(id);
-  if (format.isNone()) {
+  std::optional<FlowString> format = lookupFormat(id);
+  if (!format) {
     cx->logError(
          "Could not write accesslog to syslog with format id '$0'. $1",
          BufferRef(id.data(), id.size()),
@@ -424,10 +425,10 @@ void AccesslogModule::accesslog_syslog(Context* cx, Params& args) {
   }
 
   if (auto rl = cx->customData<RequestLogger>(this)) {
-    rl->addLogTarget(format.get(), SyslogTarget::get());
+    rl->addLogTarget(format.value(), SyslogTarget::get());
   } else {
     cx->setCustomData<RequestLogger>(this, cx);
-    rl->addLogTarget(format.get(), SyslogTarget::get());
+    rl->addLogTarget(format.value(), SyslogTarget::get());
   }
 }
 
@@ -435,8 +436,8 @@ void AccesslogModule::accesslog_syslog(Context* cx, Params& args) {
 void AccesslogModule::accesslog_console(Context* cx, Params& args) {
   FlowString id = args.getString(1);
 
-  Option<FlowString> format = lookupFormat(id);
-  if (format.isNone()) {
+  std::optional<FlowString> format = lookupFormat(id);
+  if (!format) {
     cx->logError(
          "Could not write accesslog to console with format id '$0'. $1",
          id,
@@ -445,9 +446,9 @@ void AccesslogModule::accesslog_console(Context* cx, Params& args) {
   }
 
   if (auto rl = cx->customData<RequestLogger>(this)) {
-    rl->enableConsole(format.get());
+    rl->enableConsole(format.value());
   } else {
-    cx->setCustomData<RequestLogger>(this, cx)->enableConsole(format.get());
+    cx->setCustomData<RequestLogger>(this, cx)->enableConsole(format.value());
   }
 }
 
@@ -456,8 +457,8 @@ void AccesslogModule::accesslog_file(Context* cx, Params& args) {
   FlowString filename = args.getString(1);
   FlowString id = args.getString(2);
 
-  Option<FlowString> format = lookupFormat(id);
-  if (format.isNone()) {
+  std::optional<FlowString> format = lookupFormat(id);
+  if (!format) {
     cx->logError(
          "Could not write accesslog to '$0' with format id '$1'. $2",
          BufferRef(filename),
@@ -469,9 +470,9 @@ void AccesslogModule::accesslog_file(Context* cx, Params& args) {
   LogFile* logFile = getLogFile(filename);
 
   if (auto rl = cx->customData<RequestLogger>(this)) {
-    rl->addTarget(format.get(), logFile);
+    rl->addTarget(format.value(), logFile);
   } else {
-    cx->setCustomData<RequestLogger>(this, cx, format.get(), logFile);
+    cx->setCustomData<RequestLogger>(this, cx, format.value(), logFile);
   }
 }
 

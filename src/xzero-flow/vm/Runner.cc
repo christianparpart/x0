@@ -709,6 +709,8 @@ std::ostream& operator<<(std::ostream& os, Runner::State state) {
       return os << "Running";
     case Runner::Suspended:
       return os << "Suspended";
+    default:
+      logFatal("Invalid Runner::State value.");
   }
 }
 
