@@ -59,7 +59,7 @@ class HttpClusterRequest : public CustomData,
 
   // designated backend to serve this request
   HttpClusterMember* backend;
-  HttpClient* client;
+  std::unique_ptr<HttpClient> client;
 
   // number of scheduling attempts
   size_t tryCount;

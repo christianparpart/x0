@@ -115,6 +115,8 @@ void HttpClusterMember::release() {
 }
 
 bool HttpClusterMember::process(HttpClusterRequest* cr) {
+  cr->client = std::make_unique<HttpClient>(cr->executor,
+                                            cr->backend->inetAddress());
   Future<HttpClient::Response> f = cr->client->send(cr->request);
 
   f.onFailure(std::bind(&HttpClusterMember::onFailure, this,
