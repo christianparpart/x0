@@ -13,9 +13,7 @@
 #include <xzero/logging.h>
 #include <assert.h>
 
-namespace xzero {
-namespace http {
-namespace client {
+namespace xzero::http::client {
 
 #if !defined(NDEBUG)
 # define DEBUG(msg...) logDebug("http.client.HttpClusterRequest: " msg)
@@ -30,18 +28,18 @@ HttpClusterRequest::HttpClusterRequest(const HttpRequest& _request,
                                        Executor* _executor,
                                        size_t responseBodyBufferSize,
                                        const std::string& proxyId)
-    : ctime(MonotonicClock::now()),
-      executor(_executor),
-      bucket(nullptr),
-      backend(nullptr),
+    : ctime{MonotonicClock::now()},
+      executor{_executor},
+      bucket{nullptr},
+      backend{nullptr},
       client{nullptr},
-      tryCount(0),
-      tokens(0),
-      request(_request),
-      proxyVersion_(request.version()),
-      proxyId_(proxyId),
-      viaText_(),
-      responseListener(std::move(_responseListener)) {
+      tryCount{0},
+      tokens{0},
+      request{_request},
+      proxyVersion_{request.version()},
+      proxyId_{proxyId},
+      viaText_{},
+      responseListener{std::move(_responseListener)} {
   TRACE("ctor: executor: $0", executor);
 }
 
@@ -109,21 +107,20 @@ void HttpClusterRequest::onError(std::error_code ec) {
   responseListener->onError(ec);
 }
 
-} // namespace client
-} // namespace http
+} // namespace xzero::http::client
 
-template <>
-JsonWriter& JsonWriter::value(
-    TokenShaper<http::client::HttpClusterRequest> const& value) {
-  value.writeJSON(*this);
-  return *this;
-}
+namespace xzero {
+  template <>
+  JsonWriter& JsonWriter::value(
+      TokenShaper<http::client::HttpClusterRequest> const& value) {
+    value.writeJSON(*this);
+    return *this;
+  }
 
-template <>
-JsonWriter& JsonWriter::value(
-    typename TokenShaper<http::client::HttpClusterRequest>::Node const& value) {
-  value.writeJSON(*this);
-  return *this;
-}
-
+  template <>
+  JsonWriter& JsonWriter::value(
+      typename TokenShaper<http::client::HttpClusterRequest>::Node const& value) {
+    value.writeJSON(*this);
+    return *this;
+  }
 } // namespace xzero
