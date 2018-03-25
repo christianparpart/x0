@@ -159,14 +159,14 @@ std::string HttpCluster::configuration() const {
       << "\n";
 #endif
 
-  for (auto& bucket : *shaper()->rootNode()) {
+  for (const auto& bucket : *shaper()->rootNode()) {
     out << "[bucket=" << bucket->name() << "]\n"
         << "rate=" << bucket->rateP() << "\n"
         << "ceil=" << bucket->ceilP() << "\n"
         << "\n";
   }
 
-  for (auto& b: members_) {
+  for (const auto& b: members_) {
     out << "[backend=" << b->name() << "]\n"
         << "capacity=" << b->capacity() << "\n"
         << "enabled=" << (b->isEnabled() ? "true" : "false") << "\n"
@@ -249,8 +249,7 @@ void HttpCluster::setConfiguration(const std::string& text,
 #if 0
   if (!settings.load("director", "on-client-abort", value)) {
     clientAbortAction_ = ClientAbortAction::Close;
-    logError("HttpCluster",
-             "director: Could not load settings value "
+    logError("director: Could not load settings value "
              "director.on-client-abort  in file '$0'. Defaulting to '$1'.",
              path, tos(clientAbortAction_));
     ++changed;
@@ -260,7 +259,7 @@ void HttpCluster::setConfiguration(const std::string& text,
       clientAbortAction_ = t.get();
     } else {
       clientAbortAction_ = ClientAbortAction::Close;
-      logWarning("HttpCluster",
+      logWarning(
           "director: Could not load settings value director.on-client-abort  "
           "in file '$0'. %s Defaulting to '$1'.",
           path, t.errorMessage(), tos(clientAbortAction_));
@@ -286,8 +285,7 @@ void HttpCluster::setConfiguration(const std::string& text,
   stickyOfflineMode_ = value == "true";
 
   if (!settings.load("director", "allow-x-sendfile", value)) {
-    logError("HttpCluster",
-             "director: Could not load settings value director.x-sendfile "
+    logError("director: Could not load settings value director.x-sendfile "
              "in file '$0'",
              path);
     allowXSendfile_ = false;
@@ -297,8 +295,7 @@ void HttpCluster::setConfiguration(const std::string& text,
   }
 
   if (!settings.load("director", "enqueue-on-unavailable", value)) {
-    logError("HttpCluster",
-             "director: Could not load settings value "
+    logError("director: Could not load settings value "
              "director.enqueue-on-unavailable in file '$0'",
              path);
     enqueueOnUnavailable_ = false;
@@ -344,8 +341,7 @@ void HttpCluster::setConfiguration(const std::string& text,
   }
 
   if (!settings.load("director", "scheduler", value)) {
-    logWarning("HttpCluster",
-               "director: Could not load configuration value for "
+    logWarning("director: Could not load configuration value for "
                "director.scheduler. Using default scheduler $0.",
                scheduler()->name());
     changed++;
@@ -437,8 +433,7 @@ void HttpCluster::setConfiguration(const std::string& text,
   setMutable(true);
 
   if (changed) {
-    logNotice("HttpCluster",
-              "director: Rewriting configuration, as $0 attribute(s) "
+    logNotice("director: Rewriting configuration, as $0 attribute(s) "
               "changed while loading.",
               changed);
     saveConfiguration();
@@ -830,8 +825,7 @@ void HttpCluster::dequeueTo(HttpClusterMember* backend) {
       HttpClusterSchedulerStatus rc = backend->tryProcess(cr);
       if (rc != HttpClusterSchedulerStatus::Success) {
         cr->tokens = 0;
-        logError("HttpCluster",
-                 "Dequeueing request to backend $0 @ $1 failed. $2",
+        logError("Dequeueing request to backend $0 @ $1 failed. $2",
                  backend->name(), name(), rc);
         reschedule(cr);
       } else {
@@ -858,8 +852,7 @@ void HttpCluster::onTimeout(HttpClusterRequest* cr) {
 
   cr->post([this, cr]() {
     Duration diff = MonotonicClock::now() - cr->ctime;
-    logInfo("HttpCluster",
-            "Queued request timed out ($0). $1 $2",
+    logInfo("Queued request timed out ($0). $1 $2",
             diff,
             cr->request.method(),
             cr->request.path());
@@ -870,7 +863,7 @@ void HttpCluster::onTimeout(HttpClusterRequest* cr) {
 
 // {{{ EventListener overrides
 void HttpCluster::onEnabledChanged(HttpClusterMember* backend) {
-  DEBUG("HttpCluster", "onBackendEnabledChanged: $0 $1",
+  DEBUG("onBackendEnabledChanged: $0 $1",
         backend->name(), backend->isEnabled() ? "enabled" : "disabled");
   TRACE("onBackendEnabledChanged: $0 $1",
         backend->name(), backend->isEnabled() ? "enabled" : "disabled");
@@ -891,8 +884,7 @@ void HttpCluster::onCapacityChanged(HttpClusterMember* member, size_t old) {
 
 void HttpCluster::onHealthChanged(HttpClusterMember* backend,
                                   HttpHealthMonitor::State oldState) {
-  logInfo("HttpCluster",
-          "$0: backend '$1' ($2:$3) is now $4.",
+  logInfo("HTTP cluster $0: backend '$1' ($2:$3) is now $4.",
           name(), backend->name(),
           backend->inetAddress().ip(),
           backend->inetAddress().port(),
@@ -915,8 +907,7 @@ void HttpCluster::onHealthChanged(HttpClusterMember* backend,
     } else {
       // disable backend due to sticky-offline mode
       logNotice(
-          "HttpCluster",
-          "$0: backend '$1' disabled due to sticky offline mode.",
+          "HTTP cluster $0: backend '$1' disabled due to sticky offline mode.",
           name(), backend->name());
       backend->setEnabled(false);
     }
