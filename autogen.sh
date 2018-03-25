@@ -50,12 +50,10 @@ for pkgdir in ${pkgdirs[*]}; do
   fi
 done
 
-export CXX=$(findexe $CXX clang++-5.0 clang++-4.0 clang++ g++)
-export CC=$(findexe $CC clang-5.0 clang-4.0 clang gcc)
+export CXX=$(findexe $CXX g++-7 clang++-6.0 clang++-5.0 clang++-4.0 clang++ g++)
 export CXXFLAGS="${CXXFLAGS} -O0 -g"
 
 echo CXX = $CXX
-echo CC = $CC
 echo CXXFLAGS = $CXXFLAGS
 echo PKG_CONFIG_PATH = $PKG_CONFIG_PATH
 
