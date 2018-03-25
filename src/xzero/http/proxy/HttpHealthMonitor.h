@@ -88,11 +88,6 @@ class HttpHealthMonitor {
   Duration writeTimeout() const noexcept { return writeTimeout_; }
   void setWriteTimeout(Duration value) { writeTimeout_ = value; }
 
-  /**
-   * Sets the callback to be invoked on health state changes.
-   */
-  void setStateChangeCallback(StateChangeNotify onStateChange);
-
   State state() const { return state_; }
   bool isOnline() const { return state_ == State::Online; }
 

@@ -75,10 +75,6 @@ HttpHealthMonitor::~HttpHealthMonitor() {
   stop();
 }
 
-void HttpHealthMonitor::setStateChangeCallback(StateChangeNotify notify) {
-  onStateChange_ = notify;
-}
-
 void HttpHealthMonitor::start() {
   onCheckNow();
 }
