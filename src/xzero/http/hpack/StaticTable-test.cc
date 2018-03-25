@@ -11,8 +11,8 @@
 using xzero::http::hpack::StaticTable;
 
 TEST(hpack_StaticTable, find_field_name_only) {
-  size_t index;
-  bool nameValueMatch;
+  size_t index = 0;
+  bool nameValueMatch = false;
 
   bool match = StaticTable::find(":path", "/custom", &index, &nameValueMatch);
 
@@ -22,8 +22,8 @@ TEST(hpack_StaticTable, find_field_name_only) {
 }
 
 TEST(hpack_StaticTable, find_field_fully) {
-  size_t index;
-  bool nameValueMatch;
+  size_t index = 0;
+  bool nameValueMatch = false;
 
   bool match = StaticTable::find(":path", "/", &index, &nameValueMatch);
 
@@ -33,8 +33,8 @@ TEST(hpack_StaticTable, find_field_fully) {
 }
 
 TEST(hpack_StaticTable, find_field_nothing) {
-  size_t index;
-  bool nameValueMatch;
+  size_t index = 0;
+  bool nameValueMatch = false;
 
   bool match = StaticTable::find("not", "found", &index, &nameValueMatch);
   EXPECT_FALSE(match);
@@ -42,8 +42,8 @@ TEST(hpack_StaticTable, find_field_nothing) {
 
 TEST(hpack_StaticTable, find_them_all_binary_search_test) {
   // make sure we find them all, just to unit-test our binary search
-  size_t index;
-  bool nameValueMatch;
+  size_t index = 0;
+  bool nameValueMatch = false;
 
   for (size_t i = 0; i < StaticTable::length(); i++) {
     bool match = StaticTable::find(StaticTable::at(i), &index, &nameValueMatch);

@@ -128,7 +128,7 @@ TEST(http_HttpChannel, completed_invoked_before_contentLength_satisfied) {
   // we expect the connection to terminate on invalid generated
   // response messages
 
-  EXPECT_THROW(transport.run(HttpVersion::VERSION_1_1, "GET", "/", {{"Host", "test"}}, ""), RuntimeError);
+  EXPECT_THROW(transport.run(HttpVersion::VERSION_1_1, "GET", "/", {{"Host", "test"}}, ""), xzero::http::InvalidState);
   //EXPECT_TRUE(transport.isAborted());
 }
 
