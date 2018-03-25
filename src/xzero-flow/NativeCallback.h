@@ -35,8 +35,10 @@ enum class Attribute : unsigned {
 
 class NativeCallback {
  public:
-  typedef std::function<void(Params& args)> Functor;
-  typedef std::function<bool(Instr*, IRBuilder*)> Verifier;
+  using Functor = std::function<void(Params& args)>;
+  using Verifier = std::function<bool(Instr*, IRBuilder*)>;
+  using DefaultValue = std::variant<std::monostate,
+        bool, FlowString, FlowNumber, IPAddress, Cidr, RegExp>;
 
  private:
   Runtime* runtime_;
@@ -50,11 +52,7 @@ class NativeCallback {
 
   // following attribs are irrelevant to the VM but useful for the frontend
   std::vector<std::string> names_;
-  std::vector<void*> defaults_;
-
-  using DefaultValue = std::variant<bool, FlowString, FlowNumber, IPAddress, Cidr, RegExp>;
-    
-  std::vector<std::optional<DefaultValue>> defaultValues_;
+  std::vector<DefaultValue> defaults_;
 
  public:
   NativeCallback(Runtime* runtime, const std::string& _name);
@@ -102,7 +100,7 @@ class NativeCallback {
   // named parameter handling
   bool parametersNamed() const;
   const std::string& getParamNameAt(size_t i) const;
-  const void* getDefaultParamAt(size_t i) const;
+  const DefaultValue& getDefaultParamAt(size_t i) const;
   int findParamByName(const std::string& name) const;
 
   // attributes
@@ -129,7 +127,7 @@ template <>
 inline NativeCallback& NativeCallback::param<bool>(const std::string& name) {
   signature_.args().push_back(FlowType::Boolean);
   names_.push_back(name);
-  defaults_.push_back(nullptr /*no default value*/);
+  defaults_.push_back(std::monostate{});
 
   return *this;
 }
@@ -139,11 +137,7 @@ inline NativeCallback& NativeCallback::param<bool>(const std::string& name,
                                                    bool defaultValue) {
   signature_.args().push_back(FlowType::Boolean);
   names_.push_back(name);
-
-  bool* value = new bool;
-  *value = defaultValue;
-
-  defaults_.push_back((void*)value);
+  defaults_.push_back(defaultValue);
 
   return *this;
 }
@@ -153,8 +147,7 @@ inline NativeCallback& NativeCallback::param<FlowNumber>(
     const std::string& name) {
   signature_.args().push_back(FlowType::Number);
   names_.push_back(name);
-
-  defaults_.push_back(nullptr /*no default value*/);
+  defaults_.push_back(std::monostate{});
 
   return *this;
 }
@@ -164,10 +157,7 @@ inline NativeCallback& NativeCallback::param<FlowNumber>(
     const std::string& name, FlowNumber defaultValue) {
   signature_.args().push_back(FlowType::Number);
   names_.push_back(name);
-
-  FlowNumber* value = new FlowNumber;
-  *value = defaultValue;
-  defaults_.push_back(value);
+  defaults_.push_back(defaultValue);
 
   return *this;
 }
@@ -176,7 +166,7 @@ template <>
 inline NativeCallback& NativeCallback::param<int>(const std::string& name) {
   signature_.args().push_back(FlowType::Number);
   names_.push_back(name);
-  defaults_.push_back(nullptr /*no default value*/);
+  defaults_.push_back(std::monostate{});
 
   return *this;
 }
@@ -186,10 +176,7 @@ inline NativeCallback& NativeCallback::param<int>(const std::string& name,
                                                   int defaultValue) {
   signature_.args().push_back(FlowType::Number);
   names_.push_back(name);
-
-  FlowNumber* value = new FlowNumber;
-  *value = defaultValue;
-  defaults_.push_back((void*)value);
+  defaults_.push_back(FlowNumber{defaultValue});
 
   return *this;
 }
@@ -199,7 +186,7 @@ inline NativeCallback& NativeCallback::param<FlowString>(
     const std::string& name) {
   signature_.args().push_back(FlowType::String);
   names_.push_back(name);
-  defaults_.push_back(nullptr /*no default value*/);
+  defaults_.push_back(std::monostate{});
 
   return *this;
 }
@@ -209,7 +196,7 @@ inline NativeCallback& NativeCallback::param<FlowString>(
     const std::string& name, FlowString defaultValue) {
   signature_.args().push_back(FlowType::String);
   names_.push_back(name);
-  defaults_.push_back((void*)new FlowString(defaultValue));
+  defaults_.push_back(defaultValue);
 
   return *this;
 }
@@ -219,7 +206,7 @@ inline NativeCallback& NativeCallback::param<IPAddress>(
     const std::string& name) {
   signature_.args().push_back(FlowType::IPAddress);
   names_.push_back(name);
-  defaults_.push_back(nullptr /*no default value*/);
+  defaults_.push_back(std::monostate{});
 
   return *this;
 }
@@ -229,7 +216,7 @@ inline NativeCallback& NativeCallback::param<IPAddress>(
     const std::string& name, IPAddress defaultValue) {
   signature_.args().push_back(FlowType::IPAddress);
   names_.push_back(name);
-  defaults_.push_back((void*)new IPAddress(defaultValue));
+  defaults_.push_back(defaultValue);
 
   return *this;
 }
@@ -238,7 +225,7 @@ template <>
 inline NativeCallback& NativeCallback::param<Cidr>(const std::string& name) {
   signature_.args().push_back(FlowType::Cidr);
   names_.push_back(name);
-  defaults_.push_back(nullptr /*no default value*/);
+  defaults_.push_back(std::monostate{});
 
   return *this;
 }
@@ -248,7 +235,7 @@ inline NativeCallback& NativeCallback::param<Cidr>(const std::string& name,
                                                    Cidr defaultValue) {
   signature_.args().push_back(FlowType::Cidr);
   names_.push_back(name);
-  defaults_.push_back((void*)new Cidr(defaultValue));
+  defaults_.push_back(defaultValue);
 
   return *this;
 }
@@ -257,7 +244,7 @@ template <>
 inline NativeCallback& NativeCallback::param<RegExp>(const std::string& name) {
   signature_.args().push_back(FlowType::RegExp);
   names_.push_back(name);
-  defaults_.push_back(nullptr /*no default value*/);
+  defaults_.push_back(std::monostate{});
 
   return *this;
 }
@@ -267,7 +254,7 @@ inline NativeCallback& NativeCallback::param<RegExp>(const std::string& name,
                                                      RegExp defaultValue) {
   signature_.args().push_back(FlowType::RegExp);
   names_.push_back(name);
-  defaults_.push_back((void*)new RegExp(defaultValue));
+  defaults_.push_back(defaultValue);
 
   return *this;
 }
@@ -279,7 +266,7 @@ inline NativeCallback& NativeCallback::param<FlowIntArray>(
 
   signature_.args().push_back(FlowType::IntArray);
   names_.push_back(name);
-  defaults_.push_back(nullptr /*no default value*/);
+  defaults_.push_back(std::monostate{});
 
   return *this;
 }
@@ -291,7 +278,7 @@ inline NativeCallback& NativeCallback::param<FlowStringArray>(
 
   signature_.args().push_back(FlowType::StringArray);
   names_.push_back(name);
-  defaults_.push_back(nullptr /*no default value*/);
+  defaults_.push_back(std::monostate{});
 
   return *this;
 }
@@ -360,8 +347,9 @@ inline const std::string& NativeCallback::getParamNameAt(size_t i) const {
   return names_[i];
 }
 
-inline const void* NativeCallback::getDefaultParamAt(size_t i) const {
-  return i < defaults_.size() ? defaults_[i] : nullptr;
+inline const NativeCallback::DefaultValue& NativeCallback::getDefaultParamAt(size_t i) const {
+  assert(i < defaults_.size());
+  return defaults_[i];
 }
 // }}}
 

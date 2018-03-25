@@ -118,10 +118,11 @@ const Signature& CallableSym::signature() const {
   return sig_;
 }
 
-static inline void completeDefaultValue(ParamList& args, FlowType type,
-                                        const void* defaultValue,
-                                        const std::string& name)  // {{{
-{
+static inline void completeDefaultValue(
+    ParamList& args,
+    FlowType type,
+    const NativeCallback::DefaultValue& dv,
+    const std::string& name) { // {{{
   // printf("completeDefaultValue(type:%s, name:%s)\n", tos(type).c_str(),
   // name.c_str());
 
@@ -129,50 +130,32 @@ static inline void completeDefaultValue(ParamList& args, FlowType type,
 
   switch (type) {
     case FlowType::Boolean:
-      if (args.isNamed())
-        args.push_back(name,
-                       std::make_unique<BoolExpr>(*(bool*)defaultValue, loc));
-      else
-        args.push_back(std::make_unique<BoolExpr>(*(bool*)defaultValue, loc));
+      args.push_back(
+          name,
+          std::make_unique<BoolExpr>(std::get<bool>(dv), loc));
       break;
     case FlowType::Number:
-      if (args.isNamed())
-        args.push_back(name, std::make_unique<NumberExpr>(
-                                 *(FlowNumber*)defaultValue, loc));
-      else
-        args.push_back(
-            std::make_unique<NumberExpr>(*(FlowNumber*)defaultValue, loc));
+      args.push_back(
+          name,
+          std::make_unique<NumberExpr>(std::get<FlowNumber>(dv), loc));
       break;
-    case FlowType::String: {
-      const FlowString* s = (FlowString*)defaultValue;
-      // printf("auto-complete parameter \"%s\" <%s> = \"%s\"\n", name.c_str(),
-      // tos(type).c_str(), s->str().c_str());
-      if (args.isNamed())
-        args.push_back(name, std::make_unique<StringExpr>(*s, loc));
-      else
-        args.push_back(std::make_unique<StringExpr>(*s, loc));
+    case FlowType::String:
+      args.push_back(
+          name,
+          std::make_unique<StringExpr>(std::get<FlowString>(dv), loc));
       break;
-    }
     case FlowType::IPAddress:
-      if (args.isNamed())
-        args.push_back(name, std::make_unique<IPAddressExpr>(
-                                 *(IPAddress*)defaultValue, loc));
-      else
-        args.push_back(
-            std::make_unique<IPAddressExpr>(*(IPAddress*)defaultValue, loc));
+      args.push_back(
+          name,
+          std::make_unique<IPAddressExpr>(std::get<IPAddress>(dv), loc));
       break;
     case FlowType::Cidr:
-      if (args.isNamed())
-        args.push_back(name,
-                       std::make_unique<CidrExpr>(*(Cidr*)defaultValue, loc));
-      else
-        args.push_back(std::make_unique<CidrExpr>(*(Cidr*)defaultValue, loc));
+      args.push_back(
+          name,
+          std::make_unique<CidrExpr>(std::get<Cidr>(dv), loc));
       break;
     default:
-      fprintf(stderr,
-              "Unsupported type in default completion. Please report me. I am "
-              "a bug.\n");
-      abort();
+      logFatal("Unsupported type in default completion. Please report me. I am a bug.");
       // reportError("Cannot complete named paramter \"%s\" in callee \"%s\".
       // Unsupported type <%s>.",
       //        name.c_str(), this->name().c_str(), tos(type).c_str());
@@ -219,8 +202,9 @@ bool CallableSym::tryMatch(ParamList& params, Buffer* errorMessage) const {
     for (int i = 0; i != argc; ++i) {
       const auto& name = native->getParamNameAt(i);
       if (!params.contains(name)) {
-        const void* defaultValue = native->getDefaultParamAt(i);
-        if (!defaultValue) {
+        const NativeCallback::DefaultValue& defaultValue =
+            native->getDefaultParamAt(i);
+        if (std::holds_alternative<std::monostate>(defaultValue)) {
           errorMessage->printf(
               "Callee \"%s\" invoked without required named parameter \"%s\".",
               this->name().c_str(), name.c_str());
@@ -269,8 +253,8 @@ bool CallableSym::tryMatch(ParamList& params, Buffer* errorMessage) const {
     }
 
     for (size_t i = params.size(), e = signature().args().size(); i != e; ++i) {
-      const void* defaultValue = native->getDefaultParamAt(i);
-      if (!defaultValue) {
+      const NativeCallback::DefaultValue& defaultValue = native->getDefaultParamAt(i);
+      if (std::holds_alternative<std::monostate>(defaultValue)) {
         errorMessage->printf(
             "No default value provided for positional parameter %d, callee %s.",
             i + 1, signature().to_s().c_str());
@@ -320,11 +304,9 @@ ParamList::~ParamList() {
 
 void ParamList::push_back(const std::string& name,
                           std::unique_ptr<Expr>&& arg) {
-  assert(names_.size() == values_.size() &&
-         "Cannot mix named with unnamed parameters.");
-  assert(names_.size() == values_.size());
+  if (isNamed())
+    names_.push_back(name);
 
-  names_.push_back(name);
   values_.push_back(arg.release());
 }
 

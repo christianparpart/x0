@@ -38,34 +38,6 @@ NativeCallback::NativeCallback(Runtime* runtime, const std::string& _name,
 }
 
 NativeCallback::~NativeCallback() {
-  for (size_t i = 0, e = defaults_.size(); i != e; ++i) {
-    FlowType type = signature_.args()[i];
-    switch (type) {
-      case FlowType::Boolean:
-        delete (bool*)defaults_[i];
-        break;
-      case FlowType::Number:
-        delete (FlowNumber*)defaults_[i];
-        break;
-      case FlowType::String:
-        delete (FlowString*)defaults_[i];
-        break;
-      case FlowType::IPAddress:
-        delete (IPAddress*)defaults_[i];
-        break;
-      case FlowType::Cidr:
-        delete (Cidr*)defaults_[i];
-        break;
-      case FlowType::RegExp:
-        delete (RegExp*)defaults_[i];
-        break;
-      case FlowType::Handler:
-      case FlowType::StringArray:
-      case FlowType::IntArray:
-      default:
-        break;
-    }
-  }
 }
 
 bool NativeCallback::isHandler() const noexcept {
