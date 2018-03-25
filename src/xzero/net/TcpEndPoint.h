@@ -51,7 +51,7 @@ class TcpEndPoint : public std::enable_shared_from_this<TcpEndPoint> {
               Executor* executor,
               Callback onEndPointClosed);
 
-  ~TcpEndPoint();
+  virtual ~TcpEndPoint();
 
   /**
    * Asynchronousely connects to a remote TCP/IP server.
