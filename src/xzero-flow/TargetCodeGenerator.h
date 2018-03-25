@@ -49,11 +49,6 @@ class TargetCodeGenerator : public InstructionVisitor {
   std::unique_ptr<Program> generate(IRProgram* program);
 
  protected:
-  using Opcode = Opcode;
-  using Operand = Operand;
-  using Instruction = Instruction;
-  using ConstantPool = ConstantPool;
-
   void generate(IRHandler* handler);
 
   /**
