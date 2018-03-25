@@ -13,7 +13,7 @@
 
 using namespace xzero;
 
-TEST(ThreadPoolTest, simple) {
+TEST(ThreadPool, simple) {
   xzero::ThreadPool tp(2);
   bool e1 = false;
   bool e2 = false;

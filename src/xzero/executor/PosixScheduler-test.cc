@@ -29,7 +29,7 @@ using TheScheduler = PosixScheduler;
  * 3.) the interest B should now be fired after 2 seconds
  * 4.) the interest A should now be fired after 3 seconds
  */
-TEST(PosixSchedulerTest, timeoutBreak) {
+TEST(PosixScheduler, timeoutBreak) {
   TheScheduler scheduler;
   SystemPipe a;
   SystemPipe b;
@@ -60,7 +60,7 @@ TEST(PosixSchedulerTest, timeoutBreak) {
   EXPECT_NEAR(100,  (b_timeout_at - start).milliseconds(), 50);
 }
 
-TEST(PosixSchedulerTest, executeAfter_without_handle) {
+TEST(PosixScheduler, executeAfter_without_handle) {
   TheScheduler scheduler;
   MonotonicTime start;
   MonotonicTime firedAt;
@@ -82,7 +82,7 @@ TEST(PosixSchedulerTest, executeAfter_without_handle) {
   EXPECT_NEAR(50, diff.milliseconds(), 10);
 }
 
-TEST(PosixSchedulerTest, executeAfter_cancel_insideRun) {
+TEST(PosixScheduler, executeAfter_cancel_insideRun) {
   TheScheduler scheduler;
 
   Executor::HandleRef handle = scheduler.executeAfter(1_seconds, [&]() {
@@ -95,7 +95,7 @@ TEST(PosixSchedulerTest, executeAfter_cancel_insideRun) {
   EXPECT_TRUE(handle->isCancelled());
 }
 
-TEST(PosixSchedulerTest, executeAfter_cancel_beforeRun) {
+TEST(PosixScheduler, executeAfter_cancel_beforeRun) {
   TheScheduler scheduler;
   int fireCount = 0;
 
@@ -110,7 +110,7 @@ TEST(PosixSchedulerTest, executeAfter_cancel_beforeRun) {
   EXPECT_EQ(0, fireCount);
 }
 
-TEST(PosixSchedulerTest, executeAfter_cancel_beforeRun2) {
+TEST(PosixScheduler, executeAfter_cancel_beforeRun2) {
   TheScheduler scheduler;
   int fire1Count = 0;
   int fire2Count = 0;
@@ -133,7 +133,7 @@ TEST(PosixSchedulerTest, executeAfter_cancel_beforeRun2) {
   EXPECT_EQ(1, fire2Count);
 }
 
-TEST(PosixSchedulerTest, executeOnReadable) {
+TEST(PosixScheduler, executeOnReadable) {
   // executeOnReadable: test cancellation after fire
   // executeOnReadable: test fire
   // executeOnReadable: test timeout
@@ -162,7 +162,7 @@ TEST(PosixSchedulerTest, executeOnReadable) {
   EXPECT_EQ(0, timeoutCount);
 }
 
-TEST(PosixSchedulerTest, executeOnReadable_timeout) {
+TEST(PosixScheduler, executeOnReadable_timeout) {
   TheScheduler sched;
   SystemPipe pipe;
 
@@ -178,7 +178,7 @@ TEST(PosixSchedulerTest, executeOnReadable_timeout) {
   EXPECT_EQ(1, timeoutCount);
 }
 
-TEST(PosixSchedulerTest, executeOnReadable_timeout_on_cancelled) {
+TEST(PosixScheduler, executeOnReadable_timeout_on_cancelled) {
   TheScheduler sched;
   SystemPipe pipe;
 
@@ -205,7 +205,7 @@ TEST(PosixSchedulerTest, executeOnReadable_timeout_on_cancelled) {
 //       : RuntimeError("Already watching on resource") {}
 // };
 
-// TEST(PosixSchedulerTest, executeOnReadable_twice_on_same_fd) {
+// TEST(PosixScheduler, executeOnReadable_twice_on_same_fd) {
 //   TheScheduler sched;
 //   SystemPipe pipe;
 // 
@@ -219,7 +219,7 @@ TEST(PosixSchedulerTest, executeOnReadable_timeout_on_cancelled) {
 //                       sched.executeOnWritable(pipe.readerFd(), [] () {}));
 // }
 
-TEST(PosixSchedulerTest, executeOnWritable) {
+TEST(PosixScheduler, executeOnWritable) {
   TheScheduler sched;
 
   SystemPipe pipe;
@@ -240,7 +240,7 @@ TEST(PosixSchedulerTest, executeOnWritable) {
   EXPECT_EQ(0, timeoutCount);
 }
 
-TEST(PosixSchedulerTest, executeOnWritable_timeout) {
+TEST(PosixScheduler, executeOnWritable_timeout) {
   TheScheduler sched;
   SystemPipe pipe;
 
@@ -269,7 +269,7 @@ TEST(PosixSchedulerTest, executeOnWritable_timeout) {
   EXPECT_EQ(1, timeoutCount);
 }
 
-TEST(PosixSchedulerTest, executeOnWritable_timeout_on_cancelled) {
+TEST(PosixScheduler, executeOnWritable_timeout_on_cancelled) {
   TheScheduler sched;
   SystemPipe pipe;
 
@@ -303,7 +303,7 @@ TEST(PosixSchedulerTest, executeOnWritable_timeout_on_cancelled) {
   EXPECT_EQ(0, timeoutCount);
 }
 
-TEST(PosixSchedulerTest, cancelFD) {
+TEST(PosixScheduler, cancelFD) {
   TheScheduler sched;
   SystemPipe pipe;
   auto handle = sched.executeOnReadable(pipe.readerFd(), [](){});
@@ -311,14 +311,14 @@ TEST(PosixSchedulerTest, cancelFD) {
   EXPECT_TRUE(handle->isCancelled());
 }
 
-// TEST(PosixSchedulerTest, waitForReadable) {
+// TEST(PosixScheduler, waitForReadable) {
 // };
 // 
-// TEST(PosixSchedulerTest, waitForWritable) {
+// TEST(PosixScheduler, waitForWritable) {
 // };
 // 
-// TEST(PosixSchedulerTest, waitForReadable_timed) {
+// TEST(PosixScheduler, waitForReadable_timed) {
 // };
 // 
-// TEST(PosixSchedulerTest, waitForWritable_timed) {
+// TEST(PosixScheduler, waitForWritable_timed) {
 // };

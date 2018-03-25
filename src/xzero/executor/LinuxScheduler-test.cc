@@ -29,7 +29,7 @@ using TheScheduler = LinuxScheduler;
  * 3.) the interest B should now be fired after 2 seconds
  * 4.) the interest A should now be fired after 3 seconds
  */
-TEST(LinuxSchedulerTest, timeoutBreak) {
+TEST(LinuxScheduler, timeoutBreak) {
   TheScheduler scheduler;
   SystemPipe a;
   SystemPipe b;
@@ -60,7 +60,7 @@ TEST(LinuxSchedulerTest, timeoutBreak) {
   EXPECT_NEAR(100,  (b_timeout_at - start).milliseconds(), 50);
 }
 
-TEST(LinuxSchedulerTest, executeAfter_with_handle) {
+TEST(LinuxScheduler, executeAfter_with_handle) {
   TheScheduler scheduler;
   MonotonicTime start;
   MonotonicTime firedAt;
@@ -82,7 +82,7 @@ TEST(LinuxSchedulerTest, executeAfter_with_handle) {
   EXPECT_NEAR(50, diff.milliseconds(), 10);
 }
 
-TEST(LinuxSchedulerTest, executeAfter_without_handle) {
+TEST(LinuxScheduler, executeAfter_without_handle) {
   TheScheduler scheduler;
   MonotonicTime start;
   MonotonicTime firedAt;
@@ -104,7 +104,7 @@ TEST(LinuxSchedulerTest, executeAfter_without_handle) {
   EXPECT_NEAR(50, diff.milliseconds(), 10);
 }
 
-TEST(LinuxSchedulerTest, executeAfter_cancel_insideRun) {
+TEST(LinuxScheduler, executeAfter_cancel_insideRun) {
   TheScheduler scheduler;
 
   Executor::HandleRef handle = scheduler.executeAfter(1_seconds, [&]() {
@@ -117,7 +117,7 @@ TEST(LinuxSchedulerTest, executeAfter_cancel_insideRun) {
   EXPECT_TRUE(handle->isCancelled());
 }
 
-TEST(LinuxSchedulerTest, executeAfter_cancel_beforeRun) {
+TEST(LinuxScheduler, executeAfter_cancel_beforeRun) {
   TheScheduler scheduler;
   int fireCount = 0;
 
@@ -132,7 +132,7 @@ TEST(LinuxSchedulerTest, executeAfter_cancel_beforeRun) {
   EXPECT_EQ(0, fireCount);
 }
 
-TEST(LinuxSchedulerTest, executeAfter_cancel_beforeRun2) {
+TEST(LinuxScheduler, executeAfter_cancel_beforeRun2) {
   TheScheduler scheduler;
   int fire1Count = 0;
   int fire2Count = 0;
@@ -161,7 +161,7 @@ TEST(LinuxSchedulerTest, executeAfter_cancel_beforeRun2) {
   EXPECT_EQ(1, fire2Count);
 }
 
-TEST(LinuxSchedulerTest, executeOnReadable) {
+TEST(LinuxScheduler, executeOnReadable) {
   // executeOnReadable: test cancellation after fire
   // executeOnReadable: test fire
   // executeOnReadable: test timeout
@@ -190,7 +190,7 @@ TEST(LinuxSchedulerTest, executeOnReadable) {
   EXPECT_EQ(0, timeoutCount);
 }
 
-TEST(LinuxSchedulerTest, executeOnReadable_timeout) {
+TEST(LinuxScheduler, executeOnReadable_timeout) {
   TheScheduler sched;
   SystemPipe pipe;
 
@@ -206,7 +206,7 @@ TEST(LinuxSchedulerTest, executeOnReadable_timeout) {
   EXPECT_EQ(1, timeoutCount);
 }
 
-TEST(LinuxSchedulerTest, executeOnReadable_timeout_on_cancelled) {
+TEST(LinuxScheduler, executeOnReadable_timeout_on_cancelled) {
   TheScheduler sched;
   SystemPipe pipe;
 
@@ -233,7 +233,7 @@ TEST(LinuxSchedulerTest, executeOnReadable_timeout_on_cancelled) {
 //       : RuntimeError("Already watching on resource") {}
 // };
 
-// TEST(LinuxSchedulerTest, executeOnReadable_twice_on_same_fd) {
+// TEST(LinuxScheduler, executeOnReadable_twice_on_same_fd) {
 //   TheScheduler sched;
 //   SystemPipe pipe;
 // 
@@ -247,7 +247,7 @@ TEST(LinuxSchedulerTest, executeOnReadable_timeout_on_cancelled) {
 //                       sched.executeOnWritable(pipe.readerFd(), [] () {}));
 // }
 
-TEST(LinuxSchedulerTest, executeOnWritable) {
+TEST(LinuxScheduler, executeOnWritable) {
   TheScheduler sched;
 
   SystemPipe pipe;
@@ -268,7 +268,7 @@ TEST(LinuxSchedulerTest, executeOnWritable) {
   EXPECT_EQ(0, timeoutCount);
 }
 
-TEST(LinuxSchedulerTest, executeOnWritable_timeout) {
+TEST(LinuxScheduler, executeOnWritable_timeout) {
   TheScheduler sched;
   SystemPipe pipe;
 
@@ -297,7 +297,7 @@ TEST(LinuxSchedulerTest, executeOnWritable_timeout) {
   EXPECT_EQ(1, timeoutCount);
 }
 
-TEST(LinuxSchedulerTest, executeOnWritable_timeout_on_cancelled) {
+TEST(LinuxScheduler, executeOnWritable_timeout_on_cancelled) {
   TheScheduler sched;
   SystemPipe pipe;
 
@@ -331,7 +331,7 @@ TEST(LinuxSchedulerTest, executeOnWritable_timeout_on_cancelled) {
   EXPECT_EQ(0, timeoutCount);
 }
 
-TEST(LinuxSchedulerTest, cancelFD) {
+TEST(LinuxScheduler, cancelFD) {
   TheScheduler sched;
   SystemPipe pipe;
   auto handle = sched.executeOnReadable(pipe.readerFd(), [](){});
@@ -339,14 +339,14 @@ TEST(LinuxSchedulerTest, cancelFD) {
   EXPECT_TRUE(handle->isCancelled());
 }
 
-// TEST(LinuxSchedulerTest, waitForReadable) {
+// TEST(LinuxScheduler, waitForReadable) {
 // };
 // 
-// TEST(LinuxSchedulerTest, waitForWritable) {
+// TEST(LinuxScheduler, waitForWritable) {
 // };
 // 
-// TEST(LinuxSchedulerTest, waitForReadable_timed) {
+// TEST(LinuxScheduler, waitForReadable_timed) {
 // };
 // 
-// TEST(LinuxSchedulerTest, waitForWritable_timed) {
+// TEST(LinuxScheduler, waitForWritable_timed) {
 // };

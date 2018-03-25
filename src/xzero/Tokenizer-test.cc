@@ -9,21 +9,9 @@
 #include <xzero/Tokenizer.h>
 #include <xzero/Buffer.h>
 
-class TokenizerTest : public ::xzero::testing::Test {
- public:
-  typedef xzero::Tokenizer<xzero::BufferRef, xzero::BufferRef> BufferTokenizer;
+using BufferTokenizer = xzero::Tokenizer<xzero::BufferRef, xzero::BufferRef>;
 
-  void SetUp();
-  void TearDown();
-
-  void Tokenize3();
-};
-
-void TokenizerTest::SetUp() {}
-
-void TokenizerTest::TearDown() {}
-
-TEST_F(TokenizerTest, Tokenize3) {
+TEST(Tokenizer, Tokenize3) {
   xzero::Buffer input("/foo/bar/com");
   BufferTokenizer st(input.ref(1), "/");
   std::vector<xzero::BufferRef> tokens = st.tokenize();

@@ -12,7 +12,7 @@
 
 using namespace xzero;
 
-TEST(StringUtilTest, TestToString) {
+TEST(StringUtil, TestToString) {
   EXPECT_EQ(to_string(123), "123");
   EXPECT_EQ(to_string(1230000000), "1230000000");
   EXPECT_EQ(to_string(24.5), "24.5");
@@ -20,7 +20,7 @@ TEST(StringUtilTest, TestToString) {
   EXPECT_EQ(to_string(std::string("abc")), "abc");
 }
 
-TEST(StringUtilTest, TestStripTrailingSlashes) {
+TEST(StringUtil, TestStripTrailingSlashes) {
   std::string s1 = "fnord/bar/";
   StringUtil::stripTrailingSlashes(&s1);
   EXPECT_EQ(s1, "fnord/bar");
@@ -38,7 +38,7 @@ TEST(StringUtilTest, TestStripTrailingSlashes) {
   EXPECT_EQ(s4, "");
 }
 
-TEST(StringUtilTest, TestBeginsWith) {
+TEST(StringUtil, TestBeginsWith) {
   EXPECT_TRUE(StringUtil::beginsWith("fnord", "fn"));
   EXPECT_TRUE(StringUtil::beginsWith("fnahrad", "fn"));
   EXPECT_FALSE(StringUtil::beginsWith("ford", "fn"));
@@ -46,7 +46,7 @@ TEST(StringUtilTest, TestBeginsWith) {
   EXPECT_FALSE(StringUtil::beginsWith("fnord", "fnordbar"));
 }
 
-TEST(StringUtilTest, beginsWithIgnoreCase) {
+TEST(StringUtil, beginsWithIgnoreCase) {
   EXPECT_TRUE(StringUtil::beginsWithIgnoreCase("fnord", "fN"));
   EXPECT_TRUE(StringUtil::beginsWithIgnoreCase("fnahrad", "Fn"));
   EXPECT_FALSE(StringUtil::beginsWithIgnoreCase("ford", "fN"));
@@ -54,7 +54,7 @@ TEST(StringUtilTest, beginsWithIgnoreCase) {
   EXPECT_FALSE(StringUtil::beginsWithIgnoreCase("fnord", "fnORdbaR"));
 }
 
-TEST(StringUtilTest, TestEndsWith) {
+TEST(StringUtil, TestEndsWith) {
   EXPECT_TRUE(StringUtil::endsWith("fnord", "ord"));
   EXPECT_TRUE(StringUtil::endsWith("ford", "ord"));
   EXPECT_FALSE(StringUtil::endsWith("ford", "x"));
@@ -63,7 +63,7 @@ TEST(StringUtilTest, TestEndsWith) {
   EXPECT_FALSE(StringUtil::endsWith("fnord", "fnordbar"));
 }
 
-TEST(StringUtilTest, endsWithIgnoreCase) {
+TEST(StringUtil, endsWithIgnoreCase) {
   EXPECT_TRUE(StringUtil::endsWithIgnoreCase("fnord", "ORd"));
   EXPECT_TRUE(StringUtil::endsWithIgnoreCase("ford", "ORD"));
   EXPECT_FALSE(StringUtil::endsWithIgnoreCase("ford", "x"));
@@ -72,7 +72,7 @@ TEST(StringUtilTest, endsWithIgnoreCase) {
   EXPECT_FALSE(StringUtil::endsWithIgnoreCase("fnord", "fnordbaR"));
 }
 
-TEST(StringUtilTest, TestHexPrint) {
+TEST(StringUtil, TestHexPrint) {
   auto data1 = "\x17\x23\x42\x01";
   EXPECT_EQ(StringUtil::hexPrint(data1, 4), "17 23 42 01");
   EXPECT_EQ(StringUtil::hexPrint(data1, 4, false), "17234201");
@@ -80,7 +80,7 @@ TEST(StringUtilTest, TestHexPrint) {
   EXPECT_EQ(StringUtil::hexPrint(data1, 4, false, true), "01422317");
 }
 
-TEST(StringUtilTest, TestReplaceAll) {
+TEST(StringUtil, TestReplaceAll) {
   std::string str =
       "cloud computing, or in simpler shorthand just >the cloud<...";
 
@@ -91,7 +91,7 @@ TEST(StringUtilTest, TestReplaceAll) {
   EXPECT_EQ(str, " computing, or in simpler shorthand just >the <...");
 }
 
-TEST(StringUtilTest, TestFormat) {
+TEST(StringUtil, TestFormat) {
   auto str1 = StringUtil::format(
       "The quick $0 fox jumps over the $1 dog",
       "brown",
@@ -124,7 +124,7 @@ TEST(StringUtilTest, TestFormat) {
   EXPECT_EQ("NaNaNaNaNa Batman", str4);
 }
 
-TEST(StringUtilTest, splitByAny_empty) {
+TEST(StringUtil, splitByAny_empty) {
   auto parts = StringUtil::splitByAny("", ", \t");
   EXPECT_EQ(0, parts.size());
 
@@ -132,7 +132,7 @@ TEST(StringUtilTest, splitByAny_empty) {
   EXPECT_EQ(0, parts.size());
 }
 
-TEST(StringUtilTest, splitByAny) {
+TEST(StringUtil, splitByAny) {
   auto parts = StringUtil::splitByAny("\tone, two , three four\t", ", \t");
 
   int i = 0;
@@ -148,13 +148,13 @@ TEST(StringUtilTest, splitByAny) {
   EXPECT_EQ("four", parts[3]);
 }
 
-TEST(StringUtilTest, TestSplit_empty) {
+TEST(StringUtil, TestSplit_empty) {
   auto parts = StringUtil::split("", ",");
 
   EXPECT_EQ(0, parts.size());
 }
 
-TEST(StringUtilTest, TestSplit) {
+TEST(StringUtil, TestSplit) {
   auto parts1 = StringUtil::split("one,two,three", ",");
   EXPECT_EQ(3, parts1.size());
   EXPECT_EQ("one", parts1[0]);
