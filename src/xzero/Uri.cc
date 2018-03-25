@@ -180,7 +180,6 @@ void Uri::parseURI(
   const char* end = begin + uri_str.size();
 
   /* scheme */
-  bool has_scheme = false;
   for (const char* cur = begin; cur < end; ++cur) {
     if (*cur == '/') {
       break;
@@ -189,7 +188,6 @@ void Uri::parseURI(
     if (*cur == ':') {
       *scheme = std::string(begin, cur - begin);
       begin = cur + 1;
-      has_scheme = true;
       break;
     }
   }

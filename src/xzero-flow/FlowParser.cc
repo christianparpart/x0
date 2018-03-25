@@ -686,38 +686,38 @@ std::unique_ptr<Expr> FlowParser::relExpr() {
   FNTRACE();
 
   std::unique_ptr<Expr> lhs = addExpr();
-  if (!lhs) return nullptr;
+  if (!lhs)
+    return nullptr;
 
-  for (;;) {
-    switch (token()) {
-      case FlowToken::Equal:
-      case FlowToken::UnEqual:
-      case FlowToken::Less:
-      case FlowToken::Greater:
-      case FlowToken::LessOrEqual:
-      case FlowToken::GreaterOrEqual:
-      case FlowToken::PrefixMatch:
-      case FlowToken::SuffixMatch:
-      case FlowToken::RegexMatch:
-      case FlowToken::In: {
-        FlowToken binop = token();
-        nextToken();
+  switch (token()) {
+    case FlowToken::Equal:
+    case FlowToken::UnEqual:
+    case FlowToken::Less:
+    case FlowToken::Greater:
+    case FlowToken::LessOrEqual:
+    case FlowToken::GreaterOrEqual:
+    case FlowToken::PrefixMatch:
+    case FlowToken::SuffixMatch:
+    case FlowToken::RegexMatch:
+    case FlowToken::In: {
+      FlowToken binop = token();
+      nextToken();
 
-        std::unique_ptr<Expr> rhs = addExpr();
-        if (!rhs) return nullptr;
+      std::unique_ptr<Expr> rhs = addExpr();
+      if (!rhs) return nullptr;
 
-        Opcode opc = makeOperator(binop, lhs.get(), rhs.get());
-        if (opc == Opcode::EXIT) {
-          reportError("Type error in binary expression (%s versus %s).",
-                      tos(lhs->getType()).c_str(), tos(rhs->getType()).c_str());
-          return nullptr;
-        }
-
-        lhs = std::make_unique<BinaryExpr>(opc, std::move(lhs), std::move(rhs));
+      Opcode opc = makeOperator(binop, lhs.get(), rhs.get());
+      if (opc == Opcode::EXIT) {
+        reportError("Type error in binary expression (%s versus %s).",
+                    tos(lhs->getType()).c_str(), tos(rhs->getType()).c_str());
+        return nullptr;
       }
-      default:
-        return lhs;
+
+      lhs = std::make_unique<BinaryExpr>(opc, std::move(lhs), std::move(rhs));
+      return lhs;
     }
+    default:
+      return lhs;
   }
 }
 

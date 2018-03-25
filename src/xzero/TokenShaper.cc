@@ -6,6 +6,7 @@
 // the License at: http://opensource.org/licenses/MIT
 
 #include <xzero/TokenShaper.h>
+#include <xzero/logging.h>
 #include <iostream>
 
 namespace xzero {
@@ -17,6 +18,8 @@ std::ostream& operator<<(std::ostream& os, TokenShaperError ec) {
     case TokenShaperError::CeilLimitOverflow: return os << "Ceil Limit Overflow";
     case TokenShaperError::NameConflict: return os << "Name Conflict";
     case TokenShaperError::InvalidChildNode: return os << "Invalid Child Node";
+    default:
+      logFatal("Unknown TokenShaperError value.");
   }
 }
 

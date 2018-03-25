@@ -30,6 +30,8 @@ std::ostream& operator<<(std::ostream& os, HttpHealthMonitor::State state) {
       return os << "offline";
     case http::client::HttpHealthMonitor::State::Online:
       return os << "online";
+    default:
+      logFatal("Unknown HttpHealthMonitor::State value.");
   }
 }
 

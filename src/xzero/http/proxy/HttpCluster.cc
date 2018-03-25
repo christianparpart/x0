@@ -34,6 +34,8 @@ std::ostream& operator<<(std::ostream& os, HttpClusterSchedulerStatus value) {
     case HttpClusterSchedulerStatus::Unavailable: return os << "Unavailable";
     case HttpClusterSchedulerStatus::Success: return os << "Success";
     case HttpClusterSchedulerStatus::Overloaded: return os << "Overloaded";
+    default:
+      logFatal("Unknown HttpClusterSchedulerStatus value.");
   }
 }
 

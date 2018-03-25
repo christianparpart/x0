@@ -234,7 +234,7 @@ size_t Parser::decodeInt(uint8_t prefixBits, uint64_t* output,
 
   *output = *pos & BITMASK(prefixBits);
 
-  if (*output < BITMASK(prefixBits))
+  if (*output < (uint64_t)BITMASK(prefixBits))
     return 1;
 
   pos++;
