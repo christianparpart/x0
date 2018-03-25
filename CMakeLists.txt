@@ -121,7 +121,6 @@ set(libXzero_SRC src/xzero/AnsiColor.cc
                  src/xzero/RegExp.cc
                  src/xzero/RuntimeError.cc
                  src/xzero/StackTrace.cc
-                 src/xzero/Status.cc
                  src/xzero/StringUtil.cc
                  src/xzero/TokenShaper.cc
                  src/xzero/Tokenizer.cc
@@ -331,7 +330,6 @@ set(x0d_SRC src/x0d/main.cc
             src/x0d/Context.cc
             src/x0d/Daemon.cc
             src/x0d/Module.cc
-            src/x0d/SignalHandler.cc
             src/x0d/modules/access.cc
             src/x0d/modules/accesslog.cc
             src/x0d/modules/auth.cc
@@ -399,7 +397,7 @@ set(xzero_test_SRC
 		src/xzero/http/http1/Parser-test.cc
 		src/xzero/http/http2/Connection-test.cc
 		src/xzero/http/http2/Flow-test.cc
-		src/xzero/http/http2/Generator-test.cc
+		src/xzero/http/http2/FrameGenerator-test.cc
 		src/xzero/http/http2/FrameParser-test.cc
 		src/xzero/http/http2/Stream-test.cc
 		src/xzero/io/DataChain-test.cc
