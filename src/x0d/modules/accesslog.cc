@@ -289,6 +289,7 @@ void verifyFormat(const std::string& format) { // {{{
       case 'U': // URL path (without query string)
       case 'u': // username
       case 'v': // request vhost
+        break;
       default:
         throw AccesslogFormatError{StringUtil::format("Unknown format identifier '%$0'", *i)};
     }
