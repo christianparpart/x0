@@ -31,10 +31,11 @@ namespace xzero::http::client {
 class HttpClusterRequest;
 
 class HttpClusterMember {
-public:
+ public:
   class EventListener;
-  typedef std::function<void(HttpClusterMember*, HttpHealthMonitor::State)>
-      StateChangeNotify;
+
+  using StateChangeNotify = std::function<void(HttpClusterMember*,
+                                               HttpHealthMonitor::State)>;
 
   HttpClusterMember(
       EventListener* eventListener,
@@ -83,12 +84,12 @@ public:
 
   void serialize(JsonWriter& json) const;
 
-private:
+ private:
   bool process(HttpClusterRequest* cr);
   void onResponseReceived(HttpClusterRequest* cr, const HttpClient::Response& r);
   void onFailure(HttpClusterRequest* cr, const std::error_code& ec);
 
-private:
+ private:
   EventListener* eventListener_;
   Executor* executor_;
   std::string name_;
@@ -103,8 +104,6 @@ private:
   Duration writeTimeout_;
   std::unique_ptr<HttpHealthMonitor> healthMonitor_;
   std::mutex lock_;
-
-  std::list<std::unique_ptr<HttpClient>> clients_;
 };
 
 class HttpClusterMember::EventListener {

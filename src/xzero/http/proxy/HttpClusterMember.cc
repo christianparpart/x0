@@ -67,8 +67,7 @@ HttpClusterMember::HttpClusterMember(
           readTimeout,
           writeTimeout,
           std::bind(&EventListener::onHealthChanged, eventListener,
-                    this, std::placeholders::_2))),
-      clients_() {
+                    this, std::placeholders::_2))) {
 }
 
 HttpClusterMember::~HttpClusterMember() {

@@ -57,6 +57,9 @@ struct HttpClusterSettings {
   HttpHealthMonitorSettings healthMonitor;
 };
 
+/**
+ * Implements an intelligent HTTP reverse proxy.
+ */
 class HttpCluster : public HttpClusterMember::EventListener {
  public:
   HttpCluster(const std::string& name,
