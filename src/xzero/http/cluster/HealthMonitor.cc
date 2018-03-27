@@ -5,7 +5,7 @@
 // file except in compliance with the License. You may obtain a copy of
 // the License at: http://opensource.org/licenses/MIT
 
-#include <xzero/http/proxy/HttpHealthMonitor.h>
+#include <xzero/http/cluster/HealthMonitor.h>
 #include <xzero/net/TcpEndPoint.h>
 #include <xzero/StringUtil.h>
 #include <xzero/logging.h>
@@ -13,29 +13,29 @@
 #include <algorithm>
 
 #if 0 // !defined(NDEBUG)
-# define DEBUG(msg...) logDebug("http.client.HttpHealthMonitor: " msg)
-# define TRACE(msg...) logTrace("http.client.HttpHealthMonitor: " msg)
+# define DEBUG(msg...) logDebug("http.cluster.HealthMonitor: " msg)
+# define TRACE(msg...) logTrace("http.cluster.HealthMonitor: " msg)
 #else
 # define DEBUG(msg...) do {} while (0)
 # define TRACE(msg...) do {} while (0)
 #endif
 
-namespace xzero::http::client {
+namespace xzero::http::cluster {
 
-std::ostream& operator<<(std::ostream& os, HttpHealthMonitor::State state) {
+std::ostream& operator<<(std::ostream& os, HealthMonitor::State state) {
   switch (state) {
-    case http::client::HttpHealthMonitor::State::Undefined:
+    case http::cluster::HealthMonitor::State::Undefined:
       return os << "undefined";
-    case http::client::HttpHealthMonitor::State::Offline:
+    case http::cluster::HealthMonitor::State::Offline:
       return os << "offline";
-    case http::client::HttpHealthMonitor::State::Online:
+    case http::cluster::HealthMonitor::State::Online:
       return os << "online";
     default:
-      logFatal("Unknown HttpHealthMonitor::State value.");
+      logFatal("Unknown HealthMonitor::State value.");
   }
 }
 
-HttpHealthMonitor::HttpHealthMonitor(Executor* executor,
+HealthMonitor::HealthMonitor(Executor* executor,
                                      const InetAddress& inetAddress,
                                      const std::string& hostHeader,
                                      const std::string& requestPath,
@@ -71,29 +71,29 @@ HttpHealthMonitor::HttpHealthMonitor(Executor* executor,
   start();
 }
 
-HttpHealthMonitor::~HttpHealthMonitor() {
+HealthMonitor::~HealthMonitor() {
   stop();
 }
 
-void HttpHealthMonitor::start() {
+void HealthMonitor::start() {
   onCheckNow();
 }
 
-void HttpHealthMonitor::stop() {
+void HealthMonitor::stop() {
   TRACE("stop");
   if (timerHandle_) {
     timerHandle_->cancel();
   }
 }
 
-void HttpHealthMonitor::recheck() {
+void HealthMonitor::recheck() {
   TRACE("recheck with interval $0", interval_);
   timerHandle_ = executor_->executeAfter(
       interval_,
-      std::bind(&HttpHealthMonitor::onCheckNow, this));
+      std::bind(&HealthMonitor::onCheckNow, this));
 }
 
-void HttpHealthMonitor::logSuccess() {
+void HealthMonitor::logSuccess() {
   TRACE("logSuccess!");
   ++consecutiveSuccessCount_;
 
@@ -106,7 +106,7 @@ void HttpHealthMonitor::logSuccess() {
   recheck();
 }
 
-void HttpHealthMonitor::logFailure() {
+void HealthMonitor::logFailure() {
   ++totalFailCount_;
   consecutiveSuccessCount_ = 0;
   TRACE("logFailure $0", totalFailCount_);
@@ -119,7 +119,7 @@ void HttpHealthMonitor::logFailure() {
 /**
  * Forces a health-state change.
  */
-void HttpHealthMonitor::setState(State value) {
+void HealthMonitor::setState(State value) {
   assert(value != State::Undefined && "Setting state to Undefined is not allowed.");
   if (state_ == value)
     return;
@@ -134,11 +134,11 @@ void HttpHealthMonitor::setState(State value) {
   }
 
   // if (state_ == State::Offline) {
-  //   executor_->execute(std::bind(&HttpHealthMonitor::start, this));
+  //   executor_->execute(std::bind(&HealthMonitor::start, this));
   // }
 }
 
-void HttpHealthMonitor::onCheckNow() {
+void HealthMonitor::onCheckNow() {
   TRACE("onCheckNow");
 
   timerHandle_.reset();
@@ -148,22 +148,22 @@ void HttpHealthMonitor::onCheckNow() {
                                HttpMethod::GET,
                                requestPath_,
                                {{"Host", hostHeader_},
-                                {"User-Agent", "HttpHealthMonitor"}},
+                                {"User-Agent", "HealthMonitor"}},
                                false,
                                {}));
 
-  f.onSuccess(std::bind(&HttpHealthMonitor::onResponseReceived, this,
+  f.onSuccess(std::bind(&HealthMonitor::onResponseReceived, this,
                         std::placeholders::_1));
-  f.onFailure(std::bind(&HttpHealthMonitor::onFailure, this,
+  f.onFailure(std::bind(&HealthMonitor::onFailure, this,
                         std::placeholders::_1));
 }
 
-void HttpHealthMonitor::onFailure(const std::error_code& ec) {
+void HealthMonitor::onFailure(const std::error_code& ec) {
   DEBUG("Connecting to backend failed. $0", ec.message());
   logFailure();
 }
 
-void HttpHealthMonitor::onResponseReceived(const HttpClient::Response& response) {
+void HealthMonitor::onResponseReceived(const HttpClient::Response& response) {
   TRACE("onResponseReceived");
   auto i = std::find(successCodes_.begin(),
                      successCodes_.end(),
@@ -179,18 +179,18 @@ void HttpHealthMonitor::onResponseReceived(const HttpClient::Response& response)
   logSuccess();
 }
 
-void HttpHealthMonitor::serialize(JsonWriter& json) const {
+void HealthMonitor::serialize(JsonWriter& json) const {
   json.beginObject()
       .name("state")(to_string(state()))
       .name("interval")(interval().milliseconds())
       .endObject();
 }
 
-} // namespace xzero::http::client
+} // namespace xzero::http::cluster
 
 namespace xzero {
   template<>
-  JsonWriter& JsonWriter::value(const http::client::HttpHealthMonitor& monitor) {
+  JsonWriter& JsonWriter::value(const http::cluster::HealthMonitor& monitor) {
     monitor.serialize(*this);
     return *this;
   }

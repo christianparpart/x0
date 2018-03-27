@@ -8,9 +8,9 @@
 #pragma once
 
 #include <xzero/thread/Future.h>
-#include <xzero/http/proxy/HttpClusterMember.h>
-#include <xzero/http/proxy/HttpClusterScheduler.h>
-#include <xzero/http/proxy/HttpHealthMonitor.h>
+#include <xzero/http/cluster/Backend.h>
+#include <xzero/http/cluster/Scheduler.h>
+#include <xzero/http/cluster/HealthMonitor.h>
 #include <xzero/net/InetAddress.h>
 #include <xzero/TokenShaper.h>
 #include <xzero/Duration.h>
@@ -31,9 +31,9 @@ namespace xzero::http {
   class HttpListener;
 }
 
-namespace xzero::http::client {
+namespace xzero::http::cluster {
 
-struct HttpHealthMonitorSettings {
+struct HealthMonitorSettings {
   std::string hostHeader = "healthMonitor";
   std::string requestPath = "/";
   std::string fcgiScriptFilename = "";
@@ -42,7 +42,7 @@ struct HttpHealthMonitorSettings {
   std::vector<HttpStatus> successCodes = {HttpStatus::Ok};
 };
 
-struct HttpClusterSettings {
+struct Settings {
   bool enabled = true;
   bool stickyOfflineMode = false;
   bool allowXSendfile = true;
@@ -54,13 +54,13 @@ struct HttpClusterSettings {
   Duration connectTimeout = 4_seconds;
   Duration readTimeout = 30_seconds;
   Duration writeTimeout = 8_seconds;
-  HttpHealthMonitorSettings healthMonitor;
+  HealthMonitorSettings healthMonitor;
 };
 
 /**
  * Implements an HTTP reverse proxy supporting multiple backends.
  */
-class HttpCluster : public HttpClusterMember::EventListener {
+class Cluster : public Backend::EventListener {
  public:
   /**
    * Constructs a cluster that's being loaded from a configuration file.
@@ -69,32 +69,32 @@ class HttpCluster : public HttpClusterMember::EventListener {
    * @p storagePath path to local file for loading and storing cluster configuration.
    * @p executor Executor API to use for cluster operations (such as health checks)
    */
-  HttpCluster(const std::string& name,
-              const std::string& storagePath,
-              Executor* executor);
+  Cluster(const std::string& name,
+          const std::string& storagePath,
+          Executor* executor);
 
-  HttpCluster(const std::string& name,
-              const std::string& storagePath,
-              Executor* executor,
-              bool enabled,
-              bool stickyOfflineMode,
-              bool allowXSendfile,
-              bool enqueueOnUnavailable,
-              size_t queueLimit,
-              Duration queueTimeout,
-              Duration retryAfter,
-              size_t maxRetryCount,
-              Duration connectTimeout,
-              Duration readTimeout,
-              Duration writeTimeout,
-              const std::string& healthCheckHostHeader,
-              const std::string& healthCheckRequestPath,
-              const std::string& healthCheckFcgiScriptFilename,
-              Duration healthCheckInterval,
-              unsigned healthCheckSuccessThreshold,
-              const std::vector<HttpStatus>& healthCheckSuccessCodes);
+  Cluster(const std::string& name,
+          const std::string& storagePath,
+          Executor* executor,
+          bool enabled,
+          bool stickyOfflineMode,
+          bool allowXSendfile,
+          bool enqueueOnUnavailable,
+          size_t queueLimit,
+          Duration queueTimeout,
+          Duration retryAfter,
+          size_t maxRetryCount,
+          Duration connectTimeout,
+          Duration readTimeout,
+          Duration writeTimeout,
+          const std::string& healthCheckHostHeader,
+          const std::string& healthCheckRequestPath,
+          const std::string& healthCheckFcgiScriptFilename,
+          Duration healthCheckInterval,
+          unsigned healthCheckSuccessThreshold,
+          const std::vector<HttpStatus>& healthCheckSuccessCodes);
 
-  ~HttpCluster();
+  ~Cluster();
 
   // {{{ configuration
   const std::string& name() const { return name_; }
@@ -138,7 +138,7 @@ class HttpCluster : public HttpClusterMember::EventListener {
   Duration writeTimeout() const noexcept { return writeTimeout_; }
   void setWriteTimeout(Duration value) { writeTimeout_ = value; }
 
-  typedef TokenShaper<HttpClusterRequest> RequestShaper;
+  typedef TokenShaper<Context> RequestShaper;
   typedef RequestShaper::Node Bucket;
 
   Executor* executor() const noexcept { return executor_; }
@@ -151,8 +151,8 @@ class HttpCluster : public HttpClusterMember::EventListener {
   RequestShaper* shaper() { return &shaper_; }
 
   bool setScheduler(const std::string& scheduler);
-  void setScheduler(std::unique_ptr<HttpClusterScheduler> scheduler);
-  HttpClusterScheduler* scheduler() const { return scheduler_.get(); }
+  void setScheduler(std::unique_ptr<Scheduler> scheduler);
+  Scheduler* scheduler() const { return scheduler_.get(); }
 
   /**
    * Adds a new member to the HTTP cluster without any capacity constrain.
@@ -190,7 +190,7 @@ class HttpCluster : public HttpClusterMember::EventListener {
                  const std::string& protocol,
                  Duration healthCheckInterval);
 
-  HttpClusterMember* findMember(const std::string& name);
+  Backend* findMember(const std::string& name);
 
   /**
    * Removes member by name.
@@ -238,37 +238,36 @@ class HttpCluster : public HttpClusterMember::EventListener {
    *
    * Uses the root bucket.
    *
-   * @param cr request to schedule
+   * @param cx request to schedule
    */
-  void schedule(HttpClusterRequest* cr);
+  void schedule(Context* cx);
 
   /**
-   * Passes given request @p cr to a cluster member to be served,
+   * Passes given request @p cx to a cluster member to be served,
    * honoring given @p bucket.
    *
-   * @param cr request to schedule
+   * @param cx request to schedule
    * @param bucket a TokenShaper bucket to allocate this request into.
    */
-  void schedule(HttpClusterRequest* cr, Bucket* bucket);
+  void schedule(Context* cx, Bucket* bucket);
 
   void serialize(JsonWriter& json) const;
 
-  // HttpClusterMember::EventListener overrides
-  void onEnabledChanged(HttpClusterMember* member) override;
-  void onCapacityChanged(HttpClusterMember* member, size_t old) override;
-  void onHealthChanged(HttpClusterMember* member,
-                       HttpHealthMonitor::State old) override;
-  void onProcessingSucceed(HttpClusterMember* member) override;
-  void onProcessingFailed(HttpClusterRequest* request) override;
+  // Backend::EventListener overrides
+  void onEnabledChanged(Backend* member) override;
+  void onCapacityChanged(Backend* member, size_t old) override;
+  void onHealthChanged(Backend* member, HealthMonitor::State old) override;
+  void onProcessingSucceed(Backend* member) override;
+  void onProcessingFailed(Context* request) override;
 
  private:
-  void reschedule(HttpClusterRequest* cr);
-  void serviceUnavailable(HttpClusterRequest* cr, HttpStatus status = HttpStatus::ServiceUnavailable);
-  bool verifyTryCount(HttpClusterRequest* cr);
-  void enqueue(HttpClusterRequest* cr);
-  void dequeueTo(HttpClusterMember* backend);
-  HttpClusterRequest* dequeue();
-  void onTimeout(HttpClusterRequest* cr);
+  void reschedule(Context* cx);
+  void serviceUnavailable(Context* cx, HttpStatus status = HttpStatus::ServiceUnavailable);
+  bool verifyTryCount(Context* cx);
+  void enqueue(Context* cx);
+  void dequeueTo(Backend* backend);
+  Context* dequeue();
+  void onTimeout(Context* cx);
   void loadBackend(const IniFile& settings, const std::string& key);
   void loadBucket(const IniFile& settings, const std::string& key);
 
@@ -322,7 +321,7 @@ class HttpCluster : public HttpClusterMember::EventListener {
   RequestShaper shaper_;
 
   // cluster member vector
-  std::vector<HttpClusterMember*> members_;
+  std::vector<Backend*> members_;
 
   // health check: test URL
   std::string healthCheckHostHeader_;
@@ -340,7 +339,7 @@ class HttpCluster : public HttpClusterMember::EventListener {
   std::vector<HttpStatus> healthCheckSuccessCodes_;
 
   // member scheduler
-  std::unique_ptr<HttpClusterScheduler> scheduler_;
+  std::unique_ptr<Scheduler> scheduler_;
 
   // statistical counter for accumulated cluster load (all members)
   Counter load_;
@@ -352,4 +351,4 @@ class HttpCluster : public HttpClusterMember::EventListener {
   std::atomic<unsigned long long> dropped_;
 };
 
-} // namespace xzero::http::client
+} // namespace xzero::http::cluster

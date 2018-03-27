@@ -18,23 +18,23 @@ namespace xzero::http::client {
   class HttpClient;
 }
 
-namespace xzero::http::client {
+namespace xzero::http::cluster {
 
-class HttpClusterMember;
+class Backend;
 
-class HttpClusterRequest : public CustomData,
-                           public HttpListener {
+class Context : public CustomData,
+                public HttpListener {
  public:
-  HttpClusterRequest() = delete;
-  HttpClusterRequest(const HttpClusterRequest&) = delete;
-  HttpClusterRequest& operator=(const HttpClusterRequest&) = delete;
+  Context() = delete;
+  Context(const Context&) = delete;
+  Context& operator=(const Context&) = delete;
 
-  HttpClusterRequest(const HttpRequest& _request,
+  Context(const HttpRequest& _request,
                      std::unique_ptr<HttpListener> _responseListener,
                      Executor* _executor,
                      size_t responseBodyBufferSize,
                      const std::string& proxyId);
-  ~HttpClusterRequest();
+  ~Context();
 
   void post(Executor::Task task) { executor->execute(task); }
 
@@ -48,18 +48,18 @@ class HttpClusterRequest : public CustomData,
   void onMessageEnd() override;
   void onError(std::error_code ec) override;
 
-  // void onFailure(HttpClusterRequest* cr, Status status);
+  // void onFailure(Context* cr, Status status);
 
  public:
   MonotonicTime ctime;
   Executor* executor;
 
   // the bucket (node) this request is to be scheduled via
-  TokenShaper<HttpClusterRequest>::Node* bucket;
+  TokenShaper<Context>::Node* bucket;
 
   // designated backend to serve this request
-  HttpClusterMember* backend;
-  std::unique_ptr<HttpClient> client;
+  Backend* backend;
+  std::unique_ptr<::xzero::http::client::HttpClient> client;
 
   // number of scheduling attempts
   size_t tryCount;
@@ -77,4 +77,4 @@ class HttpClusterRequest : public CustomData,
   std::unique_ptr<HttpListener> responseListener;
 };
 
-} // namespace xzero::http::client
+} // namespace xzero::http::cluster

@@ -24,20 +24,19 @@ namespace xzero::http {
   enum class HttpStatus;
 }
 
-namespace xzero::http::client {
+namespace xzero::http::cluster {
 
-class HttpClusterApi;
-class HttpClusterMember;
-class HttpCluster;
+class Api;
+class Backend;
+class Cluster;
 
-class HttpClusterApiHandler : public CustomData {
+class ApiHandler : public CustomData {
  public:
-  HttpClusterApiHandler(
-      HttpClusterApi* api,
-      HttpRequest* request,
-      HttpResponse* response,
-      const std::string& prefix);
-  ~HttpClusterApiHandler();
+  ApiHandler(Api* api,
+             HttpRequest* request,
+             HttpResponse* response,
+             const std::string& prefix);
+  ~ApiHandler();
 
   bool run();
 
@@ -50,26 +49,26 @@ class HttpClusterApiHandler : public CustomData {
   void createBackendOrBucket();
   void processCluster();
   void createCluster(const std::string& name);
-  void showCluster(HttpCluster* cluster);
-  void updateCluster(HttpCluster* cluster);
-  HttpStatus doUpdateCluster(HttpCluster* cluster, HttpStatus status);
-  void enableCluster(HttpCluster* cluster);
-  void disableCluster(HttpCluster* cluster);
-  void destroyCluster(HttpCluster* cluster);
+  void showCluster(Cluster* cluster);
+  void updateCluster(Cluster* cluster);
+  HttpStatus doUpdateCluster(Cluster* cluster, HttpStatus status);
+  void enableCluster(Cluster* cluster);
+  void disableCluster(Cluster* cluster);
+  void destroyCluster(Cluster* cluster);
 
   void processBackend();
-  void createBackend(HttpCluster* cluster, const std::string& name);
-  void showBackend(HttpCluster* cluster, HttpClusterMember* member);
-  void updateBackend(HttpCluster* cluster, HttpClusterMember* member);
-  void enableBackend(HttpCluster* cluster, HttpClusterMember* member);
-  void disableBackend(HttpCluster* cluster, HttpClusterMember* member);
-  void destroyBackend(HttpCluster* cluster, HttpClusterMember* member);
+  void createBackend(Cluster* cluster, const std::string& name);
+  void showBackend(Cluster* cluster, Backend* member);
+  void updateBackend(Cluster* cluster, Backend* member);
+  void enableBackend(Cluster* cluster, Backend* member);
+  void disableBackend(Cluster* cluster, Backend* member);
+  void destroyBackend(Cluster* cluster, Backend* member);
 
   void processBucket();
-  void createBucket(HttpCluster* cluster, const std::string& name);
-  void showBucket(HttpCluster* cluster, const std::string& name);
-  void updateBucket(HttpCluster* cluster, const std::string& name);
-  void destroyBucket(HttpCluster* cluster, const std::string& name);
+  void createBucket(Cluster* cluster, const std::string& name);
+  void showBucket(Cluster* cluster, const std::string& name);
+  void updateBucket(Cluster* cluster, const std::string& name);
+  void destroyBucket(Cluster* cluster, const std::string& name);
 
   template<typename... Args>
   bool generateResponse(HttpStatus status, const std::string& msg, Args... args);
@@ -93,7 +92,7 @@ class HttpClusterApiHandler : public CustomData {
   }
 
  private:
-  HttpClusterApi* api_;
+  Api* api_;
   HttpRequest* request_;
   HttpResponse* response_;
   unsigned errorCount_;
@@ -102,4 +101,4 @@ class HttpClusterApiHandler : public CustomData {
   std::unordered_map<std::string, std::string> params_;
 };
 
-} // namespace xzero::http::client
+} // namespace xzero::http::cluster

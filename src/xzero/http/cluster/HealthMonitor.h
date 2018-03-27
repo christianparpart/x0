@@ -22,15 +22,16 @@ namespace xzero {
   class JsonWriter;
 }
 
-namespace xzero::http::client {
+namespace xzero::http::cluster {
 
 /**
  * Monitors an HTTP endpoint for healthiness.
  */
-class HttpHealthMonitor {
+class HealthMonitor {
  public:
+  using HttpClient = xzero::http::client::HttpClient;
   enum class State { Undefined, Offline, Online };
-  typedef std::function<void(HttpHealthMonitor*, State)> StateChangeNotify;
+  typedef std::function<void(HealthMonitor*, State)> StateChangeNotify;
 
   /**
    * Initializes the health monitor.
@@ -49,7 +50,7 @@ class HttpHealthMonitor {
    * @param writeTimeout Network write timeout.
    * @param onStateChange Callback to invoke upon state changes.
    */
-  HttpHealthMonitor(Executor* executor,
+  HealthMonitor(Executor* executor,
                     const InetAddress& inetAddress,
                     const std::string& hostHeader,
                     const std::string& requestPath,
@@ -62,7 +63,7 @@ class HttpHealthMonitor {
                     Duration writeTimeout,
                     StateChangeNotify onStateChange);
 
-  ~HttpHealthMonitor();
+  ~HealthMonitor();
 
   const std::string& hostHeader() const noexcept { return hostHeader_; }
   void setHostHeader(const std::string& value) { hostHeader_ = value; }
@@ -131,6 +132,6 @@ class HttpHealthMonitor {
   HttpClient client_;
 };
 
-std::ostream& operator<<(std::ostream& os, HttpHealthMonitor::State state);
+std::ostream& operator<<(std::ostream& os, HealthMonitor::State state);
 
-} // namespace xzero::http::client
+} // namespace xzero::http::cluster

@@ -7,8 +7,8 @@
 
 #pragma once
 
-#include <xzero/http/proxy/HttpClusterSchedulerStatus.h>
-#include <xzero/http/proxy/HttpHealthMonitor.h>
+#include <xzero/http/cluster/SchedulerStatus.h>
+#include <xzero/http/cluster/HealthMonitor.h>
 #include <xzero/http/client/HttpClient.h>
 #include <xzero/thread/Future.h>
 #include <xzero/net/InetAddress.h>
@@ -26,37 +26,37 @@ namespace xzero {
   class JsonWriter;
 }
 
-namespace xzero::http::client {
+namespace xzero::http::cluster {
 
-class HttpClusterRequest;
+class Context;
 
-class HttpClusterMember {
+class Backend {
  public:
   class EventListener;
 
-  using StateChangeNotify = std::function<void(HttpClusterMember*,
-                                               HttpHealthMonitor::State)>;
+  using HttpClient = xzero::http::client::HttpClient;
+  using StateChangeNotify = std::function<void(Backend*,
+                                               HealthMonitor::State)>;
 
-  HttpClusterMember(
-      EventListener* eventListener,
-      Executor* executor,
-      const std::string& name,
-      const InetAddress& inet,
-      size_t capacity,
-      bool enabled,
-      bool terminateProtection,
-      const std::string& protocol, // http, https, fastcgi, h2, ...
-      Duration connectTimeout,
-      Duration readTimeout,
-      Duration writeTimeout,
-      const std::string& healthCheckHostHeader,
-      const std::string& healthCheckRequestPath,
-      const std::string& healthCheckFcgiScriptFilename,
-      Duration healthCheckInterval,
-      unsigned healthCheckSuccessThreshold,
-      const std::vector<HttpStatus>& healthCheckSuccessCodes);
+  Backend(EventListener* eventListener,
+          Executor* executor,
+          const std::string& name,
+          const InetAddress& inet,
+          size_t capacity,
+          bool enabled,
+          bool terminateProtection,
+          const std::string& protocol, // http, https, fastcgi, h2, ...
+          Duration connectTimeout,
+          Duration readTimeout,
+          Duration writeTimeout,
+          const std::string& healthCheckHostHeader,
+          const std::string& healthCheckRequestPath,
+          const std::string& healthCheckFcgiScriptFilename,
+          Duration healthCheckInterval,
+          unsigned healthCheckSuccessThreshold,
+          const std::vector<HttpStatus>& healthCheckSuccessCodes);
 
-  ~HttpClusterMember();
+  ~Backend();
 
   Executor* executor() const { return executor_; }
 
@@ -77,17 +77,17 @@ class HttpClusterMember {
 
   const std::string& protocol() const noexcept { return protocol_; }
 
-  HttpHealthMonitor* healthMonitor() const { return healthMonitor_.get(); }
+  HealthMonitor* healthMonitor() const { return healthMonitor_.get(); }
 
-  [[nodiscard]] HttpClusterSchedulerStatus tryProcess(HttpClusterRequest* cr);
+  [[nodiscard]] SchedulerStatus tryProcess(Context* cr);
   void release();
 
   void serialize(JsonWriter& json) const;
 
  private:
-  bool process(HttpClusterRequest* cr);
-  void onResponseReceived(HttpClusterRequest* cr, const HttpClient::Response& r);
-  void onFailure(HttpClusterRequest* cr, const std::error_code& ec);
+  bool process(Context* cr);
+  void onResponseReceived(Context* cr, const HttpClient::Response& r);
+  void onFailure(Context* cr, const std::error_code& ec);
 
  private:
   EventListener* eventListener_;
@@ -102,28 +102,28 @@ class HttpClusterMember {
   Duration connectTimeout_;
   Duration readTimeout_;
   Duration writeTimeout_;
-  std::unique_ptr<HttpHealthMonitor> healthMonitor_;
+  std::unique_ptr<HealthMonitor> healthMonitor_;
   std::mutex lock_;
 };
 
-class HttpClusterMember::EventListener {
+class Backend::EventListener {
  public:
   virtual ~EventListener() {}
 
-  virtual void onEnabledChanged(HttpClusterMember* member) = 0;
-  virtual void onCapacityChanged(HttpClusterMember* member, size_t old) = 0;
-  virtual void onHealthChanged(HttpClusterMember* member,
-                               HttpHealthMonitor::State old) = 0;
+  virtual void onEnabledChanged(Backend* member) = 0;
+  virtual void onCapacityChanged(Backend* member, size_t old) = 0;
+  virtual void onHealthChanged(Backend* member,
+                               HealthMonitor::State old) = 0;
 
   /**
    * Invoked when backend is done processing with one request.
    */
-  virtual void onProcessingSucceed(HttpClusterMember* member) = 0;
+  virtual void onProcessingSucceed(Backend* member) = 0;
 
   /**
    * Invoked when given @p request has failed processing.
    */
-  virtual void onProcessingFailed(HttpClusterRequest* request) = 0;
+  virtual void onProcessingFailed(Context* request) = 0;
 };
 
-} // namespace xzero::http::client
+} // namespace xzero::http::cluster

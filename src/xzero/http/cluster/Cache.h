@@ -12,28 +12,23 @@
 #include <memory>
 #include <list>
 
-namespace xzero {
-  class InputStream;
-}
-
 namespace xzero::http {
-  class HttpRequestInfo;
-  class HttpResponseInfo;
+  class HttpRequest;
 }
 
-namespace xzero::http::client {
+namespace xzero::http::cluster {
 
 /**
  * Implements an HTTP Object Cache Service.
  */
-class HttpCache {
+class Cache {
  public:
   class Builder;
   class Object;
   class ConcreteObject;
 
-  HttpCache();
-  ~HttpCache();
+  Cache();
+  ~Cache();
 
   /**
    * Global flag to either enable or disable object caching.
@@ -106,7 +101,7 @@ class HttpCache {
    *
    * @see deliverShadow(HttpRequest* r, const std::string& cacheKey);
    */
-  bool deliverActive(RequestNotes* rn);
+  bool deliverActive(Context* rn);
 
   /**
    * Attempts to serve the request from cache if available, doesn't do anything
@@ -118,7 +113,7 @@ class HttpCache {
    *
    * \see deliverActive(HttpRequest* r, const std::string& cacheKey);
    */
-  bool deliverShadow(RequestNotes* rn);
+  bool deliverShadow(Context* rn);
 
  public:
   /**
@@ -182,7 +177,7 @@ class HttpCache {
  private:
   typedef tbb::concurrent_hash_map<std::string, Object*> ObjectMap;
 
-  Director* director_;
+  Cluster* cluster_;
   bool enabled_;
   bool deliverActive_;
   bool deliverShadow_;
@@ -205,7 +200,7 @@ class HttpCache {
 /**
  * HTTP response filter, used to populate a cache-object with a fresh response.
  */
-class HttpCache::Builder : public Filter {
+class Cache::Builder : public Filter {
  private:
   ConcreteObject* object_;
 
@@ -219,26 +214,26 @@ class HttpCache::Builder : public Filter {
  * A cache-object containing an HTTP response message, respecting the HTTP
  * <b>Vary</b> response header.
  */
-class HttpCache::Object {
+class Cache::Object {
  public:
-  Object(HttpCache* cache, const std::string& cacheKey);
+  Object(Cache* cache, const std::string& cacheKey);
 
-  HttpCache* store() const { return store_; }
+  Cache* store() const { return store_; }
   const std::string& cacheKey() const { return cacheKey_; }
 
   /**
    * Selects a cache-object based on the request's cache key and Vary header.
    */
-  ConcreteObject* select(const RequestNotes* rn);
+  ConcreteObject* select(const Context* rn);
 
-  bool update(RequestNotes* rn);
-  void deliver(RequestNotes* rn);
+  bool update(Context* rn);
+  void deliver(Context* rn);
   void expire();
 
   void destroy(ConcreteObject* concreteObject);
 
  private:
-  HttpCache* store_;
+  Cache* store_;
   std::string cacheKey_;
 
   // list of all request header names which value may <b>vary</b>.
@@ -253,7 +248,7 @@ class HttpCache::Object {
 /**
  * A cache-object that contains an HTTP response message.
  */
-class HttpCache::ConcreteObject {
+class Cache::ConcreteObject {
  public:
   //! The object's state.
   enum State {
@@ -288,7 +283,7 @@ class HttpCache::ConcreteObject {
    * @retval false This request is being used for updating the object. So
    *further processing must occur.
    */
-  bool update(RequestNotes* rn);
+  bool update(Context* rn);
 
   /*!
    * Delivers this object to the given HTTP client.
@@ -301,7 +296,7 @@ class HttpCache::ConcreteObject {
    *
    * \param r the request this object should be served as response to.
    */
-  void deliver(RequestNotes* rn);
+  void deliver(Context* rn);
 
   /**
    * Marks object as expired but does not destruct it from the store.
@@ -336,7 +331,7 @@ class HttpCache::ConcreteObject {
   bool isMatch(const HttpRequest* r) const;
 
  private:
-  inline void internalDeliver(RequestNotes* rn);
+  inline void internalDeliver(Context* rn);
 
   struct Buffer {  // {{{
     UnixTime ctime;
@@ -366,7 +361,7 @@ class HttpCache::ConcreteObject {
     }
   };  // }}}
 
-  HttpStatus tryProcessClientCache(RequestNotes* rn);
+  HttpStatus tryProcessClientCache(Context* rn);
   void postProcess();
   void addHeaders(HttpRequest* r, bool hit);
   void destroy();
@@ -395,15 +390,15 @@ class HttpCache::ConcreteObject {
   State state_;
 
   // either NULL or pointer to request currently updating this object.
-  RequestNotes* requestNotes_;
+  Context* requestNotes_;
 
   // list of requests that have to deliver this object ASAP.
-  std::list<RequestNotes*> interests_;
+  std::list<Context*> interests_;
 
   size_t bufferIndex_;
   Buffer buffer_[2];
 
-  friend class HttpCache;
+  friend class Cache;
 };
 
-} // namespace xzero::http::client
+} // namespace xzero::http::cluster

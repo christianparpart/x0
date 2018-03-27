@@ -401,26 +401,24 @@ endif
 
 if ENABLE_PROXY
 libXzero_a_SOURCES += \
-	src/xzero/http/proxy/HttpCluster.cc \
-	src/xzero/http/proxy/HttpClusterApiHandler.cc \
-	src/xzero/http/proxy/HttpClusterMember.cc \
-	src/xzero/http/proxy/HttpClusterRequest.cc \
-	src/xzero/http/proxy/HttpClusterScheduler.cc \
-	src/xzero/http/proxy/HttpReverseProxy.cc \
-	src/xzero/http/proxy/HttpHealthMonitor.cc
+	src/xzero/http/cluster/ApiHandler.cc \
+	src/xzero/http/cluster/Backend.cc \
+	src/xzero/http/cluster/Cluster.cc \
+	src/xzero/http/cluster/Context.cc \
+	src/xzero/http/cluster/HealthMonitor.cc \
+	src/xzero/http/cluster/Scheduler.cc
 
 nobase_libXzero_HEADERS += \
-	src/xzero/http/proxy/ClientAbortAction.h \
-	src/xzero/http/proxy/HttpCache.h \
-	src/xzero/http/proxy/HttpCluster.h \
-	src/xzero/http/proxy/HttpClusterApi.h \
-	src/xzero/http/proxy/HttpClusterApiHandler.h \
-	src/xzero/http/proxy/HttpClusterMember.h \
-	src/xzero/http/proxy/HttpClusterRequest.h \
-	src/xzero/http/proxy/HttpClusterScheduler.h \
-	src/xzero/http/proxy/HttpClusterSchedulerStatus.h \
-	src/xzero/http/proxy/HttpReverseProxy.h \
-	src/xzero/http/proxy/HttpHealthMonitor.h
+	src/xzero/http/cluster/Api.h \
+	src/xzero/http/cluster/ApiHandler.h \
+	src/xzero/http/cluster/Backend.h \
+	src/xzero/http/cluster/Cache.h \
+	src/xzero/http/cluster/ClientAbortAction.h \
+	src/xzero/http/cluster/Cluster.h \
+	src/xzero/http/cluster/Context.h \
+	src/xzero/http/cluster/Scheduler.h \
+	src/xzero/http/cluster/SchedulerStatus.h \
+	src/xzero/http/cluster/HealthMonitor.h
 endif
 
 install-data-hook:

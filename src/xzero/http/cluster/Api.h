@@ -16,26 +16,26 @@ namespace xzero::http {
   class HttpResponse;
 }
 
-namespace xzero::http::client {
+namespace xzero::http::cluster {
 
-class HttpCluster;
+class Cluster;
 
-class HttpClusterApi {
+class Api {
  public:
-  ~HttpClusterApi() {}
+  virtual ~Api() {}
 
   // retrieves all available cluster
-  virtual std::list<HttpCluster*> listCluster() = 0;
+  virtual std::list<Cluster*> listCluster() = 0;
 
   // gets one cluster
-  virtual HttpCluster* findCluster(const std::string& name) = 0;
+  virtual Cluster* findCluster(const std::string& name) = 0;
 
   // creates a new cluster
-  virtual HttpCluster* createCluster(const std::string& name,
-                                     const std::string& path) = 0;
+  virtual Cluster* createCluster(const std::string& name,
+                                 const std::string& path) = 0;
 
   // destroys a cluster
   virtual void destroyCluster(const std::string& name) = 0;
 };
 
-} // namespace xzero::http::client
+} // namespace xzero::http::cluster

@@ -7,12 +7,12 @@
 
 #pragma once
 
-namespace xzero::http::client {
+namespace xzero::http::cluster {
 
 /*!
  * Reflects the result of a request scheduling attempt.
  */
-enum class HttpClusterSchedulerStatus {
+enum class SchedulerStatus {
   //! Request not scheduled, as all backends are offline and/or disabled.
   Unavailable,
 
@@ -23,4 +23,4 @@ enum class HttpClusterSchedulerStatus {
   Overloaded
 };
 
-} // namespace xzero::http::client
+} // namespace xzero::http::cluster

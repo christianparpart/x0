@@ -5,10 +5,10 @@
 // file except in compliance with the License. You may obtain a copy of
 // the License at: http://opensource.org/licenses/MIT
 
-#include <xzero/http/proxy/HttpCluster.h>
-#include <xzero/http/proxy/HttpClusterRequest.h>
-#include <xzero/http/proxy/HttpClusterMember.h>
-#include <xzero/http/proxy/HttpHealthMonitor.h>
+#include <xzero/http/cluster/Cluster.h>
+#include <xzero/http/cluster/Context.h>
+#include <xzero/http/cluster/Backend.h>
+#include <xzero/http/cluster/HealthMonitor.h>
 #include <xzero/io/FileUtil.h>
 #include <xzero/text/IniFile.h>
 #include <xzero/JsonWriter.h>
@@ -17,78 +17,76 @@
 #include <algorithm>
 #include <sstream>
 
-namespace xzero {
-namespace http {
-namespace client {
+namespace xzero::http::cluster {
 
 #ifndef NDEBUG
-# define DEBUG(msg...) logDebug("HttpCluster: " msg)
-# define TRACE(msg...) logTrace("HttpCluster: " msg)
+# define DEBUG(msg...) logDebug("http.cluster.Cluster: " msg)
+# define TRACE(msg...) logTrace("http.cluster.Cluster: " msg)
 #else
 # define DEBUG(msg...) do {} while (0)
 # define TRACE(msg...) do {} while (0)
 #endif
 
-std::ostream& operator<<(std::ostream& os, HttpClusterSchedulerStatus value) {
+std::ostream& operator<<(std::ostream& os, SchedulerStatus value) {
   switch (value) {
-    case HttpClusterSchedulerStatus::Unavailable: return os << "Unavailable";
-    case HttpClusterSchedulerStatus::Success: return os << "Success";
-    case HttpClusterSchedulerStatus::Overloaded: return os << "Overloaded";
+    case SchedulerStatus::Unavailable: return os << "Unavailable";
+    case SchedulerStatus::Success: return os << "Success";
+    case SchedulerStatus::Overloaded: return os << "Overloaded";
     default:
-      logFatal("Unknown HttpClusterSchedulerStatus value.");
+      logFatal("Unknown SchedulerStatus value.");
   }
 }
 
-HttpCluster::HttpCluster(const std::string& name,
-                         const std::string& storagePath,
-                         Executor* executor)
-    : HttpCluster(name,
-                  storagePath,
-                  executor,
-                  true,                       // enabled
-                  false,                      // stickyOfflineMode
-                  true,                       // allowXSendfile
-                  true,                       // enqueueOnUnavailable
-                  1000,                       // queueLimit
-                  30_seconds,                 // queueTimeout
-                  30_seconds,                 // retryAfter
-                  3,                          // maxRetryCount
-                  4_seconds,                  // backend connect timeout
-                  30_seconds,                 // backend response read timeout
-                  8_seconds,                  // backend request write timeout
-                  "healthcheck",              // health check Host header value
-                  "/",                        // health check request path
-                  "",                         // health check fcgi script filename
-                  10_seconds,                 // health check interval
-                  3,                          // health check success threshold
-                  {HttpStatus::Ok,            // health check success codes
-                   HttpStatus::NoContent,
-                   HttpStatus::MovedPermanently,
-                   HttpStatus::MovedTemporarily,
-                   HttpStatus::TemporaryRedirect,
-                   HttpStatus::PermanentRedirect}) {
+Cluster::Cluster(const std::string& name,
+                 const std::string& storagePath,
+                 Executor* executor)
+    : Cluster(name,
+              storagePath,
+              executor,
+              true,                       // enabled
+              false,                      // stickyOfflineMode
+              true,                       // allowXSendfile
+              true,                       // enqueueOnUnavailable
+              1000,                       // queueLimit
+              30_seconds,                 // queueTimeout
+              30_seconds,                 // retryAfter
+              3,                          // maxRetryCount
+              4_seconds,                  // backend connect timeout
+              30_seconds,                 // backend response read timeout
+              8_seconds,                  // backend request write timeout
+              "healthcheck",              // health check Host header value
+              "/",                        // health check request path
+              "",                         // health check fcgi script filename
+              10_seconds,                 // health check interval
+              3,                          // health check success threshold
+              {HttpStatus::Ok,            // health check success codes
+               HttpStatus::NoContent,
+               HttpStatus::MovedPermanently,
+               HttpStatus::MovedTemporarily,
+               HttpStatus::TemporaryRedirect,
+               HttpStatus::PermanentRedirect}) {
 }
 
-HttpCluster::HttpCluster(const std::string& name,
-                         const std::string& storagePath,
-                         Executor* executor,
-                         bool enabled,
-                         bool stickyOfflineMode,
-                         bool allowXSendfile,
-                         bool enqueueOnUnavailable,
-                         size_t queueLimit,
-                         Duration queueTimeout,
-                         Duration retryAfter,
-                         size_t maxRetryCount,
-                         Duration connectTimeout,
-                         Duration readTimeout,
-                         Duration writeTimeout,
-                         const std::string& healthCheckHostHeader,
-                         const std::string& healthCheckRequestPath,
-                         const std::string& healthCheckFcgiScriptFilename,
-                         Duration healthCheckInterval,
-                         unsigned healthCheckSuccessThreshold,
-                         const std::vector<HttpStatus>& healthCheckSuccessCodes)
+Cluster::Cluster(const std::string& name,
+                 const std::string& storagePath,
+                 Executor* executor,
+                 bool enabled,
+                 bool stickyOfflineMode,
+                 bool allowXSendfile,
+                 bool enqueueOnUnavailable,
+                 size_t queueLimit,
+                 Duration queueTimeout,
+                 Duration retryAfter,
+                 size_t maxRetryCount,
+                 Duration connectTimeout,
+                 Duration readTimeout,
+                 Duration writeTimeout,
+                 const std::string& healthCheckHostHeader,
+                 const std::string& healthCheckRequestPath,
+                 const std::string& healthCheckFcgiScriptFilename,
+                 Duration healthCheckInterval,
+                 unsigned healthCheckSuccessThreshold,
+                 const std::vector<HttpStatus>& healthCheckSuccessCodes)
     : name_(name),
       enabled_(enabled),
       stickyOfflineMode_(stickyOfflineMode),
@@ -104,7 +102,7 @@ HttpCluster::HttpCluster(const std::string& name,
       executor_(executor),
       storagePath_(storagePath),
       shaper_(executor, 0,
-              std::bind(&HttpCluster::onTimeout, this, std::placeholders::_1)),
+              std::bind(&Cluster::onTimeout, this, std::placeholders::_1)),
       members_(),
       healthCheckHostHeader_(healthCheckHostHeader),
       healthCheckRequestPath_(healthCheckRequestPath),
@@ -112,21 +110,21 @@ HttpCluster::HttpCluster(const std::string& name,
       healthCheckInterval_(healthCheckInterval),
       healthCheckSuccessThreshold_(healthCheckSuccessThreshold),
       healthCheckSuccessCodes_(healthCheckSuccessCodes),
-      scheduler_(std::make_unique<HttpClusterScheduler::RoundRobin>(&members_)),
+      scheduler_(std::make_unique<Scheduler::RoundRobin>(&members_)),
       load_(),
       queued_(),
       dropped_() {
   TRACE("ctor(name: $0)", name_);
 }
 
-HttpCluster::~HttpCluster() {
+Cluster::~Cluster() {
 }
 
-void HttpCluster::saveConfiguration() {
+void Cluster::saveConfiguration() {
   FileUtil::write(storagePath_, configuration());
 }
 
-std::string HttpCluster::configuration() const {
+std::string Cluster::configuration() const {
   std::ostringstream out;
 
   out << "# vim:syntax=dosini\n"
@@ -184,7 +182,7 @@ std::string HttpCluster::configuration() const {
   return out.str();
 }
 
-void HttpCluster::setConfiguration(const std::string& text,
+void Cluster::setConfiguration(const std::string& text,
                                    const std::string& path) {
   size_t changed = 0;
   std::string value;
@@ -445,7 +443,7 @@ void HttpCluster::setConfiguration(const std::string& text,
   }
 }
 
-void HttpCluster::loadBackend(const IniFile& settings, const std::string& key) {
+void Cluster::loadBackend(const IniFile& settings, const std::string& key) {
   std::string name = key.substr(strlen("backend="));
 
   TRACE("Cluster $0: loading backend: $1", name_, name);
@@ -523,7 +521,7 @@ void HttpCluster::loadBackend(const IniFile& settings, const std::string& key) {
             protocol, hcInterval);
 }
 
-void HttpCluster::loadBucket(const IniFile& settings, const std::string& key) {
+void Cluster::loadBucket(const IniFile& settings, const std::string& key) {
   std::string name = key.substr(strlen("bucket="));
 
   std::string rateStr;
@@ -561,23 +559,23 @@ void HttpCluster::loadBucket(const IniFile& settings, const std::string& key) {
   }
 }
 
-bool HttpCluster::setScheduler(const std::string& value) {
+bool Cluster::setScheduler(const std::string& value) {
   if (value == "rr") {
-    setScheduler(std::make_unique<HttpClusterScheduler::RoundRobin>(&members_));
+    setScheduler(std::make_unique<Scheduler::RoundRobin>(&members_));
     return true;
   } else if (value == "chance") {
-    setScheduler(std::make_unique<HttpClusterScheduler::Chance>(&members_));
+    setScheduler(std::make_unique<Scheduler::Chance>(&members_));
     return true;
   } else {
     return false;
   }
 }
 
-void HttpCluster::setScheduler(std::unique_ptr<HttpClusterScheduler> scheduler) {
+void Cluster::setScheduler(std::unique_ptr<Scheduler> scheduler) {
   scheduler_ = std::move(scheduler);
 }
 
-void HttpCluster::addMember(const InetAddress& addr) {
+void Cluster::addMember(const InetAddress& addr) {
   addMember(StringUtil::format("$0", addr),
             addr,
             0,        // capacity (0 = no limit)
@@ -587,7 +585,7 @@ void HttpCluster::addMember(const InetAddress& addr) {
             healthCheckInterval_);
 }
 
-void HttpCluster::addMember(const InetAddress& addr, size_t capacity) {
+void Cluster::addMember(const InetAddress& addr, size_t capacity) {
   addMember(StringUtil::format("$0", addr),
             addr,
             capacity,
@@ -597,18 +595,18 @@ void HttpCluster::addMember(const InetAddress& addr, size_t capacity) {
             healthCheckInterval_);
 }
 
-void HttpCluster::addMember(const std::string& name,
-                            const InetAddress& addr,
-                            size_t capacity,
-                            bool enabled,
-                            bool terminateProtection,
-                            const std::string& protocol,
-                            Duration healthCheckInterval) {
+void Cluster::addMember(const std::string& name,
+                        const InetAddress& addr,
+                        size_t capacity,
+                        bool enabled,
+                        bool terminateProtection,
+                        const std::string& protocol,
+                        Duration healthCheckInterval) {
   Executor* const executor = executor_; // TODO: get as function arg for passing: daemon().selectClientScheduler()
 
   TRACE("addMember: $0 $1", name, addr);
 
-  HttpClusterMember* backend = new HttpClusterMember(
+  Backend* backend = new Backend(
       this,
       executor,
       name,
@@ -630,9 +628,9 @@ void HttpCluster::addMember(const std::string& name,
   members_.push_back(backend);
 }
 
-HttpClusterMember* HttpCluster::findMember(const std::string& name) {
+Backend* Cluster::findMember(const std::string& name) {
   auto i = std::find_if(members_.begin(), members_.end(),
-      [&](const HttpClusterMember* m) -> bool { return m->name() == name; });
+      [&](const Backend* m) -> bool { return m->name() == name; });
   if (i != members_.end()) {
     return *i;
   } else {
@@ -640,62 +638,62 @@ HttpClusterMember* HttpCluster::findMember(const std::string& name) {
   }
 }
 
-void HttpCluster::removeMember(const std::string& name) {
+void Cluster::removeMember(const std::string& name) {
   auto i = std::find_if(members_.begin(), members_.end(),
-      [&](const HttpClusterMember* m) -> bool { return m->name() == name; });
+      [&](const Backend* m) -> bool { return m->name() == name; });
   if (i != members_.end()) {
     delete *i;
     members_.erase(i);
   }
 }
 
-void HttpCluster::setHealthCheckHostHeader(const std::string& value) {
+void Cluster::setHealthCheckHostHeader(const std::string& value) {
   healthCheckHostHeader_ = value;
 
-  for (HttpClusterMember* member: members_) {
+  for (Backend* member: members_) {
     member->healthMonitor()->setHostHeader(value);
   }
 }
 
-void HttpCluster::setHealthCheckRequestPath(const std::string& value) {
+void Cluster::setHealthCheckRequestPath(const std::string& value) {
   healthCheckRequestPath_ = value;
 
-  for (HttpClusterMember* member: members_) {
+  for (Backend* member: members_) {
     member->healthMonitor()->setRequestPath(value);
   }
 }
 
-void HttpCluster::setHealthCheckInterval(Duration value) {
+void Cluster::setHealthCheckInterval(Duration value) {
   healthCheckInterval_ = value;
 
-  for (HttpClusterMember* member: members_)
+  for (Backend* member: members_)
     member->healthMonitor()->setInterval(value);
 }
 
-void HttpCluster::setHealthCheckSuccessThreshold(unsigned value) {
+void Cluster::setHealthCheckSuccessThreshold(unsigned value) {
   healthCheckSuccessThreshold_ = value;
 
-  for (HttpClusterMember* member: members_)
+  for (Backend* member: members_)
     member->healthMonitor()->setSuccessThreshold(value);
 }
 
-void HttpCluster::setHealthCheckSuccessCodes(const std::vector<HttpStatus>& value) {
+void Cluster::setHealthCheckSuccessCodes(const std::vector<HttpStatus>& value) {
   healthCheckSuccessCodes_ = value;
 
-  for (HttpClusterMember* member: members_)
+  for (Backend* member: members_)
     member->healthMonitor()->setSuccessCodes(value);
 }
 
-TokenShaperError HttpCluster::createBucket(const std::string& name, float rate,
+TokenShaperError Cluster::createBucket(const std::string& name, float rate,
                                             float ceil) {
   return shaper_.createNode(name, rate, ceil);
 }
 
-HttpCluster::Bucket* HttpCluster::findBucket(const std::string& name) const {
+Cluster::Bucket* Cluster::findBucket(const std::string& name) const {
   return shaper_.findNode(name);
 }
 
-bool HttpCluster::eachBucket(std::function<bool(Bucket*)> body) {
+bool Cluster::eachBucket(std::function<bool(Bucket*)> body) {
   for (auto& node : *shaper_.rootNode())
     if (!body(node))
       return false;
@@ -703,49 +701,49 @@ bool HttpCluster::eachBucket(std::function<bool(Bucket*)> body) {
   return true;
 }
 
-void HttpCluster::schedule(HttpClusterRequest* cr) {
-  schedule(cr, rootBucket());
+void Cluster::schedule(Context* cx) {
+  schedule(cx, rootBucket());
 }
 
-void HttpCluster::schedule(HttpClusterRequest* cr, Bucket* bucket) {
-  cr->bucket = bucket;
+void Cluster::schedule(Context* cx, Bucket* bucket) {
+  cx->bucket = bucket;
 
   if (!enabled_) {
-    serviceUnavailable(cr);
+    serviceUnavailable(cx);
     return;
   }
 
-  if (cr->bucket->get(1)) {
-    cr->tokens = 1;
-    HttpClusterSchedulerStatus status = scheduler()->schedule(cr);
-    if (status == HttpClusterSchedulerStatus::Success)
+  if (cx->bucket->get(1)) {
+    cx->tokens = 1;
+    SchedulerStatus status = scheduler()->schedule(cx);
+    if (status == SchedulerStatus::Success)
       return;
 
-    cr->bucket->put(1);
-    cr->tokens = 0;
+    cx->bucket->put(1);
+    cx->tokens = 0;
 
-    if (status == HttpClusterSchedulerStatus::Unavailable &&
+    if (status == SchedulerStatus::Unavailable &&
         !enqueueOnUnavailable_) {
-      serviceUnavailable(cr);
+      serviceUnavailable(cx);
     } else {
-      enqueue(cr);
+      enqueue(cx);
     }
-  } else if (cr->bucket->ceil() > 0 || enqueueOnUnavailable_) {
+  } else if (cx->bucket->ceil() > 0 || enqueueOnUnavailable_) {
     // there are tokens available (for rent) and we prefer to wait if unavailable
-    enqueue(cr);
+    enqueue(cx);
   } else {
-    serviceUnavailable(cr);
+    serviceUnavailable(cx);
   }
 }
 
-void HttpCluster::reschedule(HttpClusterRequest* cr) {
+void Cluster::reschedule(Context* cx) {
   TRACE("reschedule");
 
-  if (verifyTryCount(cr)) {
-    HttpClusterSchedulerStatus status = scheduler()->schedule(cr);
+  if (verifyTryCount(cx)) {
+    SchedulerStatus status = scheduler()->schedule(cx);
 
-    if (status != HttpClusterSchedulerStatus::Success) {
-      enqueue(cr);
+    if (status != SchedulerStatus::Success) {
+      enqueue(cx);
     }
   }
 }
@@ -758,34 +756,34 @@ void HttpCluster::reschedule(HttpClusterRequest* cr) {
  * @retval false tryCount exceeded limit and a 503 client response has been
  *               sent. Dropped-stats have been incremented.
  */
-bool HttpCluster::verifyTryCount(HttpClusterRequest* cr) {
-  if (cr->tryCount <= maxRetryCount())
+bool Cluster::verifyTryCount(Context* cx) {
+  if (cx->tryCount <= maxRetryCount())
     return true;
 
-  TRACE("proxy.cluster %s: request failed %d times.", name().c_str(), cr->tryCount);
-  serviceUnavailable(cr);
+  TRACE("proxy.cluster %s: request failed %d times.", name().c_str(), cx->tryCount);
+  serviceUnavailable(cx);
   return false;
 }
 
-void HttpCluster::serviceUnavailable(HttpClusterRequest* cr, HttpStatus status) {
-  cr->onMessageBegin(HttpVersion::VERSION_1_1,
+void Cluster::serviceUnavailable(Context* cx, HttpStatus status) {
+  cx->onMessageBegin(HttpVersion::VERSION_1_1,
                      status,
                      BufferRef(to_string(status)));
 
   // TODO: put into a more generic place where it affects all responses.
-  if (cr->bucket) {
-    cr->onMessageHeader(BufferRef("Cluster-Bucket"),
-                        BufferRef(cr->bucket->name()));
+  if (cx->bucket) {
+    cx->onMessageHeader(BufferRef("Cluster-Bucket"),
+                        BufferRef(cx->bucket->name()));
   }
 
   if (retryAfter() != Duration::Zero) {
-    cr->onMessageHeader(
+    cx->onMessageHeader(
         BufferRef("Retry-After"),
         BufferRef(to_string(retryAfter().seconds())));
   }
 
-  cr->onMessageHeaderEnd();
-  cr->onMessageEnd();
+  cx->onMessageHeaderEnd();
+  cx->onMessageEnd();
 
   ++dropped_;
 }
@@ -797,19 +795,19 @@ void HttpCluster::serviceUnavailable(HttpClusterRequest* cr, HttpStatus status) 
  * If enqueuing fails, it instead finishes the request with a 503 (Service
  * Unavailable).
  */
-void HttpCluster::enqueue(HttpClusterRequest* cr) {
-  if (cr->bucket->queued().current() < queueLimit()) {
-    cr->backend = nullptr;
-    cr->bucket->enqueue(cr);
+void Cluster::enqueue(Context* cx) {
+  if (cx->bucket->queued().current() < queueLimit()) {
+    cx->backend = nullptr;
+    cx->bucket->enqueue(cx);
     ++queued_;
 
     DEBUG("HTTP cluster $0 [$1] overloaded. Enqueueing request ($2).",
           name(),
-          cr->bucket->name(),
-          cr->bucket->queued().current());
+          cx->bucket->name(),
+          cx->bucket->queued().current());
   } else {
     DEBUG("director: '$0' queue limit $1 reached.", name(), queueLimit());
-    serviceUnavailable(cr);
+    serviceUnavailable(cx);
   }
 }
 
@@ -819,21 +817,21 @@ void HttpCluster::enqueue(HttpClusterRequest* cr) {
  *
  * @param backend the backend to pass the dequeued request to.
  */
-void HttpCluster::dequeueTo(HttpClusterMember* backend) {
-  if (auto cr = dequeue()) {
-    cr->post([this, backend, cr]() {
-      cr->tokens = 1;
+void Cluster::dequeueTo(Backend* backend) {
+  if (auto cx = dequeue()) {
+    cx->post([this, backend, cx]() {
+      cx->tokens = 1;
       DEBUG("Dequeueing request to backend $0 @ $1 ($2)",
           backend->name(), name(), queued_.current());
-      HttpClusterSchedulerStatus rc = backend->tryProcess(cr);
-      if (rc != HttpClusterSchedulerStatus::Success) {
-        cr->tokens = 0;
+      SchedulerStatus rc = backend->tryProcess(cx);
+      if (rc != SchedulerStatus::Success) {
+        cx->tokens = 0;
         logError("Dequeueing request to backend $0 @ $1 failed. $2",
                  backend->name(), name(), rc);
-        reschedule(cr);
+        reschedule(cx);
       } else {
         // FIXME: really here????
-        verifyTryCount(cr);
+        verifyTryCount(cx);
       }
     });
   } else {
@@ -841,31 +839,31 @@ void HttpCluster::dequeueTo(HttpClusterMember* backend) {
   }
 }
 
-HttpClusterRequest* HttpCluster::dequeue() {
-  if (auto cr = shaper()->dequeue()) {
+Context* Cluster::dequeue() {
+  if (auto cx = shaper()->dequeue()) {
     --queued_;
-    return cr;
+    return cx;
   }
 
   return nullptr;
 }
 
-void HttpCluster::onTimeout(HttpClusterRequest* cr) {
+void Cluster::onTimeout(Context* cx) {
   --queued_;
 
-  cr->post([this, cr]() {
-    Duration diff = MonotonicClock::now() - cr->ctime;
+  cx->post([this, cx]() {
+    Duration diff = MonotonicClock::now() - cx->ctime;
     logInfo("Queued request timed out ($0). $1 $2",
             diff,
-            cr->request.method(),
-            cr->request.path());
+            cx->request.method(),
+            cx->request.path());
 
-    serviceUnavailable(cr, HttpStatus::GatewayTimeout);
+    serviceUnavailable(cx, HttpStatus::GatewayTimeout);
   });
 }
 
 // {{{ EventListener overrides
-void HttpCluster::onEnabledChanged(HttpClusterMember* backend) {
+void Cluster::onEnabledChanged(Backend* backend) {
   DEBUG("onBackendEnabledChanged: $0 $1",
         backend->name(), backend->isEnabled() ? "enabled" : "disabled");
   TRACE("onBackendEnabledChanged: $0 $1",
@@ -878,15 +876,14 @@ void HttpCluster::onEnabledChanged(HttpClusterMember* backend) {
   }
 }
 
-void HttpCluster::onCapacityChanged(HttpClusterMember* member, size_t old) {
+void Cluster::onCapacityChanged(Backend* member, size_t old) {
   if (member->isEnabled()) {
     TRACE("onCapacityChanged: member $0 capacity $1", member->name(), member->capacity());
     shaper()->resize(shaper()->size() - old + member->capacity());
   }
 }
 
-void HttpCluster::onHealthChanged(HttpClusterMember* backend,
-                                  HttpHealthMonitor::State oldState) {
+void Cluster::onHealthChanged(Backend* backend, HealthMonitor::State oldState) {
   logInfo("HTTP cluster $0: backend '$1' ($2:$3) is now $4.",
           name(), backend->name(),
           backend->inetAddress().ip(),
@@ -914,7 +911,7 @@ void HttpCluster::onHealthChanged(HttpClusterMember* backend,
           name(), backend->name());
       backend->setEnabled(false);
     }
-  } else if (oldState == HttpHealthMonitor::State::Online) {
+  } else if (oldState == HealthMonitor::State::Online) {
     // backend is offline and enabled
     TRACE("onHealthChanged: removing capacity from shaper ($0 - $1)",
           shaper()->size(), backend->capacity());
@@ -922,11 +919,11 @@ void HttpCluster::onHealthChanged(HttpClusterMember* backend,
   }
 }
 
-void HttpCluster::onProcessingSucceed(HttpClusterMember* member) {
+void Cluster::onProcessingSucceed(Backend* member) {
   dequeueTo(member);
 }
 
-void HttpCluster::onProcessingFailed(HttpClusterRequest* request) {
+void Cluster::onProcessingFailed(Context* request) {
   assert(request->bucket != nullptr);
   assert(request->tokens != 0);
 
@@ -937,7 +934,7 @@ void HttpCluster::onProcessingFailed(HttpClusterRequest* request) {
 }
 // }}}
 
-void HttpCluster::serialize(JsonWriter& json) const {
+void Cluster::serialize(JsonWriter& json) const {
   json.beginObject()
       .name("mutable")(isMutable())
       .name("enabled")(isEnabled())
@@ -975,13 +972,12 @@ void HttpCluster::serialize(JsonWriter& json) const {
   json.endObject();
 }
 
-} // namespace client
-} // namespace http
+} // namespace xzero::http::cluster
 
-template<>
-JsonWriter& JsonWriter::value(const http::client::HttpCluster& cluster) {
-  cluster.serialize(*this);
-  return *this;
-}
-
+namespace xzero {
+  template<>
+  JsonWriter& JsonWriter::value(const http::cluster::Cluster& cluster) {
+    cluster.serialize(*this);
+    return *this;
+  }
 } // namespace xzero

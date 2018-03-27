@@ -5,9 +5,9 @@
 // file except in compliance with the License. You may obtain a copy of
 // the License at: http://opensource.org/licenses/MIT
 
-#include <xzero/http/proxy/HttpClusterMember.h>
-#include <xzero/http/proxy/HttpClusterRequest.h>
-#include <xzero/http/proxy/HttpHealthMonitor.h>
+#include <xzero/http/cluster/Backend.h>
+#include <xzero/http/cluster/Context.h>
+#include <xzero/http/cluster/HealthMonitor.h>
 #include <xzero/net/TcpEndPoint.h>
 #include <xzero/io/FileView.h>
 #include <xzero/JsonWriter.h>
@@ -15,17 +15,17 @@
 
 namespace xzero {
 namespace http {
-namespace client {
+namespace cluster {
 
 #ifndef NDEBUG
-# define DEBUG(msg...) logDebug("http.client.HttpClusterMember: " msg)
-# define TRACE(msg...) logTrace("http.client.HttpClusterMember: " msg)
+# define DEBUG(msg...) logDebug("http.cluster.Backend: " msg)
+# define TRACE(msg...) logTrace("http.cluster.Backend: " msg)
 #else
 # define DEBUG(msg...) do {} while (0)
 # define TRACE(msg...) do {} while (0)
 #endif
 
-HttpClusterMember::HttpClusterMember(
+Backend::Backend(
     EventListener* eventListener,
     Executor* executor,
     const std::string& name,
@@ -54,7 +54,7 @@ HttpClusterMember::HttpClusterMember(
       connectTimeout_(connectTimeout),
       readTimeout_(readTimeout),
       writeTimeout_(writeTimeout),
-      healthMonitor_(std::make_unique<HttpHealthMonitor>(
+      healthMonitor_(std::make_unique<HealthMonitor>(
           executor,
           inetAddress,
           healthCheckHostHeader,
@@ -70,26 +70,26 @@ HttpClusterMember::HttpClusterMember(
                     this, std::placeholders::_2))) {
 }
 
-HttpClusterMember::~HttpClusterMember() {
+Backend::~Backend() {
 }
 
-void HttpClusterMember::setCapacity(size_t n) {
+void Backend::setCapacity(size_t n) {
   size_t old = capacity_;
   capacity_ = n;
   eventListener_->onCapacityChanged(this, old);
 }
 
-HttpClusterSchedulerStatus HttpClusterMember::tryProcess(HttpClusterRequest* cr) {
+SchedulerStatus Backend::tryProcess(Context* cr) {
   if (!isEnabled())
-    return HttpClusterSchedulerStatus::Unavailable;
+    return SchedulerStatus::Unavailable;
 
   if (!healthMonitor_->isOnline())
-    return HttpClusterSchedulerStatus::Unavailable;
+    return SchedulerStatus::Unavailable;
 
   std::lock_guard<std::mutex> lock(lock_);
 
   if (capacity_ && load_.current() >= capacity_)
-    return HttpClusterSchedulerStatus::Overloaded;
+    return SchedulerStatus::Overloaded;
 
   TRACE("Processing request by backend $0 $1", name(), inetAddress_);
   TRACE("tryProcess: with executor: $0", cr->executor);
@@ -102,40 +102,40 @@ HttpClusterSchedulerStatus HttpClusterMember::tryProcess(HttpClusterRequest* cr)
   if (!process(cr)) {
     --load_;
     cr->backend = nullptr;
-    healthMonitor()->setState(HttpHealthMonitor::State::Offline);
-    return HttpClusterSchedulerStatus::Unavailable;
+    healthMonitor()->setState(HealthMonitor::State::Offline);
+    return SchedulerStatus::Unavailable;
   }
 
-  return HttpClusterSchedulerStatus::Success;
+  return SchedulerStatus::Success;
 }
 
-void HttpClusterMember::release() {
+void Backend::release() {
   eventListener_->onProcessingSucceed(this);
 }
 
-bool HttpClusterMember::process(HttpClusterRequest* cr) {
+bool Backend::process(Context* cr) {
   cr->client = std::make_unique<HttpClient>(cr->executor,
                                             cr->backend->inetAddress());
   Future<HttpClient::Response> f = cr->client->send(cr->request);
 
-  f.onFailure(std::bind(&HttpClusterMember::onFailure, this,
+  f.onFailure(std::bind(&Backend::onFailure, this,
                         cr, std::placeholders::_1));
-  f.onSuccess(std::bind(&HttpClusterMember::onResponseReceived, this, cr,
+  f.onSuccess(std::bind(&Backend::onResponseReceived, this, cr,
                         std::placeholders::_1));
 
   return true;
 }
 
-void HttpClusterMember::onFailure(HttpClusterRequest* cr, const std::error_code& ec) {
+void Backend::onFailure(Context* cr, const std::error_code& ec) {
   --load_;
-  healthMonitor()->setState(HttpHealthMonitor::State::Offline);
+  healthMonitor()->setState(HealthMonitor::State::Offline);
 
   cr->backend = nullptr;
 
   eventListener_->onProcessingFailed(cr);
 }
 
-void HttpClusterMember::onResponseReceived(HttpClusterRequest* cr,
+void Backend::onResponseReceived(Context* cr,
                                            const HttpClient::Response& response) {
   --load_;
 
@@ -179,7 +179,7 @@ void HttpClusterMember::onResponseReceived(HttpClusterRequest* cr,
   cr->onMessageEnd();
 }
 
-void HttpClusterMember::serialize(JsonWriter& json) const {
+void Backend::serialize(JsonWriter& json) const {
   json.beginObject()
       .name("name")(name_)
       .name("capacity")(capacity_)
@@ -195,11 +195,11 @@ void HttpClusterMember::serialize(JsonWriter& json) const {
       .endObject();
 }
 
-} // namespace client
+} // namespace cluster
 } // namespace http
 
 template<>
-JsonWriter& JsonWriter::value(const http::client::HttpClusterMember& member) {
+JsonWriter& JsonWriter::value(const http::cluster::Backend& member) {
   member.serialize(*this);
   return *this;
 }

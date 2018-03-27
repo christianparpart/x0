@@ -5,29 +5,29 @@
 // file except in compliance with the License. You may obtain a copy of
 // the License at: http://opensource.org/licenses/MIT
 
-#include <xzero/http/proxy/HttpClusterRequest.h>
-#include <xzero/http/proxy/HttpClusterMember.h>
+#include <xzero/http/cluster/Context.h>
+#include <xzero/http/cluster/Backend.h>
 #include <xzero/MonotonicClock.h>
 #include <xzero/TokenShaper.h>
 #include <xzero/JsonWriter.h>
 #include <xzero/logging.h>
 #include <assert.h>
 
-namespace xzero::http::client {
+namespace xzero::http::cluster {
 
 #if !defined(NDEBUG)
-# define DEBUG(msg...) logDebug("http.client.HttpClusterRequest: " msg)
-# define TRACE(msg...) logTrace("http.client.HttpClusterRequest: " msg)
+# define DEBUG(msg...) logDebug("http.cluster.Context: " msg)
+# define TRACE(msg...) logTrace("http.cluster.Context: " msg)
 #else
 # define DEBUG(msg...) do {} while (0)
 # define TRACE(msg...) do {} while (0)
 #endif
 
-HttpClusterRequest::HttpClusterRequest(const HttpRequest& _request,
-                                       std::unique_ptr<HttpListener> _responseListener,
-                                       Executor* _executor,
-                                       size_t responseBodyBufferSize,
-                                       const std::string& proxyId)
+Context::Context(const HttpRequest& _request,
+                 std::unique_ptr<HttpListener> _responseListener,
+                 Executor* _executor,
+                 size_t responseBodyBufferSize,
+                 const std::string& proxyId)
     : ctime{MonotonicClock::now()},
       executor{_executor},
       bucket{nullptr},
@@ -43,16 +43,16 @@ HttpClusterRequest::HttpClusterRequest(const HttpRequest& _request,
   TRACE("ctor: executor: $0", executor);
 }
 
-HttpClusterRequest::~HttpClusterRequest() {
+Context::~Context() {
 }
 
-void HttpClusterRequest::onMessageBegin(HttpVersion version, HttpStatus code,
-                                        const BufferRef& text) {
+void Context::onMessageBegin(HttpVersion version, HttpStatus code,
+                             const BufferRef& text) {
   responseListener->onMessageBegin(version, code, text);
 }
 
-void HttpClusterRequest::onMessageHeader(const BufferRef& name,
-                                         const BufferRef& value) {
+void Context::onMessageHeader(const BufferRef& name,
+                              const BufferRef& value) {
   if (name == "Via") {
     if (!viaText_.empty()) {
       viaText_ += ' ';
@@ -63,7 +63,7 @@ void HttpClusterRequest::onMessageHeader(const BufferRef& name,
   }
 }
 
-void HttpClusterRequest::onMessageHeaderEnd() {
+void Context::onMessageHeaderEnd() {
   // RFC 7230, section 5.7.1: makes it clear, that we put ourselfs into the
   // front of the Via-list.
 
@@ -82,15 +82,15 @@ void HttpClusterRequest::onMessageHeaderEnd() {
   responseListener->onMessageHeaderEnd();
 }
 
-void HttpClusterRequest::onMessageContent(const BufferRef& chunk) {
+void Context::onMessageContent(const BufferRef& chunk) {
   responseListener->onMessageContent(chunk);
 }
 
-void HttpClusterRequest::onMessageContent(FileView&& chunk) {
+void Context::onMessageContent(FileView&& chunk) {
   responseListener->onMessageContent(std::move(chunk));
 }
 
-void HttpClusterRequest::onMessageEnd() {
+void Context::onMessageEnd() {
   TRACE("onMessageEnd!");
 
   // FYI: timed out requests do not have tokens, backend and bucket
@@ -103,23 +103,23 @@ void HttpClusterRequest::onMessageEnd() {
   responseListener->onMessageEnd();
 }
 
-void HttpClusterRequest::onError(std::error_code ec) {
+void Context::onError(std::error_code ec) {
   responseListener->onError(ec);
 }
 
-} // namespace xzero::http::client
+} // namespace xzero::http::cluster
 
 namespace xzero {
   template <>
   JsonWriter& JsonWriter::value(
-      TokenShaper<http::client::HttpClusterRequest> const& value) {
+      TokenShaper<http::cluster::Context> const& value) {
     value.writeJSON(*this);
     return *this;
   }
 
   template <>
   JsonWriter& JsonWriter::value(
-      typename TokenShaper<http::client::HttpClusterRequest>::Node const& value) {
+      typename TokenShaper<http::cluster::Context>::Node const& value) {
     value.writeJSON(*this);
     return *this;
   }

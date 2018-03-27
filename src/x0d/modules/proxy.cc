@@ -14,9 +14,9 @@
 #include "proxy.h"
 #include <x0d/Context.h>
 #include <xzero/sysconfig.h>
-#include <xzero/http/proxy/HttpCluster.h>
-#include <xzero/http/proxy/HttpClusterRequest.h>
-#include <xzero/http/proxy/HttpClusterApiHandler.h>
+#include <xzero/http/cluster/Cluster.h>
+#include <xzero/http/cluster/Context.h>
+#include <xzero/http/cluster/ApiHandler.h>
 #include <xzero/http/client/HttpClient.h>
 #include <xzero/http/HttpRequest.h>
 #include <xzero/http/HttpResponse.h>
@@ -42,9 +42,9 @@ using namespace xzero;
 using namespace xzero::http;
 using namespace xzero::flow;
 
-using xzero::http::client::HttpClusterApiHandler;
-using xzero::http::client::HttpClusterRequest;
-using xzero::http::client::HttpCluster;
+using xzero::http::cluster::ApiHandler;
+using ClusterContext = xzero::http::cluster::Context;
+using xzero::http::cluster::Cluster;
 using xzero::http::client::HttpClient;
 
 #define TRACE(msg...) logTrace(msg)
@@ -165,8 +165,6 @@ bool ProxyModule::verify_proxy_cluster(xzero::flow::Instr* call, xzero::flow::IR
 }
 
 void ProxyModule::onPostConfig() {
-  using client::HttpCluster;
-
   TRACE("clusterInit count: $0", clusterInit_.size());
   for (const auto& init: clusterInit_) {
     TRACE("clusterInit: spawning $0", init.first);
@@ -236,7 +234,7 @@ void HttpResponseBuilder::onError(std::error_code ec) {
 }
 // }}}
 
-HttpCluster* ProxyModule::findLocalCluster(const std::string& host) {
+Cluster* ProxyModule::findLocalCluster(const std::string& host) {
   auto i = clusterMap_.find(host);
   if (i != clusterMap_.end())
     return i->second.get();
@@ -246,7 +244,7 @@ HttpCluster* ProxyModule::findLocalCluster(const std::string& host) {
   if (!FileUtil::exists(path))
     return nullptr;
 
-  HttpCluster* cluster = createCluster(host, path);
+  Cluster* cluster = createCluster(host, path);
   cluster->setConfiguration(FileUtil::read(path).str(), path);
   return cluster;
 }
@@ -258,7 +256,7 @@ bool ProxyModule::proxy_cluster_auto(Context* cx, Params& args) {
   if (colon != std::string::npos)
     host = host.substr(0, colon);
 
-  HttpCluster* cluster = findLocalCluster(host);
+  Cluster* cluster = findLocalCluster(host);
   if (!cluster) {
     return cx->sendErrorPage(HttpStatus::NotFound);
   }
@@ -275,7 +273,7 @@ bool ProxyModule::proxy_cluster_auto(Context* cx, Params& args) {
   DEBUG("proxy.cluster() auto-detect local cluster '$0', pseudonym '$1'",
       cluster->name(), pseudonym);
 
-  HttpClusterRequest* cr = cx->setCustomData<HttpClusterRequest>(this,
+  ClusterContext* cc = cx->setCustomData<ClusterContext>(this,
       *cx->request(),
       //cx->request()->getContent(),
       std::make_unique<HttpResponseBuilder>(cx->response()),
@@ -283,7 +281,7 @@ bool ProxyModule::proxy_cluster_auto(Context* cx, Params& args) {
       daemon().config().responseBodyBufferSize,
       pseudonym);
 
-  cluster->schedule(cr);
+  cluster->schedule(cc);
 
   return true;
 }
@@ -299,7 +297,7 @@ bool ProxyModule::proxy_cluster(Context* cx, Params& args) {
 
   TRACE("proxy.cluster: $0", cluster->name());
 
-  HttpCluster::RequestShaper::Node* bucket = cluster->rootBucket();
+  Cluster::RequestShaper::Node* bucket = cluster->rootBucket();
   if (!bucketName.empty()) {
     auto foundBucket = cluster->findBucket(bucketName);
     if (foundBucket) {
@@ -310,7 +308,7 @@ bool ProxyModule::proxy_cluster(Context* cx, Params& args) {
     }
   }
 
-  HttpClusterRequest* cr = cx->setCustomData<HttpClusterRequest>(this,
+  ClusterContext* cc = cx->setCustomData<ClusterContext>(this,
       *cx->request(),
       // cx->request()->getContentBuffer(),
       std::make_unique<HttpResponseBuilder>(cx->response()),
@@ -318,7 +316,7 @@ bool ProxyModule::proxy_cluster(Context* cx, Params& args) {
       daemon().config().responseBodyBufferSize,
       pseudonym_);
 
-  cluster->schedule(cr, bucket);
+  cluster->schedule(cc, bucket);
 
   return true;
 }
@@ -329,7 +327,7 @@ bool ProxyModule::proxy_api(Context* cx, xzero::flow::Params& args) {
   if (!StringUtil::beginsWithIgnoreCase(cx->request()->path(), prefix))
     return false;
 
-  HttpClusterApiHandler* handler = cx->setCustomData<HttpClusterApiHandler>(
+  ApiHandler* handler = cx->setCustomData<ApiHandler>(
       this, this, cx->request(), cx->response(), prefix);
 
   return handler->run();
@@ -409,22 +407,22 @@ void ProxyModule::addVia(const HttpRequestInfo* in, HttpResponse* out) {
   out->prependHeader("Via", buf);
 }
 
-std::list<HttpCluster*> ProxyModule::listCluster() {
+std::list<Cluster*> ProxyModule::listCluster() {
   // TODO: unordered_map is not thread-safe
-  std::list<HttpCluster*> result;
+  std::list<Cluster*> result;
   for (auto& cluster: clusterMap_)
     result.push_back(cluster.second.get());
 
   return result;
 }
 
-HttpCluster* ProxyModule::findCluster(const std::string& name) {
+Cluster* ProxyModule::findCluster(const std::string& name) {
   // TODO: unordered_map is not thread-safe
   auto i = clusterMap_.find(name);
   return i != clusterMap_.end() ? i->second.get() : nullptr;
 }
 
-HttpCluster* ProxyModule::createCluster(const std::string& name,
+Cluster* ProxyModule::createCluster(const std::string& name,
                                         const std::string& path) {
   // TODO: unordered_map is not thread-safe
 
@@ -433,8 +431,8 @@ HttpCluster* ProxyModule::createCluster(const std::string& name,
     return clusterMap_[name].get();
 
   Executor* executor = daemon().selectClientExecutor();
-  std::shared_ptr<HttpCluster> cluster =
-      std::make_shared<HttpCluster>(name, path, executor);
+  std::shared_ptr<Cluster> cluster =
+      std::make_shared<Cluster>(name, path, executor);
   clusterMap_[name] = cluster;
 
   if (FileUtil::exists(path)) {

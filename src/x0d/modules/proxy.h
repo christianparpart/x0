@@ -9,7 +9,7 @@
 
 #include <x0d/Module.h>
 #include <xzero/logging.h>
-#include <xzero/http/proxy/HttpClusterApi.h>
+#include <xzero/http/cluster/Api.h>
 #include <xzero-flow/AST.h>
 #include <xzero-flow/ir/Instr.h>
 
@@ -24,8 +24,8 @@ namespace xzero {
   }
   namespace http {
     class HttpRequestInfo;
-    namespace client {
-      class HttpCluster;
+    namespace cluster {
+      class Cluster;
     }
   }
 }
@@ -33,7 +33,7 @@ namespace xzero {
 namespace x0d {
 
 class ProxyModule : public Module,
-                    public xzero::http::client::HttpClusterApi {
+                    public xzero::http::cluster::Api {
  public:
   explicit ProxyModule(Daemon* d);
   ~ProxyModule();
@@ -46,9 +46,9 @@ class ProxyModule : public Module,
               xzero::http::HttpResponse* out);
 
   // HttpClusterApi overrides
-  std::list<xzero::http::client::HttpCluster*> listCluster() override;
-  xzero::http::client::HttpCluster* findCluster(const std::string& name) override;
-  xzero::http::client::HttpCluster* createCluster(const std::string& name, const std::string& path) override;
+  std::list<xzero::http::cluster::Cluster*> listCluster() override;
+  xzero::http::cluster::Cluster* findCluster(const std::string& name) override;
+  xzero::http::cluster::Cluster* createCluster(const std::string& name, const std::string& path) override;
   void destroyCluster(const std::string& name) override;
 
  private:
@@ -56,7 +56,7 @@ class ProxyModule : public Module,
   void proxy_pseudonym(xzero::flow::Params& args);
 
   // main handlers
-  xzero::http::client::HttpCluster* findLocalCluster(const std::string& host);
+  xzero::http::cluster::Cluster* findLocalCluster(const std::string& host);
   bool proxy_cluster_auto(Context* cx, xzero::flow::Params& args);
   bool verify_proxy_cluster(xzero::flow::Instr* call, xzero::flow::IRBuilder* builder);
   bool proxy_cluster(Context* cx, Params& args);
@@ -94,10 +94,9 @@ class ProxyModule : public Module,
   // list of clusters by {name, path} to initialize
   std::unordered_map<std::string, std::string> clusterInit_;
 
-  std::unordered_map<
-      std::string,
-      std::shared_ptr<xzero::http::client::HttpCluster>>
-          clusterMap_;
+  std::unordered_map<std::string,
+                     std::shared_ptr<xzero::http::cluster::Cluster>>
+                       clusterMap_;
 };
 
 } // namespace x0d

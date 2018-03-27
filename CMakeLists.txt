@@ -240,13 +240,12 @@ set(libXzero_SRC src/xzero/AnsiColor.cc
                  src/xzero/util/BinaryMessageReader.cc
                  src/xzero/util/BinaryMessageWriter.cc
                  src/xzero/util/SimpleRateLimit.cc
-                 src/xzero/http/proxy/HttpCluster.cc
-                 src/xzero/http/proxy/HttpClusterApiHandler.cc
-                 src/xzero/http/proxy/HttpClusterMember.cc
-                 src/xzero/http/proxy/HttpClusterRequest.cc
-                 src/xzero/http/proxy/HttpClusterScheduler.cc
-                 src/xzero/http/proxy/HttpReverseProxy.cc
-                 src/xzero/http/proxy/HttpHealthMonitor.cc
+                 src/xzero/http/cluster/ApiHandler.cc
+                 src/xzero/http/cluster/Backend.cc
+                 src/xzero/http/cluster/Cluster.cc
+                 src/xzero/http/cluster/Context.cc
+                 src/xzero/http/cluster/HealthMonitor.cc
+                 src/xzero/http/cluster/Scheduler.cc
                  )
 
 # XXX if(LINUX) doesn't work on WSL; too bad; why?
