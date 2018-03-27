@@ -59,9 +59,14 @@ HttpCluster::HttpCluster(const std::string& name,
                   "healthcheck",              // health check Host header value
                   "/",                        // health check request path
                   "",                         // health check fcgi script filename
-                  4_seconds,                  // health check interval
+                  10_seconds,                 // health check interval
                   3,                          // health check success threshold
-                  {HttpStatus::Ok}) {         // health check success codes
+                  {HttpStatus::Ok,            // health check success codes
+                   HttpStatus::NoContent,
+                   HttpStatus::MovedPermanently,
+                   HttpStatus::MovedTemporarily,
+                   HttpStatus::TemporaryRedirect,
+                   HttpStatus::PermanentRedirect}) {
 }
 
 HttpCluster::HttpCluster(const std::string& name,

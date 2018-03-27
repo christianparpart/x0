@@ -58,10 +58,17 @@ struct HttpClusterSettings {
 };
 
 /**
- * Implements an intelligent HTTP reverse proxy.
+ * Implements an HTTP reverse proxy supporting multiple backends.
  */
 class HttpCluster : public HttpClusterMember::EventListener {
  public:
+  /**
+   * Constructs a cluster that's being loaded from a configuration file.
+   *
+   * @p name unique and human readable cluster name
+   * @p storagePath path to local file for loading and storing cluster configuration.
+   * @p executor Executor API to use for cluster operations (such as health checks)
+   */
   HttpCluster(const std::string& name,
               const std::string& storagePath,
               Executor* executor);
