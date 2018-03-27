@@ -51,7 +51,7 @@ for pkgdir in ${pkgdirs[*]}; do
 done
 
 export CXX=$(findexe $CXX g++-7 clang++-6.0 clang++-5.0 clang++-4.0 clang++ g++)
-export CXXFLAGS="${CXXFLAGS} -O0 -g"
+export CXXFLAGS="${CXXFLAGS:--O0 -g}"
 
 echo CXX = $CXX
 echo CXXFLAGS = $CXXFLAGS
