@@ -26,10 +26,10 @@ namespace xzero::http::client {
  */
 class HttpReverseProxy {
  public:
-  typedef std::function<void(HttpStatus, HttpRequest*, HttpResponse*)> ErrorPageHandler;
-  typedef std::function<TcpEndPoint*()> EndPointFactory;
+  using ErrorPageHandler = std::function<void(HttpStatus, HttpRequest*, HttpResponse*)>;
+  using EndPointFactory = std::function<TcpEndPoint*()>;
 
-  explicit HttpReverseProxy(const InetAddress& upstream);
+  HttpReverseProxy(Executor* executor, const InetAddress& upstream);
 
   /**
    * Initializes the HTTP reverse proxy.
@@ -39,6 +39,7 @@ class HttpReverseProxy {
    * @param keepAliveTimeout maximum time to keep an idle connection alive.
    */
   HttpReverseProxy(
+      Executor* executor,
       const InetAddress& upstream,
       size_t maxPoolSize,
       Duration keepAliveTimeout,
@@ -52,6 +53,7 @@ class HttpReverseProxy {
    * @param keepAliveTimeout maximum time to keep an idle connection alive.
    */
   HttpReverseProxy(
+      Executor* executor,
       EndPointFactory endpointFactory,
       size_t maxPoolSize,
       Duration keepAliveTimeout,
@@ -68,6 +70,10 @@ class HttpReverseProxy {
   void serve(HttpRequest* request, HttpResponse* response);
 
  private:
+  TcpEndPoint* doConnect(const InetAddress& inetAddress);
+
+ private:
+  Executor* executor_;
   EndPointFactory endpointFactory_;
   size_t maxPoolSize_;
   Duration keepAliveTimeout_;
