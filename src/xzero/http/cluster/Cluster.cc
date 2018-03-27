@@ -183,7 +183,7 @@ std::string Cluster::configuration() const {
 }
 
 void Cluster::setConfiguration(const std::string& text,
-                                   const std::string& path) {
+                               const std::string& path) {
   size_t changed = 0;
   std::string value;
   IniFile settings;
