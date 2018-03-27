@@ -30,10 +30,10 @@ class Context : public CustomData,
   Context& operator=(const Context&) = delete;
 
   Context(const HttpRequest& _request,
-                     std::unique_ptr<HttpListener> _responseListener,
-                     Executor* _executor,
-                     size_t responseBodyBufferSize,
-                     const std::string& proxyId);
+          std::unique_ptr<HttpListener> _responseListener,
+          Executor* _executor,
+          size_t responseBodyBufferSize,
+          const std::string& proxyId);
   ~Context();
 
   void post(Executor::Task task) { executor->execute(task); }

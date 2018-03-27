@@ -685,7 +685,7 @@ void Cluster::setHealthCheckSuccessCodes(const std::vector<HttpStatus>& value) {
 }
 
 TokenShaperError Cluster::createBucket(const std::string& name, float rate,
-                                            float ceil) {
+                                       float ceil) {
   return shaper_.createNode(name, rate, ceil);
 }
 

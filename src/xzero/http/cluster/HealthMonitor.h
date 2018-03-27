@@ -51,17 +51,17 @@ class HealthMonitor {
    * @param onStateChange Callback to invoke upon state changes.
    */
   HealthMonitor(Executor* executor,
-                    const InetAddress& inetAddress,
-                    const std::string& hostHeader,
-                    const std::string& requestPath,
-                    const std::string& fcgiScriptFilename,
-                    Duration interval,
-                    unsigned successThreshold,
-                    const std::vector<HttpStatus>& successCodes,
-                    Duration connectTimeout,
-                    Duration readTimeout,
-                    Duration writeTimeout,
-                    StateChangeNotify onStateChange);
+                const InetAddress& inetAddress,
+                const std::string& hostHeader,
+                const std::string& requestPath,
+                const std::string& fcgiScriptFilename,
+                Duration interval,
+                unsigned successThreshold,
+                const std::vector<HttpStatus>& successCodes,
+                Duration connectTimeout,
+                Duration readTimeout,
+                Duration writeTimeout,
+                StateChangeNotify onStateChange);
 
   ~HealthMonitor();
 

@@ -136,7 +136,7 @@ void Backend::onFailure(Context* cr, const std::error_code& ec) {
 }
 
 void Backend::onResponseReceived(Context* cr,
-                                           const HttpClient::Response& response) {
+                                 const HttpClient::Response& response) {
   --load_;
 
   auto isConnectionHeader = [](const std::string& name) -> bool {
