@@ -763,13 +763,11 @@ bool HttpCluster::verifyTryCount(HttpClusterRequest* cr) {
 }
 
 void HttpCluster::serviceUnavailable(HttpClusterRequest* cr, HttpStatus status) {
-  cr->onMessageBegin(
-      HttpVersion::VERSION_1_1,
-      status,
-      BufferRef(to_string(HttpStatus::ServiceUnavailable)));
+  cr->onMessageBegin(HttpVersion::VERSION_1_1,
+                     status,
+                     BufferRef(to_string(status)));
 
   // TODO: put into a more generic place where it affects all responses.
-  //
   if (cr->bucket) {
     cr->onMessageHeader(BufferRef("Cluster-Bucket"),
                         BufferRef(cr->bucket->name()));
