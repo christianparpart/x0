@@ -44,11 +44,12 @@ class HttpTransport;
 /**
  * HTTP client API for a single HTTP message exchange.
  *
- * It can process one message-exchange at a time and can be reused after
- * for more message exchanges.
+ * This API can handle multiple requests at the same time.
  *
- * Abstracts away the underlying transport protocol, such as
- * HTTP/1, HTTP/2, HTTPS, FastCGI.
+ * <ul>
+ *   <li>For HTTP/1.1 for each new request a TCP connection is being established.
+ *   <li>For HTTP/2, FastCGI, multiplexing may be the preferred option.
+ * </ul>
  */
 class HttpClient : public CustomData {
  public:
@@ -64,10 +65,6 @@ class HttpClient : public CustomData {
              Duration connectTimeout,
              Duration readTimeout,
              Duration writeTimeout,
-             Duration keepAlive);
-
-  HttpClient(Executor* executor,
-             std::shared_ptr<TcpEndPoint> upstream,
              Duration keepAlive);
 
   using CreateEndPoint = std::function<Future<std::shared_ptr<TcpEndPoint>>()>;
@@ -91,7 +88,7 @@ class HttpClient : public CustomData {
   Future<Response> send(const Request& request);
 
   /**
-   * Sends given @p request and streams back the response 
+   * Sends given @p request and streams back the response
    * to @p responseListener.
    *
    * The response is considered complete if either @p responseListener's
@@ -104,23 +101,48 @@ class HttpClient : public CustomData {
             HttpListener* responseListener);
 
  private:
-  Future<std::shared_ptr<TcpEndPoint>> createTcp(InetAddress addr,
-                                                 Duration connectTimeout,
-                                                 Duration readTimeout,
-                                                 Duration writeTimeout);
-  void execute();
-
+  class Context;
   class ResponseBuilder;
+
+  void releaseContext(Context* ctx);
+
+  Future<std::shared_ptr<TcpEndPoint>> createTcpPlain(InetAddress addr,
+                                                      Duration connectTimeout,
+                                                      Duration readTimeout,
+                                                      Duration writeTimeout);
+
+  Future<std::shared_ptr<TcpEndPoint>> createTcpSecure(InetAddress addr,
+                                                       const std::string& sni,
+                                                       Duration connectTimeout,
+                                                       Duration readTimeout,
+                                                       Duration writeTimeout);
 
  private:
   Executor* executor_;
-  CreateEndPoint createEndPoint_;
-  Duration keepAlive_;
-  std::shared_ptr<TcpEndPoint> endpoint_;
+  const CreateEndPoint createEndPoint_;
+  const Duration keepAlive_;
 
+  std::list<std::unique_ptr<Context>> contexts_;
+};
+
+class HttpClient::Context {
+ public:
+  Context(Executor* executor, std::function<void(Context*)> done, const Request& req, HttpListener* resp);
+  Context(Executor* executor, std::function<void(Context*)> done, const Request& req, std::unique_ptr<HttpListener> resp);
+
+  void execute(CreateEndPoint createEndPoint);
+
+ private:
+  void onConnected(std::shared_ptr<TcpEndPoint> ep);
+
+ private:
+  Executor* executor_;
+  std::function<void(Context*)> done_;
   Request request_;
   HttpListener* listener_;
   std::unique_ptr<HttpListener> ownedListener_;
+
+  std::shared_ptr<TcpEndPoint> endpoint_;
 };
 
 class HttpClient::Response : public HttpResponseInfo {

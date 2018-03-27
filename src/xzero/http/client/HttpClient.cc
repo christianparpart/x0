@@ -19,6 +19,7 @@
 #include <xzero/io/FileView.h>
 #include <xzero/RuntimeError.h>
 #include <xzero/logging.h>
+#include <algorithm>
 
 #if !defined(NDEBUG)
 #define TRACE(msg...) logTrace("HttpClient: " msg)
@@ -121,12 +122,12 @@ template<typename T> static bool isConnectionHeader(const T& name) { // {{{
 
 HttpClient::HttpClient(Executor* executor,
                        const InetAddress& upstream)
-    : HttpClient(executor,
+    : HttpClient{executor,
                  upstream,
                  10_seconds,   // connectTimeout
                  5_minutes,    // readTimeout
                  10_seconds,   // writeTimeout
-                 60_seconds) { // keepAlive
+                 60_seconds} { // keepAlive
 }
 
 HttpClient::HttpClient(Executor* executor,
@@ -135,96 +136,87 @@ HttpClient::HttpClient(Executor* executor,
                        Duration readTimeout,
                        Duration writeTimeout,
                        Duration keepAlive)
-    : executor_(executor),
-      createEndPoint_(std::bind(&HttpClient::createTcp, this,
+    : executor_{executor},
+      createEndPoint_{std::bind(&HttpClient::createTcpPlain, this,
             upstream,
             connectTimeout,
             readTimeout,
-            writeTimeout)),
-      keepAlive_(keepAlive),
-      endpoint_(),
-      request_(),
-      listener_(),
-      ownedListener_() {
-}
-
-HttpClient::HttpClient(Executor* executor,
-                       std::shared_ptr<TcpEndPoint> upstream,
-                       Duration keepAlive)
-    : executor_(executor),
-      createEndPoint_(),
-      keepAlive_(keepAlive),
-      endpoint_(upstream),
-      request_(),
-      listener_(),
-      ownedListener_() {
+            writeTimeout)},
+      keepAlive_{keepAlive},
+      contexts_{} {
 }
 
 HttpClient::HttpClient(Executor* executor,
                        CreateEndPoint endpointCreator,
                        Duration keepAlive)
-    : executor_(executor),
-      createEndPoint_(endpointCreator),
-      keepAlive_(keepAlive),
-      endpoint_(),
-      request_(),
-      listener_(),
-      ownedListener_() {
+    : executor_{executor},
+      createEndPoint_{endpointCreator},
+      keepAlive_{keepAlive},
+      contexts_{} {
 }
 
 HttpClient::HttpClient(HttpClient&& other)
-    : executor_(other.executor_),
-      createEndPoint_(std::move(other.createEndPoint_)),
-      keepAlive_(std::move(other.keepAlive_)),
-      endpoint_(std::move(other.endpoint_)),
-      request_(std::move(other.request_)),
-      listener_(std::move(other.listener_)),
-      ownedListener_(std::move(other.ownedListener_)) {
+    : executor_{other.executor_},
+      createEndPoint_{std::move(other.createEndPoint_)},
+      keepAlive_{std::move(other.keepAlive_)},
+      contexts_{} {
 }
 
-Future<std::shared_ptr<TcpEndPoint>> HttpClient::createTcp(
+static std::string extractServerNameFromHostHeader(const std::string& hostHeader) {
+  size_t i = hostHeader.find(':');
+  if (i != std::string::npos) {
+    return hostHeader.substr(0, i);
+  } else {
+    return hostHeader;
+  }
+}
+
+Future<std::shared_ptr<TcpEndPoint>> HttpClient::createTcpPlain(
     InetAddress address,
     Duration connectTimeout,
     Duration readTimeout,
     Duration writeTimeout) {
-  TRACE("createTcp: scheme = '$0'", request_.scheme());
-  if (request_.scheme() == "https") {
-    TRACE("createTcp: https");
-    auto createApplicationConnection = [this](const std::string& protocolName,
-                                              TcpEndPoint* endpoint) {
-      endpoint->setConnection(std::make_unique<Http1Connection>(listener_,
-                                                                endpoint,
-                                                                executor_));
-    };
-    Promise<std::shared_ptr<TcpEndPoint>> promise;
-    std::string sni = request_.headers().get("Host");
-    size_t i = sni.find(':');
-    if (i != std::string::npos) {
-      sni = sni.substr(0, i);
-    }
-
-    Future<std::shared_ptr<SslEndPoint>> f = SslEndPoint::connect(
-        address,
-        connectTimeout,
-        readTimeout,
-        writeTimeout,
-        executor_,
-        sni,
-        {"http/1.1"},
-        createApplicationConnection);
-
-    f.onSuccess(promise);
-    f.onFailure(promise);
-    return promise.future();
-  } else {
-    TRACE("createTcp: http");
-    return TcpEndPoint::connect(address,
-                                connectTimeout,
-                                readTimeout,
-                                writeTimeout,
-                                executor_);
-  }
+  TRACE("createTcpPlain (HTTP)");
+  return TcpEndPoint::connect(address,
+                              connectTimeout,
+                              readTimeout,
+                              writeTimeout,
+                              executor_);
 }
+
+// Future<std::shared_ptr<TcpEndPoint>> HttpClient::createTcpSecure(
+//     InetAddress address,
+//     const std::string& sni,
+//     Duration connectTimeout,
+//     Duration readTimeout,
+//     Duration writeTimeout) {
+//   TRACE("createTcpSecure: (HTTPS)");
+// 
+//   auto createApplicationConnection = [this](const std::string& protocolName,
+//                                             TcpEndPoint* endpoint) {
+//     // TODO: make use of protocolName
+//     TRACE("createTcp(https): creating application layer: $0", protocolName);
+//     endpoint->setConnection(std::make_unique<Http1Connection>(listener_,
+//                                                               endpoint,
+//                                                               executor_));
+//   };
+// 
+//   Promise<std::shared_ptr<TcpEndPoint>> promise;
+// 
+//   Future<std::shared_ptr<SslEndPoint>> f = SslEndPoint::connect(
+//       address,
+//       connectTimeout,
+//       readTimeout,
+//       writeTimeout,
+//       executor_,
+//       sni,
+//       {"http/1.1"},
+//       createApplicationConnection);
+// 
+//   f.onSuccess(promise);
+//   f.onFailure(promise);
+//   return promise.future();
+// }
 
 Future<HttpClient::Response> HttpClient::send(const std::string& method,
                                               const Uri& url,
@@ -233,58 +225,99 @@ Future<HttpClient::Response> HttpClient::send(const std::string& method,
                       method,
                       url.toString(),
                       headers,
-                      false,
+                      false /* secure */,
                       HugeBuffer()});
 }
 
 Future<HttpClient::Response> HttpClient::send(const Request& request) {
   Promise<Response> promise;
 
-  request_ = request;
-  ownedListener_ = std::make_unique<ResponseBuilder>(promise);
-  listener_ = ownedListener_.get();
+  std::unique_ptr<Context> cx = std::make_unique<Context>(
+      executor_,
+      std::bind(&HttpClient::releaseContext, this, std::placeholders::_1),
+      request,
+      std::make_unique<ResponseBuilder>(promise));
 
-  execute();
+  contexts_.emplace_back(std::move(cx));
+  contexts_.back()->execute(createEndPoint_);
 
   return promise.future();
 }
 
-void HttpClient::send(const Request& request,
-                      HttpListener* responseListener) {
-  request_ = request;
-  listener_ = responseListener;
-  ownedListener_.reset();
+void HttpClient::send(const Request& request, HttpListener* responseListener) {
+  std::unique_ptr<Context> cx = std::make_unique<Context>(
+      executor_,
+      std::bind(&HttpClient::releaseContext, this, std::placeholders::_1),
+      request,
+      responseListener);
 
-  execute();
+  contexts_.emplace_back(std::move(cx));
+  contexts_.back()->execute(createEndPoint_);
 }
 
-void HttpClient::execute() {
-  Future<std::shared_ptr<TcpEndPoint>> f = createEndPoint_();
+void HttpClient::releaseContext(Context* ctx) {
+  auto i = std::find_if(contexts_.begin(), contexts_.end(), [&](const auto& x) {
+      return x.get() == ctx; });
 
-  f.onSuccess([this](std::shared_ptr<TcpEndPoint> ep) {
-    TRACE("endpoint created");
-    endpoint_ = ep;
+  if (i != contexts_.end()) {
+    contexts_.erase(i);
+  }
+}
 
-    if (!endpoint_->connection()) {
-      TRACE("creating connection: http/1.1");
-      endpoint_->setConnection(std::make_unique<Http1Connection>(
-            listener_, endpoint_.get(), executor_));
-    }
+// --------------------------------------------------------------------------
 
-    // dynamic_cast, as we're having most-likely multiple inheritance here
-    HttpTransport* channel = dynamic_cast<HttpTransport*>(endpoint_->connection());
-    assert(channel != nullptr);
+HttpClient::Context::Context(Executor* executor,
+                             std::function<void(Context*)> done,
+                             const Request& req,
+                             HttpListener* resp)
+  : executor_{executor},
+    done_(done),
+    request_{req},
+    listener_{resp},
+    ownedListener_{} {
+}
 
-    channel->setListener(listener_);
-    channel->send(request_, nullptr);
-    channel->send(request_.getContent().getBuffer(), nullptr);
-    channel->completed();
-  });
+HttpClient::Context::Context(Executor* executor,
+                             std::function<void(Context*)> done,
+                             const Request& req,
+                             std::unique_ptr<HttpListener> resp)
+  : executor_{executor},
+    done_(done),
+    request_{req},
+    listener_{resp.get()},
+    ownedListener_{std::move(resp)},
+    endpoint_() {
+}
+
+void HttpClient::Context::execute(CreateEndPoint createEndPoint) {
+  Future<std::shared_ptr<TcpEndPoint>> f = createEndPoint();
+
+  f.onSuccess(std::bind(&HttpClient::Context::onConnected,
+                        this, std::placeholders::_1));
 
   f.onFailure([this](std::error_code ec) {
     TRACE("Failed to connect. $0: $1", ec.category().name(), ec.message());
     listener_->onError(ec);
+    done_(this);
   });
+}
+
+void HttpClient::Context::onConnected(std::shared_ptr<TcpEndPoint> ep) {
+  TRACE("endpoint created");
+  endpoint_ = ep;
+
+  TRACE("creating connection: http/1.1");
+  ep->setConnection(std::make_unique<Http1Connection>(
+        listener_, ep.get(), executor_));
+
+  // dynamic_cast, as we're having most-likely multiple inheritance here
+  HttpTransport* channel = dynamic_cast<HttpTransport*>(ep->connection());
+  assert(channel != nullptr);
+
+  channel->setListener(listener_);
+  channel->send(request_, nullptr);
+  channel->send(request_.getContent().getBuffer(), nullptr);
+  channel->completed();
 }
 
 } // namespace xzero::http::client
