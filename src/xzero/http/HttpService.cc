@@ -58,6 +58,18 @@ HttpService::HttpService(Protocol protocol)
       handlers_{} {
 }
 
+HttpService::HttpService(Executor* executor, int port)
+    : HttpService(executor, port, IPAddress{"0.0.0.0"}) {
+}
+
+HttpService::HttpService(Executor* executor, int port, const IPAddress& bind)
+    : protocol_{HTTP1},
+      inetConnector_{nullptr},
+      handlers_{} {
+  configureTcp(executor, executor, 60_seconds, 20_seconds, 0_seconds,
+      bind, port, 128);
+}
+
 HttpService::~HttpService() {
 }
 

@@ -46,7 +46,11 @@ class HttpService {
   };
 
   HttpService();
+
   explicit HttpService(Protocol protocol);
+
+  HttpService(Executor* executor, int port);
+  HttpService(Executor* executor, int port, const IPAddress& bind);
   ~HttpService();
 
   /**
