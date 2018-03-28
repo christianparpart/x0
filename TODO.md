@@ -10,6 +10,8 @@ All the things I've found out on the way, that need retouching
 - [ ] flow: eliminate unused variables (with side-effect-free initialization)
 - [ ] flow: add sparse simple constant propagation SSCP
 - [ ] http: rework HttpClient API (so it's becoming dead-easy to be used within proxy code)
+- [ ] http.client: HttpClient to support fastcgi
+- [ ] http.cluster: HealthMonitor to support fastcgi
 
 ## Intermediate 0
 
