@@ -20,13 +20,19 @@
 namespace xzero {
 namespace http {
 
+#if !defined(NDEBUG)
+#define TRACE(msg...) logTrace("HttpService: " msg)
+#else
+#define TRACE(msg...) do {} while (0)
+#endif
+
 HttpService::HttpService()
     : HttpService(getDefaultProtocol()) {
 }
 
 HttpService::Protocol HttpService::getDefaultProtocol() {
   const char* env = getenv("HTTP_TRANSPORT");
-  if (env == nullptr)
+  if (env == nullptr || !*env)
     return HttpService::HTTP1;
 
   if (strcmp(env, "fastcgi") == 0)
@@ -47,9 +53,9 @@ HttpService::Protocol HttpService::getDefaultProtocol() {
 }
 
 HttpService::HttpService(Protocol protocol)
-    : protocol_(protocol),
-      inetConnector_(nullptr),
-      handlers_() {
+    : protocol_{protocol},
+      inetConnector_{nullptr},
+      handlers_{} {
 }
 
 HttpService::~HttpService() {
@@ -88,15 +94,15 @@ void HttpService::attachProtocol(TcpConnector* connector) {
 }
 
 void HttpService::attachHttp1(TcpConnector* connector) {
-  // TODO: make them configurable via ctor
-  size_t requestHeaderBufferSize = 8 * 1024;
-  size_t requestBodyBufferSize = 8 * 1024;
-  size_t maxRequestUriLength = 1024;
-  size_t maxRequestBodyLength = 64 * 1024 * 1024;
-  size_t maxRequestCount = 100;
-  Duration maxKeepAlive = 8_seconds;
-  bool corkStream = false;
-  bool tcpNoDelay = false;
+  // TODO: make them configurable via ctor?
+  constexpr size_t requestHeaderBufferSize = 8 * 1024;
+  constexpr size_t requestBodyBufferSize = 8 * 1024;
+  constexpr size_t maxRequestUriLength = 1024;
+  constexpr size_t maxRequestBodyLength = 64 * 1024 * 1024;
+  constexpr size_t maxRequestCount = 100;
+  constexpr Duration maxKeepAlive = 8_seconds;
+  constexpr bool corkStream = false;
+  constexpr bool tcpNoDelay = false;
 
   auto http1 = std::make_unique<xzero::http::http1::ConnectionFactory>(
       requestHeaderBufferSize,
@@ -142,14 +148,8 @@ void HttpService::attachFCGI(TcpConnector* connector) {
   httpFactories_.emplace_back(std::move(fcgi));
 }
 
-void HttpService::addHandler(Handler* handler) {
+void HttpService::addHandler(Handler handler) {
   handlers_.push_back(handler);
-}
-
-void HttpService::removeHandler(Handler* handler) {
-  auto i = std::find(handlers_.begin(), handlers_.end(), handler);
-  if (i != handlers_.end())
-    handlers_.erase(i);
 }
 
 void HttpService::start() {
@@ -177,7 +177,7 @@ class HttpServiceHandler {
 
   void onAllDataRead() {
     for (auto& handler: service.handlers())
-      if (handler->handleRequest(request, response))
+      if (handler(request, response))
         return;
 
     response->setStatus(HttpStatus::NotFound);
@@ -203,8 +203,8 @@ void HttpService::handleRequest(HttpRequest* request, HttpResponse* response) {
 }
 
 void HttpService::onAllDataRead(HttpRequest* request, HttpResponse* response) {
-  for (Handler* handler: handlers_) {
-    if (handler->handleRequest(request, response)) {
+  for (Handler& handler: handlers_) {
+    if (handler(request, response)) {
       return;
     }
   }

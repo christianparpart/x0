@@ -37,7 +37,7 @@ class HttpResponse;
  */
 class HttpService {
  public:
-  class Handler;
+  using Handler = std::function<bool(HttpRequest*, HttpResponse*)>;
   class BuiltinAssetHandler;
 
   enum Protocol {
@@ -73,10 +73,7 @@ class HttpService {
                              int backlog = 128);
 
   /** Registers a new @p handler. */
-  void addHandler(Handler* handler);
-
-  /** Removes given @p handler from the list of registered handlers. */
-  void removeHandler(Handler* handler);
+  void addHandler(Handler handler);
 
   /** Starts the internal server. */
   void start();
@@ -96,7 +93,7 @@ class HttpService {
             HugeBuffer&& requestBody,
             HttpListener* responseListener);
 
-  const std::vector<Handler*>& handlers() const noexcept { return handlers_; }
+  const std::vector<Handler>& handlers() const noexcept { return handlers_; }
 
  private:
   static Protocol getDefaultProtocol();
@@ -111,34 +108,24 @@ class HttpService {
   Protocol protocol_;
   std::vector<std::unique_ptr<HttpConnectionFactory>> httpFactories_;
   std::unique_ptr<TcpConnector> inetConnector_;
-  std::vector<Handler*> handlers_;
-};
-
-/**
- * Interface for general purpose HTTP request handlers.
- */
-class HttpService::Handler {
- public:
-  /**
-   * Attempts to handle the given request.
-   *
-   * @retval true the request is being handled.
-   * @retval false the request is not being handled.
-   */
-  virtual bool handleRequest(HttpRequest* request, HttpResponse* response) = 0;
+  std::vector<Handler> handlers_;
 };
 
 /**
  * Builtin Asset Handler for HttpService.
  */
-class HttpService::BuiltinAssetHandler : public Handler {
+class HttpService::BuiltinAssetHandler {
  public:
   BuiltinAssetHandler();
 
   void addAsset(const std::string& path, const std::string& mimetype,
                 const Buffer&& data);
 
-  bool handleRequest(HttpRequest* request, HttpResponse* response) override;
+  bool operator()(HttpRequest* request, HttpResponse* response) {
+    return handleRequest(request, response);
+  }
+
+  bool handleRequest(HttpRequest* request, HttpResponse* response);
 
  private:
   struct Asset {
