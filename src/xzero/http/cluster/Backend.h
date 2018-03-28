@@ -30,6 +30,11 @@ namespace xzero::http::cluster {
 
 class Context;
 
+/**
+ * Represents a cluster member within a cluster.
+ *
+ * @see Cluster
+ */
 class Backend {
  public:
   class EventListener;
@@ -38,6 +43,34 @@ class Backend {
   using StateChangeNotify = std::function<void(Backend*,
                                                HealthMonitor::State)>;
 
+  using Protocol = std::string;
+
+  /**
+   * Constructs a backend.
+   *
+   * @p eventListener interface with a set of callbacks being invoked whenever
+   *                  a state change is happening to this cluster member
+   * @p executor      Executor to be used for health checks
+   * @p name          unique backend name within the cluster
+   * @p inet          Internet address (IP:port) the backend is listening on
+   * @p capacity      number of requests the backend can handle concurrently
+   * @p enabled       flag whether or not this backend is initially enabled
+   * @p terminateProtection flag indicating whether this backend is protected
+   *                        against accidental termination
+   * @p protocol      Backend protocol (such as: "http", "https", "fastcgi", "h2")
+   * @p connectTimeout duration until connect attempts are timing out
+   * @p readTimeout   duration until read attempts are timing out
+   * @p writeTimeout  duration until write attempts are timing out
+   * @p healthCheckHostHeader health check' Host request header
+   * @p healthCheckRequestPath health check's request path
+   * @p healthCheckFcgiScriptFilename health check's fastcgi script filename
+   *                                  (only necessary when using protocol "fastcgi")
+   * @p healthCheckInterval wait time between health checks
+   * @p healthCheckSuccessThreshold threshold of successfully health checks
+   *                                until an offline node is marked online again
+   * @p healthCheckSuccessThreshold list of HTTP status codes treated as healthy
+   *                                responses
+   */
   Backend(EventListener* eventListener,
           Executor* executor,
           const std::string& name,
@@ -45,7 +78,7 @@ class Backend {
           size_t capacity,
           bool enabled,
           bool terminateProtection,
-          const std::string& protocol, // http, https, fastcgi, h2, ...
+          const Protocol& protocol, // http, https, fastcgi, h2, ...
           Duration connectTimeout,
           Duration readTimeout,
           Duration writeTimeout,
@@ -75,7 +108,7 @@ class Backend {
   bool terminateProtection() const { return terminateProtection_; }
   void setTerminateProtection(bool value) { terminateProtection_ = value; }
 
-  const std::string& protocol() const noexcept { return protocol_; }
+  const Protocol& protocol() const noexcept { return protocol_; }
 
   HealthMonitor* healthMonitor() const { return healthMonitor_.get(); }
 
@@ -98,7 +131,7 @@ class Backend {
   bool enabled_;
   bool terminateProtection_;
   Counter load_;
-  std::string protocol_; // "http" | "fastcgi"
+  Protocol protocol_;
   Duration connectTimeout_;
   Duration readTimeout_;
   Duration writeTimeout_;
