@@ -494,7 +494,7 @@ std::unique_ptr<EventLoop> Daemon::createEventLoop() {
 }
 
 std::function<void()> Daemon::createHandler(HttpRequest* request,
-                                                 HttpResponse* response) {
+                                            HttpResponse* response) {
   return Context{main_,
                       request,
                       response,
