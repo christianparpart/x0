@@ -77,6 +77,14 @@ TcpConnector::TcpConnector(const std::string& name, Executor* executor,
       writeTimeout_(writeTimeout),
       tcpFinTimeout_(tcpFinTimeout),
       isStarted_(false) {
+#if defined(PLATFORM_WSL)
+  if (tcpFinTimeout_ != Duration::Zero) {
+    logWarning(
+        "This software is running on WSL which doesn't support setting "
+        "TCP_FIN timeout (TCP_LINGER2) yet. Ignoring.");
+    tcpFinTimeout_ = Duration::Zero;
+  }
+#endif
 }
 
 TcpConnector::TcpConnector(const std::string& name,
@@ -458,22 +466,26 @@ void TcpConnector::stop() {
 }
 
 void TcpConnector::onConnect() {
-  for (size_t i = 0; i < multiAcceptCount_; i++) {
-    int cfd = acceptOne();
-    if (cfd < 0)
-      break;
+  try {
+    for (size_t i = 0; i < multiAcceptCount_; i++) {
+      int cfd = acceptOne();
+      if (cfd < 0)
+        break;
 
-    TRACE("onConnect: fd=$0", cfd);
+      TRACE("onConnect: fd=$0", cfd);
 
-    Executor* clientExecutor = selectClientExecutor_();
-    std::shared_ptr<TcpEndPoint> ep = createEndPoint(cfd, clientExecutor);
-    {
-      std::lock_guard<std::mutex> _lk(mutex_);
-      connectedEndPoints_.push_back(ep);
+      Executor* clientExecutor = selectClientExecutor_();
+      std::shared_ptr<TcpEndPoint> ep = createEndPoint(cfd, clientExecutor);
+      {
+        std::lock_guard<std::mutex> _lk(mutex_);
+        connectedEndPoints_.push_back(ep);
+      }
+
+      clientExecutor->execute(
+          std::bind(&TcpConnector::onEndPointCreated, this, ep));
     }
-
-    clientExecutor->execute(
-        std::bind(&TcpConnector::onEndPointCreated, this, ep));
+  } catch (const std::exception& e) {
+    logError("Failed accepting client connection. $0", e.what());
   }
 
   if (isStarted()) {

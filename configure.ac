@@ -25,6 +25,9 @@ AM_CONDITIONAL([PLATFORM_DARWIN], [test x$uname_system = xDarwin])
 AM_CONDITIONAL([PLATFORM_LINUX], [test x$uname_system = xLinux])
 AM_CONDITIONAL([PLATFORM_WSL], [uname -r | grep -q Microsoft])
 
+AS_IF([uname -r | grep -q Microsoft],
+      [AC_DEFINE([PLATFORM_WSL], [1], [Platform: Windows Subsystem for Linux])])
+
 AC_HEADER_STDC
 
 AC_CHECK_HEADERS([sys/sendfile.h])
