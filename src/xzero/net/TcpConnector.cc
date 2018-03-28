@@ -50,9 +50,9 @@
 namespace xzero {
 
 TcpConnector::TcpConnector(const std::string& name, Executor* executor,
-                             ExecutorSelector clientExecutorSelector,
-                             Duration readTimeout, Duration writeTimeout,
-                             Duration tcpFinTimeout)
+                           ExecutorSelector clientExecutorSelector,
+                           Duration readTimeout, Duration writeTimeout,
+                           Duration tcpFinTimeout)
     : name_(name),
       executor_(executor),
       connectionFactories_(),
@@ -88,15 +88,15 @@ TcpConnector::TcpConnector(const std::string& name, Executor* executor,
 }
 
 TcpConnector::TcpConnector(const std::string& name,
-                             Executor* executor,
-                             ExecutorSelector clientExecutorSelector,
-                             Duration readTimeout,
-                             Duration writeTimeout,
-                             Duration tcpFinTimeout,
-                             const IPAddress& ipaddress, int port, int backlog,
-                             bool reuseAddr, bool reusePort)
+                           Executor* executor,
+                           ExecutorSelector clientExecutorSelector,
+                           Duration readTimeout,
+                           Duration writeTimeout,
+                           Duration tcpFinTimeout,
+                           const IPAddress& ipaddress, int port, int backlog,
+                           bool reuseAddr, bool reusePort)
     : TcpConnector(name, executor, clientExecutorSelector,
-                    readTimeout, writeTimeout, tcpFinTimeout) {
+                   readTimeout, writeTimeout, tcpFinTimeout) {
 
   open(ipaddress, port, backlog, reuseAddr, reusePort);
 }
