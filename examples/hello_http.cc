@@ -10,6 +10,9 @@
 using namespace xzero;
 
 bool helloWorld(http::HttpRequest* request, http::HttpResponse* response) {
+  if (request->method() != http::HttpMethod::GET)
+    return false;
+
   const std::string& message = "Hello, World\n";
 
   response->setStatus(http::HttpStatus::Ok);
@@ -45,23 +48,34 @@ int main(int argc, const char* argv[]) {
   Logger::get()->setMinimumLogLevel(make_loglevel(flags.getString("log-level")));
   Logger::get()->addTarget(ConsoleLogTarget::get());
 
-  Application::installGlobalExceptionHandler();
-  NativeScheduler scheduler{CatchAndLogExceptionHandler{"main"}};
+  // constructs a single threaded native event loop
+  NativeScheduler scheduler{CatchAndLogExceptionHandler{"hello"}};
 
-  http::HttpService service;
+  // constructs the HTTP service
+  http::HttpService service{&scheduler, (int) flags.getNumber("port")};
 
+  // adds a basic handler
   service.addHandler(helloWorld);
 
-  service.configureTcp(&scheduler,
-                       &scheduler,
-                       20_seconds, // read timeout
-                       10_seconds, // write timeout
-                       8_seconds, //Duration::Zero, // TCP FIN timeout (FIXME: broken on WSL)
-                       IPAddress{"0.0.0.0"},
-                       flags.getNumber("port"));
+  // install a shutdown handler
+  service.addHandler([&](auto request, auto response) -> bool {
+    if (request->method() == http::HttpMethod::POST && request->path() == "/shutdown") {
+      response->setStatus(http::HttpStatus::NoContent);
+      response->completed();
+      service.stop();
+      return true;
+    }
+    return false;
+  });
 
+  // starts the listener
   service.start();
 
+  logInfo("Start serving on port $0 ...", flags.getNumber("port"));
+
+  // run the event loop as long as something should be watched on
   scheduler.runLoop();
+
+  logInfo("Good bye.");
   return EXIT_SUCCESS;
 }
