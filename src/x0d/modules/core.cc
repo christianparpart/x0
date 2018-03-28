@@ -205,6 +205,9 @@ CoreModule::CoreModule(Daemon* d)
   sharedFunction("sys.domainname", &CoreModule::sys_domainname)
       .setReadOnly()
       .returnType(FlowType::String);
+  sharedFunction("sys.max_conn", &CoreModule::sys_max_conn)
+      .setReadOnly()
+      .returnType(FlowType::Number);
 
   // shared functions
   sharedFunction("error.page", &CoreModule::error_page,
@@ -679,6 +682,16 @@ void CoreModule::sys_domainname(Context* cx, Params& args) {
     cx->logError("sys.domainname: getdomainname() failed. $0", strerror(errno));
     args.setResult("");
   }
+}
+
+void CoreModule::sys_max_conn(Context* cx, Params& args) {
+  FlowNumber somaxconn = SOMAXCONN;
+
+#if defined(XZERO_OS_LINUX)
+  somaxconn = FileUtil::read("/proc/sys/net/core/somaxconn").toInt();
+#endif
+
+  args.setResult(somaxconn);
 }
 
 void CoreModule::log_err(Context* cx, Params& args) {

@@ -438,6 +438,27 @@ Example:
 
  log.info("Running on: " + sys.hostname);
 
+=item B<sys.domainname>
+
+Retrieves the hosts domain name.
+
+Example:
+
+ log.info("domainname: " + sys.domainname);
+
+=item B<sys.max_conn>
+
+Retrieves the total number of connections the server can accept simultanously.
+See listen(2)'s backlog parameter.
+
+On Linux systems, this value can be tweaked in I</proc/sys/net/core/somaxconn>.
+
+Example:
+
+ setup {
+   listen port: 80, backlog: sys.max_conn;
+ }
+
 =item B<sleep> (I<seconds>: Duration)
 
 Sleeps for given request processing with the specified number of seconds.

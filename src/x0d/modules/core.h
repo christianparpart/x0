@@ -88,6 +88,7 @@ class CoreModule : public Module {
   void sys_now_str(Context* cx, Params& args);
   void sys_hostname(Context* cx, Params& args);
   void sys_domainname(Context* cx, Params& args);
+  void sys_max_conn(Context* cx, Params& args);
 
   // {{{ shared functions
   void error_page(Params& args);
