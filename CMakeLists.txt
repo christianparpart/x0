@@ -420,3 +420,7 @@ add_executable(xzero_test ${xzero_test_SRC} ${xzero_test_PLATFORM_SRC})
 target_link_libraries(xzero_test Xzero XzeroFlow XzeroTest)
 endif()
 # }}}
+# {{{ examples
+add_executable(hello_http examples/hello_http.cc)
+target_link_libraries(hello_http Xzero)
+# }}}

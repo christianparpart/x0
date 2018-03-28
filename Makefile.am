@@ -675,6 +675,13 @@ dist_sysconf_DATA = x0d.conf
 pkgconfigdir = $(libdir)/pkgconfig
 pkgconfig_DATA = XzeroBase.pc XzeroFlow.pc XzeroTest.pc
 
+####### examples ##############################################################
+
+bin_PROGRAMS += hello_http
+hello_http_SOURCES = examples/hello_http.cc
+hello_http_CXXFLAGS = -I$(top_srcdir)/src $(AM_CXXFLAGS)
+hello_http_LDADD = libXzero.a $(AM_LDFLAGS)
+
 ####### xurl ##################################################################
 
 if ENABLE_XURL
