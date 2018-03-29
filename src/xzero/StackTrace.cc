@@ -29,74 +29,40 @@
 
 namespace xzero {
 
-#define MAX_FRAMES 64
-#define SKIP_FRAMES 2
+constexpr size_t MAX_FRAMES {128};
+constexpr size_t SKIP_FRAMES {2};
 
-StackTrace::StackTrace()
-    :
+StackTrace::StackTrace() :
 #if defined(HAVE_BACKTRACE)
-      frames_(MAX_FRAMES ? new void* [SKIP_FRAMES + MAX_FRAMES] : nullptr),
-      frameCount_(MAX_FRAMES ? ::backtrace(frames_, SKIP_FRAMES + MAX_FRAMES)
-                              : 0)
+    frames_{SKIP_FRAMES + MAX_FRAMES}
 #else
-      frames_(nullptr),
-      frameCount_(0)
+    frames_{}
 #endif
 {
+#if defined(HAVE_BACKTRACE)
+  frames_.resize(::backtrace(&frames_[0], SKIP_FRAMES + MAX_FRAMES));
+#endif
 }
 
 StackTrace::StackTrace(StackTrace&& other)
-    : frames_(other.frames_),
-      frameCount_(other.frameCount_) {
-  other.frames_ = nullptr;
-  other.frameCount_ = 0;
+    : frames_{std::move(other.frames_)} {
 }
 
 StackTrace& StackTrace::operator=(StackTrace&& other) {
-  frames_ = other.frames_;
-  frameCount_ = other.frameCount_;
-
-  other.frames_ = nullptr;
-  other.frameCount_ = 0;
-
+  frames_ = std::move(other.frames_);
   return *this;
 }
 
 StackTrace::StackTrace(const StackTrace& other)
-    :
-#if defined(HAVE_BACKTRACE)
-      frames_(MAX_FRAMES ? new void* [SKIP_FRAMES + MAX_FRAMES] : nullptr),
-      frameCount_(other.frameCount_)
-#else
-      frames_(nullptr),
-      frameCount_(0)
-#endif
-{
-  if (frames_ && frameCount_) {
-    memcpy(frames_, other.frames_, sizeof(void*) * frameCount_);
-  }
+    : frames_{other.frames_} {
 }
 
 StackTrace& StackTrace::operator=(const StackTrace& other) {
-  delete[] frames_;
-
-#if defined(HAVE_BACKTRACE)
-  frames_ = MAX_FRAMES ? new void* [SKIP_FRAMES + MAX_FRAMES] : nullptr;
-  frameCount_ = other.frameCount_;
-
-  if (frames_ && frameCount_) {
-    memcpy(frames_, other.frames_, sizeof(void*) * frameCount_);
-  }
-#else
-  frames_ = nullptr;
-  frameCount_ = 0;
-#endif
-
+  frames_ = other.frames_;
   return *this;
 }
 
 StackTrace::~StackTrace() {
-  delete[] frames_;
 }
 
 std::string StackTrace::demangleSymbol(const char* symbol) {
@@ -114,10 +80,10 @@ std::string StackTrace::demangleSymbol(const char* symbol) {
 
 std::vector<std::string> StackTrace::symbols() const {
 #if defined(HAVE_DLFCN_H)
-  if (frames_ && frameCount_) {
+  if (!empty()) {
     std::vector<std::string> output;
 
-    for (int i = SKIP_FRAMES; i <= frameCount_; ++i) {
+    for (size_t i = SKIP_FRAMES; i < size(); ++i) {
       Dl_info info;
       if (dladdr(frames_[i], &info)) {
         if (info.dli_sname && *info.dli_sname) {
@@ -144,17 +110,22 @@ std::vector<std::string> StackTrace::symbols() const {
     return output;
   }
 #else
-  if (frames_ && frameCount_) {
-    char** strings = backtrace_symbols(frames_, frameCount_);
+  if (!empty()) {
+    int frameCount{0};
+    char** strings = backtrace_symbols(&frames_[0], frameCount);
 
     std::vector<std::string> output;
-    output.resize(frameCount_);
+    try {
+      output.resize(frameCount);
 
-    for (int i = 0; i < frameCount_; ++i)
-      output[i] = strings[i];
-
+      for (int i = 0; i < frameCount; ++i) {
+        output[i] = strings[i];
+      }
+    } catch (...) {
+      free(strings);
+      throw;
+    }
     free(strings);
-
     return output;
   }
 #endif

@@ -172,7 +172,7 @@ void HttpFastCgiTransport::send(const BufferRef& chunk, CompletionHandler onComp
 // }}}
 class HttpFastCgiChannel : public HttpChannel { // {{{
  public:
-  HttpFastCgiChannel(HttpTransport* transport,
+  HttpFastCgiChannel(std::unique_ptr<HttpTransport> transport,
                      Executor* executor,
                      const HttpHandlerFactory& handlerFactory,
                      size_t maxRequestUriLength,
@@ -180,29 +180,30 @@ class HttpFastCgiChannel : public HttpChannel { // {{{
                      HttpDateGenerator* dateGenerator,
                      HttpOutputCompressor* outputCompressor);
   ~HttpFastCgiChannel();
+
+ private:
+  std::unique_ptr<HttpTransport> ownedTransport_;
 };
 
 HttpFastCgiChannel::HttpFastCgiChannel(
-    HttpTransport* transport,
+    std::unique_ptr<HttpTransport> transport,
     Executor* executor,
     const HttpHandlerFactory& handlerFactory,
     size_t maxRequestUriLength,
     size_t maxRequestBodyLength,
     HttpDateGenerator* dateGenerator,
     HttpOutputCompressor* outputCompressor)
-    : HttpChannel(transport,
+    : HttpChannel{transport.get(),
                   executor,
                   handlerFactory,
                   maxRequestUriLength,
                   maxRequestBodyLength,
                   dateGenerator,
-                  outputCompressor) {
+                  outputCompressor},
+      ownedTransport_{std::move(transport)} {
 }
 
 HttpFastCgiChannel::~HttpFastCgiChannel() {
-  TRACE_CHANNEL("$0 dtor", this);
-  // we own the transport
-  delete transport_;
 }
 // }}}
 
@@ -341,15 +342,14 @@ HttpChannel* Connection::createChannel(int request) {
   }
 
   try {
-    auto transport = new HttpFastCgiTransport(this, request, &writer_);
-    std::unique_ptr<HttpFastCgiChannel> channel(new HttpFastCgiChannel(
-       transport,
-       executor(),
-       handlerFactory_,
-       maxRequestUriLength_,
-       maxRequestBodyLength_,
-       dateGenerator_,
-       outputCompressor_));
+    std::unique_ptr<HttpFastCgiChannel> channel = std::make_unique<HttpFastCgiChannel>(
+        std::make_unique<HttpFastCgiTransport>(this, request, &writer_),
+        executor(),
+        handlerFactory_,
+        maxRequestUriLength_,
+        maxRequestBodyLength_,
+        dateGenerator_,
+        outputCompressor_);
 
     channel->request()->setRemoteAddress(endpoint()->remoteAddress());
 

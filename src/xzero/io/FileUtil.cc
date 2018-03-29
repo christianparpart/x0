@@ -109,7 +109,8 @@ void FileUtil::ls(const std::string& path,
     RAISE_ERRNO(errno);
 
   int len = offsetof(dirent, d_name) + pathconf(path.c_str(), _PC_NAME_MAX);
-  dirent* dep = (dirent*) new unsigned char[len + 1];
+  std::unique_ptr<uint8_t[]> space = std::make_unique<uint8_t[]>(len + 1);
+  dirent* dep = (dirent*) &space[0];
   dirent* res = nullptr;
   Buffer buf;
 
@@ -138,7 +139,6 @@ void FileUtil::ls(const std::string& path,
   }
 
   // free resources
-  delete[] dep;
   closedir(dir);
 }
 

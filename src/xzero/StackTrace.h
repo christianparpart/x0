@@ -10,6 +10,7 @@
 #include <xzero/Api.h>
 #include <vector>
 #include <string>
+#include <memory>
 
 namespace xzero {
 
@@ -23,12 +24,13 @@ class StackTrace {
   ~StackTrace();
 
   std::vector<std::string> symbols() const;
+  size_t size() const noexcept { return frames_.size(); }
+  bool empty() const noexcept { return frames_.empty(); }
 
   static std::string demangleSymbol(const char* symbol);
 
  private:
-  void** frames_;
-  int frameCount_;
+  std::vector<void*> frames_;
 };
 
 } // namespace xzero
