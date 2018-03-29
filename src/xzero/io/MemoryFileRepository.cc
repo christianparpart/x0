@@ -47,10 +47,10 @@ int MemoryFileRepository::createTempFile(std::string* filename) {
 void MemoryFileRepository::insert(const std::string& path,
                                   UnixTime mtime,
                                   const BufferRef& data) {
-  files_[path].reset(new MemoryFile(path,
-                                    mimetypes_.getMimeType(path),
-                                    data,
-                                    mtime));
+  files_[path] = std::make_unique<MemoryFile>(path,
+                                              mimetypes_.getMimeType(path),
+                                              data,
+                                              mtime);
 }
 
 void MemoryFileRepository::insert(const std::string& path, UnixTime mtime, int errc) {

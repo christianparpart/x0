@@ -213,7 +213,7 @@ TestServerPod::TestServerPod()
     servers() {
   // create servers
   for (raft::Id id: discovery.listMembers()) {
-    servers.emplace_back(new TestServer(id, &discovery, &executor));
+    servers.push_back(std::make_unique<TestServer>(id, &discovery, &executor));
   }
 
   // register (id,peer) tuples of server peers to this server
