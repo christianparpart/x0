@@ -383,7 +383,7 @@ Future<std::shared_ptr<TcpEndPoint>> TcpEndPoint::connect(const InetAddress& add
     executor->executeOnWritable(fd,
         std::bind(&onConnectComplete, address, fd, readTimeout, writeTimeout, executor, promise),
         connectTimeout,
-        [promise]() { promise.failure(std::errc::timed_out); });
+        [fd, promise]() { FileUtil::close(fd); promise.failure(std::errc::timed_out); });
   } else {
     TRACE("connect: connect() error. $0", strerror(errno));
     promise.failure(std::make_error_code(static_cast<std::errc>(errno)));
