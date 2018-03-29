@@ -609,7 +609,6 @@ bool CoreModule::preproc_sys_env(xzero::flow::Instr* call, xzero::flow::IRBuilde
     std::string name = builder->makeName(StringUtil::format("sys.env.$0", arg->get()));
 
     call->replace(std::make_unique<LoadInstr>(str, name));
-    delete call;
   }
   return true;
 }
@@ -637,7 +636,6 @@ bool CoreModule::preproc_sys_env2(xzero::flow::Instr* call, xzero::flow::IRBuild
       std::string name = builder->makeName(StringUtil::format("sys.env.$0", arg->get()));
 
       call->replace(std::make_unique<LoadInstr>(str, name));
-      delete call;
     }
   }
   return true;
