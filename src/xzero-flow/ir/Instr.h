@@ -99,8 +99,10 @@ class Instr : public Value {
 
   /**
    * Replaces this instruction with the given @p newInstr.
+   *
+   * @returns ownership of this instruction.
    */
-  void replace(std::unique_ptr<Instr> newInstr);
+  std::unique_ptr<Instr> replace(std::unique_ptr<Instr> newInstr);
 
   /**
    * Clones given instruction.

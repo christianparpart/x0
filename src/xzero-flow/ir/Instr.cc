@@ -107,9 +107,11 @@ void Instr::clearOperands() {
   operands_.clear();
 }
 
-void Instr::replace(std::unique_ptr<Instr> newInstr) {
+std::unique_ptr<Instr> Instr::replace(std::unique_ptr<Instr> newInstr) {
   if (basicBlock_) {
-    basicBlock_->replace(this, std::move(newInstr));
+    return basicBlock_->replace(this, std::move(newInstr));
+  } else {
+    return nullptr;
   }
 }
 

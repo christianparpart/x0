@@ -36,19 +36,6 @@ IRProgram::~IRProgram() {
   cidrs_.clear();
   builtinHandlers_.clear();
   builtinFunctions_.clear();
-
-  // for (auto& value : handlers_) delete value;
-  // for (auto& value : constantArrays_) delete value;
-  // for (auto& value : numbers_) delete value;
-  // for (auto& value : strings_) delete value;
-  // for (auto& value : ipaddrs_) delete value;
-  // for (auto& value : cidrs_) delete value;
-  // for (auto& value : regexps_) delete value;
-  // for (auto& value : builtinHandlers_) delete value;
-  // for (auto& value : builtinFunctions_) delete value;
-  //
-  // delete trueLiteral_;
-  // delete falseLiteral_;
 }
 
 void IRProgram::dump() {
