@@ -363,6 +363,7 @@ set(xzero_test_SRC
 		src/xzero/Flags-test.cc
 		src/xzero/HugeBuffer-test.cc
 		src/xzero/MimeTypes-test.cc
+		src/xzero/PrefixTree-test.cc
 		src/xzero/raft/Generator-test.cc
 		src/xzero/raft/InetTransport-test.cc
 		src/xzero/raft/Parser-test.cc
@@ -370,6 +371,7 @@ set(xzero_test_SRC
 		src/xzero/raft/ServerUtil-test.cc
 		src/xzero/Result-test.cc
 		src/xzero/StringUtil-test.cc
+		src/xzero/SuffixTree-test.cc
 		src/xzero/TokenShaper-test.cc
 		src/xzero/Tokenizer-test.cc
 		src/xzero/Uri-test.cc

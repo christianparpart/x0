@@ -9,6 +9,7 @@
 
 #include <xzero/Api.h>
 #include <unordered_map>
+#include <memory>
 
 namespace xzero {
 
@@ -29,23 +30,11 @@ class SuffixTree {
   struct Node {  // {{{
     Node* parent;
     Elem element;
-    std::unordered_map<Elem, Node*> children;
+    std::unordered_map<Elem, std::unique_ptr<Node>> children;
     Value value;
 
     Node() : parent(nullptr), element(), children(), value() {}
     Node(Node* p, Elem e) : parent(p), element(e), children(), value() {}
-
-    ~Node() {
-      for (auto& n : children) {
-        delete n.second;
-      }
-    }
-
-    Node** get(Elem e) {
-      auto i = children.find(e);
-      if (i != children.end()) return &i->second;
-      return &children[e];
-    }
   };  // }}}
 
   Node root_;
@@ -75,11 +64,11 @@ void SuffixTree<K, V>::insert(const Key& key, const Value& value) {
 template <typename K, typename V>
 typename SuffixTree<K, V>::Node* SuffixTree<K, V>::acquire(Elem elem, Node* n) {
   auto i = n->children.find(elem);
-  if (i != n->children.end()) return i->second;
+  if (i != n->children.end())
+    return i->second.get();
 
-  Node* c = new Node(n, elem);
-  n->children[elem] = c;
-  return c;
+  n->children[elem] = std::make_unique<Node>(n, elem);
+  return n->children[elem].get();
 }
 
 template <typename K, typename V>
@@ -88,9 +77,10 @@ bool SuffixTree<K, V>::lookup(const Key& key, Value* value) const {
 
   for (auto i = key.rbegin(), e = key.rend(); i != e; ++i) {
     auto k = level->children.find(*i);
-    if (k == level->children.end()) break;
+    if (k == level->children.end())
+      break;
 
-    level = k->second;
+    level = k->second.get();
   }
 
   while (level && level->parent) {

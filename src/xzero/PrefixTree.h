@@ -9,6 +9,7 @@
 
 #include <xzero/Api.h>
 #include <unordered_map>
+#include <memory>
 
 namespace xzero {
 
@@ -29,23 +30,11 @@ class PrefixTree {
   struct Node {  // {{{
     Node* parent;
     Elem element;
-    std::unordered_map<Elem, Node*> children;
+    std::unordered_map<Elem, std::unique_ptr<Node>> children;
     Value value;
 
     Node() : parent(nullptr), element(), children(), value() {}
     Node(Node* p, Elem e) : parent(p), element(e), children(), value() {}
-
-    ~Node() {
-      for (auto& n : children) {
-        delete n.second;
-      }
-    }
-
-    Node** get(Elem e) {
-      auto i = children.find(e);
-      if (i != children.end()) return &i->second;
-      return &children[e];
-    }
   };  // }}}
 
   Node root_;
@@ -65,7 +54,8 @@ template <typename K, typename V>
 void PrefixTree<K, V>::insert(const Key& key, const Value& value) {
   Node* level = &root_;
 
-  for (const auto& ke : key) level = acquire(ke, level);
+  for (const auto& ke : key)
+    level = acquire(ke, level);
 
   level->value = value;
 }
@@ -73,11 +63,11 @@ void PrefixTree<K, V>::insert(const Key& key, const Value& value) {
 template <typename K, typename V>
 typename PrefixTree<K, V>::Node* PrefixTree<K, V>::acquire(Elem elem, Node* n) {
   auto i = n->children.find(elem);
-  if (i != n->children.end()) return i->second;
+  if (i != n->children.end())
+    return i->second.get();
 
-  Node* c = new Node(n, elem);
-  n->children[elem] = c;
-  return c;
+  n->children[elem] = std::make_unique<Node>(n, elem);
+  return n->children[elem].get();
 }
 
 template <typename K, typename V>
@@ -86,9 +76,10 @@ bool PrefixTree<K, V>::lookup(const Key& key, Value* value) const {
 
   for (const auto& ke : key) {
     auto i = level->children.find(ke);
-    if (i == level->children.end()) break;
+    if (i == level->children.end())
+      break;
 
-    level = i->second;
+    level = i->second.get();
   }
 
   while (level && level->parent) {
