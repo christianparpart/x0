@@ -35,7 +35,7 @@ PosixSignals::~PosixSignals() {
 PosixSignals::HandleRef PosixSignals::notify(int signo, SignalHandler task) {
   std::lock_guard<std::mutex> _l(mutex_);
 
-  std::shared_ptr<SignalWatcher> hr(new SignalWatcher(task));
+  std::shared_ptr<SignalWatcher> hr = std::make_shared<SignalWatcher>(task);
 
   if (watchers_[signo].empty()) {
     TRACE("installing signal handler $0 ($1)", signo, toString(signo));

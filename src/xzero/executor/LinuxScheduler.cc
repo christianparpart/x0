@@ -140,8 +140,9 @@ Executor::HandleRef LinuxScheduler::createWatcher(
     logFatal("LinuxScheduler: Already watching on resource");
   }
 
-  Watcher* interest = new Watcher(fd, mode, task, MonotonicClock::now() + timeout, tcb);
-  watchers_[fd] = std::shared_ptr<Watcher>(interest);
+  auto si = std::make_shared<Watcher>(fd, mode, task, MonotonicClock::now() + timeout, tcb);
+  watchers_[fd] = si;
+  Watcher* const interest = si.get();
 
   interest->setCancelHandler([this, interest] () {
     std::lock_guard<std::mutex> _l(lock_);
