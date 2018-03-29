@@ -356,7 +356,7 @@ inline Wakeup* Future<void>::wakeup() const {
 }
 // }}}
 // {{{ Promise<void>
-inline Promise<void>::Promise() : state_(new PromiseState<void>()) {}
+inline Promise<void>::Promise() : state_(std::make_shared<PromiseState<void>>()) {}
 
 inline Promise<void>::Promise(const Promise<void>& other) : state_(other.state_) {}
 
