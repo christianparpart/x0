@@ -63,7 +63,7 @@ HttpService::HttpService(Executor* executor, int port)
 }
 
 HttpService::HttpService(Executor* executor, int port, const IPAddress& bind)
-    : protocol_{HTTP1},
+    : protocol_{getDefaultProtocol()},
       inetConnector_{nullptr},
       handlers_{} {
   configureTcp(executor, executor, 60_seconds, 20_seconds, 0_seconds,
