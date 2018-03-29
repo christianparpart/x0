@@ -11,7 +11,7 @@
 #include <xzero-flow/Signature.h>
 #include <xzero/StringUtil.h>
 #include <xzero/Buffer.h>
-#include <xzero/Utility.h> // make_unique
+#include <memory>
 #include <algorithm>
 #include <cstdlib>
 #include <cstdio>

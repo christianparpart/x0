@@ -229,7 +229,6 @@ nobase_libXzero_HEADERS = \
 	src/xzero/UnixTime.h \
 	src/xzero/UnixTime_impl.h \
 	src/xzero/Uri.h \
-	src/xzero/Utility.h \
 	src/xzero/WallClock.h \
 	src/xzero/base64-inl.h \
 	src/xzero/base64.h \

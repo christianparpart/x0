@@ -6,16 +6,16 @@
 // the License at: http://opensource.org/licenses/MIT
 #pragma once
 
-#include <list>
-#include <vector>
-#include <string>
-#include <functional>
-
 #include <xzero/defines.h>
 #include <xzero-flow/FlowToken.h>
 #include <xzero-flow/FlowLexer.h>
 #include <xzero-flow/AST.h>  // SymbolTable
-#include <xzero/Utility.h>
+
+#include <list>
+#include <vector>
+#include <string>
+#include <memory>
+#include <functional>
 
 namespace xzero::flow {
 

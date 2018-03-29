@@ -11,8 +11,8 @@
 #include <xzero-flow/AST.h>
 #include <xzero-flow/vm/Runtime.h>
 #include <xzero/logging.h>
-#include <xzero/Utility.h>
 #include <unordered_map>
+#include <memory>
 #include <unistd.h>
 
 enum class OpSig {
