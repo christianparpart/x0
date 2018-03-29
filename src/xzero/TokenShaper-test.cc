@@ -50,11 +50,12 @@ void TokenShaperTest::onTimeout(int* i) {
 }
 
 void TokenShaperTest::SetUp() {
-  loop.reset(new PosixScheduler());
+  loop = std::make_unique<PosixScheduler>();
 
-  shaper.reset(new Shaper(loop.get(), 10,
+  shaper = std::make_unique<Shaper>(loop.get(), 10,
                std::bind(&TokenShaperTest::onTimeout, this,
-                         std::placeholders::_1)));
+                         std::placeholders::_1));
+
   root = shaper->rootNode();
 
   shaper->createNode("vip", 0.1, 0.3);
@@ -256,10 +257,12 @@ TEST_F(TokenShaperTest, GetWithEnqueuePutDequeue) {
   ASSERT_EQ(1, vip->get(1));  // passes through (overrate)
   ASSERT_EQ(0, vip->get(1));  // ok, we must enqueue it then
 
-  vip->enqueue(new int(42));
+  int o42{42};
+  vip->enqueue(&o42);
   ASSERT_EQ(1, vip->queued().current());
 
-  vip->enqueue(new int(43));
+  int o43{43};
+  vip->enqueue(&o43);
   ASSERT_EQ(2, vip->queued().current());
 
   // attempt to dequeue when we shouldn't be able to, because we have no spare
@@ -273,7 +276,6 @@ TEST_F(TokenShaperTest, GetWithEnqueuePutDequeue) {
   ASSERT_TRUE(object != nullptr);
   EXPECT_EQ(42, *object);
   ASSERT_EQ(1, vip->queued().current());
-  delete object;
 
   // Another dequeue must fail because we have no tokens available on vip node.
   object = root->dequeue();
@@ -287,7 +289,6 @@ TEST_F(TokenShaperTest, GetWithEnqueuePutDequeue) {
   ASSERT_TRUE(object != nullptr);
   EXPECT_EQ(43, *object);
   ASSERT_EQ(0, vip->queued().current());
-  delete object;
 
   // Release the 2 remaining tokens.
   vip->put(1);
@@ -311,7 +312,8 @@ TEST_F(TokenShaperTest, TimeoutHandling) {
     loop->breakLoop();
   };
 
-  vip->enqueue(new int(42));
+  int o42{42};
+  vip->enqueue(&o42);
   loop->runLoop();
 
   ASSERT_TRUE(object != nullptr);
@@ -322,6 +324,4 @@ TEST_F(TokenShaperTest, TimeoutHandling) {
 
   // be a little greedy with the range here as CPU loads might get sick.
   EXPECT_TRUE(diff < 10_milliseconds);
-
-  delete object;
 }
