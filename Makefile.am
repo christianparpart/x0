@@ -239,7 +239,6 @@ nobase_libXzero_HEADERS = \
 	src/xzero/inspect-impl.h \
 	src/xzero/inspect.h \
 	src/xzero/logging.h \
-	src/xzero/reflect.h \
 	src/xzero/testing.h \
 	src/xzero/time_constants.h \
 	src/xzero/traits.h \
@@ -361,12 +360,6 @@ nobase_libXzero_HEADERS = \
 	src/xzero/raft/StateMachine.h \
 	src/xzero/raft/Storage.h \
 	src/xzero/raft/Transport.h \
-	src/xzero/reflect/indexsequence.h \
-	src/xzero/reflect/metaclass.h \
-	src/xzero/reflect/methodcall.h \
-	src/xzero/reflect/methodcall_impl.h \
-	src/xzero/reflect/property.h \
-	src/xzero/reflect/property_impl.h \
 	src/xzero/text/IniFile.h \
 	src/xzero/thread/Future-impl.h \
 	src/xzero/thread/Future.h \
