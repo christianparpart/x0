@@ -97,7 +97,7 @@ template <typename T>
 class TokenShaper {
  public:
   class Node;
-  typedef std::function<void(T*)> TimeoutHandler;
+  using TimeoutHandler = std::function<void(T*)>;
 
   TokenShaper(Executor* executor,
               size_t size,
@@ -122,14 +122,14 @@ class TokenShaper {
   void writeJSON(JsonWriter& json) const;
 
  private:
-  Node* root_;
+  std::unique_ptr<Node> root_;
 };
 
 template <typename T>
 class TokenShaper<T>::Node {
  public:
   //! @todo must be thread safe to allow bucket iteration while modification
-  typedef std::vector<TokenShaper<T>::Node*> BucketList;
+  typedef std::vector<std::unique_ptr<TokenShaper<T>::Node>> BucketList;
   typedef typename BucketList::const_iterator const_iterator;
 
   // user attributes
@@ -155,8 +155,8 @@ class TokenShaper<T>::Node {
   size_t actualChildOverRate() const;
 
   // parent/child node access
-  static TokenShaper<T>::Node* createRoot(Executor* executor, size_t tokens,
-                                          TimeoutHandler onTimeout);
+  static std::unique_ptr<TokenShaper<T>::Node> createRoot(
+      Executor* executor, size_t tokens, TimeoutHandler onTimeout);
   TokenShaperError createChild(const std::string& name, float rate,
                                float ceil = 0);
   TokenShaper<T>::Node* findChild(const std::string& name) const;
@@ -190,6 +190,11 @@ class TokenShaper<T>::Node {
 
   void writeJSON(JsonWriter& json) const;
 
+  Node(Executor* executor, const std::string& name, size_t tokenRate,
+       size_t tokenCeil, float prate, float pceil,
+       TokenShaper<T>::Node* parent,
+       TimeoutHandler onTimeout);
+
  private:
   friend class TokenShaper;
   void update(size_t n);
@@ -198,11 +203,6 @@ class TokenShaper<T>::Node {
   void onTimeout();
 
  private:
-  Node(Executor* executor, const std::string& name, size_t tokenRate,
-       size_t tokenCeil, float prate, float pceil,
-       TokenShaper<T>::Node* parent,
-       TimeoutHandler onTimeout);
-
   struct QueueItem {
     T* token;
     MonotonicTime ctime;

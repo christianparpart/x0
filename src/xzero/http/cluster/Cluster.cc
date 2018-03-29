@@ -697,7 +697,7 @@ Cluster::Bucket* Cluster::findBucket(const std::string& name) const {
 
 bool Cluster::eachBucket(std::function<bool(Bucket*)> body) {
   for (auto& node : *shaper_.rootNode())
-    if (!body(node))
+    if (!body(node.get()))
       return false;
 
   return true;

@@ -14,11 +14,10 @@ namespace xzero {
 template <typename T>
 TokenShaper<T>::TokenShaper(Executor* executor, size_t size,
                             TimeoutHandler timeoutHandler)
-    : root_(Node::createRoot(executor, size, timeoutHandler)) {}
+    : root_{Node::createRoot(executor, size, timeoutHandler)} {}
 
 template <typename T>
 TokenShaper<T>::~TokenShaper() {
-  delete root_;
 }
 
 template <typename T>
@@ -30,14 +29,15 @@ template <typename T>
 void TokenShaper<T>::resize(size_t capacity) {
   // Only recompute tokenRates on child nodes when root node's token rate
   // actually changed.
-  if (root_->rate() == capacity) return;
+  if (root_->rate() == capacity)
+    return;
 
   root_->update(capacity);
 }
 
 template <typename T>
 typename TokenShaper<T>::Node* TokenShaper<T>::rootNode() const {
-  return root_;
+  return root_.get();
 }
 
 template <typename T>
@@ -54,7 +54,8 @@ TokenShaperError TokenShaper<T>::createNode(const std::string& name, float rate,
 
 template <typename T>
 void TokenShaper<T>::destroyNode(Node* n) {
-  if (n == root_) return;
+  if (n == root_.get())
+    return;
 
   n->parentNode()->destroyChild(n);
 }
@@ -109,7 +110,7 @@ template <typename T>
 float TokenShaper<T>::Node::childRateP() const {
   float sum = 0;
 
-  for (const auto child : children_) {
+  for (const std::unique_ptr<Node>& child : children_) {
     sum += child->rateP();
   }
 
@@ -125,7 +126,8 @@ template <typename T>
 size_t TokenShaper<T>::Node::childRate() const {
   size_t sum = 0;
 
-  for (const auto& child : children_) sum += child->rate();
+  for (const std::unique_ptr<Node>& child : children_)
+    sum += child->rate();
 
   return sum;
 }
@@ -140,7 +142,8 @@ template <typename T>
 size_t TokenShaper<T>::Node::actualChildRate() const {
   size_t sum = 0;
 
-  for (const auto& child : children_) sum += child->actualRate();
+  for (const std::unique_ptr<Node>& child : children_)
+    sum += child->actualRate();
 
   return sum;
 }
@@ -149,14 +152,16 @@ template <typename T>
 size_t TokenShaper<T>::Node::actualChildOverRate() const {
   size_t sum = 0;
 
-  for (const auto& child : children_) sum += child->overRate();
+  for (const std::unique_ptr<Node>& child : children_)
+    sum += child->overRate();
 
   return sum;
 }
 
 template <typename T>
 TokenShaperError TokenShaper<T>::Node::setName(const std::string& value) {
-  if (rootNode()->findChild(value)) return TokenShaperError::NameConflict;
+  if (rootNode()->findChild(value))
+    return TokenShaperError::NameConflict;
 
   name_ = value;
   return TokenShaperError::Success;
@@ -164,7 +169,8 @@ TokenShaperError TokenShaper<T>::Node::setName(const std::string& value) {
 
 template <typename T>
 TokenShaperError TokenShaper<T>::Node::setRate(float newRate) {
-  if (!parent_) return TokenShaperError::InvalidChildNode;
+  if (!parent_)
+    return TokenShaperError::InvalidChildNode;
 
   if (newRate < 0.0 || newRate > ceilPercent_)
     return TokenShaperError::RateLimitOverflow;
@@ -172,16 +178,16 @@ TokenShaperError TokenShaper<T>::Node::setRate(float newRate) {
   ratePercent_ = newRate;
   rate_ = parent_->rate() * ratePercent_;
 
-  for (auto child : children_) {
+  for (std::unique_ptr<Node>& child : children_)
     child->update();
-  }
 
   return TokenShaperError::Success;
 }
 
 template <typename T>
 TokenShaperError TokenShaper<T>::Node::setCeil(float newCeil) {
-  if (!parent_) return TokenShaperError::InvalidChildNode;
+  if (!parent_)
+    return TokenShaperError::InvalidChildNode;
 
   if (newCeil < ratePercent_ || newCeil > 1.0)
     return TokenShaperError::CeilLimitOverflow;
@@ -189,19 +195,22 @@ TokenShaperError TokenShaper<T>::Node::setCeil(float newCeil) {
   ceilPercent_ = newCeil;
   ceil_ = parent_->ceil() * ceilPercent_;
 
-  for (auto child : children_) child->update();
+  for (std::unique_ptr<Node>& child : children_)
+    child->update();
 
   return TokenShaperError::Success;
 }
 
 template <typename T>
 TokenShaperError TokenShaper<T>::Node::setRate(float newRate, float newCeil) {
-  if (!parent_) return TokenShaperError::InvalidChildNode;
+  if (!parent_)
+    return TokenShaperError::InvalidChildNode;
 
   if (newRate < 0.0 || newRate > newCeil)
     return TokenShaperError::RateLimitOverflow;
 
-  if (newCeil > 1.0) return TokenShaperError::CeilLimitOverflow;
+  if (newCeil > 1.0)
+    return TokenShaperError::CeilLimitOverflow;
 
   ratePercent_ = newRate;
   ceilPercent_ = newCeil;
@@ -236,7 +245,7 @@ void TokenShaper<T>::Node::update(size_t capacity) {
   rate_ = capacity * ratePercent_;
   ceil_ = capacity * ceilPercent_;
 
-  for (auto child : children_) {
+  for (std::unique_ptr<Node>& child : children_) {
     child->update();
   }
 }
@@ -248,16 +257,17 @@ void TokenShaper<T>::Node::update() {
     ceil_ = parent_->ceil() * ceilPercent_;
   }
 
-  for (auto child : children_) {
+  for (std::unique_ptr<Node>& child : children_) {
     child->update();
   }
 }
 
 template <typename T>
-typename TokenShaper<T>::Node* TokenShaper<T>::Node::createRoot(
+std::unique_ptr<typename TokenShaper<T>::Node> TokenShaper<T>::Node::createRoot(
     Executor* executor, size_t tokens, TimeoutHandler onTimeout) {
-  return new TokenShaper<T>::Node(executor, "root", tokens, tokens,
-                                  1.0f, 1.0f, nullptr, onTimeout);
+  return std::make_unique<TokenShaper<T>::Node>(
+      executor, "root", tokens, tokens,
+      1.0f, 1.0f, nullptr, onTimeout);
 }
 
 template <typename T>
@@ -268,25 +278,27 @@ TokenShaperError TokenShaper<T>::Node::createChild(const std::string& name,
     return TokenShaperError::RateLimitOverflow;
 
   // rate <= ceil <= 1.0
-  if (ceil < rate || ceil > 1.0) return TokenShaperError::CeilLimitOverflow;
+  if (ceil < rate || ceil > 1.0)
+    return TokenShaperError::CeilLimitOverflow;
 
-  if (rootNode()->findChild(name)) return TokenShaperError::NameConflict;
+  if (rootNode()->findChild(name))
+    return TokenShaperError::NameConflict;
 
-  size_t tokenRate = rate_ * rate;
-  size_t tokenCeil = ceil_ * ceil;
-  TokenShaper<T>::Node* b = new TokenShaper<T>::Node(
-      executor_, name, tokenRate, tokenCeil, rate, ceil, this, onTimeout_);
-  children_.push_back(b);
+  const size_t tokenRate = rate_ * rate;
+  const size_t tokenCeil = ceil_ * ceil;
+
+  children_.push_back(std::make_unique<TokenShaper<T>::Node>(
+      executor_, name, tokenRate, tokenCeil, rate, ceil, this, onTimeout_));
+
   return TokenShaperError::Success;
 }
 
 template <typename T>
 void TokenShaper<T>::Node::destroyChild(Node* n) {
-  auto i = std::find(children_.begin(), children_.end(), n);
+  auto i = std::find_if(children_.begin(), children_.end(), [n](auto& a) { return a.get() == n; });
 
   if (i != children_.end()) {
     children_.erase(i);
-    delete n;
   }
 }
 
@@ -314,11 +326,13 @@ typename TokenShaper<T>::Node* TokenShaper<T>::Node::rootNode() {
 template <typename T>
 typename TokenShaper<T>::Node* TokenShaper<T>::Node::findChild(
     const std::string& name) const {
-  for (auto n : children_)
-    if (n->name() == name) return n;
+  for (const std::unique_ptr<Node>& child : children_)
+    if (child->name() == name)
+      return child.get();
 
-  for (auto n : children_)
-    if (auto b = n->findChild(name)) return b;
+  for (const std::unique_ptr<Node>& child : children_)
+    if (auto b = child->findChild(name))
+      return b;
 
   return nullptr;
 }
@@ -332,7 +346,8 @@ typename TokenShaper<T>::Node* TokenShaper<T>::Node::findChild(
  */
 template <typename T>
 bool TokenShaper<T>::Node::send(T* packet, size_t cost) {
-  if (get(cost)) return true;
+  if (get(cost))
+    return true;
 
   enqueue(packet);
   return false;
@@ -482,7 +497,7 @@ inline Duration TokenShaper<T>::Node::queueTimeout() const {
 template <typename T>
 inline void TokenShaper<T>::Node::setQueueTimeout(Duration value) {
   queueTimeout_ = value;
-  for (auto child: children_) {
+  for (std::unique_ptr<Node>& child : children_) {
     child->setQueueTimeout(value);
   }
 }
@@ -536,8 +551,8 @@ void TokenShaper<T>::Node::writeJSON(JsonWriter& json) const {
       .endObject();
 
   json.beginArray("children");
-  for (auto n : children_) {
-    n->writeJSON(json);
+  for (const std::unique_ptr<Node>& child : children_) {
+    child->writeJSON(json);
   }
   json.endArray();
 
@@ -606,7 +621,8 @@ void dumpNode(const T* bucket, const char* title, int depth) {
       bucket->rate(), bucket->rateP(), bucket->ceil(), bucket->ceilP(),
       bucket->actualRate(), bucket->queued().current());
 
-  for (const auto& child : *bucket) dumpNode(child, "", depth + 1);
+  for (const auto& child : *bucket)
+    dumpNode(child.get(), "", depth + 1);
 
   if (!depth) {
     printf("\n");

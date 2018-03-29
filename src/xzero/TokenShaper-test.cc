@@ -24,7 +24,7 @@ class TokenShaperTest : public ::testing::Test {
   void onTimeout(int* i);
 
  protected:
-  typedef TokenShaper<int> Shaper;
+  using Shaper = TokenShaper<int>;
 
   Shaper::TimeoutHandler onTimeout_;
   std::unique_ptr<EventLoop> loop;
