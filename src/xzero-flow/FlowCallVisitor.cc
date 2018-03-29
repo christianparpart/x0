@@ -30,8 +30,8 @@ void FlowCallVisitor::accept(VariableSym& variable) {
 
 void FlowCallVisitor::accept(HandlerSym& handler) {
   if (handler.scope()) {
-    for (auto sym : *handler.scope()) {
-      visit(sym);
+    for (std::unique_ptr<Symbol>& sym : *handler.scope()) {
+      visit(sym.get());
     }
   }
 
@@ -43,8 +43,8 @@ void FlowCallVisitor::accept(BuiltinFunctionSym& v) {}
 void FlowCallVisitor::accept(BuiltinHandlerSym& v) {}
 
 void FlowCallVisitor::accept(UnitSym& unit) {
-  for (auto s : *unit.scope()) {
-    visit(s);
+  for (std::unique_ptr<Symbol>& s : *unit.scope()) {
+    visit(s.get());
   }
 }
 // }}}
@@ -58,7 +58,7 @@ void FlowCallVisitor::accept(BinaryExpr& expr) {
 
 void FlowCallVisitor::accept(CallExpr& call) {
   for (const auto& arg : call.args().values()) {
-    visit(arg);
+    visit(arg.get());
   }
 
   if (call.callee() && call.callee()->isBuiltin()) {

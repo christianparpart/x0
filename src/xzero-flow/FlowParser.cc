@@ -1644,7 +1644,7 @@ Signature makeSignature(const CallableSym* callee, const ParamList& params) {
   sig.setName(callee->name());
 
   std::vector<FlowType> argTypes;
-  for (const Expr* arg : params.values()) {
+  for (const std::unique_ptr<Expr>& arg : params.values()) {
     argTypes.push_back(arg->getType());
   }
 

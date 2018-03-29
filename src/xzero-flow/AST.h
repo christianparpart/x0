@@ -85,7 +85,7 @@ inline bool operator&(Lookup a, Lookup b) {
 
 class SymbolTable {
  public:
-  typedef std::vector<Symbol*> list_type;
+  typedef std::vector<std::unique_ptr<Symbol>> list_type;
   typedef list_type::iterator iterator;
   typedef list_type::const_iterator const_iterator;
 
@@ -355,7 +355,7 @@ class ParamList {
  private:
   bool isNamed_;
   std::vector<std::string> names_;
-  std::vector<Expr*> values_;
+  std::vector<std::unique_ptr<Expr>> values_;
 
  public:
   ParamList(const ParamList&) = delete;
@@ -390,10 +390,10 @@ class ParamList {
     return at(offset);
   }
   const std::vector<std::string>& names() const { return names_; }
-  const std::vector<Expr*> values() const { return values_; }
+  const std::vector<std::unique_ptr<Expr>>& values() const { return values_; }
 
-  Expr* front() const { return values_.front(); }
-  Expr* back() const { return values_.back(); }
+  Expr* front() const { return values_.front().get(); }
+  Expr* back() const { return values_.back().get(); }
 
   void dump(const char* title = nullptr);
 

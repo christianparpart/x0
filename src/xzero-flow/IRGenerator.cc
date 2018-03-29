@@ -125,8 +125,8 @@ void IRGenerator::accept(UnitSym& unit) {
   setProgram(std::make_unique<IRProgram>());
   program()->setModules(unit.modules());
 
-  for (const auto sym : *unit.scope()) {
-    codegen(sym);
+  for (const std::unique_ptr<Symbol>& sym : *unit.scope()) {
+    codegen(sym.get());
   }
 }
 
@@ -200,8 +200,8 @@ void IRGenerator::codegenInline(HandlerSym& handlerSym) {
 
   // emit local variable declarations
   if (handlerSym.scope()) {
-    for (Symbol* symbol : *handlerSym.scope()) {
-      codegen(symbol);
+    for (std::unique_ptr<Symbol>& symbol : *handlerSym.scope()) {
+      codegen(symbol.get());
     }
   }
 
@@ -356,8 +356,8 @@ void IRGenerator::accept(CallExpr& call) {
   FNTRACE();
 
   std::vector<Value*> args;
-  for (Expr* arg : call.args().values()) {
-    if (Value* v = codegen(arg)) {
+  for (const std::unique_ptr<Expr>& arg : call.args().values()) {
+    if (Value* v = codegen(arg.get())) {
       args.push_back(v);
     } else {
       return;

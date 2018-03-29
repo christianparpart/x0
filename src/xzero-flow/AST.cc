@@ -36,37 +36,41 @@ SymbolTable::SymbolTable(SymbolTable* outer, const std::string& name)
     : symbols_(), outerTable_(outer), name_(name) {}
 
 SymbolTable::~SymbolTable() {
-  for (auto symbol : symbols_) delete symbol;
 }
 
 Symbol* SymbolTable::appendSymbol(std::unique_ptr<Symbol> symbol) {
   assert(symbol->owner_ == nullptr && "Cannot re-own symbol.");
   symbol->owner_ = this;
-  symbols_.push_back(symbol.get());
-  return symbol.release();
+  symbols_.push_back(std::move(symbol));
+  return symbols_.back().get();
 }
 
 void SymbolTable::removeSymbol(Symbol* symbol) {
-  auto i = std::find(symbols_.begin(), symbols_.end(), symbol);
+  auto i = std::find_if(symbols_.begin(), symbols_.end(),
+                        [&](auto& x) { return x.get() == symbol; });
 
   assert(i != symbols_.end() && "Failed removing symbol from symbol table.");
 
-  symbols_.erase(i);
   symbol->owner_ = nullptr;
+  symbols_.erase(i);
 }
 
-Symbol* SymbolTable::symbolAt(size_t i) const { return symbols_[i]; }
+Symbol* SymbolTable::symbolAt(size_t i) const {
+  return symbols_[i].get();
+}
 
-size_t SymbolTable::symbolCount() const { return symbols_.size(); }
+size_t SymbolTable::symbolCount() const {
+  return symbols_.size();
+}
 
 Symbol* SymbolTable::lookup(const std::string& name, Lookup method) const {
   // search local
   if (method & Lookup::Self)
-    for (auto symbol : symbols_)
+    for (auto& symbol : symbols_)
       if (symbol->name() == name) {
         // printf("SymbolTable(%s).lookup: \"%s\" (found)\n", name_.c_str(),
         // name.c_str());
-        return symbol;
+        return symbol.get();
       }
 
   // search outer
@@ -88,12 +92,14 @@ Symbol* SymbolTable::lookup(const std::string& name, Lookup method,
 
   // search local
   if (method & Lookup::Self)
-    for (auto symbol : symbols_)
-      if (symbol->name() == name) result->push_back(symbol);
+    for (auto& symbol : symbols_)
+      if (symbol->name() == name)
+        result->push_back(symbol.get());
 
   // search outer
   if (method & Lookup::Outer)
-    if (outerTable_) outerTable_->lookup(name, method, result);
+    if (outerTable_)
+      outerTable_->lookup(name, method, result);
 
   return !result->empty() ? result->front() : nullptr;
 }
@@ -297,9 +303,6 @@ ParamList& ParamList::operator=(ParamList&& v) {
 }
 
 ParamList::~ParamList() {
-  for (Expr* arg : values_) {
-    delete arg;
-  }
 }
 
 void ParamList::push_back(const std::string& name,
@@ -307,20 +310,19 @@ void ParamList::push_back(const std::string& name,
   if (isNamed())
     names_.push_back(name);
 
-  values_.push_back(arg.release());
+  values_.push_back(std::move(arg));
 }
 
 void ParamList::push_back(std::unique_ptr<Expr>&& arg) {
   assert(names_.empty() && "Cannot mix unnamed with named parameters.");
 
-  values_.push_back(arg.release());
+  values_.push_back(std::move(arg));
 }
 
 void ParamList::replace(size_t index, std::unique_ptr<Expr>&& value) {
   assert(index < values_.size() && "Index out of bounds.");
 
-  delete values_[index];
-  values_[index] = value.release();
+  values_[index] = std::move(value);
 }
 
 bool ParamList::replace(const std::string& name,
@@ -330,20 +332,20 @@ bool ParamList::replace(const std::string& name,
 
   for (size_t i = 0, e = names_.size(); i != e; ++i) {
     if (names_[i] == name) {
-      delete values_[i];
-      values_[i] = value.release();
+      values_[i] = std::move(value);
       return true;
     }
   }
 
   names_.push_back(name);
-  values_.push_back(value.release());
+  values_.push_back(std::move(value));
   return false;
 }
 
 bool ParamList::contains(const std::string& name) const {
   for (const auto& arg : names_)
-    if (name == arg) return true;
+    if (name == arg)
+      return true;
 
   return false;
 }
@@ -359,12 +361,16 @@ void ParamList::swap(size_t source, size_t dest) {
   std::swap(values_[source], values_[dest]);
 }
 
-size_t ParamList::size() const { return values_.size(); }
+size_t ParamList::size() const {
+  return values_.size();
+}
 
-bool ParamList::empty() const { return values_.empty(); }
+bool ParamList::empty() const {
+  return values_.empty();
+}
 
 std::pair<std::string, Expr*> ParamList::at(size_t offset) const {
-  return std::make_pair(isNamed() ? names_[offset] : "", values_[offset]);
+  return std::make_pair(isNamed() ? names_[offset] : "", values_[offset].get());
 }
 
 void ParamList::reorder(const NativeCallback* native,
@@ -423,7 +429,7 @@ void ParamList::dump(const char* title) {
   }
   for (int i = 0, e = size(); i != e; ++i) {
     printf("%16s: ", names_[i].c_str());
-    ASTPrinter::print(values_[i]);
+    ASTPrinter::print(values_[i].get());
   }
 }
 

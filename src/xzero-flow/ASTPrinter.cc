@@ -97,7 +97,8 @@ void ASTPrinter::accept(HandlerSym& handler) {
   } else {
     printf("scope:\n");
     enter();
-    for (Symbol* symbol : *handler.scope()) symbol->visit(*this);
+    for (std::unique_ptr<Symbol>& symbol : *handler.scope())
+      symbol->visit(*this);
     leave();
 
     printf("body:\n");
@@ -120,7 +121,8 @@ void ASTPrinter::accept(UnitSym& unit) {
   printf("Unit: %s\n", unit.name().c_str());
 
   enter();
-  for (Symbol* symbol : *unit.scope()) symbol->visit(*this);
+  for (std::unique_ptr<Symbol>& symbol : *unit.scope())
+    symbol->visit(*this);
 
   leave();
 }
