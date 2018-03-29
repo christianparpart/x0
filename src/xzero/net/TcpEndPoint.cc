@@ -317,44 +317,32 @@ Duration TcpEndPoint::writeTimeout() const noexcept {
   return writeTimeout_;
 }
 
-class TcpConnectState {
- public:
-  InetAddress address;
-  int fd;
-  Duration readTimeout;
-  Duration writeTimeout;
-  Executor* executor;
-  Promise<std::shared_ptr<TcpEndPoint>> promise;
-
-  void onTimeout() {
-    TRACE("$0 onTimeout: connecting timed out", this);
-    promise.failure(std::errc::timed_out);
-    delete this;
-  }
-
-  void onConnectComplete() {
-    int val = 0;
-    socklen_t vlen = sizeof(val);
-    if (getsockopt(fd, SOL_SOCKET, SO_ERROR, &val, &vlen) == 0) {
-      if (val == 0) {
-        TRACE("$0 onConnectComplete: Connected.", this);
-        promise.success(std::make_shared<TcpEndPoint>(FileDescriptor{fd},
-                                                      address.family(),
-                                                      readTimeout,
-                                                      writeTimeout,
-                                                      executor,
-                                                      nullptr));
-      } else {
-        DEBUG("Connecting to $0 failed. $1", address, strerror(val));
-        promise.failure(std::make_error_code(static_cast<std::errc>(val)));
-      }
+void onConnectComplete(InetAddress address,
+                       int fd,
+                       Duration readTimeout,
+                       Duration writeTimeout,
+                       Executor* executor,
+                       Promise<std::shared_ptr<TcpEndPoint>> promise) {
+  int val = 0;
+  socklen_t vlen = sizeof(val);
+  if (getsockopt(fd, SOL_SOCKET, SO_ERROR, &val, &vlen) == 0) {
+    if (val == 0) {
+      TRACE("onConnectComplete: Connected.");
+      promise.success(std::make_shared<TcpEndPoint>(FileDescriptor{fd},
+                                                    address.family(),
+                                                    readTimeout,
+                                                    writeTimeout,
+                                                    executor,
+                                                    nullptr));
     } else {
       DEBUG("Connecting to $0 failed. $1", address, strerror(val));
       promise.failure(std::make_error_code(static_cast<std::errc>(val)));
     }
-    delete this;
+  } else {
+    DEBUG("Connecting to $0 failed. $1", address, strerror(val));
+    promise.failure(std::make_error_code(static_cast<std::errc>(val)));
   }
-};
+}
 
 Future<std::shared_ptr<TcpEndPoint>> TcpEndPoint::connect(const InetAddress& address,
                                                           Duration connectTimeout,
@@ -392,12 +380,10 @@ Future<std::shared_ptr<TcpEndPoint>> TcpEndPoint::connect(const InetAddress& add
                                                   nullptr));
   } else if (ec == std::errc::operation_in_progress) {
     TRACE("connect: backgrounding");
-    auto state = new TcpConnectState{address, fd, readTimeout, writeTimeout,
-                                     executor, promise};
     executor->executeOnWritable(fd,
-        std::bind(&TcpConnectState::onConnectComplete, state),
+        std::bind(&onConnectComplete, address, fd, readTimeout, writeTimeout, executor, promise),
         connectTimeout,
-        std::bind(&TcpConnectState::onTimeout, state));
+        [promise]() { promise.failure(std::errc::timed_out); });
   } else {
     TRACE("connect: connect() error. $0", strerror(errno));
     promise.failure(std::make_error_code(static_cast<std::errc>(errno)));
