@@ -95,10 +95,15 @@ void ThreadedExecutor::execute(const std::string& name, Task task) {
   };
 
   pthread_t tid;
-  pthread_create(&tid, NULL, &launchme, new Task{std::move(runner)});
-
-  std::lock_guard<std::mutex> lock(mutex_);
-  threads_.push_back(tid);
+  std::unique_ptr<Task> state(std::make_unique<Task>(std::move(runner)));
+  int errorNumber = pthread_create(&tid, NULL, &launchme, state.get());
+  if (errorNumber == 0) {
+    state.release(); // XXX ownership moved to thread
+    std::lock_guard<std::mutex> lock(mutex_);
+    threads_.push_back(tid);
+  } else {
+    RAISE_ERRNO(errorNumber);
+  }
 }
 
 void ThreadedExecutor::execute(Task task) {
