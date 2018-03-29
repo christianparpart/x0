@@ -76,11 +76,17 @@ class Context {
    */
   void serveTraceOrigin();
 
-  xzero::http::HttpRequest* masterRequest() const noexcept { return requests_.back(); }
-  xzero::http::HttpRequest* request() const noexcept { return requests_.front(); }
+  xzero::http::HttpRequest* masterRequest() const noexcept { return request_; }
+
+  xzero::http::HttpRequest* request() const noexcept {
+    return internalRedirects_.empty()
+        ? request_
+        : internalRedirects_.front().get();
+  }
+
   xzero::http::HttpResponse* response() const noexcept { return response_; }
 
-  size_t internalRedirectCount() const noexcept { return requests_.size() - 1; }
+  size_t internalRedirectCount() const noexcept { return internalRedirects_.size(); }
 
   xzero::UnixTime createdAt() const noexcept { return createdAt_; }
   xzero::UnixTime now() const noexcept;
@@ -175,7 +181,8 @@ class Context {
   const xzero::flow::Handler* requestHandler_; //!< HTTP request handler as flow program
   std::unique_ptr<xzero::flow::Runner> runner_; //!< Flow VM execution unit.
   const xzero::UnixTime createdAt_; //!< When the request started
-  std::list<xzero::http::HttpRequest*> requests_; //!< HTTP request
+  xzero::http::HttpRequest* request_; //!< actual HTTP request
+  std::list<std::unique_ptr<xzero::http::HttpRequest>> internalRedirects_;
   xzero::http::HttpResponse* response_; //!< HTTP response
   std::string documentRoot_; //!< associated document root
   std::string pathInfo_; //!< info-part of the request-path

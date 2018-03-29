@@ -31,7 +31,8 @@ Context::Context(
     : requestHandler_(requestHandler),
       runner_(),
       createdAt_(now()),
-      requests_({request}),
+      request_{request},
+      internalRedirects_{},
       response_(response),
       documentRoot_(),
       pathInfo_(),
@@ -45,7 +46,8 @@ Context::Context(const Context& v)
     : requestHandler_(v.requestHandler_),
       runner_(),
       createdAt_(v.createdAt_),
-      requests_({v.masterRequest()}),
+      request_(v.masterRequest()),
+      internalRedirects_{}, // not duplicated. not needed
       response_(v.response_),
       documentRoot_(v.documentRoot_),
       pathInfo_(v.pathInfo_),
@@ -56,12 +58,6 @@ Context::Context(const Context& v)
 }
 
 Context::~Context() {
-  // ensure all internal redirect requests are freed
-  while (request() != masterRequest()) {
-    delete requests_.front(); // TODO: eliminate the need to explicitly *delete*
-    requests_.pop_front();
-  }
-
   clearCustomData();
 }
 
@@ -151,35 +147,35 @@ xzero::Duration Context::age() const noexcept {
 }
 
 const IPAddress& Context::remoteIP() const {
-  if (requests_.back()->remoteAddress())
-    return requests_.back()->remoteAddress()->ip();
+  if (masterRequest()->remoteAddress())
+    return masterRequest()->remoteAddress()->ip();
 
   throw std::logic_error{"Non-IP transport channels not supported"};
 }
 
 int Context::remotePort() const {
-  if (requests_.back()->remoteAddress())
-    return requests_.back()->remoteAddress()->port();
+  if (masterRequest()->remoteAddress())
+    return masterRequest()->remoteAddress()->port();
 
   throw std::logic_error{"Non-IP transport channels not supported"};
 }
 
 const IPAddress& Context::localIP() const {
-  if (requests_.back()->localAddress())
-    return requests_.back()->localAddress()->ip();
+  if (masterRequest()->localAddress())
+    return masterRequest()->localAddress()->ip();
 
   throw std::logic_error{"Non-IP transport channels not supported"};
 }
 
 int Context::localPort() const {
-  if (requests_.back()->localAddress())
-    return requests_.back()->localAddress()->port();
+  if (masterRequest()->localAddress())
+    return masterRequest()->localAddress()->port();
 
   throw std::logic_error{"Non-IP transport channels not supported"};
 }
 
 size_t Context::bytesReceived() const noexcept {
-  return requests_.back()->bytesReceived();
+  return masterRequest()->bytesReceived();
 }
 
 size_t Context::bytesTransmitted() const noexcept {
@@ -240,12 +236,13 @@ bool Context::sendErrorPage(xzero::http::HttpStatus status,
       }
       runner_->rewind();
       response_->setStatus(!overrideStatus ? status : overrideStatus);
-      requests_.emplace_front(new HttpRequest(request()->version(),
-                                              "GET",
-                                              uri,
-                                              request()->headers(),
-                                              request()->isSecure(),
-                                              {}));
+      internalRedirects_.push_front(std::make_unique<HttpRequest>(
+            request()->version(),
+            "GET",
+            uri,
+            request()->headers(),
+            request()->isSecure(),
+            HugeBuffer{}));
       return false;
     } else {
       logError("Too many internal redirects.");
