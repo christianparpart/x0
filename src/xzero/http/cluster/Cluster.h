@@ -62,6 +62,9 @@ struct Settings {
  */
 class Cluster : public Backend::EventListener {
  public:
+  using RequestShaper = TokenShaper<Context>;
+  using Bucket = RequestShaper::Node;
+
   /**
    * Constructs a cluster that's being loaded from a configuration file.
    *
@@ -137,9 +140,6 @@ class Cluster : public Backend::EventListener {
 
   Duration writeTimeout() const noexcept { return writeTimeout_; }
   void setWriteTimeout(Duration value) { writeTimeout_ = value; }
-
-  typedef TokenShaper<Context> RequestShaper;
-  typedef RequestShaper::Node Bucket;
 
   Executor* executor() const noexcept { return executor_; }
 
@@ -251,6 +251,9 @@ class Cluster : public Backend::EventListener {
    */
   void schedule(Context* cx, Bucket* bucket);
 
+  /**
+   * Serializes statistics into the json writer.
+   */
   void serialize(JsonWriter& json) const;
 
   // Backend::EventListener overrides
