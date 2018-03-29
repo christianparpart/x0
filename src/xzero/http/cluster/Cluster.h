@@ -21,14 +21,9 @@
 #include <list>
 
 namespace xzero {
-  class InputStream;
   class Executor;
   class IniFile;
   class JsonWriter;
-}
-
-namespace xzero::http {
-  class HttpListener;
 }
 
 namespace xzero::http::cluster {

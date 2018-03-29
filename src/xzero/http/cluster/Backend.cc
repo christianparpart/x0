@@ -94,8 +94,6 @@ SchedulerStatus Backend::tryProcess(Context* cr) {
   TRACE("Processing request by backend $0 $1", name(), inetAddress_);
   TRACE("tryProcess: with executor: $0", cr->executor);
 
-  //cr->request->responseHeaders.overwrite("X-Director-Backend", name());
-
   ++load_;
   cr->backend = this;
 
@@ -162,6 +160,8 @@ void Backend::onResponseReceived(Context* cr,
   cr->onMessageBegin(response.version(),
                      response.status(),
                      BufferRef(response.reason()));
+
+  cr->onMessageHeader("X-Director-Backend", BufferRef{name()});
 
   for (const HeaderField& field: response.headers()) {
     if (!isConnectionHeader(field.name())) {
