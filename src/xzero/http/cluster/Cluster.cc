@@ -606,7 +606,7 @@ void Cluster::addMember(const std::string& name,
 
   TRACE("addMember: $0 $1", name, addr);
 
-  Backend* backend = new Backend(
+  std::unique_ptr<Backend> backend = std::make_unique<Backend>(
       this,
       executor,
       name,
@@ -625,14 +625,14 @@ void Cluster::addMember(const std::string& name,
       healthCheckSuccessThreshold_,
       healthCheckSuccessCodes_);
 
-  members_.push_back(backend);
+  members_.push_back(std::move(backend));
 }
 
 Backend* Cluster::findMember(const std::string& name) {
   auto i = std::find_if(members_.begin(), members_.end(),
-      [&](const Backend* m) -> bool { return m->name() == name; });
+      [&](const std::unique_ptr<Backend>& m) -> bool { return m->name() == name; });
   if (i != members_.end()) {
-    return *i;
+    return i->get();
   } else {
     return nullptr;
   }
@@ -640,9 +640,8 @@ Backend* Cluster::findMember(const std::string& name) {
 
 void Cluster::removeMember(const std::string& name) {
   auto i = std::find_if(members_.begin(), members_.end(),
-      [&](const Backend* m) -> bool { return m->name() == name; });
+      [&](const std::unique_ptr<Backend>& m) -> bool { return m->name() == name; });
   if (i != members_.end()) {
-    delete *i;
     members_.erase(i);
   }
 }
@@ -650,7 +649,7 @@ void Cluster::removeMember(const std::string& name) {
 void Cluster::setHealthCheckHostHeader(const std::string& value) {
   healthCheckHostHeader_ = value;
 
-  for (Backend* member: members_) {
+  for (std::unique_ptr<Backend>& member: members_) {
     member->healthMonitor()->setHostHeader(value);
   }
 }
@@ -658,7 +657,7 @@ void Cluster::setHealthCheckHostHeader(const std::string& value) {
 void Cluster::setHealthCheckRequestPath(const std::string& value) {
   healthCheckRequestPath_ = value;
 
-  for (Backend* member: members_) {
+  for (std::unique_ptr<Backend>& member: members_) {
     member->healthMonitor()->setRequestPath(value);
   }
 }
@@ -666,22 +665,25 @@ void Cluster::setHealthCheckRequestPath(const std::string& value) {
 void Cluster::setHealthCheckInterval(Duration value) {
   healthCheckInterval_ = value;
 
-  for (Backend* member: members_)
+  for (std::unique_ptr<Backend>& member: members_) {
     member->healthMonitor()->setInterval(value);
+  }
 }
 
 void Cluster::setHealthCheckSuccessThreshold(unsigned value) {
   healthCheckSuccessThreshold_ = value;
 
-  for (Backend* member: members_)
+  for (std::unique_ptr<Backend>& member: members_) {
     member->healthMonitor()->setSuccessThreshold(value);
+  }
 }
 
 void Cluster::setHealthCheckSuccessCodes(const std::vector<HttpStatus>& value) {
   healthCheckSuccessCodes_ = value;
 
-  for (Backend* member: members_)
+  for (std::unique_ptr<Backend>& member: members_) {
     member->healthMonitor()->setSuccessCodes(value);
+  }
 }
 
 TokenShaperError Cluster::createBucket(const std::string& name, float rate,

@@ -321,7 +321,7 @@ class Cluster : public Backend::EventListener {
   RequestShaper shaper_;
 
   // cluster member vector
-  std::vector<Backend*> members_;
+  std::vector<std::unique_ptr<Backend>> members_;
 
   // health check: test URL
   std::string healthCheckHostHeader_;

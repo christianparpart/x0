@@ -19,7 +19,7 @@ class Context;
 
 class Scheduler {
  public:
-  typedef std::vector<Backend*> MemberList;
+  using MemberList = std::vector<std::unique_ptr<Backend>>;
 
   explicit Scheduler(const std::string& name, MemberList* members);
 
