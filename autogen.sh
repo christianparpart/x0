@@ -50,7 +50,7 @@ for pkgdir in ${pkgdirs[*]}; do
   fi
 done
 
-export CXX=$(findexe $CXX g++-7 clang++-6.0 clang++-5.0 clang++-4.0 clang++ g++)
+export CXX=$(findexe $CXX clang++-6.0 clang++-5.0 clang++-4.0 clang++ g++)
 export CXXFLAGS="${CXXFLAGS:--O0 -g}"
 
 echo CXX = $CXX
@@ -63,6 +63,7 @@ if [[ "${1}" == "cmake" ]]; then
               -DCMAKE_BUILD_TYPE="debug" \
               -DCMAKE_INSTALL_PREFIX="${HOME}/local" \
               -DCMAKE_VERBOSE_MAKEFILE=OFF \
+              -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
               "${@}"
 fi
 

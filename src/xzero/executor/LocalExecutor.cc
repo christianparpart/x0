@@ -22,10 +22,10 @@ namespace xzero {
 LocalExecutor::LocalExecutor(
     bool recursive,
     ExceptionHandler eh)
-    : Executor(eh),
-      recursive_(recursive),
-      running_(0),
-      deferred_() {
+    : Executor{std::move(eh)},
+      recursive_{recursive},
+      running_{0},
+      deferred_{} {
 }
 
 void LocalExecutor::execute(Task task) {

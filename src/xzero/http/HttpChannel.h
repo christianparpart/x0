@@ -161,7 +161,7 @@ class HttpChannel : public HttpListener {
    * The filter will not take over ownership. Make sure the filter is
    * available for the whole time the response is generated.
    */
-  void addOutputFilter(std::shared_ptr<Filter> filter);
+  void addOutputFilter(const std::shared_ptr<Filter>& filter);
 
   /**
    * Removes all output-filters.

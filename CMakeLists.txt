@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.5)
+cmake_minimum_required(VERSION 3.6)
 project(x0 VERSION "0.11.0" LANGUAGES CXX C)
 set(CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 
@@ -10,6 +10,16 @@ set(X0D_LOGDIR "${CMAKE_INSTALL_PREFIX}/var/log/x0d" CACHE STRING "x0d log direc
 set(X0D_CONFIGFILE "${CMAKE_INSTALL_PREFIX}/etc/x0d/x0d.conf" CACHE STRING "x0d configuration file")
 set(XZERO_CLUSTERDIR "${CMAKE_INSTALL_PREFIX}/var/x0d" CACHE STRING "Xzero HTTP cluster directory")
 set(PACKAGE_URL "https://xzero.io/")
+
+find_program(CLANG_TIDY_EXE
+  NAMES "clang-tidy-7" "clang-tidy-6" "clang-tidy"
+  DOC "Path to clang-tidy executable")
+if(NOT CLANG_TIDY_EXE)
+  message(STATUS "clang-tidy not found.")
+else()
+  message(STATUS "clang-tidy found: ${CLANG_TIDY_EXE}")
+  set(DO_CLANG_TIDY "${CLANG_TIDY_EXE}" "-checks=bugprone-*,cppcoreguidelines-*,performance-*")
+endif()
 
 # {{{ build-time requirements and platform feature tests
 include(XzeroCommon)
@@ -267,7 +277,13 @@ set(XZERO_LIBRARIES pthread dl
 
 add_library(Xzero STATIC ${libXzero_SRC} ${libXzero_LINUX_SRC}
     ${libXzero_APPLE_SRC})
-set_target_properties(Xzero PROPERTIES COMPILE_FLAGS "-DXZERO_CLUSTERDIR=\\\"${XZERO_CLUSTERDIR}\\\"")
+set_target_properties(Xzero PROPERTIES
+		CXX_STANDARD 17
+		CXX_STANDARD_REQUIRED ON
+		COMPILE_FLAGS "-DXZERO_CLUSTERDIR=\\\"${XZERO_CLUSTERDIR}\\\"")
+if(CLANG_TIDY_EXE)
+  set_target_properties(Xzero PROPERTIES CXX_CLANG_TIDY "${DO_CLANG_TIDY}")
+endif()
 target_link_libraries(Xzero ${XZERO_LIBRARIES})
 install(TARGETS Xzero DESTINATION ${CMAKE_INSTALL_PREFIX}/lib)
 # }}}

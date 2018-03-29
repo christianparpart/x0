@@ -92,7 +92,7 @@ void HttpRequest::setHost(const std::string& value) {
 
 void HttpRequest::discardContent(std::function<void()> onReady) {
   onContentAvailable_ = nullptr;
-  onContentReady_ = onReady;
+  onContentReady_ = std::move(onReady);
 }
 
 void HttpRequest::consumeContent(std::function<void()> onReady) {
@@ -100,7 +100,7 @@ void HttpRequest::consumeContent(std::function<void()> onReady) {
     content_.write(chunk);
   };
 
-  onContentReady_ = onReady;
+  onContentReady_ = std::move(onReady);
 }
 
 void HttpRequest::fillContent(const BufferRef& chunk) {

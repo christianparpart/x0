@@ -94,7 +94,7 @@ void HttpChannel::setState(HttpChannelState newState) {
   state_ = newState;
 }
 
-void HttpChannel::addOutputFilter(std::shared_ptr<Filter> filter) {
+void HttpChannel::addOutputFilter(const std::shared_ptr<Filter>& filter) {
   if (response()->isCommitted())
     throw ResponseAlreadyCommitted{"Cannot add output filters."};
 
@@ -397,11 +397,11 @@ void HttpChannel::completed() {
 
 void HttpChannel::onPostProcess(std::function<void()> callback) {
   // TODO: ensure we can still add us
-  onPostProcess_.connect(callback);
+  onPostProcess_.connect(std::move(callback));
 }
 
 void HttpChannel::onResponseEnd(std::function<void()> callback) {
-  onResponseEnd_.connect(callback);
+  onResponseEnd_.connect(std::move(callback));
 }
 
 void HttpChannel::responseEnd() {
