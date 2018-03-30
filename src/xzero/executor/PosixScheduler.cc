@@ -58,11 +58,14 @@ std::ostream& operator<<(std::ostream& os, const PosixScheduler& s) {
 }
 
 std::string inspect(PosixScheduler::Mode mode) {
-  static const std::string modes[] = {
-    "READABLE",
-    "WRITABLE"
-  };
-  return modes[static_cast<size_t>(mode)];
+  switch (mode) {
+    case PosixScheduler::Mode::READABLE:
+      return "READABLE";
+    case PosixScheduler::Mode::WRITABLE:
+      return "WRITABLE";
+    default:
+      logFatal("Internal Error");
+  }
 }
 
 std::string inspect(const std::list<std::shared_ptr<PosixScheduler::Timer>>& list) {
@@ -94,7 +97,7 @@ std::string inspect(const PosixScheduler& s) {
 }
 
 PosixScheduler::PosixScheduler(ExceptionHandler eh)
-    : EventLoop{eh},
+    : EventLoop{std::move(eh)},
       lock_{},
       wakeupPipe_{},
       tasks_{},
@@ -115,7 +118,7 @@ PosixScheduler::PosixScheduler(ExceptionHandler eh)
   fcntl(wakeupPipe_[0], F_SETFL, O_NONBLOCK);
   fcntl(wakeupPipe_[1], F_SETFL, O_NONBLOCK);
 
-  struct rlimit rlim;
+  struct rlimit rlim{};
   memset(&rlim, 0, sizeof(rlim));
   getrlimit(RLIMIT_NOFILE, &rlim);
 
@@ -244,7 +247,7 @@ void PosixScheduler::collectTimeouts(std::list<Task>* result) {
       case Mode::READABLE: readerCount_--; break;
       case Mode::WRITABLE: writerCount_--; break;
     }
-    w = unlinkWatcher(w);
+    unlinkWatcher(w);
   }
 
   const auto nextTimer = [this]() -> std::shared_ptr<Timer> {
@@ -390,7 +393,7 @@ PosixScheduler::HandleRef PosixScheduler::setupWatcher(
     //RAISE_STATUS(AlreadyWatchingOnResource);
   }
 
-  interest->reset(fd, mode, task, timeout, tcb);
+  interest->reset(fd, mode, std::move(task), timeout, std::move(tcb));
 
   auto onCancel = [this, interest] () {
     std::lock_guard<std::mutex> _l(lock_);
@@ -500,7 +503,7 @@ size_t PosixScheduler::waitForEvents() noexcept {
   FD_ZERO(&output_);
   FD_ZERO(&error_);
 
-  auto [incount, outcount, wmark] = collectWatches();
+  int wmark = collectWatches();
 
   FD_SET(wakeupPipe_[PIPE_READ_END], &input_);
   wmark = std::max(wmark, wakeupPipe_[PIPE_READ_END]);
@@ -519,8 +522,8 @@ size_t PosixScheduler::waitForEvents() noexcept {
                           ? distance(now(), firstWatcher_->timeout)
                           : MaxLoopTimeout + 1_seconds);
 
-  TRACE("waitForEvents: select(wmark=$0, in=$1, out=$2, tmo=$3), timers=$4, tasks=$5",
-        wmark + 1, incount, outcount, timeout, timers_.size(), tasks_.size());
+  TRACE("waitForEvents: select(wmark=$0, tmo=$1), timers=$2, tasks=$3",
+        wmark + 1, timeout, timers_.size(), tasks_.size());
   TRACE("waitForEvents: $0", inspect(*this).c_str());
 
   int rv;
@@ -553,9 +556,9 @@ std::list<EventLoop::Task> PosixScheduler::collectEvents() {
   return activeTasks;
 }
 
-std::tuple<int, int, int> PosixScheduler::collectWatches() {
+int PosixScheduler::collectWatches() {
   std::lock_guard<std::mutex> lk(lock_);
-  int incount = 0, outcount = 0, wmark = 0;
+  int wmark = 0;
 
   for (const Watcher* w = firstWatcher_; w; w = w->next) {
     if (w->fd < 0)
@@ -564,17 +567,15 @@ std::tuple<int, int, int> PosixScheduler::collectWatches() {
     switch (w->mode) {
       case Mode::READABLE:
         FD_SET(w->fd, &input_);
-        incount++;
         break;
       case Mode::WRITABLE:
         FD_SET(w->fd, &output_);
-        outcount++;
         break;
     }
     wmark = std::max(wmark, w->fd);
   }
 
-  return std::tuple<int, int, int>{incount, outcount, wmark};
+  return wmark;
 }
 
 void PosixScheduler::breakLoop() {

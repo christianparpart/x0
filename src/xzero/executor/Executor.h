@@ -73,7 +73,7 @@ class Executor {
 
   explicit Executor(ExceptionHandler eh);
 
-  virtual ~Executor();
+  virtual ~Executor() = default;
 
   void setExceptionHandler(ExceptionHandler eh);
 

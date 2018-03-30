@@ -7,8 +7,8 @@
 
 #include <xzero/PosixSignals.h>
 #include <xzero/logging.h>
-#include <signal.h>
-#include <assert.h>
+#include <csignal>
+#include <cassert>
 
 namespace xzero {
 
@@ -39,7 +39,7 @@ PosixSignals::HandleRef PosixSignals::notify(int signo, SignalHandler task) {
 
   if (watchers_[signo].empty()) {
     TRACE("installing signal handler $0 ($1)", signo, toString(signo));
-    struct sigaction sa;
+    struct sigaction sa{};
     memset(&sa, 0, sizeof(sa));
     sa.sa_sigaction = PosixSignals::onSignal;
     sa.sa_flags = SA_SIGINFO | SA_RESETHAND;

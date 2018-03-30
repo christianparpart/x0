@@ -9,7 +9,7 @@
 #include <xzero/executor/PosixScheduler.h>
 #include <xzero/RuntimeError.h>
 #include <xzero/logging.h>
-#include <stdio.h>
+#include <cstdio>
 
 namespace xzero {
 

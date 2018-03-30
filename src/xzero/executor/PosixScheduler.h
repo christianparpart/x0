@@ -149,7 +149,7 @@ class PosixScheduler : public EventLoop {
   }; // }}}
 
  protected:
-  std::tuple<int, int, int> collectWatches();
+  int collectWatches();
 
   /**
    * Adds given timer-handle to the timer-list.

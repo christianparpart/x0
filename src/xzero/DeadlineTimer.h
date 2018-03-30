@@ -24,7 +24,7 @@ class DeadlineTimer {
   DeadlineTimer(Executor* executor, Executor::Task cb, Duration timeout);
   DeadlineTimer(Executor* executor, Executor::Task cb);
   explicit DeadlineTimer(Executor* executor);
-  ~DeadlineTimer();
+  ~DeadlineTimer() = default;
 
   void setTimeout(Duration value);
   Duration timeout() const;

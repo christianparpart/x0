@@ -10,7 +10,7 @@
 #include <xzero/MonotonicClock.h>
 #include <xzero/MonotonicTime.h>
 #include <xzero/executor/Executor.h>
-#include <assert.h>
+#include <cassert>
 
 namespace xzero {
 
@@ -22,25 +22,21 @@ namespace xzero {
 #endif
 
 DeadlineTimer::DeadlineTimer(Executor* executor,
-                         Executor::Task cb,
-                         Duration timeout)
-    : executor_(executor),
-      timeout_(timeout),
-      fired_(),
-      active_(false),
-      onTimeout_(cb) {
+                             Executor::Task cb,
+                             Duration timeout)
+    : executor_{executor},
+      timeout_{timeout},
+      fired_{},
+      active_{false},
+      onTimeout_{std::move(cb)} {
 }
 
-DeadlineTimer::DeadlineTimer(Executor* executor,
-                         Executor::Task cb)
-    : DeadlineTimer(executor, cb, Duration::Zero) {
+DeadlineTimer::DeadlineTimer(Executor* executor, Executor::Task cb)
+    : DeadlineTimer{executor, std::move(cb), Duration::Zero} {
 }
 
 DeadlineTimer::DeadlineTimer(Executor* executor) 
-    : DeadlineTimer(executor, nullptr, Duration::Zero) {
-}
-
-DeadlineTimer::~DeadlineTimer() {
+    : DeadlineTimer{executor, nullptr, Duration::Zero} {
 }
 
 void DeadlineTimer::setTimeout(Duration value) {
@@ -52,7 +48,7 @@ Duration DeadlineTimer::timeout() const {
 }
 
 void DeadlineTimer::setCallback(std::function<void()> cb) {
-  onTimeout_ = cb;
+  onTimeout_ = std::move(cb);
 }
 
 void DeadlineTimer::clearCallback() {

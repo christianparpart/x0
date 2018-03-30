@@ -43,20 +43,20 @@ ThreadPool::ThreadPool(size_t num_threads)
 }
 
 ThreadPool::ThreadPool(ExceptionHandler eh)
-    : ThreadPool(Application::processorCount(), eh) {
+    : ThreadPool(Application::processorCount(), std::move(eh)) {
 }
 
 ThreadPool::ThreadPool(size_t num_threads, ExceptionHandler eh)
-    : Executor(eh),
-      active_(true),
-      threads_(),
-      mutex_(),
-      condition_(),
-      pendingTasks_(),
-      activeTasks_(0),
-      activeTimers_(0),
-      activeReaders_(0),
-      activeWriters_(0) {
+    : Executor{std::move(eh)},
+      active_{true},
+      threads_{},
+      mutex_{},
+      condition_{},
+      pendingTasks_{},
+      activeTasks_{0},
+      activeTimers_{0},
+      activeReaders_{0},
+      activeWriters_{0} {
 
   if (num_threads < 1)
     throw std::invalid_argument{"num_threads"};
@@ -225,21 +225,21 @@ std::string ThreadPool::toString() const {
 }
 
 void ThreadPool::run(std::function<void()> task) {
-  execute(task);
+  execute(std::move(task));
 }
 
 void ThreadPool::runOnReadable(std::function<void()> task, int fd) {
-  executeOnReadable(fd, task);
+  executeOnReadable(fd, std::move(task));
 }
 
 void ThreadPool::runOnWritable(std::function<void()> task, int fd) {
-  executeOnWritable(fd, task);
+  executeOnWritable(fd, std::move(task));
 }
 
 void ThreadPool::runOnWakeup(std::function<void()> task,
                              Wakeup* wakeup,
                              long generation) {
-  executeOnWakeup(task, wakeup, generation);
+  executeOnWakeup(std::move(task), wakeup, generation);
 }
 
 } // namespace xzero

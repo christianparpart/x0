@@ -1,9 +1,10 @@
 cmake_minimum_required(VERSION 3.6)
-project(x0 VERSION "0.11.0" LANGUAGES CXX C)
+project(x0 VERSION "0.11.0" LANGUAGES CXX)
 set(CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 
 option(ENABLE_FLOW_DIRECT_THREADED_VM "Flow VM using direct threaded mode [default: OFF]" OFF)
 option(ENABLE_TESTS "Enable building tests [default: ON]" ON)
+option(ENABLE_TIDY "Enable clang-tidy [default: ON]" ON)
 
 set(X0D_PIDFILE "${CMAKE_INSTALL_PREFIX}/run/x0d/x0d.pid" CACHE STRING "x0d PID file")
 set(X0D_LOGDIR "${CMAKE_INSTALL_PREFIX}/var/log/x0d" CACHE STRING "x0d log directory")
@@ -11,7 +12,7 @@ set(X0D_CONFIGFILE "${CMAKE_INSTALL_PREFIX}/etc/x0d/x0d.conf" CACHE STRING "x0d 
 set(XZERO_CLUSTERDIR "${CMAKE_INSTALL_PREFIX}/var/x0d" CACHE STRING "Xzero HTTP cluster directory")
 set(PACKAGE_URL "https://xzero.io/")
 
-option(ENABLE_TIDY "Enable clang-tidy [default: ON]" ON)
+set(CLANG_TIDY_CHECKS "-checks=bugprone-*,cppcoreguidelines-*,performance-*,clang-analyzer-*,modernize-*,-cppcoreguidelines-pro-type-vararg,-cppcoreguidelines-pro-bounds-array-to-pointer-decay,-cppcoreguidelines-pro-bounds-constant-array-index,-cppcoreguidelines-pro-type-union-access" CACHE STRING "clang-tidy checks to enable/disable")
 
 if(ENABLE_TIDY)
   find_program(CLANG_TIDY_EXE
@@ -21,8 +22,7 @@ if(ENABLE_TIDY)
     message(STATUS "clang-tidy not found.")
   else()
     message(STATUS "clang-tidy found: ${CLANG_TIDY_EXE}")
-    set(DO_CLANG_TIDY "${CLANG_TIDY_EXE}"
-        "-checks=bugprone-*,cppcoreguidelines-*,performance-*,clang-analyzer-*,modernize-*")
+    set(DO_CLANG_TIDY "${CLANG_TIDY_EXE}" "${CLANG_TIDY_CHECKS}")
   endif()
 endif()
 

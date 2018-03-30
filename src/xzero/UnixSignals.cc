@@ -10,7 +10,7 @@
 #include <xzero/RuntimeError.h>
 #include <xzero/sysconfig.h>
 #include <memory>
-#include <signal.h>
+#include <csignal>
 
 #if defined(XZERO_OS_LINUX)
 #include <xzero/LinuxSignals.h>

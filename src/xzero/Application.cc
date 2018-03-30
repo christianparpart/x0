@@ -15,7 +15,7 @@
 #include <xzero/logging.h>
 #include <xzero/RuntimeError.h>
 #include <xzero/sysconfig.h>
-#include <stdlib.h>
+#include <cstdlib>
 #include <pwd.h>
 #include <grp.h>
 #include <unistd.h>

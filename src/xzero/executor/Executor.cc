@@ -8,47 +8,41 @@
 #include <xzero/executor/Executor.h>
 #include <xzero/StringUtil.h>
 #include <xzero/thread/Wakeup.h>
+#include <fmt/format.h>
 #include <iostream>
 
 namespace xzero {
 
 Executor::Executor(ExceptionHandler eh)
-    : safeCall_(eh),
+    : safeCall_{std::move(eh)},
       refs_(0) {
 }
 
-Executor::~Executor() {
-}
-
 void Executor::setExceptionHandler(ExceptionHandler eh) {
-  safeCall_.setExceptionHandler(eh);
+  safeCall_.setExceptionHandler(std::move(eh));
 }
 
 /**
  * Run the provided task when the wakeup handle is woken up
  */
 void Executor::executeOnNextWakeup(Task  task, Wakeup* wakeup) {
-  executeOnWakeup(task, wakeup, wakeup->generation());
+  executeOnWakeup(std::move(task), wakeup, wakeup->generation());
 }
 
 /**
  * Run the provided task when the wakeup handle is woken up
  */
 void Executor::executeOnFirstWakeup(Task task, Wakeup* wakeup) {
-  executeOnWakeup(task, wakeup, 0);
+  executeOnWakeup(std::move(task), wakeup, 0);
 }
 
 void Executor::safeCall(std::function<void()> callee) noexcept {
-  safeCall_.invoke(callee);
+  safeCall_.invoke(std::move(callee));
 }
 
 std::ostream& operator<<(std::ostream& os, Executor* executor) {
-  char buf[256];
-  snprintf(buf, sizeof(buf), "Executor@%p <%s>",
-           executor, executor->toString().c_str());
-  os << buf;
+  os << fmt::format("Executor@{:p} <{}>", (void*) executor, executor->toString());
   return os;
 }
-
 
 } // namespace xzero
