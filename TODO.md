@@ -3,6 +3,7 @@
 
 All the things I've found out on the way, that need retouching
 
+- [ ] consider replacing Result<T> with T and throw instead.
 - [ ] flow: nested scopes with local variables must be initialized in this block
       currently also initialized in entry block;
       the problem is already how the AST is created.

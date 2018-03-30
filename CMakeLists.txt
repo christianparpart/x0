@@ -11,15 +11,22 @@ set(X0D_CONFIGFILE "${CMAKE_INSTALL_PREFIX}/etc/x0d/x0d.conf" CACHE STRING "x0d 
 set(XZERO_CLUSTERDIR "${CMAKE_INSTALL_PREFIX}/var/x0d" CACHE STRING "Xzero HTTP cluster directory")
 set(PACKAGE_URL "https://xzero.io/")
 
-find_program(CLANG_TIDY_EXE
-  NAMES "clang-tidy-7" "clang-tidy-6" "clang-tidy"
-  DOC "Path to clang-tidy executable")
-if(NOT CLANG_TIDY_EXE)
-  message(STATUS "clang-tidy not found.")
-else()
-  message(STATUS "clang-tidy found: ${CLANG_TIDY_EXE}")
-  set(DO_CLANG_TIDY "${CLANG_TIDY_EXE}" "-checks=bugprone-*,cppcoreguidelines-*,performance-*")
+option(ENABLE_TIDY "Enable clang-tidy [default: ON]" ON)
+
+if(ENABLE_TIDY)
+  find_program(CLANG_TIDY_EXE
+    NAMES clang-tidy-7 clang-tidy-6.0 clang-tidy
+    DOC "Path to clang-tidy executable")
+  if(NOT CLANG_TIDY_EXE)
+    message(STATUS "clang-tidy not found.")
+  else()
+    message(STATUS "clang-tidy found: ${CLANG_TIDY_EXE}")
+    set(DO_CLANG_TIDY "${CLANG_TIDY_EXE}"
+        "-checks=bugprone-*,cppcoreguidelines-*,performance-*,clang-analyzer-*,modernize-*")
+  endif()
 endif()
+
+add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/fmt")
 
 # {{{ build-time requirements and platform feature tests
 include(XzeroCommon)
@@ -103,7 +110,8 @@ if(UNIX)
 endif()
 
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/src
-                    ${CMAKE_CURRENT_BINARY_DIR}/src)
+                    ${CMAKE_CURRENT_BINARY_DIR}/src
+                    ${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/fmt/include)
 
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/src/xzero/sysconfig.h.cmake
                ${CMAKE_CURRENT_BINARY_DIR}/src/xzero/sysconfig.h)
@@ -284,7 +292,7 @@ set_target_properties(Xzero PROPERTIES
 if(CLANG_TIDY_EXE)
   set_target_properties(Xzero PROPERTIES CXX_CLANG_TIDY "${DO_CLANG_TIDY}")
 endif()
-target_link_libraries(Xzero ${XZERO_LIBRARIES})
+target_link_libraries(Xzero fmt ${XZERO_LIBRARIES})
 install(TARGETS Xzero DESTINATION ${CMAKE_INSTALL_PREFIX}/lib)
 # }}}
 # {{{ libXzeroTesting
@@ -334,6 +342,12 @@ set(XzeroFlow_SRC src/xzero-flow/AST.cc
                   )
 
 add_library(XzeroFlow STATIC ${XzeroFlow_SRC})
+set_target_properties(XzeroFlow PROPERTIES
+		CXX_STANDARD 17
+		CXX_STANDARD_REQUIRED ON)
+if(CLANG_TIDY_EXE)
+  set_target_properties(XzeroFlow PROPERTIES CXX_CLANG_TIDY "${DO_CLANG_TIDY}")
+endif()
 target_link_libraries(XzeroFlow pthread dl Xzero)
 install(TARGETS XzeroFlow DESTINATION ${CMAKE_INSTALL_PREFIX}/lib)
 # }}}
@@ -359,11 +373,16 @@ set(x0d_SRC src/x0d/main.cc
 set(X0D_LIBS pam)
 
 add_executable(x0d ${x0d_SRC})
-set_target_properties(x0d PROPERTIES COMPILE_FLAGS
-    "-DPACKAGE_URL=\\\"${PACKAGE_URL}\\\" \
-     -DX0D_PIDFILE=\\\"${X0D_PIDFILE}\\\" \
-     -DX0D_LOGDIR=\\\"${X0D_LOGDIR}\\\" \
-     -DX0D_CONFIGFILE=\\\"${X0D_CONFIGFILE}\\\"")
+set_target_properties(x0d PROPERTIES
+		CXX_STANDARD 17
+		CXX_STANDARD_REQUIRED ON
+    COMPILE_FLAGS "-DPACKAGE_URL=\\\"${PACKAGE_URL}\\\" \
+                   -DX0D_PIDFILE=\\\"${X0D_PIDFILE}\\\" \
+                   -DX0D_LOGDIR=\\\"${X0D_LOGDIR}\\\" \
+                   -DX0D_CONFIGFILE=\\\"${X0D_CONFIGFILE}\\\"")
+if(CLANG_TIDY_EXE)
+  set_target_properties(x0d PROPERTIES CXX_CLANG_TIDY "${DO_CLANG_TIDY}")
+endif()
 target_link_libraries(x0d Xzero XzeroFlow ${X0D_LIBS})
 # }}}
 # {{{ test
@@ -435,10 +454,23 @@ else()
 endif()
 
 add_executable(xzero_test ${xzero_test_SRC} ${xzero_test_PLATFORM_SRC})
+set_target_properties(xzero_test PROPERTIES
+		CXX_STANDARD 17
+		CXX_STANDARD_REQUIRED ON)
+if(CLANG_TIDY_EXE)
+  set_target_properties(xzero_test PROPERTIES CXX_CLANG_TIDY "${DO_CLANG_TIDY}")
+endif()
+
 target_link_libraries(xzero_test Xzero XzeroFlow XzeroTest)
 endif()
 # }}}
 # {{{ examples
 add_executable(hello_http examples/hello_http.cc)
 target_link_libraries(hello_http Xzero)
+set_target_properties(hello_http PROPERTIES
+		CXX_STANDARD 17
+		CXX_STANDARD_REQUIRED ON)
+if(CLANG_TIDY_EXE)
+  set_target_properties(hello_http PROPERTIES CXX_CLANG_TIDY "${DO_CLANG_TIDY}")
+endif()
 # }}}
