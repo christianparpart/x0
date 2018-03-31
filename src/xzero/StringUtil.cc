@@ -353,21 +353,6 @@ std::string StringUtil::hexPrint(
   return BufferUtil::hexPrint(&buf, sep, reverse);
 }
 
-std::string StringUtil::formatv(
-    const char* fmt,
-    std::vector<std::string> values) {
-  std::string str = fmt;
-
-  for (size_t i = 0; i < values.size(); ++i) {
-    StringUtil::replaceAll(
-        &str,
-        "$" + std::to_string(i),
-        to_string(values[i]));
-  }
-
-  return str;
-}
-
 std::wstring StringUtil::convertUTF8To16(const std::string& str) {
   std::wstring out;
 

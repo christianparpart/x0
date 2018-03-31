@@ -331,118 +331,12 @@ public:
   template <typename... T>
   static void puts(const char* fmt, T... values);
 
-  /**
-   * Insert values into a string with placeholders. This method will throw an
-   * exception if an invalid placeholder is referenced
-   *
-   * Example:
-   *    StringUtil::format("The $0 is $1 $2", "teapot", 23.5, "pounds");
-   *    // returns "The teapot is 23.5 pounds"
-   *
-   * @param fmt the format string
-   * @param values... the values to insert into the format string
-   * @return the format string with placeholders inserted
-   */
-  template <typename... T>
-  [[deprecated]] static std::string format(const char* fmt, T... values);
-
-  /**
-   * Insert values into a string with placeholders. This method will throw an
-   * exception if an invalid placeholder is referenced
-   *
-   * Example:
-   *    StringUtil::format("The $0 is $1 $2", "teapot", 23.5, "pounds");
-   *    // returns "The teapot is 23.5 pounds"
-   *
-   * @param fmt the format string
-   * @param values... the values to insert into the format string
-   * @return the format string with placeholders inserted
-   */
-  template <typename... T>
-  [[deprecated]] static std::string format(const std::string& fmt, T... values);
-
-  [[deprecated]] static std::string format(const char* nofmt) { return nofmt; }
-  [[deprecated]] static std::string format(const std::string& nofmt) { return nofmt; }
-
-  /**
-   * Insert values into a string with placeholders. This method will throw an
-   * exception if an invalid placeholder is referenced
-   *
-   * Example:
-   *    StringUtil::format("The $0 is $1 $2", "teapot", 23.5, "pounds");
-   *    // returns "The teapot is 23.5 pounds"
-   *
-   * @param fmt the format string
-   * @param values the values to insert into the format string
-   * @return the format string with placeholders inserted
-   */
-  [[deprecated]] static std::string formatv(const char* fmt, std::vector<std::string> values);
-
-  /**
-   * Insert values into a string with placeholders. This method will throw an
-   * exception if an invalid placeholder is referenced
-   *
-   * Example:
-   *    StringUtil::format("The $0 is $1 $2", "teapot", 23.5, "pounds");
-   *    // returns "The teapot is 23.5 pounds"
-   *
-   * @param fmt the format string
-   * @param values the values to insert into the format string
-   * @return the format string with placeholders inserted
-   */
-  [[deprecated]] static std::string formatv(
-      const std::string& fmt,
-      std::vector<std::string> values);
-
-  /**
-   * Format a number using these SI prefixes:
-   *
-   *   tera  T  1000000000000
-   *   giga  G  1000000000
-   *   mega  M  1000000
-   *   kilo  k  1000
-   *   milli m  0.001
-   *   micro μ  0.000001
-   *   nano  n  0.000000001
-   *   pico  p  0.000000000001
-   *
-   * @param value the value to format
-   * @return the number formatted as a string using the SI prefixes
-   */
-  template <typename T>
-  [[deprecated]] static std::string formatNumberMetric(T value);
-
-  /**
-   * Format a number using the scientific notation
-   *
-   * @param value the value to format
-   * @return the number formatted as a string using the scientific notation
-   */
-  template <typename T>
-  [[deprecated]] static std::string formatNumberScientific(T value);
-
   [[deprecated]] static std::wstring convertUTF8To16(const std::string& str);
   [[deprecated]] static std::string convertUTF16To8(const std::wstring& str);
 
   [[deprecated]] static std::string sanitizedStr(const std::string& str);
   [[deprecated]] static std::string sanitizedStr(const BufferRef& buffer);
   [[deprecated]] static std::string sanitizedStr(const char* begin, const char* end);
-
-protected:
-
-  template <typename ValueType, typename... T>
-  static void formatImpl(
-      std::string* scratch,
-      int argn,
-      ValueType value,
-      T... values);
-
-  template <typename ValueType>
-  static void formatImpl(
-      std::string* scratch,
-      int argn,
-      ValueType value);
-
 };
 
 template<typename T> std::string to_string(const T& value);

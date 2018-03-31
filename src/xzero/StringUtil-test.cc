@@ -91,39 +91,6 @@ TEST(StringUtil, TestReplaceAll) {
   EXPECT_EQ(str, " computing, or in simpler shorthand just >the <...");
 }
 
-TEST(StringUtil, TestFormat) {
-  auto str1 = StringUtil::format(
-      "The quick $0 fox jumps over the $1 dog",
-      "brown",
-      "lazy");
-
-  EXPECT_EQ("The quick brown fox jumps over the lazy dog", str1);
-
-  auto str2 = StringUtil::format(
-      "1 $3 2 $2 3 $1 4 $0 5 $8 6 $9",
-      "A",
-      "B",
-      "C",
-      "D",
-      "E",
-      "F",
-      "G",
-      "H",
-      "I",
-      "K");
-
-  EXPECT_EQ("1 D 2 C 3 B 4 A 5 I 6 K", str2);
-
-  auto str3 = StringUtil::format("$0 + $1 = $2", 2.5, 6.5, 9);
-  EXPECT_EQ("2.5 + 6.5 = 9", str3);
-
-  auto str5 = StringUtil::format("$0, $1", 1, 0.0625);
-  EXPECT_EQ("1, 0.0625", str5);
-
-  auto str4 = StringUtil::format("$1$1$1$1$1 $0", "Batman", "Na");
-  EXPECT_EQ("NaNaNaNaNa Batman", str4);
-}
-
 TEST(StringUtil, splitByAny_empty) {
   auto parts = StringUtil::splitByAny("", ", \t");
   EXPECT_EQ(0, parts.size());

@@ -488,8 +488,8 @@ inline int createTempFileAt_default(const std::string& basedir, std::string* res
 }
 
 int FileUtil::createTempFileAt(const std::string& basedir, std::string* result) {
-  static const bool isWSL = Application::isWSL();
 #if defined(ENABLE_O_TMPFILE) && defined(O_TMPFILE)
+  static const bool isWSL = Application::isWSL();
   if (!isWSL)
     return createTempFileAt_linux(basedir, result);
   else

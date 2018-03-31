@@ -68,13 +68,6 @@ std::vector<std::string> inspectAll(H head) {
   return vec;
 }
 
-// TODO: move into its own more correct file
-template <typename... T>
-void iputs(const char* fmt, T... values) {
-  auto str = StringUtil::formatv(fmt, inspectAll(values...));
-  printf("%*s\n", str.size(), str.data());
-}
-
 } // namespace xzero
 
 

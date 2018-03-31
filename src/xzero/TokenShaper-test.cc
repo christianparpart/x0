@@ -11,7 +11,6 @@
 #include <xzero/MonotonicClock.h>
 #include <xzero/MonotonicTime.h>
 #include <xzero/executor/PosixScheduler.h>
-#include <xzero/StringUtil.h>
 
 using namespace xzero;
 
