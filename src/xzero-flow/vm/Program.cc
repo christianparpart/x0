@@ -115,7 +115,7 @@ bool Program::run(const std::string& handlerName, void* u1, void* u2) {
   if (Handler* handler = findHandler(handlerName); handler != nullptr)
     return handler->run(u1, u2);
 
-  throw std::runtime_error{StringUtil::format("No handler with name '$0' found.", handlerName)};
+  throw std::runtime_error{fmt::format("No handler with name '{}' found.", handlerName)};
 }
 
 std::vector<std::string> Program::handlerNames() const {
@@ -171,7 +171,7 @@ bool Program::link(Runtime* runtime) {
     } else {
       nativeHandlers_[i] = nullptr;
       logError("flow.vm.Program",
-               "Unresolved native handler signature: $0",
+               "Unresolved native handler signature: {}",
                signature);
       // TODO unresolvedSymbols_.push_back(signature);
       errors++;

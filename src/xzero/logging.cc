@@ -98,11 +98,15 @@ Logger::Logger() :
 }
 
 void Logger::fatal(const std::string& message) {
+  const size_t numTargets = max_listener_index_.load();
+  if (numTargets == 0)
+    addTarget(ConsoleLogTarget::get());
+
   log(LogLevel::Fatal, message);
 
   std::vector<std::string> st = StackTrace().symbols();
   for (size_t i = 0, e = st.size(); i != e; ++i) {
-    log(LogLevel::Fatal, StringUtil::format("[$0] $1", i, st[i]));
+    log(LogLevel::Fatal, fmt::format("[{}] {}", i, st[i]));
   }
 
   abort();
@@ -168,8 +172,8 @@ FileLogTarget::FileLogTarget(FileDescriptor&& fd)
 // TODO is a mutex required for concurrent printf()'s ?
 void FileLogTarget::log(LogLevel level,
                         const std::string& message) {
-  std::string logline = StringUtil::format(
-      "$0[$1] $2\n",
+  std::string logline = fmt::format(
+      "{}[{}] {}\n",
       createTimestamp(),
       level,
       message);
@@ -232,12 +236,10 @@ std::string ConsoleLogTarget::createTimestamp() const {
     return "";
 
   UnixTime now = WallClock::now();
-  // char buf[7];
-  // snprintf(buf, sizeof(buf), "%06lu", now.unixMicros() % 1000000);
 
-  return StringUtil::format("$0.$1 ",
-                            now.toString("%Y-%m-%d %H:%M:%S"),
-                            xzero::to_string(now.unixMicros() % 1000000));
+  return fmt::format("{}.{} ",
+                     now.toString("%Y-%m-%d %H:%M:%S"),
+                     xzero::to_string(now.unixMicros() % 1000000));
 }
 // }}}
 // {{{ SyslogTarget

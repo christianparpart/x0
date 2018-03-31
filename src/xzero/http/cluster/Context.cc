@@ -40,7 +40,7 @@ Context::Context(const HttpRequest& _request,
       proxyId_{proxyId},
       viaText_{},
       responseListener{std::move(_responseListener)} {
-  TRACE("ctor: executor: $0", executor);
+  TRACE("ctor: executor: {}", executor);
 }
 
 Context::~Context() {

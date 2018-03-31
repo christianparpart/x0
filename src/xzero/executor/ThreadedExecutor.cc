@@ -57,17 +57,17 @@ void ThreadedExecutor::joinAll() {
       tid = threads_.front();
       threads_.pop_front();
     }
-    TRACE("joinAll: join($0) $1", tid, ThreadPool::getThreadName(&tid));
+    TRACE("joinAll: join({}) {}", tid, ThreadPool::getThreadName(&tid));
     pthread_join(tid, nullptr);
   }
   TRACE("joinAll: done");
 }
 
 void* ThreadedExecutor::launchme(void* ptr) {
-  TRACE("launchme[$0]($1) enter", pthread_self(), ptr);
+  TRACE("launchme[{}]({}) enter", pthread_self(), ptr);
   std::unique_ptr<Executor::Task> task(reinterpret_cast<Executor::Task*>(ptr));
   (*task)();
-  TRACE("launchme[$0]($1) leave", pthread_self(), ptr);
+  TRACE("launchme[{}]({}) leave", pthread_self(), ptr);
   return nullptr;
 }
 
@@ -84,7 +84,7 @@ void ThreadedExecutor::execute(const std::string& name, Task task) {
 #endif
     safeCall(task);
     {
-      TRACE("task $0 finished. getting lock for cleanup", ThreadPool::getThreadName(&tid));
+      TRACE("task {} finished. getting lock for cleanup", ThreadPool::getThreadName(&tid));
       std::lock_guard<std::mutex> lock(mutex_);
       pthread_detach(tid);
       auto i = std::find(threads_.begin(), threads_.end(), tid);

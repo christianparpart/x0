@@ -89,7 +89,7 @@ void KQueueSignals::onSignal() {
       int signo = events[i].ident;
       std::list<std::shared_ptr<SignalWatcher>>& watchers = watchers_[signo];
 
-      logDebug("KQueueSignals: Caught signal $0.", toString(signo));
+      logDebug("KQueueSignals: Caught signal {}.", toString(signo));
 
       for (std::shared_ptr<SignalWatcher>& watcher: watchers) {
         watcher->info.signal = signo;

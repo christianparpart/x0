@@ -153,27 +153,27 @@ class Context {
   // {{{ Logging API
   template<typename... Args>
   inline void logError(const std::string& fmt, Args&&... args) {
-    ::xzero::logError(::xzero::StringUtil::format("$0: $1", remoteIP(), fmt), args...);
+    ::xzero::logError(::fmt::format("{}: {}", remoteIP(), fmt), args...);
   }
 
   template<typename... Args>
   inline void logWarning(const std::string& fmt, Args&&... args) {
-    ::xzero::logWarning(::xzero::StringUtil::format("$0: $1", remoteIP(), fmt), args...);
+    ::xzero::logWarning(::fmt::format("{}: {}", remoteIP(), fmt), args...);
   }
 
   template<typename... Args>
   inline void logNotice(const std::string& fmt, Args&&... args) {
-    ::xzero::logNotice(::xzero::StringUtil::format("$0: $1", remoteIP(), fmt), args...);
+    ::xzero::logNotice(::fmt::format("{}: {}", remoteIP(), fmt), args...);
   }
 
   template<typename... Args>
   inline void logInfo(const std::string& fmt, Args&&... args) {
-    ::xzero::logInfo(::xzero::StringUtil::format("$0: $1", remoteIP(), fmt), args...);
+    ::xzero::logInfo(::fmt::format("{}: {}", remoteIP(), fmt), args...);
   }
 
   template<typename... Args>
   inline void logDebug(const std::string& fmt, Args&&... args) {
-    ::xzero::logDebug(::xzero::StringUtil::format("$0: $1", remoteIP(), fmt), args...);
+    ::xzero::logDebug(::fmt::format("{}: {}", remoteIP(), fmt), args...);
   }
   // }}}
 

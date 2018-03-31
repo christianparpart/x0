@@ -10,6 +10,7 @@
 #include <xzero-flow/ir/BasicBlock.h>
 #include <xzero-flow/ir/IRHandler.h>
 #include <xzero/logging.h>
+#include <fmt/format.h>
 #include <algorithm>
 #include <assert.h>
 
@@ -27,17 +28,15 @@ Value::Value(const Value& v) : type_(v.type_), name_(), uses_() {
 Value::Value(FlowType ty, const std::string& name)
     : type_(ty), name_(name), uses_() {
   if (name_.empty()) {
-    char buf[256];
-    snprintf(buf, sizeof(buf), "unnamed%llu", valueCounter);
+    name_ = fmt::format("unnamed{}", valueCounter);
     valueCounter++;
-    name_ = buf;
     // printf("default-create name: %s\n", name_.c_str());
   }
 }
 
 Value::~Value() {
-  XZERO_ASSERT(!isUsed(), StringUtil::format(
-      "Value being destroyed is still in use by: $0.",
+  XZERO_ASSERT(!isUsed(), fmt::format(
+      "Value being destroyed is still in use by: {}.",
       StringUtil::join(uses_, ", ", &Instr::name)));
 }
 

@@ -66,7 +66,7 @@ HealthMonitor::HealthMonitor(Executor* executor,
       totalOfflineTime_(Duration::Zero),
       client_(executor, inetAddress,
               connectTimeout, readTimeout, writeTimeout, Duration::Zero) {
-  TRACE("ctor: $0", inetAddress);
+  TRACE("ctor: {}", inetAddress);
 
   start();
 }
@@ -87,7 +87,7 @@ void HealthMonitor::stop() {
 }
 
 void HealthMonitor::recheck() {
-  TRACE("recheck with interval $0", interval_);
+  TRACE("recheck with interval {}", interval_);
   timerHandle_ = executor_->executeAfter(
       interval_,
       std::bind(&HealthMonitor::onCheckNow, this));
@@ -109,7 +109,7 @@ void HealthMonitor::logSuccess() {
 void HealthMonitor::logFailure() {
   ++totalFailCount_;
   consecutiveSuccessCount_ = 0;
-  TRACE("logFailure $0", totalFailCount_);
+  TRACE("logFailure {}", totalFailCount_);
 
   setState(State::Offline);
 
@@ -124,7 +124,7 @@ void HealthMonitor::setState(State value) {
   if (state_ == value)
     return;
 
-  TRACE("setState $0 -> $1", state_, value);
+  TRACE("setState {} -> {}", state_, value);
 
   State oldState = state_;
   state_ = value;
@@ -159,7 +159,7 @@ void HealthMonitor::onCheckNow() {
 }
 
 void HealthMonitor::onFailure(const std::error_code& ec) {
-  DEBUG("Connecting to backend failed. $0", ec.message());
+  DEBUG("Connecting to backend failed. {}", ec.message());
   logFailure();
 }
 
@@ -169,7 +169,7 @@ void HealthMonitor::onResponseReceived(const HttpClient::Response& response) {
                      successCodes_.end(),
                      response.status());
   if (i == successCodes_.end()) {
-    DEBUG("Received bad response status code. $0 $1",
+    DEBUG("Received bad response status code. {} {}",
           static_cast<int>(response.status()),
           response.status());
     logFailure();

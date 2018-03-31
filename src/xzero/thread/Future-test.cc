@@ -112,8 +112,8 @@ TEST(Future, promiseChain) {
 
   p.success(42);
 
-  fu.onSuccess([this](auto i) { logf("fu.onSuccess: $0", i); });
-  fu.onFailure([this](auto e) { logf("fu.onFailure: $0", e); });
+  fu.onSuccess([this](auto i) { logf("fu.onSuccess: {}", i); });
+  fu.onFailure([this](auto e) { logf("fu.onFailure: {}", e); });
 
   ASSERT_EQ(42, fu.get());
 }

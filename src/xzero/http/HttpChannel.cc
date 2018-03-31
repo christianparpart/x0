@@ -24,8 +24,6 @@
 namespace xzero {
 namespace http {
 
-#define ERROR(msg...) logError("http.HttpChannel: " msg)
-
 #ifndef NDEBUG
 #define TRACE(msg...) logTrace("http.HttpChannel: " msg)
 #else
@@ -73,12 +71,12 @@ HttpChannel::HttpChannel(HttpTransport* transport,
 }
 
 HttpChannel::~HttpChannel() {
-  TRACE("$0 dtor", this);
+  TRACE("{} dtor", (void*)this);
   //.
 }
 
 void HttpChannel::reset() {
-  TRACE("$0 reset", this);
+  TRACE("{} reset", (void*)this);
   setState(HttpChannelState::READING);
   request_->recycle();
   response_->recycle();
@@ -86,8 +84,8 @@ void HttpChannel::reset() {
 }
 
 void HttpChannel::setState(HttpChannelState newState) {
-  TRACE("$0 setState from $1 to $2",
-        this,
+  TRACE("{} setState from {} to {}",
+        (void*) this,
         as_string(state_),
         as_string(newState));
 
@@ -235,7 +233,7 @@ HttpResponseInfo& HttpChannel::commitInline() {
 }
 
 void HttpChannel::commit(CompletionHandler onComplete) {
-  TRACE("commit()");
+  TRACE("{} commit()", (void*)this);
   send(BufferRef(), onComplete);
 }
 
@@ -262,7 +260,7 @@ void HttpChannel::onMessageBegin(const BufferRef& method,
     RAISE_EXCEPTION(BadMessage, HttpStatus::BadRequest);
   }
 
-  TRACE("onMessageBegin($0, $1, $2)",
+  TRACE("onMessageBegin({}, {}, {})",
         request_->unparsedMethod(),
         request_->path(),
         as_string(version));
@@ -270,7 +268,7 @@ void HttpChannel::onMessageBegin(const BufferRef& method,
 
 void HttpChannel::onMessageHeader(const BufferRef& name,
                                   const BufferRef& value) {
-  TRACE("onMessageHeader $0: $1", name, value);
+  TRACE("onMessageHeader {}: {}", name, value);
   request_->headers().push_back(name.str(), value.str());
 
   if (iequals(name, "Expect") && iequals(value, "100-continue"))
@@ -334,12 +332,12 @@ void HttpChannel::handleRequest() {
 }
 
 void HttpChannel::onMessageContent(const BufferRef& chunk) {
-  TRACE("onMessageContent(BufferRef): $0", chunk);
+  TRACE("onMessageContent(BufferRef): {}", chunk);
   request_->fillContent(chunk);
 }
 
 void HttpChannel::onMessageContent(FileView&& chunk) {
-  TRACE("onMessageContent(FileView): $0", FileUtil::read(chunk).ref());
+  TRACE("onMessageContent(FileView): {}", FileUtil::read(chunk).ref());
   request_->fillContent(FileUtil::read(chunk));
 }
 
@@ -368,7 +366,7 @@ void HttpChannel::completed() {
       response_->hasContentLength() &&
       response_->actualContentLength() < response_->contentLength()) {
     throw InvalidState{
-          "Attempt to complete() a response before having written the full response body ($0 of $1).",
+          "Attempt to complete() a response before having written the full response body ({} of {}).",
           response_->actualContentLength(),
           response_->contentLength()};
   }
@@ -378,12 +376,12 @@ void HttpChannel::completed() {
   }
 
   if (!outputFilters_.empty()) {
-    TRACE("$0 completed: send(applyFilters(EOS))", this);
+    TRACE("{} completed: send(applyFilters(EOS))", (void*)this);
     Buffer filtered;
     Filter::applyFilters(outputFilters_, "", &filtered, true);
     transport_->send(std::move(filtered), nullptr);
   } else if (!response_->isCommitted()) {
-    TRACE("$0 completed: not committed yet. commit empty-body response", this);
+    TRACE("{} completed: not committed yet. commit empty-body response", (void*)this);
     if (!response_->hasContentLength() && request_->method() != HttpMethod::HEAD) {
       response_->setContentLength(0);
     }
@@ -391,7 +389,7 @@ void HttpChannel::completed() {
     transport_->send(info, BufferRef(), nullptr);
   }
 
-  TRACE("$0 completed: pass on to transport layer", this);
+  TRACE("{} completed: pass on to transport layer", (void*)this);
   transport_->completed();
 }
 
@@ -414,7 +412,7 @@ void HttpChannel::responseEnd() {
 }
 
 std::ostream& operator<<(std::ostream& os, HttpChannel* value) {
-  return os << StringUtil::format("HttpChannel[$0]", (void*)value);
+  return os << fmt::format("HttpChannel[{}]", (void*)value);
 }
 
 }  // namespace http

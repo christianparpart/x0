@@ -388,7 +388,7 @@ void FrameGenerator::generateFrameHeader(FrameType frameType, unsigned frameFlag
    * +---------------------------------------------------------------+
    */
 
-  TRACE("header: type:$0 flags:$1, sid:$2, payloadSize:$3",
+  TRACE("header: type:{} flags:{}, sid:{}, payloadSize:{}",
       frameType, frameFlags, streamID, payloadSize);
 
   write24(payloadSize);

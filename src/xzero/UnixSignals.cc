@@ -6,6 +6,7 @@
 // the License at: http://opensource.org/licenses/MIT
 
 #include <xzero/UnixSignals.h>
+#include <xzero/Application.h>
 #include <xzero/PosixSignals.h>
 #include <xzero/RuntimeError.h>
 #include <xzero/sysconfig.h>
@@ -72,11 +73,13 @@ std::string UnixSignals::toString(int signo) {
 }
 
 std::unique_ptr<UnixSignals> UnixSignals::create(Executor* executor) {
-#if defined(XZERO_WSL)
-  // WSL doesn't support signalfd() yet (2017-06-19)
-  return std::make_unique<PosixSignals>(executor);
-#elif defined(XZERO_OS_LINUX)
-  return std::make_unique<LinuxSignals>(executor);
+#if defined(XZERO_OS_LINUX)
+  if (Application::isWSL()) {
+    // WSL doesn't support signalfd() yet (2018-03-31)
+    return std::make_unique<PosixSignals>(executor);
+  } else {
+    return std::make_unique<LinuxSignals>(executor);
+  }
 #elif defined(XZERO_OS_DARWIN)
   return std::make_unique<KQueueSignals>(executor);
 #else

@@ -8,6 +8,7 @@
 #pragma once
 
 #include <xzero/net/IPAddress.h>
+#include <fmt/ostream.h>
 #include <optional>
 
 namespace xzero {

@@ -179,7 +179,7 @@ bool DirlistingModule::dirlisting(Context* cx, Params& args) {
     return true;
 
   if (cx->request()->directoryDepth() < 0) {
-    cx->logError("Directory traversal detected: $0", cx->request()->path());
+    cx->logError("Directory traversal detected: {}", cx->request()->path());
     return cx->sendErrorPage(HttpStatus::BadRequest);
   }
 

@@ -271,7 +271,7 @@ std::size_t Parser::parseFragment(const BufferRef& chunk) {
 
   // TRACE(2, "process(curState:%s): size: %ld: '%s'", as_string(state()).c_str(),
   // chunk.size(), chunk.str().c_str());
-  TRACE("process(curState:$0): size: $1", as_string(state()).c_str(),
+  TRACE("process(curState:{}): size: {}", as_string(state()).c_str(),
         chunk.size());
 
 #if 0
@@ -462,7 +462,7 @@ std::size_t Parser::parseFragment(const BufferRef& chunk) {
           state_ = HEADER_NAME_BEGIN;
           nextChar();
 
-          TRACE("request-line: method=$0, entity=$1, vmaj=$2, vmin=$3",
+          TRACE("request-line: method={}, entity={}, vmaj={}, vmin={}",
                 method_.str(), entity_.str(), versionMajor_, versionMinor_);
 
           onMessageBegin(method_, entity_, versionMajor_, versionMinor_);
@@ -591,7 +591,7 @@ std::size_t Parser::parseFragment(const BufferRef& chunk) {
           state_ = HEADER_NAME_BEGIN;
           nextChar();
 
-          // TRACE("status-line: HTTP/$0.$1, code=$2, message=$3",
+          // TRACE("status-line: HTTP/{}.{}, code={}, message={}",
           // versionMajor_, versionMinor_, code_, message_);
           onMessageBegin(versionMajor_, versionMinor_, code_, message_);
         } else {
@@ -729,11 +729,11 @@ std::size_t Parser::parseFragment(const BufferRef& chunk) {
         }
         break;
       case HEADER_VALUE_END: {
-        TRACE("header: name='$0', value='$1'", name_.str(), value_.str());
+        TRACE("header: name='{}', value='{}'", name_.str(), value_.str());
 
         if (iequals(name_, "Content-Length")) {
           contentLength_ = value_.toInt();
-          TRACE("set content length to: $0", contentLength_);
+          TRACE("set content length to: {}", contentLength_);
           // do not pass header to upper layer
           // as this is an HTTP/1 transport-layer specific header
           onMessageHeader(name_, value_);
@@ -790,7 +790,7 @@ std::size_t Parser::parseFragment(const BufferRef& chunk) {
         // body w/o content-length (allowed in simple MESSAGE types only)
         BufferRef c(chunk.ref(*nparsed - initialOutOffset));
 
-        // TRACE("prepared content-chunk ($0 bytes): $1", c.size(), c.str());
+        // TRACE("prepared content-chunk ({} bytes): {}", c.size(), c.str());
 
         nextChar(c.size());
 
@@ -851,7 +851,7 @@ std::size_t Parser::parseFragment(const BufferRef& chunk) {
           onProtocolError();
           state_ = PROTOCOL_ERROR;
         } else {
-          // TRACE("content_length: $0", contentLength_);
+          // TRACE("content_length: {}", contentLength_);
           if (contentLength_ != 0)
             state_ = CONTENT_CHUNK_BODY;
           else
@@ -912,15 +912,15 @@ std::size_t Parser::parseFragment(const BufferRef& chunk) {
         goto done;
       default:
 #if !defined(NDEBUG)
-        TRACE("parse: unknown state $0", state_);
+        TRACE("parse: unknown state {}", state_);
         if (std::isprint(*i)) {
-          TRACE("parse: internal error at nparsed: $0, character: '$1'",
+          TRACE("parse: internal error at nparsed: {}, character: '{}'",
                 *nparsed, *i);
         } else {
-          TRACE("parse: internal error at nparsed: $0, character: $1",
+          TRACE("parse: internal error at nparsed: {}, character: {}",
                 *nparsed, *i);
         }
-        TRACE("$0", chunk.hexdump().c_str());
+        TRACE("{}", chunk.hexdump().c_str());
 #endif
         goto done;
     }

@@ -233,7 +233,7 @@ bool HttpRequestInfo::setUri(const std::string& uri) {
       case UriState::QuoteChar2:
         if (ch >= '0' && ch <= '9') {
           ch = decodedChar | (ch - '0');
-          TRACE("parse-uri: decoded character $0", (unsigned int)(ch & 0xFF));
+          TRACE("parse-uri: decoded character {}", (unsigned int)(ch & 0xFF));
 
           switch (ch) {
             case '\0':
@@ -269,7 +269,7 @@ bool HttpRequestInfo::setUri(const std::string& uri) {
           //
           ch = decodedChar | (ch - ('a' - 10));
 
-          TRACE("parse-uri: decoded character $0", (unsigned int)(ch & 0xFF));
+          TRACE("parse-uri: decoded character {}", (unsigned int)(ch & 0xFF));
 
           switch (ch) {
             case '\0':
@@ -315,7 +315,7 @@ bool HttpRequestInfo::setUri(const std::string& uri) {
   }
 
 done:
-  TRACE("parse-uri($0): success. path:$1, query:$2, depth:$3, mindepth:$4, state:$5",
+  TRACE("parse-uri({}): success. path:{}, query:{}, depth:{}, mindepth:{}, state:{}",
         unparsedUri_,
         path_, query_, depth, minDepth, uriStateNames[(int)state]);
   directoryDepth_ = depth;

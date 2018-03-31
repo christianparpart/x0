@@ -38,13 +38,13 @@ TEST(Channel, buffered1) {
 
   int v;
   c.receive(&v);
-  logf("v: $0", v);
+  logf("v: {}", v);
   ASSERT_EQ(42, v);
 
   c.send(13);
 
   bool r2 = c.receive(&v);
-  logf("v: $0", v);
+  logf("v: {}", v);
   ASSERT_EQ(13, v);
   ASSERT_EQ(0, c.size());
 
@@ -75,7 +75,7 @@ TEST(Channel, spam) {
 
   MonotonicTime c2 = MonotonicClock::now();
   Duration d = c2 - c1;
-  logf("duration: $0 (last received value: $1)", d, v);
+  logf("duration: {} (last received value: {})", d, v);
 }
 
 TEST(Channel, unbuffered) {
@@ -116,10 +116,10 @@ int example_main() {
   unsigned waiting = 0;
   for (bool quit = false; !quit;) {
     channelSelector()
-      .on(a, [&](auto&& v, bool closed) { logf("a: $0", v); quit = closed; })
-      .on(b, [&](auto&& v, bool closed) { logf("b: $0", v); quit = closed; });
+      .on(a, [&](auto&& v, bool closed) { logf("a: {}", v); quit = closed; })
+      .on(b, [&](auto&& v, bool closed) { logf("b: {}", v); quit = closed; });
       .otherwise([&]() { waiting++; });
   }
-  logf("wait count: $0", waiting);
+  logf("wait count: {}", waiting);
 }
 #endif

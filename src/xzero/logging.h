@@ -9,6 +9,7 @@
 #include <atomic>
 #include <xzero/StringUtil.h>
 #include <xzero/io/FileDescriptor.h>
+#include <fmt/format.h>
 
 namespace xzero {
 
@@ -110,7 +111,7 @@ class Logger { // {{{
  */
 template <typename... T>
 [[noreturn]] void logFatal(const std::string& msg, T... args) {
-  Logger::get()->fatal(StringUtil::format(msg, args...));
+  Logger::get()->fatal(fmt::format(msg, args...));
 }
 
 #define XZERO_ASSERT(cond, msg) \
@@ -123,7 +124,7 @@ template <typename... T>
  */
 template <typename... T>
 inline void logError(const std::string& msg, T... args) {
-  Logger::get()->error(StringUtil::format(msg, args...));
+  Logger::get()->error(fmt::format(msg, args...));
 }
 
 /**
@@ -131,7 +132,7 @@ inline void logError(const std::string& msg, T... args) {
  */
 template <typename... T>
 inline void logWarning(const std::string& msg, T... args) {
-  Logger::get()->warning(StringUtil::format(msg, args...));
+  Logger::get()->warning(fmt::format(msg, args...));
 }
 
 /**
@@ -139,7 +140,7 @@ inline void logWarning(const std::string& msg, T... args) {
  */
 template <typename... T>
 inline void logNotice(const std::string& msg, T... args) {
-  Logger::get()->notice(StringUtil::format(msg, args...));
+  Logger::get()->notice(fmt::format(msg, args...));
 }
 
 /**
@@ -147,7 +148,7 @@ inline void logNotice(const std::string& msg, T... args) {
  */
 template <typename... T>
 inline void logInfo(const std::string& msg, T... args) {
-  Logger::get()->info(StringUtil::format(msg, args...));
+  Logger::get()->info(fmt::format(msg, args...));
 }
 
 /**
@@ -155,7 +156,7 @@ inline void logInfo(const std::string& msg, T... args) {
  */
 template <typename... T>
 inline void logDebug(const std::string& msg, T... args) {
-  Logger::get()->debug(StringUtil::format(msg, args...));
+  Logger::get()->debug(fmt::format(msg, args...));
 }
 
 /**
@@ -163,7 +164,7 @@ inline void logDebug(const std::string& msg, T... args) {
  */
 template <typename... T>
 inline void logTrace(const std::string& msg, T... args) {
-  Logger::get()->trace(StringUtil::format(msg, args...));
+  Logger::get()->trace(fmt::format(msg, args...));
 }
 // }}}
 

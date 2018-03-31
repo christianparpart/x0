@@ -139,7 +139,7 @@ Future<int> TcpUtil::connect(const InetAddress& address,
         [promise, fd]() { FileUtil::close(fd);
                           promise.failure(std::errc::timed_out); });
   } else {
-    TRACE("TcpUtil.connect: failed. $0", ec.message());
+    TRACE("TcpUtil.connect: failed. {}", ec.message());
     promise.failure(ec);
   }
 
@@ -226,7 +226,7 @@ size_t TcpUtil::sendfile(int target, const FileView& source) {
 #if defined(__APPLE__)
   off_t len = source.size();
   int rv = ::sendfile(source.handle(), target, source.offset(), &len, nullptr, 0);
-  TRACE("flush(offset:$0, size:$1) -> $2", source.offset(), source.size(), rv);
+  TRACE("flush(offset:{}, size:{}) -> {}", source.offset(), source.size(), rv);
   if (rv < 0)
     RAISE_ERRNO(errno);
 
@@ -234,7 +234,7 @@ size_t TcpUtil::sendfile(int target, const FileView& source) {
 #else
   off_t offset = source.offset();
   ssize_t rv = ::sendfile(target, source.handle(), &offset, source.size());
-  TRACE("flush(offset:$0, size:$1) -> $2", source.offset(), source.size(), rv);
+  TRACE("flush(offset:{}, size:{}) -> {}", source.offset(), source.size(), rv);
   if (rv < 0)
     RAISE_ERRNO(errno);
 

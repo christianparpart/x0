@@ -193,7 +193,7 @@ void Generator::generateTrailer(const HeaderFieldList& trailers) {
 
 void Generator::generateBody(Buffer&& chunk) {
   if (chunked_) {
-    TRACE("generateBody: Buffer.size=$0 (chunked encoding)", chunk.size());
+    TRACE("generateBody: Buffer.size={} (chunked encoding)", chunk.size());
     if (chunk.size() > 0) {
       Buffer buf(12);
       buf.printf("%zx\r\n", chunk.size());
@@ -202,7 +202,7 @@ void Generator::generateBody(Buffer&& chunk) {
       writer_->write(BufferRef("\r\n"));
     }
   } else {
-    TRACE("generateBody: chunk: $0 (actual: $1, total: $2)",
+    TRACE("generateBody: chunk: {} (actual: {}, total: {})",
           chunk.size(), actualContentLength(), contentLength());
 
     if (chunk.size() <= remainingContentLength()) {
@@ -217,7 +217,7 @@ void Generator::generateBody(Buffer&& chunk) {
 
 void Generator::generateBody(FileView&& chunk) {
   if (chunked_) {
-    TRACE("generateBody: FileView.size=$0 (chunked encoding)", chunk.size());
+    TRACE("generateBody: FileView.size={} (chunked encoding)", chunk.size());
     int n;
     char buf[12];
 
@@ -229,7 +229,7 @@ void Generator::generateBody(FileView&& chunk) {
       writer_->write(BufferRef("\r\n"));
     }
   } else {
-    TRACE("generateBody: chunk: $0 (actual: $1, total: $2)",
+    TRACE("generateBody: chunk: {} (actual: {}, total: {})",
           chunk.size(), actualContentLength(), contentLength());
 
     if (chunk.size() <= remainingContentLength()) {
@@ -300,7 +300,7 @@ void Generator::generateResponseLine(const HttpResponseInfo& info) {
 void Generator::generateHeaders(const HttpInfo& info, bool bodyForbidden) {
   chunked_ = info.hasContentLength() == false || info.hasTrailers();
   contentLength_ = info.contentLength();
-  TRACE("generateHeaders: content-length: $0", contentLength_);
+  TRACE("generateHeaders: content-length: {}", contentLength_);
 
   for (const HeaderField& header: info.headers()) {
     // skip pseudo headers (that might have come via HTTP/2)

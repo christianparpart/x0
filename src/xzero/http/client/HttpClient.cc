@@ -24,7 +24,6 @@
 #if !defined(NDEBUG)
 #define TRACE(msg...) logTrace("HttpClient: " msg)
 #else
-#warning "No NDEBUG set"
 #define TRACE(msg...) do {} while (0)
 #endif
 
@@ -62,7 +61,8 @@ HttpClient::ResponseBuilder::~ResponseBuilder() {
 void HttpClient::ResponseBuilder::onMessageBegin(HttpVersion version,
                                                  HttpStatus code,
                                                  const BufferRef& text) {
-  TRACE("ResponseBuilder.onMessageBegin($0, $1, $2)", version, (int)code, text);
+  TRACE("ResponseBuilder.onMessageBegin({}, {}, {})",
+      version, (int)code, text);
 
   response_.setVersion(version);
   response_.setStatus(code);
@@ -71,7 +71,7 @@ void HttpClient::ResponseBuilder::onMessageBegin(HttpVersion version,
 
 void HttpClient::ResponseBuilder::onMessageHeader(const BufferRef& name,
                                                   const BufferRef& value) {
-  TRACE("ResponseBuilder.onMessageHeader($0, $1)", name, value);
+  TRACE("ResponseBuilder.onMessageHeader({}, {})", name, value);
 
   response_.headers().push_back(name.str(), value.str());
 }
@@ -81,12 +81,12 @@ void HttpClient::ResponseBuilder::onMessageHeaderEnd() {
 }
 
 void HttpClient::ResponseBuilder::onMessageContent(const BufferRef& chunk) {
-  TRACE("ResponseBuilder.onMessageContent(BufferRef) $0 bytes", chunk.size());
+  TRACE("ResponseBuilder.onMessageContent(BufferRef) {} bytes", chunk.size());
   response_.content().write(chunk);
 }
 
 void HttpClient::ResponseBuilder::onMessageContent(FileView&& chunk) {
-  TRACE("ResponseBuilder.onMessageContent(FileView) $0 bytes", chunk.size());
+  TRACE("ResponseBuilder.onMessageContent(FileView) {} bytes", chunk.size());
   response_.content().write(std::move(chunk));
 }
 
@@ -195,7 +195,7 @@ Future<std::shared_ptr<TcpEndPoint>> HttpClient::createTcpPlain(
 //   auto createApplicationConnection = [this](const std::string& protocolName,
 //                                             TcpEndPoint* endpoint) {
 //     // TODO: make use of protocolName
-//     TRACE("createTcp(https): creating application layer: $0", protocolName);
+//     TRACE("createTcp(https): creating application layer: {}", protocolName);
 //     endpoint->setConnection(std::make_unique<Http1Connection>(listener_,
 //                                                               endpoint,
 //                                                               executor_));
@@ -296,7 +296,7 @@ void HttpClient::Context::execute(CreateEndPoint createEndPoint) {
                         this, std::placeholders::_1));
 
   f.onFailure([this](std::error_code ec) {
-    TRACE("Failed to connect. $0: $1", ec.category().name(), ec.message());
+    TRACE("Failed to connect. {}: {}", ec.category().name(), ec.message());
     listener_->onError(ec);
     done_(this);
   });

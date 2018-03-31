@@ -31,11 +31,11 @@ File::File(const std::string& path, const std::string& mimetype)
       errno_(0),
       mimetype_(mimetype),
       lastModified_() {
-  TRACE(2, "($0).ctor", path_);
+  TRACE(2, "({}).ctor", path_);
 }
 
 File::~File() {
-  TRACE(2, "($0).dtor", path_);
+  TRACE(2, "({}).dtor", path_);
 }
 
 std::string File::filename() const {

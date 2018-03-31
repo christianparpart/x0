@@ -38,7 +38,7 @@ PosixSignals::HandleRef PosixSignals::notify(int signo, SignalHandler task) {
   std::shared_ptr<SignalWatcher> hr = std::make_shared<SignalWatcher>(task);
 
   if (watchers_[signo].empty()) {
-    TRACE("installing signal handler $0 ($1)", signo, toString(signo));
+    TRACE("installing signal handler {} ({})", signo, toString(signo));
     struct sigaction sa{};
     memset(&sa, 0, sizeof(sa));
     sa.sa_sigaction = PosixSignals::onSignal;
@@ -71,7 +71,7 @@ void PosixSignals::onSignal2(int signo, siginfo_t* info, void* ptr) {
     p->info.uid = info->si_uid;
   }
 
-  TRACE("caught signal $0 ($1) for $2 handlers", signo,
+  TRACE("caught signal {} ({}) for {} handlers", signo,
         toString(signo), pending.size());
 
   // notify interests (XXX must not be invoked on local stack)

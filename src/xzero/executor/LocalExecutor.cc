@@ -31,12 +31,12 @@ LocalExecutor::LocalExecutor(
 void LocalExecutor::execute(Task task) {
   if (isRunning() && !isRecursive()) {
     deferred_.emplace_back(std::move(task));
-    TRACE("$0 execute: enqueue task ($1)", this, deferred_.size());
+    TRACE("{} execute: enqueue task ({})", (void*)this, deferred_.size());
     return;
   }
 
   running_++;
-  TRACE("$0 execute: run top-level task", this);
+  TRACE("{} execute: run top-level task", (void*)this);
   safeCall(task);
   executeDeferredTasks();
   running_--;
@@ -44,7 +44,7 @@ void LocalExecutor::execute(Task task) {
 
 void LocalExecutor::executeDeferredTasks() {
   while (!deferred_.empty()) {
-    TRACE("$0 execute: run deferred task (-$1)", this, deferred_.size());
+    TRACE("{} execute: run deferred task (-{})", (void*)this, deferred_.size());
     safeCall(deferred_.front());
     deferred_.pop_front();
   }

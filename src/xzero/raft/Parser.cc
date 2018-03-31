@@ -69,7 +69,7 @@ bool Parser::parseFrame() {
       parseHelloResponse();
       break;
     default:
-      logDebug("raft: Unknown message type $0", messageType);
+      logDebug("raft: Unknown message type {}", messageType);
       throw ProtocolError{"Invalid message type."};
   }
 

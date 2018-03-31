@@ -29,7 +29,7 @@ UdpEndPoint::~UdpEndPoint() {
 
 size_t UdpEndPoint::send(const BufferRef& response) {
 #ifndef NDEBUG
-  logTrace("UdpEndPoint: send(): $0 bytes", response.size());
+  logTrace("UdpEndPoint: send(): {} bytes", response.size());
 #endif
 
   const int flags = 0;

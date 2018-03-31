@@ -344,7 +344,7 @@ public:
    * @return the format string with placeholders inserted
    */
   template <typename... T>
-  static std::string format(const char* fmt, T... values);
+  [[deprecated]] static std::string format(const char* fmt, T... values);
 
   /**
    * Insert values into a string with placeholders. This method will throw an
@@ -359,24 +359,10 @@ public:
    * @return the format string with placeholders inserted
    */
   template <typename... T>
-  static std::string format(const std::string& fmt, T... values);
+  [[deprecated]] static std::string format(const std::string& fmt, T... values);
 
-  static std::string format(const char* nofmt) { return nofmt; }
-  static std::string format(const std::string& nofmt) { return nofmt; }
-
-  /**
-   * Insert values into a string with placeholders. This method will throw an
-   * exception if an invalid placeholder is referenced
-   *
-   * Example:
-   *    StringUtil::format("The $0 is $1 $2", "teapot", 23.5, "pounds");
-   *    // returns "The teapot is 23.5 pounds"
-   *
-   * @param fmt the format string
-   * @param values the values to insert into the format string
-   * @return the format string with placeholders inserted
-   */
-  static std::string formatv(const char* fmt, std::vector<std::string> values);
+  [[deprecated]] static std::string format(const char* nofmt) { return nofmt; }
+  [[deprecated]] static std::string format(const std::string& nofmt) { return nofmt; }
 
   /**
    * Insert values into a string with placeholders. This method will throw an
@@ -390,7 +376,21 @@ public:
    * @param values the values to insert into the format string
    * @return the format string with placeholders inserted
    */
-  static std::string formatv(
+  [[deprecated]] static std::string formatv(const char* fmt, std::vector<std::string> values);
+
+  /**
+   * Insert values into a string with placeholders. This method will throw an
+   * exception if an invalid placeholder is referenced
+   *
+   * Example:
+   *    StringUtil::format("The $0 is $1 $2", "teapot", 23.5, "pounds");
+   *    // returns "The teapot is 23.5 pounds"
+   *
+   * @param fmt the format string
+   * @param values the values to insert into the format string
+   * @return the format string with placeholders inserted
+   */
+  [[deprecated]] static std::string formatv(
       const std::string& fmt,
       std::vector<std::string> values);
 
@@ -410,7 +410,7 @@ public:
    * @return the number formatted as a string using the SI prefixes
    */
   template <typename T>
-  static std::string formatNumberMetric(T value);
+  [[deprecated]] static std::string formatNumberMetric(T value);
 
   /**
    * Format a number using the scientific notation
@@ -419,15 +419,14 @@ public:
    * @return the number formatted as a string using the scientific notation
    */
   template <typename T>
-  static std::string formatNumberScientific(T value);
+  [[deprecated]] static std::string formatNumberScientific(T value);
 
+  [[deprecated]] static std::wstring convertUTF8To16(const std::string& str);
+  [[deprecated]] static std::string convertUTF16To8(const std::wstring& str);
 
-  static std::wstring convertUTF8To16(const std::string& str);
-  static std::string convertUTF16To8(const std::wstring& str);
-
-  static std::string sanitizedStr(const std::string& str);
-  static std::string sanitizedStr(const BufferRef& buffer);
-  static std::string sanitizedStr(const char* begin, const char* end);
+  [[deprecated]] static std::string sanitizedStr(const std::string& str);
+  [[deprecated]] static std::string sanitizedStr(const BufferRef& buffer);
+  [[deprecated]] static std::string sanitizedStr(const char* begin, const char* end);
 
 protected:
 

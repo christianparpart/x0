@@ -24,9 +24,9 @@ CatchAndLogExceptionHandler::CatchAndLogExceptionHandler(
 
 void CatchAndLogExceptionHandler::onException(const std::exception& e) const {
   if (!component_.empty()) {
-    logError("[$0] Unhandled exception caught. $1", component_, e.what());
+    logError("[{}] Unhandled exception caught. {}", component_, e.what());
   } else {
-    logError("Unhandled exception caught. $0", e.what());
+    logError("Unhandled exception caught. {}", e.what());
   }
 }
 

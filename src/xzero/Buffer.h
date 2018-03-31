@@ -9,6 +9,8 @@
 
 #include <xzero/Api.h>
 #include <xzero/RuntimeError.h>
+#include <fmt/format.h>
+#include <fmt/ostream.h>
 #include <cstddef>
 #include <climits>
 #include <cstring>

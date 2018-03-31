@@ -166,7 +166,7 @@ void TargetCodeGenerator::generate(IRHandler* handler) {
   cp_.getHandler(handlerId_).second = std::move(code_);
 
   // cleanup remaining handler-local work vars
-  logTrace("flow: stack depth after handler code generation: $0", stack_.size());
+  logTrace("flow: stack depth after handler code generation: {}", stack_.size());
   stack_.clear();
 }
 
@@ -214,7 +214,7 @@ StackPointer TargetCodeGenerator::getStackPointer(const Value* value) {
     if (stack_[i] == value)
       return i;
 
-  // TRACE("getStackPointer: not found $0 on stack", value->name());
+  // TRACE("getStackPointer: not found {} on stack", value->name());
   // ((Value*) value)->dump();
   return (StackPointer) -1;
 }
@@ -228,7 +228,7 @@ void TargetCodeGenerator::changeStack(size_t pops, const Value* pushValue) {
 }
 
 void TargetCodeGenerator::pop(size_t count) {
-  TRACE("tcg: pop $0 (of $1) values", count, stack_.size());
+  TRACE("tcg: pop {} (of {}) values", count, stack_.size());
   if (count > stack_.size())
     logFatal("flow: BUG: stack smaller than amount of elements to pop.");
 
@@ -237,7 +237,7 @@ void TargetCodeGenerator::pop(size_t count) {
 }
 
 void TargetCodeGenerator::push(const Value* alias) {
-  TRACE("tcg: push $0", alias ? alias->name() : "NULL");
+  TRACE("tcg: push {}", alias ? alias->name() : "NULL");
   stack_.push_back(alias);
 }
 
@@ -261,7 +261,7 @@ void TargetCodeGenerator::visit(StoreInstr& storeInstr) {
   StackPointer di = getStackPointer(storeInstr.variable());
   XZERO_ASSERT(di != size_t(-1), "BUG: StoreInstr.variable not found on stack");
 
-  TRACE("storeInstr: source $0 (use count $1), variable name = $2",
+  TRACE("storeInstr: source {} (use count {}), variable name = {}",
       storeInstr.source()->name(),
       storeInstr.source()->uses().size(),
       storeInstr.variable()->name());
@@ -277,7 +277,7 @@ void TargetCodeGenerator::visit(StoreInstr& storeInstr) {
 }
 
 void TargetCodeGenerator::visit(LoadInstr& loadInstr) {
-  CTRACE(StringUtil::format("visit(LoadInstr) $0 <- $1", loadInstr.name(), loadInstr.variable()->name()));
+  CTRACE(fmt::format("visit(LoadInstr) {} <- {}", loadInstr.name(), loadInstr.variable()->name()));
 
 	StackPointer si = getStackPointer(loadInstr.variable());
 	XZERO_ASSERT(si != static_cast<size_t>(-1),

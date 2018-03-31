@@ -287,7 +287,7 @@ bool AuthModule::auth_require(Context* cx, flow::Params& args) {
 
     cx->request()->setUserName(user);
 
-    cx->logDebug("auth: auth.require: '$0' -> '$1'", authcode, plain);
+    cx->logDebug("auth: auth.require: '{}' -> '{}'", authcode, plain);
 
     if (auth->verify(user, pass)) {
       // authentification succeed, so do not intercept request processing

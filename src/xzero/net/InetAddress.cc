@@ -8,7 +8,7 @@
 #include <xzero/net/InetAddress.h>
 #include <xzero/net/IPAddress.h>
 #include <xzero/RuntimeError.h>
-#include <xzero/StringUtil.h>
+#include <fmt/format.h>
 #include <stdexcept>
 
 namespace xzero {
@@ -29,12 +29,12 @@ InetAddress::InetAddress(const std::string& spec) : InetAddress() {
 }
 
 std::ostream& operator<<(std::ostream& os, const InetAddress& addr) {
-  return os << StringUtil::format("$0:$1", addr.ip(), addr.port());
+  return os << fmt::format("{}:{}", addr.ip(), addr.port());
 }
 
 std::ostream& operator<<(std::ostream& os, const std::optional<InetAddress>& addr) {
   if (addr) {
-    return os << StringUtil::format("$0", addr.value());
+    return os << fmt::format("{}", addr.value());
   } else {
     return os << "NONE";
   }

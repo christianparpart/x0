@@ -53,7 +53,7 @@ TEST(util_BinaryReader, parseFixed64) {
   const uint8_t encoded[] = { 0x08, 0x07, 0x06, 0x05, 0x04, 0x03, 0x02, 0x01 };
   BinaryReader parser(std::begin(encoded), std::end(encoded));
   uint64_t val = parser.parseFixed64();
-  logf("parsed value: $0", val);
+  logf("parsed value: {}", val);
   EXPECT_EQ(0x0102030405060708llu, val);
   EXPECT_TRUE(parser.eof());
 }
@@ -62,7 +62,7 @@ TEST(util_BinaryReader, parseFixed32) {
   const uint8_t encoded[] = { 0x04, 0x03, 0x02, 0x01 };
   BinaryReader parser(std::begin(encoded), std::end(encoded));
   uint32_t val = parser.parseFixed32();
-  logf("parsed value: $0", val);
+  logf("parsed value: {}", val);
   EXPECT_EQ(0x01020304lu, val);
   EXPECT_TRUE(parser.eof());
 }

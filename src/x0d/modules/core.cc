@@ -69,7 +69,7 @@ unsigned long long CoreModule::setrlimit(
     int resource, unsigned long long value) {
   struct rlimit rlim;
   if (::getrlimit(resource, &rlim) == -1) {
-    logWarning("Failed to retrieve current resource limit on $0 ($1).",
+    logWarning("Failed to retrieve current resource limit on {} ({}).",
                rc2str(resource), resource);
 
     return 0;
@@ -86,13 +86,13 @@ unsigned long long CoreModule::setrlimit(
   rlim.rlim_max = value;
 
   if (::setrlimit(resource, &rlim) == -1) {
-    logWarning("Failed to set resource limit on $0 from $1 to $2.",
+    logWarning("Failed to set resource limit on {} from {} to {}.",
                rc2str(resource), hlast, hvalue);
 
     return 0;
   }
 
-  logTrace("Set resource limit on $0 from $1 to $2.",
+  logTrace("Set resource limit on {} from {} to {}.",
            rc2str(resource), hlast, hvalue);
 
   return value;
@@ -104,7 +104,7 @@ size_t CoreModule::cpuCount() {
   if (numCPU_ < 0) {
     numCPU_ = sysconf(_SC_NPROCESSORS_ONLN);
     if (numCPU_ < 0) {
-      logError("Could not retrieve processor count. $0", strerror(errno));
+      logError("Could not retrieve processor count. {}", strerror(errno));
       numCPU_ = 1;
     }
   }
@@ -579,9 +579,9 @@ void CoreModule::workers_affinity(Params& args) {
 
   for (FlowNumber affinity: affinities)
     if (affinity >= numCPU)
-      throw ConfigurationError{StringUtil::format(
-            "Worker's CPU affinity $0 too high. "
-            "The value must be between 0 and $1.",
+      throw ConfigurationError{fmt::format(
+            "Worker's CPU affinity {} too high. "
+            "The value must be between 0 and {}.",
             affinity, numCPU)};
 
   daemon().config_->workers = affinities.size();
@@ -606,7 +606,7 @@ bool CoreModule::preproc_sys_env(xzero::flow::Instr* call, xzero::flow::IRBuilde
 
     const char* cval = getenv(arg->get().c_str());
     ConstantString* str = program->get(cval ? cval : "");
-    std::string name = builder->makeName(StringUtil::format("sys.env.$0", arg->get()));
+    std::string name = builder->makeName(fmt::format("sys.env.{}", arg->get()));
 
     call->replace(std::make_unique<LoadInstr>(str, name));
   }
@@ -633,7 +633,7 @@ bool CoreModule::preproc_sys_env2(xzero::flow::Instr* call, xzero::flow::IRBuild
 
       const char* cval = getenv(arg->get().c_str());
       ConstantString* str = program->get((cval && *cval) ? cval : val->get());
-      std::string name = builder->makeName(StringUtil::format("sys.env.$0", arg->get()));
+      std::string name = builder->makeName(fmt::format("sys.env.{}", arg->get()));
 
       call->replace(std::make_unique<LoadInstr>(str, name));
     }
@@ -677,7 +677,7 @@ void CoreModule::sys_domainname(Context* cx, Params& args) {
   if (getdomainname(buf, sizeof(buf)) == 0) {
     args.setResult(buf);
   } else {
-    cx->logError("sys.domainname: getdomainname() failed. $0", strerror(errno));
+    cx->logError("sys.domainname: getdomainname() failed. {}", strerror(errno));
     args.setResult("");
   }
 }
@@ -694,30 +694,30 @@ void CoreModule::sys_max_conn(Context* cx, Params& args) {
 
 void CoreModule::log_err(Context* cx, Params& args) {
   if (cx)
-    cx->logError("$0", args.getString(1));
+    cx->logError("{}", args.getString(1));
   else
-    logError("$0", args.getString(1));
+    logError("{}", args.getString(1));
 }
 
 void CoreModule::log_warn(Context* cx, Params& args) {
   if (cx)
-    cx->logWarning("$0", args.getString(1));
+    cx->logWarning("{}", args.getString(1));
   else
-    logWarning("$0", args.getString(1));
+    logWarning("{}", args.getString(1));
 }
 
 void CoreModule::log_notice(Context* cx, Params& args) {
   if (cx)
-    cx->logNotice("$0", args.getString(1));
+    cx->logNotice("{}", args.getString(1));
   else
-    logNotice("$0", args.getString(1));
+    logNotice("{}", args.getString(1));
 }
 
 void CoreModule::log_info(Context* cx, Params& args) {
   if (cx)
-    cx->logInfo("$0", args.getString(1));
+    cx->logInfo("{}", args.getString(1));
   else
-    logInfo("$0", args.getString(1));
+    logInfo("{}", args.getString(1));
 }
 
 void CoreModule::log_debug(Context* cx, Params& args) {
@@ -836,7 +836,7 @@ bool CoreModule::docroot(Context* cx, Params& args) {
   std::string path = args.getString(1);
   Result<std::string> realpath = FileUtil::realpath(path);
   if (realpath.isFailure()) {
-    cx->logError("docroot: Could not find docroot '$0'. ($1) $2",
+    cx->logError("docroot: Could not find docroot '{}'. ({}) {}",
         path,
         realpath.error().category().name(),
         realpath.error().message());
@@ -934,7 +934,7 @@ bool CoreModule::staticfile(Context* cx, Params& args) {
     return true;
 
   if (cx->request()->directoryDepth() < 0) {
-    cx->logError("Directory traversal detected: $0", cx->request()->path());
+    cx->logError("Directory traversal detected: {}", cx->request()->path());
     return cx->sendErrorPage(HttpStatus::BadRequest);
   }
 
@@ -955,7 +955,7 @@ bool CoreModule::precompressed(Context* cx, Params& args) {
     return true;
 
   if (cx->request()->directoryDepth() < 0) {
-    cx->logError("Directory traversal detected: $0", cx->request()->path());
+    cx->logError("Directory traversal detected: {}", cx->request()->path());
     return cx->sendErrorPage(HttpStatus::BadRequest);
   }
 
@@ -1147,7 +1147,7 @@ void CoreModule::expire(Context* cx, Params& args) {
   cx->response()->setHeader("Expires", UnixTime(value).format(timeFormat));
 
   cx->response()->setHeader("Cache-Control",
-      StringUtil::format("max-age=$0", value - now));
+      fmt::format("max-age={}", value - now));
 }
 
 void CoreModule::req_method(Context* cx, Params& args) {

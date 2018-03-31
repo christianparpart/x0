@@ -3,6 +3,7 @@
 
 All the things I've found out on the way, that need retouching
 
+- [ ] ensure validity of `XZERO_WSL` in cmake build
 - [ ] consider replacing Result<T> with T and throw instead.
 - [ ] flow: nested scopes with local variables must be initialized in this block
       currently also initialized in entry block;

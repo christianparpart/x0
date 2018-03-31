@@ -72,7 +72,7 @@ const std::optional<InetAddress>& HttpRequest::localAddress() const {
 }
 
 void HttpRequest::recycle() {
-  TRACE("$0 recycle", this);
+  TRACE("{} recycle", (void*)this);
 
   HttpRequestInfo::reset();
 
@@ -104,7 +104,7 @@ void HttpRequest::consumeContent(std::function<void()> onReady) {
 }
 
 void HttpRequest::fillContent(const BufferRef& chunk) {
-  TRACE("fillContent $0 bytes: '$1'", chunk.size(), chunk);
+  TRACE("fillContent {} bytes: '{}'", chunk.size(), chunk);
   setContentLength(contentLength() + chunk.size());
 
   if (onContentAvailable_) {

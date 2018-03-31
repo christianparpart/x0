@@ -35,6 +35,7 @@
 #include <xzero-flow/ir/IRProgram.h>
 #include <xzero-flow/ir/ConstantValue.h>
 #include <xzero-flow/ir/ConstantArray.h>
+#include <fmt/format.h>
 
 namespace x0d {
 
@@ -165,9 +166,9 @@ bool ProxyModule::verify_proxy_cluster(xzero::flow::Instr* call, xzero::flow::IR
 }
 
 void ProxyModule::onPostConfig() {
-  TRACE("clusterInit count: $0", clusterInit_.size());
+  TRACE("clusterInit count: {}", clusterInit_.size());
   for (const auto& init: clusterInit_) {
-    TRACE("clusterInit: spawning $0", init.first);
+    TRACE("clusterInit: spawning {}", init.first);
     std::string name = init.first;
     std::string path = init.second;
 
@@ -228,7 +229,7 @@ void HttpResponseBuilder::onError(std::error_code ec) {
   if (ec.category() == HttpStatusCategory::get()) {
     response_->sendError(static_cast<HttpStatus>(ec.value()));
   } else {
-    logError("proxy: Unhandled error in response builder. $0", ec.message());
+    logError("proxy: Unhandled error in response builder. {}", ec.message());
     response_->sendError(HttpStatus::InternalServerError);
   }
 }
@@ -264,13 +265,13 @@ bool ProxyModule::proxy_cluster_auto(Context* cx, Params& args) {
   std::string pseudonym = pseudonym_;
   if (pseudonym.empty()) {
     if (const std::optional<InetAddress>& addr = cx->request()->localAddress()) {
-      pseudonym = StringUtil::format("$0:$1", addr->ip(), addr->port());
+      pseudonym = StringUtil::format("{}:{}", addr->ip(), addr->port());
     } else {
       pseudonym = Application::hostname();
     }
   }
 
-  DEBUG("proxy.cluster() auto-detect local cluster '$0', pseudonym '$1'",
+  DEBUG("proxy.cluster() auto-detect local cluster '{}', pseudonym '{}'",
       cluster->name(), pseudonym);
 
   ClusterContext* cc = cx->setCustomData<ClusterContext>(this,
@@ -295,7 +296,7 @@ bool ProxyModule::proxy_cluster(Context* cx, Params& args) {
   if (cx->tryServeTraceProxy())
     return true;
 
-  TRACE("proxy.cluster: $0", cluster->name());
+  TRACE("proxy.cluster: {}", cluster->name());
 
   Cluster::RequestShaper::Node* bucket = cluster->rootBucket();
   if (!bucketName.empty()) {
@@ -303,7 +304,7 @@ bool ProxyModule::proxy_cluster(Context* cx, Params& args) {
     if (foundBucket) {
       bucket = foundBucket;
     } else {
-      logError("proxy: Cluster $0 is missing bucket $1. Defaulting to $2",
+      logError("proxy: Cluster {} is missing bucket {}. Defaulting to {}",
                cluster->name(), bucketName, bucket->name());
     }
   }
@@ -364,7 +365,7 @@ bool ProxyModule::proxy_http(Context* cx, xzero::flow::Params& args) {
     // XXX defer execution to ensure we're truely async, to avoid nested runner.
     // TODO: we could instead make resume() a no-op if it's already in the loop.
     cx->response()->executor()->execute([cx, upstreamAddr, ec]() {
-      cx->logError("proxy: Failed to proxy to $0. $1", upstreamAddr, ec.message());
+      cx->logError("proxy: Failed to proxy to {}. {}", upstreamAddr, ec.message());
       bool internalRedirect = false;
       cx->sendErrorPage(HttpStatus::ServiceUnavailable, &internalRedirect);
       if (internalRedirect) {
@@ -436,7 +437,7 @@ Cluster* ProxyModule::createCluster(const std::string& name,
   clusterMap_[name] = cluster;
 
   if (FileUtil::exists(path)) {
-    logInfo("proxy: Loading cluster $0 ($1)", name, path);
+    logInfo("proxy: Loading cluster {} ({})", name, path);
     cluster->setConfiguration(FileUtil::read(path).str(), path);
   } else {
     // auto-create basedir if not present yet
@@ -444,7 +445,7 @@ Cluster* ProxyModule::createCluster(const std::string& name,
     std::string dirname = FileUtil::dirname(abspath);
     FileUtil::mkdir_p(dirname);
 
-    logInfo("proxy: Initializing new cluster $0 ($1)", name, path);
+    logInfo("proxy: Initializing new cluster {} ({})", name, path);
     cluster->saveConfiguration();
   }
   return cluster.get();

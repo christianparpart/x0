@@ -4,7 +4,7 @@ set(CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 
 option(ENABLE_FLOW_DIRECT_THREADED_VM "Flow VM using direct threaded mode [default: OFF]" OFF)
 option(ENABLE_TESTS "Enable building tests [default: ON]" ON)
-option(ENABLE_TIDY "Enable clang-tidy [default: ON]" ON)
+option(ENABLE_TIDY "Enable clang-tidy [default: OFF]" OFF)
 
 set(X0D_PIDFILE "${CMAKE_INSTALL_PREFIX}/run/x0d/x0d.pid" CACHE STRING "x0d PID file")
 set(X0D_LOGDIR "${CMAKE_INSTALL_PREFIX}/var/log/x0d" CACHE STRING "x0d log directory")

@@ -83,13 +83,13 @@ std::error_code TestKeyValueStore::loadSnapshot(std::unique_ptr<std::istream>&& 
 }
 
 raft::Reply TestKeyValueStore::applyCommand(const raft::Command& command) {
-  logDebug("TestKeyValueStore: applyCommand: $0", StringUtil::hexPrint(command.data(), command.size()));
+  logDebug("TestKeyValueStore: applyCommand: {}", StringUtil::hexPrint(command.data(), command.size()));
   BinaryReader reader(command.data(), command.size());
   int a = reader.parseVarUInt();
   int b = reader.parseVarUInt();
   int oldValue = tuples_[a];
 
-  logDebug("TestKeyValueStore: -> applyCommand: $0 = $1", a, b);
+  logDebug("TestKeyValueStore: -> applyCommand: {} = {}", a, b);
   tuples_[a] = b;
 
   if (onApplyCommand) {
@@ -156,7 +156,7 @@ std::error_code TestServer::set(int key, int value) {
   bw.writeVarUInt(key);
   bw.writeVarUInt(value);
 
-  logDebug("TestServer: set($0, $1): $2", key, value,
+  logDebug("TestServer: set({}, {}): {}", key, value,
       StringUtil::hexPrint(cmd.data(), cmd.size()));
 
   Result<raft::Reply> result = raftServer_.sendCommand(std::move(cmd));
@@ -176,7 +176,7 @@ Future<raft::Reply> TestServer::setAsync(int key, int value) {
   bw.writeVarUInt(key);
   bw.writeVarUInt(value);
 
-  logDebug("TestServer: setAsync($0, $1): $2", key, value,
+  logDebug("TestServer: setAsync({}, {}): {}", key, value,
       StringUtil::hexPrint(cmd.data(), cmd.size()));
 
   return raftServer_.sendCommandAsync(std::move(cmd));
@@ -223,7 +223,7 @@ TestServerPod::TestServerPod()
     }
 
     s->server()->onLeaderChanged = [&](raft::Id oldLeaderId) {
-      logDebug("TestServerPod: onLeaderChanged[$0]: $1 ~> $2",
+      logDebug("TestServerPod: onLeaderChanged[{}]: {} ~> {}",
           s->server()->id(), oldLeaderId,
           s->server()->currentLeaderId());
     };
@@ -233,7 +233,7 @@ TestServerPod::TestServerPod()
 void TestServerPod::enableStopOnConsensus() {
   for (auto& s: servers) {
     s->server()->onStateChanged = [&](raft::Server* s, raft::ServerState oldState) {
-      logDebug("TestServerPod: onStateChanged[$0]: $1 ~> $2", s->id(), oldState, s->state());
+      logDebug("TestServerPod: onStateChanged[{}]: {} ~> {}", s->id(), oldState, s->state());
       if (isConsensusReached()) {
         // XXX usleep(Duration(1000_milliseconds).microseconds());
         stop();
@@ -249,7 +249,7 @@ bool TestServerPod::isConsensusReached() const {
   for (const auto& s: servers) {
     switch (s->server()->state()) {
       case raft::ServerState::Leader:
-        logDebug("TestServerPod: isConsensusReached: leader = $0", s->server()->id());
+        logDebug("TestServerPod: isConsensusReached: leader = {}", s->server()->id());
         leaderCount++;
         break;
       case raft::ServerState::Follower:
@@ -303,7 +303,7 @@ void TestServerPod::waitUntilAllStopped() {
 void TestServerPod::waitForConsensus() {
   for (auto& s: servers) {
     s->server()->onStateChanged = [&](raft::Server* s, raft::ServerState oldState) {
-      logDebug("TestServerPod: onStateChanged[$0]: $1 ~> $2", s->id(), oldState, s->state());
+      logDebug("TestServerPod: onStateChanged[{}]: {} ~> {}", s->id(), oldState, s->state());
       if (isConsensusReached()) {
         // XXX usleep(Duration(1000_milliseconds).microseconds());
         consensusReached.wakeup();
@@ -375,7 +375,7 @@ TEST(raft_Server, AppendEntries_single_entry) {
   pod.onApplyCommand([&](raft::Id serverId, int key, int value) {
     std::lock_guard<std::mutex> _lk(applyCountLock);
     applyCount++;
-    logf("onApplyCommand(server: $0, key: $1, value: $2): $3", serverId, key, value, applyCount.load());
+    logf("onApplyCommand(server: {}, key: {}, value: {}): {}", serverId, key, value, applyCount.load());
     if (applyCount == 3) {
       pod.stop();
     }
@@ -401,7 +401,7 @@ TEST(raft_Server, AppendEntries_batched_entries) {
   pod.onApplyCommand([&](raft::Id serverId, int key, int value) {
     std::lock_guard<std::mutex> _lk(applyCountLock);
     applyCount++;
-    logf("onApplyCommand(server: $0, key: $1, value: $2): $3", serverId, key, value, applyCount.load());
+    logf("onApplyCommand(server: {}, key: {}, value: {}): {}", serverId, key, value, applyCount.load());
     if (applyCount == 9) {
       pod.stop();
     }
@@ -435,7 +435,7 @@ TEST(raft_Server, AppendEntries_async_single) {
   pod.onApplyCommand([&](raft::Id serverId, int key, int value) {
     std::lock_guard<std::mutex> _lk(applyCountLock);
     applyCount++;
-    logf("onApplyCommand(server: $0, key: $1, value: $2): $3", serverId, key, value, applyCount.load());
+    logf("onApplyCommand(server: {}, key: {}, value: {}): {}", serverId, key, value, applyCount.load());
     if (applyCount == 3) {
       pod.stop();
     }
@@ -461,7 +461,7 @@ TEST(raft_Server, AppendEntries_async_batched) {
   pod.onApplyCommand([&](raft::Id serverId, int key, int value) {
     std::lock_guard<std::mutex> _lk(applyCountLock);
     applyCount++;
-    logf("onApplyCommand(server: $0, key: $1, value: $2): $3", serverId, key, value, applyCount.load());
+    logf("onApplyCommand(server: {}, key: {}, value: {}): {}", serverId, key, value, applyCount.load());
     if (applyCount == 9) {
       pod.stop();
     }
@@ -498,10 +498,10 @@ TEST(raft_Server, AppendEntries_update) {
   int applyCount = 0;
   for (raft::Id id = 1; id <= 3; ++id) {
     pod.getInstance(id)->fsm()->onApplyCommand = [&](int key, int value) {
-      logf("onApplyCommand for instance $0 = $1", key, value);
+      logf("onApplyCommand for instance {} = {}", key, value);
       applyCount++;
       if (applyCount == 6) {
-        logf("onApplyCommand: breaking loop with applyCount = $0", applyCount);
+        logf("onApplyCommand: breaking loop with applyCount = {}", applyCount);
         pod.stop();
       }
     };
@@ -526,7 +526,7 @@ TEST(raft_Server, AppendEntries_not_leading_err) {
   pod.onApplyCommand([&](raft::Id serverId, int key, int value) {
     std::lock_guard<std::mutex> _lk(applyCountLock);
     applyCount++;
-    logf("onApplyCommand(server: $0, key: $1, value: $2): $3", serverId, key, value, applyCount.load());
+    logf("onApplyCommand(server: {}, key: {}, value: {}): {}", serverId, key, value, applyCount.load());
     if (applyCount == 3) {
       pod.stop();
     }

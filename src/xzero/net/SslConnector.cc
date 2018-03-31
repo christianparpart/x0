@@ -56,7 +56,7 @@ void SslConnector::addContext(const std::string& crtFilePath,
 }
 
 SslContext* SslConnector::getContextByDnsName(const char* servername) const {
-  TRACE("$0 selectContext: servername = '$1'", this, servername);
+  TRACE("{} selectContext: servername = '{}'", this, servername);
   if (!servername)
     return nullptr;
 
@@ -70,25 +70,25 @@ SslContext* SslConnector::getContextByDnsName(const char* servername) const {
 int SslConnector::selectContext(
     SSL* ssl, int* ad, SslConnector* self) {
   const char * servername = SSL_get_servername(ssl, TLSEXT_NAMETYPE_host_name);
-  TRACE("$0 selectContext: servername = '$1'", self, servername);
+  TRACE("{} selectContext: servername = '{}'", self, servername);
 
   if (!servername)
     return SSL_TLSEXT_ERR_NOACK;
 
   for (const auto& ctx: self->contexts_) {
     if (ctx->isValidDnsName(servername)) {
-      TRACE("selecting context $0", (void*) ctx->get());
+      TRACE("selecting context {}", (void*) ctx->get());
       SSL_set_SSL_CTX(ssl, ctx->get());
       return SSL_TLSEXT_ERR_OK;
     }
   }
 
-  TRACE("using default context $0", (void*) SSL_get_SSL_CTX(ssl));
+  TRACE("using default context {}", (void*) SSL_get_SSL_CTX(ssl));
   return SSL_TLSEXT_ERR_OK;
 }
 
 std::shared_ptr<TcpEndPoint> SslConnector::createEndPoint(int cfd, Executor* executor) {
-  TRACE("createEndPoint: cfd=$0", cfd);
+  TRACE("createEndPoint: cfd={}", cfd);
   return std::make_shared<SslEndPoint>(
       FileDescriptor(cfd),
       addressFamily(),
@@ -101,7 +101,7 @@ std::shared_ptr<TcpEndPoint> SslConnector::createEndPoint(int cfd, Executor* exe
 }
 
 void SslConnector::onEndPointCreated(std::shared_ptr<TcpEndPoint> endpoint) {
-  TRACE("onEndPointCreated fd=$0", endpoint->handle());
+  TRACE("onEndPointCreated fd={}", endpoint->handle());
   std::static_pointer_cast<SslEndPoint>(endpoint)->onServerHandshake();
 }
 

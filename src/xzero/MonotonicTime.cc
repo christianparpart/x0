@@ -8,6 +8,7 @@
 #include <xzero/MonotonicTime.h>
 #include <xzero/MonotonicClock.h>
 #include <xzero/StringUtil.h>
+#include <string>
 
 namespace xzero {
 
@@ -16,7 +17,7 @@ void MonotonicTime::update() {
 }
 
 std::string inspect(const MonotonicTime& value) {
-  return StringUtil::format("$0", value.milliseconds());
+  return std::to_string(value.milliseconds());
 }
 
 std::ostream& operator<<(std::ostream& os, MonotonicTime value) {

@@ -9,8 +9,7 @@
 #include <xzero/Uri.h>
 #include <xzero/StringUtil.h>
 
-namespace xzero {
-namespace http {
+namespace xzero::http {
 
 bool Cookies::getCookie(
     const CookieList& cookies,
@@ -55,21 +54,18 @@ std::string Cookies::makeCookie(
     const std::string& domain /* = "" */,
     bool secure /* = false */,
     bool httponly /* = false */) {
-  auto cookie_str = StringUtil::format(
-      "$0=$1",
-      Uri::encode(key),
-      Uri::encode(value));
+  auto cookie_str = fmt::format("{}={}", Uri::encode(key), Uri::encode(value));
 
   if (path.length() > 0) {
-    cookie_str.append(StringUtil::format("; Path=$0", path));
+    cookie_str.append(fmt::format("; Path={}", path));
   }
 
   if (domain.length() > 0) {
-    cookie_str.append(StringUtil::format("; Domain=$0", domain));
+    cookie_str.append(fmt::format("; Domain={}", domain));
   }
 
   if (static_cast<uint64_t>(expire.unixtime()) > 0) {
-    cookie_str.append(StringUtil::format("; Expires=$0",
+    cookie_str.append(fmt::format("; Expires={}",
         expire.format("%a, %d-%b-%Y %H:%M:%S UTC")));
   }
 
@@ -84,5 +80,4 @@ std::string Cookies::makeCookie(
   return cookie_str;
 }
 
-} // namespace http
-} // namespace xzero
+} // namespace xzero::http

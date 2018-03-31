@@ -227,7 +227,7 @@ const TableEntry& Parser::at(size_t index) {
 size_t Parser::decodeInt(uint8_t prefixBits, uint64_t* output,
                          const_iterator pos, const_iterator end) {
   if (!(prefixBits >= 1 && prefixBits <= 8))
-    logFatal("prefixBits must be between 0 and 8 (not $0)", prefixBits);
+    logFatal("prefixBits must be between 0 and 8 (not {})", prefixBits);
 
   if (pos == end)
     throw CompressionError{"Need more data"};

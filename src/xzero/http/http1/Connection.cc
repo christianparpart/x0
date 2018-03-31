@@ -65,15 +65,15 @@ Connection::Connection(TcpEndPoint* endpoint,
   channel_->request()->setRemoteAddress(endpoint->remoteAddress());
   channel_->request()->setLocalAddress(endpoint->localAddress());
 
-  TRACE("$0 ctor", this);
+  TRACE("{} ctor", this);
 }
 
 Connection::~Connection() {
-  TRACE("$0 dtor", this);
+  TRACE("{} dtor", this);
 }
 
 void Connection::onOpen(bool dataReady) {
-  TRACE("$0 onOpen", this);
+  TRACE("{} onOpen", this);
   TcpConnection::onOpen(dataReady);
 
   if (dataReady)
@@ -83,16 +83,16 @@ void Connection::onOpen(bool dataReady) {
 }
 
 void Connection::abort() {
-  TRACE("$0 abort()", this);
+  TRACE("{} abort()", this);
   channel_->response()->setBytesTransmitted(generator_.bytesTransmitted());
   channel_->responseEnd();
 
-  TRACE("$0 abort", this);
+  TRACE("{} abort", this);
   endpoint()->close();
 }
 
 void Connection::completed() {
-  TRACE("$0 completed", this);
+  TRACE("{} completed", this);
 
   if (channel_->request()->method() != HttpMethod::HEAD &&
       !generator_.isChunked() &&
@@ -113,12 +113,12 @@ void Connection::completed() {
 
 void Connection::upgrade(const std::string& protocol,
                          std::function<void(TcpEndPoint*)> callback) {
-  TRACE("upgrade: $0", protocol);
+  TRACE("upgrade: {}", protocol);
   upgradeCallback_ = callback;
 }
 
 void Connection::onResponseComplete(bool succeed) {
-  TRACE("$0 onResponseComplete($1)", this, succeed ? "succeed" : "failure");
+  TRACE("{} onResponseComplete({})", this, succeed ? "succeed" : "failure");
   channel_->response()->setBytesTransmitted(generator_.bytesTransmitted());
   channel_->responseEnd();
 
@@ -145,7 +145,7 @@ void Connection::onResponseComplete(bool succeed) {
   }
 
   if (channel_->isPersistent()) {
-    TRACE("$0 onResponseComplete: keep-alive was enabled", this);
+    TRACE("{} onResponseComplete: keep-alive was enabled", this);
 
     // re-use on keep-alive
     channel_->reset();
@@ -155,11 +155,11 @@ void Connection::onResponseComplete(bool succeed) {
 
     if (inputOffset_ < inputBuffer_.size()) {
       // have some request pipelined
-      TRACE("$0 completed.onComplete: pipelined read", this);
+      TRACE("{} completed.onComplete: pipelined read", this);
       executor()->execute(std::bind(&Connection::parseFragment, this));
     } else {
       // wait for next request
-      TRACE("$0 completed.onComplete: keep-alive read", this);
+      TRACE("{} completed.onComplete: keep-alive read", this);
       wantRead();
     }
   } else {
@@ -172,7 +172,7 @@ void Connection::send(HttpResponseInfo& responseInfo,
                       CompletionHandler onComplete) {
   setCompleter(onComplete, responseInfo.status());
 
-  TRACE("$0 send(BufferRef, status=$1, persistent=$2, chunkSize=$2)",
+  TRACE("{} send(BufferRef, status={}, persistent={}, chunkSize={})",
         this, responseInfo.status(), channel_->isPersistent() ? "yes" : "no",
         chunk.size());
 
@@ -190,7 +190,7 @@ void Connection::send(HttpResponseInfo& responseInfo,
                       CompletionHandler onComplete) {
   setCompleter(onComplete, responseInfo.status());
 
-  TRACE("$0 send(Buffer, status=$1, persistent=$2, chunkSize=$3)",
+  TRACE("{} send(Buffer, status={}, persistent={}, chunkSize={})",
         this, responseInfo.status(), channel_->isPersistent() ? "yes" : "no",
         chunk.size());
 
@@ -208,7 +208,7 @@ void Connection::send(HttpResponseInfo& responseInfo,
                       CompletionHandler onComplete) {
   setCompleter(onComplete, responseInfo.status());
 
-  TRACE("$0 send(FileView, status=$1, persistent=$2, fd=$3, chunkSize=$4)",
+  TRACE("{} send(FileView, status={}, persistent={}, fd={}, chunkSize={})",
         this, responseInfo.status(), channel_->isPersistent() ? "yes" : "no",
         chunk.handle(), chunk.size());
 
@@ -246,7 +246,7 @@ void Connection::setCompleter(CompletionHandler onComplete, HttpStatus status) {
 
 void Connection::invokeCompleter(bool success) {
   if (onComplete_) {
-    TRACE("$0 invoking completion callback", this);
+    TRACE("{} invoking completion callback", this);
     auto callback = std::move(onComplete_);
     onComplete_ = nullptr;
     callback(success);
@@ -275,7 +275,7 @@ void Connection::patchResponseInfo(HttpResponseInfo& responseInfo) {
 
 void Connection::send(Buffer&& chunk, CompletionHandler onComplete) {
   setCompleter(onComplete);
-  TRACE("$0 send(Buffer, chunkSize=$1)", this, chunk.size());
+  TRACE("{} send(Buffer, chunkSize={})", this, chunk.size());
   generator_.generateBody(std::move(chunk));
   wantWrite();
 }
@@ -283,24 +283,24 @@ void Connection::send(Buffer&& chunk, CompletionHandler onComplete) {
 void Connection::send(const BufferRef& chunk,
                       CompletionHandler onComplete) {
   setCompleter(onComplete);
-  TRACE("$0 send(BufferRef, chunkSize=$1)", this, chunk.size());
+  TRACE("{} send(BufferRef, chunkSize={})", this, chunk.size());
   generator_.generateBody(chunk);
   wantWrite();
 }
 
 void Connection::send(FileView&& chunk, CompletionHandler onComplete) {
   setCompleter(onComplete);
-  TRACE("$0 send(FileView, chunkSize=$1)", this, chunk.size());
+  TRACE("{} send(FileView, chunkSize={})", this, chunk.size());
   generator_.generateBody(std::move(chunk));
   wantWrite();
 }
 
 void Connection::onReadable() {
-  TRACE("$0 onReadable", this);
+  TRACE("{} onReadable", this);
 
-  TRACE("$0 onReadable: calling read()", this);
+  TRACE("{} onReadable: calling read()", this);
   if (endpoint()->read(&inputBuffer_) == 0) {
-    TRACE("$0 onReadable: read() returned 0", this);
+    TRACE("{} onReadable: read() returned 0", this);
     // ??? throw RemoteDisconnected{};
     abort();
     return;
@@ -311,11 +311,11 @@ void Connection::onReadable() {
 
 void Connection::parseFragment() {
   try {
-    TRACE("parseFragment: calling parseFragment ($0 into $1)",
+    TRACE("parseFragment: calling parseFragment ({} into {})",
           inputOffset_, inputBuffer_.size());
-    TRACE("dump: '$0'", inputBuffer_.ref(inputOffset_));
+    TRACE("dump: '{}'", inputBuffer_.ref(inputOffset_));
     size_t n = parser_.parseFragment(inputBuffer_.ref(inputOffset_));
-    TRACE("parseFragment: called ($0 into $1) => $2 ($3)",
+    TRACE("parseFragment: called ({} into {}) => {} ({})",
           inputOffset_, inputBuffer_.size(), n,
           parser_.state());
     inputOffset_ += n;
@@ -325,7 +325,7 @@ void Connection::parseFragment() {
       wantRead();
     }
   } catch (const BadMessage& e) {
-    TRACE("$0 parseFragment: BadMessage caught (while in state $1). $2",
+    TRACE("{} parseFragment: BadMessage caught (while in state {}). {}",
           this, to_string(channel_->state()), e.what());
 
     if (channel_->response()->version() == HttpVersion::UNKNOWN)
@@ -339,7 +339,7 @@ void Connection::parseFragment() {
 }
 
 void Connection::onWriteable() {
-  TRACE("$0 onWriteable", this);
+  TRACE("{} onWriteable", this);
 
   if (channel_->state() != HttpChannelState::SENDING)
     channel_->setState(HttpChannelState::SENDING);
@@ -347,7 +347,7 @@ void Connection::onWriteable() {
   const bool complete = writer_.flushTo(endpoint());
 
   if (complete) {
-    TRACE("$0 onWriteable: completed. ($1)",
+    TRACE("{} onWriteable: completed. ({})",
           this,
           (onComplete_ ? "onComplete cb set" : "onComplete cb not set"));
     channel_->setState(HttpChannelState::HANDLING);
@@ -360,7 +360,7 @@ void Connection::onWriteable() {
 }
 
 void Connection::onInterestFailure(const std::exception& error) {
-  TRACE("$0 onInterestFailure($1): $2",
+  TRACE("{} onInterestFailure({}): {}",
         this, typeid(error).name(), error.what());
 
   // TODO: improve logging here, as this eats our exception here.

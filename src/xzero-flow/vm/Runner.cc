@@ -58,7 +58,7 @@ namespace xzero::flow {
 #if defined(ENABLE_FLOW_DIRECT_THREADED_VM)
 #define instr(name) \
   l_##name : ++pc;  \
-  DEBUG("$0",    \
+  DEBUG("{}",    \
         disassemble((Instruction) * pc, (pc - code.data()) / 2), &program_->constants());
 
 #define get_pc() ((pc - code.data()) / 2)
@@ -70,7 +70,7 @@ namespace xzero::flow {
 #define next goto*(void*)*++pc
 #else
 #define instr(name) \
-  l_##name : DEBUG("$0", disassemble(*pc, pc - code.data(), &sp_, &program_->constants()));
+  l_##name : DEBUG("{}", disassemble(*pc, pc - code.data(), &sp_, &program_->constants()));
 
 #define get_pc() (pc - code.data())
 #define set_pc(offset)           \
@@ -118,21 +118,21 @@ FlowString* Runner::catString(const FlowString& a, const FlowString& b) {
 
 bool Runner::run() {
   assert(state_ == Inactive);
-  TRACE("Running handler $0.", handler_->name());
+  TRACE("Running handler {}.", handler_->name());
 
   return loop();
 }
 
 void Runner::suspend() {
   assert(state_ == Running);
-  TRACE("Suspending handler $0.", handler_->name());
+  TRACE("Suspending handler {}.", handler_->name());
 
   state_ = Suspended;
 }
 
 bool Runner::resume() {
   assert(state_ == Suspended);
-  TRACE("Resuming handler $0.", handler_->name());
+  TRACE("Resuming handler {}.", handler_->name());
 
   return loop();
 }
@@ -649,7 +649,7 @@ bool Runner::loop() {
       const Signature& signature =
           handler_->program()->nativeFunction(id)->signature();
 
-      TRACE("Calling function: $0", signature);
+      TRACE("Calling function: {}", signature);
 
       handler_->program()->nativeFunction(id)->invoke(args);
 
@@ -678,7 +678,7 @@ bool Runner::loop() {
       for (int i = 1; i <= argc; i++)
         args.setArg(i, SP(-(argc + 1) + i));
 
-      TRACE("Calling handler: $0",
+      TRACE("Calling handler: {}",
             handler_->program()->nativeHandler(id)->signature());
 
       handler_->program()->nativeHandler(id)->invoke(args);

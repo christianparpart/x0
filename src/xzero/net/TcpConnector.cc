@@ -112,7 +112,7 @@ void TcpConnector::open(const IPAddress& ipaddress, int port, int backlog,
 
   socket_ = ::socket(ipaddress.family(), SOCK_STREAM, 0);
 
-  TRACE("open: ip=$0, port=$1, backlog=$2, reuseAddr=$3, reusePort=$4",
+  TRACE("open: ip={}, port={}, backlog={}, reuseAddr={}, reusePort={}",
       ipaddress, port, backlog, reuseAddr, reusePort);
 
   if (socket_ < 0)
@@ -171,9 +171,9 @@ void TcpConnector::listen(int backlog) {
 #endif
 
   if (backlog > somaxconn) {
-    throw std::runtime_error{StringUtil::format(
-        "Listener $0:$1 configured with a backlog higher than the system"
-        " permits ($2 > $3)."
+    throw std::runtime_error{fmt::format(
+        "Listener {}:{} configured with a backlog higher than the system"
+        " permits ({} > {})."
 #if defined(XZERO_OS_LINUX)
         " See /proc/sys/net/core/somaxconn for your system limits."
 #endif
@@ -293,7 +293,7 @@ void TcpConnector::setDeferAccept(bool enable) {
 #if defined(EOPNOTSUPP) && (EOPNOTSUPP != ENOTSUP)
       case EOPNOTSUPP:
 #endif
-        logWarning("TcpConnector: setDeferAccept($0) failed with $1 ($2). Ignoring",
+        logWarning("TcpConnector: setDeferAccept({}) failed with {} ({}). Ignoring",
                    enable ? "true" : "false",
                    strerror(errno),
                    errno);
@@ -423,7 +423,7 @@ void TcpConnector::setTcpFinTimeout(Duration value) {
 }
 
 void TcpConnector::start() {
-  TRACE("start: ip=$0, port=$1", bindAddress_, port_);
+  TRACE("start: ip={}, port={}", bindAddress_, port_);
   if (!isOpen()) {
     throw std::logic_error{"TcpConnector is already started."};
   }
@@ -454,7 +454,7 @@ bool TcpConnector::isStarted() const XZERO_NOEXCEPT {
 }
 
 void TcpConnector::stop() {
-  TRACE("stop: $0", this);
+  TRACE("stop: {}", (void*) this);
 
   if (io_)
     io_->cancel();
@@ -472,7 +472,7 @@ void TcpConnector::onConnect() {
       if (cfd < 0)
         break;
 
-      TRACE("onConnect: fd=$0", cfd);
+      TRACE("onConnect: fd={}", cfd);
 
       Executor* clientExecutor = selectClientExecutor_();
       std::shared_ptr<TcpEndPoint> ep = createEndPoint(cfd, clientExecutor);
@@ -485,7 +485,7 @@ void TcpConnector::onConnect() {
           std::bind(&TcpConnector::onEndPointCreated, this, ep));
     }
   } catch (const std::exception& e) {
-    logError("Failed accepting client connection. $0", e.what());
+    logError("Failed accepting client connection. {}", e.what());
   }
 
   if (isStarted()) {
@@ -602,7 +602,7 @@ void TcpConnector::addConnectionFactory(const std::string& protocolName,
 
 void TcpConnector::createConnection(const std::string& protocolName,
                                     TcpEndPoint* endpoint) {
-  TRACE("createConnection: \"$0\"", protocolName);
+  TRACE("createConnection: \"{}\"", protocolName);
   auto factory = connectionFactory(protocolName);
   std::unique_ptr<TcpConnection> c = factory
       ? factory(this, endpoint)

@@ -15,11 +15,13 @@
 #include <xzero/logging.h>
 #include <xzero/RuntimeError.h>
 #include <xzero/sysconfig.h>
+#include <fmt/format.h>
 #include <cstdlib>
 #include <pwd.h>
 #include <grp.h>
 #include <unistd.h>
 #include <fcntl.h>
+#include <sys/utsname.h>
 
 namespace xzero {
 
@@ -35,7 +37,7 @@ void Application::init() {
 
 std::string Application::appName() {
   return StringUtil::split(
-      FileUtil::read(StringUtil::format("/proc/$0/cmdline", getpid())).str(),
+      FileUtil::read(fmt::format("/proc/{}/cmdline", getpid())).str(),
       " ")[0];
 }
 
@@ -75,7 +77,7 @@ static void globalEH() {
   try {
     throw;
   } catch (const std::exception& e) {
-    logFatal("Unhandled exception caught. $0", e.what());
+    logFatal("Unhandled exception caught. {}", e.what());
   } catch (...) {
     // d'oh
     fprintf(stderr, "Unhandled foreign exception caught.\n");
@@ -118,12 +120,12 @@ void Application::dropPrivileges(const std::string& username,
   if (username == Application::userName() && groupname == Application::groupName())
     return;
 
-  logDebug("Dropping privileges to $0:$1", username, groupname);
+  logDebug("Dropping privileges to {}:{}", username, groupname);
 
   if (!groupname.empty() && !getgid()) {
     if (struct group* gr = getgrnam(groupname.c_str())) {
       if (setgid(gr->gr_gid) != 0) {
-        logError("Could not setgid to $0: $1", groupname, strerror(errno));
+        logError("Could not setgid to {}: {}", groupname, strerror(errno));
         return;
       }
 
@@ -133,30 +135,30 @@ void Application::dropPrivileges(const std::string& username,
         initgroups(username.c_str(), gr->gr_gid);
       }
     } else {
-      logError("Could not find group: $0", groupname);
+      logError("Could not find group: {}", groupname);
       return;
     }
-    logTrace("Dropped group privileges to '$0'.", groupname);
+    logTrace("Dropped group privileges to '{}'.", groupname);
   }
 
   if (!username.empty() && !getuid()) {
     if (struct passwd* pw = getpwnam(username.c_str())) {
       if (setuid(pw->pw_uid) != 0) {
-        logError("Could not setgid to $0: $1", username, strerror(errno));
+        logError("Could not setgid to {}: {}", username, strerror(errno));
         return;
       }
-      logInfo("Dropped privileges to user $0", username);
+      logInfo("Dropped privileges to user {}", username);
 
       if (chdir(pw->pw_dir) < 0) {
-        logError("Could not chdir to $0: $1", pw->pw_dir, strerror(errno));
+        logError("Could not chdir to {}: {}", pw->pw_dir, strerror(errno));
         return;
       }
     } else {
-      logError("Could not find group: $0", groupname);
+      logError("Could not find group: {}", groupname);
       return;
     }
 
-    logTrace("Dropped user privileges to '$0'.", username);
+    logTrace("Dropped user privileges to '{}'.", username);
   }
 
   if (!::getuid() || !::geteuid() || !::getgid() || !::getegid()) {
@@ -202,6 +204,15 @@ size_t Application::processorCount() {
 
 ProcessID Application::processId() {
   return getpid();
+}
+
+bool Application::isWSL() {
+  struct utsname uts;
+  int rv = uname(&uts);
+  if (rv < 0)
+    RAISE_ERRNO(errno);
+
+  return StringUtil::endsWith(uts.release, "Microsoft");
 }
 
 } // namespace xzero

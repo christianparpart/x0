@@ -6,6 +6,7 @@
 // the License at: http://opensource.org/licenses/MIT
 
 #include <xzero/Random.h>
+#include <xzero/Application.h>
 #include <xzero/sysconfig.h>
 #include <sstream>
 #include <inttypes.h>
@@ -13,13 +14,16 @@
 namespace xzero {
 
 Random::Random() {
-#if defined(XZERO_WSL) && !defined(NDEBUG)
-  // on WSL std::random_device() crashes with valgrind
-  prng_.seed(time(nullptr));
-#else
+#if !defined(NDEBUG)
+  if (Application::isWSL()) {
+    // on WSL std::random_device() crashes with valgrind
+    prng_.seed(time(nullptr));
+    return;
+  }
+#endif
+
   std::random_device r;
   prng_.seed(r());
-#endif
 }
 
 uint64_t Random::random64() {

@@ -63,7 +63,7 @@ int ServicePortMapping::tcp(const std::string& name) {
   if (i != tcp_.end())
     return i->second;
 
-  throw std::runtime_error{StringUtil::format("Unknown service '$0'", name)};
+  throw std::runtime_error{StringUtil::format("Unknown service '{}'", name)};
 }
 // }}}
 
@@ -191,7 +191,7 @@ Uri XUrl::makeUri(const std::string& url) {
 IPAddress XUrl::getIPAddress(const std::string& host) {
   std::vector<IPAddress> ipaddresses = dns_.ipv4(host);
   if (ipaddresses.empty())
-    throw std::runtime_error{StringUtil::format("Could not resolve $0.", host)};
+    throw std::runtime_error{StringUtil::format("Could not resolve {}.", host)};
 
   return ipaddresses.front();
 }
@@ -231,15 +231,15 @@ void XUrl::query(const Uri& uri) {
                   std::move(body));
   req.setScheme(uri.scheme());
 
-  VERBOSE("* connecting to $0", inetAddr);
+  VERBOSE("* connecting to {}", inetAddr);
 
-  VERBOSE("> $0 $1 HTTP/$2", req.unparsedMethod(),
+  VERBOSE("> {} {} HTTP/{}", req.unparsedMethod(),
                              req.unparsedUri(),
                              req.version());
 
   for (const HeaderField& field: req.headers())
     if (field.name()[0] != ':')
-      VERBOSE("> $0: $1", field.name(), field.value());
+      VERBOSE("> {}: {}", field.name(), field.value());
 
   VERBOSE(">");
 
@@ -250,12 +250,12 @@ void XUrl::query(const Uri& uri) {
   Future<HttpClient::Response> f = httpClient.send(req);
 
   f.onSuccess([](HttpClient::Response& response) {
-    VERBOSE("< HTTP/$0 $1 $2", response.version(),
+    VERBOSE("< HTTP/{} {} {}", response.version(),
                                (int) response.status(),
                                response.reason());
 
     for (const HeaderField& field: response.headers())
-      VERBOSE("< $0: $1", field.name(), field.value());
+      VERBOSE("< {}: {}", field.name(), field.value());
 
     VERBOSE("<");
 
@@ -264,7 +264,7 @@ void XUrl::query(const Uri& uri) {
   });
 
   f.onFailure([](std::error_code ec) {
-    logError("xurl: connect() failed. $0", ec.message());
+    logError("xurl: connect() failed. {}", ec.message());
   });
 
   scheduler_.runLoop();

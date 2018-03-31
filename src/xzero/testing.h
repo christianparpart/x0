@@ -9,6 +9,7 @@
 
 #include <xzero/defines.h>
 #include <xzero/StringUtil.h>
+#include <fmt/format.h>
 
 #include <string>
 #include <memory>
@@ -194,7 +195,7 @@ namespace testing {
   } while (0)
 
 #define _EXPECT_BINARY(fileName, lineNo, fatal, expected, actual, op)         \
-  do if (!(expected op actual)) {                                             \
+  do if (!((expected) op (actual))) {                                             \
     ::xzero::testing::UnitTest::instance()->reportBinary(                     \
         __FILE__, __LINE__, fatal, #expected, #actual,                        \
         ::xzero::to_string(actual), #op);                                     \
@@ -374,7 +375,7 @@ class UnitTest {
 
   template<typename ... Args>
   void logf(const char* format, Args... args) {
-    log(StringUtil::format(format, args...));
+    log(fmt::format(format, args...));
   }
 
  private:

@@ -26,6 +26,7 @@
 #include <xzero/io/FileDescriptor.h>
 #include <xzero/logging.h>
 
+#include <fmt/format.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
@@ -237,7 +238,7 @@ std::string formatLog(Context* cx, const std::string& format) { // {{{
         ++i;
         break;
       default:
-        throw AccesslogFormatError{StringUtil::format("Unknown format identifier '%$0'", *i)};
+        throw AccesslogFormatError{fmt::format("Unknown format identifier '%{}'", *i)};
     }
   }
 
@@ -268,8 +269,8 @@ void verifyFormat(const std::string& format) { // {{{
         char id = *i;
         ++i;
         if (auto fn = getFormatName(i, e); fn == "") {
-          throw AccesslogFormatError{StringUtil::format(
-              "message field for %$0{} must not be empty.", id)};
+          throw AccesslogFormatError{fmt::format(
+              "message field for %{}{{}} must not be empty.", id)};
         }
         break;
       }
@@ -291,7 +292,7 @@ void verifyFormat(const std::string& format) { // {{{
       case 'v': // request vhost
         break;
       default:
-        throw AccesslogFormatError{StringUtil::format("Unknown format identifier '%$0'", *i)};
+        throw AccesslogFormatError{fmt::format("Unknown format identifier '%{}'", *i)};
     }
   }
 }
@@ -419,7 +420,7 @@ void AccesslogModule::accesslog_syslog(Context* cx, Params& args) {
   std::optional<FlowString> format = lookupFormat(id);
   if (!format) {
     cx->logError(
-         "Could not write accesslog to syslog with format id '$0'. $1",
+         "Could not write accesslog to syslog with format id '{}'. {}",
          BufferRef(id.data(), id.size()),
          "Accesslog format not found.");
     return;
@@ -440,7 +441,7 @@ void AccesslogModule::accesslog_console(Context* cx, Params& args) {
   std::optional<FlowString> format = lookupFormat(id);
   if (!format) {
     cx->logError(
-         "Could not write accesslog to console with format id '$0'. $1",
+         "Could not write accesslog to console with format id '{}'. {}",
          id,
          "Accesslog format not found.");
     return;
@@ -461,9 +462,9 @@ void AccesslogModule::accesslog_file(Context* cx, Params& args) {
   std::optional<FlowString> format = lookupFormat(id);
   if (!format) {
     cx->logError(
-         "Could not write accesslog to '$0' with format id '$1'. $2",
-         BufferRef(filename),
-         BufferRef(id),
+         "Could not write accesslog to '{}' with format id '{}'. {}",
+         filename,
+         id,
          "Accesslog format not found.");
     return;
   }

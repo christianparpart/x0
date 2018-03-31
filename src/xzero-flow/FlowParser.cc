@@ -439,7 +439,7 @@ std::unique_ptr<UnitSym> FlowParser::unit() {
 
 void FlowParser::importRuntime() {
   if (runtime_) {
-    TRACE("importing runtime, $0 builtins", runtime_->builtins().size());
+    TRACE("importing runtime, {} builtins", runtime_->builtins().size());
 
     for (const auto& builtin : runtime_->builtins()) {
       declareBuiltin(builtin);
@@ -448,7 +448,7 @@ void FlowParser::importRuntime() {
 }
 
 void FlowParser::declareBuiltin(const NativeCallback* native) {
-  TRACE("declareBuiltin (scope:$0): $1", currentScope(), native->signature().to_s());
+  TRACE("declareBuiltin (scope:{}): {}", currentScope(), native->signature().to_s());
 
   if (native->isHandler()) {
     createSymbol<BuiltinHandlerSym>(*native);
@@ -956,7 +956,7 @@ std::unique_ptr<Expr> FlowParser::primaryExpr() {
       static unsigned long i = 0;
       ++i;
 
-      std::string name = StringUtil::format("__lambda_#$0", i);
+      std::string name = fmt::format("__lambda_#{}", i);
       FlowLocation loc = location();
       std::unique_ptr<SymbolTable> st = enterScope(name);
       std::unique_ptr<Stmt> body = compoundStmt();

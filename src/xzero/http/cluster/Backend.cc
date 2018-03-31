@@ -91,8 +91,8 @@ SchedulerStatus Backend::tryProcess(Context* cr) {
   if (capacity_ && load_.current() >= capacity_)
     return SchedulerStatus::Overloaded;
 
-  TRACE("Processing request by backend $0 $1", name(), inetAddress_);
-  TRACE("tryProcess: with executor: $0", cr->executor);
+  TRACE("Processing request by backend {} {}", name(), inetAddress_);
+  TRACE("tryProcess: with executor: {}", cr->executor);
 
   ++load_;
   cr->backend = this;

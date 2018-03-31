@@ -24,6 +24,7 @@
 #endif
 
 #include <xzero/sysconfig.h>
+#include <xzero/Application.h>
 #include <xzero/UnixSignalInfo.h>
 #include <xzero/http/HttpRequest.h>
 #include <xzero/http/HttpResponse.h>
@@ -35,7 +36,6 @@
 #include <xzero/net/TcpConnector.h>
 #include <xzero/RuntimeError.h>
 #include <xzero/MimeTypes.h>
-#include <xzero/Application.h>
 #include <xzero/StringUtil.h>
 #include <xzero/logging.h>
 #include <xzero-flow/ASTPrinter.h>
@@ -51,6 +51,7 @@
 #include <xzero-flow/transform/EmptyBlockElimination.h>
 #include <xzero-flow/transform/InstructionElimination.h>
 #include <xzero-flow/FlowCallVisitor.h>
+#include <fmt/format.h>
 #include <iostream>
 #include <sstream>
 #include <fstream>
@@ -145,9 +146,9 @@ bool Daemon::import(
     std::vector<flow::NativeCallback*>* builtins) {
 
   if (path.empty())
-    logDebug("Loading plugin \"$0\"", name);
+    logDebug("Loading plugin \"{}\"", name);
   else
-    logDebug("Loading plugin \"$0\" from \"$1\"", name, path);
+    logDebug("Loading plugin \"{}\" from \"{}\"", name, path);
 
   // TODO actually load the plugin
 
@@ -206,7 +207,7 @@ std::unique_ptr<flow::Program> Daemon::loadConfigStream(
                                             std::placeholders::_2,
                                             std::placeholders::_3),
       [](const std::string& msg) {
-        logError("Configuration file error. $0", msg);
+        logError("Configuration file error. {}", msg);
       });
 
   parser.openStream(std::move(is), fakeFilename);
@@ -222,7 +223,7 @@ std::unique_ptr<flow::Program> Daemon::loadConfigStream(
   flow::IRGenerator irgen;
   irgen.setExports({"setup", "main"});
   irgen.setErrorCallback([&](const std::string& msg) {
-    logError("$0", msg);
+    logError("{}", msg);
   });
 
   std::shared_ptr<flow::IRProgram> programIR = irgen.generate(unit.get());
@@ -382,7 +383,7 @@ void Daemon::reloadConfiguration() {
 
     applyConfiguration(std::move(program));
   } catch (const std::exception& e) {
-    logFatal("Error cought while reloading configuration. $0", e.what());
+    logFatal("Error cought while reloading configuration. {}", e.what());
   }
   logNotice("Configuration reloading done.");
 }
@@ -410,13 +411,11 @@ void Daemon::postConfig() {
     throw ConfigurationError{"No listeners configured."};
   }
 
-#if defined(XZERO_WSL)
-  if (config_->tcpFinTimeout != Duration::Zero) {
+  if (config_->tcpFinTimeout != Duration::Zero && Application::isWSL()) {
     config_->tcpFinTimeout = Duration::Zero;
     logWarning("Your platform does not support overriding TCP FIN timeout. "
                "Using system defaults.");
   }
-#endif
 
   // HTTP/1 connection factory
   http1_ = std::make_unique<http1::ConnectionFactory>(
@@ -458,7 +457,7 @@ void Daemon::postConfig() {
       if (config_->sslContexts.empty()) {
         throw ConfigurationError{"SSL listeners found but no SSL contexts configured."};
       }
-      logNotice("Starting HTTPS listener on $0:$1", l.bindAddress, l.port);
+      logNotice("Starting HTTPS listener on {}:{}", l.bindAddress, l.port);
       setupConnector<SslConnector>(
           l.bindAddress, l.port, l.backlog,
           l.multiAcceptCount, l.reuseAddr, l.deferAccept, l.reusePort,
@@ -470,7 +469,7 @@ void Daemon::postConfig() {
           }
       );
     } else {
-      logNotice("Starting HTTP listener on $0:$1", l.bindAddress, l.port);
+      logNotice("Starting HTTP listener on {}:{}", l.bindAddress, l.port);
       setupConnector<TcpConnector>(
           l.bindAddress, l.port, l.backlog,
           l.multiAcceptCount, l.reuseAddr, l.deferAccept, l.reusePort,
@@ -490,7 +489,7 @@ std::unique_ptr<EventLoop> Daemon::createEventLoop() {
   size_t i = eventLoops_.size();
 
   return std::make_unique<NativeScheduler>(
-        CatchAndLogExceptionHandler{StringUtil::format("x0d/$0", i)});
+        CatchAndLogExceptionHandler{fmt::format("x0d/{}", i)});
 }
 
 std::function<void()> Daemon::createHandler(HttpRequest* request,
@@ -512,8 +511,8 @@ void Daemon::validateContext(const std::string& entrypointHandlerName,
                                   flow::UnitSym* unit) {
   auto entrypointFn = unit->findHandler(entrypointHandlerName);
   if (!entrypointFn)
-      throw ConfigurationError{StringUtil::format("No handler with name $0 found.",
-                                                  entrypointHandlerName)};
+      throw ConfigurationError{fmt::format("No handler with name {} found.",
+                                           entrypointHandlerName)};
 
   flow::FlowCallVisitor callVisitor(entrypointFn);
   auto calls = callVisitor.calls();
@@ -527,7 +526,7 @@ void Daemon::validateContext(const std::string& entrypointHandlerName,
     }
 
     if (std::find(api.begin(), api.end(), i->callee()->name()) == api.end()) {
-      logError("Illegal call to '$0' found within handler $1 (or its callees).",
+      logError("Illegal call to '{}' found within handler {} (or its callees).",
                i->callee()->name(),
                entrypointHandlerName);
       logError(i->location().str());
@@ -552,9 +551,9 @@ void Daemon::runOneThread(size_t index) {
   if (index < config_->workerAffinities.size())
     setThreadAffinity(config_->workerAffinities[index], index);
 
-  TRACE("worker/$0: Event loop enter", index);
+  TRACE("worker/{}: Event loop enter", index);
   eventLoop->runLoop();
-  TRACE("worker/$0: Event loop terminated.", index);
+  TRACE("worker/{}: Event loop terminated.", index);
 }
 
 void Daemon::setThreadAffinity(int cpu, int workerId) {
@@ -564,17 +563,17 @@ void Daemon::setThreadAffinity(int cpu, int workerId) {
   CPU_ZERO(&set);
   CPU_SET(cpu, &set);
 
-  TRACE("setAffinity: cpu $0 on worker $1", cpu, workerId);
+  TRACE("setAffinity: cpu {} on worker {}", cpu, workerId);
 
   pthread_t tid = pthread_self();
 
   int rv = pthread_setaffinity_np(tid, sizeof(set), &set);
   if (rv < 0) {
-    logError("setting event-loopaffinity on CPU $0 failed for worker $1. $2",
+    logError("setting event-loopaffinity on CPU {} failed for worker {}. {}",
              cpu, workerId, strerror(errno));
   }
 #else
-  logWarning("setting event-loop affinity on CPU $0 failed for worker $1. $2",
+  logWarning("setting event-loop affinity on CPU {} failed for worker {}. {}",
              cpu, workerId, strerror(ENOTSUP));
 #endif
 }
@@ -593,7 +592,7 @@ Executor* Daemon::selectClientExecutor() {
   if (++lastWorker_ >= eventLoops_.size())
     lastWorker_ = 0;
 
-  TRACE("select client scheduler $0", lastWorker_);
+  TRACE("select client scheduler {}", lastWorker_);
 
   return eventLoops_[lastWorker_].get();
 }
@@ -674,7 +673,7 @@ T* Daemon::doSetupConnector(
 }
 
 void Daemon::onConfigReloadSignal(const xzero::UnixSignalInfo& info) {
-  logNotice("Reloading configuration. (requested via $0 by UID $1 PID $2)",
+  logNotice("Reloading configuration. (requested via {} by UID {} PID {})",
             UnixSignals::toString(info.signal),
             info.uid.value_or(-1),
             info.pid.value_or(-1));
@@ -685,7 +684,7 @@ void Daemon::onConfigReloadSignal(const xzero::UnixSignalInfo& info) {
 }
 
 void Daemon::onCycleLogsSignal(const xzero::UnixSignalInfo& info) {
-  logNotice("Cycling logs. (requested via $0 by UID $1 PID $2)",
+  logNotice("Cycling logs. (requested via {} by UID {} PID {})",
             UnixSignals::toString(info.signal),
             info.uid.value_or(-1),
             info.pid.value_or(-1));
@@ -696,7 +695,7 @@ void Daemon::onCycleLogsSignal(const xzero::UnixSignalInfo& info) {
 }
 
 void Daemon::onUpgradeBinarySignal(const UnixSignalInfo& info) {
-  logNotice("Upgrading binary. (requested via $0 by UID $1 PID $2)",
+  logNotice("Upgrading binary. (requested via {} by UID {} PID {})",
             UnixSignals::toString(info.signal),
             info.uid.value_or(-1),
             info.pid.value_or(-1));
@@ -711,7 +710,7 @@ void Daemon::onUpgradeBinarySignal(const UnixSignalInfo& info) {
 }
 
 void Daemon::onQuickShutdownSignal(const xzero::UnixSignalInfo& info) {
-  logNotice("Initiating quick shutdown. (requested via $0 by UID $1 PID $2)",
+  logNotice("Initiating quick shutdown. (requested via {} by UID {} PID {})",
             UnixSignals::toString(info.signal),
             info.uid.value_or(-1),
             info.pid.value_or(-1));
@@ -720,7 +719,7 @@ void Daemon::onQuickShutdownSignal(const xzero::UnixSignalInfo& info) {
 }
 
 void Daemon::onGracefulShutdownSignal(const xzero::UnixSignalInfo& info) {
-  logNotice("Initiating graceful shutdown. (requested via $0 by UID $1 PID $2)",
+  logNotice("Initiating graceful shutdown. (requested via {} by UID {} PID {})",
             UnixSignals::toString(info.signal),
             info.uid.value_or(-1),
             info.pid.value_or(-1));

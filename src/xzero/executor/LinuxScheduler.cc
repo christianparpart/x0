@@ -71,7 +71,7 @@ LinuxScheduler::~LinuxScheduler() {
 
 void LinuxScheduler::updateTime() {
   now_ = MonotonicClock::now();
-  TRACE("updateTime: now $0", now_);
+  TRACE("updateTime: now {}", now_);
 }
 
 MonotonicTime LinuxScheduler::now() const noexcept {
@@ -93,13 +93,13 @@ std::string LinuxScheduler::toString() const {
 
 Executor::HandleRef LinuxScheduler::executeAfter(Duration delay, Task task) {
   MonotonicTime time = MonotonicClock::now() + delay;
-  TRACE("executeAfter: delay=$0, abs=$1", delay, time);
+  TRACE("executeAfter: delay={}, abs={}", delay, time);
   return insertIntoTimersList(time, task);
 }
 
 Executor::HandleRef LinuxScheduler::executeAt(UnixTime when, Task task) {
   MonotonicTime time = now() + (when - WallClock::now());
-  TRACE("executeAt: $0", time);
+  TRACE("executeAt: {}", time);
   return insertIntoTimersList(time, task);
 }
 
@@ -133,7 +133,7 @@ void LinuxScheduler::wakeupLoop() {
 
 Executor::HandleRef LinuxScheduler::createWatcher(
     Mode mode, int fd, Task task, Duration timeout, Task tcb) {
-  TRACE("createWatcher(fd: $0, mode: $1, timeout: $2)", fd, mode, timeout);
+  TRACE("createWatcher(fd: {}, mode: {}, timeout: {})", fd, mode, timeout);
 
   if (watchers_.find(fd) != watchers_.end()) {
     // RAISE(AlreadyWatchingOnResource, "Already watching on resource");
@@ -156,7 +156,7 @@ Executor::HandleRef LinuxScheduler::createWatcher(
 
   int rv = epoll_ctl(epollfd_, EPOLL_CTL_ADD, fd, &event);
   if (rv < 0) {
-    TRACE("epoll_ctl for fd $0 failed #1. $1", fd, strerror(errno));
+    TRACE("epoll_ctl for fd {} failed #1. {}", fd, strerror(errno));
     RAISE_ERRNO(errno);
   }
 
@@ -173,10 +173,10 @@ Executor::HandleRef LinuxScheduler::createWatcher(
 }
 
 LinuxScheduler::Watcher* LinuxScheduler::findPrecedingWatcher(Watcher* interest) {
-  TRACE("findPrecedingWatcher for $0", interest);
+  TRACE("findPrecedingWatcher for {}", interest);
 
   for (Watcher* w = firstWatcher_; w != nullptr; w = w->next) {
-    TRACE(" - $0", w);
+    TRACE(" - {}", w);
   }
 
   if (firstWatcher_ == nullptr)
@@ -206,7 +206,7 @@ LinuxScheduler::Watcher* LinuxScheduler::findPrecedingWatcher(Watcher* interest)
 }
 
 LinuxScheduler::HandleRef LinuxScheduler::linkWatcher(Watcher* w, Watcher* pred) {
-  TRACE("linkWatcher: w: $0, pred: $1", w, pred);
+  TRACE("linkWatcher: w: {}, pred: {}", w, pred);
   Watcher* succ = pred ? pred->next : firstWatcher_;
 
   w->prev = pred;
@@ -233,7 +233,7 @@ LinuxScheduler::Watcher* LinuxScheduler::unlinkWatcher(Watcher* w) {
   Watcher* pred = w->prev;
   Watcher* succ = w->next;
 
-  TRACE("unlinkWatcher: $0", w);
+  TRACE("unlinkWatcher: {}", w);
 
   epoll_ctl(epollfd_, EPOLL_CTL_DEL, w->fd, nullptr);
 
@@ -317,7 +317,7 @@ size_t LinuxScheduler::waitForEvents() noexcept {
 
   const MonotonicTime timeout = nextTimeout();
 
-  TRACE("waitForEvents: referenceCount=$0, breakLoopCounter=$1, timeout=$2",
+  TRACE("waitForEvents: referenceCount={}, breakLoopCounter={}, timeout={}",
         referenceCount(), breakLoopCounter_.load(),
         timeout);
 
@@ -336,17 +336,17 @@ size_t LinuxScheduler::waitForEvents() noexcept {
                        maxWait.milliseconds());
     while (rv < 0 && errno == EINTR);
 
-    TRACE("waitForEvents: epoll_wait(fd=$0, count=$1, timeout=$2) = $3 $4",
+    TRACE("waitForEvents: epoll_wait(fd={}, count={}, timeout={}) = {} {}",
           epollfd_.get(), activeEvents_.size(), maxWait, rv,
           rv < 0 ? strerror(rv) : "");
 
     if (rv < 0)
-      logFatal("epoll_wait returned unexpected error code: $0", strerror(errno));
+      logFatal("epoll_wait returned unexpected error code: {}", strerror(errno));
 
     updateTime();
   } while (rv == 0 && timeout >= now());
 
-  TRACE("waitForEvents: got $0 events", rv);
+  TRACE("waitForEvents: got {} events", rv);
   return static_cast<size_t>(rv);
 }
 
@@ -372,7 +372,7 @@ void LinuxScheduler::breakLoop() {
 
 EventLoop::HandleRef LinuxScheduler::insertIntoTimersList(MonotonicTime dt,
                                                           Task task) {
-  TRACE("insertIntoTimersList() $0", dt);
+  TRACE("insertIntoTimersList() {}", dt);
   auto tref = std::make_shared<Timer>(dt, task);
   Timer* t = tref.get();
 
@@ -427,23 +427,23 @@ void LinuxScheduler::collectActiveHandles(size_t count,
       auto w = std::static_pointer_cast<Watcher>(
           static_cast<Handle*>(event.data.ptr)->shared_from_this());
       if (event.events & EPOLLIN) {
-        TRACE("collectActiveHandles: $0 READABLE", w->fd);
+        TRACE("collectActiveHandles: {} READABLE", w->fd);
         readerCount_--;
         result->push_back([w] { w->fire(w->onIO); });
         unlinkWatcher(w.get());
       } else if (event.events & EPOLLOUT) {
-        TRACE("collectActiveHandles: $0 WRITABLE", w->fd);
+        TRACE("collectActiveHandles: {} WRITABLE", w->fd);
         writerCount_--;
         result->push_back([w] { w->fire(w->onIO); });
         unlinkWatcher(w.get());
       } else {
-        TRACE("collectActiveHandles: unknown event fd $0", w->fd);
+        TRACE("collectActiveHandles: unknown event fd {}", w->fd);
       }
     } else {
       // event.data.ptr is NULL, ie. that's our eventfd notification.
       uint64_t counter = 0;
       ::read(eventfd_, &counter, sizeof(counter));
-      TRACE("collectActiveHandles: eventfd consumed ($0)", counter);
+      TRACE("collectActiveHandles: eventfd consumed ({})", counter);
     }
   }
 }
@@ -456,7 +456,7 @@ void LinuxScheduler::collectTimeouts(std::list<Task>* result) {
   };
 
   while (std::shared_ptr<Watcher> w = nextTimedout()) {
-    TRACE("collectTimeouts: i/o fd=$0, mode=$1", w->fd, w->mode);
+    TRACE("collectTimeouts: i/o fd={}, mode={}", w->fd, w->mode);
     switch (w->mode) {
       case Mode::READABLE: readerCount_--; break;
       case Mode::WRITABLE: writerCount_--; break;
@@ -473,13 +473,13 @@ void LinuxScheduler::collectTimeouts(std::list<Task>* result) {
 
   unsigned t = 0;
   while (std::shared_ptr<Timer> job = nextTimer()) {
-    TRACE("collectTimeouts: collecting job at time $0", job->when);
+    TRACE("collectTimeouts: collecting job at time {}", job->when);
     t++;
     result->push_back([job] { job->fire(job->action); });
     timers_.pop_front();
     unref();
   }
-  TRACE("collectTimeouts: $0 timeouts collected", t);
+  TRACE("collectTimeouts: {} timeouts collected", t);
 }
 
 void LinuxScheduler::Watcher::clear() {
@@ -505,8 +505,8 @@ std::ostream& operator<<(std::ostream& os, LinuxScheduler::Mode m) {
 
 std::ostream& operator<<(std::ostream& os, LinuxScheduler::Watcher* w) {
   if (w != nullptr)
-    return os << StringUtil::format("{fd: $0/$1, timeout: $2}",
-                                    w->fd, w->mode, w->timeout);
+    return os << fmt::format("{fd: {}/{}, timeout: {}}",
+                             w->fd, w->mode, w->timeout);
   else
     return os << "NULL";
 }

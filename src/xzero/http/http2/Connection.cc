@@ -242,7 +242,7 @@ void Connection::onResetStream(StreamID sid, ErrorCode errorCode) {
 void Connection::onSettings(
     const std::vector<std::pair<SettingParameter, unsigned long>>& settings) {
   for (const auto& setting: settings) {
-    TRACE("Setting $0 = $1", setting.first, setting.second);
+    TRACE("Setting {} = {}", setting.first, setting.second);
   }
 
   generator_.generateSettingsAck();

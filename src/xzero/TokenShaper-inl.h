@@ -466,7 +466,7 @@ T* TokenShaper<T>::Node::dequeue() {
   // We could not actually dequeue request from any of the child buckets,
   // so try in current bucket itself, if its queue is non-empty.
   if (!queue_.empty()) {
-    TS_TRACE("dequeue(): try dequeing from $0, queue size $1", name_, queue_.size());
+    TS_TRACE("dequeue(): try dequeing from {}, queue size {}", name_, queue_.size());
     if (get(1)) {  // XXX token count of 1 is hard coded. doh.
       QueueItem item = queue_.front();
       queue_.pop_front();
@@ -570,7 +570,7 @@ void TokenShaper<T>::Node::updateQueueTimer() {
     if (age < queueTimeout_)
       break;
 
-    TS_TRACE("updateQueueTimer: dequeueing timed out request. $0 < $1",
+    TS_TRACE("updateQueueTimer: dequeueing timed out request. {} < {}",
              age, queueTimeout_);
     queue_.pop_front();
     --queued_;
@@ -591,7 +591,7 @@ void TokenShaper<T>::Node::updateQueueTimer() {
   Duration age = now - front.ctime;
   Duration ttl = queueTimeout_ - age;
 
-  TS_TRACE("updateQueueTimer: starting new timer with TTL $0, age $1", ttl, age);
+  TS_TRACE("updateQueueTimer: starting new timer with TTL {}, age {}", ttl, age);
 
   executor_->executeAfter(
       ttl,

@@ -84,17 +84,17 @@ size_t ThreadPool::activeCount() const {
 }
 
 void ThreadPool::wait() {
-  TRACE("$0 wait()", (void*) this);
+  TRACE("{} wait()", (void*) this);
   std::unique_lock<std::mutex> lock(mutex_);
 
   if (pendingTasks_.empty() && activeTasks_ == 0) {
-    TRACE("$0 wait: pending=$1, active=$2 (immediate return)",
+    TRACE("{} wait: pending={}, active={} (immediate return)",
           (void*) this, pendingTasks_.size(), activeTasks_.load());
     return;
   }
 
   condition_.wait(lock, [&]() -> bool {
-    TRACE("$0 wait: pending=$1, active=$2",
+    TRACE("{} wait: pending={}, active={}",
           (void*) this, pendingTasks_.size(), activeTasks_.load());
     return pendingTasks_.empty() && activeTasks_.load() == 0;
   });
@@ -118,7 +118,7 @@ std::string ThreadPool::getThreadName(const void* tid) {
 }
 
 void ThreadPool::work(int workerId) {
-  TRACE("$0 worker[$1] enter", (void*) this, workerId);
+  TRACE("{} worker[{}] enter", (void*) this, workerId);
 
   while (active_) {
     Task task;
@@ -129,7 +129,7 @@ void ThreadPool::work(int workerId) {
       if (!active_)
         break;
 
-      TRACE("$0 work[$1]: task received", (void*) this, workerId);
+      TRACE("{} work[{}]: task received", (void*) this, workerId);
       task = std::move(pendingTasks_.front());
       pendingTasks_.pop_front();
     }
@@ -142,13 +142,13 @@ void ThreadPool::work(int workerId) {
     condition_.notify_all();
   }
 
-  TRACE("$0 worker[$1] leave", (void*) this, workerId);
+  TRACE("{} worker[{}] leave", (void*) this, workerId);
 }
 
 void ThreadPool::execute(Task task) {
   {
     std::unique_lock<std::mutex> lock(mutex_);
-    TRACE("$0 execute: enqueue task & notify_all", (void*) this);
+    TRACE("{} execute: enqueue task & notify_all", (void*) this);
     pendingTasks_.emplace_back(std::move(task));
   }
   condition_.notify_all();

@@ -5,6 +5,7 @@
 // file except in compliance with the License. You may obtain a copy of
 // the License at: http://opensource.org/licenses/MIT
 
+#include <xzero/Application.h>
 #include <xzero/io/FileUtil.h>
 #include <xzero/io/FileView.h>
 #include <xzero/io/FileDescriptor.h>
@@ -13,6 +14,7 @@
 #include <xzero/Buffer.h>
 #include <xzero/logging.h>
 #include <xzero/sysconfig.h>
+#include <fmt/format.h>
 
 #include <system_error>
 #include <sys/types.h>
@@ -362,8 +364,8 @@ void FileUtil::mkdir_p(const std::string& dirname, int mode) {
     if (isDirectory(dirname)) {
       return;
     } else {
-      throw std::logic_error{StringUtil::format(
-          "file '$0' exists but is not a directory",
+      throw std::logic_error{fmt::format(
+          "file '{}' exists but is not a directory",
           dirname)};
     }
   }
@@ -378,8 +380,8 @@ void FileUtil::mkdir_p(const std::string& dirname, int mode) {
       if (isDirectory(path)) {
         continue;
       } else {
-        throw std::logic_error{StringUtil::format(
-            "file '$0' exists but is not a directory",
+        throw std::logic_error{fmt::format(
+            "file '{}' exists but is not a directory",
             path)};
       }
     }
@@ -437,8 +439,8 @@ int FileUtil::createTempFile() {
   return createTempFileAt(tempDirectory());
 }
 
-int FileUtil::createTempFileAt(const std::string& basedir, std::string* result) {
-#if defined(ENABLE_O_TMPFILE) && defined(O_TMPFILE) && !defined(XZERO_WSL)
+#if defined(ENABLE_O_TMPFILE) && defined(O_TMPFILE)
+inline int createTempFileAt_linux(const std::string& basedir, std::string* result) {
   // XXX not implemented on WSL
   int flags = O_TMPFILE | O_CLOEXEC | O_RDWR;
   int mode = S_IRUSR | S_IWUSR;
@@ -449,7 +451,13 @@ int FileUtil::createTempFileAt(const std::string& basedir, std::string* result) 
 
   if (result)
     result->clear();
-#elif defined(HAVE_MKOSTEMPS)
+
+  return fd;
+}
+#endif
+
+inline int createTempFileAt_default(const std::string& basedir, std::string* result) {
+#if defined(HAVE_MKOSTEMPS)
   std::string pattern = joinPaths(basedir, "XXXXXXXX.tmp");
   int flags = O_CLOEXEC;
   int fd = mkostemps(const_cast<char*>(pattern.c_str()), 4, flags);
@@ -461,8 +469,10 @@ int FileUtil::createTempFileAt(const std::string& basedir, std::string* result) 
     *result = std::move(pattern);
   else
     FileUtil::rm(pattern);
+
+  return fd;
 #else
-  std::string pattern = joinPaths(basedir, "XXXXXXXX.tmp");
+  std::string pattern = FileUtil::joinPaths(basedir, "XXXXXXXX.tmp");
   int fd = mkstemps(const_cast<char*>(pattern.c_str()), 4);
 
   if (fd < 0)
@@ -472,9 +482,21 @@ int FileUtil::createTempFileAt(const std::string& basedir, std::string* result) 
     *result = std::move(pattern);
   else
     FileUtil::rm(pattern);
-#endif
 
   return fd;
+#endif
+}
+
+int FileUtil::createTempFileAt(const std::string& basedir, std::string* result) {
+  static const bool isWSL = Application::isWSL();
+#if defined(ENABLE_O_TMPFILE) && defined(O_TMPFILE)
+  if (!isWSL)
+    return createTempFileAt_linux(basedir, result);
+  else
+    return createTempFileAt_default(basedir, result);
+#else
+  return createTempFileAt_default(basedir, result);
+#endif
 }
 
 std::string FileUtil::createTempDirectory() {

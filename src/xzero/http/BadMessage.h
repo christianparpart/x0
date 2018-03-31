@@ -6,8 +6,8 @@
 // the License at: http://opensource.org/licenses/MIT
 
 #include <xzero/http/HttpStatus.h>
-#include <xzero/StringUtil.h>
 #include <xzero/RuntimeError.h>
+#include <fmt/format.h>
 #include <system_error>
 #include <stdexcept>
 
@@ -41,7 +41,7 @@ class InvalidState : public std::logic_error {
 
   template<typename... Args>
   explicit InvalidState(const std::string& diag, Args... args)
-      : std::logic_error(StringUtil::format(
+      : std::logic_error(fmt::format(
             "Invalid HTTP channel state. " + diag, args...)) {}
 };
 

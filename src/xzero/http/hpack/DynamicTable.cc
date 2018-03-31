@@ -71,7 +71,7 @@ void DynamicTable::evict() {
   size_t n = 0;
 
   while (size_ > maxSize_) {
-    TRACE("evict: evicting last field as current size $0 > max size $1",
+    TRACE("evict: evicting last field as current size {} > max size {}",
           size_, maxSize_);
     size_ -= (entries_.back().first.size() +
               entries_.back().second.size() +
@@ -82,7 +82,7 @@ void DynamicTable::evict() {
   }
 
   if (n) {
-    TRACE("evict: evicted $0 fields", n);
+    TRACE("evict: evicted {} fields", n);
   }
 }
 

@@ -133,7 +133,7 @@ std::vector<std::string> DnsClient::txt(const std::string& fqdn) {
   }
 
   if (!txtCache.empty()) {
-    logDebug("DnsClient: using cached TXT: $0", fqdn);
+    logDebug("DnsClient: using cached TXT: {}", fqdn);
     std::vector<std::string> result;
     for (const auto& txt: txtCache) {
       result.emplace_back(txt.text);
@@ -141,7 +141,7 @@ std::vector<std::string> DnsClient::txt(const std::string& fqdn) {
     return result;
   }
 
-  logDebug("DnsClient: resolving TXT: $0", fqdn);
+  logDebug("DnsClient: resolving TXT: {}", fqdn);
   Buffer answer(NS_MAXMSG);
   int answerLength = res_query(fqdn.c_str(),
                                ns_c_in,
@@ -149,7 +149,7 @@ std::vector<std::string> DnsClient::txt(const std::string& fqdn) {
                                (unsigned char*) answer.data(),
                                answer.capacity());
   if (answerLength < 0) {
-    logDebug("DnsClient: TXT lookup failed for $0", fqdn);
+    logDebug("DnsClient: TXT lookup failed for {}", fqdn);
     return std::vector<std::string>();
   }
   answer.resize(answerLength);
@@ -184,7 +184,7 @@ std::vector<std::pair<int, std::string>> DnsClient::mx(const std::string& name) 
 std::vector<DnsClient::SRV> DnsClient::srv(const std::string& service,
                                            const std::string& protocol,
                                            const std::string& name) {
-  return srv(StringUtil::format("_$0._$1.$2.", service, protocol, name));
+  return srv(fmt::format("_{}._{}.{}.", service, protocol, name));
 }
 
 std::vector<DnsClient::SRV> DnsClient::srv(const std::string& fqdn) {
@@ -215,7 +215,7 @@ std::vector<DnsClient::SRV> DnsClient::srv(const std::string& fqdn) {
                                (unsigned char*) answer.data(),
                                answer.capacity());
   if (answerLength < 0) {
-    logDebug("DnsClient: SRV lookup failed for $0", fqdn);
+    logDebug("DnsClient: SRV lookup failed for {}", fqdn);
     return std::vector<SRV>();
   }
   answer.resize(answerLength);
@@ -261,7 +261,7 @@ std::vector<DnsClient::SRV> DnsClient::srv(const std::string& fqdn) {
       IPAddress ip(&addr);
       std::string name = rr.name;
 
-      logDebug("DnsClient: Additional Section: $0 $1 IN A $2 ($3)",
+      logDebug("DnsClient: Additional Section: {} {} IN A {} ({})",
                name, ttl.seconds(), ip, name.size());
 
       ipv4[name].emplace_back(ip);

@@ -8,10 +8,10 @@
 #include <xzero/http/HeaderFieldList.h>
 #include <xzero/RuntimeError.h>
 #include <xzero/Buffer.h>
+#include <fmt/format.h>
 #include <algorithm>
 
-namespace xzero {
-namespace http {
+namespace xzero::http {
 
 HeaderFieldList::HeaderFieldList(
     const std::initializer_list<std::pair<std::string, std::string>>& init) {
@@ -171,5 +171,4 @@ void HeaderFieldList::reset() {
   entries_.clear();
 }
 
-}  // namespace http
-}  // namespace xzero
+}  // namespace xzero::http

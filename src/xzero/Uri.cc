@@ -6,8 +6,8 @@
 // the License at: http://opensource.org/licenses/MIT
 
 #include <xzero/Uri.h>
-#include <xzero/StringUtil.h>
 #include <xzero/logging.h>
+#include <fmt/format.h>
 
 namespace xzero {
 
@@ -79,7 +79,7 @@ unsigned Uri::port() const {
 
 std::string Uri::hostAndPort() const {
   if (port_ > 0) {
-    return StringUtil::format("$0:$1", host_, port_);
+    return fmt::format("{}:{}", host_, port_);
   } else {
     return host_;
   }
@@ -91,7 +91,7 @@ const std::string& Uri::path() const {
 
 std::string Uri::pathAndQuery() const {
   if (query_.length() > 0) {
-    return StringUtil::format("$0?$1", path_, query_);
+    return fmt::format("{}?{}", path_, query_);
   } else {
     return path_;
   }

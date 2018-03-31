@@ -6,11 +6,10 @@
 // the License at: http://opensource.org/licenses/MIT
 
 #include <xzero/http/HeaderField.h>
-#include <xzero/StringUtil.h>
 #include <xzero/Buffer.h>
+#include <fmt/format.h>
 
-namespace xzero {
-namespace http {
+namespace xzero::http {
 
 HeaderField HeaderField::parse(const std::string& field) {
   size_t i = field.find(':');
@@ -34,14 +33,11 @@ bool HeaderField::operator!=(const HeaderField& other) const {
 }
 
 std::string inspect(const HeaderField& field) {
-  return StringUtil::format("HeaderField(\"$0\", \"$1\")",
-                            field.name(),
-                            field.value());
+  return fmt::format("HeaderField(\"{}\", \"{}\")", field.name(), field.value());
 }
 
 std::ostream& operator<<(std::ostream& os, const HeaderField& field) {
-  return os << StringUtil::format("{\"$0\": \"$1\"}", field.name(), field.value());
+  return os << fmt::format("{\"{}\": \"{}\"}", field.name(), field.value());
 }
 
-} // namespace http
-} // namespace xzero
+} // namespace xzero::http

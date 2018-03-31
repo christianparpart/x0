@@ -36,7 +36,7 @@ void UserdirModule::userdir_name(Params& args) {
 
   std::error_code ec = validate(dirname);
   if (ec) {
-    logError("userdir \"$0\": $1", dirname, ec.message());
+    logError("userdir \"{}\": {}", dirname, ec.message());
     return;
   }
 
@@ -85,7 +85,7 @@ void UserdirModule::userdir(Context* cx, Params& args) {
     cx->setDocumentRoot(docroot);
     cx->setFile(daemon().vfs().getFile(filepath));
 
-    logTrace("docroot[$0], fileinfo[$1]",
+    logTrace("docroot[{}], fileinfo[{}]",
              cx->documentRoot(),
              cx->file()->path());
   }

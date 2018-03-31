@@ -119,7 +119,7 @@ void ResponseParser::process(const fastcgi::Record* record) {
 }
 
 void ResponseParser::streamStdOut(const fastcgi::Record* record) {
-  TRACE("streamStdOut: $0", record->contentLength());
+  TRACE("streamStdOut: {}", record->contentLength());
 
   StreamState& stream = getStream(record->requestId());
   stream.totalBytesReceived += record->size();
@@ -137,7 +137,7 @@ void ResponseParser::streamStdOut(const fastcgi::Record* record) {
 }
 
 void ResponseParser::streamStdErr(const fastcgi::Record* record) {
-  TRACE("streamStdErr: $0", record->contentLength());
+  TRACE("streamStdErr: {}", record->contentLength());
 
   StreamState& stream = getStream(record->requestId());
   stream.totalBytesReceived += record->size();

@@ -9,9 +9,9 @@
 #include <xzero/StackTrace.h>
 #include <xzero/Tokenizer.h>
 #include <xzero/Buffer.h>
-#include <xzero/StringUtil.h>
 #include <xzero/logging.h>
 #include <xzero/sysconfig.h>
+#include <fmt/format.h>
 
 #include <iostream>
 #include <typeinfo>
@@ -75,10 +75,10 @@ void RuntimeError::debugPrint(std::ostream* os) const {
     os = &std::cerr;
   }
 
-  *os << StringUtil::format(
-            "$0: $1\n"
-            "    in $2\n"
-            "    in $3:$4\n",
+  *os << fmt::format(
+            "{}: {}\n"
+            "    in {}\n"
+            "    in {}:{}\n",
             typeid(*this).name(),
             what(),
             functionName_,

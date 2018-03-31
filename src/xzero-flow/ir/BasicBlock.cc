@@ -237,17 +237,17 @@ void BasicBlock::collectIDom(std::vector<BasicBlock*>& output) {
 
 void BasicBlock::verify() {
   if (code_.size() < 1) {
-    logFatal("BasicBlock $0: verify: Must contain at least one instruction.", name());
+    logFatal("BasicBlock {}: verify: Must contain at least one instruction.", name());
   }
 
   for (size_t i = 0, e = code_.size() - 1; i != e; ++i) {
     if (dynamic_cast<TerminateInstr*>(code_[i].get()) != nullptr) {
-      logFatal("BasicBlock $0: verify: Found a terminate instruction in the middle of the block.", name());
+      logFatal("BasicBlock {}: verify: Found a terminate instruction in the middle of the block.", name());
     }
   }
 
   if (getTerminator() == nullptr) {
-    logFatal("BasicBlock $0: verify: Last instruction must be a terminator instruction.", name());
+    logFatal("BasicBlock {}: verify: Last instruction must be a terminator instruction.", name());
   }
 }
 

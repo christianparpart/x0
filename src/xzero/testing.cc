@@ -10,6 +10,7 @@
 #include <xzero/AnsiColor.h>
 #include <xzero/StringUtil.h>
 #include <xzero/logging.h>
+#include <fmt/format.h>
 #include <algorithm>
 #include <random>
 #include <chrono>
@@ -209,7 +210,7 @@ void UnitTest::filterTests(const std::string& filter,
   std::vector<size_t> filtered;
   for (size_t i = 0, e = activeTests_.size(); i != e; ++i) {
     TestInfo* testInfo = testCases_[activeTests_[i]].get();
-    std::string matchName = StringUtil::format("$0.$1",
+    std::string matchName = fmt::format("{}.{}",
         testInfo->testCaseName(), testInfo->testName());
 
     const int flags = 0;
@@ -376,11 +377,11 @@ void UnitTest::reportError(const char* fileName,
                            bool fatal,
                            const char* actual,
                            const std::error_code& ec) {
-  std::string message = StringUtil::format(
-      "$0:$1: Failure\n"
-      "  Value of: $2\n"
+  std::string message = fmt::format(
+      "{}:{}: Failure\n"
+      "  Value of: {}\n"
       "  Expected: success\n"
-      "    Actual: ($3) $4\n",
+      "    Actual: ({}) {}\n",
       fileName, lineNo,
       actual,
       ec.category().name(),
@@ -396,11 +397,11 @@ void UnitTest::reportError(const char* fileName,
                            const std::error_code& expectedEvaluated,
                            const char* actual,
                            const std::error_code& actualEvaluated) {
-  std::string message = StringUtil::format(
-      "$0:$1: Failure\n"
-      "  Value of: $2\n"
-      "  Expected: ($3) $4\n"
-      "    Actual: ($5) $6\n",
+  std::string message = fmt::format(
+      "{}:{}: Failure\n"
+      "  Value of: {}\n"
+      "  Expected: ({}) {}\n"
+      "    Actual: ({}) {}\n",
       fileName, lineNo,
       actual,
       expectedEvaluated.category().name(), expectedEvaluated.message(),
@@ -416,11 +417,11 @@ void UnitTest::reportBinary(const char* fileName,
                             const char* actual,
                             const std::string& actualEvaluated,
                             const char* op) {
-  std::string message = StringUtil::format(
-      "$0:$1: Failure\n"
-      "  Value of: $2\n"
-      "  Expected: $3 $4\n"
-      "    Actual: $5\n",
+  std::string message = fmt::format(
+      "{}:{}: Failure\n"
+      "  Value of: {}\n"
+      "  Expected: {} {}\n"
+      "    Actual: {}\n",
       fileName, lineNo,
       actual,
       expected, op,
@@ -431,13 +432,13 @@ void UnitTest::reportBinary(const char* fileName,
 
 void UnitTest::reportUnhandledException(const std::exception& e) {
   if (const RuntimeError* rte = dynamic_cast<const RuntimeError*>(&e)) {
-    std::string message = StringUtil::format(
+    std::string message = fmt::format(
         "Unhandled Exception\n"
-          "  Type: $0\n"
-          "  What: $1\n"
-          "  Function: $2\n"
-          "  Source File: $3\n"
-          "  Source Line: $4\n",
+          "  Type: {}\n"
+          "  What: {}\n"
+          "  Function: {}\n"
+          "  Source File: {}\n"
+          "  Source Line: {}\n",
         typeid(*rte).name(),
         rte->what(),
         rte->functionName(),
@@ -445,10 +446,10 @@ void UnitTest::reportUnhandledException(const std::exception& e) {
         rte->sourceLine());
     reportMessage(message, false);
   } else {
-    std::string message = StringUtil::format(
+    std::string message = fmt::format(
         "Unhandled Exception\n"
-          "  Type: $0\n"
-          "  What: $1\n",
+          "  Type: {}\n"
+          "  What: {}\n",
         typeid(e).name(),
         e.what());
     reportMessage(message, false);
@@ -461,11 +462,11 @@ void UnitTest::reportEH(const char* fileName,
                         const char* program,
                         const char* expected,
                         const char* actual) {
-  std::string message = StringUtil::format(
-      "$0:$1: $2\n"
-      "  Value of: $3\n"
-      "  Expected: $4\n"
-      "    Actual: $5\n",
+  std::string message = fmt::format(
+      "{}:{}: {}\n"
+      "  Value of: {}\n"
+      "  Expected: {}\n"
+      "    Actual: {}\n",
       fileName, lineNo,
       actual ? "Unexpected exception caught"
              : "No exception caught",
@@ -515,10 +516,10 @@ TestInfo* UnitTest::addTest(const char* testCaseName,
 }
 
 void UnitTest::log(const std::string& message) {
-  std::string component = StringUtil::format("$0.$1",
+  std::string component = fmt::format("{}.{}",
       currentTestCase_->testCaseName(),
       currentTestCase_->testName());
-  logDebug(component, "$0", message);
+  logDebug(component, "{}", message);
 }
 
 } // namespace testing

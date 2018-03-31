@@ -11,6 +11,8 @@
 #include <xzero-flow/Signature.h>
 #include <xzero/StringUtil.h>
 #include <xzero/Buffer.h>
+#include <fmt/format.h>
+#include <fmt/ostream.h>
 #include <memory>
 #include <algorithm>
 #include <cstdlib>
@@ -25,7 +27,7 @@ std::ostream& operator<<(std::ostream& os, SymbolTable* st) {
 
 std::ostream& operator<<(std::ostream& os, Symbol* sym) {
   if (sym != nullptr) {
-    return os << StringUtil::format("Symbol:$0", sym->name());
+    return os << fmt::format("Symbol:{}", sym->name());
   } else {
     return os << "NULL";
   }

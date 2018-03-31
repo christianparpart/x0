@@ -87,7 +87,7 @@ bool InstructionElimination::eliminateLinearBr(BasicBlock* bb) {
     // we are the only predecessor of BR's target block, so merge them
     BasicBlock* nextBB = br->targetBlock();
 
-    logTrace("flow: eliminate linear BR-instruction from $0 to $1",
+    logTrace("flow: eliminate linear BR-instruction from {} to {}",
         bb->name(), nextBB->name());
 
     // remove old terminator
@@ -108,7 +108,7 @@ bool InstructionElimination::eliminateLinearBr(BasicBlock* bb) {
 bool InstructionElimination::foldConstantCondBr(BasicBlock* bb) {
   if (auto condbr = dynamic_cast<CondBrInstr*>(bb->getTerminator())) {
     if (auto cond = dynamic_cast<ConstantBoolean*>(condbr->condition())) {
-      logTrace("flow: rewrite condbr %$0 with constant expression %$1",
+      logTrace("flow: rewrite condbr %{} with constant expression %{}",
           condbr->name(), cond->name());
       std::pair<BasicBlock*, BasicBlock*> use;
 

@@ -22,9 +22,9 @@ class ResultBadAccess : public std::exception {
  *  void main() {
  *    Result<int> uid = getUserID();
  *    if (uid.isFailure()) {
- *      fail("Could not retrieve userID. $0", uid.failureMessage());
+ *      fail("Could not retrieve userID. {}", uid.failureMessage());
  *    } else {
- *      info("User ID is $0", *uid);
+ *      info("User ID is {}", *uid);
  *    }
  *  }
  *  Result<int> getUserID() {

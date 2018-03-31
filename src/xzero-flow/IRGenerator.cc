@@ -250,7 +250,7 @@ void IRGenerator::accept(UnaryExpr& expr) {
   if (i != ops.end()) {
     result_ = (this->*i->second)(rhs, "");
   } else {
-    logFatal("Unsupported unary expression $0 in IRGenerator.",
+    logFatal("Unsupported unary expression {} in IRGenerator.",
         mnemonic(expr.op()));
     result_ = nullptr;
   }

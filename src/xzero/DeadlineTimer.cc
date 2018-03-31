@@ -14,7 +14,6 @@
 
 namespace xzero {
 
-#define ERROR(msg...) do { logError("DeadlineTimer: " msg); } while (0)
 #ifndef NDEBUG
 #define TRACE(msg...) do { logTrace("DeadlineTimer: " msg); } while (0)
 #else
@@ -116,7 +115,7 @@ void DeadlineTimer::schedule() {
 }
 
 void DeadlineTimer::onFired() {
-  TRACE("DeadlineTimer($0).onFired: active=$1", this, isActive());
+  TRACE("DeadlineTimer({}).onFired: active={}", (void*)this, isActive());
   if (!isActive()) {
     return;
   }

@@ -70,6 +70,8 @@ class Application {
   static size_t processorCount();
 
   static ProcessID processId();
+
+  static bool isWSL();
 };
 
 } // namespace xzero

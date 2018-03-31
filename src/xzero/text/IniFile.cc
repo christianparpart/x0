@@ -51,7 +51,7 @@ void IniFile::load(const std::string& data) {
         sections_[current_title][value] = std::string();
       }
     } else {
-      throw std::runtime_error{StringUtil::format("unplaced data. '$0'", value)};
+      throw std::runtime_error{fmt::format("unplaced data. '{}'", value)};
     }
   }
 }

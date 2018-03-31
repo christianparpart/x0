@@ -7,6 +7,7 @@
 
 #include <xzero/raft/rpc.h>
 #include <xzero/StringUtil.h>
+#include <fmt/format.h>
 #include <string.h>
 #include <iostream>
 
@@ -74,36 +75,36 @@ std::ostream& operator<<(std::ostream& os, LogType value) {
 
 std::ostream& operator<<(std::ostream& os, const LogEntry& msg) {
   if (msg.type() == LOG_COMMAND) {
-    return os << StringUtil::format(
-        "LogEntry<term:$0, command:$1>",
+    return os << fmt::format(
+        "LogEntry<term:{}, command:{}>",
         msg.term(),
         StringUtil::hexPrint(msg.command().data(), msg.command().size()));
   } else {
-    return os << StringUtil::format(
-        "LogEntry<term:$0, type:$1>",
+    return os << fmt::format(
+        "LogEntry<term:{}, type:{}>",
         msg.term(),
         msg.type());
   }
 }
 
 std::ostream& operator<<(std::ostream& os, const VoteRequest& msg) {
-  return os << StringUtil::format(
-      "VoteRequest<term:$0, candidateId:$1, lastLogIndex:$2, lastLogTerm:$3>",
+  return os << fmt::format(
+      "VoteRequest<term:{}, candidateId:{}, lastLogIndex:{}, lastLogTerm:{}>",
       msg.term,
       msg.candidateId,
       msg.lastLogIndex,
       msg.lastLogTerm);
 }
 std::ostream& operator<<(std::ostream& os, const VoteResponse& msg) {
-  return os << StringUtil::format(
-      "VoteResponse<term:$0, voteGranted:$1>",
+  return os << fmt::format(
+      "VoteResponse<term:{}, voteGranted:{}>",
       msg.term,
       msg.voteGranted);
 }
 
 std::ostream& operator<<(std::ostream& os, const AppendEntriesRequest& msg) {
-  return os << StringUtil::format(
-      "AppendEntriesRequest<term:$0, leaderId:$1, prevLogIndex:$2, prevLogTerm:$3, entries:$4, leaderCommit:$5>",
+  return os << fmt::format(
+      "AppendEntriesRequest<term:{}, leaderId:{}, prevLogIndex:{}, prevLogTerm:{}, entries:{}, leaderCommit:{}>",
       msg.term,
       msg.leaderId,
       msg.prevLogIndex,
@@ -113,16 +114,16 @@ std::ostream& operator<<(std::ostream& os, const AppendEntriesRequest& msg) {
 }
 
 std::ostream& operator<<(std::ostream& os, const AppendEntriesResponse& msg) {
-  return os << StringUtil::format(
-      "AppendEntriesResponse<term:$0, lastLogIndex: $1, success:$2>",
+  return os << fmt::format(
+      "AppendEntriesResponse<term:{}, lastLogIndex: {}, success:{}>",
       msg.term,
       msg.lastLogIndex,
       msg.success);
 }
 
 std::ostream& operator<<(std::ostream& os, const InstallSnapshotRequest& msg) {
-  return os << StringUtil::format(
-      "InstallSnapshotRequest<term:$0, leaderId:$1, lastIncludedIndex:$2, lastIncludedTerm:$3, offset:$4, dataSize:$5, done:$6>",
+  return os << fmt::format(
+      "InstallSnapshotRequest<term:{}, leaderId:{}, lastIncludedIndex:{}, lastIncludedTerm:{}, offset:{}, dataSize:{}, done:{}>",
       msg.term,
       msg.leaderId,
       msg.lastIncludedIndex,
@@ -133,8 +134,8 @@ std::ostream& operator<<(std::ostream& os, const InstallSnapshotRequest& msg) {
 }
 
 std::ostream& operator<<(std::ostream& os, const InstallSnapshotResponse& msg) {
-  return os << StringUtil::format(
-      "InstallSnapshotResponse<term:$0>",
+  return os << fmt::format(
+      "InstallSnapshotResponse<term:{}>",
       msg.term);
 }
 

@@ -131,7 +131,7 @@ bool ApiHandler::run() {
       begin = end + pattern.length();
     }
   }
-  logDebug("proxy.api: path $0 tokens ($1): $2",
+  logDebug("proxy.api: path {} tokens ({}): {}",
            request_->path(),
            tokens_.size(),
            StringUtil::join(tokens_, ", "));
@@ -271,16 +271,15 @@ void ApiHandler::createCluster(const std::string& name) {
   }
 
   std::string location = request_->localAddress()->port() != 80
-      ? StringUtil::format("http://$0:$1/", name,
-                                            request_->localAddress()->port())
-      : StringUtil::format("http://$0:$1/", name);
+      ? fmt::format("http://{}:{}/", name, request_->localAddress()->port())
+      : fmt::format("http://{}/", name);
 
   HttpStatus status = doUpdateCluster(cluster, HttpStatus::Created);
 
   if (isAlreadyPresent) {
-    logInfo("proxy.api: cluster: $0 updated via create method.", cluster->name());
+    logInfo("proxy.api: cluster: {} updated via create method.", cluster->name());
   } else {
-    logInfo("proxy.api: cluster: $0 created.", cluster->name());
+    logInfo("proxy.api: cluster: {} created.", cluster->name());
   }
 
   response_->setStatus(status);
@@ -304,14 +303,14 @@ void ApiHandler::showCluster(Cluster* cluster) {
 
 void ApiHandler::updateCluster(Cluster* cluster) {
   HttpStatus status = doUpdateCluster(cluster, HttpStatus::Ok);
-  logInfo("proxy.api: cluster: $0 reconfigured.", cluster->name());
+  logInfo("proxy.api: cluster: {} reconfigured.", cluster->name());
   generateResponse(status);
 }
 
 HttpStatus ApiHandler::doUpdateCluster(Cluster* cluster,
                                        HttpStatus status) {
   if (!cluster->isMutable()) {
-    logError("proxy.api: cluster: Could not updatecluster '$0'. Director immutable.",
+    logError("proxy.api: cluster: Could not updatecluster '{}'. Director immutable.",
              cluster->name());
     return HttpStatus::Forbidden;
   }
@@ -502,7 +501,7 @@ void ApiHandler::processBackend() {
 
 void ApiHandler::createBackend(Cluster* cluster,
                                const std::string& name) {
-  logDebug("proxy.api: create backend '$0'", name);
+  logDebug("proxy.api: create backend '{}'", name);
   IPAddress ip;
   int port = 0;
   size_t capacity = 0;
@@ -558,7 +557,7 @@ void ApiHandler::updateBackend(Cluster* cluster,
                                Backend* member) {
   if (!cluster->isMutable()) {
     logError("api",
-             "director: Could not update backend '$0' at director '$1'. "
+             "director: Could not update backend '{}' at director '{}'. "
              "Director immutable.",
              member->name(), cluster->name());
 
@@ -597,7 +596,7 @@ void ApiHandler::updateBackend(Cluster* cluster,
 
   cluster->saveConfiguration();
 
-  logInfo("proxy.api: director: $0 reconfigured backend: $1.",
+  logInfo("proxy.api: director: {} reconfigured backend: {}.",
           cluster->name(), member->name());
 
   generateResponse(HttpStatus::NoContent);
@@ -663,7 +662,7 @@ void ApiHandler::destroyBucket(Cluster* cluster, const std::string& name) {
     return;
   }
 
-  logInfo("proxy.api: director $0: Destroying bucket $1", cluster->name(), name);
+  logInfo("proxy.api: director {}: Destroying bucket {}", cluster->name(), name);
 
   cluster->shaper()->destroyNode(bucket);
   cluster->saveConfiguration();
@@ -772,7 +771,7 @@ bool ApiHandler::hasParam(const std::string& key) const {
 bool ApiHandler::loadParam(const std::string& key, bool* result) {
   auto i = params_.find(key);
   if (i == params_.end()) {
-    logError("proxy.api: Request parameter '$0' not found.", key);
+    logError("proxy.api: Request parameter '{}' not found.", key);
     errorCount_++;
     return false;
   }
@@ -788,7 +787,7 @@ bool ApiHandler::loadParam(const std::string& key, bool* result) {
   }
 
   logError("api",
-           "Request parameter '$0' contains an invalid value.",
+           "Request parameter '{}' contains an invalid value.",
            key);
   errorCount_++;
   return false;
@@ -797,7 +796,7 @@ bool ApiHandler::loadParam(const std::string& key, bool* result) {
 bool ApiHandler::loadParam(const std::string& key, int* result) {
   auto i = params_.find(key);
   if (i == params_.end()) {
-    logError("proxy.api: Request parameter '$0' not found.", key);
+    logError("proxy.api: Request parameter '{}' not found.", key);
     errorCount_++;
     return false;
   }
@@ -810,7 +809,7 @@ bool ApiHandler::loadParam(const std::string& key, int* result) {
 bool ApiHandler::loadParam(const std::string& key, size_t* result) {
   auto i = params_.find(key);
   if (i == params_.end()) {
-    logError("proxy.api: Request parameter '$0' not found.", key);
+    logError("proxy.api: Request parameter '{}' not found.", key);
     errorCount_++;
     return false;
   }
@@ -823,7 +822,7 @@ bool ApiHandler::loadParam(const std::string& key, size_t* result) {
 bool ApiHandler::loadParam(const std::string& key, float* result) {
   auto i = params_.find(key);
   if (i == params_.end()) {
-    logError("proxy.api: Request parameter '$0' not found.", key);
+    logError("proxy.api: Request parameter '{}' not found.", key);
     errorCount_++;
     return false;
   }
@@ -837,7 +836,7 @@ bool ApiHandler::loadParam(const std::string& key, float* result) {
 bool ApiHandler::loadParam(const std::string& key, Duration* result) {
   auto i = params_.find(key);
   if (i == params_.end()) {
-    logError("proxy.api: Request parameter '$0' not found.", key);
+    logError("proxy.api: Request parameter '{}' not found.", key);
     errorCount_++;
     return false;
   }
@@ -850,7 +849,7 @@ bool ApiHandler::loadParam(const std::string& key, Duration* result) {
 bool ApiHandler::loadParam(const std::string& key, std::string* result) {
   auto i = params_.find(key);
   if (i == params_.end()) {
-    logError("proxy.api: Request parameter '$0' not found.", key);
+    logError("proxy.api: Request parameter '{}' not found.", key);
     errorCount_++;
     return false;
   }
@@ -863,7 +862,7 @@ bool ApiHandler::loadParam(const std::string& key, std::string* result) {
 bool ApiHandler::loadParam(const std::string& key, IPAddress* result) {
   auto i = params_.find(key);
   if (i == params_.end()) {
-    logError("proxy.api: Request parameter '$0' not found.", key);
+    logError("proxy.api: Request parameter '{}' not found.", key);
     errorCount_++;
     return false;
   }

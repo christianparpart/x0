@@ -52,7 +52,7 @@ void Channel::reset() {
 
 void Channel::upgrade(const std::string& protocol,
                       std::function<void(TcpEndPoint*)> callback) {
-  TRACE("upgrade: $0", protocol);
+  TRACE("upgrade: {}", protocol);
   Connection* connection = static_cast<Connection*>(transport_);
 
   connection->upgrade(protocol, callback);
@@ -144,7 +144,7 @@ void Channel::h2cVerifyUpgrade(std::string&& settingsPayload) {
                                                                   &debugData);
 
   if (errorCode != http2::ErrorCode::NoError) {
-    logDebug("http1.Channel: Upgrade to h2c failed. $0. $1",
+    logDebug("http1.Channel: Upgrade to h2c failed. {}. {}",
              errorCode, debugData);
     return;
   }
@@ -201,7 +201,7 @@ void Channel::h2cUpgrade(const Http2Settings& settings,
 }
 
 void Channel::onError(std::error_code ec) {
-  TRACE("Protocol Error: $0", ec);
+  TRACE("Protocol Error: {}", ec);
 
   request_->setBytesReceived(bytesReceived());
 

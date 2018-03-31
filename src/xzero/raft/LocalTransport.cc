@@ -54,7 +54,7 @@ Handler* LocalTransport::getPeer(Id id) {
   if (i != peers_.end()) {
     return i->second;
   } else {
-    logError("raft: LocalTransport($0).getPeer($1) failed.", myId_, id);
+    logError("raft: LocalTransport({}).getPeer({}) failed.", myId_, id);
     RAISE_ERROR(make_error_code(RaftError::ServerNotFound));
   }
 }
@@ -74,7 +74,7 @@ void LocalTransport::send(Id target, const VoteRequest& msg) {
       getPeer(myId_)->handleResponse(target, result);
     });
   });
-  //logDebug("raft.LocalTransport: $0 send to $1: $2", myId_, target, msg);
+  //logDebug("raft.LocalTransport: {} send to {}: {}", myId_, target, msg);
 }
 
 
@@ -82,10 +82,10 @@ void LocalTransport::send(Id target, const AppendEntriesRequest& msg) {
   assert(msg.leaderId == myId_);
 
   executor_->execute([=]() {
-    //logDebug("raft.LocalTransport: $0-to-$1: recv $2", myId_, target, msg);
+    //logDebug("raft.LocalTransport: {}-to-{}: recv {}", myId_, target, msg);
     AppendEntriesResponse result = getPeer(target)->handleRequest(myId_, msg);
     executor_->execute([=]() {
-      //logDebug("raft.LocalTransport: $0-to-$1: recv $2", target, myId_, result);
+      //logDebug("raft.LocalTransport: {}-to-{}: recv {}", target, myId_, result);
       getPeer(myId_)->handleResponse(target, result);
     });
   });

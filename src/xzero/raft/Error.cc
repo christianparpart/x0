@@ -6,10 +6,9 @@
 // the License at: http://opensource.org/licenses/MIT
 
 #include <xzero/raft/Error.h>
-#include <xzero/StringUtil.h>
+#include <fmt/format.h>
 
-namespace xzero {
-namespace raft {
+namespace xzero::raft {
 
 RaftCategory& RaftCategory::get() {
   static RaftCategory cat;
@@ -33,9 +32,8 @@ std::string RaftCategory::message(int ec) const {
     case RaftError::ServerNotFound:
       return "Server not found";
     default:
-      return StringUtil::format("RaftError<$0>", ec);
+      return fmt::format("RaftError<{}>", ec);
   }
 }
 
-} // namespace raft
-} // namespace xzero
+} // namespace xzero::raft

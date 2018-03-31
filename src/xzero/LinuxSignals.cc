@@ -49,13 +49,13 @@ UnixSignals::HandleRef LinuxSignals::notify(int signo, SignalHandler task) {
     if (fd_ < 0) {
       RAISE_ERRNO(errno);
     }
-    TRACE("notify: signalfd=$0", fd_.get());
+    TRACE("notify: signalfd={}", fd_.get());
   }
 
   // block this signal also to avoid default disposition
   sigprocmask(SIG_BLOCK, &signalMask_, nullptr);
 
-  TRACE("notify: $0", toString(signo));
+  TRACE("notify: {}", toString(signo));
   auto hr = std::make_shared<SignalWatcher>(task);
   watchers_[signo].emplace_back(hr);
 
@@ -99,7 +99,7 @@ void LinuxSignals::onSignal() {
       int signo = event.ssi_signo;
       std::list<std::shared_ptr<SignalWatcher>>& watchers = watchers_[signo];
 
-      DEBUG("Caught signal $0 from PID $1 UID $2.",
+      DEBUG("Caught signal {} from PID {} UID {}.",
             toString(signo),
             event.ssi_pid,
             event.ssi_uid);

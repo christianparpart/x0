@@ -160,7 +160,7 @@ void Http1Connection::completed() {
 }
 
 void Http1Connection::onRequestComplete(bool success) {
-  TRACE("onRequestComplete($0)", success ? "success" : "failed");
+  TRACE("onRequestComplete({})", success ? "success" : "failed");
   if (success) {
     wantRead();
   }
@@ -203,7 +203,7 @@ void Http1Connection::parseFragment() {
 void Http1Connection::onWriteable() {
   TRACE("onWriteable()");
   const bool complete = writer_.flushTo(endpoint());
-  TRACE("onWriteable: $0", complete ? "completed" : "needs-more-to-flush");
+  TRACE("onWriteable: {}", complete ? "completed" : "needs-more-to-flush");
 
   if (!complete) {
     wantWrite();
@@ -248,7 +248,7 @@ void Http1Connection::onMessageHeader(const BufferRef& name,
 }
 
 void Http1Connection::onMessageHeaderEnd() {
-  TRACE("onMessageHeaderEnd! expectsBody=$0", expectsBody_);
+  TRACE("onMessageHeaderEnd! expectsBody={}", expectsBody_);
   channel_->onMessageHeaderEnd();
   if (parser_.isContentExpected() && !expectsBody_) {
     onMessageEnd();
@@ -270,7 +270,7 @@ void Http1Connection::onMessageEnd() {
 }
 
 void Http1Connection::onError(std::error_code ec) {
-  TRACE("onError! $0", ec.message());
+  TRACE("onError! {}", ec.message());
   channel_->onError(ec);
 }
 // }}}

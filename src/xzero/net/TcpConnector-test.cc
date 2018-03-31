@@ -121,7 +121,7 @@ TEST(TcpConnector, echoServer) {
 
   connector->addConnectionFactory("test", connectionFactory);
   connector->start();
-  logf("Listening on port $0", connector->port());
+  logf("Listening on port {}", connector->port());
 
   Future<std::shared_ptr<TcpEndPoint>> f = TcpEndPoint::connect(
       InetAddress("127.0.0.1", connector->port()),
@@ -129,7 +129,7 @@ TEST(TcpConnector, echoServer) {
 
   Buffer response;
   auto onClientReceived = [&](const BufferRef& receivedText) {
-    logf("Client received \"$0\"", receivedText);
+    logf("Client received \"{}\"", receivedText);
     response = receivedText;
     connector->stop();
   };
@@ -180,7 +180,7 @@ TEST(TcpConnector, detectProtocols) {
   connector->addConnectionFactory("echo", echoFactory);
   connector->addConnectionFactory("yeah", yeahFactory);
   connector->start();
-  logf("Listening on port $0", connector->port());
+  logf("Listening on port {}", connector->port());
 
   Future<std::shared_ptr<TcpEndPoint>> f = TcpEndPoint::connect(
       InetAddress("127.0.0.1", connector->port()),
@@ -188,7 +188,7 @@ TEST(TcpConnector, detectProtocols) {
 
   Buffer response;
   auto onClientReceived = [&](const BufferRef& receivedText) {
-    logf("Client received \"$0\"", receivedText);
+    logf("Client received \"{}\"", receivedText);
     response = receivedText;
     connector->stop();
   };

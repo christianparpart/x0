@@ -70,7 +70,7 @@ bool WebdavModule::webdav_mkcol(Context* cx) {
     return false;
 
   if (cx->request()->directoryDepth() < 0) {
-    cx->logError("Directory traversal detected: $0", cx->request()->path());
+    cx->logError("Directory traversal detected: {}", cx->request()->path());
     return cx->sendErrorPage(HttpStatus::BadRequest);
   }
 
@@ -80,12 +80,12 @@ bool WebdavModule::webdav_mkcol(Context* cx) {
     return true;
   }
 
-  logDebug("webdav: Creating directory: $0", cx->file()->path());
+  logDebug("webdav: Creating directory: {}", cx->file()->path());
   try {
     FileUtil::mkdir_p(cx->file()->path());
     cx->response()->setStatus(HttpStatus::Created);
   } catch (const std::exception& e) {
-    logError("webdav: Failed creating file $0. $1",
+    logError("webdav: Failed creating file {}. {}",
              cx->file()->path(),
              e.what());
     cx->response()->setStatus(HttpStatus::NoContent);
@@ -97,7 +97,7 @@ bool WebdavModule::webdav_mkcol(Context* cx) {
 
 bool WebdavModule::webdav_get(Context* cx) {
   if (cx->request()->directoryDepth() < 0) {
-    cx->logError("Directory traversal detected: $0", cx->request()->path());
+    cx->logError("Directory traversal detected: {}", cx->request()->path());
     return cx->sendErrorPage(HttpStatus::BadRequest);
   }
 
@@ -129,13 +129,13 @@ bool WebdavModule::webdav_put(Context* cx, Params& args) {
   }
 
   if (cx->request()->directoryDepth() < 0) {
-    cx->logError("Directory traversal detected: $0", cx->request()->path());
+    cx->logError("Directory traversal detected: {}", cx->request()->path());
     return cx->sendErrorPage(HttpStatus::BadRequest);
   }
 
   BufferRef content = cx->request()->getContent().getBuffer();
 
-  logDebug("webdav: put filename: $0", cx->file()->path());
+  logDebug("webdav: put filename: {}", cx->file()->path());
 
   //bool didNotExistBefore = !cx->file()->exists();
   int mode = args.getInt(1);
