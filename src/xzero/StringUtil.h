@@ -329,7 +329,7 @@ public:
    * @param values... the values to insert into the format string
    */
   template <typename... T>
-  static void puts(const char* fmt, T... values);
+  [[deprecated]] static void puts(const char* fmt, T... values);
 
   [[deprecated]] static std::wstring convertUTF8To16(const std::string& str);
   [[deprecated]] static std::string convertUTF16To8(const std::wstring& str);
