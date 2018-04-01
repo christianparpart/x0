@@ -162,23 +162,29 @@ set(libXzero_SRC src/xzero/AnsiColor.cc
                  src/xzero/http/HeaderFieldList.cc
                  src/xzero/http/HttpChannel.cc
                  src/xzero/http/HttpConnectionFactory.cc
-                 src/xzero/http/HttpRequest.cc
-                 src/xzero/http/HttpRequestInfo.cc
-                 src/xzero/http/HttpResponse.cc
-                 src/xzero/http/HttpService.cc
-                 src/xzero/http/HttpStatus.cc
                  src/xzero/http/HttpDateGenerator.cc
                  src/xzero/http/HttpFileHandler.cc
                  src/xzero/http/HttpListener.cc
                  src/xzero/http/HttpMethod.cc
                  src/xzero/http/HttpOutputCompressor.cc
                  src/xzero/http/HttpRangeDef.cc
+                 src/xzero/http/HttpRequest.cc
+                 src/xzero/http/HttpRequestInfo.cc
+                 src/xzero/http/HttpResponse.cc
+                 src/xzero/http/HttpService.cc
+                 src/xzero/http/HttpStatus.cc
                  src/xzero/http/HttpTransport.cc
                  src/xzero/http/HttpVersion.cc
                  src/xzero/http/MediaRange.cc
                  src/xzero/http/client/Http1Connection.cc
                  src/xzero/http/client/HttpClient.cc
                  src/xzero/http/client/HttpTransport.cc
+                 src/xzero/http/cluster/ApiHandler.cc
+                 src/xzero/http/cluster/Backend.cc
+                 src/xzero/http/cluster/Cluster.cc
+                 src/xzero/http/cluster/Context.cc
+                 src/xzero/http/cluster/HealthMonitor.cc
+                 src/xzero/http/cluster/Scheduler.cc
                  src/xzero/http/fastcgi/Connection.cc
                  src/xzero/http/fastcgi/ConnectionFactory.cc
                  src/xzero/http/fastcgi/Generator.cc
@@ -226,13 +232,13 @@ set(libXzero_SRC src/xzero/AnsiColor.cc
                  src/xzero/net/DnsClient.cc
                  src/xzero/net/EndPointWriter.cc
                  src/xzero/net/InetAddress.cc
+                 src/xzero/net/SslConnector.cc
+                 src/xzero/net/SslContext.cc
+                 src/xzero/net/SslEndPoint.cc
                  src/xzero/net/TcpConnection.cc
                  src/xzero/net/TcpConnector.cc
                  src/xzero/net/TcpEndPoint.cc
                  src/xzero/net/TcpUtil.cc
-                 src/xzero/net/SslConnector.cc
-                 src/xzero/net/SslContext.cc
-                 src/xzero/net/SslEndPoint.cc
                  src/xzero/net/UdpClient.cc
                  src/xzero/net/UdpConnector.cc
                  src/xzero/net/UdpEndPoint.cc
@@ -243,27 +249,21 @@ set(libXzero_SRC src/xzero/AnsiColor.cc
                  src/xzero/raft/LocalTransport.cc
                  src/xzero/raft/MessageType.cc
                  src/xzero/raft/Parser.cc
-                 src/xzero/raft/rpc.cc
                  src/xzero/raft/Server.cc
                  src/xzero/raft/ServerUtil.cc
                  src/xzero/raft/Storage.cc
                  src/xzero/raft/Transport.cc
+                 src/xzero/raft/rpc.cc
                  src/xzero/testing.cc
                  src/xzero/text/IniFile.cc
-                 src/xzero/thread/Wakeup.cc
                  src/xzero/thread/Queue.cc
                  src/xzero/thread/SignalHandler.cc
-                 src/xzero/util/BinaryReader.cc
-                 src/xzero/util/BinaryWriter.cc
+                 src/xzero/thread/Wakeup.cc
                  src/xzero/util/BinaryMessageReader.cc
                  src/xzero/util/BinaryMessageWriter.cc
+                 src/xzero/util/BinaryReader.cc
+                 src/xzero/util/BinaryWriter.cc
                  src/xzero/util/SimpleRateLimit.cc
-                 src/xzero/http/cluster/ApiHandler.cc
-                 src/xzero/http/cluster/Backend.cc
-                 src/xzero/http/cluster/Cluster.cc
-                 src/xzero/http/cluster/Context.cc
-                 src/xzero/http/cluster/HealthMonitor.cc
-                 src/xzero/http/cluster/Scheduler.cc
                  )
 
 # XXX if(LINUX) doesn't work on WSL; too bad; why?
@@ -354,11 +354,11 @@ install(TARGETS XzeroFlow DESTINATION ${CMAKE_INSTALL_PREFIX}/lib)
 # {{{ x0d
 MIMETYPES_GENERATE_CPP(MT_SRC ${PROJECT_SOURCE_DIR}/3rdparty/mime.types)
 
-set(x0d_SRC src/x0d/main.cc
-            ${MT_SRC}
+set(x0d_SRC ${MT_SRC}
             src/x0d/Context.cc
             src/x0d/Daemon.cc
             src/x0d/Module.cc
+            src/x0d/main.cc
             src/x0d/modules/access.cc
             src/x0d/modules/accesslog.cc
             src/x0d/modules/auth.cc
@@ -399,11 +399,6 @@ set(xzero_test_SRC
 		src/xzero/HugeBuffer-test.cc
 		src/xzero/MimeTypes-test.cc
 		src/xzero/PrefixTree-test.cc
-		src/xzero/raft/Generator-test.cc
-		src/xzero/raft/InetTransport-test.cc
-		src/xzero/raft/Parser-test.cc
-		src/xzero/raft/Server-test.cc
-		src/xzero/raft/ServerUtil-test.cc
 		src/xzero/Result-test.cc
 		src/xzero/StringUtil-test.cc
 		src/xzero/SuffixTree-test.cc
@@ -439,8 +434,13 @@ set(xzero_test_SRC
 		src/xzero/io/DataChain-test.cc
 		src/xzero/io/MemoryFile-test.cc
 		src/xzero/io/MemoryMap-test.cc
-		src/xzero/net/TcpConnector-test.cc
 		src/xzero/net/Cidr-test.cc
+		src/xzero/net/TcpConnector-test.cc
+		src/xzero/raft/Generator-test.cc
+		src/xzero/raft/InetTransport-test.cc
+		src/xzero/raft/Parser-test.cc
+		src/xzero/raft/Server-test.cc
+		src/xzero/raft/ServerUtil-test.cc
 		src/xzero/thread/Future-test.cc
 		src/xzero/thread/Queue-test.cc
 		src/xzero/util/BinaryReader-test.cc
