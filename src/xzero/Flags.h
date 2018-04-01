@@ -103,8 +103,8 @@ class Flags {
   const FlagDef* findDef(const std::string& longOption) const;
   const FlagDef* findDef(char shortOption) const;
 
-  XZERO_NODISCARD std::error_code parse(int argc, const char* argv[]);
-  XZERO_NODISCARD std::error_code parse(const std::vector<std::string>& args);
+  [[nodiscard]] std::error_code parse(int argc, const char* argv[]);
+  [[nodiscard]] std::error_code parse(const std::vector<std::string>& args);
 
   enum class Error {
     TypeMismatch,
