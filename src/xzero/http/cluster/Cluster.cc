@@ -770,7 +770,7 @@ bool Cluster::verifyTryCount(Context* cx) {
 void Cluster::serviceUnavailable(Context* cx, HttpStatus status) {
   cx->onMessageBegin(HttpVersion::VERSION_1_1,
                      status,
-                     BufferRef(to_string(status)));
+                     BufferRef(fmt::format("{}", status)));
 
   // TODO: put into a more generic place where it affects all responses.
   if (cx->bucket) {
@@ -781,7 +781,7 @@ void Cluster::serviceUnavailable(Context* cx, HttpStatus status) {
   if (retryAfter() != Duration::Zero) {
     cx->onMessageHeader(
         BufferRef("Retry-After"),
-        BufferRef(to_string(retryAfter().seconds())));
+        BufferRef(fmt::format("{}", retryAfter().seconds())));
   }
 
   cx->onMessageHeaderEnd();

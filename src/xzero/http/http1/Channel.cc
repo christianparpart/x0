@@ -201,7 +201,7 @@ void Channel::h2cUpgrade(const Http2Settings& settings,
 }
 
 void Channel::onError(std::error_code ec) {
-  TRACE("Protocol Error: {}", ec);
+  TRACE("Protocol Error: {}", ec.message());
 
   request_->setBytesReceived(bytesReceived());
 

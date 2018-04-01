@@ -173,7 +173,7 @@ std::string formatLog(Context* cx, const std::string& format) { // {{{
         ++i;
         break;
       case 'O':  // sent bytes (transport level)
-        result << to_string(cx->bytesTransmitted());
+        result << std::to_string(cx->bytesTransmitted());
         ++i;
         break;
       case 'o':  // sent bytes (response body)
@@ -193,7 +193,7 @@ std::string formatLog(Context* cx, const std::string& format) { // {{{
       case 'r':  // request line
         result << request->unparsedMethod()
                << ' ' << request->unparsedUri()
-               << " HTTP/" << to_string(request->version());
+               << " HTTP/" << fmt::format("{}", request->version());
         ++i;
         break;
       case 'T': {  // request time duration

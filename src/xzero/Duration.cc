@@ -58,8 +58,4 @@ std::string inspect(const Duration& value) {
   return sstr.str();
 }
 
-std::ostream& operator<<(std::ostream& os, Duration d) {
-  return os << inspect(d);
-}
-
 }

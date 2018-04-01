@@ -7,14 +7,13 @@
 
 #pragma once
 
-#include <xzero/Api.h>
+#include <xzero/net/TcpEndPoint.h>
 #include <memory>
 #include <list>
 
 namespace xzero {
 
 class Executor;
-class TcpEndPoint;
 
 /**
  * A TcpConnection is responsible for processing an TcpEndPoint.

@@ -5,12 +5,10 @@
 // file except in compliance with the License. You may obtain a copy of
 // the License at: http://opensource.org/licenses/MIT
 
-#ifndef x0_Cidr_h
-#define x0_Cidr_h
+#pragma once
 
-#include <xzero/Api.h>
 #include <xzero/net/IPAddress.h>
-#include <iosfwd>
+#include <fmt/format.h>
 
 namespace xzero {
 
@@ -90,8 +88,6 @@ class Cidr {
   size_t prefix_;
 };
 
-std::ostream& operator<<(std::ostream& os, const Cidr& cidr);
-
 }  // namespace xzero
 
 namespace std {
@@ -106,4 +102,16 @@ struct hash<xzero::Cidr> : public unary_function<xzero::Cidr, size_t> {
 
 }  // namespace std
 
-#endif
+namespace fmt {
+  template<>
+  struct formatter<xzero::Cidr> {
+    template <typename ParseContext>
+    constexpr auto parse(ParseContext &ctx) { return ctx.begin(); }
+
+    template <typename FormatContext>
+    constexpr auto format(const xzero::Cidr& v, FormatContext &ctx) {
+      return format_to(ctx.begin(), v.str());
+    }
+  };
+}
+

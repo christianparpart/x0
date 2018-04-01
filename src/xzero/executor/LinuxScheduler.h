@@ -11,7 +11,6 @@
 #include <xzero/MonotonicTime.h>
 #include <xzero/executor/EventLoop.h>
 #include <xzero/io/FileDescriptor.h>
-#include <fmt/ostream.h>
 #include <vector>
 #include <set>
 #include <list>

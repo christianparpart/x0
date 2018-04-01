@@ -5,21 +5,22 @@
 // file except in compliance with the License. You may obtain a copy of
 // the License at: http://opensource.org/licenses/MIT
 
-#include <xzero/http/http1/Connection.h>
-#include <xzero/http/http1/Channel.h>
-#include <xzero/http/HttpDateGenerator.h>
-#include <xzero/http/HttpResponseInfo.h>
-#include <xzero/http/HttpResponse.h>
-#include <xzero/http/HttpRequest.h>
-#include <xzero/http/BadMessage.h>
-#include <xzero/net/TcpConnection.h>
-#include <xzero/net/TcpEndPoint.h>
-#include <xzero/net/EndPointWriter.h>
-#include <xzero/executor/Executor.h>
-#include <xzero/logging.h>
 #include <xzero/RuntimeError.h>
 #include <xzero/StringUtil.h>
+#include <xzero/executor/Executor.h>
+#include <xzero/http/BadMessage.h>
+#include <xzero/http/HttpDateGenerator.h>
+#include <xzero/http/HttpRequest.h>
+#include <xzero/http/HttpResponse.h>
+#include <xzero/http/HttpResponseInfo.h>
+#include <xzero/http/http1/Channel.h>
+#include <xzero/http/http1/Connection.h>
+#include <xzero/logging.h>
+#include <xzero/net/EndPointWriter.h>
+#include <xzero/net/TcpConnection.h>
+#include <xzero/net/TcpEndPoint.h>
 #include <xzero/sysconfig.h>
+
 #include <cassert>
 #include <cstdlib>
 
@@ -65,15 +66,15 @@ Connection::Connection(TcpEndPoint* endpoint,
   channel_->request()->setRemoteAddress(endpoint->remoteAddress());
   channel_->request()->setLocalAddress(endpoint->localAddress());
 
-  TRACE("{} ctor", this);
+  TRACE("{} ctor", (void*) this);
 }
 
 Connection::~Connection() {
-  TRACE("{} dtor", this);
+  TRACE("{} dtor", (void*) this);
 }
 
 void Connection::onOpen(bool dataReady) {
-  TRACE("{} onOpen", this);
+  TRACE("{} onOpen", (void*) this);
   TcpConnection::onOpen(dataReady);
 
   if (dataReady)
@@ -83,16 +84,16 @@ void Connection::onOpen(bool dataReady) {
 }
 
 void Connection::abort() {
-  TRACE("{} abort()", this);
+  TRACE("{} abort()", (void*) this);
   channel_->response()->setBytesTransmitted(generator_.bytesTransmitted());
   channel_->responseEnd();
 
-  TRACE("{} abort", this);
+  TRACE("{} abort", (void*) this);
   endpoint()->close();
 }
 
 void Connection::completed() {
-  TRACE("{} completed", this);
+  TRACE("{} completed", (void*) this);
 
   if (channel_->request()->method() != HttpMethod::HEAD &&
       !generator_.isChunked() &&
@@ -118,7 +119,7 @@ void Connection::upgrade(const std::string& protocol,
 }
 
 void Connection::onResponseComplete(bool succeed) {
-  TRACE("{} onResponseComplete({})", this, succeed ? "succeed" : "failure");
+  TRACE("{} onResponseComplete({})", (void*) this, succeed ? "succeed" : "failure");
   channel_->response()->setBytesTransmitted(generator_.bytesTransmitted());
   channel_->responseEnd();
 
@@ -145,7 +146,7 @@ void Connection::onResponseComplete(bool succeed) {
   }
 
   if (channel_->isPersistent()) {
-    TRACE("{} onResponseComplete: keep-alive was enabled", this);
+    TRACE("{} onResponseComplete: keep-alive was enabled", (void*) this);
 
     // re-use on keep-alive
     channel_->reset();
@@ -155,11 +156,11 @@ void Connection::onResponseComplete(bool succeed) {
 
     if (inputOffset_ < inputBuffer_.size()) {
       // have some request pipelined
-      TRACE("{} completed.onComplete: pipelined read", this);
+      TRACE("{} completed.onComplete: pipelined read", (void*) this);
       executor()->execute(std::bind(&Connection::parseFragment, this));
     } else {
       // wait for next request
-      TRACE("{} completed.onComplete: keep-alive read", this);
+      TRACE("{} completed.onComplete: keep-alive read", (void*) this);
       wantRead();
     }
   } else {
@@ -173,7 +174,7 @@ void Connection::send(HttpResponseInfo& responseInfo,
   setCompleter(onComplete, responseInfo.status());
 
   TRACE("{} send(BufferRef, status={}, persistent={}, chunkSize={})",
-        this, responseInfo.status(), channel_->isPersistent() ? "yes" : "no",
+        (void*) this, responseInfo.status(), channel_->isPersistent() ? "yes" : "no",
         chunk.size());
 
   patchResponseInfo(responseInfo);
@@ -191,7 +192,7 @@ void Connection::send(HttpResponseInfo& responseInfo,
   setCompleter(onComplete, responseInfo.status());
 
   TRACE("{} send(Buffer, status={}, persistent={}, chunkSize={})",
-        this, responseInfo.status(), channel_->isPersistent() ? "yes" : "no",
+        (void*) this, responseInfo.status(), channel_->isPersistent() ? "yes" : "no",
         chunk.size());
 
   patchResponseInfo(responseInfo);
@@ -209,7 +210,7 @@ void Connection::send(HttpResponseInfo& responseInfo,
   setCompleter(onComplete, responseInfo.status());
 
   TRACE("{} send(FileView, status={}, persistent={}, fd={}, chunkSize={})",
-        this, responseInfo.status(), channel_->isPersistent() ? "yes" : "no",
+        (void*) this, responseInfo.status(), channel_->isPersistent() ? "yes" : "no",
         chunk.handle(), chunk.size());
 
   patchResponseInfo(responseInfo);
@@ -246,7 +247,7 @@ void Connection::setCompleter(CompletionHandler onComplete, HttpStatus status) {
 
 void Connection::invokeCompleter(bool success) {
   if (onComplete_) {
-    TRACE("{} invoking completion callback", this);
+    TRACE("{} invoking completion callback", (void*) this);
     auto callback = std::move(onComplete_);
     onComplete_ = nullptr;
     callback(success);
@@ -275,7 +276,7 @@ void Connection::patchResponseInfo(HttpResponseInfo& responseInfo) {
 
 void Connection::send(Buffer&& chunk, CompletionHandler onComplete) {
   setCompleter(onComplete);
-  TRACE("{} send(Buffer, chunkSize={})", this, chunk.size());
+  TRACE("{} send(Buffer, chunkSize={})", (void*) this, chunk.size());
   generator_.generateBody(std::move(chunk));
   wantWrite();
 }
@@ -283,24 +284,24 @@ void Connection::send(Buffer&& chunk, CompletionHandler onComplete) {
 void Connection::send(const BufferRef& chunk,
                       CompletionHandler onComplete) {
   setCompleter(onComplete);
-  TRACE("{} send(BufferRef, chunkSize={})", this, chunk.size());
+  TRACE("{} send(BufferRef, chunkSize={})", (void*) this, chunk.size());
   generator_.generateBody(chunk);
   wantWrite();
 }
 
 void Connection::send(FileView&& chunk, CompletionHandler onComplete) {
   setCompleter(onComplete);
-  TRACE("{} send(FileView, chunkSize={})", this, chunk.size());
+  TRACE("{} send(FileView, chunkSize={})", (void*) this, chunk.size());
   generator_.generateBody(std::move(chunk));
   wantWrite();
 }
 
 void Connection::onReadable() {
-  TRACE("{} onReadable", this);
+  TRACE("{} onReadable", (void*) this);
 
-  TRACE("{} onReadable: calling read()", this);
+  TRACE("{} onReadable: calling read()", (void*) this);
   if (endpoint()->read(&inputBuffer_) == 0) {
-    TRACE("{} onReadable: read() returned 0", this);
+    TRACE("{} onReadable: read() returned 0", (void*) this);
     // ??? throw RemoteDisconnected{};
     abort();
     return;
@@ -326,7 +327,7 @@ void Connection::parseFragment() {
     }
   } catch (const BadMessage& e) {
     TRACE("{} parseFragment: BadMessage caught (while in state {}). {}",
-          this, to_string(channel_->state()), e.what());
+          (void*) this, channel_->state(), e.what());
 
     if (channel_->response()->version() == HttpVersion::UNKNOWN)
       channel_->response()->setVersion(HttpVersion::VERSION_0_9);
@@ -339,7 +340,7 @@ void Connection::parseFragment() {
 }
 
 void Connection::onWriteable() {
-  TRACE("{} onWriteable", this);
+  TRACE("{} onWriteable", (void*) this);
 
   if (channel_->state() != HttpChannelState::SENDING)
     channel_->setState(HttpChannelState::SENDING);
@@ -348,7 +349,7 @@ void Connection::onWriteable() {
 
   if (complete) {
     TRACE("{} onWriteable: completed. ({})",
-          this,
+          (void*) this,
           (onComplete_ ? "onComplete cb set" : "onComplete cb not set"));
     channel_->setState(HttpChannelState::HANDLING);
 
@@ -361,7 +362,7 @@ void Connection::onWriteable() {
 
 void Connection::onInterestFailure(const std::exception& error) {
   TRACE("{} onInterestFailure({}): {}",
-        this, typeid(error).name(), error.what());
+        (void*) this, typeid(error).name(), error.what());
 
   // TODO: improve logging here, as this eats our exception here.
   // e.g. via (factory or connector)->error(error);

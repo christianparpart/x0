@@ -7,6 +7,8 @@
 #pragma once
 
 #include <xzero/Buffer.h>
+#include <xzero/StringUtil.h>
+#include <fmt/format.h>
 #include <string>
 #include <vector>
 #include <iosfwd>
@@ -38,18 +40,29 @@ enum LogType {
  */
 class LogEntry {
  public:
-  LogEntry(Term term, LogType type, Command&& cmd);
-  LogEntry(Term term, Command&& cmd);
-  LogEntry(Term term, LogType type);
-  LogEntry(Term term);
-  LogEntry(const LogEntry& v);
-  LogEntry();
+  LogEntry(Term term, LogType type, Command cmd)
+      : term_{term}, type_{type}, command_{std::move(cmd)} {}
+  LogEntry(Term term, Command&& cmd)
+      : LogEntry{term, LOG_COMMAND, std::move(cmd)} {}
+  LogEntry(Term term, LogType type)
+      : LogEntry{term, type, Command{}} {}
+  LogEntry(Term term)
+      : LogEntry{term, Command{}} {}
+  LogEntry() : LogEntry{0} {}
+
+  LogEntry(const LogEntry& v)
+      : term_{v.term_}, type_{v.type_}, command_{v.command_} {}
 
   Term term() const noexcept { return term_; }
   LogType type() const noexcept { return type_; }
   const Command& command() const { return command_; }
 
-  bool isCommand(const BufferRef& cmd) const;
+  bool isCommand(const BufferRef& cmd) const {
+    if (command_.size() != cmd.size())
+      return false;
+
+    return memcmp(command_.data(), cmd.data(), cmd.size()) == 0;
+  }
 
  private:
   Term term_;
@@ -112,14 +125,128 @@ struct InstallSnapshotResponse {
   Term term;
 };
 
-std::ostream& operator<<(std::ostream& os, LogType value);
-std::ostream& operator<<(std::ostream& os, const LogEntry& msg);
-std::ostream& operator<<(std::ostream& os, const VoteRequest& msg);
-std::ostream& operator<<(std::ostream& os, const VoteResponse& msg);
-std::ostream& operator<<(std::ostream& os, const AppendEntriesRequest& msg);
-std::ostream& operator<<(std::ostream& os, const AppendEntriesResponse& msg);
-std::ostream& operator<<(std::ostream& os, const InstallSnapshotRequest& msg);
-std::ostream& operator<<(std::ostream& os, const InstallSnapshotResponse& msg);
-
 } // namespace raft
 } // namespace xzero
+
+namespace fmt {
+
+  template<>
+  struct formatter<xzero::raft::LogType> {
+    template <typename ParseContext>
+    constexpr auto parse(ParseContext &ctx) { return ctx.begin(); }
+
+    template <typename FormatContext>
+    constexpr auto format(const xzero::raft::LogType& v, FormatContext &ctx) {
+      switch (v) {
+        case xzero::raft::LOG_COMMAND:
+          return format_to(ctx.begin(), "LOG_COMMAND");
+        case xzero::raft::LOG_PEER_ADD:
+          return format_to(ctx.begin(), "LOG_PEER_ADD");
+        case xzero::raft::LOG_PEER_REMOVE:
+          return format_to(ctx.begin(), "LOG_PEER_REMOVE");
+        default: {
+          return format_to(ctx.begin(), "<{}>", (int) v);
+        }
+      }
+    }
+  };
+
+  template<>
+  struct formatter<xzero::raft::LogEntry> {
+    template <typename ParseContext>
+    constexpr auto parse(ParseContext &ctx) { return ctx.begin(); }
+
+    template <typename FormatContext>
+    constexpr auto format(const xzero::raft::LogEntry& v, FormatContext &ctx) {
+      if (v.type() == xzero::raft::LOG_COMMAND) {
+        return fmt::format(
+            "LogEntry<term:{}, command:{}>",
+            v.term(),
+            xzero::StringUtil::hexPrint(v.command().data(), v.command().size()));
+      } else {
+        return fmt::format(
+            "LogEntry<term:{}, type:{}>",
+            v.term(),
+            v.type());
+      }
+    }
+  };
+
+  template<>
+  struct formatter<xzero::raft::VoteResponse> {
+    template <typename ParseContext>
+    constexpr auto parse(ParseContext &ctx) { return ctx.begin(); }
+
+    template <typename FormatContext>
+    constexpr auto format(const xzero::raft::VoteResponse& v, FormatContext &ctx) {
+      return format_to(ctx.begin(), 
+          "VoteResponse<term:{}, voteGranted:{}>",
+          v.term,
+          v.voteGranted);
+    }
+  };
+
+  template<>
+  struct formatter<xzero::raft::AppendEntriesRequest> {
+    template <typename ParseContext>
+    constexpr auto parse(ParseContext &ctx) { return ctx.begin(); }
+
+    template <typename FormatContext>
+    constexpr auto format(const xzero::raft::AppendEntriesRequest& v, FormatContext &ctx) {
+      return format_to(ctx.begin(), 
+          "AppendEntriesRequest<term:{}, leaderId:{}, prevLogIndex:{}, prevLogTerm:{}, entries:{}, leaderCommit:{}>",
+          v.term,
+          v.leaderId,
+          v.prevLogIndex,
+          v.prevLogTerm,
+          v.entries.size(),
+          v.leaderCommit);
+    }
+  };
+
+  template<>
+  struct formatter<xzero::raft::AppendEntriesResponse> {
+    template <typename ParseContext>
+    constexpr auto parse(ParseContext &ctx) { return ctx.begin(); }
+
+    template <typename FormatContext>
+    constexpr auto format(const xzero::raft::AppendEntriesResponse& v, FormatContext &ctx) {
+      return format_to(ctx.begin(), 
+          "AppendEntriesResponse<term:{}, lastLogIndex: {}, success:{}>",
+          v.term,
+          v.lastLogIndex,
+          v.success);
+    }
+  };
+
+  template<>
+  struct formatter<xzero::raft::InstallSnapshotRequest> {
+    template <typename ParseContext>
+    constexpr auto parse(ParseContext &ctx) { return ctx.begin(); }
+
+    template <typename FormatContext>
+    constexpr auto format(const xzero::raft::InstallSnapshotRequest& v, FormatContext &ctx) {
+      return format_to(ctx.begin(), 
+          "InstallSnapshotRequest<term:{}, leaderId:{}, lastIncludedIndex:{}, lastIncludedTerm:{}, offset:{}, dataSize:{}, done:{}>",
+          v.term,
+          v.leaderId,
+          v.lastIncludedIndex,
+          v.lastIncludedTerm,
+          v.offset,
+          v.data.size(),
+          v.done);
+    }
+  };
+
+  template<>
+  struct formatter<xzero::raft::InstallSnapshotResponse> {
+    template <typename ParseContext>
+    constexpr auto parse(ParseContext &ctx) { return ctx.begin(); }
+
+    template <typename FormatContext>
+    constexpr auto format(const xzero::raft::InstallSnapshotResponse& v, FormatContext &ctx) {
+      return format_to(ctx.begin(), "InstallSnapshotResponse<term:{}>", v.term);
+    }
+  };
+
+}

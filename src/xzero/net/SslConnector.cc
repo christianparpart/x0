@@ -56,7 +56,7 @@ void SslConnector::addContext(const std::string& crtFilePath,
 }
 
 SslContext* SslConnector::getContextByDnsName(const char* servername) const {
-  TRACE("{} selectContext: servername = '{}'", this, servername);
+  TRACE("{} selectContext: servername = '{}'", (void*) this, servername);
   if (!servername)
     return nullptr;
 
@@ -70,7 +70,7 @@ SslContext* SslConnector::getContextByDnsName(const char* servername) const {
 int SslConnector::selectContext(
     SSL* ssl, int* ad, SslConnector* self) {
   const char * servername = SSL_get_servername(ssl, TLSEXT_NAMETYPE_host_name);
-  TRACE("{} selectContext: servername = '{}'", self, servername);
+  TRACE("{} selectContext: servername = '{}'", (void*) self, servername);
 
   if (!servername)
     return SSL_TLSEXT_ERR_NOACK;

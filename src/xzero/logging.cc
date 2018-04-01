@@ -25,10 +25,6 @@
 namespace xzero {
 
 // {{{ LogLevel
-std::ostream& operator<<(std::ostream& os, LogLevel value) {
-  return os << as_string(value);
-}
-
 std::string as_string(LogLevel value) {
   switch (value) {
     case LogLevel::None:
@@ -219,13 +215,13 @@ void ConsoleLogTarget::log(LogLevel level,
     fprintf(stderr,
             "%s[%s] %s\n",
             createTimestamp().c_str(),
-            AnsiColor::colorize(logColor(level), to_string(level)).c_str(),
+            AnsiColor::colorize(logColor(level), fmt::format("{}", level)).c_str(),
             message.c_str());
   } else {
     fprintf(stderr,
             "%s[%s] %s\n",
             createTimestamp().c_str(),
-            to_string(level).c_str(),
+            fmt::format("{}", level).c_str(),
             message.c_str());
     fflush(stderr);
   }
@@ -239,7 +235,7 @@ std::string ConsoleLogTarget::createTimestamp() const {
 
   return fmt::format("{}.{} ",
                      now.toString("%Y-%m-%d %H:%M:%S"),
-                     xzero::to_string(now.unixMicros() % 1000000));
+                     now.unixMicros() % 1000000);
 }
 // }}}
 // {{{ SyslogTarget

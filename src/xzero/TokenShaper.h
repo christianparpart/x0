@@ -7,24 +7,26 @@
 
 #pragma once
 
-#include <xzero/Duration.h>
 #include <xzero/Counter.h>
+#include <xzero/Duration.h>
 #include <xzero/JsonWriter.h>
-#include <xzero/MonotonicTime.h>
 #include <xzero/MonotonicClock.h>
+#include <xzero/MonotonicTime.h>
 #include <xzero/executor/Executor.h>
 #include <xzero/logging.h>
 
-#include <iosfwd>
-#include <functional>
+#include <fmt/format.h>
+
 #include <algorithm>
+#include <algorithm>
+#include <cassert>
+#include <cstdint>
+#include <deque>
+#include <functional>
+#include <iosfwd>
+#include <mutex>
 #include <string>
 #include <vector>
-#include <deque>
-#include <algorithm>
-#include <stdint.h>
-#include <cassert>
-#include <mutex>
 
 namespace xzero {
 
@@ -257,8 +259,34 @@ class TokenShaper<T>::Node {
 template <class T>
 void dump(const TokenShaper<T>& shaper, const char* title);
 
-std::ostream& operator<<(std::ostream& os, TokenShaperError ec);
-
 }  // namespace xzero
 
 #include <xzero/TokenShaper-inl.h>
+
+namespace fmt {
+  template<>
+  struct formatter<xzero::TokenShaperError> {
+    using TokenShaperError = xzero::TokenShaperError;
+
+    template <typename ParseContext>
+    constexpr auto parse(ParseContext &ctx) { return ctx.begin(); }
+
+    template <typename FormatContext>
+    constexpr auto format(const TokenShaperError& v, FormatContext &ctx) {
+      switch (v) {
+        case TokenShaperError::Success:
+          return format_to(ctx.begin(), "Success");
+        case TokenShaperError::RateLimitOverflow:
+          return format_to(ctx.begin(), "Rate Limit Overflow");
+        case TokenShaperError::CeilLimitOverflow:
+          return format_to(ctx.begin(), "Ceil Limit Overflow");
+        case TokenShaperError::NameConflict:
+          return format_to(ctx.begin(), "Name Conflict");
+        case TokenShaperError::InvalidChildNode:
+          return format_to(ctx.begin(), "Invalid Child Node");
+        default:
+          return format_to(ctx.begin(), "({})", (int) v);
+      }
+    }
+  };
+}

@@ -40,7 +40,7 @@ void Generator::generateRequest(const HttpRequestInfo& info) {
   CgiParamStreamWriter paramsWriter;
   paramsWriter.encode("GATEWAY_INTERFACE", "CGI/1.1");
   paramsWriter.encode("SERVER_SOFTWARE", "xzero/http");
-  paramsWriter.encode("SERVER_PROTOCOL", to_string(info.version()));
+  paramsWriter.encode("SERVER_PROTOCOL", fmt::format("{}", info.version()));
   if (info.headers().contains("Host"))
     paramsWriter.encode("SERVER_NAME", info.headers().get("Host"));
   paramsWriter.encode("REQUEST_METHOD", info.unparsedMethod());
@@ -85,7 +85,7 @@ void Generator::generateRequest(const HttpRequestInfo& info, const BufferRef& ch
 void Generator::generateResponse(const HttpResponseInfo& info) {
   TRACE("generateResponse! status={} {}",
         static_cast<int>(info.status()),
-        to_string(info.status()));
+        info.status());
 
   mode_ = GenerateResponse;
 
@@ -199,7 +199,7 @@ void Generator::generateEnd() {
 }
 
 void Generator::write(Type type, int requestId, const char* buf, size_t len) {
-  TRACE("write<{}>(rid={}, len={})", to_string(type), requestId, len);
+  TRACE("write<{}>(rid={}, len={})", type, requestId, len);
 
   if (len != 0) {
     constexpr size_t chunkSizeCap = 0xFFFF;

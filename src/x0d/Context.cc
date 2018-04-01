@@ -94,7 +94,7 @@ bool Context::tryServeTraceProxy() {
     int maxForwards = std::stoi(request()->getHeader("Max-Forwards"));
     if (maxForwards != 0) {
       request()->headers().overwrite("Max-Forwards",
-                                     to_string(maxForwards - 1));
+                                     std::to_string(maxForwards - 1));
       return false;
     }
   } catch (...) {
@@ -264,7 +264,7 @@ void Context::sendTrivialResponse(HttpStatus status, const std::string& reason) 
 
   Buffer body(2048);
 
-  Buffer htmlMessage = reason.empty() ? to_string(status) : reason;
+  Buffer htmlMessage = reason.empty() ? fmt::format("{}", status) : reason;
 
   htmlMessage.replaceAll("<", "&lt;");
   htmlMessage.replaceAll(">", "&gt;");

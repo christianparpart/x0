@@ -113,3 +113,19 @@ class Connection
 };
 
 }  // namespace xzero::http::http1
+
+
+namespace fmt {
+  template<>
+  struct formatter<xzero::http::http1::Connection> {
+    using Connection = xzero::http::http1::Connection;
+
+    template <typename ParseContext>
+    constexpr auto parse(ParseContext &ctx) { return ctx.begin(); }
+
+    template <typename FormatContext>
+    auto format(const Connection& v, FormatContext &ctx) {
+      return format_to(ctx.begin(), "{}", v.endpoint()->remoteAddress());
+    }
+  };
+}

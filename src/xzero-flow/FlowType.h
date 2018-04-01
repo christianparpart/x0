@@ -8,14 +8,15 @@
 #pragma once
 
 #include <xzero/defines.h>
-#include <xzero/Buffer.h>
+#include <xzero/net/IPAddress.h>
+#include <xzero/net/Cidr.h>
+#include <fmt/format.h>
 #include <string>
-#include <vector>
 #include <cstdint>
+#include <vector>
 
 namespace xzero {
 
-class IPAddress;
 class Cidr;
 
 namespace flow {
@@ -76,12 +77,41 @@ typedef std::vector<Cidr> FlowCidrArray;
 }  // namespace xzero
 
 namespace std {
-
-template <>
-struct hash<xzero::flow::FlowType> {
-  uint32_t operator()(xzero::flow::FlowType v) const noexcept {
-    return static_cast<uint32_t>(v);
-  }
-};
-
+  template <>
+  struct hash<xzero::flow::FlowType> {
+    uint32_t operator()(xzero::flow::FlowType v) const noexcept {
+      return static_cast<uint32_t>(v);
+    }
+  };
 }
+
+namespace fmt {
+  template<>
+  struct formatter<xzero::flow::FlowType> {
+    using FlowType = xzero::flow::FlowType;
+
+    template <typename ParseContext>
+    constexpr auto parse(ParseContext &ctx) { return ctx.begin(); }
+
+    template <typename FormatContext>
+    constexpr auto format(const FlowType& v, FormatContext &ctx) {
+      switch (v) {
+        case FlowType::Void: return format_to(ctx.begin(), "Void");
+        case FlowType::Boolean: return format_to(ctx.begin(), "Boolean");
+        case FlowType::Number: return format_to(ctx.begin(), "Number");
+        case FlowType::String: return format_to(ctx.begin(), "String");
+        case FlowType::IPAddress: return format_to(ctx.begin(), "IPAddress");
+        case FlowType::Cidr: return format_to(ctx.begin(), "Cidr");
+        case FlowType::RegExp: return format_to(ctx.begin(), "RegExp");
+        case FlowType::Handler: return format_to(ctx.begin(), "Handler");
+        case FlowType::IntArray: return format_to(ctx.begin(), "IntArray");
+        case FlowType::StringArray: return format_to(ctx.begin(), "StringArray");
+        case FlowType::IPAddrArray: return format_to(ctx.begin(), "IPAddrArray");
+        case FlowType::CidrArray: return format_to(ctx.begin(), "CidrArray");
+        default:
+          return format_to(ctx.begin(), "({})", (int) v);
+      }
+    }
+  };
+}
+

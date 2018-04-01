@@ -9,9 +9,9 @@
 
 #include <string>
 #include <iosfwd>
+#include <fmt/format.h>
 
-namespace xzero {
-namespace http {
+namespace xzero::http {
 
 /**
  * HTTP protocol version number.
@@ -25,8 +25,35 @@ enum class HttpVersion {
 };
 
 const std::string& as_string(HttpVersion value);
-std::ostream& operator<<(std::ostream& os, HttpVersion version);
 HttpVersion make_version(const std::string& value);
 
-} // namespace http
-} // namespace xzero
+} // namespace xzero::http
+
+namespace fmt {
+  template<>
+  struct formatter<xzero::http::HttpVersion> {
+    using HttpVersion = xzero::http::HttpVersion;
+
+    template <typename ParseContext>
+    constexpr auto parse(ParseContext &ctx) { return ctx.begin(); }
+
+    template <typename FormatContext>
+    constexpr auto format(const HttpVersion& v, FormatContext &ctx) {
+      switch (v) {
+        case HttpVersion::VERSION_0_9:
+          return format_to(ctx.begin(), "0.9");
+        case HttpVersion::VERSION_1_0:
+          return format_to(ctx.begin(), "1.0");
+        case HttpVersion::VERSION_1_1:
+          return format_to(ctx.begin(), "1.1");
+        case HttpVersion::VERSION_2_0:
+          return format_to(ctx.begin(), "2.0");
+        case HttpVersion::UNKNOWN:
+          return format_to(ctx.begin(), "UNKNOWN");
+        default:
+          return format_to(ctx.begin(), "({})", (int) v);
+      }
+    }
+  };
+}
+

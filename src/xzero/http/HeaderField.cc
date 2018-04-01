@@ -32,12 +32,4 @@ bool HeaderField::operator!=(const HeaderField& other) const {
   return !(*this == other);
 }
 
-std::string inspect(const HeaderField& field) {
-  return fmt::format("HeaderField(\"{}\", \"{}\")", field.name(), field.value());
-}
-
-std::ostream& operator<<(std::ostream& os, const HeaderField& field) {
-  return os << fmt::format("{\"{}\": \"{}\"}", field.name(), field.value());
-}
-
 } // namespace xzero::http

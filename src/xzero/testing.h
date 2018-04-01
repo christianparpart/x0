@@ -190,15 +190,15 @@ namespace testing {
     if (failed) {                                                             \
       ::xzero::testing::UnitTest::instance()->reportBinary(                   \
           __FILE__, __LINE__, fatal, #expected, #actual,                      \
-          ::xzero::to_string(actualEvaluated), "");                           \
+          ::fmt::format("{}", (actualEvaluated)), "");                        \
     } \
   } while (0)
 
 #define _EXPECT_BINARY(fileName, lineNo, fatal, expected, actual, op)         \
-  do if (!((expected) op (actual))) {                                             \
+  do if (!((expected) op (actual))) {                                         \
     ::xzero::testing::UnitTest::instance()->reportBinary(                     \
         __FILE__, __LINE__, fatal, #expected, #actual,                        \
-        ::xzero::to_string(actual), #op);                                     \
+        ::fmt::format("{}", (actual)), #op);                                  \
   } while (0)
 
 #define _TEST_CLASS_NAME(testCaseName, testName) \

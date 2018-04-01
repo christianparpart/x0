@@ -107,7 +107,7 @@ void Transport::setResponseInfo(const HttpResponseInfo& info) {
     if (responseChunked_) {
       responseInfo_.headers().push_back("Transfer-Encoding", "chunked");
     } else {
-      responseInfo_.headers().push_back("Content-Length", xzero::to_string(info.contentLength()));
+      responseInfo_.headers().push_back("Content-Length", std::to_string(info.contentLength()));
     }
   }
 

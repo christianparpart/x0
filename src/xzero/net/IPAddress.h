@@ -4,22 +4,20 @@
 // Licensed under the MIT License (the "License"); you may not use this
 // file except in compliance with the License. You may obtain a copy of
 // the License at: http://opensource.org/licenses/MIT
+#pragma once
 
-#ifndef x0_IPAddress_h
-#define x0_IPAddress_h
-
-#include <xzero/Api.h>
-
-#include <functional>  // hash<>
+#include <functional>     // hash<>
 #include <optional>
-#include <stdint.h>
 #include <iostream>
 #include <string>
-#include <string.h>      // memset()
+#include <cstring>        // memset()
+#include <cstdint>
+#include <cstdio>
+#include <cstdlib>
+
+#include <fmt/format.h>
 #include <netinet/in.h>  // in_addr, in6_addr
 #include <arpa/inet.h>   // ntohl(), htonl()
-#include <stdio.h>
-#include <stdlib.h>
 
 namespace xzero {
 
@@ -61,8 +59,8 @@ class IPAddress {
   friend bool operator!=(const IPAddress& a, const IPAddress& b);
 };
 
-inline std::ostream& operator<<(std::ostream& os, const IPAddress& ipaddr);
-inline std::ostream& operator<<(std::ostream& os, const std::optional<IPAddress>& addr);
+// inline std::ostream& operator<<(std::ostream& os, const IPAddress& ipaddr);
+// inline std::ostream& operator<<(std::ostream& os, const std::optional<IPAddress>& addr);
 
 // {{{ impl
 inline IPAddress::IPAddress() {
@@ -186,31 +184,61 @@ inline bool operator!=(const IPAddress& a, const IPAddress& b) {
   return !(a == b);
 }
 
-inline std::ostream& operator<<(std::ostream& os, const IPAddress& ipaddr) {
-  os << ipaddr.str();
-  return os;
-}
-
-inline std::ostream& operator<<(std::ostream& os, const std::optional<IPAddress>& addr) {
-  if (addr)
-    return os << addr->str();
-  else
-    return os << "NONE";
-}
+// inline std::ostream& operator<<(std::ostream& os, const IPAddress& ipaddr) {
+//   os << ipaddr.str();
+//   return os;
+// }
+// 
+// inline std::ostream& operator<<(std::ostream& os, const std::optional<IPAddress>& addr) {
+//   if (addr)
+//     return os << addr->str();
+//   else
+//     return os << "NONE";
+// }
 // }}}
 
 }  // namespace xzero
 
 namespace std {
-
-template <>
-struct hash<::xzero::IPAddress>
-    : public unary_function<::xzero::IPAddress, size_t> {
-  size_t operator()(const ::xzero::IPAddress& v) const {
-    return *(uint32_t*)(v.data());
-  }
-};
-
+  template <>
+  struct hash<::xzero::IPAddress>
+      : public unary_function<::xzero::IPAddress, size_t> {
+    size_t operator()(const ::xzero::IPAddress& v) const {
+      return *(uint32_t*)(v.data());
+    }
+  };
 } // namespace std
 
-#endif
+namespace fmt {
+  template<>
+  struct formatter<xzero::IPAddress> {
+    using IPAddress = xzero::IPAddress;
+
+    template <typename ParseContext>
+    constexpr auto parse(ParseContext &ctx) { return ctx.begin(); }
+
+    template <typename FormatContext>
+    constexpr auto format(const IPAddress& v, FormatContext &ctx) {
+      return format_to(ctx.begin(), v.str());
+    }
+  };
+}
+
+namespace fmt {
+  template<>
+  struct formatter<std::optional<xzero::IPAddress>> {
+    using IPAddress = xzero::IPAddress;
+
+    template <typename ParseContext>
+    constexpr auto parse(ParseContext &ctx) { return ctx.begin(); }
+
+    template <typename FormatContext>
+    constexpr auto format(const std::optional<IPAddress>& v, FormatContext &ctx) {
+      if (v)
+        return format_to(ctx.begin(), v->str());
+      else
+        return format_to(ctx.begin(), "NONE");
+    }
+  };
+}
+

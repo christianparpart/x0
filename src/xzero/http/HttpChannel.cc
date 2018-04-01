@@ -43,11 +43,6 @@ std::string as_string(HttpChannelState state) {
   }
 }
 
-std::ostream& operator<<(std::ostream& os, HttpChannelState state) {
-  os << as_string(state);
-  return os;
-}
-
 HttpChannel::HttpChannel(HttpTransport* transport,
                          Executor* executor,
                          const HttpHandlerFactory& handlerFactory,
@@ -409,10 +404,6 @@ void HttpChannel::responseEnd() {
   auto cb = std::move(onResponseEnd_);
   onResponseEnd_.clear();
   cb();
-}
-
-std::ostream& operator<<(std::ostream& os, HttpChannel* value) {
-  return os << fmt::format("HttpChannel[{}]", (void*)value);
 }
 
 }  // namespace http

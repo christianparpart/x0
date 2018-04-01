@@ -13,6 +13,7 @@
 #include <iomanip>
 #include <cstdlib>
 #include <cctype>
+#include <fmt/format.h>
 
 namespace xzero {
 
@@ -194,15 +195,15 @@ std::string BufferRef::hexdumpPrettyAscii(const void* bytes, size_t length) {
   return sstr.str();
 }
 
-std::ostream& operator<<(std::ostream& os, const xzero::BufferRef& b) {
-  os.write(b.data(), b.size());
-  return os;
-}
-
-std::ostream& operator<<(std::ostream& os, const xzero::Buffer& b) {
-  // os << b.str();
-  os.write(b.data(), b.size());
-  return os;
-}
+// std::ostream& operator<<(std::ostream& os, const xzero::BufferRef& b) {
+//   os.write(b.data(), b.size());
+//   return os;
+// }
+// 
+// std::ostream& operator<<(std::ostream& os, const xzero::Buffer& b) {
+//   // os << b.str();
+//   os.write(b.data(), b.size());
+//   return os;
+// }
 
 }  // namespace xzero

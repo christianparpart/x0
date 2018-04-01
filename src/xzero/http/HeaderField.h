@@ -9,9 +9,9 @@
 
 #include <string>
 #include <iosfwd>
+#include <fmt/format.h>
 
-namespace xzero {
-namespace http {
+namespace xzero::http {
 
 typedef std::string HeaderFieldName;
 typedef std::string HeaderFieldValue;
@@ -102,8 +102,20 @@ inline HeaderField::HeaderField(const std::string& name,
 }
 // }}}
 
-std::string inspect(const HeaderField& field);
-std::ostream& operator<<(std::ostream& os, const HeaderField& field);
+}  // namespace xzero::http
 
-}  // namespace http
-}  // namespace xzero
+namespace fmt {
+  template<>
+  struct formatter<xzero::http::HeaderField> {
+    using HeaderField = xzero::http::HeaderField;
+
+    template <typename ParseContext>
+    constexpr auto parse(ParseContext &ctx) { return ctx.begin(); }
+
+    template <typename FormatContext>
+    constexpr auto format(const HeaderField& v, FormatContext &ctx) {
+      return format_to(ctx.begin(), "{}: {}", v.name(), v.value());
+    }
+  };
+}
+

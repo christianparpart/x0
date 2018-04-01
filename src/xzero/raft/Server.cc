@@ -20,19 +20,6 @@
 
 namespace xzero::raft {
 
-std::ostream& operator<<(std::ostream& os, ServerState serverState) {
-  switch (serverState) {
-    case ServerState::Follower:
-      return os << "Follower";
-    case ServerState::Candidate:
-      return os << "Candidate";
-    case ServerState::Leader:
-      return os << "Leader";
-    default:
-      throw std::invalid_argument{"serverState"};
-  }
-}
-
 Server::Server(Id id,
                Storage* storage,
                const Discovery* discovery,
@@ -376,8 +363,7 @@ AppendEntriesResponse Server::handleRequest(
         storage_->truncateLog(index - 1);
         break;
       } else {
-        logDebug("raft: found identical logEntry at [{}] {}: {}",
-            index, i, entry);
+        //TODO(uncomment): logDebug("raft: found identical logEntry at [{}] {}: {}", index, i, entry);
       }
       i++;
       index++;
@@ -691,7 +677,7 @@ void Server::applyLogs() {
       break;
     }
 
-    logDebug("raft: {} applyCommand at index {}: {}", id(), index, *logEntry);
+    //TODO(uncomment): logDebug("raft: {} applyCommand at index {}: {}", id(), index, *logEntry);
 
     if (logEntry->type() == LOG_COMMAND) {
       Reply reply = stateMachine_->applyCommand(logEntry->command());

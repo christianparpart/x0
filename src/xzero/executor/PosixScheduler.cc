@@ -38,63 +38,6 @@ namespace xzero {
 #define TRACE(msg...) do {} while (0)
 #endif
 
-std::ostream& operator<<(std::ostream& os, PosixScheduler::Mode mode) {
-  return os << inspect(mode);
-}
-
-std::ostream& operator<<(std::ostream& os, const PosixScheduler::Watcher& w) {
-  return os << inspect(w);
-}
-
-std::ostream& operator<<(std::ostream& os, const PosixScheduler::Watcher* w) {
-  if (w)
-    return os << inspect(*w);
-  else
-    return os << "NULL";
-}
-
-std::ostream& operator<<(std::ostream& os, const PosixScheduler& s) {
-  return os << inspect(s);
-}
-
-std::string inspect(PosixScheduler::Mode mode) {
-  switch (mode) {
-    case PosixScheduler::Mode::READABLE:
-      return "READABLE";
-    case PosixScheduler::Mode::WRITABLE:
-      return "WRITABLE";
-    default:
-      logFatal("Internal Error");
-  }
-}
-
-std::string inspect(const std::list<std::shared_ptr<PosixScheduler::Timer>>& list) {
-  std::string result;
-  MonotonicTime now = MonotonicClock::now();
-  result += "{";
-  for (const auto& t: list) {
-    if (result.size() > 1)
-      result += ", ";
-    result += fmt::format("({})", t->when - now);
-  }
-  result += "}";
-
-  return result;
-}
-
-std::string inspect(const PosixScheduler::Timer& t) {
-  return fmt::format("({})", t.when - MonotonicClock::now());
-}
-
-std::string inspect(const PosixScheduler::Watcher& w) {
-  Duration diff = w.timeout - MonotonicClock::now();
-  return fmt::format("{{}, {}, {}}", w.fd, w.mode, diff);
-}
-
-std::string inspect(const PosixScheduler& s) {
-  return s.inspectImpl();
-}
-
 PosixScheduler::PosixScheduler(ExceptionHandler eh)
     : EventLoop{std::move(eh)},
       lock_{},
@@ -335,38 +278,6 @@ void PosixScheduler::cancelFD(int fd) {
   if (ref != nullptr) {
     ref->cancel();
   }
-}
-
-std::string inspectWatchers(PosixScheduler::Watcher* firstWatcher) {
-  std::stringstream sstr;
-  PosixScheduler::Watcher* prev = nullptr;
-  PosixScheduler::Watcher* curr = firstWatcher;
-
-  while (curr != nullptr) {
-    MonotonicTime a;
-    MonotonicTime b;
-    if (prev) {
-      a = curr->timeout;
-      b = prev->timeout;
-    } else {
-      a = MonotonicClock::now();
-      b = curr->timeout;
-    }
-
-    if (prev)
-      sstr << ", ";
-
-    sstr << fmt::format("{{}, {}, {}{}s}",
-                        curr->fd,
-                        curr->mode,
-                        a <= b ? "+" : "-",
-                        (a - b).seconds());
-
-    prev = curr;
-    curr = curr->next;
-  }
-
-  return sstr.str();
 }
 
 PosixScheduler::HandleRef PosixScheduler::setupWatcher(
@@ -666,19 +577,5 @@ void PosixScheduler::waitForWritable(int fd) {
   }
 }
 
-std::string PosixScheduler::inspectImpl() const {
-  std::stringstream sstr;
-
-  sstr << "{";
-  sstr << "wakeupPipe:" << wakeupPipe_[PIPE_READ_END]
-       << "/" << wakeupPipe_[PIPE_WRITE_END];
-
-  sstr << ", watchers(" << inspectWatchers(firstWatcher_) << ")";
-  sstr << ", front:" << (firstWatcher_ ? firstWatcher_->fd : -1);
-  sstr << ", back:" << (lastWatcher_ ? lastWatcher_->fd : -1);
-  sstr << "}"; // scheduler
-
-  return sstr.str();
-}
-
 } // namespace xzero
+

@@ -37,11 +37,6 @@ std::string as_string(HttpMethod value) {
   SRET("UNDEFINED_METHOD");
 }
 
-std::ostream& operator<<(std::ostream& os, HttpMethod method) {
-  os << as_string(method);
-  return os;
-}
-
 HttpMethod to_method(const std::string& value) {
   static const std::unordered_map<std::string, HttpMethod> map = {
     { "CONNECT", HttpMethod::CONNECT},

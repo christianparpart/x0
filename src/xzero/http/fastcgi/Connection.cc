@@ -280,7 +280,7 @@ void Connection::onWriteable() {
 
   if (complete) {
     TRACE_CONN("{} onWriteable: completed. ({})",
-          this,
+          (void*) this,
           (!onComplete_.empty() ? "onComplete cb set" : "onComplete cb not set"));
 
     if (!onComplete_.empty()) {
@@ -329,7 +329,7 @@ HttpListener* Connection::onCreateChannel(int request, bool keepAlive) {
 
 void Connection::onUnknownPacket(int request, int record) {
   TRACE_CONN("{} onUnknownPacket: request={}, record={} {}",
-        (void*) this, request, record, to_string(static_cast<Type>(record)));
+        (void*) this, request, record, static_cast<Type>(record));
 }
 
 void Connection::onAbortRequest(int request) {

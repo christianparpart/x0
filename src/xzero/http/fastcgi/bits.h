@@ -41,7 +41,6 @@ enum class Type {
 };
 
 std::string as_string(Type t);
-std::ostream& operator<<(std::ostream& os, Type t);
 
 enum class Role {
   Responder = 1,
@@ -257,3 +256,44 @@ struct XZERO_PACKED EndRequestRecord : public Record {
 } // namespace xzero
 
 #include <xzero/http/fastcgi/bits-inl.h>
+
+namespace fmt {
+  template<>
+  struct formatter<xzero::http::fastcgi::Type> {
+    using Type = xzero::http::fastcgi::Type;
+
+    template <typename ParseContext>
+    constexpr auto parse(ParseContext &ctx) { return ctx.begin(); }
+
+    template <typename FormatContext>
+    constexpr auto format(const Type& v, FormatContext &ctx) {
+      switch (v) {
+        case Type::BeginRequest:
+          return format_to(ctx.begin(), "BeginRequest");
+        case Type::AbortRequest:
+          return format_to(ctx.begin(), "AbortRequest");
+        case Type::EndRequest:
+          return format_to(ctx.begin(), "EndRequest");
+        case Type::Params:
+          return format_to(ctx.begin(), "Params");
+        case Type::StdIn:
+          return format_to(ctx.begin(), "StdIn");
+        case Type::StdOut:
+          return format_to(ctx.begin(), "StdOut");
+        case Type::StdErr:
+          return format_to(ctx.begin(), "StdErr");
+        case Type::Data:
+          return format_to(ctx.begin(), "Data");
+        case Type::GetValues:
+          return format_to(ctx.begin(), "GetValues");
+        case Type::GetValuesResult:
+          return format_to(ctx.begin(), "GetValuesResult");
+        case Type::UnknownType:
+          return format_to(ctx.begin(), "UnknownType");
+        default:
+          return format_to(ctx.begin(), "({})", (int) v);
+      }
+    }
+  };
+}
+

@@ -283,9 +283,32 @@ class Server : public Handler {
   std::function<void(Id oldLeader)> onLeaderChanged;
 };
 
-std::ostream& operator<<(std::ostream& os, ServerState s);
-
 } // namespace raft
 } // namespace xzero
 
 #include <xzero/raft/Server-inl.h>
+
+namespace fmt {
+  template<>
+  struct formatter<xzero::raft::ServerState> {
+    using ServerState = xzero::raft::ServerState;
+
+    template <typename ParseContext>
+    constexpr auto parse(ParseContext &ctx) { return ctx.begin(); }
+
+    template <typename FormatContext>
+    constexpr auto format(const ServerState& v, FormatContext &ctx) {
+      switch (v) {
+        case ServerState::Follower:
+          return format_to(ctx.begin(), "Follower");
+        case ServerState::Candidate:
+          return format_to(ctx.begin(), "Candidate");
+        case ServerState::Leader:
+          return format_to(ctx.begin(), "Leader");
+        default:
+          return format_to(ctx.begin(), "({})", (int) v);
+      }
+    }
+  };
+}
+

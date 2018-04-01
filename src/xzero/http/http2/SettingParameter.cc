@@ -11,10 +11,6 @@
 
 namespace xzero::http::http2 {
 
-std::ostream& operator<<(std::ostream& os, SettingParameter param) {
-  return os << as_string(param);
-}
-
 std::string as_string(http::http2::SettingParameter parameter) {
   switch (parameter) {
     case SettingParameter::HeaderTableSize:

@@ -339,10 +339,4 @@ public:
   [[deprecated]] static std::string sanitizedStr(const char* begin, const char* end);
 };
 
-template<typename T> std::string to_string(const T& value);
-template<typename T> std::string to_string(T&& value);
-
 } // namespace xzero
-
-#include <xzero/StringUtil-impl.h>
-

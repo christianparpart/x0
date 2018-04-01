@@ -10,6 +10,32 @@
 #include <system_error>
 #include <future>
 
+namespace fmt {
+  template<>
+  struct formatter<std::errc> {
+    template <typename ParseContext>
+    constexpr auto parse(ParseContext &ctx) { return ctx.begin(); }
+
+    template <typename FormatContext>
+    constexpr auto format(const std::errc& v, FormatContext &ctx) {
+      return format_to(ctx.begin(), strerror((int)v));
+    }
+  };
+}
+
+namespace fmt {
+  template<>
+  struct formatter<std::error_code> {
+    template <typename ParseContext>
+    constexpr auto parse(ParseContext &ctx) { return ctx.begin(); }
+
+    template <typename FormatContext>
+    constexpr auto format(const std::error_code& v, FormatContext &ctx) {
+      return format_to(ctx.begin(), v.message());
+    }
+  };
+}
+
 TEST(Result, Failure) {
   Result<int> t = std::make_error_code(std::errc::result_out_of_range);
 

@@ -29,11 +29,6 @@ std::string as_string(Type t) {
   }
 }
 
-std::ostream& operator<<(std::ostream& os, Type t) {
-  os << as_string(t);
-  return os;
-}
-
 void CgiParamStreamReader::processParams(const char *buf,
                                          size_t length) {
   const char *i = buf;

@@ -9,12 +9,15 @@
 
 #include <xzero/defines.h>
 #include <xzero-flow/ir/Constant.h>
-#include <xzero/net/IPAddress.h>
-#include <xzero/net/Cidr.h>
-#include <xzero/RegExp.h>
 
 #include <iostream>
 #include <string>
+
+namespace xzero {
+  class Cidr;
+  class IPAddress;
+  class RegExp;
+}
 
 namespace xzero::flow {
 
@@ -27,8 +30,8 @@ class ConstantValue : public Constant {
   T get() const { return value_; }
 
   void dump() override {
-    std::cout << "Constant '" << name() << "': "
-      << tos(type()) << " = " << value_ << std::endl;
+    std::cout << fmt::format("Constant '{}': {} = {}\n",
+        name(), type(), value_);
   }
 
  private:

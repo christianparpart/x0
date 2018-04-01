@@ -7,19 +7,23 @@
 
 #pragma once
 
-#include <xzero-flow/Signature.h>
-#include <xzero-flow/vm/Instruction.h>  // Opcode
 #include <xzero-flow/ASTVisitor.h>
 #include <xzero-flow/FlowLocation.h>
 #include <xzero-flow/FlowToken.h>
 #include <xzero-flow/FlowType.h>
 #include <xzero-flow/MatchClass.h>
-#include <xzero/defines.h>
+#include <xzero-flow/Signature.h>
+#include <xzero-flow/vm/Instruction.h>  // Opcode
+#include <xzero/Buffer.h>
 #include <xzero/RegExp.h>
-#include <utility>
-#include <memory>
-#include <vector>
+#include <xzero/defines.h>
+
+#include <fmt/format.h>
+
 #include <list>
+#include <memory>
+#include <utility>
+#include <vector>
 
 namespace xzero::flow {
 
@@ -580,3 +584,17 @@ class MatchStmt : public Stmt {
 //!@}
 
 }  // namespace xzero::flow
+
+namespace fmt {
+  template<>
+  struct formatter<xzero::flow::Symbol*> {
+    template <typename ParseContext>
+    constexpr auto parse(ParseContext &ctx) { return ctx.begin(); }
+
+    template <typename FormatContext>
+    constexpr auto format(xzero::flow::Symbol* const& v, FormatContext &ctx) {
+      return format_to(ctx.begin(), "{}<{}>", v->name(), v->type());
+    }
+  };
+}
+

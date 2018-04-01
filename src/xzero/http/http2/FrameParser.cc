@@ -12,6 +12,7 @@
 #include <xzero/StringUtil.h>
 #include <xzero/BufferUtil.h>
 #include <xzero/Buffer.h>
+#include <xzero/logging.h>
 
 #define HTTP2_STRICT 1
 
@@ -130,8 +131,8 @@ void FrameParser::parseFrame(const BufferRef& frame) {
   StreamID sid = read32(frame.data() + 5) & ~(1 << 31);
   BufferRef payload = frame.ref(9);
 
-  printf("FrameParser.parseFrame: %s (0x%02x), flags=%02x, sid=%d, len=%zu\n",
-         to_string(type).c_str(), (int)type, flags, sid, payload.size());
+  logTrace("FrameParser.parseFrame: {} ({:X}), flags={:X}, sid={}, len={}",
+         type, (int) type, flags, sid, payload.size());
 
   if (payload.size() > maxFrameSize_) {
     if (sid != 0)

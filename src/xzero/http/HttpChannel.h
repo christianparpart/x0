@@ -13,6 +13,7 @@
 #include <xzero/http/HttpHandler.h>
 #include <xzero/http/HttpVersion.h>
 #include <xzero/io/Filter.h>
+#include <fmt/format.h>
 #include <list>
 #include <memory>
 #include <iosfwd>
@@ -39,7 +40,6 @@ enum class HttpChannelState {
 };
 
 std::string as_string(HttpChannelState state);
-std::ostream& operator<<(std::ostream& os, HttpChannelState state);
 
 /**
  * Semantic HTTP message exchange layer.
@@ -209,3 +209,28 @@ std::ostream& operator<<(std::ostream& os, HttpChannel* value);
 
 }  // namespace http
 }  // namespace xzero
+
+namespace fmt {
+  template<>
+  struct formatter<xzero::http::HttpChannelState> {
+    using HttpChannelState = xzero::http::HttpChannelState;
+
+    template <typename ParseContext>
+    constexpr auto parse(ParseContext &ctx) { return ctx.begin(); }
+
+    template <typename FormatContext>
+    constexpr auto format(const HttpChannelState& v, FormatContext &ctx) {
+      switch (v) {
+        case HttpChannelState::READING:
+          return format_to(ctx.begin(), "READING");
+        case HttpChannelState::HANDLING:
+          return format_to(ctx.begin(), "HANDLING");
+        case HttpChannelState::SENDING:
+          return format_to(ctx.begin(), "SENDING");
+        default:
+          return format_to(ctx.begin(), "({})", (int) v);
+      }
+    }
+  };
+}
+

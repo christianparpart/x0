@@ -49,7 +49,7 @@ TcpEndPoint::TcpEndPoint(FileDescriptor&& socket,
       isCorking_(false),
       onEndPointClosed_(onEndPointClosed),
       connection_() {
-  TRACE("{} ctor", this);
+  TRACE("{} ctor", (void*) this);
 }
 
 void TcpEndPoint::onTimeout() {
@@ -61,7 +61,7 @@ void TcpEndPoint::onTimeout() {
 }
 
 TcpEndPoint::~TcpEndPoint() {
-  TRACE("{} dtor", this);
+  TRACE("{} dtor", (void*) this);
   if (isOpen()) {
     close();
   }
@@ -176,7 +176,7 @@ void TcpEndPoint::onDetectProtocol(ProtocolCallback createConnection) {
     createConnection(protocol, this);
   } else {
     // create TcpConnection object for given endpoint
-    TRACE("{} protocol-switch not detected.", this);
+    TRACE("{} protocol-switch not detected.", (void*) this);
     createConnection("", this);
   }
 
@@ -210,10 +210,10 @@ size_t TcpEndPoint::read(Buffer* result, size_t count) {
   assert(count <= result->capacity() - result->size());
 
   if (inputOffset_ < inputBuffer_.size()) {
-    TRACE("{} fill: with inputBuffer ({}, {})", this, inputOffset_, inputBuffer_.size());
+    TRACE("{} fill: with inputBuffer ({}, {})", (void*) this, inputOffset_, inputBuffer_.size());
     count = std::min(count, inputBuffer_.size() - inputOffset_);
     result->push_back(inputBuffer_.ref(inputOffset_, count));
-    TRACE("{} fill: \"{}\"", this, inputBuffer_.ref(inputOffset_, count));
+    TRACE("{} fill: \"{}\"", (void*) this, inputBuffer_.ref(inputOffset_, count));
     inputOffset_ += count;
     if (inputOffset_ == inputBuffer_.size()) {
       inputBuffer_.clear();
@@ -262,7 +262,7 @@ size_t TcpEndPoint::write(const FileView& view) {
 }
 
 void TcpEndPoint::wantRead() {
-  TRACE("{} wantRead()", this);
+  TRACE("{} wantRead()", (void*) this);
   // TODO: abstract away the logic of TCP_DEFER_ACCEPT
 
   if (!io_) {
@@ -286,7 +286,7 @@ void TcpEndPoint::fillable() {
 }
 
 void TcpEndPoint::wantWrite() {
-  TRACE("{} wantWrite() {}", this, io_.get() ? "again" : "first time");
+  TRACE("{} wantWrite() {}", (void*) this, io_.get() ? "again" : "first time");
 
   if (!io_) {
     io_ = executor_->executeOnWritable(
@@ -298,7 +298,7 @@ void TcpEndPoint::wantWrite() {
 }
 
 void TcpEndPoint::flushable() {
-  TRACE("{} flushable()", this);
+  TRACE("{} flushable()", (void*) this);
   std::shared_ptr<TcpEndPoint> _guard = shared_from_this();
 
   try {

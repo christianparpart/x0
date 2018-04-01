@@ -9,9 +9,9 @@
 
 #include <string>
 #include <iosfwd>
+#include <fmt/format.h>
 
-namespace xzero {
-namespace http {
+namespace xzero::http {
 
 enum class HttpMethod {
   UNKNOWN_METHOD,
@@ -34,8 +34,41 @@ enum class HttpMethod {
 };
 
 std::string as_string(HttpMethod value);
-std::ostream& operator<<(std::ostream& os, HttpMethod method);
 HttpMethod to_method(const std::string& value);
 
-} // namespace http
-} // namespace xzero
+} // namespace xzero::http
+
+
+namespace fmt {
+  template<>
+  struct formatter<xzero::http::HttpMethod> {
+    using HttpMethod = xzero::http::HttpMethod;
+
+    template <typename ParseContext>
+    constexpr auto parse(ParseContext &ctx) { return ctx.begin(); }
+
+    template <typename FormatContext>
+    constexpr auto format(const HttpMethod& v, FormatContext &ctx) {
+      switch (v) {
+        case HttpMethod::UNKNOWN_METHOD: return format_to(ctx.begin(), "UNKNOWN_METHOD");
+        case HttpMethod::OPTIONS: return format_to(ctx.begin(), "OPTIONS");
+        case HttpMethod::GET: return format_to(ctx.begin(), "GET");
+        case HttpMethod::HEAD: return format_to(ctx.begin(), "HEAD");
+        case HttpMethod::POST: return format_to(ctx.begin(), "POST");
+        case HttpMethod::PUT: return format_to(ctx.begin(), "PUT");
+        case HttpMethod::DELETE: return format_to(ctx.begin(), "DELETE");
+        case HttpMethod::TRACE: return format_to(ctx.begin(), "TRACE");
+        case HttpMethod::CONNECT: return format_to(ctx.begin(), "CONNECT");
+        case HttpMethod::PROPFIND: return format_to(ctx.begin(), "PROPFIND");
+        case HttpMethod::PROPPATCH: return format_to(ctx.begin(), "PROPPATCH");
+        case HttpMethod::MKCOL: return format_to(ctx.begin(), "MKCOL");
+        case HttpMethod::COPY: return format_to(ctx.begin(), "COPY");
+        case HttpMethod::MOVE: return format_to(ctx.begin(), "MOVE");
+        case HttpMethod::LOCK: return format_to(ctx.begin(), "LOCK");
+        case HttpMethod::UNLOCK: return format_to(ctx.begin(), "UNLOCK");
+        default:
+          return format_to(ctx.begin(), "({})", (int) v);
+      }
+    }
+  };
+}

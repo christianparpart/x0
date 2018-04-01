@@ -203,8 +203,6 @@ class PosixScheduler : public EventLoop {
    */
   HandleRef findWatcher(int fd);
 
-  std::string inspectImpl() const;
-
   friend std::string inspect(const PosixScheduler&);
 
  private:

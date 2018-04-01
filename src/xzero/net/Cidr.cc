@@ -73,8 +73,4 @@ bool operator==(const Cidr& a, const Cidr& b) {
 
 bool operator!=(const Cidr& a, const Cidr& b) { return !(a == b); }
 
-std::ostream& operator<<(std::ostream& os, const Cidr& cidr) {
-  return os << cidr.str();
-}
-
 }  // namespace xzero

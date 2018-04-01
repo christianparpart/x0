@@ -7,6 +7,8 @@
 
 #pragma once
 
+#include <fmt/format.h>
+
 namespace xzero::http::cluster {
 
 /*!
@@ -24,3 +26,28 @@ enum class SchedulerStatus {
 };
 
 } // namespace xzero::http::cluster
+
+namespace fmt {
+  template<>
+  struct formatter<xzero::http::cluster::SchedulerStatus> {
+    using SchedulerStatus = xzero::http::cluster::SchedulerStatus;
+
+    template <typename ParseContext>
+    constexpr auto parse(ParseContext &ctx) { return ctx.begin(); }
+
+    template <typename FormatContext>
+    constexpr auto format(const SchedulerStatus& v, FormatContext &ctx) {
+      switch (v) {
+        case SchedulerStatus::Unavailable:
+          return format_to(ctx.begin(), "Unavailable");
+        case SchedulerStatus::Success:
+          return format_to(ctx.begin(), "Success");
+        case SchedulerStatus::Overloaded:
+          return format_to(ctx.begin(), "Overloaded");
+        default:
+          return format_to(ctx.begin(), "({})", (int) v);
+      }
+    }
+  };
+}
+

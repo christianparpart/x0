@@ -247,7 +247,6 @@ set(libXzero_SRC src/xzero/AnsiColor.cc
                  src/xzero/raft/Generator.cc
                  src/xzero/raft/InetTransport.cc
                  src/xzero/raft/LocalTransport.cc
-                 src/xzero/raft/MessageType.cc
                  src/xzero/raft/Parser.cc
                  src/xzero/raft/Server.cc
                  src/xzero/raft/ServerUtil.cc

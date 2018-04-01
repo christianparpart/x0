@@ -10,7 +10,6 @@
 #include <xzero/MonotonicTime.h>
 #include <xzero/MonotonicClock.h>
 #include <xzero/WallClock.h>
-#include <xzero/StringUtil.h>
 #include <xzero/ExceptionHandler.h>
 #include <xzero/logging.h>
 #include <xzero/sysconfig.h>
@@ -490,25 +489,6 @@ void LinuxScheduler::Watcher::clear() {
   // Task onTimeout;
   prev = nullptr;
   next = nullptr;
-}
-
-std::ostream& operator<<(std::ostream& os, LinuxScheduler::Mode m) {
-  if ((int)m & ((int)LinuxScheduler::Mode::READABLE | (int)LinuxScheduler::Mode::WRITABLE))
-    return os << "READABLE|WRITABLE";
-  else if ((int)m & (int)LinuxScheduler::Mode::READABLE)
-    return os << "READABLE";
-  else if ((int)m & (int)LinuxScheduler::Mode::WRITABLE)
-    return os << "WRITABLE";
-  else
-    return os << "0";
-}
-
-std::ostream& operator<<(std::ostream& os, LinuxScheduler::Watcher* w) {
-  if (w != nullptr)
-    return os << fmt::format("{fd: {}/{}, timeout: {}}",
-                             w->fd, w->mode, w->timeout);
-  else
-    return os << "NULL";
 }
 
 } // namespace xzero

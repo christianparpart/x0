@@ -12,10 +12,9 @@
 #include <xzero/io/FileView.h>
 #include <xzero/JsonWriter.h>
 #include <xzero/logging.h>
+#include <fmt/format.h>
 
-namespace xzero {
-namespace http {
-namespace cluster {
+namespace xzero::http::cluster {
 
 #ifndef NDEBUG
 # define DEBUG(msg...) logDebug("http.cluster.Backend: " msg)
@@ -92,7 +91,7 @@ SchedulerStatus Backend::tryProcess(Context* cr) {
     return SchedulerStatus::Overloaded;
 
   TRACE("Processing request by backend {} {}", name(), inetAddress_);
-  TRACE("tryProcess: with executor: {}", cr->executor);
+  TRACE("tryProcess: with executor: {}", cr->executor->toString());
 
   ++load_;
   cr->backend = this;
@@ -195,13 +194,12 @@ void Backend::serialize(JsonWriter& json) const {
       .endObject();
 }
 
-} // namespace cluster
-} // namespace http
+} // namespace xzero::http::cluster
 
-template<>
-JsonWriter& JsonWriter::value(const http::cluster::Backend& member) {
-  member.serialize(*this);
-  return *this;
-}
-
+namespace xzero {
+  template<>
+  JsonWriter& JsonWriter::value(const http::cluster::Backend& member) {
+    member.serialize(*this);
+    return *this;
+  }
 } // namespace xzero

@@ -10,7 +10,6 @@
 #include <xzero/Api.h>
 #include <xzero/RuntimeError.h>
 #include <fmt/format.h>
-#include <fmt/ostream.h>
 #include <cstddef>
 #include <climits>
 #include <cstring>
@@ -1588,8 +1587,8 @@ inline void swap(xzero::BufferRef& left, xzero::BufferRef& right) {
 }
 // }}}
 
-std::ostream& operator<<(std::ostream& os, const xzero::BufferRef& b);
-std::ostream& operator<<(std::ostream& os, const xzero::Buffer& b);
+// std::ostream& operator<<(std::ostream& os, const xzero::BufferRef& b);
+// std::ostream& operator<<(std::ostream& os, const xzero::Buffer& b);
 
 }  // namespace xzero
 
@@ -1633,3 +1632,46 @@ struct hash<xzero::Buffer> {
 
 }
 // }}}
+
+namespace fmt {
+  template<>
+  struct formatter<xzero::BufferRef> {
+    memory_buffer format_;
+
+    parse_context::iterator parse(parse_context& ctx) {
+      using internal::pointer_from;
+
+      auto it = internal::null_terminating_iterator<char>(ctx);
+      if (*it == ':')
+        ++it;
+
+      auto end = it;
+      while (*end && *end != '}')
+        ++end;
+
+      format_.reserve(end - it + 1);
+      format_.append(pointer_from(it), pointer_from(end));
+      format_.push_back('\0');
+
+      return pointer_from(end);
+    }
+
+    context::iterator format(const xzero::BufferRef& arg, context& ctx) {
+      internal::buffer& buf = internal::get_container(ctx.begin());
+      const std::size_t start = buf.size();
+      const std::size_t count = arg.size();
+
+      if (buf.size() + count < buf.capacity()) {
+        //constexpr std::size_t MIN_GROWTH = 10;
+        buf.reserve(buf.size() + count);
+      }
+      buf.append(&arg[0], &arg[count]);
+
+      if (count != 0) {
+        buf.resize(start + count);
+      }
+
+      return ctx.begin();
+    }
+  };
+}

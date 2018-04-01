@@ -55,7 +55,7 @@ PidFile::PidFile(const std::string& path)
   // TODO: sanity-check (flock?) to ensure that we're the one.
   if (!path_.empty()) {
     logInfo("Writing main process ID {} into file {}", getpid(), path_);
-    FileUtil::write(path_, to_string(getpid()));
+    FileUtil::write(path_, std::to_string(getpid()));
   }
 }
 

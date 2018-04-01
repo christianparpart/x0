@@ -201,7 +201,7 @@ void dumpArrays(const std::vector<std::vector<T>>& vv, const char* name) {
     std::cout << ".const array<" << name << "> " << std::setw(3) << i << " = [";
     for (size_t k = 0, m = array.size(); k != m; ++k) {
       if (k) std::cout << ", ";
-      std::cout << array[k];
+      std::cout << fmt::format("{}", array[k]);
     }
     std::cout << "];\n";
   }

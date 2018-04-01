@@ -8,11 +8,11 @@
 #pragma once
 
 #include <system_error>
+#include <fmt/format.h>
 #include <string>
 #include <iosfwd>
 
-namespace xzero {
-namespace http {
+namespace xzero::http {
 
 //! \addtogroup http
 //@{
@@ -130,9 +130,6 @@ constexpr HttpStatusGroup toStatusGroup(HttpStatus status) {
 /** Retrieves the human readable text of the HTTP status @p code. */
 const std::string& as_string(HttpStatus code);
 
-/** Write human readable text of the HTTP status @p code into @p os. */
-std::ostream& operator<<(std::ostream& os, HttpStatus code);
-
 /** Tests whether given status @p code MUST NOT have a message body. */
 constexpr bool isContentForbidden(HttpStatus code);
 
@@ -200,18 +197,89 @@ inline std::error_code make_error_code(HttpStatus status) {
   return std::error_code((int) status, HttpStatusCategory::get());
 }
 
-}  // namespace http
-}  // namespace xzero
+}  // namespace xzero::http
 
 namespace std {
+  template <>
+  struct hash<xzero::http::HttpStatus> : public unary_function<xzero::http::HttpStatus, size_t> {
+    size_t operator()(xzero::http::HttpStatus status) const {
+      return (size_t) status;
+    }
+  };
 
-template <>
-struct hash<xzero::http::HttpStatus> : public unary_function<xzero::http::HttpStatus, size_t> {
-  size_t operator()(xzero::http::HttpStatus status) const {
-    return (size_t) status;
-  }
-};
-
-template<> struct is_error_code_enum<xzero::http::HttpStatus> : public true_type{};
-
+  template<> struct is_error_code_enum<xzero::http::HttpStatus> : public true_type {};
 }  // namespace std
+
+namespace fmt {
+  template<>
+  struct formatter<xzero::http::HttpStatus> {
+    using HttpStatus = xzero::http::HttpStatus;
+
+    template <typename ParseContext>
+    constexpr auto parse(ParseContext &ctx) { return ctx.begin(); }
+
+    template <typename FormatContext>
+    constexpr auto format(const HttpStatus& v, FormatContext &ctx) {
+      switch (v) {
+        case HttpStatus::ContinueRequest: return format_to(ctx.begin(), "Continue Request");
+        case HttpStatus::SwitchingProtocols: return format_to(ctx.begin(), "Switching Protocols");
+        case HttpStatus::Processing: return format_to(ctx.begin(), "Processing");
+        case HttpStatus::Ok: return format_to(ctx.begin(), "Ok");
+        case HttpStatus::Created: return format_to(ctx.begin(), "Created");
+        case HttpStatus::Accepted: return format_to(ctx.begin(), "Accepted");
+        case HttpStatus::NonAuthoriativeInformation: return format_to(ctx.begin(), "Non Authoriative Information");
+        case HttpStatus::NoContent: return format_to(ctx.begin(), "No Content");
+        case HttpStatus::ResetContent: return format_to(ctx.begin(), "Reset Content");
+        case HttpStatus::PartialContent: return format_to(ctx.begin(), "Partial Content");
+        case HttpStatus::MultipleChoices: return format_to(ctx.begin(), "Multiple Choices");
+        case HttpStatus::MovedPermanently: return format_to(ctx.begin(), "Moved Permanently");
+        case HttpStatus::Found: return format_to(ctx.begin(), "Found");
+        case HttpStatus::NotModified: return format_to(ctx.begin(), "Not Modified");
+        case HttpStatus::TemporaryRedirect: return format_to(ctx.begin(), "Temporary Redirect");
+        case HttpStatus::PermanentRedirect: return format_to(ctx.begin(), "Permanent Redirect");
+        case HttpStatus::BadRequest: return format_to(ctx.begin(), "Bad Request");
+        case HttpStatus::Unauthorized: return format_to(ctx.begin(), "Unauthorized");
+        case HttpStatus::PaymentRequired: return format_to(ctx.begin(), "Payment Required");
+        case HttpStatus::Forbidden: return format_to(ctx.begin(), "Forbidden");
+        case HttpStatus::NotFound: return format_to(ctx.begin(), "Not Found");
+        case HttpStatus::MethodNotAllowed: return format_to(ctx.begin(), "Method Not Allowed");
+        case HttpStatus::NotAcceptable: return format_to(ctx.begin(), "Not Acceptable");
+        case HttpStatus::ProxyAuthenticationRequired: return format_to(ctx.begin(), "Proxy Authentication Required");
+        case HttpStatus::RequestTimeout: return format_to(ctx.begin(), "Request Timeout");
+        case HttpStatus::Conflict: return format_to(ctx.begin(), "Conflict");
+        case HttpStatus::Gone: return format_to(ctx.begin(), "Gone");
+        case HttpStatus::LengthRequired: return format_to(ctx.begin(), "Length Required");
+        case HttpStatus::PreconditionFailed: return format_to(ctx.begin(), "Precondition Failed");
+        case HttpStatus::PayloadTooLarge: return format_to(ctx.begin(), "Payload Too Large");
+        case HttpStatus::RequestUriTooLong: return format_to(ctx.begin(), "Request Uri Too Long");
+        case HttpStatus::UnsupportedMediaType: return format_to(ctx.begin(), "Unsupported Media Type");
+        case HttpStatus::RequestedRangeNotSatisfiable: return format_to(ctx.begin(), "Requested Range Not Satisfiable");
+        case HttpStatus::ExpectationFailed: return format_to(ctx.begin(), "Expectation Failed");
+        case HttpStatus::MisdirectedRequest: return format_to(ctx.begin(), "Misdirected Request");
+        case HttpStatus::UnprocessableEntity: return format_to(ctx.begin(), "Unprocessable Entity");
+        case HttpStatus::Locked: return format_to(ctx.begin(), "Locked");
+        case HttpStatus::FailedDependency: return format_to(ctx.begin(), "Failed Dependency");
+        case HttpStatus::UnorderedCollection: return format_to(ctx.begin(), "Unordered Collection");
+        case HttpStatus::UpgradeRequired: return format_to(ctx.begin(), "Upgrade Required");
+        case HttpStatus::PreconditionRequired: return format_to(ctx.begin(), "Precondition Required");
+        case HttpStatus::TooManyRequests: return format_to(ctx.begin(), "Too Many Requests");
+        case HttpStatus::RequestHeaderFieldsTooLarge: return format_to(ctx.begin(), "Request Header Fields Too Large");
+        case HttpStatus::InternalServerError: return format_to(ctx.begin(), "Internal Server Error");
+        case HttpStatus::NotImplemented: return format_to(ctx.begin(), "Not Implemented");
+        case HttpStatus::BadGateway: return format_to(ctx.begin(), "Bad Gateway");
+        case HttpStatus::ServiceUnavailable: return format_to(ctx.begin(), "Service Unavailable");
+        case HttpStatus::GatewayTimeout: return format_to(ctx.begin(), "Gateway Timeout");
+        case HttpStatus::HttpVersionNotSupported: return format_to(ctx.begin(), "Http Version Not Supported");
+        case HttpStatus::VariantAlsoNegotiates: return format_to(ctx.begin(), "Variant Also Negotiates");
+        case HttpStatus::InsufficientStorage: return format_to(ctx.begin(), "Insufficient Storage");
+        case HttpStatus::LoopDetected: return format_to(ctx.begin(), "Loop Detected");
+        case HttpStatus::BandwidthExceeded: return format_to(ctx.begin(), "Bandwidth Exceeded");
+        case HttpStatus::NotExtended: return format_to(ctx.begin(), "Not Extended");
+        case HttpStatus::NetworkAuthenticationRequired: return format_to(ctx.begin(), "Network Authentication Required");
+        default:
+          return format_to(ctx.begin(), "({})", (int) v);
+      }
+    }
+  };
+}
+

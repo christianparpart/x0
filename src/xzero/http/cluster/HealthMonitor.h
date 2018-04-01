@@ -14,6 +14,9 @@
 #include <xzero/executor/Executor.h>
 #include <xzero/CompletionHandler.h>
 #include <xzero/Duration.h>
+
+#include <fmt/format.h>
+
 #include <utility>
 #include <vector>
 #include <iosfwd>
@@ -132,6 +135,29 @@ class HealthMonitor {
   HttpClient client_;
 };
 
-std::ostream& operator<<(std::ostream& os, HealthMonitor::State state);
-
 } // namespace xzero::http::cluster
+
+namespace fmt {
+  template<>
+  struct formatter<xzero::http::cluster::HealthMonitor::State> {
+    using State = xzero::http::cluster::HealthMonitor::State;
+
+    template <typename ParseContext>
+    constexpr auto parse(ParseContext &ctx) { return ctx.begin(); }
+
+    template <typename FormatContext>
+    constexpr auto format(const State& v, FormatContext &ctx) {
+      switch (v) {
+        case State::Undefined:
+          return format_to(ctx.begin(), "Undefined");
+        case State::Offline:
+          return format_to(ctx.begin(), "Offline");
+        case State::Online:
+          return format_to(ctx.begin(), "Online");
+        default:
+          return format_to(ctx.begin(), "({})", (int) v);
+      }
+    }
+  };
+}
+

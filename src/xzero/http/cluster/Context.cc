@@ -40,7 +40,7 @@ Context::Context(const HttpRequest& _request,
       proxyId_{proxyId},
       viaText_{},
       responseListener{std::move(_responseListener)} {
-  TRACE("ctor: executor: {}", executor);
+  TRACE("ctor: executor: {}", executor->toString());
 }
 
 Context::~Context() {
@@ -70,7 +70,7 @@ void Context::onMessageHeaderEnd() {
   if (!proxyId_.empty()) {
     Buffer buf;
     buf.reserve(proxyId_.size() + viaText_.size() + 8);
-    buf.push_back(to_string(proxyVersion_));
+    buf.push_back(fmt::format("{}", proxyVersion_));
     buf.push_back(' ');
     buf.push_back(proxyId_);
     buf.push_back(viaText_);

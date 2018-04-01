@@ -11,16 +11,4 @@
 
 namespace xzero {
 
-std::ostream& operator<<(std::ostream& os, TokenShaperError ec) {
-  switch (ec) {
-    case TokenShaperError::Success: return os << "Success";
-    case TokenShaperError::RateLimitOverflow: return os << "Rate Limit Overflow";
-    case TokenShaperError::CeilLimitOverflow: return os << "Ceil Limit Overflow";
-    case TokenShaperError::NameConflict: return os << "Name Conflict";
-    case TokenShaperError::InvalidChildNode: return os << "Invalid Child Node";
-    default:
-      logFatal("Unknown TokenShaperError value.");
-  }
-}
-
 } // namespace xzero

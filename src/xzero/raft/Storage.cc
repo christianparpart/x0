@@ -73,13 +73,13 @@ Index MemoryStore::latestIndex() {
 }
 
 std::error_code MemoryStore::appendLogEntry(const LogEntry& log) {
-  logDebug("raft: MemoryStore: appendLogEntry: at index:{}, {}", log_.size(), log);
+  //TODO(uncomment): logDebug("raft: MemoryStore: appendLogEntry: at index:{}, {}", log_.size(), log);
   log_.emplace_back(log);
   return std::error_code();
 }
 
 Future<Index> MemoryStore::appendLogEntryAsync(const LogEntry& log) {
-  logDebug("raft: MemoryStore: appendLogEntryAsync: at index:{}, {}", log_.size(), log);
+  //TODO(uncomment): logDebug("raft: MemoryStore: appendLogEntryAsync: at index:{}, {}", log_.size(), log);
 
   Promise<Index> promise;
 

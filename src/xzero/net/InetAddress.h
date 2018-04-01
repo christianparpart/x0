@@ -8,7 +8,7 @@
 #pragma once
 
 #include <xzero/net/IPAddress.h>
-#include <fmt/ostream.h>
+#include <fmt/format.h>
 #include <optional>
 
 namespace xzero {
@@ -38,9 +38,73 @@ class InetAddress {
   int port_;
 };
 
-std::ostream& operator<<(std::ostream& os, const InetAddress& inet);
-std::ostream& operator<<(std::ostream& os, const std::optional<InetAddress>& inet);
+// std::ostream& operator<<(std::ostream& os, const InetAddress& inet);
+// std::ostream& operator<<(std::ostream& os, const std::optional<InetAddress>& inet);
+
+// {{{ inlines
+inline InetAddress::InetAddress(const std::string& ipaddr, int port, int family)
+    : ipaddress_(ipaddr, family), port_(port) {
+}
+
+inline InetAddress::InetAddress(const IPAddress& ipaddr, int port)
+    : ipaddress_(ipaddr), port_(port) {
+}
+
+inline const IPAddress& InetAddress::ip() const noexcept {
+  return ipaddress_;
+}
+
+inline void InetAddress::setIP(const IPAddress& value) {
+  ipaddress_ = value;
+}
+
+inline int InetAddress::port() const noexcept {
+  return port_;
+}
+
+inline void InetAddress::setPort(int value) {
+  port_ = value;
+}
+
+inline int InetAddress::family() const noexcept {
+  return ipaddress_.family();
+}
+// }}}
 
 } // namespace xzero
 
-#include <xzero/net/InetAddress-inl.h>
+namespace fmt {
+  template<>
+  struct formatter<xzero::InetAddress> {
+    using InetAddress = xzero::InetAddress;
+
+    template <typename ParseContext>
+    constexpr auto parse(ParseContext &ctx) -> decltype(ctx.begin()) {
+      return ctx.begin();
+    }
+
+    template <typename FormatContext>
+    constexpr auto format(const InetAddress& v, FormatContext& ctx) -> decltype(ctx.begin()) {
+      return format_to(ctx.begin(), "{}:{}", v.ip(), v.port());
+    }
+  };
+}
+
+namespace fmt {
+  template<>
+  struct formatter<std::optional<xzero::InetAddress>> {
+    using InetAddress = xzero::InetAddress;
+
+    template <typename ParseContext>
+    constexpr auto parse(ParseContext &ctx) { return ctx.begin(); }
+
+    template <typename FormatContext>
+    constexpr auto format(const std::optional<InetAddress>& v, FormatContext &ctx) {
+      if (v)
+        return format_to(ctx.begin(), "{}:{}", v->ip(), v->port());
+      else
+        return format_to(ctx.begin(), "NONE");
+    }
+  };
+}
+

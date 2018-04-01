@@ -6,6 +6,11 @@
 // the License at: http://opensource.org/licenses/MIT
 
 #include <xzero-flow/ir/ConstantValue.h>
+#include <xzero/RegExp.h>
+#include <xzero/net/Cidr.h>
+#include <xzero/net/IPAddress.h>
+
+#include <string>
 
 namespace xzero::flow {
 

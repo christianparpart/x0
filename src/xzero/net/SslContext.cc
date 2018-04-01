@@ -101,7 +101,7 @@ SslContext::SslContext(const std::string& crtFilePath,
       alpn_(alpn),
       dnsNames_(),
       getContext_(getContext) {
-  TRACE("{} SslContext(\"{}\", \"{}\"", this, crtFilePath, keyFilePath);
+  TRACE("{} SslContext(\"{}\", \"{}\"", (void*) this, crtFilePath, keyFilePath);
 
   initialize();
 
@@ -136,7 +136,7 @@ SslContext::SslContext(const std::string& crtFilePath,
 }
 
 SslContext::~SslContext() {
-  TRACE("{} ~SslContext()", this);
+  TRACE("{} ~SslContext()", (void*) this);
   SSL_CTX_free(ctx_);
 }
 
@@ -170,10 +170,10 @@ int SslContext::onAppLayerProtoNegotiation(
 }
 
 int SslContext::onServerName(SSL* ssl, int* ad, SslContext* self) {
-  TRACE("{} onServerName()", self);
+  TRACE("{} onServerName()", (void*) self);
   const char* name = SSL_get_servername(ssl, TLSEXT_NAMETYPE_host_name);
   if (!name) {
-    TRACE("{} onServerName() no SNI given; chosing default context", self);
+    TRACE("{} onServerName() no SNI given; chosing default context", (void*) self);
     if (SslContext* ctx = self->getContext_(nullptr)) {
       SSL_set_SSL_CTX(ssl, ctx->get());
       return SSL_TLSEXT_ERR_OK;
@@ -182,7 +182,7 @@ int SslContext::onServerName(SSL* ssl, int* ad, SslContext* self) {
     }
   }
 
-  TRACE("{} onServerName(): name={}", self, name);
+  TRACE("{} onServerName(): name={}", (void*) self, name);
 
   if (SslContext* ctx = self->getContext_(name)) {
     SSL_set_SSL_CTX(ssl, ctx->get());

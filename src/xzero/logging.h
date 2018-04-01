@@ -26,7 +26,6 @@ enum class LogLevel { // {{{
 
 LogLevel make_loglevel(const std::string& value);
 
-std::ostream& operator<<(std::ostream& os, LogLevel value);
 std::string as_string(LogLevel value);
 // }}}
 class LogTarget { // {{{
@@ -169,3 +168,29 @@ inline void logTrace(const std::string& msg, T... args) {
 // }}}
 
 } // namespace xzero
+
+namespace fmt {
+  template<>
+  struct formatter<xzero::LogLevel> {
+    template <typename ParseContext>
+    constexpr auto parse(ParseContext &ctx) { return ctx.begin(); }
+
+    template <typename FormatContext>
+    constexpr auto format(const xzero::LogLevel& v, FormatContext &ctx) {
+      using xzero::LogLevel;
+
+      switch (v) {
+        case LogLevel::None: return format_to(ctx.begin(), "none");
+        case LogLevel::Fatal: return format_to(ctx.begin(), "fatal");
+        case LogLevel::Error: return format_to(ctx.begin(), "error");
+        case LogLevel::Warning: return format_to(ctx.begin(), "warning");
+        case LogLevel::Notice: return format_to(ctx.begin(), "notice");
+        case LogLevel::Info: return format_to(ctx.begin(), "info");
+        case LogLevel::Debug: return format_to(ctx.begin(), "debug");
+        case LogLevel::Trace: return format_to(ctx.begin(), "trace");
+        default:
+          return format_to(ctx.begin(), "({})", (int) v);
+      }
+    }
+  };
+}

@@ -691,7 +691,7 @@ void ApiHandler::createBucket(Cluster* cluster, const std::string& name) {
   if (ec == TokenShaperError::Success) {
     generateResponse(HttpStatus::NoContent);
   } else {
-    generateResponse(HttpStatus::BadRequest, to_string(ec));
+    generateResponse(HttpStatus::BadRequest, fmt::format("{}", ec));
   }
 }
 
@@ -719,7 +719,7 @@ void ApiHandler::updateBucket(Cluster* cluster, const std::string& name) {
   if (ec == TokenShaperError::Success) {
     generateResponse(HttpStatus::NoContent);
   } else {
-    generateResponse(HttpStatus::BadRequest, to_string(ec));
+    generateResponse(HttpStatus::BadRequest, fmt::format("{}", ec));
   }
 }
 
