@@ -85,17 +85,17 @@ libXzero_a_SOURCES = \
 	src/xzero/http/HeaderFieldList.cc \
 	src/xzero/http/HttpChannel.cc \
 	src/xzero/http/HttpConnectionFactory.cc \
-	src/xzero/http/HttpRequest.cc \
-	src/xzero/http/HttpRequestInfo.cc \
-	src/xzero/http/HttpResponse.cc \
-	src/xzero/http/HttpService.cc \
-	src/xzero/http/HttpStatus.cc \
 	src/xzero/http/HttpDateGenerator.cc \
 	src/xzero/http/HttpFileHandler.cc \
 	src/xzero/http/HttpListener.cc \
 	src/xzero/http/HttpMethod.cc \
 	src/xzero/http/HttpOutputCompressor.cc \
 	src/xzero/http/HttpRangeDef.cc \
+	src/xzero/http/HttpRequest.cc \
+	src/xzero/http/HttpRequestInfo.cc \
+	src/xzero/http/HttpResponse.cc \
+	src/xzero/http/HttpService.cc \
+	src/xzero/http/HttpStatus.cc \
 	src/xzero/http/HttpTransport.cc \
 	src/xzero/http/HttpVersion.cc \
 	src/xzero/http/MediaRange.cc \
@@ -149,13 +149,13 @@ libXzero_a_SOURCES = \
 	src/xzero/net/DnsClient.cc \
 	src/xzero/net/EndPointWriter.cc \
 	src/xzero/net/InetAddress.cc \
+	src/xzero/net/SslConnector.cc \
+	src/xzero/net/SslContext.cc \
+	src/xzero/net/SslEndPoint.cc \
 	src/xzero/net/TcpConnection.cc \
 	src/xzero/net/TcpConnector.cc \
 	src/xzero/net/TcpEndPoint.cc \
 	src/xzero/net/TcpUtil.cc \
-	src/xzero/net/SslConnector.cc \
-	src/xzero/net/SslContext.cc \
-	src/xzero/net/SslEndPoint.cc \
 	src/xzero/net/UdpClient.cc \
 	src/xzero/net/UdpConnector.cc \
 	src/xzero/net/UdpEndPoint.cc \
@@ -166,20 +166,20 @@ libXzero_a_SOURCES = \
 	src/xzero/raft/LocalTransport.cc \
 	src/xzero/raft/MessageType.cc \
 	src/xzero/raft/Parser.cc \
-	src/xzero/raft/rpc.cc \
 	src/xzero/raft/Server.cc \
 	src/xzero/raft/ServerUtil.cc \
 	src/xzero/raft/Storage.cc \
 	src/xzero/raft/Transport.cc \
+	src/xzero/raft/rpc.cc \
 	src/xzero/testing.cc \
 	src/xzero/text/IniFile.cc \
-	src/xzero/thread/Wakeup.cc \
 	src/xzero/thread/Queue.cc \
 	src/xzero/thread/SignalHandler.cc \
-	src/xzero/util/BinaryReader.cc \
-	src/xzero/util/BinaryWriter.cc \
+	src/xzero/thread/Wakeup.cc \
 	src/xzero/util/BinaryMessageReader.cc \
 	src/xzero/util/BinaryMessageWriter.cc \
+	src/xzero/util/BinaryReader.cc \
+	src/xzero/util/BinaryWriter.cc \
 	src/xzero/util/SimpleRateLimit.cc
 
 libXzerodir = $(includedir)
@@ -208,8 +208,8 @@ nobase_libXzero_HEADERS = \
 	src/xzero/MimeTypes.h \
 	src/xzero/MonotonicClock.h \
 	src/xzero/MonotonicTime.h \
-	src/xzero/PosixSignals.h \
 	src/xzero/MonotonicTime_impl.h \
+	src/xzero/PosixSignals.h \
 	src/xzero/PrefixTree.h \
 	src/xzero/Random.h \
 	src/xzero/RegExp.h \
@@ -235,12 +235,6 @@ nobase_libXzero_HEADERS = \
 	src/xzero/base64url-inl.h \
 	src/xzero/base64url.h \
 	src/xzero/defines.h \
-	src/xzero/inspect-impl.h \
-	src/xzero/inspect.h \
-	src/xzero/logging.h \
-	src/xzero/testing.h \
-	src/xzero/time_constants.h \
-	src/xzero/traits.h \
 	src/xzero/executor/EventLoop.h \
 	src/xzero/executor/Executor-inl.h \
 	src/xzero/executor/Executor.h \
@@ -278,6 +272,22 @@ nobase_libXzero_HEADERS = \
 	src/xzero/http/client/Http1Connection.h \
 	src/xzero/http/client/HttpClient.h \
 	src/xzero/http/client/HttpTransport.h \
+	src/xzero/http/cluster/Api.h \
+	src/xzero/http/cluster/ApiHandler.cc \
+	src/xzero/http/cluster/ApiHandler.h \
+	src/xzero/http/cluster/Backend.cc \
+	src/xzero/http/cluster/Backend.h \
+	src/xzero/http/cluster/Cache.h \
+	src/xzero/http/cluster/ClientAbortAction.h \
+	src/xzero/http/cluster/Cluster.cc \
+	src/xzero/http/cluster/Cluster.h \
+	src/xzero/http/cluster/Context.cc \
+	src/xzero/http/cluster/Context.h \
+	src/xzero/http/cluster/HealthMonitor.cc \
+	src/xzero/http/cluster/HealthMonitor.h \
+	src/xzero/http/cluster/Scheduler.cc \
+	src/xzero/http/cluster/Scheduler.h \
+	src/xzero/http/cluster/SchedulerStatus.h \
 	src/xzero/http/fastcgi/Connection.h \
 	src/xzero/http/fastcgi/ConnectionFactory.h \
 	src/xzero/http/fastcgi/Generator.h \
@@ -313,6 +323,8 @@ nobase_libXzero_HEADERS = \
 	src/xzero/http/http2/StreamID.h \
 	src/xzero/http/http2/StreamState.h \
 	src/xzero/http/mock/Transport.h \
+	src/xzero/inspect-impl.h \
+	src/xzero/inspect.h \
 	src/xzero/io/DataChain.h \
 	src/xzero/io/DataChainListener.h \
 	src/xzero/io/File.h \
@@ -328,19 +340,20 @@ nobase_libXzero_HEADERS = \
 	src/xzero/io/MemoryFileRepository.h \
 	src/xzero/io/MemoryMap.h \
 	src/xzero/io/SystemPipe.h \
+	src/xzero/logging.h \
 	src/xzero/net/Cidr.h \
 	src/xzero/net/DnsClient.h \
 	src/xzero/net/EndPointWriter.h \
 	src/xzero/net/IPAddress.h \
 	src/xzero/net/InetAddress-inl.h \
 	src/xzero/net/InetAddress.h \
+	src/xzero/net/SslConnector.h \
+	src/xzero/net/SslContext.h \
+	src/xzero/net/SslEndPoint.h \
 	src/xzero/net/TcpConnection.h \
 	src/xzero/net/TcpConnector.h \
 	src/xzero/net/TcpEndPoint.h \
 	src/xzero/net/TcpUtil.h \
-	src/xzero/net/SslConnector.h \
-	src/xzero/net/SslContext.h \
-	src/xzero/net/SslEndPoint.h \
 	src/xzero/net/UdpClient.h \
 	src/xzero/net/UdpConnector.h \
 	src/xzero/net/UdpEndPoint.h \
@@ -352,23 +365,26 @@ nobase_libXzero_HEADERS = \
 	src/xzero/raft/Listener.h \
 	src/xzero/raft/MessageType.h \
 	src/xzero/raft/Parser.h \
-	src/xzero/raft/rpc.h \
-	src/xzero/raft/Server.h \
 	src/xzero/raft/Server-inl.h \
+	src/xzero/raft/Server.h \
 	src/xzero/raft/ServerUtil.h \
 	src/xzero/raft/StateMachine.h \
 	src/xzero/raft/Storage.h \
 	src/xzero/raft/Transport.h \
+	src/xzero/raft/rpc.h \
+	src/xzero/testing.h \
 	src/xzero/text/IniFile.h \
 	src/xzero/thread/Future-impl.h \
 	src/xzero/thread/Future.h \
 	src/xzero/thread/Queue.h \
 	src/xzero/thread/SignalHandler.h \
 	src/xzero/thread/Wakeup.h \
-	src/xzero/util/BinaryReader.h \
-	src/xzero/util/BinaryWriter.h \
+	src/xzero/time_constants.h \
+	src/xzero/traits.h \
 	src/xzero/util/BinaryMessageReader.h \
 	src/xzero/util/BinaryMessageWriter.h \
+	src/xzero/util/BinaryReader.h \
+	src/xzero/util/BinaryWriter.h \
 	src/xzero/util/SimpleRateLimit.h \
 	src/xzero/util/UnboxedRange.h
 
@@ -389,28 +405,6 @@ libXzero_a_SOURCES += \
 
 nobase_libXzero_HEADERS += \
 	src/xzero/KQueueSignals.h
-endif
-
-if ENABLE_PROXY
-libXzero_a_SOURCES += \
-	src/xzero/http/cluster/ApiHandler.cc \
-	src/xzero/http/cluster/Backend.cc \
-	src/xzero/http/cluster/Cluster.cc \
-	src/xzero/http/cluster/Context.cc \
-	src/xzero/http/cluster/HealthMonitor.cc \
-	src/xzero/http/cluster/Scheduler.cc
-
-nobase_libXzero_HEADERS += \
-	src/xzero/http/cluster/Api.h \
-	src/xzero/http/cluster/ApiHandler.h \
-	src/xzero/http/cluster/Backend.h \
-	src/xzero/http/cluster/Cache.h \
-	src/xzero/http/cluster/ClientAbortAction.h \
-	src/xzero/http/cluster/Cluster.h \
-	src/xzero/http/cluster/Context.h \
-	src/xzero/http/cluster/Scheduler.h \
-	src/xzero/http/cluster/SchedulerStatus.h \
-	src/xzero/http/cluster/HealthMonitor.h
 endif
 
 install-data-hook:
@@ -468,7 +462,6 @@ nobase_libXzeroFlow_HEADERS = \
 	src/xzero-flow/AST.h \
 	src/xzero-flow/ASTPrinter.h \
 	src/xzero-flow/ASTVisitor.h \
-	src/xzero/defines.h \
 	src/xzero-flow/FlowCallVisitor.h \
 	src/xzero-flow/FlowLexer.h \
 	src/xzero-flow/FlowLocation.h \
@@ -516,6 +509,7 @@ check_PROGRAMS += xzero_test
 xzero_test_SOURCES = \
 	src/xzero-flow/FlowLexer-test.cc \
 	src/xzero-flow/FlowParser-test.cc \
+	src/xzero-flow/vm/Runner-test.cc \
 	src/xzero/Base64-test.cc \
 	src/xzero/Buffer-test.cc \
 	src/xzero/Callback-test.cc \
@@ -525,11 +519,6 @@ xzero_test_SOURCES = \
 	src/xzero/HugeBuffer-test.cc \
 	src/xzero/MimeTypes-test.cc \
 	src/xzero/PrefixTree-test.cc \
-	src/xzero/raft/Generator-test.cc \
-	src/xzero/raft/InetTransport-test.cc \
-	src/xzero/raft/Parser-test.cc \
-	src/xzero/raft/Server-test.cc \
-	src/xzero/raft/ServerUtil-test.cc \
 	src/xzero/Result-test.cc \
 	src/xzero/StringUtil-test.cc \
 	src/xzero/SuffixTree-test.cc \
@@ -565,13 +554,17 @@ xzero_test_SOURCES = \
 	src/xzero/io/DataChain-test.cc \
 	src/xzero/io/MemoryFile-test.cc \
 	src/xzero/io/MemoryMap-test.cc \
-	src/xzero/net/TcpConnector-test.cc \
 	src/xzero/net/Cidr-test.cc \
+	src/xzero/net/TcpConnector-test.cc \
+	src/xzero/raft/Generator-test.cc \
+	src/xzero/raft/InetTransport-test.cc \
+	src/xzero/raft/Parser-test.cc \
+	src/xzero/raft/Server-test.cc \
+	src/xzero/raft/ServerUtil-test.cc \
 	src/xzero/thread/Future-test.cc \
 	src/xzero/thread/Queue-test.cc \
 	src/xzero/util/BinaryReader-test.cc \
-	src/xzero/util/BinaryWriter-test.cc \
-	src/xzero-flow/vm/Runner-test.cc
+	src/xzero/util/BinaryWriter-test.cc
 
 if PLATFORM_LINUX
 xzero_test_SOURCES += \
@@ -609,6 +602,7 @@ x0d_SOURCES = \
 	src/x0d/Context.cc \
 	src/x0d/Daemon.cc \
 	src/x0d/Module.cc \
+	src/x0d/main.cc \
 	src/x0d/modules/access.cc \
 	src/x0d/modules/accesslog.cc \
 	src/x0d/modules/auth.cc \
@@ -616,14 +610,9 @@ x0d_SOURCES = \
 	src/x0d/modules/core.cc \
 	src/x0d/modules/dirlisting.cc \
 	src/x0d/modules/empty_gif.cc \
+	src/x0d/modules/proxy.cc \
 	src/x0d/modules/userdir.cc \
-	src/x0d/modules/webdav.cc \
-	src/x0d/main.cc
-
-if ENABLE_PROXY
-x0d_SOURCES += \
-	src/x0d/modules/proxy.cc
-endif
+	src/x0d/modules/webdav.cc
 
 x0ddir = $(includedir)/x0d
 x0d_HEADERS = \
