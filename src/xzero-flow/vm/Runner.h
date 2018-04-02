@@ -189,7 +189,4 @@ class Runner : public CustomData {
   Runner& operator=(Runner&) = delete;
 };
 
-std::ostream& operator<<(std::ostream& os, Runner::State state);
-std::ostream& operator<<(std::ostream& os, const Runner& vm);
-
 }  // namespace xzero::flow

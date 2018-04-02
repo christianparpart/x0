@@ -5,24 +5,27 @@
 // file except in compliance with the License. You may obtain a copy of
 // the License at: http://opensource.org/licenses/MIT
 
-#include <xzero/logging.h>
+#include <xzero/BufferUtil.h>
 #include <xzero/ExceptionHandler.h>
-#include <xzero/raft/Server.h>
-#include <xzero/raft/StateMachine.h>
+#include <xzero/executor/PosixScheduler.h>
+#include <xzero/fmtutil.h>
+#include <xzero/logging.h>
 #include <xzero/raft/Discovery.h>
 #include <xzero/raft/LocalTransport.h>
+#include <xzero/raft/Server.h>
+#include <xzero/raft/StateMachine.h>
 #include <xzero/raft/Storage.h>
+#include <xzero/testing.h>
 #include <xzero/util/BinaryReader.h>
 #include <xzero/util/BinaryWriter.h>
-#include <xzero/executor/PosixScheduler.h>
-#include <xzero/BufferUtil.h>
-#include <xzero/testing.h>
-#include <initializer_list>
-#include <unordered_map>
-#include <vector>
+
 #include <algorithm>
+#include <initializer_list>
 #include <iostream>
 #include <limits>
+#include <unordered_map>
+#include <vector>
+
 #include <unistd.h>
 
 using namespace xzero;

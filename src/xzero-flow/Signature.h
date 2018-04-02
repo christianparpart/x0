@@ -51,6 +51,4 @@ class Signature {
 FlowType typeSignature(char ch);
 char signatureType(FlowType t);
 
-std::ostream& operator<<(std::ostream& os, const Signature& signature);
-
 }  // namespace xzero::flow

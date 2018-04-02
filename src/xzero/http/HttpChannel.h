@@ -205,8 +205,6 @@ inline Executor* HttpChannel::executor() const noexcept {
   return executor_;
 }
 
-std::ostream& operator<<(std::ostream& os, HttpChannel* value);
-
 }  // namespace http
 }  // namespace xzero
 

@@ -21,18 +21,6 @@
 namespace xzero {
 namespace flow {
 
-std::ostream& operator<<(std::ostream& os, SymbolTable* st) {
-  return os << st->name();
-}
-
-std::ostream& operator<<(std::ostream& os, Symbol* sym) {
-  if (sym != nullptr) {
-    return os << fmt::format("Symbol:{}", sym->name());
-  } else {
-    return os << "NULL";
-  }
-}
-
 // {{{ SymbolTable
 SymbolTable::SymbolTable(SymbolTable* outer, const std::string& name)
     : symbols_(), outerTable_(outer), name_(name) {}

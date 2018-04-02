@@ -26,11 +26,6 @@ const std::string& as_string(HttpVersion version) {
   }
 }
 
-std::ostream& operator<<(std::ostream& os, HttpVersion version) {
-  os << as_string(version);
-  return os;
-}
-
 HttpVersion make_version(const std::string& value) {
   if (value.size() != 3 || value[1] != '.')
     return HttpVersion::UNKNOWN;

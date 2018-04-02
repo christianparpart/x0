@@ -16,12 +16,4 @@ void MonotonicTime::update() {
   *this = MonotonicClock::now();
 }
 
-std::string inspect(const MonotonicTime& value) {
-  return std::to_string(value.milliseconds());
-}
-
-std::ostream& operator<<(std::ostream& os, MonotonicTime value) {
-  return os << inspect(value);
-}
-
 } // namespace xzero

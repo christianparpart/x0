@@ -174,13 +174,6 @@ class LinuxScheduler : public EventLoop {
   std::atomic<size_t> breakLoopCounter_;
 };
 
-std::string inspect(LinuxScheduler::Mode mode);
-// std::string inspect(const LinuxScheduler::Watcher& w);
-// std::string inspect(const LinuxScheduler& s);
-
-std::ostream& operator<<(std::ostream& os, LinuxScheduler::Mode m);
-std::ostream& operator<<(std::ostream& os, LinuxScheduler::Watcher* w);
-
 } // namespace xzero
 
 #include <xzero/executor/LinuxScheduler-inl.h>

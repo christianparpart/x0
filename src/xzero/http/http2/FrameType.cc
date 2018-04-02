@@ -11,10 +11,6 @@
 
 namespace xzero::http::http2 {
 
-std::ostream& operator<<(std::ostream& os, FrameType type) {
-  return os << as_string(type);
-}
-
 std::string as_string(FrameType type) {
   switch (type) {
     case FrameType::Data:

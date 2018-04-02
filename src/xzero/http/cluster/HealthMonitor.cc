@@ -22,19 +22,6 @@
 
 namespace xzero::http::cluster {
 
-std::ostream& operator<<(std::ostream& os, HealthMonitor::State state) {
-  switch (state) {
-    case http::cluster::HealthMonitor::State::Undefined:
-      return os << "undefined";
-    case http::cluster::HealthMonitor::State::Offline:
-      return os << "offline";
-    case http::cluster::HealthMonitor::State::Online:
-      return os << "online";
-    default:
-      logFatal("Unknown HealthMonitor::State value.");
-  }
-}
-
 HealthMonitor::HealthMonitor(Executor* executor,
                              const InetAddress& inetAddress,
                              const std::string& hostHeader,

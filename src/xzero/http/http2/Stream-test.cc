@@ -41,20 +41,20 @@ std::shared_ptr<Stream> createNopStreamExclusive(const std::shared_ptr<Stream>& 
 TEST(DISABLED_http_http2_Stream, dependencies) {
   // RFC 7540, 5.3.1, Figure 3
   auto A = createNopStream(nullptr);
-  ASSERT_EQ(nullptr, A->parentStream());
+  ASSERT_TRUE(A->parentStream() == nullptr);
   ASSERT_EQ(0, A->dependentStreamCount());
 
   auto B = createNopStream(A);
   ASSERT_EQ(1, A->dependentStreamCount());
-  ASSERT_EQ(A.get(), B->parentStream());
-  ASSERT_EQ(B.get(), A->firstDependantStream());
+  ASSERT_TRUE(A.get() == B->parentStream());
+  ASSERT_TRUE(B.get() == A->firstDependantStream());
 
   auto C = createNopStream(A);
   ASSERT_EQ(2, A->dependentStreamCount());
-  ASSERT_EQ(A.get(), B->parentStream());
-  ASSERT_EQ(A.get(), C->parentStream());
-  ASSERT_EQ(C.get(), A->firstDependantStream());
-  ASSERT_EQ(B.get(), C->nextSiblingStream());
+  ASSERT_TRUE(A.get() == B->parentStream());
+  ASSERT_TRUE(A.get() == C->parentStream());
+  ASSERT_TRUE(C.get() == A->firstDependantStream());
+  ASSERT_TRUE(B.get() == C->nextSiblingStream());
 }
 
 TEST(DISABLED_http_http2_Stream, dependenciesExclusive) {
@@ -64,10 +64,10 @@ TEST(DISABLED_http_http2_Stream, dependenciesExclusive) {
   auto C = createNopStream(A);
   auto D = createNopStreamExclusive(A);
 
-  ASSERT_EQ(nullptr, A->parentStream());
-  ASSERT_EQ(A.get(), D->parentStream());
-  ASSERT_EQ(D.get(), B->parentStream());
-  ASSERT_EQ(D.get(), C->parentStream());
+  ASSERT_TRUE(nullptr == A->parentStream());
+  ASSERT_TRUE(A.get() == D->parentStream());
+  ASSERT_TRUE(D.get() == B->parentStream());
+  ASSERT_TRUE(D.get() == C->parentStream());
 }
 
 TEST(DISABLED_http_http2_Stream, repriorization_exclusive) {
@@ -95,15 +95,15 @@ TEST(DISABLED_http_http2_Stream, repriorization_exclusive) {
   constexpr bool exclusive = true;
   D->reparent(A->parentStream(), exclusive);
 
-  ASSERT_EQ(nullptr, D->parentStream());
+  ASSERT_TRUE(nullptr == D->parentStream());
 
-  ASSERT_EQ(D.get(), A->parentStream());
+  ASSERT_TRUE(D.get() == A->parentStream());
 
-  ASSERT_EQ(A.get(), B->parentStream());
-  ASSERT_EQ(A.get(), C->parentStream());
-  ASSERT_EQ(A.get(), F->parentStream());
+  ASSERT_TRUE(A.get() == B->parentStream());
+  ASSERT_TRUE(A.get() == C->parentStream());
+  ASSERT_TRUE(A.get() == F->parentStream());
 
-  ASSERT_EQ(C.get(), E->parentStream());
+  ASSERT_TRUE(C.get() == E->parentStream());
 }
 
 TEST(DISABLED_http_http2_Stream, repriorization_inclusive) {
@@ -131,13 +131,13 @@ TEST(DISABLED_http_http2_Stream, repriorization_inclusive) {
   constexpr bool inclusive = false;
   D->reparent(A->parentStream(), inclusive);
 
-  ASSERT_EQ(nullptr, D->parentStream());
+  ASSERT_TRUE(nullptr == D->parentStream());
 
-  ASSERT_EQ(D.get(), F->parentStream());
-  ASSERT_EQ(D.get(), A->parentStream());
+  ASSERT_TRUE(D.get() == F->parentStream());
+  ASSERT_TRUE(D.get() == A->parentStream());
 
-  ASSERT_EQ(A.get(), B->parentStream());
-  ASSERT_EQ(A.get(), C->parentStream());
+  ASSERT_TRUE(A.get() == B->parentStream());
+  ASSERT_TRUE(A.get() == C->parentStream());
 
-  ASSERT_EQ(C.get(), E->parentStream());
+  ASSERT_TRUE(C.get() == E->parentStream());
 }

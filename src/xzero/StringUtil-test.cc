@@ -12,14 +12,6 @@
 
 using namespace xzero;
 
-TEST(StringUtil, TestToString) {
-  EXPECT_EQ(to_string(123), "123");
-  EXPECT_EQ(to_string(1230000000), "1230000000");
-  EXPECT_EQ(to_string(24.5), "24.5");
-  EXPECT_EQ(to_string("abc"), "abc");
-  EXPECT_EQ(to_string(std::string("abc")), "abc");
-}
-
 TEST(StringUtil, TestStripTrailingSlashes) {
   std::string s1 = "fnord/bar/";
   StringUtil::stripTrailingSlashes(&s1);

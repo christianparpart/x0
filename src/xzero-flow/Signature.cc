@@ -152,8 +152,4 @@ char signatureType(FlowType t) {
   }
 }
 
-std::ostream& operator<<(std::ostream& os, const Signature& signature) {
-  return os << signature.to_s();
-}
-
 }  // namespace xzero::flow

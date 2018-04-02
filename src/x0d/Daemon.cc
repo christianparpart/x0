@@ -74,18 +74,6 @@ extern std::unordered_map<std::string, std::string> mimetypes2cc;
 
 namespace x0d {
 
-std::ostream& operator<<(std::ostream& os, DaemonState state) {
-  switch (state) {
-    case DaemonState::Inactive: return os << "Inactive";
-    case DaemonState::Initializing: return os << "Initializing";
-    case DaemonState::Running: return os << "Running";
-    case DaemonState::Upgrading: return os << "Upgrading";
-    case DaemonState::GracefullyShuttingdown: return os << "GracefullyShuttingdown";
-    default:
-      logFatal("Invalid DaemonState value should never happen.");
-  }
-}
-
 Daemon::Daemon()
     : generation_(1),
       startupTime_(),

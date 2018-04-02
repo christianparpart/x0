@@ -127,7 +127,6 @@ libXzero_a_SOURCES = \
 	src/xzero/http/http2/SettingParameter.cc \
 	src/xzero/http/http2/Settings.cc \
 	src/xzero/http/http2/Stream.cc \
-	src/xzero/http/http2/StreamState.cc \
 	src/xzero/http/mock/Transport.cc \
 	src/xzero/inspect.cc \
 	src/xzero/io/DataChain.cc \

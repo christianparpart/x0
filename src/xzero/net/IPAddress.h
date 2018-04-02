@@ -59,9 +59,6 @@ class IPAddress {
   friend bool operator!=(const IPAddress& a, const IPAddress& b);
 };
 
-// inline std::ostream& operator<<(std::ostream& os, const IPAddress& ipaddr);
-// inline std::ostream& operator<<(std::ostream& os, const std::optional<IPAddress>& addr);
-
 // {{{ impl
 inline IPAddress::IPAddress() {
   family_ = 0;
@@ -183,19 +180,6 @@ inline bool operator==(const IPAddress& a, const IPAddress& b) {
 inline bool operator!=(const IPAddress& a, const IPAddress& b) {
   return !(a == b);
 }
-
-// inline std::ostream& operator<<(std::ostream& os, const IPAddress& ipaddr) {
-//   os << ipaddr.str();
-//   return os;
-// }
-// 
-// inline std::ostream& operator<<(std::ostream& os, const std::optional<IPAddress>& addr) {
-//   if (addr)
-//     return os << addr->str();
-//   else
-//     return os << "NONE";
-// }
-// }}}
 
 }  // namespace xzero
 

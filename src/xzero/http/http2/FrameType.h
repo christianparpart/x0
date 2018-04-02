@@ -36,7 +36,6 @@ enum class FrameType {
   Continuation = 9,
 };
 
-std::ostream& operator<<(std::ostream& os, FrameType type);
 std::string as_string(FrameType type);
 
 } // namespace xzero::http::http2

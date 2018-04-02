@@ -22,11 +22,6 @@ namespace http1 {
 #define TRACE(msg...) do {} while (0)
 #endif
 
-std::ostream& operator<<(std::ostream& os, Parser::State state) {
-  os << as_string(state);
-  return os;
-}
-
 std::string as_string(Parser::State state) {
   switch (state) {
     // artificial

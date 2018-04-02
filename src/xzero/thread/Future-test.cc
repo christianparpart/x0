@@ -6,6 +6,7 @@
 // the License at: http://opensource.org/licenses/MIT
 
 #include <xzero/testing.h>
+#include <xzero/fmtutil.h>
 #include <xzero/thread/Future.h>
 
 using namespace xzero;
@@ -68,14 +69,6 @@ TEST(Future, successNow) {
   ASSERT_TRUE(f.isSuccess());
   ASSERT_FALSE(f.isFailure());
   ASSERT_EQ(42, f.get());
-}
-
-namespace std {
-  // required for xzero::to_string() conversion
-  ostream& operator<<(ostream& os, errc ec) {
-    os << make_error_code(ec).message();
-    return os;
-  }
 }
 
 TEST(Future, failureGetThrows) {

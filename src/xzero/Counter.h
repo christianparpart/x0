@@ -55,6 +55,4 @@ class Counter {
   void decrement(size_t n);
 };
 
-JsonWriter& operator<<(JsonWriter& json, const Counter& counter);
-
 }  // namespace xzero

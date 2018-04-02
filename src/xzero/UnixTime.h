@@ -135,8 +135,6 @@ protected:
   uint64_t utc_micros_;
 };
 
-std::ostream& operator<<(std::ostream& os, UnixTime value);
-
 } // namespace xzero
 
 namespace std {

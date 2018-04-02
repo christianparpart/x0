@@ -234,9 +234,4 @@ std::string inspect(PosixScheduler::Mode mode);
 std::string inspect(const PosixScheduler::Watcher& w);
 std::string inspect(const PosixScheduler& s);
 
-std::ostream& operator<<(std::ostream& os, const PosixScheduler& s);
-std::ostream& operator<<(std::ostream& os, const PosixScheduler::Watcher* w);
-std::ostream& operator<<(std::ostream& os, const PosixScheduler::Watcher& w);
-std::ostream& operator<<(std::ostream& os, PosixScheduler::Mode mode);
-
 } // namespace xzero

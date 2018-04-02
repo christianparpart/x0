@@ -220,8 +220,6 @@ class Executor {
   std::atomic<int> refs_;
 };
 
-std::ostream& operator<<(std::ostream& os, Executor* executor);
-
 } // namespace xzero
 
 #include <xzero/executor/Executor-inl.h>

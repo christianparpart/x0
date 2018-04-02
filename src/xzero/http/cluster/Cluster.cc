@@ -27,16 +27,6 @@ namespace xzero::http::cluster {
 # define TRACE(msg...) do {} while (0)
 #endif
 
-std::ostream& operator<<(std::ostream& os, SchedulerStatus value) {
-  switch (value) {
-    case SchedulerStatus::Unavailable: return os << "Unavailable";
-    case SchedulerStatus::Success: return os << "Success";
-    case SchedulerStatus::Overloaded: return os << "Overloaded";
-    default:
-      logFatal("Unknown SchedulerStatus value.");
-  }
-}
-
 Cluster::Cluster(const std::string& name,
                  const std::string& storagePath,
                  Executor* executor)

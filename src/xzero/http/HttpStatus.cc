@@ -74,11 +74,6 @@ const std::string& as_string(HttpStatus code) {
   }
 }
 
-std::ostream& operator<<(std::ostream& os, HttpStatus code) {
-  os << as_string(code);
-  return os;
-}
-
 std::error_category& HttpStatusCategory::get() {
   static HttpStatusCategory cat;
   return cat;

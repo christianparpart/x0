@@ -72,8 +72,6 @@ enum class DaemonState {
   GracefullyShuttingdown
 };
 
-std::ostream& operator<<(std::ostream& os, DaemonState state);
-
 class Daemon : public xzero::flow::Runtime {
  public:
   typedef xzero::Callback<void(xzero::Connection*)> ConnectionHook;

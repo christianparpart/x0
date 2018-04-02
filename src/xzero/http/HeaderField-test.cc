@@ -36,8 +36,3 @@ TEST(http_HeaderField, operator_NE) {
   ASSERT_NE(HeaderField("foo", "tom"), foo);
   ASSERT_NE(HeaderField("tom", "tom"), foo);
 }
-
-TEST(http_HeaderField, inspect) {
-  HeaderField field("foo", "bar");
-  ASSERT_EQ("HeaderField(\"foo\", \"bar\")", inspect(field));
-}

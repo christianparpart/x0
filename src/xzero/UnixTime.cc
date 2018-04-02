@@ -88,15 +88,6 @@ std::optional<UnixTime> UnixTime::parseString(
   }
 }
 
-template <>
-std::string inspect(const UnixTime& value) {
-  return value.toString();
-}
-
-std::ostream& operator<<(std::ostream& os, UnixTime value) {
-  return os << value.toString();
-}
-
 } // namespace xzero
 
 xzero::UnixTime

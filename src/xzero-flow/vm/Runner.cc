@@ -701,22 +701,4 @@ bool Runner::loop() {
   // }}}
 }
 
-std::ostream& operator<<(std::ostream& os, Runner::State state) {
-  switch (state) {
-    case Runner::Inactive:
-      return os << "Inactive";
-    case Runner::Running:
-      return os << "Running";
-    case Runner::Suspended:
-      return os << "Suspended";
-    default:
-      logFatal("Invalid Runner::State value.");
-  }
-}
-
-std::ostream& operator<<(std::ostream& os, const Runner& vm) {
-  os << "{" << vm.state() << "@" << vm.instructionOffset() << "}";
-  return os;
-}
-
 }  // namespace xzero::flow

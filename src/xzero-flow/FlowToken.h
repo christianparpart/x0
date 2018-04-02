@@ -138,8 +138,6 @@ class FlowTokenTraits {
   static bool isRelOp(FlowToken t);
 };
 
-std::ostream& operator<<(std::ostream& os, FlowToken value);
-
 //!@}
 
 }  // namespace flow

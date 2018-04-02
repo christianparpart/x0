@@ -38,9 +38,6 @@ class InetAddress {
   int port_;
 };
 
-// std::ostream& operator<<(std::ostream& os, const InetAddress& inet);
-// std::ostream& operator<<(std::ostream& os, const std::optional<InetAddress>& inet);
-
 // {{{ inlines
 inline InetAddress::InetAddress(const std::string& ipaddr, int port, int family)
     : ipaddress_(ipaddr, family), port_(port) {

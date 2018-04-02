@@ -94,8 +94,4 @@ std::string LocalExecutor::toString() const {
   return buf;
 }
 
-std::ostream& operator<<(std::ostream& os, LocalExecutor* e) {
-  return os << e->toString();
-}
-
 } // namespace xzero

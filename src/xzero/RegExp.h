@@ -73,10 +73,3 @@ class RegExpContext {
 };
 
 }  // namespace xzero
-
-namespace std {
-inline std::ostream& operator<<(std::ostream& os, const xzero::RegExp& re) {
-  os << re.pattern();
-  return os;
-}
-}

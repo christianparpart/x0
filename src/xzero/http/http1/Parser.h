@@ -209,7 +209,6 @@ class Parser {
 };
 
 std::string as_string(Parser::State state);
-std::ostream& operator<<(std::ostream& os, Parser::State state);
 
 }  // namespace http1
 }  // namespace http

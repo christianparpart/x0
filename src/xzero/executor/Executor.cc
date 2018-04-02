@@ -40,9 +40,4 @@ void Executor::safeCall(std::function<void()> callee) noexcept {
   safeCall_.invoke(std::move(callee));
 }
 
-std::ostream& operator<<(std::ostream& os, Executor* executor) {
-  os << fmt::format("Executor@{:p} <{}>", (void*) executor, executor->toString());
-  return os;
-}
-
 } // namespace xzero

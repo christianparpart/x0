@@ -28,16 +28,4 @@ InetAddress::InetAddress(const std::string& spec) : InetAddress() {
   setPort(std::stoi(spec.substr(n + 1)));
 }
 
-std::ostream& operator<<(std::ostream& os, const InetAddress& addr) {
-  return os << fmt::format("{}:{}", addr.ip(), addr.port());
-}
-
-std::ostream& operator<<(std::ostream& os, const std::optional<InetAddress>& addr) {
-  if (addr) {
-    return os << fmt::format("{}", addr.value());
-  } else {
-    return os << "NONE";
-  }
-}
-
 } // namespace xzero

@@ -301,10 +301,5 @@ const char *FlowToken::c_str() const throw() {
   }
 }
 
-std::ostream& operator<<(std::ostream& os, FlowToken value) {
-  os << value.c_str();
-  return os;
-}
-
 }  // namespace flow
 }  // namespace xzero

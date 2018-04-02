@@ -13,10 +13,6 @@
 
 namespace xzero::http::http2 {
 
-std::ostream& operator<<(std::ostream& os, ErrorCode ec) {
-  return os << as_string(ec);
-}
-
 std::string as_string(ErrorCode ec) {
   switch (ec) {
     case ErrorCode::NoError:
