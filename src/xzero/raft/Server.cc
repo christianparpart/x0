@@ -363,7 +363,7 @@ AppendEntriesResponse Server::handleRequest(
         storage_->truncateLog(index - 1);
         break;
       } else {
-        //TODO(uncomment): logDebug("raft: found identical logEntry at [{}] {}: {}", index, i, entry);
+        logDebug("raft: found identical logEntry at [{}] {}: {}", index, i, entry);
       }
       i++;
       index++;
@@ -677,7 +677,7 @@ void Server::applyLogs() {
       break;
     }
 
-    //TODO(uncomment): logDebug("raft: {} applyCommand at index {}: {}", id(), index, *logEntry);
+    logDebug("raft: {} applyCommand at index {}: {}", id(), index, *logEntry);
 
     if (logEntry->type() == LOG_COMMAND) {
       Reply reply = stateMachine_->applyCommand(logEntry->command());

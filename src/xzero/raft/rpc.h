@@ -46,12 +46,13 @@ class LogEntry {
       : LogEntry{term, LOG_COMMAND, std::move(cmd)} {}
   LogEntry(Term term, LogType type)
       : LogEntry{term, type, Command{}} {}
-  LogEntry(Term term)
-      : LogEntry{term, Command{}} {}
-  LogEntry() : LogEntry{0} {}
+  LogEntry() : LogEntry{0, LOG_COMMAND, Command{}} {}
 
-  LogEntry(const LogEntry& v)
-      : term_{v.term_}, type_{v.type_}, command_{v.command_} {}
+  LogEntry(const LogEntry&) = default;
+  LogEntry& operator=(const LogEntry&) = default;
+
+  LogEntry(LogEntry&&) = default;
+  LogEntry& operator=(LogEntry&&) = default;
 
   Term term() const noexcept { return term_; }
   LogType type() const noexcept { return type_; }
@@ -159,12 +160,12 @@ namespace fmt {
     template <typename FormatContext>
     constexpr auto format(const xzero::raft::LogEntry& v, FormatContext &ctx) {
       if (v.type() == xzero::raft::LOG_COMMAND) {
-        return fmt::format(
+        return format_to(ctx.begin(),
             "LogEntry<term:{}, command:{}>",
             v.term(),
             xzero::StringUtil::hexPrint(v.command().data(), v.command().size()));
       } else {
-        return fmt::format(
+        return format_to(ctx.begin(),
             "LogEntry<term:{}, type:{}>",
             v.term(),
             v.type());
