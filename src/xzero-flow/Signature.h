@@ -22,9 +22,11 @@ class Signature {
 
  public:
   Signature();
-  Signature(const std::string& signature);
-  Signature(const Signature& v)
-      : name_(v.name_), returnType_(v.returnType_), args_(v.args_) {}
+  explicit Signature(const std::string& signature);
+  Signature(Signature&&) = default;
+  Signature(const Signature&) = default;
+  Signature& operator=(Signature&&) = default;
+  Signature& operator=(const Signature&) = default;
 
   void setName(const std::string& name) { name_ = name; }
   void setReturnType(FlowType rt) { returnType_ = rt; }
@@ -38,8 +40,6 @@ class Signature {
 
   std::string to_s() const;
 
-  operator std::string() const { return to_s(); }
-
   bool operator==(const Signature& v) const { return to_s() == v.to_s(); }
   bool operator!=(const Signature& v) const { return to_s() != v.to_s(); }
   bool operator<(const Signature& v) const { return to_s() < v.to_s(); }
@@ -52,3 +52,19 @@ FlowType typeSignature(char ch);
 char signatureType(FlowType t);
 
 }  // namespace xzero::flow
+
+namespace fmt {
+  template<>
+  struct formatter<xzero::flow::Signature> {
+    using Signature = xzero::flow::Signature;
+
+    template <typename ParseContext>
+    constexpr auto parse(ParseContext &ctx) { return ctx.begin(); }
+
+    template <typename FormatContext>
+    constexpr auto format(const Signature& v, FormatContext &ctx) {
+      return format_to(ctx.begin(), v.to_s());
+    }
+  };
+}
+
