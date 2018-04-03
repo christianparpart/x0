@@ -318,6 +318,14 @@ endif()
 target_link_libraries(Xzero ${XZERO_LIBRARIES}
     ${CMAKE_CURRENT_BINARY_DIR}/3rdparty/fmt/lib/libfmt.a)
 install(TARGETS Xzero DESTINATION ${CMAKE_INSTALL_PREFIX}/lib)
+install(
+    DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/src/xzero/"
+    DESTINATION "${CMAKE_INSTALL_PREFIX}/include/xzero"
+    FILES_MATCHING PATTERN "*.h")
+install(
+    DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/src/xzero/"
+    DESTINATION "${CMAKE_INSTALL_PREFIX}/include/xzero"
+    FILES_MATCHING PATTERN "*.h")
 # }}}
 # {{{ libXzeroTesting
 set(libXzeroTest_SRC src/xzero/testing_main.cc)
@@ -374,6 +382,10 @@ if(CLANG_TIDY_EXE)
 endif()
 target_link_libraries(XzeroFlow pthread dl Xzero)
 install(TARGETS XzeroFlow DESTINATION ${CMAKE_INSTALL_PREFIX}/lib)
+install(
+    DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/src/xzero-flow/"
+    DESTINATION "${CMAKE_INSTALL_PREFIX}/include/xzero-flow"
+    FILES_MATCHING PATTERN "*.h")
 # }}}
 # {{{ x0d
 MIMETYPES_GENERATE_CPP(MT_SRC ${PROJECT_SOURCE_DIR}/3rdparty/mime.types)
@@ -408,6 +420,11 @@ if(CLANG_TIDY_EXE)
   set_target_properties(x0d PROPERTIES CXX_CLANG_TIDY "${DO_CLANG_TIDY}")
 endif()
 target_link_libraries(x0d Xzero XzeroFlow ${X0D_LIBS})
+install(TARGETS x0d DESTINATION ${CMAKE_INSTALL_PREFIX}/bin)
+install(
+    DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/src/x0d/"
+    DESTINATION "${CMAKE_INSTALL_PREFIX}/include/x0d"
+    FILES_MATCHING PATTERN "*.h")
 # }}}
 # {{{ test
 if(ENABLE_TESTS)
