@@ -14,6 +14,31 @@ set(PACKAGE_URL "https://xzero.io/")
 
 set(CLANG_TIDY_CHECKS "-checks=bugprone-*,cppcoreguidelines-*,performance-*,clang-analyzer-*,modernize-*,-cppcoreguidelines-pro-type-vararg,-cppcoreguidelines-pro-bounds-array-to-pointer-decay,-cppcoreguidelines-pro-bounds-constant-array-index,-cppcoreguidelines-pro-type-union-access" CACHE STRING "clang-tidy checks to enable/disable")
 
+find_package(Git)
+include(ExternalProject)
+
+if(GIT_FOUND)
+    ExternalProject_Add(
+        fmt
+        PREFIX ${CMAKE_CURRENT_BINARY_DIR}/3rdparty/fmt
+        GIT_REPOSITORY https://github.com/fmtlib/fmt.git
+        GIT_TAG master
+        CMAKE_ARGS -DMASTER_PROJECT=OFF
+                   -DFMT_DOC=OFF
+                   -DFMT_INSTALL=ON
+                   -DFMT_TEST=OFF
+                   -DCMAKE_INSTALL_PREFIX=<INSTALL_DIR>
+                   -DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER}
+        LOG_DOWNLOAD 1
+        UPDATE_DISCONNECTED 1
+        BUILD_COMMAND cmake --build <BINARY_DIR> --config Release
+        INSTALL_COMMAND cmake --build <BINARY_DIR> --config Release --target install
+    )
+else()
+    # assume catch is installed in a system directory
+    #add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/fmt")
+endif()
+
 if(ENABLE_TIDY)
   find_program(CLANG_TIDY_EXE
     NAMES clang-tidy-7 clang-tidy-6.0 clang-tidy
@@ -25,8 +50,6 @@ if(ENABLE_TIDY)
     set(DO_CLANG_TIDY "${CLANG_TIDY_EXE}" "${CLANG_TIDY_CHECKS}")
   endif()
 endif()
-
-add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/fmt")
 
 # {{{ build-time requirements and platform feature tests
 include(XzeroCommon)
@@ -109,8 +132,9 @@ if(UNIX)
   endif()
 endif()
 
-include_directories(${CMAKE_CURRENT_SOURCE_DIR}/src
-                    ${CMAKE_CURRENT_BINARY_DIR}/src
+include_directories(${CMAKE_CURRENT_BINARY_DIR}/src
+                    ${CMAKE_CURRENT_SOURCE_DIR}/src
+                    ${CMAKE_CURRENT_BINARY_DIR}/3rdparty/fmt/include
                     ${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/fmt/include)
 
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/src/xzero/sysconfig.h.cmake
@@ -283,6 +307,7 @@ set(XZERO_LIBRARIES pthread dl
 
 add_library(Xzero STATIC ${libXzero_SRC} ${libXzero_LINUX_SRC}
     ${libXzero_APPLE_SRC})
+add_dependencies(Xzero fmt)
 set_target_properties(Xzero PROPERTIES
 		CXX_STANDARD 17
 		CXX_STANDARD_REQUIRED ON
@@ -290,7 +315,8 @@ set_target_properties(Xzero PROPERTIES
 if(CLANG_TIDY_EXE)
   set_target_properties(Xzero PROPERTIES CXX_CLANG_TIDY "${DO_CLANG_TIDY}")
 endif()
-target_link_libraries(Xzero fmt ${XZERO_LIBRARIES})
+target_link_libraries(Xzero ${XZERO_LIBRARIES}
+    ${CMAKE_CURRENT_BINARY_DIR}/3rdparty/fmt/lib/libfmt.a)
 install(TARGETS Xzero DESTINATION ${CMAKE_INSTALL_PREFIX}/lib)
 # }}}
 # {{{ libXzeroTesting
