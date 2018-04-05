@@ -31,8 +31,8 @@ if(GIT_FOUND)
                    -DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER}
         LOG_DOWNLOAD 1
         UPDATE_DISCONNECTED 1
-        BUILD_COMMAND cmake --build <BINARY_DIR> --config Release
-        INSTALL_COMMAND cmake --build <BINARY_DIR> --config Release --target install
+        BUILD_COMMAND "${CMAKE_COMMAND}" --build <BINARY_DIR> --config ${configuration}
+        INSTALL_COMMAND ""
     )
 else()
     # assume catch is installed in a system directory
@@ -134,7 +134,7 @@ endif()
 
 include_directories(${CMAKE_CURRENT_BINARY_DIR}/src
                     ${CMAKE_CURRENT_SOURCE_DIR}/src
-                    ${CMAKE_CURRENT_BINARY_DIR}/3rdparty/fmt/include
+                    ${CMAKE_CURRENT_BINARY_DIR}/3rdparty/fmt/src/fmt/include
                     ${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/fmt/include)
 
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/src/xzero/sysconfig.h.cmake
@@ -316,7 +316,7 @@ if(CLANG_TIDY_EXE)
   set_target_properties(Xzero PROPERTIES CXX_CLANG_TIDY "${DO_CLANG_TIDY}")
 endif()
 target_link_libraries(Xzero ${XZERO_LIBRARIES}
-    ${CMAKE_CURRENT_BINARY_DIR}/3rdparty/fmt/lib/libfmt.a)
+    ${CMAKE_CURRENT_BINARY_DIR}/3rdparty/fmt/src/fmt-build/libfmt.a)
 install(TARGETS Xzero DESTINATION ${CMAKE_INSTALL_PREFIX}/lib)
 install(
     DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/src/xzero/"
