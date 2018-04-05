@@ -26,19 +26,13 @@ namespace flow {
  */
 class IRGenerator : public IRBuilder, public ASTVisitor {
  public:
+  using ErrorHandler = std::function<void(const std::string&)>;
+
   IRGenerator();
-  ~IRGenerator();
+  IRGenerator(ErrorHandler eh, std::vector<std::string> exports);
 
   static std::unique_ptr<IRProgram> generate(
       UnitSym* unit, const std::vector<std::string>& exportedHandlers);
-
-  void setErrorCallback(std::function<void(const std::string&)>&& handler) {
-    onError_ = std::move(handler);
-  }
-
-  void setExports(const std::vector<std::string>& exports) {
-    exports_ = exports;
-  }
 
   std::unique_ptr<IRProgram> generate(UnitSym* unit);
 

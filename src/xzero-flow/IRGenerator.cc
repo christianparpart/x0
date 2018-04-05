@@ -72,23 +72,21 @@ struct fntrace3 {
 #endif
 
 IRGenerator::IRGenerator()
+    : IRGenerator{ErrorHandler{}, {}} {}
+
+IRGenerator::IRGenerator(ErrorHandler eh, std::vector<std::string> exports)
     : IRBuilder(),
       ASTVisitor(),
-      exports_(),
+      exports_(std::move(exports)),
       scope_(std::make_unique<Scope>()),
       result_(nullptr),
       handlerStack_(),
       errorCount_(0),
-      onError_() {}
-
-IRGenerator::~IRGenerator() {
-}
+      onError_(std::move(eh)) {}
 
 std::unique_ptr<IRProgram> IRGenerator::generate(
     UnitSym* unit, const std::vector<std::string>& exportedHandlers) {
-  IRGenerator ir;
-  ir.setExports(exportedHandlers);
-  return ir.generate(unit);
+  return IRGenerator{ErrorHandler{}, exportedHandlers}.generate(unit);
 }
 
 std::unique_ptr<IRProgram> IRGenerator::generate(UnitSym* unit) {

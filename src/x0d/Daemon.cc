@@ -208,11 +208,8 @@ std::unique_ptr<flow::Program> Daemon::loadConfigStream(
     return nullptr;
   }
 
-  flow::IRGenerator irgen;
-  irgen.setExports({"setup", "main"});
-  irgen.setErrorCallback([&](const std::string& msg) {
-    logError("{}", msg);
-  });
+  flow::IRGenerator irgen{[this](const std::string& msg) { logError("{}", msg); },
+                          {"setup", "main"}};
 
   std::shared_ptr<flow::IRProgram> programIR = irgen.generate(unit.get());
 
