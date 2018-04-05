@@ -501,9 +501,18 @@ set_target_properties(xzero_test PROPERTIES
 if(CLANG_TIDY_EXE)
   set_target_properties(xzero_test PROPERTIES CXX_CLANG_TIDY "${DO_CLANG_TIDY}")
 endif()
-
 target_link_libraries(xzero_test Xzero XzeroFlow XzeroTest)
+
+add_executable(flowtest src/xzero-flow/flowtest.cc)
+set_target_properties(flowtest PROPERTIES
+		CXX_STANDARD 17
+		CXX_STANDARD_REQUIRED ON)
+if(CLANG_TIDY_EXE)
+  set_target_properties(flowtest PROPERTIES CXX_CLANG_TIDY "${DO_CLANG_TIDY}")
 endif()
+target_link_libraries(flowtest Xzero XzeroFlow)
+
+endif(ENABLE_TESTS)
 # }}}
 # {{{ examples
 add_executable(hello_http examples/hello_http.cc)
