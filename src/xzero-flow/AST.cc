@@ -96,12 +96,12 @@ Symbol* SymbolTable::lookup(const std::string& name, Lookup method,
 // }}}
 // {{{ CallableSym
 CallableSym::CallableSym(Type t, const NativeCallback* cb,
-                         const FlowLocation& loc)
+                         const SourceLocation& loc)
     : Symbol(t, cb->signature().name(), loc),
       nativeCallback_(cb),
       sig_(nativeCallback_->signature()) {}
 
-CallableSym::CallableSym(const std::string& name, const FlowLocation& loc)
+CallableSym::CallableSym(const std::string& name, const SourceLocation& loc)
     : Symbol(Type::Handler, name, loc), nativeCallback_(nullptr), sig_() {
   sig_.setName(name);
   sig_.setReturnType(FlowType::Boolean);
@@ -122,7 +122,7 @@ static inline void completeDefaultValue(
   // printf("completeDefaultValue(type:%s, name:%s)\n", tos(type).c_str(),
   // name.c_str());
 
-  static const FlowLocation loc;
+  static const SourceLocation loc;
 
   switch (type) {
     case FlowType::Boolean:
@@ -430,10 +430,10 @@ int ParamList::find(const std::string& name) const {
   return -1;
 }
 
-FlowLocation ParamList::location() const {
-  if (values_.empty()) return FlowLocation();
+SourceLocation ParamList::location() const {
+  if (values_.empty()) return SourceLocation();
 
-  return FlowLocation(front()->location().filename, front()->location().begin,
+  return SourceLocation(front()->location().filename, front()->location().begin,
                       back()->location().end);
 }
 // }}}
@@ -484,7 +484,7 @@ BinaryExpr::BinaryExpr(Opcode op, std::unique_ptr<Expr>&& lhs,
       lhs_(std::move(lhs)),
       rhs_(std::move(rhs)) {}
 
-ArrayExpr::ArrayExpr(FlowLocation& loc,
+ArrayExpr::ArrayExpr(SourceLocation& loc,
                      std::vector<std::unique_ptr<Expr>>&& values)
     : Expr(loc), values_(std::move(values)) {}
 
@@ -532,7 +532,7 @@ bool CallExpr::setArgs(ParamList&& args) {
   return true;
 }
 
-MatchStmt::MatchStmt(const FlowLocation& loc, std::unique_ptr<Expr>&& cond,
+MatchStmt::MatchStmt(const SourceLocation& loc, std::unique_ptr<Expr>&& cond,
                      MatchClass op, std::list<Case>&& cases,
                      std::unique_ptr<Stmt>&& elseStmt)
     : Stmt(loc),

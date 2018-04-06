@@ -475,7 +475,7 @@ std::unique_ptr<Symbol> FlowParser::decl() {
 // 'var' IDENT ['=' EXPR] ';'
 std::unique_ptr<VariableSym> FlowParser::varDecl() {
   FNTRACE();
-  FlowLocation loc(lexer_->location());
+  SourceLocation loc(lexer_->location());
 
   if (!consume(FlowToken::Var)) return nullptr;
 
@@ -580,7 +580,7 @@ bool FlowParser::importOne(std::list<std::string>& names) {
 std::unique_ptr<HandlerSym> FlowParser::handlerDecl(bool keyword) {
   FNTRACE();
 
-  FlowLocation loc(location());
+  SourceLocation loc(location());
 
   if (keyword) {
     nextToken();  // 'handler'
@@ -662,7 +662,7 @@ std::unique_ptr<Expr> FlowParser::notExpr() {
 
   size_t nots = 0;
 
-  FlowLocation loc = location();
+  SourceLocation loc = location();
 
   while (consumeIf(FlowToken::Not)) nots++;
 
@@ -792,7 +792,7 @@ std::unique_ptr<Expr> FlowParser::powExpr() {
   // powExpr ::= negExpr ('**' powExpr)*
   FNTRACE();
 
-  FlowLocation sloc(location());
+  SourceLocation sloc(location());
   std::unique_ptr<Expr> left = negExpr();
   if (!left) return nullptr;
 
@@ -819,7 +819,7 @@ std::unique_ptr<Expr> FlowParser::negExpr() {
   // negExpr ::= ['-'] primaryExpr
   FNTRACE();
 
-  FlowLocation loc = location();
+  SourceLocation loc = location();
 
   if (consumeIf(FlowToken::Minus)) {
     std::unique_ptr<Expr> e = negExpr();
@@ -844,7 +844,7 @@ std::unique_ptr<Expr> FlowParser::bitNotExpr() {
   // negExpr ::= ['~'] primaryExpr
   FNTRACE();
 
-  FlowLocation loc = location();
+  SourceLocation loc = location();
 
   if (consumeIf(FlowToken::BitNot)) {
     std::unique_ptr<Expr> e = bitNotExpr();
@@ -889,7 +889,7 @@ std::unique_ptr<Expr> FlowParser::primaryExpr() {
     case FlowToken::InterpolatedStringFragment:
       return interpolatedStr();
     case FlowToken::Ident: {
-      FlowLocation loc = location();
+      SourceLocation loc = location();
       std::string name = stringValue();
       nextToken();
 
@@ -957,7 +957,7 @@ std::unique_ptr<Expr> FlowParser::primaryExpr() {
       ++i;
 
       std::string name = fmt::format("__lambda_#{}", i);
-      FlowLocation loc = location();
+      SourceLocation loc = location();
       std::unique_ptr<SymbolTable> st = enterScope(name);
       std::unique_ptr<Stmt> body = compoundStmt();
       leaveScope();
@@ -973,7 +973,7 @@ std::unique_ptr<Expr> FlowParser::primaryExpr() {
       return std::make_unique<HandlerRefExpr>(handler, loc);
     }
     case FlowToken::RndOpen: {
-      FlowLocation loc = location();
+      SourceLocation loc = location();
       nextToken();
       std::unique_ptr<Expr> e = expr();
       consume(FlowToken::RndClose);
@@ -992,7 +992,7 @@ std::unique_ptr<Expr> FlowParser::primaryExpr() {
 }
 
 std::unique_ptr<Expr> FlowParser::arrayExpr() {
-  FlowLocation loc = location();
+  SourceLocation loc = location();
   nextToken();  // '['
   std::vector<std::unique_ptr<Expr>> fields;
 
@@ -1074,7 +1074,7 @@ std::unique_ptr<Expr> FlowParser::literalExpr() {
                {"year", 60llu * 60 * 24 * 365, 1},
                {nullptr, 1, 1}};
 
-  FlowLocation loc(location());
+  SourceLocation loc(location());
 
   switch (token()) {
     case FlowToken::Div: {  // /REGEX/
@@ -1216,7 +1216,7 @@ std::unique_ptr<Expr> asString(std::unique_ptr<Expr>&& expr) {
 std::unique_ptr<Expr> FlowParser::interpolatedStr() {
   FNTRACE();
 
-  FlowLocation sloc(location());
+  SourceLocation sloc(location());
   std::unique_ptr<Expr> result =
       std::make_unique<StringExpr>(stringValue(), sloc.update(end()));
   nextToken();  // interpolation start
@@ -1234,7 +1234,7 @@ std::unique_ptr<Expr> FlowParser::interpolatedStr() {
                                         std::move(e));
 
   while (token() == FlowToken::InterpolatedStringFragment) {
-    FlowLocation tloc = sloc.update(end());
+    SourceLocation tloc = sloc.update(end());
     result = std::make_unique<BinaryExpr>(
         Opcode::SADD, std::move(result),
         std::make_unique<StringExpr>(stringValue(), tloc));
@@ -1274,7 +1274,7 @@ std::unique_ptr<Expr> FlowParser::interpolatedStr() {
 std::unique_ptr<Expr> FlowParser::castExpr() {
   FNTRACE();
 
-  FlowLocation sloc(location());
+  SourceLocation sloc(location());
 
   FlowToken targetTypeToken = token();
   nextToken();
@@ -1320,7 +1320,7 @@ std::unique_ptr<Stmt> FlowParser::stmt() {
     case FlowToken::Ident:
       return identStmt();
     case FlowToken::Semicolon: {
-      FlowLocation sloc(location());
+      SourceLocation sloc(location());
       nextToken();
       return std::make_unique<CompoundStmt>(sloc.update(end()));
     }
@@ -1334,7 +1334,7 @@ std::unique_ptr<Stmt> FlowParser::stmt() {
 std::unique_ptr<Stmt> FlowParser::ifStmt() {
   // ifStmt ::= 'if' expr ['then'] stmt ['else' stmt]
   FNTRACE();
-  FlowLocation sloc(location());
+  SourceLocation sloc(location());
 
   consume(FlowToken::If);
   std::unique_ptr<Expr> cond(expr());
@@ -1378,7 +1378,7 @@ std::unique_ptr<Stmt> FlowParser::matchStmt() {
   // matchCase       ::= 'on' literalExpr *(',' 'on' literalExpr) stmt
   // MATCH_OP        ::= '==' | '=^' | '=$' | '=~'
 
-  FlowLocation sloc(location());
+  SourceLocation sloc(location());
 
   if (!consume(FlowToken::Match)) return nullptr;
 
@@ -1484,7 +1484,7 @@ std::unique_ptr<Stmt> FlowParser::matchStmt() {
 // compoundStmt ::= '{' varDecl* stmt* '}'
 std::unique_ptr<Stmt> FlowParser::compoundStmt() {
   FNTRACE();
-  FlowLocation sloc(location());
+  SourceLocation sloc(location());
   nextToken();  // '{'
 
   std::unique_ptr<CompoundStmt> cs = std::make_unique<CompoundStmt>(sloc);
@@ -1518,7 +1518,7 @@ std::unique_ptr<Stmt> FlowParser::identStmt() {
   //
   // NAME may be a builtin-function, builtin-handler, handler-name, or variable.
 
-  FlowLocation loc(location());
+  SourceLocation loc(location());
   std::string name = stringValue();
   nextToken();  // IDENT
 
@@ -1608,7 +1608,7 @@ std::unique_ptr<CallExpr> FlowParser::callStmt(
   }
 
   ParamList params;
-  FlowLocation loc = location();
+  SourceLocation loc = location();
 
   // {{{ parse call params
   if (token() == FlowToken::RndOpen) {
@@ -1722,7 +1722,7 @@ std::unique_ptr<Stmt> FlowParser::postscriptStmt(
   // STMT ['if' EXPR] ';'
   // STMT ['unless' EXPR] ';'
 
-  FlowLocation sloc = location();
+  SourceLocation sloc = location();
 
   nextToken();  // 'if' | 'unless'
 

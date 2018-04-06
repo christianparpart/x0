@@ -40,22 +40,24 @@ inline size_t operator-(const FilePos& a, const FilePos& b) {
     return 1 + a.offset - b.offset;
 }
 // }}}
-struct FlowLocation { // {{{
-  FlowLocation() : filename(), begin(), end() {}
-  FlowLocation(const std::string& _fileName)
+
+struct SourceLocation { // {{{
+  SourceLocation() : filename(), begin(), end() {}
+  SourceLocation(const std::string& _fileName)
       : filename(_fileName), begin(), end() {}
-  FlowLocation(const std::string& _fileName, FilePos _beg, FilePos _end)
+  SourceLocation(const std::string& _fileName, FilePos _beg, FilePos _end)
       : filename(_fileName), begin(_beg), end(_end) {}
 
   std::string filename;
   FilePos begin;
   FilePos end;
 
-  FlowLocation& update(const FilePos& endPos) {
+  SourceLocation& update(const FilePos& endPos) {
     end = endPos;
     return *this;
   }
-  FlowLocation& update(const FlowLocation& endLocation) {
+
+  SourceLocation& update(const SourceLocation& endLocation) {
     end = endLocation.end;
     return *this;
   }
@@ -64,9 +66,9 @@ struct FlowLocation { // {{{
   std::string text() const;
 };  // }}}
 
-inline FlowLocation operator-(const FlowLocation& end,
-                              const FlowLocation& beg) {
-  return FlowLocation(beg.filename, beg.begin, end.end);
+inline SourceLocation operator-(const SourceLocation& end,
+                                const SourceLocation& beg) {
+  return SourceLocation(beg.filename, beg.begin, end.end);
 }
 
 //!@}

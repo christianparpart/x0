@@ -5,8 +5,9 @@
 // file except in compliance with the License. You may obtain a copy of
 // the License at: http://opensource.org/licenses/MIT
 
-#include <xzero-flow/FlowLocation.h>
+#include <xzero-flow/SourceLocation.h>
 #include <xzero/io/FileDescriptor.h>
+#include <fmt/format.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
@@ -15,15 +16,13 @@
 namespace xzero {
 namespace flow {
 
-std::string FlowLocation::str() const {
-  char buf[256];
-  std::size_t n =
-      snprintf(buf, sizeof(buf), "{ %zu:%zu.%zu - %zu:%zu.%zu }", begin.line,
-               begin.column, begin.offset, end.line, end.column, end.offset);
-  return std::string(buf, n);
+std::string SourceLocation::str() const {
+  return fmt::format("{{ {}:{}.{} - {}:{}.{} }}",
+                     begin.line, begin.column, begin.offset,
+                     end.line, end.column, end.offset);
 }
 
-std::string FlowLocation::text() const {
+std::string SourceLocation::text() const {
   FileDescriptor fd = open(filename.c_str(), O_RDONLY);
   if (fd < 0)
     return {};

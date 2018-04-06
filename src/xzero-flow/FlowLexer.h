@@ -8,7 +8,7 @@
 #pragma once
 
 #include <xzero/defines.h>
-#include <xzero-flow/FlowLocation.h>
+#include <xzero-flow/SourceLocation.h>
 #include <xzero-flow/FlowToken.h>
 #include <xzero/net/IPAddress.h>
 #include <xzero/net/Cidr.h>
@@ -46,8 +46,8 @@ class FlowLexer {
 
   // current parser state
   FlowToken token() const { return token_; }
-  const FlowLocation& lastLocation() const { return lastLocation_; }
-  const FlowLocation& location() const { return location_; }
+  const SourceLocation& lastLocation() const { return lastLocation_; }
+  const SourceLocation& location() const { return location_; }
 
   const std::string& filename() const { return location_.filename; }
   size_t line() const { return location_.end.line; }
@@ -95,8 +95,8 @@ class FlowLexer {
   int currentChar_;
   size_t ipv6HexDigits_;
 
-  FlowLocation lastLocation_;
-  FlowLocation location_;
+  SourceLocation lastLocation_;
+  SourceLocation location_;
   FlowToken token_;
   std::string stringValue_;
   IPAddress ipValue_;

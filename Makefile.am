@@ -422,7 +422,6 @@ libXzeroFlow_a_SOURCES = \
 	src/xzero-flow/ASTPrinter.cc \
 	src/xzero-flow/FlowCallVisitor.cc \
 	src/xzero-flow/FlowLexer.cc \
-	src/xzero-flow/FlowLocation.cc \
 	src/xzero-flow/FlowParser.cc \
 	src/xzero-flow/FlowToken.cc \
 	src/xzero-flow/FlowType.cc \
@@ -430,6 +429,7 @@ libXzeroFlow_a_SOURCES = \
 	src/xzero-flow/MatchClass.cc \
 	src/xzero-flow/NativeCallback.cc \
 	src/xzero-flow/Signature.cc \
+	src/xzero-flow/SourceLocation.cc \
 	src/xzero-flow/TargetCodeGenerator.cc \
 	src/xzero-flow/ir/BasicBlock.cc \
 	src/xzero-flow/ir/Constant.cc \
@@ -462,7 +462,6 @@ nobase_libXzeroFlow_HEADERS = \
 	src/xzero-flow/ASTVisitor.h \
 	src/xzero-flow/FlowCallVisitor.h \
 	src/xzero-flow/FlowLexer.h \
-	src/xzero-flow/FlowLocation.h \
 	src/xzero-flow/FlowParser.h \
 	src/xzero-flow/FlowToken.h \
 	src/xzero-flow/FlowType.h \
@@ -471,6 +470,7 @@ nobase_libXzeroFlow_HEADERS = \
 	src/xzero-flow/NativeCallback.h \
 	src/xzero-flow/Params.h \
 	src/xzero-flow/Signature.h \
+	src/xzero-flow/SourceLocation.h \
 	src/xzero-flow/TargetCodeGenerator.h \
 	src/xzero-flow/ir/BasicBlock.h \
 	src/xzero-flow/ir/Constant.h \

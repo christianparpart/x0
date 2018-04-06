@@ -69,8 +69,8 @@ class FlowParser {
 
   // lexing
   FlowToken token() const { return lexer_->token(); }
-  const FlowLocation& lastLocation() { return lexer_->lastLocation(); }
-  const FlowLocation& location() { return lexer_->location(); }
+  const SourceLocation& lastLocation() { return lexer_->lastLocation(); }
+  const SourceLocation& location() { return lexer_->location(); }
   const FilePos& end() const { return lexer_->lastLocation().end; }
   FlowToken nextToken() const;
   bool eof() const { return lexer_->eof(); }
