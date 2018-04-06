@@ -510,7 +510,7 @@ set_target_properties(flowtest PROPERTIES
 if(CLANG_TIDY_EXE)
   set_target_properties(flowtest PROPERTIES CXX_CLANG_TIDY "${DO_CLANG_TIDY}")
 endif()
-target_link_libraries(flowtest Xzero XzeroFlow)
+target_link_libraries(flowtest Xzero XzeroFlow stdc++fs)
 
 endif(ENABLE_TESTS)
 # }}}

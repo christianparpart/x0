@@ -16,8 +16,7 @@ namespace flow {
 //! \addtogroup Flow
 //@{
 
-struct FilePos  // {{{
-    {
+struct FilePos { // {{{
   FilePos() : line(1), column(1), offset(0) {}
   FilePos(size_t r, size_t c, size_t o) : line(r), column(c), offset(o) {}
 
@@ -41,8 +40,7 @@ inline size_t operator-(const FilePos& a, const FilePos& b) {
     return 1 + a.offset - b.offset;
 }
 // }}}
-struct FlowLocation  // {{{
-    {
+struct FlowLocation { // {{{
   FlowLocation() : filename(), begin(), end() {}
   FlowLocation(const std::string& _fileName)
       : filename(_fileName), begin(), end() {}

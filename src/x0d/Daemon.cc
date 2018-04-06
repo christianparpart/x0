@@ -250,7 +250,7 @@ std::unique_ptr<flow::Program> Daemon::loadConfigStream(
 }
 
 void Daemon::patchProgramIR(flow::IRProgram* programIR,
-                                 flow::IRGenerator* irgen) {
+                            flow::IRGenerator* irgen) {
   using namespace flow;
 
   IRHandler* mainIR = programIR->findHandler("main");
