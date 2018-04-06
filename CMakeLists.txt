@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.6)
-project(x0 VERSION "0.11.0" LANGUAGES CXX)
+project(x0 VERSION "0.11.0" LANGUAGES CXX C)
 set(CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 
 option(ENABLE_FLOW_DIRECT_THREADED_VM "Flow VM using direct threaded mode [default: OFF]" OFF)
@@ -34,6 +34,14 @@ if(GIT_FOUND)
         BUILD_COMMAND "${CMAKE_COMMAND}" --build <BINARY_DIR> --config ${configuration}
         INSTALL_COMMAND ""
     )
+
+	if(UNIX)
+		message(STATUS "Hello UNIX")
+		set(FMT_LIBRARIES "${CMAKE_CURRENT_BINARY_DIR}/3rdparty/fmt/src/fmt-build/libfmt.a")
+	else()
+		message(STATUS "Hello Windows")
+		set(FMT_LIBRARIES "${CMAKE_CURRENT_BINARY_DIR}/3rdparty/fmt/src/fmt-build/fmt.lib")
+	endif()
 else()
     # assume catch is installed in a system directory
     #add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/fmt")
@@ -68,6 +76,7 @@ if(UNIX)
   include(FindOpenSSL)
 endif()
 
+if(UNIX)
 CHECK_INCLUDE_FILES(sys/sendfile.h HAVE_SYS_SENDFILE_H)
 CHECK_FUNCTION_EXISTS(sendfile HAVE_SENDFILE)
 CHECK_FUNCTION_EXISTS(posix_fadvise HAVE_POSIX_FADVISE)
@@ -116,6 +125,7 @@ if(HAVE_BZLIB_H)
   CHECK_LIBRARY_EXISTS(bz2 BZ2_bzCompressInit "" HAVE_LIBBZ2)
   set(BZIP2_LIBRARIES bz2)
 endif(HAVE_BZLIB_H)
+endif(UNIX)
 
 # required for shm_open/shm_unlink
 if(APPLE)
@@ -303,7 +313,7 @@ else()
 endif()
 
 set(XZERO_LIBRARIES pthread dl
-    ${ZLIB_LIBRARIES} ${OPENSSL_LIBRARIES} ${RT_LIBRARIES})
+    ${ZLIB_LIBRARIES} ${OPENSSL_LIBRARIES} ${RT_LIBRARIES} ${FMT_LIBRARIES})
 
 add_library(Xzero STATIC ${libXzero_SRC} ${libXzero_LINUX_SRC}
     ${libXzero_APPLE_SRC})
@@ -315,8 +325,7 @@ set_target_properties(Xzero PROPERTIES
 if(CLANG_TIDY_EXE)
   set_target_properties(Xzero PROPERTIES CXX_CLANG_TIDY "${DO_CLANG_TIDY}")
 endif()
-target_link_libraries(Xzero ${XZERO_LIBRARIES}
-    ${CMAKE_CURRENT_BINARY_DIR}/3rdparty/fmt/src/fmt-build/libfmt.a)
+target_link_libraries(Xzero ${XZERO_LIBRARIES})
 install(TARGETS Xzero DESTINATION ${CMAKE_INSTALL_PREFIX}/lib)
 install(
     DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/src/xzero/"

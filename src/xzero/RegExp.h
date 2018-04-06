@@ -9,6 +9,7 @@
 #include <regex>
 #include <string>
 #include <vector>
+#include <memory>
 
 namespace xzero {
 

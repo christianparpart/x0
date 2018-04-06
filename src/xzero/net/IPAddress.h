@@ -15,9 +15,18 @@
 #include <cstdio>
 #include <cstdlib>
 
+#include <xzero/sysconfig.h>
+
 #include <fmt/format.h>
+
+#if defined(XZERO_WINDOWS)
+#include <windows.h>
+#include <winsock2.h>
+#include <ws2tcpip.h>
+#else
 #include <netinet/in.h>  // in_addr, in6_addr
 #include <arpa/inet.h>   // ntohl(), htonl()
+#endif
 
 namespace xzero {
 
