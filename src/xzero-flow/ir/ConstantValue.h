@@ -21,7 +21,7 @@ namespace xzero {
 
 namespace xzero::flow {
 
-template <typename T, const FlowType Ty>
+template <typename T, const LiteralType Ty>
 class ConstantValue : public Constant {
  public:
   ConstantValue(const T& value, const std::string& name = "")
@@ -38,11 +38,11 @@ class ConstantValue : public Constant {
   T value_;
 };
 
-typedef ConstantValue<int64_t, FlowType::Number> ConstantInt;
-typedef ConstantValue<bool, FlowType::Boolean> ConstantBoolean;
-typedef ConstantValue<std::string, FlowType::String> ConstantString;
-typedef ConstantValue<IPAddress, FlowType::IPAddress> ConstantIP;
-typedef ConstantValue<Cidr, FlowType::Cidr> ConstantCidr;
-typedef ConstantValue<RegExp, FlowType::RegExp> ConstantRegExp;
+typedef ConstantValue<int64_t, LiteralType::Number> ConstantInt;
+typedef ConstantValue<bool, LiteralType::Boolean> ConstantBoolean;
+typedef ConstantValue<std::string, LiteralType::String> ConstantString;
+typedef ConstantValue<IPAddress, LiteralType::IPAddress> ConstantIP;
+typedef ConstantValue<Cidr, LiteralType::Cidr> ConstantCidr;
+typedef ConstantValue<RegExp, LiteralType::RegExp> ConstantRegExp;
 
 }  // namespace xzero::flow

@@ -24,12 +24,12 @@ class ConstantArray : public Constant {
 
   const std::vector<Constant*>& get() const { return elements_; }
 
-  FlowType elementType() const { return elements_[0]->type(); }
+  LiteralType elementType() const { return elements_[0]->type(); }
 
  private:
   std::vector<Constant*> elements_;
 
-  FlowType makeArrayType(FlowType elementType);
+  LiteralType makeArrayType(LiteralType elementType);
 };
 
 }  // namespace xzero::flow

@@ -59,7 +59,7 @@ bool InstructionElimination::eliminateUnusedInstr(BasicBlock* bb) {
   for (Instr* instr : bb->instructions()) {
     if (auto f = dynamic_cast<CallInstr*>(instr)) {
       if (f->callee()->getNative().isReadOnly()) {
-        if (instr->type() != FlowType::Void && !instr->isUsed()) {
+        if (instr->type() != LiteralType::Void && !instr->isUsed()) {
           bb->remove(instr);
           return true;
         }

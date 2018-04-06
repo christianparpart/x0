@@ -15,12 +15,12 @@ namespace xzero::flow {
 
 Signature::Signature()
     : name_(),
-      returnType_(FlowType::Void),
+      returnType_(LiteralType::Void),
       args_() {
 }
 
 Signature::Signature(const std::string& signature)
-    : name_(), returnType_(FlowType::Void), args_() {
+    : name_(), returnType_(LiteralType::Void), args_() {
   // signature  ::= NAME [ '(' args ')' returnType
   // args       ::= type*
   // returnType ::= primitive | 'V'
@@ -82,69 +82,69 @@ Signature::Signature(const std::string& signature)
 std::string Signature::to_s() const {
   std::string result = name_;
   result += "(";
-  for (FlowType t : args_) result += signatureType(t);
+  for (LiteralType t : args_) result += signatureType(t);
   result += ")";
   result += signatureType(returnType_);
   return result;
 }
 
-FlowType typeSignature(char ch) {
+LiteralType typeSignature(char ch) {
   switch (ch) {
     case 'V':
-      return FlowType::Void;
+      return LiteralType::Void;
     case 'B':
-      return FlowType::Boolean;
+      return LiteralType::Boolean;
     case 'I':
-      return FlowType::Number;
+      return LiteralType::Number;
     case 'S':
-      return FlowType::String;
+      return LiteralType::String;
     case 'P':
-      return FlowType::IPAddress;
+      return LiteralType::IPAddress;
     case 'C':
-      return FlowType::Cidr;
+      return LiteralType::Cidr;
     case 'R':
-      return FlowType::RegExp;
+      return LiteralType::RegExp;
     case 'H':
-      return FlowType::Handler;
+      return LiteralType::Handler;
     case 's':
-      return FlowType::StringArray;
+      return LiteralType::StringArray;
     case 'i':
-      return FlowType::IntArray;
+      return LiteralType::IntArray;
     case 'p':
-      return FlowType::IPAddrArray;
+      return LiteralType::IPAddrArray;
     case 'c':
-      return FlowType::CidrArray;
+      return LiteralType::CidrArray;
     default:
       abort();
-      return FlowType::Void;
+      return LiteralType::Void;
   }
 }
 
-char signatureType(FlowType t) {
+char signatureType(LiteralType t) {
   switch (t) {
-    case FlowType::Void:
+    case LiteralType::Void:
       return 'V';
-    case FlowType::Boolean:
+    case LiteralType::Boolean:
       return 'B';
-    case FlowType::Number:
+    case LiteralType::Number:
       return 'I';
-    case FlowType::String:
+    case LiteralType::String:
       return 'S';
-    case FlowType::IPAddress:
+    case LiteralType::IPAddress:
       return 'P';
-    case FlowType::Cidr:
+    case LiteralType::Cidr:
       return 'C';
-    case FlowType::RegExp:
+    case LiteralType::RegExp:
       return 'R';
-    case FlowType::Handler:
+    case LiteralType::Handler:
       return 'H';
-    case FlowType::StringArray:
+    case LiteralType::StringArray:
       return 's';
-    case FlowType::IntArray:
+    case LiteralType::IntArray:
       return 'i';
-    case FlowType::IPAddrArray:
+    case LiteralType::IPAddrArray:
       return 'p';
-    case FlowType::CidrArray:
+    case LiteralType::CidrArray:
       return 'c';
     default:
       abort();

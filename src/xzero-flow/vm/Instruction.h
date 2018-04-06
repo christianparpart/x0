@@ -7,7 +7,7 @@
 
 #pragma once
 
-#include <xzero-flow/FlowType.h>
+#include <xzero-flow/LiteralType.h>
 #include <stddef.h>
 #include <stdint.h>
 #include <vector>
@@ -184,7 +184,7 @@ const char* mnemonic(Opcode opc);
 /**
  * Determines the data type of the result being pushed onto the stack, if any.
  */
-FlowType resultType(Opcode opc);
+LiteralType resultType(Opcode opc);
 
 /**
  * Computes the stack height after the execution of the given instruction.

@@ -94,7 +94,7 @@ class IRBuilder {
   }
 
   // values
-  AllocaInstr* createAlloca(FlowType ty, Value* arraySize,
+  AllocaInstr* createAlloca(LiteralType ty, Value* arraySize,
                             const std::string& name = "");
   Value* createLoad(Value* value, const std::string& name = "");
   Instr* createStore(Value* lhs, Value* rhs, const std::string& name = "");
@@ -175,7 +175,7 @@ class IRBuilder {
   // ...
 
   // cast
-  Value* createConvert(FlowType ty, Value* rhs,
+  Value* createConvert(LiteralType ty, Value* rhs,
                        const std::string& name = "");  // cast<T>()
   Value* createB2S(Value* rhs, const std::string& name = "");
   Value* createN2S(Value* rhs, const std::string& name = "");

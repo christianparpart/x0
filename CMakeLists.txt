@@ -341,7 +341,7 @@ set(XzeroFlow_SRC src/xzero-flow/AST.cc
                   src/xzero-flow/FlowLexer.cc
                   src/xzero-flow/FlowParser.cc
                   src/xzero-flow/FlowToken.cc
-                  src/xzero-flow/FlowType.cc
+                  src/xzero-flow/LiteralType.cc
                   src/xzero-flow/IRGenerator.cc
                   src/xzero-flow/MatchClass.cc
                   src/xzero-flow/NativeCallback.cc

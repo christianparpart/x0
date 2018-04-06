@@ -424,7 +424,7 @@ libXzeroFlow_a_SOURCES = \
 	src/xzero-flow/FlowLexer.cc \
 	src/xzero-flow/FlowParser.cc \
 	src/xzero-flow/FlowToken.cc \
-	src/xzero-flow/FlowType.cc \
+	src/xzero-flow/LiteralType.cc \
 	src/xzero-flow/IRGenerator.cc \
 	src/xzero-flow/MatchClass.cc \
 	src/xzero-flow/NativeCallback.cc \
@@ -464,7 +464,7 @@ nobase_libXzeroFlow_HEADERS = \
 	src/xzero-flow/FlowLexer.h \
 	src/xzero-flow/FlowParser.h \
 	src/xzero-flow/FlowToken.h \
-	src/xzero-flow/FlowType.h \
+	src/xzero-flow/LiteralType.h \
 	src/xzero-flow/IRGenerator.h \
 	src/xzero-flow/MatchClass.h \
 	src/xzero-flow/NativeCallback.h \

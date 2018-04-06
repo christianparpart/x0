@@ -25,7 +25,7 @@ Value::Value(const Value& v) : type_(v.type_), name_(), uses_() {
   name_ = buf;
 }
 
-Value::Value(FlowType ty, const std::string& name)
+Value::Value(LiteralType ty, const std::string& name)
     : type_(ty), name_(name), uses_() {
   if (name_.empty()) {
     name_ = fmt::format("unnamed{}", valueCounter);

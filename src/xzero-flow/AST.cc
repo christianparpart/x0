@@ -104,7 +104,7 @@ CallableSym::CallableSym(Type t, const NativeCallback* cb,
 CallableSym::CallableSym(const std::string& name, const SourceLocation& loc)
     : Symbol(Type::Handler, name, loc), nativeCallback_(nullptr), sig_() {
   sig_.setName(name);
-  sig_.setReturnType(FlowType::Boolean);
+  sig_.setReturnType(LiteralType::Boolean);
 }
 
 const Signature& CallableSym::signature() const {
@@ -116,7 +116,7 @@ const Signature& CallableSym::signature() const {
 
 static inline void completeDefaultValue(
     ParamList& args,
-    FlowType type,
+    LiteralType type,
     const NativeCallback::DefaultValue& dv,
     const std::string& name) { // {{{
   // printf("completeDefaultValue(type:%s, name:%s)\n", tos(type).c_str(),
@@ -125,27 +125,27 @@ static inline void completeDefaultValue(
   static const SourceLocation loc;
 
   switch (type) {
-    case FlowType::Boolean:
+    case LiteralType::Boolean:
       args.push_back(
           name,
           std::make_unique<BoolExpr>(std::get<bool>(dv), loc));
       break;
-    case FlowType::Number:
+    case LiteralType::Number:
       args.push_back(
           name,
           std::make_unique<NumberExpr>(std::get<FlowNumber>(dv), loc));
       break;
-    case FlowType::String:
+    case LiteralType::String:
       args.push_back(
           name,
           std::make_unique<StringExpr>(std::get<FlowString>(dv), loc));
       break;
-    case FlowType::IPAddress:
+    case LiteralType::IPAddress:
       args.push_back(
           name,
           std::make_unique<IPAddressExpr>(std::get<IPAddress>(dv), loc));
       break;
-    case FlowType::Cidr:
+    case LiteralType::Cidr:
       args.push_back(
           name,
           std::make_unique<CidrExpr>(std::get<Cidr>(dv), loc));
@@ -167,8 +167,8 @@ bool CallableSym::isDirectMatch(const ParamList& params) const {
     if (params.isNamed() && nativeCallback_->getParamNameAt(i) != params[i].first)
       return false;
 
-    FlowType expectedType = signature().args()[i];
-    FlowType givenType = params.values()[i]->getType();
+    LiteralType expectedType = signature().args()[i];
+    LiteralType givenType = params.values()[i]->getType();
 
     if (givenType != expectedType) {
       return false;
@@ -206,7 +206,7 @@ bool CallableSym::tryMatch(ParamList& params, Buffer* errorMessage) const {
               this->name().c_str(), name.c_str());
           return false;
         }
-        FlowType type = signature().args()[i];
+        LiteralType type = signature().args()[i];
         completeDefaultValue(params, type, defaultValue, name);
       }
     }
@@ -238,8 +238,8 @@ bool CallableSym::tryMatch(ParamList& params, Buffer* errorMessage) const {
     }
 
     for (size_t i = 0, e = params.size(); i != e; ++i) {
-      FlowType expectedType = signature().args()[i];
-      FlowType givenType = params.values()[i]->getType();
+      LiteralType expectedType = signature().args()[i];
+      LiteralType givenType = params.values()[i]->getType();
       if (givenType != expectedType) {
         errorMessage->printf(
             "Type mismatch in positional parameter %d, callee %s.", i + 1,
@@ -258,14 +258,14 @@ bool CallableSym::tryMatch(ParamList& params, Buffer* errorMessage) const {
       }
 
       const std::string& name = native->getParamNameAt(i);
-      FlowType type = native->signature().args()[i];
+      LiteralType type = native->signature().args()[i];
       completeDefaultValue(params, type, defaultValue, name);
     }
 
     Signature sig;
     sig.setName(this->name());
     sig.setReturnType(signature().returnType());  // XXX cheetah
-    std::vector<FlowType> argTypes;
+    std::vector<LiteralType> argTypes;
     for (const auto& arg : params.values()) {
       argTypes.push_back(arg->getType());
     }
@@ -438,23 +438,23 @@ SourceLocation ParamList::location() const {
 }
 // }}}
 
-std::unique_ptr<Expr> Expr::createDefaultInitializer(FlowType type) {
+std::unique_ptr<Expr> Expr::createDefaultInitializer(LiteralType type) {
   switch (type) {
-    case FlowType::Boolean:
+    case LiteralType::Boolean:
       return std::make_unique<BoolExpr>(false);
-    case FlowType::Number:
+    case LiteralType::Number:
       return std::make_unique<NumberExpr>(0);
-    case FlowType::String:
+    case LiteralType::String:
       return std::make_unique<StringExpr>("");
-    case FlowType::IPAddress:
+    case LiteralType::IPAddress:
       return std::make_unique<IPAddressExpr>();
-    case FlowType::Cidr:
-    case FlowType::RegExp:
-    case FlowType::Handler:
-    case FlowType::IntArray:
-    case FlowType::StringArray:
-    case FlowType::IPAddrArray:
-    case FlowType::CidrArray:
+    case LiteralType::Cidr:
+    case LiteralType::RegExp:
+    case LiteralType::Handler:
+    case LiteralType::IntArray:
+    case LiteralType::StringArray:
+    case LiteralType::IPAddrArray:
+    case LiteralType::CidrArray:
     default:
       // TODO not implemented
       return nullptr;
@@ -561,63 +561,63 @@ MatchStmt::~MatchStmt() {}
 void MatchStmt::visit(ASTVisitor& v) { v.accept(*this); }
 
 // {{{ type system
-FlowType UnaryExpr::getType() const { return resultType(op()); }
+LiteralType UnaryExpr::getType() const { return resultType(op()); }
 
-FlowType BinaryExpr::getType() const { return resultType(op()); }
+LiteralType BinaryExpr::getType() const { return resultType(op()); }
 
-FlowType ArrayExpr::getType() const {
+LiteralType ArrayExpr::getType() const {
   switch (values_.front()->getType()) {
-    case FlowType::Number:
-      return FlowType::IntArray;
-    case FlowType::String:
-      return FlowType::StringArray;
-    case FlowType::IPAddress:
-      return FlowType::IPAddrArray;
-    case FlowType::Cidr:
-      return FlowType::CidrArray;
+    case LiteralType::Number:
+      return LiteralType::IntArray;
+    case LiteralType::String:
+      return LiteralType::StringArray;
+    case LiteralType::IPAddress:
+      return LiteralType::IPAddrArray;
+    case LiteralType::Cidr:
+      return LiteralType::CidrArray;
     default:
       abort();
-      return FlowType::Void;  // XXX error
+      return LiteralType::Void;  // XXX error
   }
 }
 
 template <>
-FlowType LiteralExpr<RegExp>::getType() const {
-  return FlowType::RegExp;
+LiteralType LiteralExpr<RegExp>::getType() const {
+  return LiteralType::RegExp;
 }
 
 template <>
-FlowType LiteralExpr<Cidr>::getType() const {
-  return FlowType::Cidr;
+LiteralType LiteralExpr<Cidr>::getType() const {
+  return LiteralType::Cidr;
 }
 
 template <>
-FlowType LiteralExpr<bool>::getType() const {
-  return FlowType::Boolean;
+LiteralType LiteralExpr<bool>::getType() const {
+  return LiteralType::Boolean;
 }
 
 template <>
-FlowType LiteralExpr<IPAddress>::getType() const {
-  return FlowType::IPAddress;
+LiteralType LiteralExpr<IPAddress>::getType() const {
+  return LiteralType::IPAddress;
 }
 
 template <>
-FlowType LiteralExpr<long long>::getType() const {
-  return FlowType::Number;
+LiteralType LiteralExpr<long long>::getType() const {
+  return LiteralType::Number;
 }
 
 template <>
-FlowType LiteralExpr<std::string>::getType() const {
-  return FlowType::String;
+LiteralType LiteralExpr<std::string>::getType() const {
+  return LiteralType::String;
 }
 
-FlowType CallExpr::getType() const { return callee_->signature().returnType(); }
+LiteralType CallExpr::getType() const { return callee_->signature().returnType(); }
 
-FlowType VariableExpr::getType() const {
+LiteralType VariableExpr::getType() const {
   return variable_->initializer()->getType();
 }
 
-FlowType HandlerRefExpr::getType() const { return FlowType::Handler; }
+LiteralType HandlerRefExpr::getType() const { return LiteralType::Handler; }
 // }}}
 
 }  // namespace flow

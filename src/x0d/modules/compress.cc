@@ -41,10 +41,10 @@ CompressModule::CompressModule(Daemon* d)
       std::bind(&CompressModule::postProcess, this,
                 std::placeholders::_1, std::placeholders::_2));
 
-  setupFunction("compress.types", &CompressModule::setup_types, flow::FlowType::StringArray);
-  setupFunction("compress.level", &CompressModule::setup_level, flow::FlowType::Number);
-  setupFunction("compress.min", &CompressModule::setup_minsize, flow::FlowType::Number);
-  setupFunction("compress.max", &CompressModule::setup_maxsize, flow::FlowType::Number);
+  setupFunction("compress.types", &CompressModule::setup_types, flow::LiteralType::StringArray);
+  setupFunction("compress.level", &CompressModule::setup_level, flow::LiteralType::Number);
+  setupFunction("compress.min", &CompressModule::setup_minsize, flow::LiteralType::Number);
+  setupFunction("compress.max", &CompressModule::setup_maxsize, flow::LiteralType::Number);
 }
 
 CompressModule::~CompressModule() {

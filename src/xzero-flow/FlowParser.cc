@@ -226,15 +226,15 @@ Opcode makeOperator(FlowToken token, Expr* left, Expr* right) {
   // (ip, cidr)       in
   // (cidr, cidr)     == != in
 
-  auto isString = [](FlowType t) { return t == FlowType::String; };
-  auto isNumber = [](FlowType t) { return t == FlowType::Number; };
-  auto isBool = [](FlowType t) { return t == FlowType::Boolean; };
-  auto isIPAddr = [](FlowType t) { return t == FlowType::IPAddress; };
-  auto isCidr = [](FlowType t) { return t == FlowType::Cidr; };
-  auto isRegExp = [](FlowType t) { return t == FlowType::RegExp; };
+  auto isString = [](LiteralType t) { return t == LiteralType::String; };
+  auto isNumber = [](LiteralType t) { return t == LiteralType::Number; };
+  auto isBool = [](LiteralType t) { return t == LiteralType::Boolean; };
+  auto isIPAddr = [](LiteralType t) { return t == LiteralType::IPAddress; };
+  auto isCidr = [](LiteralType t) { return t == LiteralType::Cidr; };
+  auto isRegExp = [](LiteralType t) { return t == LiteralType::RegExp; };
 
-  FlowType leftType = left->getType();
-  FlowType rightType = right->getType();
+  LiteralType leftType = left->getType();
+  LiteralType rightType = right->getType();
 
   OpSig opsig = OpSig::Invalid;
   if (isBool(leftType) && isBool(rightType))
@@ -315,29 +315,29 @@ Opcode makeOperator(FlowToken token, Expr* left, Expr* right) {
  * @param target target (token) type to cast to.
  */
 Opcode makeOperator(FlowToken target, Expr* source) {
-  static const std::unordered_map<FlowType,
+  static const std::unordered_map<LiteralType,
                                   std::unordered_map<FlowToken, Opcode>> ops =
-      {{FlowType::Number,
+      {{LiteralType::Number,
         {{FlowToken::Not, Opcode::NCMPZ},
          {FlowToken::BitNot, Opcode::NNOT},
          {FlowToken::Minus, Opcode::NNEG},
          {FlowToken::StringType, Opcode::N2S},
          {FlowToken::BoolType, Opcode::NCMPZ},
          {FlowToken::NumberType, Opcode::NOP}, }},
-       {FlowType::Boolean,
+       {LiteralType::Boolean,
         {{FlowToken::Not, Opcode::BNOT},
          {FlowToken::BoolType, Opcode::NOP},
          {FlowToken::StringType, Opcode::N2S},  // XXX or better print "true" | "false" ?
         }},
-       {FlowType::String,
+       {LiteralType::String,
         {{FlowToken::Not, Opcode::SISEMPTY},
          {FlowToken::NumberType, Opcode::S2N},
          {FlowToken::StringType, Opcode::NOP}, }},
-       {FlowType::IPAddress, {{FlowToken::StringType, Opcode::P2S}, }},
-       {FlowType::Cidr, {{FlowToken::StringType, Opcode::C2S}, }},
-       {FlowType::RegExp, {{FlowToken::StringType, Opcode::R2S}, }}, };
+       {LiteralType::IPAddress, {{FlowToken::StringType, Opcode::P2S}, }},
+       {LiteralType::Cidr, {{FlowToken::StringType, Opcode::C2S}, }},
+       {LiteralType::RegExp, {{FlowToken::StringType, Opcode::R2S}, }}, };
 
-  FlowType sourceType = source->getType();
+  LiteralType sourceType = source->getType();
 
   auto a = ops.find(sourceType);
   if (a == ops.end()) return Opcode::EXIT;
@@ -1013,7 +1013,7 @@ std::unique_ptr<Expr> FlowParser::arrayExpr() {
   consume(FlowToken::BrClose);
 
   if (!fields.empty()) {
-    FlowType baseType = fields.front()->getType();
+    LiteralType baseType = fields.front()->getType();
     for (const auto& e : fields) {
       if (e->getType() != baseType) {
         reportError("Mixed element types in array not allowed.");
@@ -1022,10 +1022,10 @@ std::unique_ptr<Expr> FlowParser::arrayExpr() {
     }
 
     switch (baseType) {
-      case FlowType::Number:
-      case FlowType::String:
-      case FlowType::IPAddress:
-      case FlowType::Cidr:
+      case LiteralType::Number:
+      case LiteralType::String:
+      case LiteralType::IPAddress:
+      case LiteralType::Cidr:
         break;
       default:
         reportError(
@@ -1204,8 +1204,8 @@ std::unique_ptr<Expr> FlowParser::namedExpr(std::string* name) {
 }
 
 std::unique_ptr<Expr> asString(std::unique_ptr<Expr>&& expr) {
-  FlowType baseType = expr->getType();
-  if (baseType == FlowType::String) return std::move(expr);
+  LiteralType baseType = expr->getType();
+  if (baseType == LiteralType::String) return std::move(expr);
 
   Opcode opc = makeOperator(FlowToken::StringType, expr.get());
   if (opc == Opcode::EXIT) return nullptr;  // cast error
@@ -1341,9 +1341,9 @@ std::unique_ptr<Stmt> FlowParser::ifStmt() {
   consumeIf(FlowToken::Then);
 
   switch (cond->getType()) {
-    case FlowType::Boolean:
+    case LiteralType::Boolean:
       break;
-    case FlowType::String:
+    case LiteralType::String:
       cond = std::make_unique<UnaryExpr>(Opcode::SLEN, std::move(cond), sloc.update(end()));
       cond = std::make_unique<BinaryExpr>(Opcode::NCMPNE, std::move(cond),
           std::make_unique<NumberExpr>(0, sloc));
@@ -1385,11 +1385,11 @@ std::unique_ptr<Stmt> FlowParser::matchStmt() {
   auto cond = addExpr();
   if (!cond) return nullptr;
 
-  FlowType matchType = cond->getType();
+  LiteralType matchType = cond->getType();
 
-  if (matchType != FlowType::String) {
+  if (matchType != LiteralType::String) {
     reportError("Expected match condition type <%s>, found \"%s\" instead.",
-                tos(FlowType::String).c_str(), tos(matchType).c_str());
+                tos(LiteralType::String).c_str(), tos(matchType).c_str());
     return nullptr;
   }
 
@@ -1419,7 +1419,7 @@ std::unique_ptr<Stmt> FlowParser::matchStmt() {
     op = MatchClass::Same;
   }
 
-  if (op == MatchClass::RegExp) matchType = FlowType::RegExp;
+  if (op == MatchClass::RegExp) matchType = LiteralType::RegExp;
 
   // '{'
   if (!consume(FlowToken::Begin)) return nullptr;
@@ -1450,7 +1450,7 @@ std::unique_ptr<Stmt> FlowParser::matchStmt() {
     }
 
     for (auto& label : one.first) {
-      FlowType caseType = label->getType();
+      LiteralType caseType = label->getType();
       if (matchType != caseType) {
         reportError(
             "Type mismatch in match-on statement. Expected <%s> but got <%s>.",
@@ -1546,8 +1546,8 @@ std::unique_ptr<Stmt> FlowParser::identStmt() {
       if (!value) return nullptr;
 
       VariableSym* var = static_cast<VariableSym*>(callee);
-      FlowType leftType = var->initializer()->getType();
-      FlowType rightType = value->getType();
+      LiteralType leftType = var->initializer()->getType();
+      LiteralType rightType = value->getType();
       if (leftType != rightType) {
         reportError("Type mismatch in assignment. Expected <%s> but got <%s>.",
                     tos(leftType).c_str(), tos(rightType).c_str());
@@ -1643,7 +1643,7 @@ Signature makeSignature(const CallableSym* callee, const ParamList& params) {
 
   sig.setName(callee->name());
 
-  std::vector<FlowType> argTypes;
+  std::vector<LiteralType> argTypes;
   for (const std::unique_ptr<Expr>& arg : params.values()) {
     argTypes.push_back(arg->getType());
   }

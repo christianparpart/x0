@@ -9,7 +9,7 @@
 
 #include <xzero/defines.h>
 #include <xzero/logging.h>
-#include <xzero-flow/FlowType.h>
+#include <xzero-flow/LiteralType.h>
 #include <xzero-flow/vm/Handler.h>
 #include <xzero/CustomDataMgr.h>
 #include <xzero/RegExp.h>

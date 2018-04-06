@@ -316,7 +316,7 @@ void IRGenerator::accept(BinaryExpr& expr) {
     BasicBlock* borRight = createBlock("bor.right");
     BasicBlock* borCont = createBlock("bor.cont");
 
-    AllocaInstr* result = createAlloca(FlowType::Boolean, get(1), "bor");
+    AllocaInstr* result = createAlloca(LiteralType::Boolean, get(1), "bor");
     Value* lhs = codegen(expr.leftExpr());
     createCondBr(lhs, borLeft, borRight);
 

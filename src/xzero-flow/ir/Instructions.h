@@ -27,7 +27,7 @@ class IRBuiltinFunction;
 
 class NopInstr : public Instr {
  public:
-  NopInstr() : Instr(FlowType::Void, {}, "nop") {}
+  NopInstr() : Instr(LiteralType::Void, {}, "nop") {}
 
   void dump() override;
   std::unique_ptr<Instr> clone() override;
@@ -39,33 +39,33 @@ class NopInstr : public Instr {
  */
 class AllocaInstr : public Instr {
  private:
-  static FlowType computeType(FlowType elementType, Value* size) {  // {{{
+  static LiteralType computeType(LiteralType elementType, Value* size) {  // {{{
     if (auto n = dynamic_cast<ConstantInt*>(size)) {
       if (n->get() == 1) return elementType;
     }
 
     switch (elementType) {
-      case FlowType::Number:
-        return FlowType::IntArray;
-      case FlowType::String:
-        return FlowType::StringArray;
+      case LiteralType::Number:
+        return LiteralType::IntArray;
+      case LiteralType::String:
+        return LiteralType::StringArray;
       default:
-        return FlowType::Void;
+        return LiteralType::Void;
     }
   }  // }}}
 
  public:
-  AllocaInstr(FlowType ty, Value* n, const std::string& name)
+  AllocaInstr(LiteralType ty, Value* n, const std::string& name)
       : Instr(ty, {n}, name) {}
 
-  FlowType elementType() const {
+  LiteralType elementType() const {
     switch (type()) {
-      case FlowType::StringArray:
-        return FlowType::String;
-      case FlowType::IntArray:
-        return FlowType::Number;
+      case LiteralType::StringArray:
+        return LiteralType::String;
+      case LiteralType::IntArray:
+        return LiteralType::Number;
       default:
-        return FlowType::Void;
+        return LiteralType::Void;
     }
   }
 
@@ -80,7 +80,7 @@ class StoreInstr : public Instr {
  public:
   StoreInstr(Value* variable, ConstantInt* index, Value* source,
              const std::string& name)
-      : Instr(FlowType::Void, {variable, index, source}, name) {}
+      : Instr(LiteralType::Void, {variable, index, source}, name) {}
 
   Value* variable() const { return operand(0); }
   ConstantInt* index() const { return static_cast<ConstantInt*>(operand(1)); }
@@ -130,7 +130,7 @@ class HandlerCallInstr : public Instr {
 
 class CastInstr : public Instr {
  public:
-  CastInstr(FlowType resultType, Value* op, const std::string& name)
+  CastInstr(LiteralType resultType, Value* op, const std::string& name)
       : Instr(resultType, {op}, name) {}
 
   Value* source() const { return operand(0); }
@@ -140,7 +140,7 @@ class CastInstr : public Instr {
   void accept(InstructionVisitor& v) override;
 };
 
-template <const UnaryOperator Operator, const FlowType ResultType>
+template <const UnaryOperator Operator, const LiteralType ResultType>
 class UnaryInstr : public Instr {
  public:
   UnaryInstr(Value* op, const std::string& name)
@@ -160,7 +160,7 @@ class UnaryInstr : public Instr {
   UnaryOperator operator_;
 };
 
-template <const BinaryOperator Operator, const FlowType ResultType>
+template <const BinaryOperator Operator, const LiteralType ResultType>
 class BinaryInstr : public Instr {
  public:
   BinaryInstr(Value* lhs, Value* rhs, const std::string& name)
@@ -204,7 +204,7 @@ class TerminateInstr : public Instr {
 
  public:
   TerminateInstr(const std::vector<Value*>& ops)
-      : Instr(FlowType::Void, ops, "") {}
+      : Instr(LiteralType::Void, ops, "") {}
 };
 
 /**

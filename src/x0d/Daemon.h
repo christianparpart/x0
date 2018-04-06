@@ -254,7 +254,7 @@ inline xzero::flow::NativeCallback& Daemon::setupFunction(
     const std::string& name, xzero::flow::NativeCallback::Functor cb,
     ArgTypes... argTypes) {
   setupApi_.push_back(name);
-  return registerFunction(name, xzero::flow::FlowType::Void).bind(cb).params(
+  return registerFunction(name, xzero::flow::LiteralType::Void).bind(cb).params(
       argTypes...);
 }
 
@@ -264,7 +264,7 @@ inline xzero::flow::NativeCallback& Daemon::sharedFunction(
     ArgTypes... argTypes) {
   setupApi_.push_back(name);
   mainApi_.push_back(name);
-  return registerFunction(name, xzero::flow::FlowType::Void).bind(cb).params(
+  return registerFunction(name, xzero::flow::LiteralType::Void).bind(cb).params(
       argTypes...);
 }
 
@@ -273,7 +273,7 @@ inline xzero::flow::NativeCallback& Daemon::mainFunction(
     const std::string& name, xzero::flow::NativeCallback::Functor cb,
     ArgTypes... argTypes) {
   mainApi_.push_back(name);
-  return registerFunction(name, xzero::flow::FlowType::Void).bind(cb).params(
+  return registerFunction(name, xzero::flow::LiteralType::Void).bind(cb).params(
       argTypes...);
 }
 

@@ -654,7 +654,7 @@ bool Runner::loop() {
       handler_->program()->nativeFunction(id)->invoke(args);
 
       discard(argc);
-      if (signature.returnType() != FlowType::Void)
+      if (signature.returnType() != LiteralType::Void)
         push(args[0]);
 
       if (state_ == Suspended) {

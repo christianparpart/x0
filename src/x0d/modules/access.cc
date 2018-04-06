@@ -19,15 +19,15 @@ AccessModule::AccessModule(x0d::Daemon* d)
     : Module(d, "access") {
 
   mainHandler("access.deny", &AccessModule::deny_all);
-  mainHandler("access.deny", &AccessModule::deny_ip, FlowType::IPAddress);
-  mainHandler("access.deny", &AccessModule::deny_cidr, FlowType::Cidr);
-  mainHandler("access.deny", &AccessModule::deny_ipArray, FlowType::IPAddrArray);
-  mainHandler("access.deny", &AccessModule::deny_cidrArray, FlowType::CidrArray);
+  mainHandler("access.deny", &AccessModule::deny_ip, LiteralType::IPAddress);
+  mainHandler("access.deny", &AccessModule::deny_cidr, LiteralType::Cidr);
+  mainHandler("access.deny", &AccessModule::deny_ipArray, LiteralType::IPAddrArray);
+  mainHandler("access.deny", &AccessModule::deny_cidrArray, LiteralType::CidrArray);
 
-  mainHandler("access.deny_except", &AccessModule::denyExcept_ip, FlowType::IPAddress);
-  mainHandler("access.deny_except", &AccessModule::denyExcept_cidr, FlowType::Cidr);
-  mainHandler("access.deny_except", &AccessModule::denyExcept_ipArray, FlowType::IPAddrArray);
-  mainHandler("access.deny_except", &AccessModule::denyExcept_cidrArray, FlowType::CidrArray);
+  mainHandler("access.deny_except", &AccessModule::denyExcept_ip, LiteralType::IPAddress);
+  mainHandler("access.deny_except", &AccessModule::denyExcept_cidr, LiteralType::Cidr);
+  mainHandler("access.deny_except", &AccessModule::denyExcept_ipArray, LiteralType::IPAddrArray);
+  mainHandler("access.deny_except", &AccessModule::denyExcept_cidrArray, LiteralType::CidrArray);
 }
 
 // {{{ deny()

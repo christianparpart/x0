@@ -21,12 +21,12 @@ NativeCallback::NativeCallback(Runtime* runtime, const std::string& _name)
       signature_(),
       attributes_(0) {
   signature_.setName(_name);
-  signature_.setReturnType(FlowType::Boolean);
+  signature_.setReturnType(LiteralType::Boolean);
 }
 
 // constructs a function callback
 NativeCallback::NativeCallback(Runtime* runtime, const std::string& _name,
-                               FlowType _returnType)
+                               LiteralType _returnType)
     : runtime_(runtime),
       isHandler_(false),
       verifier_(),

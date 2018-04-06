@@ -46,7 +46,7 @@ class Instr : public Value {
   Instr(const Instr& v);
 
  public:
-  Instr(FlowType ty, const std::vector<Value*>& ops = {},
+  Instr(LiteralType ty, const std::vector<Value*>& ops = {},
         const std::string& name = "");
   ~Instr();
 

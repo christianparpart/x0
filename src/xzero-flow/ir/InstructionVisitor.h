@@ -7,7 +7,7 @@
 
 #pragma once
 
-#include <xzero-flow/FlowType.h>
+#include <xzero-flow/LiteralType.h>
 #include <xzero/defines.h>
 
 namespace xzero::flow {
@@ -81,60 +81,60 @@ class RetInstr;
 class MatchInstr;
 class CastInstr;
 
-template <const UnaryOperator Operator, const FlowType ResultType>
+template <const UnaryOperator Operator, const LiteralType ResultType>
 class UnaryInstr;
 
-template <const BinaryOperator Operator, const FlowType ResultType>
+template <const BinaryOperator Operator, const LiteralType ResultType>
 class BinaryInstr;
 
 // numeric
-typedef UnaryInstr<UnaryOperator::INeg, FlowType::Number> INegInstr;
-typedef UnaryInstr<UnaryOperator::INot, FlowType::Number> INotInstr;
-typedef BinaryInstr<BinaryOperator::IAdd, FlowType::Number> IAddInstr;
-typedef BinaryInstr<BinaryOperator::ISub, FlowType::Number> ISubInstr;
-typedef BinaryInstr<BinaryOperator::IMul, FlowType::Number> IMulInstr;
-typedef BinaryInstr<BinaryOperator::IDiv, FlowType::Number> IDivInstr;
-typedef BinaryInstr<BinaryOperator::IRem, FlowType::Number> IRemInstr;
-typedef BinaryInstr<BinaryOperator::IPow, FlowType::Number> IPowInstr;
-typedef BinaryInstr<BinaryOperator::IAnd, FlowType::Number> IAndInstr;
-typedef BinaryInstr<BinaryOperator::IOr, FlowType::Number> IOrInstr;
-typedef BinaryInstr<BinaryOperator::IXor, FlowType::Number> IXorInstr;
-typedef BinaryInstr<BinaryOperator::IShl, FlowType::Number> IShlInstr;
-typedef BinaryInstr<BinaryOperator::IShr, FlowType::Number> IShrInstr;
+typedef UnaryInstr<UnaryOperator::INeg, LiteralType::Number> INegInstr;
+typedef UnaryInstr<UnaryOperator::INot, LiteralType::Number> INotInstr;
+typedef BinaryInstr<BinaryOperator::IAdd, LiteralType::Number> IAddInstr;
+typedef BinaryInstr<BinaryOperator::ISub, LiteralType::Number> ISubInstr;
+typedef BinaryInstr<BinaryOperator::IMul, LiteralType::Number> IMulInstr;
+typedef BinaryInstr<BinaryOperator::IDiv, LiteralType::Number> IDivInstr;
+typedef BinaryInstr<BinaryOperator::IRem, LiteralType::Number> IRemInstr;
+typedef BinaryInstr<BinaryOperator::IPow, LiteralType::Number> IPowInstr;
+typedef BinaryInstr<BinaryOperator::IAnd, LiteralType::Number> IAndInstr;
+typedef BinaryInstr<BinaryOperator::IOr, LiteralType::Number> IOrInstr;
+typedef BinaryInstr<BinaryOperator::IXor, LiteralType::Number> IXorInstr;
+typedef BinaryInstr<BinaryOperator::IShl, LiteralType::Number> IShlInstr;
+typedef BinaryInstr<BinaryOperator::IShr, LiteralType::Number> IShrInstr;
 
-typedef BinaryInstr<BinaryOperator::ICmpEQ, FlowType::Boolean> ICmpEQInstr;
-typedef BinaryInstr<BinaryOperator::ICmpNE, FlowType::Boolean> ICmpNEInstr;
-typedef BinaryInstr<BinaryOperator::ICmpLE, FlowType::Boolean> ICmpLEInstr;
-typedef BinaryInstr<BinaryOperator::ICmpGE, FlowType::Boolean> ICmpGEInstr;
-typedef BinaryInstr<BinaryOperator::ICmpLT, FlowType::Boolean> ICmpLTInstr;
-typedef BinaryInstr<BinaryOperator::ICmpGT, FlowType::Boolean> ICmpGTInstr;
+typedef BinaryInstr<BinaryOperator::ICmpEQ, LiteralType::Boolean> ICmpEQInstr;
+typedef BinaryInstr<BinaryOperator::ICmpNE, LiteralType::Boolean> ICmpNEInstr;
+typedef BinaryInstr<BinaryOperator::ICmpLE, LiteralType::Boolean> ICmpLEInstr;
+typedef BinaryInstr<BinaryOperator::ICmpGE, LiteralType::Boolean> ICmpGEInstr;
+typedef BinaryInstr<BinaryOperator::ICmpLT, LiteralType::Boolean> ICmpLTInstr;
+typedef BinaryInstr<BinaryOperator::ICmpGT, LiteralType::Boolean> ICmpGTInstr;
 
 // binary
-typedef UnaryInstr<UnaryOperator::BNot, FlowType::Boolean> BNotInstr;
-typedef BinaryInstr<BinaryOperator::BAnd, FlowType::Boolean> BAndInstr;
-typedef BinaryInstr<BinaryOperator::BOr, FlowType::Boolean> BOrInstr;
-typedef BinaryInstr<BinaryOperator::BXor, FlowType::Boolean> BXorInstr;
+typedef UnaryInstr<UnaryOperator::BNot, LiteralType::Boolean> BNotInstr;
+typedef BinaryInstr<BinaryOperator::BAnd, LiteralType::Boolean> BAndInstr;
+typedef BinaryInstr<BinaryOperator::BOr, LiteralType::Boolean> BOrInstr;
+typedef BinaryInstr<BinaryOperator::BXor, LiteralType::Boolean> BXorInstr;
 
 // string
-typedef UnaryInstr<UnaryOperator::SLen, FlowType::Number> SLenInstr;
-typedef UnaryInstr<UnaryOperator::SIsEmpty, FlowType::Boolean> SIsEmptyInstr;
-typedef BinaryInstr<BinaryOperator::SAdd, FlowType::String> SAddInstr;
-typedef BinaryInstr<BinaryOperator::SSubStr, FlowType::String> SSubStrInstr;
-typedef BinaryInstr<BinaryOperator::SCmpEQ, FlowType::Boolean> SCmpEQInstr;
-typedef BinaryInstr<BinaryOperator::SCmpNE, FlowType::Boolean> SCmpNEInstr;
-typedef BinaryInstr<BinaryOperator::SCmpLE, FlowType::Boolean> SCmpLEInstr;
-typedef BinaryInstr<BinaryOperator::SCmpGE, FlowType::Boolean> SCmpGEInstr;
-typedef BinaryInstr<BinaryOperator::SCmpLT, FlowType::Boolean> SCmpLTInstr;
-typedef BinaryInstr<BinaryOperator::SCmpGT, FlowType::Boolean> SCmpGTInstr;
-typedef BinaryInstr<BinaryOperator::SCmpRE, FlowType::Boolean> SCmpREInstr;
-typedef BinaryInstr<BinaryOperator::SCmpBeg, FlowType::Boolean> SCmpBegInstr;
-typedef BinaryInstr<BinaryOperator::SCmpEnd, FlowType::Boolean> SCmpEndInstr;
-typedef BinaryInstr<BinaryOperator::SIn, FlowType::Boolean> SInInstr;
+typedef UnaryInstr<UnaryOperator::SLen, LiteralType::Number> SLenInstr;
+typedef UnaryInstr<UnaryOperator::SIsEmpty, LiteralType::Boolean> SIsEmptyInstr;
+typedef BinaryInstr<BinaryOperator::SAdd, LiteralType::String> SAddInstr;
+typedef BinaryInstr<BinaryOperator::SSubStr, LiteralType::String> SSubStrInstr;
+typedef BinaryInstr<BinaryOperator::SCmpEQ, LiteralType::Boolean> SCmpEQInstr;
+typedef BinaryInstr<BinaryOperator::SCmpNE, LiteralType::Boolean> SCmpNEInstr;
+typedef BinaryInstr<BinaryOperator::SCmpLE, LiteralType::Boolean> SCmpLEInstr;
+typedef BinaryInstr<BinaryOperator::SCmpGE, LiteralType::Boolean> SCmpGEInstr;
+typedef BinaryInstr<BinaryOperator::SCmpLT, LiteralType::Boolean> SCmpLTInstr;
+typedef BinaryInstr<BinaryOperator::SCmpGT, LiteralType::Boolean> SCmpGTInstr;
+typedef BinaryInstr<BinaryOperator::SCmpRE, LiteralType::Boolean> SCmpREInstr;
+typedef BinaryInstr<BinaryOperator::SCmpBeg, LiteralType::Boolean> SCmpBegInstr;
+typedef BinaryInstr<BinaryOperator::SCmpEnd, LiteralType::Boolean> SCmpEndInstr;
+typedef BinaryInstr<BinaryOperator::SIn, LiteralType::Boolean> SInInstr;
 
 // ip
-typedef BinaryInstr<BinaryOperator::PCmpEQ, FlowType::Boolean> PCmpEQInstr;
-typedef BinaryInstr<BinaryOperator::PCmpNE, FlowType::Boolean> PCmpNEInstr;
-typedef BinaryInstr<BinaryOperator::PInCidr, FlowType::Boolean> PInCidrInstr;
+typedef BinaryInstr<BinaryOperator::PCmpEQ, LiteralType::Boolean> PCmpEQInstr;
+typedef BinaryInstr<BinaryOperator::PCmpNE, LiteralType::Boolean> PCmpNEInstr;
+typedef BinaryInstr<BinaryOperator::PInCidr, LiteralType::Boolean> PInCidrInstr;
 
 class InstructionVisitor {
  public:

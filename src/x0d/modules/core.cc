@@ -139,205 +139,205 @@ CoreModule::CoreModule(Daemon* d)
       .param<flow::FlowString>("trustfile", "")
       .param<flow::FlowString>("priorities", "");
 
-  setupFunction("ssl.priorities", &CoreModule::ssl_priorities, flow::FlowType::String);
+  setupFunction("ssl.priorities", &CoreModule::ssl_priorities, flow::LiteralType::String);
 
   // setup: properties (write-only)
-  setupFunction("workers", &CoreModule::workers, FlowType::Number);
-  setupFunction("workers", &CoreModule::workers_affinity, FlowType::IntArray);
-  setupFunction("mimetypes", &CoreModule::mimetypes, FlowType::String);
-  setupFunction("mimetypes.default", &CoreModule::mimetypes_default, FlowType::String);
-  setupFunction("etag.mtime", &CoreModule::etag_mtime, FlowType::Boolean);
-  setupFunction("etag.size", &CoreModule::etag_size, FlowType::Boolean);
-  setupFunction("etag.inode", &CoreModule::etag_inode, FlowType::Boolean);
-  setupFunction("fileinfo.ttl", &CoreModule::fileinfo_cache_ttl, FlowType::Number);
-  setupFunction("server.advertise", &CoreModule::server_advertise, FlowType::Boolean);
-  setupFunction("server.tags", &CoreModule::server_tags, FlowType::StringArray, FlowType::String);
-  setupFunction("tcp_fin_timeout", &CoreModule::tcp_fin_timeout, FlowType::Number);
-  setupFunction("max_internal_redirect_count", &CoreModule::max_internal_redirect_count, FlowType::Number);
-  setupFunction("max_read_idle", &CoreModule::max_read_idle, FlowType::Number);
-  setupFunction("max_write_idle", &CoreModule::max_write_idle, FlowType::Number);
-  setupFunction("max_keepalive_idle", &CoreModule::max_keepalive_idle, FlowType::Number);
-  setupFunction("max_keepalive_requests", &CoreModule::max_keepalive_requests, FlowType::Number);
-  setupFunction("max_connections", &CoreModule::max_conns, FlowType::Number);
-  setupFunction("max_files", &CoreModule::max_files, FlowType::Number);
-  setupFunction("max_address_space", &CoreModule::max_address_space, FlowType::Number);
-  setupFunction("max_core_size", &CoreModule::max_core, FlowType::Number);
-  setupFunction("tcp_cork", &CoreModule::tcp_cork, FlowType::Boolean);
-  setupFunction("tcp_nodelay", &CoreModule::tcp_nodelay, FlowType::Boolean);
-  setupFunction("lingering", &CoreModule::lingering, FlowType::Number);
-  setupFunction("max_request_uri_size", &CoreModule::max_request_uri_size, FlowType::Number);
-  setupFunction("max_request_header_size", &CoreModule::max_request_header_size, FlowType::Number);
-  setupFunction("max_request_header_count", &CoreModule::max_request_header_count, FlowType::Number);
-  setupFunction("max_request_body_size", &CoreModule::max_request_body_size, FlowType::Number);
-  setupFunction("request_header_buffer_size", &CoreModule::request_header_buffer_size, FlowType::Number);
-  setupFunction("request_body_buffer_size", &CoreModule::request_body_buffer_size, FlowType::Number);
-  setupFunction("response_body_buffer_size", &CoreModule::response_body_buffer_size, FlowType::Number);
+  setupFunction("workers", &CoreModule::workers, LiteralType::Number);
+  setupFunction("workers", &CoreModule::workers_affinity, LiteralType::IntArray);
+  setupFunction("mimetypes", &CoreModule::mimetypes, LiteralType::String);
+  setupFunction("mimetypes.default", &CoreModule::mimetypes_default, LiteralType::String);
+  setupFunction("etag.mtime", &CoreModule::etag_mtime, LiteralType::Boolean);
+  setupFunction("etag.size", &CoreModule::etag_size, LiteralType::Boolean);
+  setupFunction("etag.inode", &CoreModule::etag_inode, LiteralType::Boolean);
+  setupFunction("fileinfo.ttl", &CoreModule::fileinfo_cache_ttl, LiteralType::Number);
+  setupFunction("server.advertise", &CoreModule::server_advertise, LiteralType::Boolean);
+  setupFunction("server.tags", &CoreModule::server_tags, LiteralType::StringArray, LiteralType::String);
+  setupFunction("tcp_fin_timeout", &CoreModule::tcp_fin_timeout, LiteralType::Number);
+  setupFunction("max_internal_redirect_count", &CoreModule::max_internal_redirect_count, LiteralType::Number);
+  setupFunction("max_read_idle", &CoreModule::max_read_idle, LiteralType::Number);
+  setupFunction("max_write_idle", &CoreModule::max_write_idle, LiteralType::Number);
+  setupFunction("max_keepalive_idle", &CoreModule::max_keepalive_idle, LiteralType::Number);
+  setupFunction("max_keepalive_requests", &CoreModule::max_keepalive_requests, LiteralType::Number);
+  setupFunction("max_connections", &CoreModule::max_conns, LiteralType::Number);
+  setupFunction("max_files", &CoreModule::max_files, LiteralType::Number);
+  setupFunction("max_address_space", &CoreModule::max_address_space, LiteralType::Number);
+  setupFunction("max_core_size", &CoreModule::max_core, LiteralType::Number);
+  setupFunction("tcp_cork", &CoreModule::tcp_cork, LiteralType::Boolean);
+  setupFunction("tcp_nodelay", &CoreModule::tcp_nodelay, LiteralType::Boolean);
+  setupFunction("lingering", &CoreModule::lingering, LiteralType::Number);
+  setupFunction("max_request_uri_size", &CoreModule::max_request_uri_size, LiteralType::Number);
+  setupFunction("max_request_header_size", &CoreModule::max_request_header_size, LiteralType::Number);
+  setupFunction("max_request_header_count", &CoreModule::max_request_header_count, LiteralType::Number);
+  setupFunction("max_request_body_size", &CoreModule::max_request_body_size, LiteralType::Number);
+  setupFunction("request_header_buffer_size", &CoreModule::request_header_buffer_size, LiteralType::Number);
+  setupFunction("request_body_buffer_size", &CoreModule::request_body_buffer_size, LiteralType::Number);
+  setupFunction("response_body_buffer_size", &CoreModule::response_body_buffer_size, LiteralType::Number);
 
   // TODO setup error-documents
 
   // shared properties (read-only)
   sharedFunction("sys.cpu_count", &CoreModule::sys_cpu_count)
       .setReadOnly()
-      .returnType(FlowType::Number);
-  sharedFunction("sys.env", &CoreModule::sys_env, FlowType::String)
+      .returnType(LiteralType::Number);
+  sharedFunction("sys.env", &CoreModule::sys_env, LiteralType::String)
       .setReadOnly()
-      .returnType(FlowType::String)
+      .returnType(LiteralType::String)
       .verifier(&CoreModule::preproc_sys_env, this);
-  sharedFunction("sys.env", &CoreModule::sys_env2, FlowType::String, FlowType::String)
+  sharedFunction("sys.env", &CoreModule::sys_env2, LiteralType::String, LiteralType::String)
       .setReadOnly()
-      .returnType(FlowType::String)
+      .returnType(LiteralType::String)
       .verifier(&CoreModule::preproc_sys_env2, this);
   sharedFunction("sys.cwd", &CoreModule::sys_cwd)
       .setReadOnly()
-      .returnType(FlowType::String);
+      .returnType(LiteralType::String);
   sharedFunction("sys.pid", &CoreModule::sys_pid)
       .setReadOnly()
-      .returnType(FlowType::Number);
+      .returnType(LiteralType::Number);
   sharedFunction("sys.now", &CoreModule::sys_now)
       .setReadOnly()
-      .returnType(FlowType::Number);
+      .returnType(LiteralType::Number);
   sharedFunction("sys.now_str", &CoreModule::sys_now_str)
       .setReadOnly()
-      .returnType(FlowType::String);
+      .returnType(LiteralType::String);
   sharedFunction("sys.hostname", &CoreModule::sys_hostname)
       .setReadOnly()
-      .returnType(FlowType::String);
+      .returnType(LiteralType::String);
   sharedFunction("sys.domainname", &CoreModule::sys_domainname)
       .setReadOnly()
-      .returnType(FlowType::String);
+      .returnType(LiteralType::String);
   sharedFunction("sys.max_conn", &CoreModule::sys_max_conn)
       .setReadOnly()
-      .returnType(FlowType::Number);
+      .returnType(LiteralType::Number);
 
   // shared functions
   sharedFunction("error.page", &CoreModule::error_page,
                                &CoreModule::error_page)
       .param<FlowNumber>("status")
       .param<FlowString>("uri");
-  sharedFunction("file.exists", &CoreModule::file_exists, FlowType::String)
+  sharedFunction("file.exists", &CoreModule::file_exists, LiteralType::String)
       .setReadOnly()
-      .returnType(FlowType::Boolean);
-  sharedFunction("file.is_reg", &CoreModule::file_is_reg, FlowType::String)
+      .returnType(LiteralType::Boolean);
+  sharedFunction("file.is_reg", &CoreModule::file_is_reg, LiteralType::String)
       .setReadOnly()
-      .returnType(FlowType::Boolean);
-  sharedFunction("file.is_dir", &CoreModule::file_is_dir, FlowType::String)
+      .returnType(LiteralType::Boolean);
+  sharedFunction("file.is_dir", &CoreModule::file_is_dir, LiteralType::String)
       .setReadOnly()
-      .returnType(FlowType::Boolean);
-  sharedFunction("file.is_exe", &CoreModule::file_is_exe, FlowType::String)
+      .returnType(LiteralType::Boolean);
+  sharedFunction("file.is_exe", &CoreModule::file_is_exe, LiteralType::String)
       .setReadOnly()
-      .returnType(FlowType::Boolean);
-  sharedFunction("log.err", &CoreModule::log_err, FlowType::String);
-  sharedFunction("log.warn", &CoreModule::log_warn, FlowType::String);
-  sharedFunction("log.notice", &CoreModule::log_notice, FlowType::String);
-  sharedFunction("log", &CoreModule::log_info, FlowType::String);
-  sharedFunction("log.info", &CoreModule::log_info, FlowType::String);
-  sharedFunction("log.debug", &CoreModule::log_debug, FlowType::String);
-  sharedFunction("sleep", &CoreModule::sleep, FlowType::Number);
+      .returnType(LiteralType::Boolean);
+  sharedFunction("log.err", &CoreModule::log_err, LiteralType::String);
+  sharedFunction("log.warn", &CoreModule::log_warn, LiteralType::String);
+  sharedFunction("log.notice", &CoreModule::log_notice, LiteralType::String);
+  sharedFunction("log", &CoreModule::log_info, LiteralType::String);
+  sharedFunction("log.info", &CoreModule::log_info, LiteralType::String);
+  sharedFunction("log.debug", &CoreModule::log_debug, LiteralType::String);
+  sharedFunction("sleep", &CoreModule::sleep, LiteralType::Number);
   sharedFunction("rand", &CoreModule::rand)
-      .returnType(FlowType::Number);
-  sharedFunction("rand", &CoreModule::randAB, FlowType::Number, FlowType::Number)
-      .returnType(FlowType::Number);
+      .returnType(LiteralType::Number);
+  sharedFunction("rand", &CoreModule::randAB, LiteralType::Number, LiteralType::Number)
+      .returnType(LiteralType::Number);
 
   // main: read-only attributes
   mainFunction("req.method", &CoreModule::req_method)
       .setReadOnly()
-      .returnType(FlowType::String);
+      .returnType(LiteralType::String);
   mainFunction("req.url", &CoreModule::req_url)
       .setReadOnly()
-      .returnType(FlowType::String);
+      .returnType(LiteralType::String);
   mainFunction("req.path", &CoreModule::req_path)
       .setReadOnly()
-      .returnType(FlowType::String);
+      .returnType(LiteralType::String);
   mainFunction("req.query", &CoreModule::req_query)
       .setReadOnly()
-      .returnType(FlowType::String);
-  mainFunction("req.header", &CoreModule::req_header, FlowType::String)
+      .returnType(LiteralType::String);
+  mainFunction("req.header", &CoreModule::req_header, LiteralType::String)
       .setReadOnly()
-      .returnType(FlowType::String);
-  mainFunction("req.cookie", &CoreModule::req_cookie, FlowType::String)
+      .returnType(LiteralType::String);
+  mainFunction("req.cookie", &CoreModule::req_cookie, LiteralType::String)
       .setReadOnly()
-      .returnType(FlowType::String);
+      .returnType(LiteralType::String);
   mainFunction("req.host", &CoreModule::req_host)
       .setReadOnly()
-      .returnType(FlowType::String);
+      .returnType(LiteralType::String);
   mainFunction("req.pathinfo", &CoreModule::req_pathinfo)
       .setReadOnly()
-      .returnType(FlowType::String);
+      .returnType(LiteralType::String);
   mainFunction("req.is_secure", &CoreModule::req_is_secure)
       .setReadOnly()
-      .returnType(FlowType::Boolean);
+      .returnType(LiteralType::Boolean);
   mainFunction("req.scheme", &CoreModule::req_scheme)
       .setReadOnly()
-      .returnType(FlowType::String);
+      .returnType(LiteralType::String);
   mainFunction("req.status", &CoreModule::req_status_code)
       .setReadOnly()
-      .returnType(FlowType::Number);
+      .returnType(LiteralType::Number);
   mainFunction("req.remoteip", &CoreModule::conn_remote_ip)
       .setReadOnly()
-      .returnType(FlowType::IPAddress);
+      .returnType(LiteralType::IPAddress);
   mainFunction("req.remoteport", &CoreModule::conn_remote_port)
       .setReadOnly()
-      .returnType(FlowType::Number);
+      .returnType(LiteralType::Number);
   mainFunction("req.localip", &CoreModule::conn_local_ip)
       .setReadOnly()
-      .returnType(FlowType::IPAddress);
+      .returnType(LiteralType::IPAddress);
   mainFunction("req.localport", &CoreModule::conn_local_port)
       .setReadOnly()
-      .returnType(FlowType::Number);
+      .returnType(LiteralType::Number);
   mainFunction("phys.path", &CoreModule::phys_path)
       .setReadOnly()
-      .returnType(FlowType::String);
+      .returnType(LiteralType::String);
   mainFunction("phys.exists", &CoreModule::phys_exists)
       .setReadOnly()
-      .returnType(FlowType::Boolean);
+      .returnType(LiteralType::Boolean);
   mainFunction("phys.is_reg", &CoreModule::phys_is_reg)
       .setReadOnly()
-      .returnType(FlowType::Boolean);
+      .returnType(LiteralType::Boolean);
   mainFunction("phys.is_dir", &CoreModule::phys_is_dir)
       .setReadOnly()
-      .returnType(FlowType::Boolean);
+      .returnType(LiteralType::Boolean);
   mainFunction("phys.is_exe", &CoreModule::phys_is_exe)
       .setReadOnly()
-      .returnType(FlowType::Boolean);
+      .returnType(LiteralType::Boolean);
   mainFunction("phys.mtime", &CoreModule::phys_mtime)
       .setReadOnly()
-      .returnType(FlowType::Number);
+      .returnType(LiteralType::Number);
   mainFunction("phys.size", &CoreModule::phys_size)
       .setReadOnly()
-      .returnType(FlowType::Number);
+      .returnType(LiteralType::Number);
   mainFunction("phys.etag", &CoreModule::phys_etag)
       .setReadOnly()
-      .returnType(FlowType::String);
+      .returnType(LiteralType::String);
   mainFunction("phys.mimetype", &CoreModule::phys_mimetype)
       .setReadOnly()
-      .returnType(FlowType::String);
+      .returnType(LiteralType::String);
 
   // main: getter functions
-  mainFunction("req.accept_language", &CoreModule::req_accept_language, FlowType::StringArray)
+  mainFunction("req.accept_language", &CoreModule::req_accept_language, LiteralType::StringArray)
       .setReadOnly()
-      .returnType(FlowType::String)
+      .returnType(LiteralType::String)
       .verifier(&CoreModule::verify_req_accept_language, this);
-  mainFunction("regex.group", &CoreModule::regex_group, FlowType::Number)
+  mainFunction("regex.group", &CoreModule::regex_group, LiteralType::Number)
       .setReadOnly()
-      .returnType(FlowType::String);
+      .returnType(LiteralType::String);
 
   // main: manipulation functions
-  mainFunction("header.add", &CoreModule::header_add, FlowType::String, FlowType::String);
+  mainFunction("header.add", &CoreModule::header_add, LiteralType::String, LiteralType::String);
   mainFunction("header.append", &CoreModule::header_append)
       .param<FlowString>("name")
       .param<FlowString>("value")
       .param<FlowString>("delimiter", "");
-  mainFunction("header.overwrite", &CoreModule::header_overwrite, FlowType::String, FlowType::String);
-  mainFunction("header.remove", &CoreModule::header_remove, FlowType::String);
-  mainFunction("expire", &CoreModule::expire, FlowType::Number);
-  mainFunction("autoindex", &CoreModule::autoindex, FlowType::StringArray);
-  mainFunction("rewrite", &CoreModule::rewrite, FlowType::String) .returnType(FlowType::Boolean);
+  mainFunction("header.overwrite", &CoreModule::header_overwrite, LiteralType::String, LiteralType::String);
+  mainFunction("header.remove", &CoreModule::header_remove, LiteralType::String);
+  mainFunction("expire", &CoreModule::expire, LiteralType::Number);
+  mainFunction("autoindex", &CoreModule::autoindex, LiteralType::StringArray);
+  mainFunction("rewrite", &CoreModule::rewrite, LiteralType::String) .returnType(LiteralType::Boolean);
   mainFunction("pathinfo", &CoreModule::pathinfo);
 
   // main: handlers
-  mainHandler("docroot", &CoreModule::docroot, FlowType::String)
+  mainHandler("docroot", &CoreModule::docroot, LiteralType::String)
       .verifier(&CoreModule::verify_docroot, this);
-  mainHandler("alias", &CoreModule::alias, FlowType::String, FlowType::String);
+  mainHandler("alias", &CoreModule::alias, LiteralType::String, LiteralType::String);
   mainHandler("staticfile", &CoreModule::staticfile);
   mainHandler("precompressed", &CoreModule::precompressed);
   mainHandler("return", &CoreModule::redirect_with_to)
@@ -348,7 +348,7 @@ CoreModule::CoreModule(Daemon* d)
       .setNoReturn()
       .param<FlowNumber>("status")
       .param<FlowNumber>("override", 0);
-  mainHandler("echo", &CoreModule::echo, FlowType::String);
+  mainHandler("echo", &CoreModule::echo, LiteralType::String);
   mainHandler("blank", &CoreModule::blank);
 }
 

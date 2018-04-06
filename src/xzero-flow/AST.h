@@ -10,7 +10,7 @@
 #include <xzero-flow/ASTVisitor.h>
 #include <xzero-flow/SourceLocation.h>
 #include <xzero-flow/FlowToken.h>
-#include <xzero-flow/FlowType.h>
+#include <xzero-flow/LiteralType.h>
 #include <xzero-flow/MatchClass.h>
 #include <xzero-flow/Signature.h>
 #include <xzero-flow/vm/Instruction.h>  // Opcode
@@ -278,9 +278,9 @@ class Expr : public ASTNode {
   explicit Expr(const SourceLocation& loc) : ASTNode(loc) {}
 
  public:
-  static std::unique_ptr<Expr> createDefaultInitializer(FlowType elementType);
+  static std::unique_ptr<Expr> createDefaultInitializer(LiteralType elementType);
 
-  virtual FlowType getType() const = 0;
+  virtual LiteralType getType() const = 0;
 };
 
 class UnaryExpr : public Expr {
@@ -297,7 +297,7 @@ class UnaryExpr : public Expr {
   Expr* subExpr() const { return subExpr_.get(); }
 
   void visit(ASTVisitor& v) override;
-  FlowType getType() const override;
+  LiteralType getType() const override;
 };
 
 class BinaryExpr : public Expr {
@@ -315,7 +315,7 @@ class BinaryExpr : public Expr {
   Expr* rightExpr() const { return rhs_.get(); }
 
   void visit(ASTVisitor& v) override;
-  FlowType getType() const override;
+  LiteralType getType() const override;
 };
 
 class ArrayExpr : public Expr {
@@ -329,7 +329,7 @@ class ArrayExpr : public Expr {
   const std::vector<std::unique_ptr<Expr>>& values() const { return values_; }
   std::vector<std::unique_ptr<Expr>>& values() { return values_; }
 
-  FlowType getType() const override;
+  LiteralType getType() const override;
   void visit(ASTVisitor& v) override;
 };
 
@@ -350,7 +350,7 @@ class LiteralExpr : public Expr {
   const T& value() const { return value_; }
   void setValue(const T& value) { value_ = value; }
 
-  FlowType getType() const override;
+  LiteralType getType() const override;
 
   void visit(ASTVisitor& v) override { v.accept(*this); }
 };
@@ -425,7 +425,7 @@ class CallExpr : public Expr {
   bool setArgs(ParamList&& args);
 
   void visit(ASTVisitor& v) override;
-  FlowType getType() const override;
+  LiteralType getType() const override;
 };
 
 class VariableExpr : public Expr {
@@ -440,7 +440,7 @@ class VariableExpr : public Expr {
   void setVariable(VariableSym* var) { variable_ = var; }
 
   void visit(ASTVisitor& v) override;
-  FlowType getType() const override;
+  LiteralType getType() const override;
 };
 
 class HandlerRefExpr : public Expr {
@@ -455,7 +455,7 @@ class HandlerRefExpr : public Expr {
   void setHandler(HandlerSym* handler) { handler_ = handler; }
 
   void visit(ASTVisitor& v) override;
-  FlowType getType() const override;
+  LiteralType getType() const override;
 };
 // }}}
 // {{{ Stmt

@@ -14,11 +14,11 @@
 
 namespace xzero::flow {
 
-template class XZERO_EXPORT ConstantValue<int64_t, FlowType::Number>;
-template class XZERO_EXPORT ConstantValue<bool, FlowType::Boolean>;
-template class XZERO_EXPORT ConstantValue<std::string, FlowType::String>;
-template class XZERO_EXPORT ConstantValue<IPAddress, FlowType::IPAddress>;
-template class XZERO_EXPORT ConstantValue<Cidr, FlowType::Cidr>;
-template class XZERO_EXPORT ConstantValue<RegExp, FlowType::RegExp>;
+template class XZERO_EXPORT ConstantValue<int64_t, LiteralType::Number>;
+template class XZERO_EXPORT ConstantValue<bool, LiteralType::Boolean>;
+template class XZERO_EXPORT ConstantValue<std::string, LiteralType::String>;
+template class XZERO_EXPORT ConstantValue<IPAddress, LiteralType::IPAddress>;
+template class XZERO_EXPORT ConstantValue<Cidr, LiteralType::Cidr>;
+template class XZERO_EXPORT ConstantValue<RegExp, LiteralType::RegExp>;
 
 }  // namespace xzero::flow

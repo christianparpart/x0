@@ -23,7 +23,7 @@ NativeCallback& Runtime::registerHandler(const std::string& name) {
 }
 
 NativeCallback& Runtime::registerFunction(const std::string& name,
-                                          FlowType returnType) {
+                                          LiteralType returnType) {
   builtins_.push_back(std::make_unique<NativeCallback>(this, name, returnType));
   return *builtins_[builtins_.size() - 1];
 }

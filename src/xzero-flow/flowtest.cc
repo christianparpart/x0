@@ -73,12 +73,12 @@ Tester::Tester() {
       .bind(&Tester::flow_handler, this)
       .param<flow::FlowNumber>("result");
 
-  registerFunction("sum", flow::FlowType::Number)
+  registerFunction("sum", flow::LiteralType::Number)
       .bind(&Tester::flow_sum, this)
       .param<flow::FlowNumber>("x")
       .param<flow::FlowNumber>("y");
 
-  registerFunction("assert", flow::FlowType::Number)
+  registerFunction("assert", flow::LiteralType::Number)
       .bind(&Tester::flow_assert, this)
       .param<flow::FlowNumber>("condition")
       .param<flow::FlowString>("description", "");

@@ -8,7 +8,7 @@
 #pragma once
 
 #include <xzero/defines.h>
-#include <xzero-flow/FlowType.h>
+#include <xzero-flow/LiteralType.h>
 
 #include <string>
 #include <vector>
@@ -25,11 +25,11 @@ class Value {
   Value(const Value& v);
 
  public:
-  Value(FlowType ty, const std::string& name);
+  Value(LiteralType ty, const std::string& name);
   virtual ~Value();
 
-  FlowType type() const { return type_; }
-  void setType(FlowType ty) { type_ = ty; }
+  LiteralType type() const { return type_; }
+  void setType(LiteralType ty) { type_ = ty; }
 
   const std::string& name() const { return name_; }
   void setName(const std::string& n) { name_ = n; }
@@ -66,7 +66,7 @@ class Value {
   virtual void dump();
 
  private:
-  FlowType type_;
+  LiteralType type_;
   std::string name_;
 
   std::vector<Instr*> uses_;  //! list of instructions that <b>use</b> this value.

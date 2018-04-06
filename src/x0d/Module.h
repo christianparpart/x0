@@ -44,7 +44,7 @@ class Module {
  protected:
   using Params = xzero::flow::Params;
   using NativeCallback = xzero::flow::NativeCallback;
-  using FlowType = xzero::flow::FlowType;
+  using LiteralType = xzero::flow::LiteralType;
 
   // flow configuration API
   template <typename Class, typename... ArgTypes>

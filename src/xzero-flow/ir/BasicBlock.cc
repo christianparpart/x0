@@ -21,7 +21,7 @@
 namespace xzero::flow {
 
 BasicBlock::BasicBlock(const std::string& name, IRHandler* parent)
-    : Value(FlowType::Void, name),
+    : Value(LiteralType::Void, name),
       handler_(parent),
       code_(),
       predecessors_(),

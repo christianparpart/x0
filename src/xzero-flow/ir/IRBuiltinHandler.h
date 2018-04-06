@@ -21,7 +21,7 @@ namespace xzero::flow {
 class IRBuiltinHandler : public Constant {
  public:
   explicit IRBuiltinHandler(const NativeCallback& cb)
-      : Constant(FlowType::Boolean, cb.signature().name()),
+      : Constant(LiteralType::Boolean, cb.signature().name()),
         native_(cb) {}
 
   const Signature& signature() const { return native_.signature(); }

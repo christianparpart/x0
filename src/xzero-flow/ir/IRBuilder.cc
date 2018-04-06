@@ -101,7 +101,7 @@ IRHandler* IRBuilder::getHandler(const std::string& name) {
 /**
  * dynamically allocates an array of given element type and size.
  */
-AllocaInstr* IRBuilder::createAlloca(FlowType ty, Value* arraySize,
+AllocaInstr* IRBuilder::createAlloca(LiteralType ty, Value* arraySize,
                                      const std::string& name) {
   return static_cast<AllocaInstr*>(
       insert<AllocaInstr>(ty, arraySize, makeName(name)));
@@ -145,7 +145,7 @@ Instr* IRBuilder::createPhi(const std::vector<Value*>& incomings,
 // }}}
 // {{{ boolean ops
 Value* IRBuilder::createBNot(Value* rhs, const std::string& name) {
-  assert(rhs->type() == FlowType::Boolean);
+  assert(rhs->type() == LiteralType::Boolean);
 
   if (auto a = dynamic_cast<ConstantBoolean*>(rhs))
     return getBoolean(!a->get());
@@ -154,7 +154,7 @@ Value* IRBuilder::createBNot(Value* rhs, const std::string& name) {
 }
 
 Value* IRBuilder::createBAnd(Value* lhs, Value* rhs, const std::string& name) {
-  assert(rhs->type() == FlowType::Boolean);
+  assert(rhs->type() == LiteralType::Boolean);
 
   if (auto a = dynamic_cast<ConstantBoolean*>(lhs))
     if (auto b = dynamic_cast<ConstantBoolean*>(rhs))
@@ -164,7 +164,7 @@ Value* IRBuilder::createBAnd(Value* lhs, Value* rhs, const std::string& name) {
 }
 
 Value* IRBuilder::createBXor(Value* lhs, Value* rhs, const std::string& name) {
-  assert(rhs->type() == FlowType::Boolean);
+  assert(rhs->type() == LiteralType::Boolean);
 
   if (auto a = dynamic_cast<ConstantBoolean*>(lhs))
     if (auto b = dynamic_cast<ConstantBoolean*>(rhs))
@@ -175,7 +175,7 @@ Value* IRBuilder::createBXor(Value* lhs, Value* rhs, const std::string& name) {
 // }}}
 // {{{ numerical ops
 Value* IRBuilder::createNeg(Value* rhs, const std::string& name) {
-  assert(rhs->type() == FlowType::Number);
+  assert(rhs->type() == LiteralType::Number);
 
   if (auto a = dynamic_cast<ConstantInt*>(rhs))
     return get(-a->get());
@@ -184,7 +184,7 @@ Value* IRBuilder::createNeg(Value* rhs, const std::string& name) {
 }
 
 Value* IRBuilder::createNot(Value* rhs, const std::string& name) {
-  assert(rhs->type() == FlowType::Number);
+  assert(rhs->type() == LiteralType::Number);
 
   if (auto a = dynamic_cast<ConstantInt*>(rhs))
     return get(~a->get());
@@ -194,7 +194,7 @@ Value* IRBuilder::createNot(Value* rhs, const std::string& name) {
 
 Value* IRBuilder::createAdd(Value* lhs, Value* rhs, const std::string& name) {
   assert(lhs->type() == rhs->type());
-  assert(lhs->type() == FlowType::Number);
+  assert(lhs->type() == LiteralType::Number);
 
   if (auto a = dynamic_cast<ConstantInt*>(lhs))
     if (auto b = dynamic_cast<ConstantInt*>(rhs))
@@ -205,7 +205,7 @@ Value* IRBuilder::createAdd(Value* lhs, Value* rhs, const std::string& name) {
 
 Value* IRBuilder::createSub(Value* lhs, Value* rhs, const std::string& name) {
   assert(lhs->type() == rhs->type());
-  assert(lhs->type() == FlowType::Number);
+  assert(lhs->type() == LiteralType::Number);
 
   if (auto a = dynamic_cast<ConstantInt*>(lhs))
     if (auto b = dynamic_cast<ConstantInt*>(rhs))
@@ -216,7 +216,7 @@ Value* IRBuilder::createSub(Value* lhs, Value* rhs, const std::string& name) {
 
 Value* IRBuilder::createMul(Value* lhs, Value* rhs, const std::string& name) {
   assert(lhs->type() == rhs->type());
-  assert(lhs->type() == FlowType::Number);
+  assert(lhs->type() == LiteralType::Number);
 
   if (auto a = dynamic_cast<ConstantInt*>(lhs))
     if (auto b = dynamic_cast<ConstantInt*>(rhs))
@@ -227,7 +227,7 @@ Value* IRBuilder::createMul(Value* lhs, Value* rhs, const std::string& name) {
 
 Value* IRBuilder::createDiv(Value* lhs, Value* rhs, const std::string& name) {
   assert(lhs->type() == rhs->type());
-  assert(lhs->type() == FlowType::Number);
+  assert(lhs->type() == LiteralType::Number);
 
   if (auto a = dynamic_cast<ConstantInt*>(lhs))
     if (auto b = dynamic_cast<ConstantInt*>(rhs))
@@ -238,7 +238,7 @@ Value* IRBuilder::createDiv(Value* lhs, Value* rhs, const std::string& name) {
 
 Value* IRBuilder::createRem(Value* lhs, Value* rhs, const std::string& name) {
   assert(lhs->type() == rhs->type());
-  assert(lhs->type() == FlowType::Number);
+  assert(lhs->type() == LiteralType::Number);
 
   if (auto a = dynamic_cast<ConstantInt*>(lhs))
     if (auto b = dynamic_cast<ConstantInt*>(rhs))
@@ -249,7 +249,7 @@ Value* IRBuilder::createRem(Value* lhs, Value* rhs, const std::string& name) {
 
 Value* IRBuilder::createShl(Value* lhs, Value* rhs, const std::string& name) {
   assert(lhs->type() == rhs->type());
-  assert(lhs->type() == FlowType::Number);
+  assert(lhs->type() == LiteralType::Number);
 
   if (auto a = dynamic_cast<ConstantInt*>(lhs))
     if (auto b = dynamic_cast<ConstantInt*>(rhs))
@@ -260,7 +260,7 @@ Value* IRBuilder::createShl(Value* lhs, Value* rhs, const std::string& name) {
 
 Value* IRBuilder::createShr(Value* lhs, Value* rhs, const std::string& name) {
   assert(lhs->type() == rhs->type());
-  assert(lhs->type() == FlowType::Number);
+  assert(lhs->type() == LiteralType::Number);
 
   if (auto a = dynamic_cast<ConstantInt*>(lhs))
     if (auto b = dynamic_cast<ConstantInt*>(rhs))
@@ -271,7 +271,7 @@ Value* IRBuilder::createShr(Value* lhs, Value* rhs, const std::string& name) {
 
 Value* IRBuilder::createPow(Value* lhs, Value* rhs, const std::string& name) {
   assert(lhs->type() == rhs->type());
-  assert(lhs->type() == FlowType::Number);
+  assert(lhs->type() == LiteralType::Number);
 
   if (auto a = dynamic_cast<ConstantInt*>(lhs))
     if (auto b = dynamic_cast<ConstantInt*>(rhs))
@@ -282,7 +282,7 @@ Value* IRBuilder::createPow(Value* lhs, Value* rhs, const std::string& name) {
 
 Value* IRBuilder::createAnd(Value* lhs, Value* rhs, const std::string& name) {
   assert(lhs->type() == rhs->type());
-  assert(lhs->type() == FlowType::Number);
+  assert(lhs->type() == LiteralType::Number);
 
   if (auto a = dynamic_cast<ConstantInt*>(lhs))
     if (auto b = dynamic_cast<ConstantInt*>(rhs))
@@ -293,7 +293,7 @@ Value* IRBuilder::createAnd(Value* lhs, Value* rhs, const std::string& name) {
 
 Value* IRBuilder::createOr(Value* lhs, Value* rhs, const std::string& name) {
   assert(lhs->type() == rhs->type());
-  assert(lhs->type() == FlowType::Number);
+  assert(lhs->type() == LiteralType::Number);
 
   if (auto a = dynamic_cast<ConstantInt*>(lhs))
     if (auto b = dynamic_cast<ConstantInt*>(rhs))
@@ -304,7 +304,7 @@ Value* IRBuilder::createOr(Value* lhs, Value* rhs, const std::string& name) {
 
 Value* IRBuilder::createXor(Value* lhs, Value* rhs, const std::string& name) {
   assert(lhs->type() == rhs->type());
-  assert(lhs->type() == FlowType::Number);
+  assert(lhs->type() == LiteralType::Number);
 
   if (auto a = dynamic_cast<ConstantInt*>(lhs))
     if (auto b = dynamic_cast<ConstantInt*>(rhs))
@@ -316,7 +316,7 @@ Value* IRBuilder::createXor(Value* lhs, Value* rhs, const std::string& name) {
 Value* IRBuilder::createNCmpEQ(Value* lhs, Value* rhs,
                                const std::string& name) {
   assert(lhs->type() == rhs->type());
-  assert(lhs->type() == FlowType::Number);
+  assert(lhs->type() == LiteralType::Number);
 
   if (auto a = dynamic_cast<ConstantInt*>(lhs))
     if (auto b = dynamic_cast<ConstantInt*>(rhs))
@@ -328,7 +328,7 @@ Value* IRBuilder::createNCmpEQ(Value* lhs, Value* rhs,
 Value* IRBuilder::createNCmpNE(Value* lhs, Value* rhs,
                                const std::string& name) {
   assert(lhs->type() == rhs->type());
-  assert(lhs->type() == FlowType::Number);
+  assert(lhs->type() == LiteralType::Number);
 
   if (auto a = dynamic_cast<ConstantInt*>(lhs))
     if (auto b = dynamic_cast<ConstantInt*>(rhs))
@@ -340,7 +340,7 @@ Value* IRBuilder::createNCmpNE(Value* lhs, Value* rhs,
 Value* IRBuilder::createNCmpLE(Value* lhs, Value* rhs,
                                const std::string& name) {
   assert(lhs->type() == rhs->type());
-  assert(lhs->type() == FlowType::Number);
+  assert(lhs->type() == LiteralType::Number);
 
   if (auto a = dynamic_cast<ConstantInt*>(lhs))
     if (auto b = dynamic_cast<ConstantInt*>(rhs))
@@ -352,7 +352,7 @@ Value* IRBuilder::createNCmpLE(Value* lhs, Value* rhs,
 Value* IRBuilder::createNCmpGE(Value* lhs, Value* rhs,
                                const std::string& name) {
   assert(lhs->type() == rhs->type());
-  assert(lhs->type() == FlowType::Number);
+  assert(lhs->type() == LiteralType::Number);
 
   if (auto a = dynamic_cast<ConstantInt*>(lhs))
     if (auto b = dynamic_cast<ConstantInt*>(rhs))
@@ -364,7 +364,7 @@ Value* IRBuilder::createNCmpGE(Value* lhs, Value* rhs,
 Value* IRBuilder::createNCmpLT(Value* lhs, Value* rhs,
                                const std::string& name) {
   assert(lhs->type() == rhs->type());
-  assert(lhs->type() == FlowType::Number);
+  assert(lhs->type() == LiteralType::Number);
 
   if (auto a = dynamic_cast<ConstantInt*>(lhs))
     if (auto b = dynamic_cast<ConstantInt*>(rhs))
@@ -376,7 +376,7 @@ Value* IRBuilder::createNCmpLT(Value* lhs, Value* rhs,
 Value* IRBuilder::createNCmpGT(Value* lhs, Value* rhs,
                                const std::string& name) {
   assert(lhs->type() == rhs->type());
-  assert(lhs->type() == FlowType::Number);
+  assert(lhs->type() == LiteralType::Number);
 
   if (auto a = dynamic_cast<ConstantInt*>(lhs))
     if (auto b = dynamic_cast<ConstantInt*>(rhs))
@@ -388,7 +388,7 @@ Value* IRBuilder::createNCmpGT(Value* lhs, Value* rhs,
 // {{{ string ops
 Value* IRBuilder::createSAdd(Value* lhs, Value* rhs, const std::string& name) {
   assert(lhs->type() == rhs->type());
-  assert(lhs->type() == FlowType::String);
+  assert(lhs->type() == LiteralType::String);
 
   if (auto a = dynamic_cast<ConstantString*>(lhs)) {
     if (auto b = dynamic_cast<ConstantString*>(rhs)) {
@@ -410,7 +410,7 @@ Value* IRBuilder::createSAdd(Value* lhs, Value* rhs, const std::string& name) {
 Value* IRBuilder::createSCmpEQ(Value* lhs, Value* rhs,
                                const std::string& name) {
   assert(lhs->type() == rhs->type());
-  assert(lhs->type() == FlowType::String);
+  assert(lhs->type() == LiteralType::String);
 
   if (auto a = dynamic_cast<ConstantString*>(lhs))
     if (auto b = dynamic_cast<ConstantString*>(rhs))
@@ -422,7 +422,7 @@ Value* IRBuilder::createSCmpEQ(Value* lhs, Value* rhs,
 Value* IRBuilder::createSCmpNE(Value* lhs, Value* rhs,
                                const std::string& name) {
   assert(lhs->type() == rhs->type());
-  assert(lhs->type() == FlowType::String);
+  assert(lhs->type() == LiteralType::String);
 
   if (auto a = dynamic_cast<ConstantString*>(lhs))
     if (auto b = dynamic_cast<ConstantString*>(rhs))
@@ -434,7 +434,7 @@ Value* IRBuilder::createSCmpNE(Value* lhs, Value* rhs,
 Value* IRBuilder::createSCmpLE(Value* lhs, Value* rhs,
                                const std::string& name) {
   assert(lhs->type() == rhs->type());
-  assert(lhs->type() == FlowType::String);
+  assert(lhs->type() == LiteralType::String);
 
   if (auto a = dynamic_cast<ConstantString*>(lhs))
     if (auto b = dynamic_cast<ConstantString*>(rhs))
@@ -446,7 +446,7 @@ Value* IRBuilder::createSCmpLE(Value* lhs, Value* rhs,
 Value* IRBuilder::createSCmpGE(Value* lhs, Value* rhs,
                                const std::string& name) {
   assert(lhs->type() == rhs->type());
-  assert(lhs->type() == FlowType::String);
+  assert(lhs->type() == LiteralType::String);
 
   if (auto a = dynamic_cast<ConstantString*>(lhs))
     if (auto b = dynamic_cast<ConstantString*>(rhs))
@@ -458,7 +458,7 @@ Value* IRBuilder::createSCmpGE(Value* lhs, Value* rhs,
 Value* IRBuilder::createSCmpLT(Value* lhs, Value* rhs,
                                const std::string& name) {
   assert(lhs->type() == rhs->type());
-  assert(lhs->type() == FlowType::String);
+  assert(lhs->type() == LiteralType::String);
 
   if (auto a = dynamic_cast<ConstantString*>(lhs))
     if (auto b = dynamic_cast<ConstantString*>(rhs))
@@ -470,7 +470,7 @@ Value* IRBuilder::createSCmpLT(Value* lhs, Value* rhs,
 Value* IRBuilder::createSCmpGT(Value* lhs, Value* rhs,
                                const std::string& name) {
   assert(lhs->type() == rhs->type());
-  assert(lhs->type() == FlowType::String);
+  assert(lhs->type() == LiteralType::String);
 
   if (auto a = dynamic_cast<ConstantString*>(lhs))
     if (auto b = dynamic_cast<ConstantString*>(rhs))
@@ -484,8 +484,8 @@ Value* IRBuilder::createSCmpGT(Value* lhs, Value* rhs,
  */
 Value* IRBuilder::createSCmpRE(Value* lhs, Value* rhs,
                                const std::string& name) {
-  assert(lhs->type() == FlowType::String);
-  assert(rhs->type() == FlowType::RegExp);
+  assert(lhs->type() == LiteralType::String);
+  assert(rhs->type() == LiteralType::RegExp);
 
   // XXX don't perform constant folding on (string =~ regexp) as this operation
   // yields side affects to: regex.group(I)S
@@ -574,16 +574,16 @@ Value* IRBuilder::createPInCidr(Value* lhs, Value* rhs,
 // }}}
 // {{{ cast ops
 Value* IRBuilder::createB2S(Value* rhs, const std::string& name) {
-  assert(rhs->type() == FlowType::Boolean);
+  assert(rhs->type() == LiteralType::Boolean);
 
   if (auto a = dynamic_cast<ConstantBoolean*>(rhs))
     return get(a->get() ? "true" : "false");
 
-  return insert<CastInstr>(FlowType::String, rhs, makeName(name));
+  return insert<CastInstr>(LiteralType::String, rhs, makeName(name));
 }
 
 Value* IRBuilder::createN2S(Value* rhs, const std::string& name) {
-  assert(rhs->type() == FlowType::Number);
+  assert(rhs->type() == LiteralType::Number);
 
   if (auto i = dynamic_cast<ConstantInt*>(rhs)) {
     char buf[64];
@@ -591,36 +591,36 @@ Value* IRBuilder::createN2S(Value* rhs, const std::string& name) {
     return get(buf);
   }
 
-  return insert<CastInstr>(FlowType::String, rhs, makeName(name));
+  return insert<CastInstr>(LiteralType::String, rhs, makeName(name));
 }
 
 Value* IRBuilder::createP2S(Value* rhs, const std::string& name) {
-  assert(rhs->type() == FlowType::IPAddress);
+  assert(rhs->type() == LiteralType::IPAddress);
 
   if (auto ip = dynamic_cast<ConstantIP*>(rhs)) return get(ip->get().str());
 
-  return insert<CastInstr>(FlowType::String, rhs, makeName(name));
+  return insert<CastInstr>(LiteralType::String, rhs, makeName(name));
 }
 
 Value* IRBuilder::createC2S(Value* rhs, const std::string& name) {
-  assert(rhs->type() == FlowType::Cidr);
+  assert(rhs->type() == LiteralType::Cidr);
 
   if (auto ip = dynamic_cast<ConstantCidr*>(rhs)) return get(ip->get().str());
 
-  return insert<CastInstr>(FlowType::String, rhs, makeName(name));
+  return insert<CastInstr>(LiteralType::String, rhs, makeName(name));
 }
 
 Value* IRBuilder::createR2S(Value* rhs, const std::string& name) {
-  assert(rhs->type() == FlowType::RegExp);
+  assert(rhs->type() == LiteralType::RegExp);
 
   if (auto ip = dynamic_cast<ConstantRegExp*>(rhs))
     return get(ip->get().pattern());
 
-  return insert<CastInstr>(FlowType::String, rhs, makeName(name));
+  return insert<CastInstr>(LiteralType::String, rhs, makeName(name));
 }
 
 Value* IRBuilder::createS2N(Value* rhs, const std::string& name) {
-  assert(rhs->type() == FlowType::String);
+  assert(rhs->type() == LiteralType::String);
 
   if (auto value = dynamic_cast<ConstantString*>(rhs)) {
     try {
@@ -630,7 +630,7 @@ Value* IRBuilder::createS2N(Value* rhs, const std::string& name) {
     }
   }
 
-  return insert<CastInstr>(FlowType::Number, rhs, makeName(name));
+  return insert<CastInstr>(LiteralType::Number, rhs, makeName(name));
 }
 // }}}
 // {{{ call creators

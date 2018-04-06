@@ -78,7 +78,7 @@ ProxyModule::ProxyModule(Daemon* d)
       clusterMap_() {
 
   setupFunction("proxy.pseudonym", &ProxyModule::proxy_pseudonym,
-                FlowType::String);
+                LiteralType::String);
 
   mainHandler("proxy.cluster", &ProxyModule::proxy_cluster_auto)
       .setExperimental(); // TODO

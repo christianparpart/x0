@@ -225,11 +225,11 @@ struct AuthBasic : public CustomData {  // {{{
 AuthModule::AuthModule(x0d::Daemon* d)
     : Module(d, "auth") {
 
-  mainFunction("auth.realm", &AuthModule::auth_realm, flow::FlowType::String);
-  mainFunction("auth.userfile", &AuthModule::auth_userfile, flow::FlowType::String);
+  mainFunction("auth.realm", &AuthModule::auth_realm, flow::LiteralType::String);
+  mainFunction("auth.userfile", &AuthModule::auth_userfile, flow::LiteralType::String);
 
 #if defined(HAVE_SECURITY_PAM_APPL_H)
-  mainFunction("auth.pam", &AuthModule::auth_pam, flow::FlowType::String);
+  mainFunction("auth.pam", &AuthModule::auth_pam, flow::LiteralType::String);
 #endif
 
   mainHandler("auth.require", &AuthModule::auth_require);

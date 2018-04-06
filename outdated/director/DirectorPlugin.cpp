@@ -68,15 +68,15 @@ DirectorPlugin::DirectorPlugin(x0d::Daemon* d, const std::string& name)
       .param<FlowString>("path");
 
   setupFunction("director.pseudonym", &DirectorPlugin::director_pseudonym,
-                FlowType::String);
+                LiteralType::String);
 
 #if defined(ENABLE_DIRECTOR_CACHE)
   mainFunction("director.cache", &DirectorPlugin::director_cache_enabled,
-               FlowType::Boolean);
+               LiteralType::Boolean);
   mainFunction("director.cache.key", &DirectorPlugin::director_cache_key,
-               FlowType::String);
+               LiteralType::String);
   mainFunction("director.cache.ttl", &DirectorPlugin::director_cache_ttl,
-               FlowType::Number);
+               LiteralType::Number);
 #endif
 
   mainHandler("director.balance", &DirectorPlugin::director_balance)

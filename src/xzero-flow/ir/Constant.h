@@ -14,7 +14,7 @@ namespace xzero::flow {
 
 class Constant : public Value {
  public:
-  Constant(FlowType ty, const std::string& name) : Value(ty, name) {}
+  Constant(LiteralType ty, const std::string& name) : Value(ty, name) {}
 
   void dump() override;
 };

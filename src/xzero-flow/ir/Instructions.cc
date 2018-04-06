@@ -222,11 +222,11 @@ void CallInstr::accept(InstructionVisitor& visitor) {
 // }}}
 // {{{ HandlerCallInstr
 HandlerCallInstr::HandlerCallInstr(const std::vector<Value*>& args)
-    : Instr(FlowType::Void, args, "") {}
+    : Instr(LiteralType::Void, args, "") {}
 
 HandlerCallInstr::HandlerCallInstr(IRBuiltinHandler* callee,
                                    const std::vector<Value*>& args)
-    : Instr(FlowType::Void, join(callee, args), "") {
+    : Instr(LiteralType::Void, join(callee, args), "") {
   // XXX a handler call actually returns a boolean, but that's never used except
   // by the execution engine.
 }

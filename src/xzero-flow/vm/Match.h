@@ -10,7 +10,7 @@
 #include <xzero/defines.h>
 #include <xzero-flow/vm/Instruction.h>
 #include <xzero-flow/MatchClass.h>
-#include <xzero-flow/FlowType.h>
+#include <xzero-flow/LiteralType.h>
 #include <xzero/PrefixTree.h>
 #include <xzero/SuffixTree.h>
 #include <xzero/RegExp.h>

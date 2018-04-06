@@ -7,7 +7,7 @@
 
 #pragma once
 
-#include <xzero-flow/FlowType.h>
+#include <xzero-flow/LiteralType.h>
 #include <vector>
 #include <string>
 #include <iosfwd>
@@ -17,8 +17,8 @@ namespace xzero::flow {
 class Signature {
  private:
   std::string name_;
-  FlowType returnType_;
-  std::vector<FlowType> args_;
+  LiteralType returnType_;
+  std::vector<LiteralType> args_;
 
  public:
   Signature();
@@ -29,14 +29,14 @@ class Signature {
   Signature& operator=(const Signature&) = default;
 
   void setName(const std::string& name) { name_ = name; }
-  void setReturnType(FlowType rt) { returnType_ = rt; }
-  void setArgs(const std::vector<FlowType>& args) { args_ = args; }
-  void setArgs(std::vector<FlowType>&& args) { args_ = std::move(args); }
+  void setReturnType(LiteralType rt) { returnType_ = rt; }
+  void setArgs(const std::vector<LiteralType>& args) { args_ = args; }
+  void setArgs(std::vector<LiteralType>&& args) { args_ = std::move(args); }
 
   const std::string& name() const { return name_; }
-  FlowType returnType() const { return returnType_; }
-  const std::vector<FlowType>& args() const { return args_; }
-  std::vector<FlowType>& args() { return args_; }
+  LiteralType returnType() const { return returnType_; }
+  const std::vector<LiteralType>& args() const { return args_; }
+  std::vector<LiteralType>& args() { return args_; }
 
   std::string to_s() const;
 
@@ -48,8 +48,8 @@ class Signature {
   bool operator>=(const Signature& v) const { return to_s() >= v.to_s(); }
 };
 
-FlowType typeSignature(char ch);
-char signatureType(FlowType t);
+LiteralType typeSignature(char ch);
+char signatureType(LiteralType t);
 
 }  // namespace xzero::flow
 

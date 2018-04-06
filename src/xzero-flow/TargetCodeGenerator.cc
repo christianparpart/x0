@@ -17,7 +17,7 @@
 #include <xzero-flow/ir/IRHandler.h>
 #include <xzero-flow/ir/IRBuiltinHandler.h>
 #include <xzero-flow/ir/IRBuiltinFunction.h>
-#include <xzero-flow/FlowType.h>
+#include <xzero-flow/LiteralType.h>
 #include <xzero/logging.h>
 #include <unordered_map>
 #include <limits>
@@ -295,7 +295,7 @@ void TargetCodeGenerator::visit(CallInstr& callInstr) {
     emitLoad(callInstr.operand(i));
 
   const bool returnsValue =
-      callInstr.callee()->signature().returnType() != FlowType::Void;
+      callInstr.callee()->signature().returnType() != LiteralType::Void;
 
   emitInstr(Opcode::CALL,
       cp_.makeNativeFunction(callInstr.callee()),
@@ -381,24 +381,24 @@ void TargetCodeGenerator::emitLoad(Value* value) {
   // const array<T>
   if (ConstantArray* array = dynamic_cast<ConstantArray*>(value)) {
     switch (array->type()) {
-      case FlowType::IntArray:
+      case LiteralType::IntArray:
         emitInstr(Opcode::ITLOAD,
              cp_.makeIntegerArray(
                  convert<FlowNumber, ConstantInt>(array->get())));
         changeStack(0, value);
         break;
-      case FlowType::StringArray:
+      case LiteralType::StringArray:
         emitInstr(Opcode::STLOAD,
              cp_.makeStringArray(
                  convert<std::string, ConstantString>(array->get())));
         changeStack(0, value);
         break;
-      case FlowType::IPAddrArray:
+      case LiteralType::IPAddrArray:
         emitInstr(Opcode::PTLOAD,
              cp_.makeIPaddrArray(convert<IPAddress, ConstantIP>(array->get())));
         changeStack(0, value);
         break;
-      case FlowType::CidrArray:
+      case LiteralType::CidrArray:
         emitInstr(Opcode::CTLOAD,
              cp_.makeCidrArray(convert<Cidr, ConstantCidr>(array->get())));
         changeStack(0, value);
@@ -478,11 +478,11 @@ void TargetCodeGenerator::visit(MatchInstr& matchInstr) {
 
   for (const auto& one : matchInstr.cases()) {
     switch (one.first->type()) {
-      case FlowType::String:
+      case LiteralType::String:
         matchDef.cases.emplace_back(
             cp_.makeString(static_cast<ConstantString*>(one.first)->get()));
         break;
-      case FlowType::RegExp:
+      case LiteralType::RegExp:
         matchDef.cases.emplace_back(
             cp_.makeRegExp(static_cast<ConstantRegExp*>(one.first)->get()));
         break;
@@ -499,16 +499,16 @@ void TargetCodeGenerator::visit(CastInstr& castInstr) {
   CTRACE("visit(CastInstr)");
   // map of (target, source, opcode)
   static const std::unordered_map<
-      FlowType,
-      std::unordered_map<FlowType, Opcode>> map = {
-        {FlowType::String, {
-          {FlowType::Number, Opcode::N2S},
-          {FlowType::IPAddress, Opcode::P2S},
-          {FlowType::Cidr, Opcode::C2S},
-          {FlowType::RegExp, Opcode::R2S},
+      LiteralType,
+      std::unordered_map<LiteralType, Opcode>> map = {
+        {LiteralType::String, {
+          {LiteralType::Number, Opcode::N2S},
+          {LiteralType::IPAddress, Opcode::P2S},
+          {LiteralType::Cidr, Opcode::C2S},
+          {LiteralType::RegExp, Opcode::R2S},
         }},
-        {FlowType::Number, {
-          {FlowType::String, Opcode::S2N},
+        {LiteralType::Number, {
+          {LiteralType::String, Opcode::S2N},
         }},
       };
 

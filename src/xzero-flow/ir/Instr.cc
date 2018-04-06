@@ -27,7 +27,7 @@ Instr::Instr(const Instr& v)
   }
 }
 
-Instr::Instr(FlowType ty, const std::vector<Value*>& ops,
+Instr::Instr(LiteralType ty, const std::vector<Value*>& ops,
              const std::string& name)
     : Value(ty, name), basicBlock_(nullptr), operands_(ops) {
   for (Value* op : operands_) {
@@ -116,7 +116,7 @@ std::unique_ptr<Instr> Instr::replace(std::unique_ptr<Instr> newInstr) {
 }
 
 void Instr::dumpOne(const char* mnemonic) {
-  if (type() != FlowType::Void) {
+  if (type() != LiteralType::Void) {
     printf("\t%%%s = %s", name().c_str() ?: "?", mnemonic);
   } else {
     printf("\t%s", mnemonic);
@@ -158,28 +158,28 @@ void Instr::dumpOne(const char* mnemonic) {
         printf("[");
         size_t i = 0;
         switch (ar->type()) {
-          case FlowType::IntArray:
+          case LiteralType::IntArray:
             for (const auto& v : ar->get()) {
               if (i) printf(", ");
               printf("%" PRIi64 "", static_cast<ConstantInt*>(v)->get());
               ++i;
             }
             break;
-          case FlowType::StringArray:
+          case LiteralType::StringArray:
             for (const auto& v : ar->get()) {
               if (i) printf(", ");
               printf("\"%s\"", static_cast<ConstantString*>(v)->get().c_str());
               ++i;
             }
             break;
-          case FlowType::IPAddrArray:
+          case LiteralType::IPAddrArray:
             for (const auto& v : ar->get()) {
               if (i) printf(", ");
               printf("%s", static_cast<ConstantIP*>(v)->get().str().c_str());
               ++i;
             }
             break;
-          case FlowType::CidrArray:
+          case LiteralType::CidrArray:
             for (const auto& v : ar->get()) {
               if (i) printf(", ");
               printf("\"%s\"",
@@ -199,7 +199,7 @@ void Instr::dumpOne(const char* mnemonic) {
 
   // XXX sometimes u're interested in the name of the instr, even though it
   // doesn't yield a result value on the stack
-  // if (type() == FlowType::Void) {
+  // if (type() == LiteralType::Void) {
   //   printf("\t; (%%%s)", name().c_str());
   // }
 

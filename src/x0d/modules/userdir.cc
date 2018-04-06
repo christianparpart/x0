@@ -24,7 +24,7 @@ UserdirModule::UserdirModule(Daemon* d)
     : Module(d, "compress"),
       dirname_("public_html") {
 
-  setupFunction("userdir.name", &UserdirModule::userdir_name, flow::FlowType::String);
+  setupFunction("userdir.name", &UserdirModule::userdir_name, flow::LiteralType::String);
   mainFunction("userdir", &UserdirModule::userdir);
 }
 

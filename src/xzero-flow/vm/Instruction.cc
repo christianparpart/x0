@@ -22,13 +22,13 @@ struct InstructionInfo {
   const char* const mnemonic;
   OperandSig operandSig;
   int stackChange;
-  FlowType stackOutput;
+  LiteralType stackOutput;
 
   InstructionInfo() = default;
   InstructionInfo(const InstructionInfo&) = default;
 
   InstructionInfo(Opcode opc, const char* const m, OperandSig opsig,
-                  int _stackChange, FlowType _stackOutput)
+                  int _stackChange, LiteralType _stackOutput)
       : opcode(opc),
         mnemonic(m),
         operandSig(opsig),
@@ -38,8 +38,8 @@ struct InstructionInfo {
 };
 
 #define IIDEF(opcode, operandSig, stackChange, stackOutput) \
-  [(size_t)(Opcode:: opcode)] = { Opcode:: opcode, #opcode, OperandSig:: operandSig, stackChange, FlowType:: stackOutput }
-  // { Opcode:: opcode, #opcode, OperandSig:: operandSig, stackChange, FlowType:: stackOutput }
+  [(size_t)(Opcode:: opcode)] = { Opcode:: opcode, #opcode, OperandSig:: operandSig, stackChange, LiteralType:: stackOutput }
+  // { Opcode:: opcode, #opcode, OperandSig:: operandSig, stackChange, LiteralType:: stackOutput }
 
 // OPCODE, operandSignature, stackChange
 static InstructionInfo instructionInfos[] = {
@@ -181,7 +181,7 @@ const char* mnemonic(Opcode opc) {
   return instructionInfos[(size_t) opc].mnemonic;
 }
 
-FlowType resultType(Opcode opc) {
+LiteralType resultType(Opcode opc) {
   return instructionInfos[(size_t) opc].stackOutput;
 }
 

@@ -8,7 +8,7 @@
 #pragma once
 
 #include <xzero/defines.h>
-#include <xzero-flow/FlowType.h>
+#include <xzero-flow/LiteralType.h>
 #include <xzero-flow/vm/Match.h>
 #include <xzero/net/IPAddress.h>
 #include <xzero/net/Cidr.h>

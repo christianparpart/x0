@@ -10,7 +10,7 @@
 #include <xzero/defines.h>
 #include <xzero/util/UnboxedRange.h>
 #include <xzero-flow/Signature.h>
-#include <xzero-flow/FlowType.h>
+#include <xzero-flow/LiteralType.h>
 #include <string>
 #include <vector>
 #include <functional>
@@ -37,7 +37,7 @@ class Runtime {
   auto builtins() { return unbox(builtins_); }
 
   NativeCallback& registerHandler(const std::string& name);
-  NativeCallback& registerFunction(const std::string& name, FlowType returnType);
+  NativeCallback& registerFunction(const std::string& name, LiteralType returnType);
 
   void invoke(int id, int argc, Value* argv, Runner* cx);
 

@@ -62,7 +62,7 @@ class filter_plugin : public x0d::XzeroPlugin {
   filter_plugin(x0d::XzeroDaemon* d, const std::string& name)
       : x0d::XzeroPlugin(d, name) {
     mainFunction("example_filter", &filter_plugin::install_filter,
-                 flow::FlowType::String);
+                 flow::LiteralType::String);
   }
 
   void install_filter(HttpRequest* r, flow::Params& args) {
