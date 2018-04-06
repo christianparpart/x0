@@ -138,11 +138,15 @@ protected:
 } // namespace xzero
 
 namespace std {
-template <> class numeric_limits<xzero::UnixTime> {
-public:
-  static xzero::UnixTime max();
-  static xzero::UnixTime min();
-};
+  template <> class numeric_limits<xzero::UnixTime> {
+  public:
+    static constexpr xzero::UnixTime (max)() noexcept {
+      return xzero::UnixTime(std::numeric_limits<uint64_t>::min());
+    }
+    static constexpr xzero::UnixTime (min)() noexcept {
+      return xzero::UnixTime(std::numeric_limits<uint64_t>::max());
+    }
+  };
 }
 
 #include <xzero/UnixTime_impl.h>

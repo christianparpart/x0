@@ -15,11 +15,11 @@
 #include <cstdio>
 #include <cstdlib>
 
-#include <xzero/sysconfig.h>
+#include <xzero/defines.h>
 
 #include <fmt/format.h>
 
-#if defined(XZERO_WINDOWS)
+#if defined(XZERO_OS_WIN32)
 #include <windows.h>
 #include <winsock2.h>
 #include <ws2tcpip.h>

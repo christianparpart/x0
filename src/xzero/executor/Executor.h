@@ -16,6 +16,7 @@
 #include <mutex>
 #include <atomic>
 #include <exception>
+#include <stdexcept>
 #include <functional>
 #include <string>
 #include <iosfwd>
