@@ -1684,8 +1684,7 @@ std::unique_ptr<CallExpr> FlowParser::resolve(
   if (result.empty()) {
     reportError("No matching signature for %s.", inputSignature.to_s().c_str());
     for (const auto& me : matchErrors) {
-      reportError("Possible candidate %s failed. %s",
-                  me.first->signature().to_s().c_str(), me.second.c_str());
+      reportError(me.second.c_str());
     }
     return nullptr;
   }
