@@ -164,14 +164,8 @@ constexpr bool Duration::operator!() const noexcept {
 }
 
 inline constexpr Duration::operator struct timeval() const noexcept {
-#if defined(XZERO_OS_DARWIN)
-  // OS/X plays in it's own universe. ;(
-  return { static_cast<time_t>(micros_ / kMicrosPerSecond),
-           static_cast<__darwin_suseconds_t>(micros_ % kMicrosPerSecond) };
-#else
-  return { static_cast<time_t>(micros_ / kMicrosPerSecond),
-           static_cast<time_t>(micros_ % kMicrosPerSecond) };
-#endif
+  return { static_cast<decltype(timeval::tv_sec)>(micros_ / kMicrosPerSecond),
+           static_cast<decltype(timeval::tv_usec)>(micros_ % kMicrosPerSecond) };
 }
 
 inline constexpr Duration::operator struct timespec() const noexcept {

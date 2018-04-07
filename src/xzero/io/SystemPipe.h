@@ -7,7 +7,15 @@
 #pragma once
 
 #include <string>
+#include <xzero/sysconfig.h>
+
+#if defined(HAVE_UNISTD_H)
 #include <unistd.h>
+#endif
+
+#if defined(HAVE_WINDOWS_H)
+#include <Windows.h>
+#endif
 
 namespace xzero {
 

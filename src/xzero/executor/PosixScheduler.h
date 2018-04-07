@@ -7,13 +7,23 @@
 
 #pragma once
 
-#include <xzero/MonotonicTime.h>
 #include <xzero/executor/EventLoop.h>
-#include <sys/select.h>
+#include <xzero/MonotonicTime.h>
+#include <xzero/sysconfig.h>
+#include <xzero/defines.h>
+
 #include <tuple>
 #include <vector>
 #include <list>
 #include <mutex>
+
+#if defined(HAVE_SYS_SELECT_H)
+#include <sys/select.h>
+#endif
+
+#if defined(XZERO_OS_WIN32)
+#include <WinSock2.h>
+#endif
 
 namespace xzero {
 

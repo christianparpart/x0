@@ -14,9 +14,26 @@
 #include <xzero/StringUtil.h>
 #include <xzero/UTF8.h>
 
+#if defined(XZERO_OS_WIN32)
+#define strncasecmp _strnicmp
+#endif
+
 namespace xzero {
 
 std::string StringUtil::trim(const std::string& value) {
+#if defined(XZERO_OS_WIN32)
+  auto isSpace = [](char p) { return p == ' ' || p == '\t'; };
+
+  std::size_t left = 0;
+  while (isSpace(value[left]))
+    ++left;
+
+  std::size_t right = value.size() - 1;
+  while (isSpace(value[right]))
+    --right;
+
+  return value.substr(left, 1 + right - left);
+#else
   std::size_t left = 0;
   while (std::isspace(value[left])) ++left;
 
@@ -24,6 +41,7 @@ std::string StringUtil::trim(const std::string& value) {
   while (std::isspace(value[right])) --right;
 
   return value.substr(left, 1 + right - left);
+#endif
 }
 
 void StringUtil::stripTrailingSlashes(std::string* str) {
@@ -294,9 +312,14 @@ bool StringUtil::isNumber(const char* begin, const char* end) {
 void StringUtil::toLower(std::string* str) {
   auto& str_ref = *str;
 
-  for (size_t i = 0; i < str_ref.length(); ++i) {
+#if defined(XZERO_OS_WIN32)
+  std::locale lc;
+  for (size_t i = 0; i < str_ref.length(); ++i)
+    str_ref[i] = std::tolower(str_ref[i], lc);
+#else
+  for (size_t i = 0; i < str_ref.length(); ++i)
     str_ref[i] = std::tolower(str_ref[i]);
-  }
+#endif
 }
 
 std::string StringUtil::toLower(const std::string& str) {
@@ -308,9 +331,14 @@ std::string StringUtil::toLower(const std::string& str) {
 void StringUtil::toUpper(std::string* str) {
   auto& str_ref = *str;
 
-  for (size_t i = 0; i < str_ref.length(); ++i) {
+#if defined(XZERO_OS_WIN32)
+  std::locale lc;
+  for (size_t i = 0; i < str_ref.length(); ++i)
+    str_ref[i] = std::toupper(str_ref[i], lc);
+#else
+  for (size_t i = 0; i < str_ref.length(); ++i)
     str_ref[i] = std::toupper(str_ref[i]);
-  }
+#endif
 }
 
 std::string StringUtil::toUpper(const std::string& str) {
@@ -402,8 +430,12 @@ std::string StringUtil::sanitizedStr(const char* begin, const char* end) {
   while (begin != end) {
     unsigned char ch = (unsigned char) *begin;
     ++begin;
-
+#if defined(XZERO_OS_WIN32)
+    std::locale lc;
+    if (!std::isprint(ch, lc)) {
+#else
     if (!std::isprint(ch)) {
+#endif
       char buf[5];
       snprintf(buf, sizeof(buf), "\\x%02x", (unsigned) ch);
       sstr << buf;

@@ -10,6 +10,7 @@
 #include <xzero/RuntimeError.h>
 #include <xzero/defines.h>
 #include <xzero/sysconfig.h>
+#include <chrono>
 
 #if defined(XZERO_OS_DARWIN)
 #include <mach/mach.h>
@@ -23,6 +24,20 @@ mach_timebase_info_data_t timebaseInfo;
 
 XZERO_INIT static void tbi_initialize() {
   mach_timebase_info(&timebaseInfo);
+}
+#endif
+
+#if defined(XZERO_OS_WIN32)
+// struct timespec { long tv_sec; long tv_nsec; };
+#define CLOCK_MONOTONIC 1
+int clock_gettime(int, struct timespec* ts)
+{
+  std::chrono::time_point<std::chrono::steady_clock> now = std::chrono::steady_clock::now();
+  using namespace std::chrono;
+  ts->tv_sec = duration_cast<seconds>(now.time_since_epoch()).count();
+  ts->tv_nsec = duration_cast<nanoseconds>(now.time_since_epoch()).count() % 1000000000;
+
+  return 0;
 }
 #endif
 

@@ -20,7 +20,6 @@
 #include <fmt/format.h>
 
 #if defined(XZERO_OS_WIN32)
-#include <windows.h>
 #include <winsock2.h>
 #include <ws2tcpip.h>
 #else
@@ -124,8 +123,8 @@ inline IPAddress& IPAddress::operator=(const std::string& text) {
 
 inline IPAddress& IPAddress::operator=(const IPAddress& v) {
   family_ = v.family_;
-  strncpy(cstr_, v.cstr_, sizeof(cstr_));
-  memcpy(buf_, v.buf_, v.size());
+  std::strncpy(cstr_, v.cstr_, sizeof(cstr_));
+  std::memcpy(buf_, v.buf_, v.size());
 
   return *this;
 }
@@ -193,13 +192,22 @@ inline bool operator!=(const IPAddress& a, const IPAddress& b) {
 }  // namespace xzero
 
 namespace std {
+#if defined(XZERO_OS_WIN32)
+  template <>
+  struct hash<::xzero::IPAddress> {
+    size_t operator()(const ::xzero::IPAddress& v) const noexcept {
+      return static_cast<size_t>(*(uint32_t*)(v.data()));
+    }
+  };
+#else
   template <>
   struct hash<::xzero::IPAddress>
-      : public unary_function<::xzero::IPAddress, size_t> {
+    : public unary_function<::xzero::IPAddress, size_t> {
     size_t operator()(const ::xzero::IPAddress& v) const {
       return *(uint32_t*)(v.data());
     }
   };
+#endif
 } // namespace std
 
 namespace fmt {

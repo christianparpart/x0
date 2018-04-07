@@ -14,6 +14,8 @@
 #include <xzero/StringUtil.h>
 #include <xzero/ISO8601.h>
 #include <xzero/time_constants.h>
+#include <xzero/sysconfig.h>
+#include <xzero/defines.h>
 
 namespace xzero {
 
@@ -55,10 +57,11 @@ UnixTime UnixTime::now() {
 }
 
 UnixTime UnixTime::daysFromNow(double days) {
-  return UnixTime(WallClock::unixMicros() + (days * kMicrosPerDay));
+  return UnixTime{ static_cast<uint64_t>(WallClock::unixMicros() + (days * kMicrosPerDay)) };
 }
 
 std::string UnixTime::toString(const char* fmt) const {
+#if defined(HAVE_GMTIME_R)
   struct tm tm;
   time_t tt = utc_micros_ / 1000000;
   gmtime_r(&tt, &tm); // FIXPAUL
@@ -68,6 +71,24 @@ std::string UnixTime::toString(const char* fmt) const {
   strftime(buf, sizeof(buf), fmt, &tm);
 
   return std::string(buf);
+#elif defined(XZERO_OS_WIN32) // FIXME(not working, why?) defined(HAVE_GMTIME_S)
+  const time_t tt = utc_micros_ / 1000000;
+  struct tm tm;
+  gmtime_s(&tm, &tt);
+
+  char buf[256];
+  buf[0] = 0;
+  size_t n = strftime(buf, sizeof(buf), fmt, &tm);
+
+  return std::string(buf, n);
+#else
+  const time_t tt = utc_micros_ / 1000000;
+  const struct tm* tm = gmtime(&tt);
+  char buf[256];
+  const size_t n = strftime(buf, sizeof(buf), fmt, tm);
+
+  return std::string(buf, n);
+#endif
 }
 
 std::optional<UnixTime> UnixTime::parseString(
@@ -89,13 +110,3 @@ std::optional<UnixTime> UnixTime::parseString(
 }
 
 } // namespace xzero
-
-xzero::UnixTime
-    std::numeric_limits<xzero::UnixTime>::min() {
-  return xzero::UnixTime::epoch();
-}
-
-xzero::UnixTime
-    std::numeric_limits<xzero::UnixTime>::max() {
-  return xzero::UnixTime(std::numeric_limits<uint64_t>::max());
-}
