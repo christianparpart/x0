@@ -55,9 +55,11 @@ bool HttpRangeDef::parseByteRangeDef(const char* begin, const char* end) {
   if (i == e)
     return false;
 
+  auto isDigit = [](char p) -> bool { return p >= '0' && p <= '9'; };
+
   // parse first element
   char* eptr = const_cast<char*>(i);
-  size_t a = std::isdigit(*i) ? strtoul(i, &eptr, 10) : npos;
+  size_t a = isDigit(*i) ? strtoul(i, &eptr, 10) : npos;
 
   i = eptr;
 
@@ -69,7 +71,7 @@ bool HttpRangeDef::parseByteRangeDef(const char* begin, const char* end) {
   ++i;
 
   if (i == e) {
-    ranges_.push_back(std::make_pair(a, npos));
+    ranges_.emplace_back(a, npos);
     return true;
   }
 

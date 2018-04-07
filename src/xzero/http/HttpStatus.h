@@ -7,8 +7,9 @@
 
 #pragma once
 
-#include <system_error>
+#include <xzero/defines.h>
 #include <fmt/format.h>
+#include <system_error>
 #include <string>
 #include <iosfwd>
 
@@ -200,12 +201,21 @@ inline std::error_code make_error_code(HttpStatus status) {
 }  // namespace xzero::http
 
 namespace std {
+#if defined(XZERO_OS_WIN32)
+  template<>
+  struct hash<xzero::http::HttpStatus> {
+    constexpr size_t operator()(xzero::http::HttpStatus status) const {
+      return static_cast<size_t>(status);
+    }
+  };
+#else
   template <>
   struct hash<xzero::http::HttpStatus> : public unary_function<xzero::http::HttpStatus, size_t> {
     size_t operator()(xzero::http::HttpStatus status) const {
       return (size_t) status;
     }
   };
+#endif
 
   template<> struct is_error_code_enum<xzero::http::HttpStatus> : public true_type {};
 }  // namespace std

@@ -11,8 +11,12 @@
 #include <xzero/io/FileUtil.h>
 #include <xzero/io/FileDescriptor.h>
 #include <xzero/Buffer.h>
+#include <xzero/defines.h>
 #include <cstdint>
+
+#if defined(HAVE_UNISTD_H)
 #include <unistd.h>
+#endif
 
 namespace xzero {
 

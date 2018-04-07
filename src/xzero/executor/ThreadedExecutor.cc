@@ -16,7 +16,13 @@
 #include <memory>
 #include <algorithm>
 #include <limits>
+
+#if defined(HAVE_WINDOWS_H)
+#endif
+
+#if defined(HAVE_PTHREAD_H)
 #include <pthread.h>
+#endif
 
 #ifdef HAVE_UNISTD_H
 #include <unistd.h>

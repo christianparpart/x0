@@ -11,16 +11,23 @@
 #include <xzero/Buffer.h>
 #include <xzero/logging.h>
 #include <xzero/sysconfig.h>
+#include <xzero/sysconfig.h>
 #include <fmt/format.h>
 
 #include <iostream>
 #include <typeinfo>
 #include <stdlib.h>
-#include <unistd.h>
 #include <fcntl.h>
 #include <string.h>
-#include <sys/wait.h>
 #include <sys/types.h>
+
+#if defined(HAVE_UNISTD_H)
+#include <unistd.h>
+#endif
+
+#if defined(HAVE_SYS_WAIT_H)
+#include <sys/wait.h>
+#endif
 
 #if defined(HAVE_EXECINFO_H)
 #include <execinfo.h>

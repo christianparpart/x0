@@ -60,3 +60,6 @@ Makefile.in
 
 /contrib/ssl/cert.pem
 /contrib/ssl/key.pem
+
+# Visual Studio
+/.vs/

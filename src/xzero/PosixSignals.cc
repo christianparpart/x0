@@ -39,11 +39,15 @@ PosixSignals::HandleRef PosixSignals::notify(int signo, SignalHandler task) {
 
   if (watchers_[signo].empty()) {
     TRACE("installing signal handler {} ({})", signo, toString(signo));
+#if defined(XZERO_OS_WIN32)
+    signal(signo, &PosixSignals::onSignal3);
+#else
     struct sigaction sa{};
     memset(&sa, 0, sizeof(sa));
     sa.sa_sigaction = PosixSignals::onSignal;
     sa.sa_flags = SA_SIGINFO | SA_RESETHAND;
     sigaction(signo, &sa, nullptr);
+#endif
   }
 
   watchers_[signo].emplace_back(hr);
@@ -51,11 +55,17 @@ PosixSignals::HandleRef PosixSignals::notify(int signo, SignalHandler task) {
   return hr;
 }
 
-void PosixSignals::onSignal(int signo, siginfo_t* info, void* ptr) {
-  singleton_->onSignal2(signo, info, ptr);
+#if defined(XZERO_OS_WIN32)
+void PosixSignals::onSignal(int signo) {
+  singleton_->onSignal2(signo, 0, 0, ptr);
 }
+#else
+void PosixSignals::onSignal(int signo, siginfo_t* info, void* ptr) {
+  singleton_->onSignal2(signo, info->si_pid, info->si_uid, ptr);
+}
+#endif
 
-void PosixSignals::onSignal2(int signo, siginfo_t* info, void* ptr) {
+void PosixSignals::onSignal2(int signo, int pid, int uid, void* ptr) {
   std::vector<std::shared_ptr<SignalWatcher>> pending;
   {
     std::lock_guard<std::mutex> _l(mutex_);
@@ -66,13 +76,12 @@ void PosixSignals::onSignal2(int signo, siginfo_t* info, void* ptr) {
   }
 
   for (std::shared_ptr<SignalWatcher>& p: pending) {
-    p->info.signal = info->si_signo;
-    p->info.pid = info->si_pid;
-    p->info.uid = info->si_uid;
+    p->info.signal = signo;
+    p->info.pid = pid;
+    p->info.uid = uid;
   }
 
-  TRACE("caught signal {} ({}) for {} handlers", signo,
-        toString(signo), pending.size());
+  TRACE("caught signal {} ({}) for {} handlers", signo, toString(signo), pending.size());
 
   // notify interests (XXX must not be invoked on local stack)
   for (const auto& hr : pending)

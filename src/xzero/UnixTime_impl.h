@@ -40,7 +40,7 @@ constexpr UnixTime::operator uint64_t() const {
 }
 
 constexpr UnixTime::operator double() const {
-  return utc_micros_;
+  return static_cast<double>(utc_micros_);
 }
 
 constexpr time_t UnixTime::unixtime() const {

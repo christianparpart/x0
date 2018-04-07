@@ -13,11 +13,21 @@
 #include <memory>
 #include <functional>
 #include <stdlib.h>
-#include <unistd.h>
 #include <fcntl.h>
-#include <sys/wait.h>
 #include <sys/types.h>
+
+#if defined(HAVE_CXXABI_H)
 #include <cxxabi.h>
+#endif
+
+#if defined(HAVE_SYS_WAIT_H)
+#include <sys/wait.h>
+#endif
+
+
+#if defined(HAVE_UNISTD_H)
+#include <unistd.h>
+#endif
 
 #if defined(HAVE_EXECINFO_H)
 #include <execinfo.h>
@@ -66,6 +76,7 @@ StackTrace::~StackTrace() {
 }
 
 std::string StackTrace::demangleSymbol(const char* symbol) {
+#if defined(HAVE_CXXABI_H)
   int status = 0;
   char* demangled = abi::__cxa_demangle(symbol, nullptr, 0, &status);
 
@@ -76,60 +87,64 @@ std::string StackTrace::demangleSymbol(const char* symbol) {
   } else {
     return symbol;
   }
+#else
+  return symbol;
+#endif
 }
 
 std::vector<std::string> StackTrace::symbols() const {
+  if (empty())
+    return {};
+
 #if defined(HAVE_DLFCN_H)
-  if (!empty()) {
-    std::vector<std::string> output;
+  std::vector<std::string> output;
 
-    for (size_t i = SKIP_FRAMES; i < size(); ++i) {
-      Dl_info info;
-      if (dladdr(frames_[i], &info)) {
-        if (info.dli_sname && *info.dli_sname) {
-          output.push_back(demangleSymbol(info.dli_sname));
-        } else {
-          char buf[512];
-          int n = snprintf(
-              buf,
-              sizeof(buf),
-              "%s %p",
-              info.dli_fname,
-              frames_[i]);
-          output.push_back(std::string(buf, n));
-        }
-      } else if (frames_[i] != nullptr) {
-        char buf[512];
-        int n = snprintf(buf, sizeof(buf), "%p", frames_[i]);
-        output.push_back(std::string(buf, n));
+  for (size_t i = SKIP_FRAMES; i < size(); ++i) {
+    Dl_info info;
+    if (dladdr(frames_[i], &info)) {
+      if (info.dli_sname && *info.dli_sname) {
+        output.push_back(demangleSymbol(info.dli_sname));
       } else {
-        break;
+        char buf[512];
+        int n = snprintf(
+            buf,
+            sizeof(buf),
+            "%s %p",
+            info.dli_fname,
+            frames_[i]);
+        output.push_back(std::string(buf, n));
       }
+    } else if (frames_[i] != nullptr) {
+      char buf[512];
+      int n = snprintf(buf, sizeof(buf), "%p", frames_[i]);
+      output.push_back(std::string(buf, n));
+    } else {
+      break;
     }
-
-    return output;
   }
-#else
-  if (!empty()) {
-    int frameCount{0};
-    char** strings = backtrace_symbols(&frames_[0], frameCount);
 
-    std::vector<std::string> output;
-    try {
-      output.resize(frameCount);
+  return output;
+#elif defined(HAVE_BACKTRACE_SYMBOLS)
+  int frameCount{0};
+  char** strings = backtrace_symbols(&frames_[0], frameCount);
 
-      for (int i = 0; i < frameCount; ++i) {
-        output[i] = strings[i];
-      }
-    } catch (...) {
-      free(strings);
-      throw;
+  std::vector<std::string> output;
+  try {
+    output.resize(frameCount);
+
+    for (int i = 0; i < frameCount; ++i) {
+      output[i] = strings[i];
     }
+  } catch (...) {
     free(strings);
-    return output;
+    throw;
   }
-#endif
+  free(strings);
+  return output;
+#else
+  // TODO: windows port
   return {};
+#endif
 }
 
 }  // namespace xzero

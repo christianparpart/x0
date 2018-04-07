@@ -8,9 +8,17 @@
 #pragma once
 
 #include <xzero/executor/Executor.h>
+#include <xzero/sysconfig.h>
 #include <deque>
-#include <pthread.h>
 #include <mutex>
+
+#if defined(HAVE_PTHREAD_H)
+#include <pthread.h>
+#endif
+
+#if defined(XZERO_OS_WIN32)
+#include <Windows.h>
+#endif
 
 namespace xzero {
 
@@ -42,7 +50,12 @@ class ThreadedExecutor : public Executor {
  private:
   static void* launchme(void* ptr);
 
+#if defined(XZERO_OS_WIN32)
+  std::deque<HANDLE> threads_;
+#else
   std::deque<pthread_t> threads_;
+#endif
+
   std::mutex mutex_;
 };
 

@@ -6,6 +6,10 @@
 // the License at: http://opensource.org/licenses/MIT
 
 #include <xzero/CivilTime.h>
+#include <xzero/sysconfig.h>
+#include <xzero/defines.h>
+#include <fmt/format.h>
+#include <fmt/time.h>
 #include <string>
 #include <ctime>
 
@@ -21,6 +25,7 @@ std::optional<CivilTime> CivilTime::parseString(
     const char* str,
     size_t strlen,
     const char* fmt /* = "%Y-%m-%d %H:%M:%S" */) {
+#if defined(HAVE_STRPTIME)
   struct tm t;
 
   // FIXME strptime doesn't handle time zone offsets
@@ -36,6 +41,9 @@ std::optional<CivilTime> CivilTime::parseString(
     ct.setYear(t.tm_year + 1900);
     return ct;
   }
+#else
+  return std::nullopt; // TODO: not implemented
+#endif
 }
 
 void CivilTime::setYear(uint16_t value) {

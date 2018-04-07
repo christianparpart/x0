@@ -140,11 +140,16 @@ protected:
 namespace std {
   template <> class numeric_limits<xzero::UnixTime> {
   public:
-    static constexpr xzero::UnixTime (max)() noexcept {
-      return xzero::UnixTime(std::numeric_limits<uint64_t>::min());
-    }
     static constexpr xzero::UnixTime (min)() noexcept {
-      return xzero::UnixTime(std::numeric_limits<uint64_t>::max());
+      return xzero::UnixTime{ 0 };
+    }
+    static constexpr xzero::UnixTime (max)() noexcept {
+#if defined(XZERO_OS_WIN32)
+      return xzero::UnixTime{ UINT64_MAX };
+#else
+      // for some reason it didn't work on VS
+      return xzero::UnixTime{ std::numeric_limits<uint64_t>::max() };
+#endif
     }
   };
 }

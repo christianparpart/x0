@@ -8,6 +8,7 @@
 #pragma once
 
 #include <xzero/UnixSignals.h>
+#include <xzero/defines.h>
 #include <memory>
 #include <vector>
 #include <list>
@@ -30,8 +31,14 @@ class PosixSignals : public UnixSignals {
 
  private:
   static PosixSignals* singleton_;
+
+#if defined(XZERO_OS_WIN32)
+  static void onSignal(int signo);
+#else
   static void onSignal(int signo, siginfo_t* info, void* p);
-  void onSignal2(int signo, siginfo_t* info, void* p);
+#endif
+
+  void onSignal2(int signo, int pid, int uid, void* p);
 
  private:
   Executor* executor_;
