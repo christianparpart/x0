@@ -6,6 +6,7 @@
 // the License at: http://opensource.org/licenses/MIT
 
 #include <xzero-flow/FlowParser.h>
+#include <xzero-flow/SourceLocation.h>
 #include <xzero-flow/IRGenerator.h>
 #include <xzero-flow/NativeCallback.h>
 #include <xzero-flow/Params.h>
@@ -24,6 +25,7 @@
 #include <fmt/format.h>
 
 #include <iostream>
+#include <vector>
 #include <experimental/filesystem>
 
 using namespace std;
@@ -31,14 +33,147 @@ using namespace xzero;
 
 namespace fs = std::experimental::filesystem;
 
-// lexer, lexic, lexical
-// parser, syntax, syntactical
-// type, semantic, semantical
-// warning
-//
-// LexicError
-// SyntaxError
-// SemanticError
+enum class AnalysisType { TokenError, SyntaxError, TypeError, Warning, LinkError };
+
+/*
+  TestProgram   ::= FlowProgram [Initializer TestMessage*]
+  FlowProgram   ::= <flow program code until Initializer>
+
+  Initializer   ::= '#' '----' LF
+  TestMessage   ::= '#' AnalysisType ':' Location MessageText LF
+  AnalysisType  ::= 'TokenError' | 'SyntaxError' | 'TypeError' | 'Warning' | 'LinkError'
+
+  Location      ::= '[' FilePos ['..' FilePos] ']'
+  FilePos       ::= Line ':' Column
+  Column        ::= NUMBER
+  Line          ::= NUMBER
+
+  MessageText   ::= TEXT (LF INDENT TEXT)*
+
+  NUMBER        ::= ('0'..'9')+
+  TEXT          ::= <until LF>
+  LF            ::= '\n' | '\r\n'
+  INDENT        ::= (' ' | '\t')+
+*/
+
+struct TestMessage {
+  AnalysisType type;
+  flow::SourceLocation sourceLocation;
+  std::vector<std::string> texts;
+};
+
+/**
+ * Parses the input @p contents and splits it into a flow program and a vector
+ * of analysis TestMessage.
+ */
+class TestParser {
+ public:
+  TestParser(const std::string& filename, std::string& contents);
+
+  bool parse(std::string* programText, std::vector<TestMessage>* messages);
+
+ public: // accessors
+  std::string program() const;
+
+ private:
+  std::string parseUntilInitializer();
+  std::string parseLine();
+  TestMessage parseMessage();
+
+ private:
+  std::string filename_;
+  std::string contents_;
+  size_t currentOffset_;
+};
+
+TestParser::TestParser(const std::string& filename, std::string& contents)
+    : filename_{filename}, contents_{contents} {
+}
+
+bool TestParser::parse(std::string* programText, std::vector<TestMessage>* messages) {
+  *programText = parseUntilInitializer();
+
+  while (!eof())
+    messages->push_back(parseMessage());
+
+  return true;
+}
+
+std::string TestParser::parseUntilInitializer() {
+  for (;;) {
+    size_t lastLineOffset = currentOffset_;
+    std::string line = parseLine();
+    if (line.empty() || line == "# ----") {
+      return contents_.substr(0, lastLineOffset);
+    }
+  }
+}
+
+std::string TestParser::parseLine() {
+  constexpr char LF = '\n';
+  const size_t startOfLine = currentOffset_;
+
+  while (!eof() && contents_[currentOffset_] != LF)
+    currentOffset_++;
+
+  std::string line = contents_.substr(startOfLine, currentOffset_ - startOfLine);
+
+  if (!eof() && contents_[currentOffset_] == LF)
+    currentOffset_++;
+
+  return line;
+}
+
+TestMessage TestParser::parseMessage() {
+  // TestMessage   ::= '#' AnalysisType ':' Location MessageText LF
+  // MessageText   ::= TEXT (LF INDENT TEXT)*
+  // AnalysisType  ::= 'TokenError' | 'SyntaxError' | 'TypeError' | 'Warning' | 'LinkError'
+  // Location      ::= '[' FilePos ['..' FilePos] ']'
+  // FilePos       ::= Line ':' Column
+  // Column        ::= NUMBER
+  // Line          ::= NUMBER
+
+  parseCommentToken();
+  AnalysisType type = parseAnalysisType();
+  parseColon();
+  SourceLocation location = parseLocation();
+  std::string text = parseMessageText();
+  parseLF();
+
+  return TestMessage{};
+}
+
+void TestParser::parseCommentToken() {
+  if (currentChar() == '#')
+    nextChar();
+
+  skipWhiteSpaces();
+}
+
+AnalysisType TestParser::parseAnalysisType() {
+  const size_t startColumn = currentOffset_;
+  const std::string stringValue = parseIdent();
+
+  if (stringValue == "TokenError")
+    return AnalysisType::TokenError;
+
+  if (stringValue == "SyntaxError")
+    return AnalysisType::SyntaxError;
+
+  if (stringValue == "TypeError")
+    return AnalysisType::TypeError;
+
+  if (stringValue == "Warning")
+    return AnalysisType::Warning;
+
+  if (stringValue == "LinkError")
+    return AnalysisType::LinkError;
+
+  const size_t endColumn = currentOffset_;
+
+  // XXX prints error message, dump currentLine() and underlines column from given start to end
+  reportErrorAt(currentLine(), startColumn, endColumn, "Unknown analysis-type");
+}
 
 class Tester : public flow::Runtime {
  public:
@@ -123,12 +258,13 @@ void Tester::reportError(const std::string& msg) {
 }
 
 bool Tester::testDirectory(const std::string& p) {
+  int errorCount = 0;
   for (auto& dir: fs::recursive_directory_iterator(p))
     if (dir.path().extension() == ".flow")
       if (!testFile(dir.path().string()))
-        return false;
+        errorCount++;
 
-  return true;
+  return errorCount == 0;
 }
 
 bool Tester::testFile(const std::string& filename) {
