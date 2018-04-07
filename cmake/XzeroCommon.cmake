@@ -3,6 +3,7 @@
 # Ubuntu LTS release is supporting
 if(MSVC)
 # TODO ... fill in whatever is required for compiling under Visual Studio
+  add_definitions(-DNOMINMAX)
 else()
 
 if(APPLE)
@@ -10,9 +11,6 @@ if(APPLE)
 else()
   set(CMAKE_CXX_FLAGS "-std=c++1z")
 endif()
-
-# be more sensible on compiler warnings
-add_definitions(-Wall -Wno-variadic-macros)
 
 # we need the following definitions in order to get some special
 # OS-level features like posix_fadvise() or readahead().
