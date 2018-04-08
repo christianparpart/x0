@@ -17,10 +17,11 @@
 #include <xzero/sysconfig.h>
 #include <fmt/format.h>
 #include <cstdlib>
+#include <fcntl.h>
+
 #include <pwd.h>
 #include <grp.h>
 #include <unistd.h>
-#include <fcntl.h>
 #include <sys/utsname.h>
 
 namespace xzero {
