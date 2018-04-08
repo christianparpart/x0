@@ -34,11 +34,12 @@ struct hash<OpSig> {
 };
 }
 
-template<typename... Args> constexpr void TRACE(const char* msg, Args... args) {
-#ifndef NDEBUG
-  ::xzero::logTrace(std::string("flow.Parser: ") + msg, args...);
-#endif
-}
+#define TRACE(msg, ...) do {} while (0)
+// template<typename... Args> constexpr void TRACE(const char* msg, Args... args) {
+// #ifndef NDEBUG
+//   ::xzero::logTrace(std::string("flow.Parser: ") + msg, args...);
+// #endif
+// }
 
 namespace xzero {
 namespace flow {
@@ -444,7 +445,8 @@ void FlowParser::importRuntime() {
 }
 
 void FlowParser::declareBuiltin(const NativeCallback* native) {
-  TRACE("declareBuiltin (scope:{}): {}", currentScope(), native->signature().to_s());
+  TRACE("declareBuiltin (scope:{}): {}",
+        currentScope()->name(), native->signature());
 
   if (native->isHandler()) {
     createSymbol<BuiltinHandlerSym>(*native);

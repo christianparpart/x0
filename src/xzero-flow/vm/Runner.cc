@@ -56,7 +56,7 @@ namespace xzero::flow {
 #if defined(ENABLE_FLOW_DIRECT_THREADED_VM)
 #define instr(name) \
   l_##name : ++pc;  \
-  DEBUG("{}",    \
+  logDebug("{}",    \
         disassemble((Instruction) * pc, (pc - code.data()) / 2), &program_->constants());
 
 #define get_pc() ((pc - code.data()) / 2)
@@ -68,7 +68,7 @@ namespace xzero::flow {
 #define next goto*(void*)*++pc
 #else
 #define instr(name) \
-  l_##name : DEBUG("{}", disassemble(*pc, pc - code.data(), &sp_, &program_->constants()));
+  l_##name : logDebug("{}", disassemble(*pc, pc - code.data(), &sp_, &program_->constants()));
 
 #define get_pc() (pc - code.data())
 #define set_pc(offset)           \

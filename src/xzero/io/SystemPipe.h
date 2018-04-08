@@ -25,7 +25,10 @@ class SystemPipe {
   SystemPipe();
   ~SystemPipe();
 
+  void setNonBlocking(bool enable);
+
   int write(const std::string& msg);
+  int write(const void* buf, size_t count);
   void consume();
 
 #if defined(XZERO_OS_WIN32)
