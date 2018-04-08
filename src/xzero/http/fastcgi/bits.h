@@ -9,9 +9,17 @@
 
 // this file holds the protocol bits
 
+#include <xzero/Buffer.h>
+#include <xzero/defines.h>
+
+#if defined(XZERO_OS_WIN32)
+#include <WinSock2.h>
+#else
+#include <arpa/inet.h>  // htons/ntohs/ntohl/htonl
+#endif
+
 #include <stdint.h>     // uint16_t, ...
 #include <string.h>     // memset
-#include <arpa/inet.h>  // htons/ntohs/ntohl/htonl
 
 #include <list>
 #include <string>
@@ -19,8 +27,6 @@
 #include <utility>
 #include <unordered_map>
 #include <iosfwd>
-
-#include <xzero/Buffer.h>
 
 namespace xzero {
 namespace http {

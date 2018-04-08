@@ -66,6 +66,10 @@ bool MediaRange::operator!=(const std::string& mediatype) const {
   return !contains(mediatype);
 }
 
+static inline constexpr bool isSpace(char p) {
+  return p == ' ' || p == '\t';
+}
+
 Result<MediaRange> MediaRange::parse(const std::string& range) {
   // https://tools.ietf.org/html/rfc7231#section-5.3.2
   //
@@ -93,7 +97,7 @@ Result<MediaRange> MediaRange::parse(const std::string& range) {
   } else {
     subtype = range.substr(i, k - i);
     k++;
-    while (!subtype.empty() && std::isspace(subtype[subtype.size() - 1]))
+    while (!subtype.empty() && isSpace(subtype[subtype.size() - 1]))
       subtype.resize(subtype.size() - 1);
 
     // parse parameters

@@ -8,8 +8,12 @@
 #pragma once
 
 #include <string>
-#include <iosfwd>
 #include <fmt/format.h>
+
+// WTF MSVC?
+#ifdef DELETE
+#undef DELETE
+#endif
 
 namespace xzero::http {
 

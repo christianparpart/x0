@@ -61,6 +61,7 @@ PosixScheduler::PosixScheduler(ExceptionHandler eh)
       error_{} {
   wakeupPipe_.setNonBlocking(true);
 
+#if defined(HAVE_GETRLIMIT)
   struct rlimit rlim{};
   memset(&rlim, 0, sizeof(rlim));
   getrlimit(RLIMIT_NOFILE, &rlim);
@@ -70,6 +71,9 @@ PosixScheduler::PosixScheduler(ExceptionHandler eh)
                 : 65535;
 
   watchers_.resize(nofile);
+#else
+  watchers_.resize(65535);
+#endif
   for (auto& w: watchers_) {
     w = std::make_shared<Watcher>();
   }

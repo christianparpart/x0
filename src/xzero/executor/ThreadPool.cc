@@ -158,7 +158,7 @@ ThreadPool::HandleRef ThreadPool::executeAfter(Duration delay, Task task) {
   HandleRef hr = std::make_shared<Handle>(nullptr);
   activeTimers_++;
   execute([this, task, hr, delay] {
-    usleep(delay.microseconds());
+    std::this_thread::sleep_for(std::chrono::microseconds{ delay.microseconds() });
     safeCall([&] { hr->fire(task); });
     activeTimers_--;
   });
@@ -172,7 +172,7 @@ ThreadPool::HandleRef ThreadPool::executeAt(UnixTime dt, Task task) {
     UnixTime now = WallClock::now();
     if (dt > now) {
       Duration delay = dt - now;
-      usleep(delay.microseconds());
+      std::this_thread::sleep_for(std::chrono::microseconds{ delay.microseconds() });
     }
     safeCall([&] { hr->fire(task); });
     activeTimers_--;

@@ -9,8 +9,6 @@
 #include <xzero/io/FileUtil.h>
 #include <xzero/logging.h>
 
-#include <unistd.h>
-
 namespace xzero {
 namespace http {
 
