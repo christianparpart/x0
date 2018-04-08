@@ -21,12 +21,6 @@
 #include <xzero/logging.h>
 #include <algorithm>
 
-template<typename... Args> constexpr void TRACE(const char* msg, Args... args) {
-#ifndef NDEBUG
-  ::xzero::logTrace(std::string("http.client.HttpClient: ") + msg, args...);
-#endif
-}
-
 namespace xzero::http::client {
 
 // {{{ ResponseBuilder
@@ -51,19 +45,14 @@ class HttpClient::ResponseBuilder : public HttpListener {
 HttpClient::ResponseBuilder::ResponseBuilder(Promise<Response> promise)
     : promise_(promise),
       response_() {
-  TRACE("ResponseBuilder.ctor");
 }
 
 HttpClient::ResponseBuilder::~ResponseBuilder() {
-  TRACE("ResponseBuilder.dtor");
 }
 
 void HttpClient::ResponseBuilder::onMessageBegin(HttpVersion version,
                                                  HttpStatus code,
                                                  const BufferRef& text) {
-  TRACE("ResponseBuilder.onMessageBegin({}, {}, {})",
-      version, (int)code, text);
-
   response_.setVersion(version);
   response_.setStatus(code);
   response_.setReason(text.str());
@@ -71,27 +60,21 @@ void HttpClient::ResponseBuilder::onMessageBegin(HttpVersion version,
 
 void HttpClient::ResponseBuilder::onMessageHeader(const BufferRef& name,
                                                   const BufferRef& value) {
-  TRACE("ResponseBuilder.onMessageHeader({}, {})", name, value);
-
   response_.headers().push_back(name.str(), value.str());
 }
 
 void HttpClient::ResponseBuilder::onMessageHeaderEnd() {
-  TRACE("ResponseBuilder.onMessageHeaderEnd()");
 }
 
 void HttpClient::ResponseBuilder::onMessageContent(const BufferRef& chunk) {
-  TRACE("ResponseBuilder.onMessageContent(BufferRef) {} bytes", chunk.size());
   response_.content().write(chunk);
 }
 
 void HttpClient::ResponseBuilder::onMessageContent(FileView&& chunk) {
-  TRACE("ResponseBuilder.onMessageContent(FileView) {} bytes", chunk.size());
   response_.content().write(std::move(chunk));
 }
 
 void HttpClient::ResponseBuilder::onMessageEnd() {
-  TRACE("ResponseBuilder.onMessageEnd()");
   response_.setContentLength(response_.content().size());
   promise_.success(response_);
 }
@@ -176,7 +159,6 @@ Future<std::shared_ptr<TcpEndPoint>> HttpClient::createTcpPlain(
     Duration connectTimeout,
     Duration readTimeout,
     Duration writeTimeout) {
-  TRACE("createTcpPlain (HTTP)");
   return TcpEndPoint::connect(address,
                               connectTimeout,
                               readTimeout,
@@ -190,12 +172,9 @@ Future<std::shared_ptr<TcpEndPoint>> HttpClient::createTcpPlain(
 //     Duration connectTimeout,
 //     Duration readTimeout,
 //     Duration writeTimeout) {
-//   TRACE("createTcpSecure: (HTTPS)");
-// 
 //   auto createApplicationConnection = [this](const std::string& protocolName,
 //                                             TcpEndPoint* endpoint) {
 //     // TODO: make use of protocolName
-//     TRACE("createTcp(https): creating application layer: {}", protocolName);
 //     endpoint->setConnection(std::make_unique<Http1Connection>(listener_,
 //                                                               endpoint,
 //                                                               executor_));
@@ -296,17 +275,14 @@ void HttpClient::Context::execute(CreateEndPoint createEndPoint) {
                         this, std::placeholders::_1));
 
   f.onFailure([this](std::error_code ec) {
-    TRACE("Failed to connect. {}: {}", ec.category().name(), ec.message());
     listener_->onError(ec);
     done_(this);
   });
 }
 
 void HttpClient::Context::onConnected(std::shared_ptr<TcpEndPoint> ep) {
-  TRACE("endpoint created");
   endpoint_ = ep;
 
-  TRACE("creating connection: http/1.1");
   ep->setConnection(std::make_unique<Http1Connection>(
         listener_, ep.get(), executor_));
 

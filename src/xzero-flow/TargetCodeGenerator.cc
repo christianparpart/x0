@@ -26,58 +26,6 @@
 
 namespace xzero::flow {
 
-#define FLOW_DEBUG_TCG 1
-#if defined(FLOW_DEBUG_TCG)
-// {{{ trace
-static size_t fni = 0;
-struct fntrace4 {
-  std::string msg_;
-
-  explicit fntrace4(const std::string& msg) : msg_(msg) {
-    size_t i = 0;
-    char fmt[1024];
-
-    for (i = 0; i < 2 * fni;) {
-      fmt[i++] = ' ';
-      fmt[i++] = ' ';
-    }
-    fmt[i++] = '-';
-    fmt[i++] = '>';
-    fmt[i++] = ' ';
-    strcpy(fmt + i, msg_.c_str());
-
-    logTrace(fmt);
-    ++fni;
-  }
-
-  ~fntrace4() {
-    --fni;
-
-    size_t i = 0;
-    char fmt[1024];
-
-    for (i = 0; i < 2 * fni;) {
-      fmt[i++] = ' ';
-      fmt[i++] = ' ';
-    }
-    fmt[i++] = '<';
-    fmt[i++] = '-';
-    fmt[i++] = ' ';
-    strcpy(fmt + i, msg_.c_str());
-
-    logTrace(fmt);
-  }
-};
-// }}}
-#define FNTRACE()           fntrace4 _(__PRETTY_FUNCTION__)
-#define CTRACE(msg)         fntrace4 _ct(msg)
-#define TRACE(msg...)       logTrace("TCG: " msg)
-#else
-#define FNTRACE()           do {} while (0)
-#define CTRACE(msg)         do {} while (0)
-#define TRACE(msg...)       do {} while (0)
-#endif
-
 template <typename T, typename S>
 std::vector<T> convert(const std::vector<Constant*>& source) {
   std::vector<T> target(source.size());
@@ -102,8 +50,6 @@ TargetCodeGenerator::~TargetCodeGenerator() {
 }
 
 std::unique_ptr<Program> TargetCodeGenerator::generate(IRProgram* programIR) {
-  CTRACE("generate(IRProgram)");
-
   for (IRHandler* handler : programIR->handlers())
     generate(handler);
 
@@ -113,8 +59,6 @@ std::unique_ptr<Program> TargetCodeGenerator::generate(IRProgram* programIR) {
 }
 
 void TargetCodeGenerator::generate(IRHandler* handler) {
-  CTRACE("generate(IRHandler)");
-
   // explicitely forward-declare handler, so we can use its ID internally.
   handlerId_ = cp_.makeHandler(handler);
 
@@ -214,7 +158,6 @@ StackPointer TargetCodeGenerator::getStackPointer(const Value* value) {
     if (stack_[i] == value)
       return i;
 
-  // TRACE("getStackPointer: not found {} on stack", value->name());
   // ((Value*) value)->dump();
   return (StackPointer) -1;
 }
@@ -228,7 +171,6 @@ void TargetCodeGenerator::changeStack(size_t pops, const Value* pushValue) {
 }
 
 void TargetCodeGenerator::pop(size_t count) {
-  TRACE("tcg: pop {} (of {}) values", count, stack_.size());
   if (count > stack_.size())
     logFatal("flow: BUG: stack smaller than amount of elements to pop.");
 
@@ -237,34 +179,23 @@ void TargetCodeGenerator::pop(size_t count) {
 }
 
 void TargetCodeGenerator::push(const Value* alias) {
-  TRACE("tcg: push {}", alias ? alias->name() : "NULL");
   stack_.push_back(alias);
 }
 
 // {{{ instruction code generation
 void TargetCodeGenerator::visit(NopInstr& nopInstr) {
-  CTRACE("visit(NopInstr)");
   emitInstr(Opcode::NOP);
 }
 
 void TargetCodeGenerator::visit(AllocaInstr& allocaInstr) {
-  CTRACE("visit(AllocaInstr)");
-
   emitInstr(Opcode::ALLOCA, 1);
   push(&allocaInstr);
 }
 
 // variable = expression
 void TargetCodeGenerator::visit(StoreInstr& storeInstr) {
-  CTRACE("visit(StoreInstr)");
-
   StackPointer di = getStackPointer(storeInstr.variable());
   XZERO_ASSERT(di != size_t(-1), "BUG: StoreInstr.variable not found on stack");
-
-  TRACE("storeInstr: source {} (use count {}), variable name = {}",
-      storeInstr.source()->name(),
-      storeInstr.source()->uses().size(),
-      storeInstr.variable()->name());
 
   if (storeInstr.source()->uses().size() == 1 && stack_.back() == storeInstr.source()) {
     emitInstr(Opcode::STORE, di);
@@ -277,8 +208,6 @@ void TargetCodeGenerator::visit(StoreInstr& storeInstr) {
 }
 
 void TargetCodeGenerator::visit(LoadInstr& loadInstr) {
-  CTRACE(fmt::format("visit(LoadInstr) {} <- {}", loadInstr.name(), loadInstr.variable()->name()));
-
 	StackPointer si = getStackPointer(loadInstr.variable());
 	XZERO_ASSERT(si != static_cast<size_t>(-1),
 			"BUG: emitLoad: LoadInstr with variable() not yet on the stack.");
@@ -288,8 +217,6 @@ void TargetCodeGenerator::visit(LoadInstr& loadInstr) {
 }
 
 void TargetCodeGenerator::visit(CallInstr& callInstr) {
-  CTRACE("visit(CallInstr)");
-
   const int argc = callInstr.operands().size() - 1;
   for (int i = 1; i <= argc; ++i)
     emitLoad(callInstr.operand(i));
@@ -316,8 +243,6 @@ void TargetCodeGenerator::visit(CallInstr& callInstr) {
 }
 
 void TargetCodeGenerator::visit(HandlerCallInstr& handlerCallInstr) {
-  CTRACE("visit(HandlerCallInstr)");
-
   int argc = handlerCallInstr.operands().size() - 1;
   for (int i = 1; i <= argc; ++i)
     emitLoad(handlerCallInstr.operand(i));
@@ -426,12 +351,10 @@ void TargetCodeGenerator::emitLoad(Value* value) {
 }
 
 void TargetCodeGenerator::visit(PhiNode& phiInstr) {
-  CTRACE("visit(PhiNode)");
   logFatal("Should never reach here, as PHI instruction nodes should have been replaced by target registers.");
 }
 
 void TargetCodeGenerator::visit(CondBrInstr& condBrInstr) {
-  CTRACE("visit(CondBrInstr)");
   if (condBrInstr.getBasicBlock()->isAfter(condBrInstr.trueBlock())) {
     emitLoad(condBrInstr.condition());
     emitCondJump(Opcode::JZ, condBrInstr.falseBlock());
@@ -446,7 +369,6 @@ void TargetCodeGenerator::visit(CondBrInstr& condBrInstr) {
 }
 
 void TargetCodeGenerator::visit(BrInstr& brInstr) {
-  CTRACE("visit(BrInstr)");
   // Do not emit the JMP if the target block is emitted right after this block
   // (and thus, right after this instruction).
   if (brInstr.getBasicBlock()->isAfter(brInstr.targetBlock()))
@@ -456,12 +378,10 @@ void TargetCodeGenerator::visit(BrInstr& brInstr) {
 }
 
 void TargetCodeGenerator::visit(RetInstr& retInstr) {
-  CTRACE("visit(RetInstr)");
   emitInstr(Opcode::EXIT, getConstantInt(retInstr.operands()[0]));
 }
 
 void TargetCodeGenerator::visit(MatchInstr& matchInstr) {
-  CTRACE("visit(MatchInstr)");
   static const Opcode ops[] = {[(size_t)MatchClass::Same] = Opcode::SMATCHEQ,
                                [(size_t)MatchClass::Head] = Opcode::SMATCHBEG,
                                [(size_t)MatchClass::Tail] = Opcode::SMATCHEND,
@@ -496,7 +416,6 @@ void TargetCodeGenerator::visit(MatchInstr& matchInstr) {
 }
 
 void TargetCodeGenerator::visit(CastInstr& castInstr) {
-  CTRACE("visit(CastInstr)");
   // map of (target, source, opcode)
   static const std::unordered_map<
       LiteralType,

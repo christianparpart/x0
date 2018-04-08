@@ -18,12 +18,6 @@ namespace xzero {
 namespace http {
 namespace client {
 
-template<typename... Args> constexpr void TRACE(const char* msg, Args... args) {
-#ifndef NDEBUG
-  ::xzero::logTrace(std::string("http.client.Http1Connection: ") + msg, args...);
-#endif
-}
-
 Http1Connection::Http1Connection(HttpListener* channel,
                                  TcpEndPoint* endpoint,
                                  Executor* executor)
@@ -160,7 +154,6 @@ void Http1Connection::completed() {
 }
 
 void Http1Connection::onRequestComplete(bool success) {
-  TRACE("onRequestComplete({})", success ? "success" : "failed");
   if (success) {
     wantRead();
   }
@@ -179,8 +172,6 @@ void Http1Connection::abort() {
 }
 
 void Http1Connection::onReadable() {
-  TRACE("onReadable()");
-
   size_t n = endpoint()->read(&inputBuffer_);
 
   if (n == 0) {
@@ -201,9 +192,7 @@ void Http1Connection::parseFragment() {
 }
 
 void Http1Connection::onWriteable() {
-  TRACE("onWriteable()");
   const bool complete = writer_.flushTo(endpoint());
-  TRACE("onWriteable: {}", complete ? "completed" : "needs-more-to-flush");
 
   if (!complete) {
     wantWrite();
@@ -248,7 +237,6 @@ void Http1Connection::onMessageHeader(const BufferRef& name,
 }
 
 void Http1Connection::onMessageHeaderEnd() {
-  TRACE("onMessageHeaderEnd! expectsBody={}", expectsBody_);
   channel_->onMessageHeaderEnd();
   if (parser_.isContentExpected() && !expectsBody_) {
     onMessageEnd();
@@ -264,13 +252,11 @@ void Http1Connection::onMessageContent(FileView&& chunk) {
 }
 
 void Http1Connection::onMessageEnd() {
-  TRACE("onMessageEnd!");
   responseComplete_ = true;
   channel_->onMessageEnd();
 }
 
 void Http1Connection::onError(std::error_code ec) {
-  TRACE("onError! {}", ec.message());
   channel_->onError(ec);
 }
 // }}}

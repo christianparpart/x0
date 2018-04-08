@@ -24,12 +24,6 @@
 #include <cmath>
 #include <inttypes.h>
 
-template<typename... Args> constexpr void TRACE(const char* msg, Args... args) {
-#ifndef NDEBUG
-  ::xzero::logTrace(std::string("flow.vm.Runner: ") + msg, args...);
-#endif
-}
-
 namespace xzero::flow {
 
 // {{{ VM helper preprocessor definitions
@@ -116,22 +110,16 @@ FlowString* Runner::catString(const FlowString& a, const FlowString& b) {
 
 bool Runner::run() {
   assert(state_ == Inactive);
-  TRACE("Running handler {}.", handler_->name());
-
   return loop();
 }
 
 void Runner::suspend() {
   assert(state_ == Running);
-  TRACE("Suspending handler {}.", handler_->name());
-
   state_ = Suspended;
 }
 
 bool Runner::resume() {
   assert(state_ == Suspended);
-  TRACE("Resuming handler {}.", handler_->name());
-
   return loop();
 }
 
@@ -647,8 +635,6 @@ bool Runner::loop() {
       const Signature& signature =
           handler_->program()->nativeFunction(id)->signature();
 
-      TRACE("Calling function: {}", signature);
-
       handler_->program()->nativeFunction(id)->invoke(args);
 
       discard(argc);
@@ -675,9 +661,6 @@ bool Runner::loop() {
       Params args(this, argc);
       for (int i = 1; i <= argc; i++)
         args.setArg(i, SP(-(argc + 1) + i));
-
-      TRACE("Calling handler: {}",
-            handler_->program()->nativeHandler(id)->signature());
 
       handler_->program()->nativeHandler(id)->invoke(args);
       const bool handled = (bool) args[0];

@@ -177,7 +177,6 @@ class PosixScheduler : public EventLoop {
   std::list<EventLoop::Task> collectEvents();
   void collectTimeouts(std::list<Task>* result);
   void collectActiveHandles(std::list<Task>* result);
-  void logLoopStats(const char* prefix);
 
   /**
    * Registers an I/O interest.

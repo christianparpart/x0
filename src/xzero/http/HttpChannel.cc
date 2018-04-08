@@ -24,12 +24,6 @@
 namespace xzero {
 namespace http {
 
-template<typename... Args> constexpr void TRACE(const char* msg, Args... args) {
-#ifndef NDEBUG
-  ::xzero::logTrace(std::string("http.HttpChannel: ") + msg, args...);
-#endif
-}
-
 std::string as_string(HttpChannelState state) {
   switch (state) {
     case HttpChannelState::READING: return "READING";
@@ -66,12 +60,10 @@ HttpChannel::HttpChannel(HttpTransport* transport,
 }
 
 HttpChannel::~HttpChannel() {
-  TRACE("{} dtor", (void*)this);
   //.
 }
 
 void HttpChannel::reset() {
-  TRACE("{} reset", (void*)this);
   setState(HttpChannelState::READING);
   request_->recycle();
   response_->recycle();
@@ -79,11 +71,6 @@ void HttpChannel::reset() {
 }
 
 void HttpChannel::setState(HttpChannelState newState) {
-  TRACE("{} setState from {} to {}",
-        (void*) this,
-        as_string(state_),
-        as_string(newState));
-
   state_ = newState;
 }
 
@@ -228,7 +215,6 @@ HttpResponseInfo& HttpChannel::commitInline() {
 }
 
 void HttpChannel::commit(CompletionHandler onComplete) {
-  TRACE("{} commit()", (void*)this);
   send(BufferRef(), onComplete);
 }
 
@@ -241,7 +227,6 @@ void HttpChannel::send100Continue(CompletionHandler onComplete) {
   HttpResponseInfo info(request_->version(), HttpStatus::ContinueRequest,
                         "Continue", false, 0, {}, {});
 
-  TRACE("send100Continue(): sending it");
   transport_->send(info, BufferRef(), onComplete);
 }
 
@@ -254,16 +239,10 @@ void HttpChannel::onMessageBegin(const BufferRef& method,
   if (!request_->setUri(entity.str())) {
     RAISE_EXCEPTION(BadMessage, HttpStatus::BadRequest);
   }
-
-  TRACE("onMessageBegin({}, {}, {})",
-        request_->unparsedMethod(),
-        request_->path(),
-        as_string(version));
 }
 
 void HttpChannel::onMessageHeader(const BufferRef& name,
                                   const BufferRef& value) {
-  TRACE("onMessageHeader {}: {}", name, value);
   request_->headers().push_back(name.str(), value.str());
 
   if (iequals(name, "Expect") && iequals(value, "100-continue"))
@@ -281,7 +260,6 @@ void HttpChannel::onMessageHeader(const BufferRef& name,
 }
 
 void HttpChannel::onMessageHeaderEnd() {
-  TRACE("onMessageHeaderEnd");
   if (state() != HttpChannelState::HANDLING) {
     setState(HttpChannelState::HANDLING);
 
@@ -327,12 +305,10 @@ void HttpChannel::handleRequest() {
 }
 
 void HttpChannel::onMessageContent(const BufferRef& chunk) {
-  TRACE("onMessageContent(BufferRef): {}", chunk);
   request_->fillContent(chunk);
 }
 
 void HttpChannel::onMessageContent(FileView&& chunk) {
-  TRACE("onMessageContent(FileView): {}", FileUtil::read(chunk).ref());
   request_->fillContent(FileUtil::read(chunk));
 }
 
@@ -341,7 +317,6 @@ void HttpChannel::onMessageEnd() {
 }
 
 void HttpChannel::onError(std::error_code ec) {
-  TRACE("onProtocolError()");
   if (ec.category() == HttpStatusCategory::get()) {
     response_->sendError(static_cast<HttpStatus>(ec.value()));
   } else {
@@ -350,8 +325,6 @@ void HttpChannel::onError(std::error_code ec) {
 }
 
 void HttpChannel::completed() {
-  TRACE("completed!");
-
   if (response_->status() == HttpStatus::NoResponse) {
     transport_->abort();
     return;
@@ -371,12 +344,10 @@ void HttpChannel::completed() {
   }
 
   if (!outputFilters_.empty()) {
-    TRACE("{} completed: send(applyFilters(EOS))", (void*)this);
     Buffer filtered;
     Filter::applyFilters(outputFilters_, "", &filtered, true);
     transport_->send(std::move(filtered), nullptr);
   } else if (!response_->isCommitted()) {
-    TRACE("{} completed: not committed yet. commit empty-body response", (void*)this);
     if (!response_->hasContentLength() && request_->method() != HttpMethod::HEAD) {
       response_->setContentLength(0);
     }
@@ -384,7 +355,6 @@ void HttpChannel::completed() {
     transport_->send(info, BufferRef(), nullptr);
   }
 
-  TRACE("{} completed: pass on to transport layer", (void*)this);
   transport_->completed();
 }
 

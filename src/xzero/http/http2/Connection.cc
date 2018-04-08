@@ -16,12 +16,6 @@ namespace xzero {
 namespace http {
 namespace http2 {
 
-template<typename... Args> constexpr void TRACE(const char* msg, Args... args) {
-#ifndef NDEBUG
-  ::xzero::logTrace(std::string("http.h2.Connection: ") + msg, args...);
-#endif
-}
-
 Connection::Connection(TcpEndPoint* endpoint,
                        Executor* executor,
                        const HttpHandlerFactory& handlerFactory,
@@ -49,7 +43,6 @@ Connection::Connection(TcpEndPoint* endpoint,
       maxStreamIdRemote_(0),
       streams_()
 {
-  TRACE("ctor");
 }
 
 Connection::Connection(TcpEndPoint* endpoint,
@@ -76,7 +69,6 @@ Connection::Connection(TcpEndPoint* endpoint,
 }
 
 Connection::~Connection() {
-  TRACE("dtor");
 }
 
 Stream* Connection::createStream(const HttpRequestInfo& info,
@@ -153,7 +145,6 @@ void Connection::getAllDependentStreams(StreamID parentStreamID,
 
 // {{{ net::Connection overrides
 void Connection::onOpen(bool dataReady) {
-  TRACE("onOpen");
   TcpConnection::onOpen(dataReady);
 
   // send initial server connection preface
@@ -167,11 +158,7 @@ void Connection::onOpen(bool dataReady) {
 }
 
 void Connection::onReadable() {
-  TRACE("onReadable");
-
-  TRACE("onReadable: calling read()");
   if (endpoint()->read(&inputBuffer_) == 0) {
-    TRACE("onReadable: read() returned 0");
     // RAISE("client EOF");
     abort();
     return;
@@ -193,8 +180,6 @@ void Connection::parseFragment() {
 }
 
 void Connection::onWriteable() {
-  TRACE("onWriteable");
-
   const bool complete = writer_.flushTo(endpoint());
 
   if (complete) {
@@ -205,7 +190,6 @@ void Connection::onWriteable() {
 }
 
 void Connection::onInterestFailure(const std::exception& error) {
-  TRACE("onInterestFailure");
 }
 // }}}
 // {{{ FrameListener overrides
@@ -245,10 +229,6 @@ void Connection::onResetStream(StreamID sid, ErrorCode errorCode) {
 
 void Connection::onSettings(
     const std::vector<std::pair<SettingParameter, unsigned long>>& settings) {
-  for (const auto& setting: settings) {
-    TRACE("Setting {} = {}", setting.first, setting.second);
-  }
-
   generator_.generateSettingsAck();
   endpoint()->wantWrite();
 }

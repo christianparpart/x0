@@ -25,12 +25,6 @@
 // #define PACKAGE_VERSION X0_VERSION
 #define PACKAGE_HOMEPAGE_URL "https://xzero.io"
 
-template<typename... Args> constexpr void TRACE(const char* msg, Args... args) {
-#ifndef NDEBUG
-  ::xzero::logTrace(std::string("xurl: ") + msg, args...);
-#endif
-}
-
 using namespace xzero;
 using namespace xzero::http;
 using namespace xzero::http::client;

@@ -12,12 +12,6 @@
 
 namespace xzero {
 
-#if !defined(NDEBUG)
-#define TRACE(msg, ...) logTrace("PosixSignals: " msg, __VA_ARGS__)
-#else
-#define TRACE(msg, ...) do {} while (0)
-#endif
-
 PosixSignals* PosixSignals::singleton_ = nullptr;
 
 PosixSignals::PosixSignals(Executor* executor)
@@ -36,7 +30,6 @@ PosixSignals::HandleRef PosixSignals::notify(int signo, SignalHandler task) {
   std::shared_ptr<SignalWatcher> hr = std::make_shared<SignalWatcher>(task);
 
   if (watchers_[signo].empty()) {
-    TRACE("installing signal handler {} ({})", signo, toString(signo));
 #if defined(XZERO_OS_WIN32)
     signal(signo, &PosixSignals::onSignal);
 #else
@@ -78,8 +71,6 @@ void PosixSignals::onSignal2(int signo, int pid, int uid, void* ptr) {
     p->info.pid = pid;
     p->info.uid = uid;
   }
-
-  TRACE("caught signal {} ({}) for {} handlers", signo, toString(signo), pending.size());
 
   // notify interests (XXX must not be invoked on local stack)
   for (const auto& hr : pending)

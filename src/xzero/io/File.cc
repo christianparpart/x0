@@ -18,12 +18,6 @@
 #include <unistd.h>
 #include <errno.h>
 
-#if 1
-#define TRACE(level, msg...) logTrace("File: " msg)
-#else
-#define TRACE(level, msg...) do {} while (0)
-#endif
-
 namespace xzero {
 
 File::File(const std::string& path, const std::string& mimetype)
@@ -31,11 +25,9 @@ File::File(const std::string& path, const std::string& mimetype)
       errno_(0),
       mimetype_(mimetype),
       lastModified_() {
-  TRACE(2, "({}).ctor", path_);
 }
 
 File::~File() {
-  TRACE(2, "({}).dtor", path_);
 }
 
 std::string File::filename() const {

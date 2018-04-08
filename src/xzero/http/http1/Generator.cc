@@ -21,12 +21,6 @@ namespace xzero {
 namespace http {
 namespace http1 {
 
-template<typename... Args> constexpr void TRACE(const char* msg, Args... args) {
-#ifndef NDEBUG
-  ::xzero::logTrace(std::string("http.h1.Generator: ") + msg, args...);
-#endif
-}
-
 bool isContentForbidden(HttpMethod method) {
   switch (method) {
     case HttpMethod::UNKNOWN_METHOD:
@@ -70,8 +64,6 @@ Generator::Generator(EndPointWriter* output)
 }
 
 void Generator::reset() {
-  TRACE("recycle");
-
   bytesTransmitted_ = 0;
   contentLength_ = Buffer::npos;
   actualContentLength_ = 0;
@@ -193,7 +185,6 @@ void Generator::generateTrailer(const HeaderFieldList& trailers) {
 
 void Generator::generateBody(Buffer&& chunk) {
   if (chunked_) {
-    TRACE("generateBody: Buffer.size={} (chunked encoding)", chunk.size());
     if (chunk.size() > 0) {
       Buffer buf(12);
       buf.printf("%zx\r\n", chunk.size());
@@ -202,9 +193,6 @@ void Generator::generateBody(Buffer&& chunk) {
       writer_->write(BufferRef("\r\n"));
     }
   } else {
-    TRACE("generateBody: chunk: {} (actual: {}, total: {})",
-          chunk.size(), actualContentLength(), contentLength());
-
     if (chunk.size() <= remainingContentLength()) {
       actualContentLength_ += chunk.size();
       writer_->write(std::move(chunk));
@@ -217,7 +205,6 @@ void Generator::generateBody(Buffer&& chunk) {
 
 void Generator::generateBody(FileView&& chunk) {
   if (chunked_) {
-    TRACE("generateBody: FileView.size={} (chunked encoding)", chunk.size());
     int n;
     char buf[12];
 
@@ -229,9 +216,6 @@ void Generator::generateBody(FileView&& chunk) {
       writer_->write(BufferRef("\r\n"));
     }
   } else {
-    TRACE("generateBody: chunk: {} (actual: {}, total: {})",
-          chunk.size(), actualContentLength(), contentLength());
-
     if (chunk.size() <= remainingContentLength()) {
       bytesTransmitted_ += chunk.size();
       actualContentLength_ += chunk.size();
@@ -300,7 +284,6 @@ void Generator::generateResponseLine(const HttpResponseInfo& info) {
 void Generator::generateHeaders(const HttpInfo& info, bool bodyForbidden) {
   chunked_ = info.hasContentLength() == false || info.hasTrailers();
   contentLength_ = info.contentLength();
-  TRACE("generateHeaders: content-length: {}", contentLength_);
 
   for (const HeaderField& header: info.headers()) {
     // skip pseudo headers (that might have come via HTTP/2)

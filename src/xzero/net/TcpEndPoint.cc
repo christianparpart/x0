@@ -24,14 +24,6 @@
 
 namespace xzero {
 
-#if !defined(NDEBUG)
-#define TRACE(msg, ...) logTrace("TcpEndPoint: " msg, __VA_ARGS__)
-#define DEBUG(msg, ...) logDebug("TcpEndPoint: " msg, __VA_ARGS__)
-#else
-#define TRACE(msg, ...) do {} while (0)
-#define DEBUG(msg, ...) do {} while (0)
-#endif
-
 TcpEndPoint::TcpEndPoint(FileDescriptor&& socket,
                          int addressFamily,
                          Duration readTimeout,
@@ -49,7 +41,6 @@ TcpEndPoint::TcpEndPoint(FileDescriptor&& socket,
       isCorking_(false),
       onEndPointClosed_(onEndPointClosed),
       connection_() {
-  TRACE("{} ctor", (void*) this);
 }
 
 void TcpEndPoint::onTimeout() {
@@ -61,7 +52,6 @@ void TcpEndPoint::onTimeout() {
 }
 
 TcpEndPoint::~TcpEndPoint() {
-  TRACE("{} dtor", (void*) this);
   if (isOpen()) {
     close();
   }
@@ -97,15 +87,11 @@ bool TcpEndPoint::isOpen() const XZERO_NOEXCEPT {
 
 void TcpEndPoint::close() {
   if (isOpen()) {
-    TRACE("close() fd={}", handle_.get());
-
     if (onEndPointClosed_) {
       onEndPointClosed_(this);
     }
 
     handle_.close();
-  } else {
-    TRACE("close(fd={}) invoked, but we're closed already", handle_.get());
   }
 }
 
@@ -176,7 +162,6 @@ void TcpEndPoint::onDetectProtocol(ProtocolCallback createConnection) {
     createConnection(protocol, this);
   } else {
     // create TcpConnection object for given endpoint
-    TRACE("{} protocol-switch not detected.", (void*) this);
     createConnection("", this);
   }
 
@@ -210,10 +195,8 @@ size_t TcpEndPoint::read(Buffer* result, size_t count) {
   assert(count <= result->capacity() - result->size());
 
   if (inputOffset_ < inputBuffer_.size()) {
-    TRACE("{} fill: with inputBuffer ({}, {})", (void*) this, inputOffset_, inputBuffer_.size());
     count = std::min(count, inputBuffer_.size() - inputOffset_);
     result->push_back(inputBuffer_.ref(inputOffset_, count));
-    TRACE("{} fill: \"{}\"", (void*) this, inputBuffer_.ref(inputOffset_, count));
     inputOffset_ += count;
     if (inputOffset_ == inputBuffer_.size()) {
       inputBuffer_.clear();
@@ -223,8 +206,6 @@ size_t TcpEndPoint::read(Buffer* result, size_t count) {
   }
 
   ssize_t n = ::read(handle(), result->end(), count);
-  TRACE("read({} bytes) -> {}", result->capacity() - result->size(), n);
-
   if (n < 0) {
     // don't raise on soft errors, such as there is simply no more data to read.
     switch (errno) {
@@ -246,9 +227,6 @@ size_t TcpEndPoint::read(Buffer* result, size_t count) {
 
 size_t TcpEndPoint::write(const BufferRef& source) {
   ssize_t rv = ::write(handle(), source.data(), source.size());
-
-  TRACE("write({} bytes) -> {}", source.size(), rv);
-
   if (rv < 0)
     RAISE_ERRNO(errno);
 
@@ -262,7 +240,6 @@ size_t TcpEndPoint::write(const FileView& view) {
 }
 
 void TcpEndPoint::wantRead() {
-  TRACE("{} wantRead()", (void*) this);
   // TODO: abstract away the logic of TCP_DEFER_ACCEPT
 
   if (!io_) {
@@ -286,8 +263,6 @@ void TcpEndPoint::fillable() {
 }
 
 void TcpEndPoint::wantWrite() {
-  TRACE("{} wantWrite() {}", (void*) this, io_.get() ? "again" : "first time");
-
   if (!io_) {
     io_ = executor_->executeOnWritable(
         handle(),
@@ -298,7 +273,6 @@ void TcpEndPoint::wantWrite() {
 }
 
 void TcpEndPoint::flushable() {
-  TRACE("{} flushable()", (void*) this);
   std::shared_ptr<TcpEndPoint> _guard = shared_from_this();
 
   try {
@@ -327,7 +301,6 @@ void onConnectComplete(InetAddress address,
   socklen_t vlen = sizeof(val);
   if (getsockopt(fd, SOL_SOCKET, SO_ERROR, &val, &vlen) == 0) {
     if (val == 0) {
-      TRACE("onConnectComplete: {}.", "Connected");
       promise.success(std::make_shared<TcpEndPoint>(FileDescriptor{fd},
                                                     address.family(),
                                                     readTimeout,
@@ -335,11 +308,11 @@ void onConnectComplete(InetAddress address,
                                                     executor,
                                                     nullptr));
     } else {
-      DEBUG("Connecting to {} failed. {}", address, strerror(val));
+      logDebug("Connecting to {} failed. {}", address, strerror(val));
       promise.failure(std::make_error_code(static_cast<std::errc>(val)));
     }
   } else {
-    DEBUG("Connecting to {} failed. {}", address, strerror(val));
+    logDebug("Connecting to {} failed. {}", address, strerror(val));
     promise.failure(std::make_error_code(static_cast<std::errc>(val)));
   }
 }
@@ -371,7 +344,6 @@ Future<std::shared_ptr<TcpEndPoint>> TcpEndPoint::connect(const InetAddress& add
 
   std::error_code ec = TcpUtil::connect(fd, address);
   if (!ec) {
-    TRACE("connect: {}", "connected instantly");
     promise.success(std::make_shared<TcpEndPoint>(FileDescriptor{fd},
                                                   address.family(),
                                                   readTimeout,
@@ -379,13 +351,11 @@ Future<std::shared_ptr<TcpEndPoint>> TcpEndPoint::connect(const InetAddress& add
                                                   executor,
                                                   nullptr));
   } else if (ec == std::errc::operation_in_progress) {
-    TRACE("connect: {}", "backgrounding");
     executor->executeOnWritable(fd,
         std::bind(&onConnectComplete, address, fd, readTimeout, writeTimeout, executor, promise),
         connectTimeout,
         [fd, promise]() { FileUtil::close(fd); promise.failure(std::errc::timed_out); });
   } else {
-    TRACE("connect: connect() error. {}", strerror(errno));
     promise.failure(std::make_error_code(static_cast<std::errc>(errno)));
   }
   return promise.future();

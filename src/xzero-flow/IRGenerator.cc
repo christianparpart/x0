@@ -20,57 +20,6 @@
 namespace xzero {
 namespace flow {
 
-//#define FLOW_DEBUG_IR 1
-
-#if defined(FLOW_DEBUG_IR)
-// {{{ trace
-static size_t fnd = 0;
-struct fntrace3 {
-  std::string msg_;
-
-  fntrace3(const char* msg) : msg_(msg) {
-    size_t i = 0;
-    char fmt[1024];
-
-    for (i = 0; i < 2 * fnd;) {
-      fmt[i++] = ' ';
-      fmt[i++] = ' ';
-    }
-    fmt[i++] = '-';
-    fmt[i++] = '>';
-    fmt[i++] = ' ';
-    strcpy(fmt + i, msg_.c_str());
-
-    logDebug("IRGenerator", fmt);
-    ++fnd;
-  }
-
-  ~fntrace3() {
-    --fnd;
-
-    size_t i = 0;
-    char fmt[1024];
-
-    for (i = 0; i < 2 * fnd;) {
-      fmt[i++] = ' ';
-      fmt[i++] = ' ';
-    }
-    fmt[i++] = '<';
-    fmt[i++] = '-';
-    fmt[i++] = ' ';
-    strcpy(fmt + i, msg_.c_str());
-
-    logDebug("IRGenerator", fmt);
-  }
-};
-// }}}
-#define FNTRACE() fntrace3 _(__PRETTY_FUNCTION__)
-#define TRACE(level, msg...) XZERO_DEBUG("IRGenerator", (level), msg)
-#else
-#define FNTRACE()            do {} while (0)
-#define TRACE(level, msg, ...) do {} while (0)
-#endif
-
 IRGenerator::IRGenerator()
     : IRGenerator{ErrorHandler{}, {}} {}
 
@@ -118,8 +67,6 @@ Value* IRGenerator::codegen(Symbol* sym) {
 }
 
 void IRGenerator::accept(UnitSym& unit) {
-  FNTRACE();
-
   setProgram(std::make_unique<IRProgram>());
   program()->setModules(unit.modules());
 
@@ -146,8 +93,6 @@ void IRGenerator::accept(UnitSym& unit) {
 // NPOP STACK[0]
 
 void IRGenerator::accept(VariableSym& variable) {
-  FNTRACE();
-
   AllocaInstr* var = createAlloca(variable.initializer()->getType(),
                                   get(1),
                                   variable.name());
@@ -162,8 +107,6 @@ void IRGenerator::accept(VariableSym& variable) {
 }
 
 void IRGenerator::accept(HandlerSym& handlerSym) {
-  FNTRACE();
-
   assert(handlerStack_.empty());
 
   if (!exports_.empty()) {
@@ -215,20 +158,14 @@ void IRGenerator::codegenInline(HandlerSym& handlerSym) {
 }
 
 void IRGenerator::accept(BuiltinFunctionSym& builtin) {
-  FNTRACE();
-
   result_ = getBuiltinFunction(*builtin.nativeCallback());
 }
 
 void IRGenerator::accept(BuiltinHandlerSym& builtin) {
-  FNTRACE();
-
   result_ = getBuiltinHandler(*builtin.nativeCallback());
 }
 
 void IRGenerator::accept(UnaryExpr& expr) {
-  FNTRACE();
-
   static const std::unordered_map<
       int /*Opcode*/,
       Value* (IRGenerator::*)(Value*, const std::string&)> ops =
@@ -255,8 +192,6 @@ void IRGenerator::accept(UnaryExpr& expr) {
 }
 
 void IRGenerator::accept(BinaryExpr& expr) {
-  FNTRACE();
-
   static const std::unordered_map<
       int /*Opcode*/,
       Value* (IRGenerator::*)(Value*, Value*, const std::string&)> ops =
@@ -351,8 +286,6 @@ void IRGenerator::accept(BinaryExpr& expr) {
 }
 
 void IRGenerator::accept(CallExpr& call) {
-  FNTRACE();
-
   std::vector<Value*> args;
   for (const std::unique_ptr<Expr>& arg : call.args().values()) {
     if (Value* v = codegen(arg.get())) {
@@ -378,8 +311,6 @@ void IRGenerator::accept(CallExpr& call) {
 }
 
 void IRGenerator::accept(VariableExpr& expr) {
-  FNTRACE();
-
   // loads the value of the given variable
 
   if (auto var = scope().lookup(expr.variable())) {
@@ -390,8 +321,6 @@ void IRGenerator::accept(VariableExpr& expr) {
 }
 
 void IRGenerator::accept(HandlerRefExpr& literal) {
-  FNTRACE();
-
   // lodas a handler reference (handler ID) to a handler, possibly generating
   // the code for this handler.
 
@@ -399,48 +328,36 @@ void IRGenerator::accept(HandlerRefExpr& literal) {
 }
 
 void IRGenerator::accept(StringExpr& literal) {
-  FNTRACE();
-
   // loads a string literal
 
   result_ = get(literal.value());
 }
 
 void IRGenerator::accept(NumberExpr& literal) {
-  FNTRACE();
-
   // loads a number literal
 
   result_ = get(literal.value());
 }
 
 void IRGenerator::accept(BoolExpr& literal) {
-  FNTRACE();
-
   // loads a boolean literal
 
   result_ = getBoolean(literal.value());
 }
 
 void IRGenerator::accept(RegExpExpr& literal) {
-  FNTRACE();
-
   // loads a regex literal by reference ID to the const table
 
   result_ = get(literal.value());
 }
 
 void IRGenerator::accept(IPAddressExpr& literal) {
-  FNTRACE();
-
   // loads an ip address by reference ID to the const table
 
   result_ = get(literal.value());
 }
 
 void IRGenerator::accept(CidrExpr& literal) {
-  FNTRACE();
-
   // loads a CIDR network by reference ID to the const table
 
   result_ = get(literal.value());
@@ -456,8 +373,6 @@ bool isConstant(const std::vector<Value*>& values) {
 }
 
 void IRGenerator::accept(ArrayExpr& arrayExpr) {
-  FNTRACE();
-
   std::vector<Value*> values;
   for (size_t i = 0, e = arrayExpr.values().size(); i != e; ++i) {
     Value* element = codegen(arrayExpr.values()[i].get());
@@ -479,22 +394,16 @@ void IRGenerator::accept(ArrayExpr& arrayExpr) {
 }
 
 void IRGenerator::accept(ExprStmt& exprStmt) {
-  FNTRACE();
-
   codegen(exprStmt.expression());
 }
 
 void IRGenerator::accept(CompoundStmt& compoundStmt) {
-  FNTRACE();
-
   for (const auto& stmt : compoundStmt) {
     codegen(stmt.get());
   }
 }
 
 void IRGenerator::accept(CondStmt& condStmt) {
-  FNTRACE();
-
   BasicBlock* trueBlock = createBlock("trueBlock");
   BasicBlock* falseBlock = createBlock("falseBlock");
   BasicBlock* contBlock = createBlock("contBlock");
@@ -526,8 +435,6 @@ Constant* IRGenerator::getConstant(Expr* expr) {
 }
 
 void IRGenerator::accept(MatchStmt& matchStmt) {
-  FNTRACE();
-
   Value* cond = codegen(matchStmt.condition());
   BasicBlock* contBlock = createBlock("match.cont");
   MatchInstr* matchInstr = createMatch(matchStmt.op(), cond);
@@ -559,8 +466,6 @@ void IRGenerator::accept(MatchStmt& matchStmt) {
 }
 
 void IRGenerator::accept(AssignStmt& assignStmt) {
-  FNTRACE();
-
   Value* lhs = scope().lookup(assignStmt.variable());
   Value* rhs = codegen(assignStmt.expression());
   assert(lhs->type() == rhs->type() && "Type of lhs and rhs must be equal.");

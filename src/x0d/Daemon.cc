@@ -60,12 +60,6 @@
 using namespace xzero;
 using namespace xzero::http;
 
-template<typename... Args> constexpr void TRACE(const char* msg, Args... args) {
-#ifndef NDEBUG
-  ::xzero::logTrace(std::string("x0d.Daemon: ") + msg, args...);
-#endif
-}
-
 // XXX variable defined by mimetypes2cc compiler
 extern std::unordered_map<std::string, std::string> mimetypes2cc;
 
@@ -523,7 +517,6 @@ void Daemon::validateContext(const std::string& entrypointHandlerName,
 
 void Daemon::run() {
   runOneThread(0);
-  TRACE("Main loop quit. Shutting down.");
   stop();
 }
 
@@ -533,9 +526,7 @@ void Daemon::runOneThread(size_t index) {
   if (index < config_->workerAffinities.size())
     setThreadAffinity(config_->workerAffinities[index], index);
 
-  TRACE("worker/{}: Event loop enter", index);
   eventLoop->runLoop();
-  TRACE("worker/{}: Event loop terminated.", index);
 }
 
 void Daemon::setThreadAffinity(int cpu, int workerId) {
@@ -544,8 +535,6 @@ void Daemon::setThreadAffinity(int cpu, int workerId) {
 
   CPU_ZERO(&set);
   CPU_SET(cpu, &set);
-
-  TRACE("setAffinity: cpu {} on worker {}", cpu, workerId);
 
   pthread_t tid = pthread_self();
 
@@ -573,8 +562,6 @@ Executor* Daemon::selectClientExecutor() {
 
   if (++lastWorker_ >= eventLoops_.size())
     lastWorker_ = 0;
-
-  TRACE("select client scheduler {}", lastWorker_);
 
   return eventLoops_[lastWorker_].get();
 }

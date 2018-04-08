@@ -12,12 +12,6 @@
 
 namespace xzero {
 
-template<typename... Args> constexpr void TRACE(const char* msg, Args... args) {
-#ifndef NDEBUG
-  ::xzero::logTrace(std::string("LinuxSignals: ") + msg, args...);
-#endif
-}
-
 LinuxSignals::LinuxSignals(Executor* executor)
     : executor_(executor),
       fd_(),
@@ -47,13 +41,11 @@ UnixSignals::HandleRef LinuxSignals::notify(int signo, SignalHandler task) {
     if (fd_ < 0) {
       RAISE_ERRNO(errno);
     }
-    TRACE("notify: signalfd={}", fd_.get());
   }
 
   // block this signal also to avoid default disposition
   sigprocmask(SIG_BLOCK, &signalMask_, nullptr);
 
-  TRACE("notify: {}", toString(signo));
   auto hr = std::make_shared<SignalWatcher>(task);
   watchers_[signo].emplace_back(hr);
 

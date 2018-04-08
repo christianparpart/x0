@@ -20,12 +20,6 @@
 namespace xzero {
 namespace http {
 
-template<typename... Args> constexpr void TRACE(const char* msg, Args... args) {
-#ifndef NDEBUG
-  ::xzero::logTrace(std::string("http.HttpService: ") + msg, args...);
-#endif
-}
-
 HttpService::HttpService()
     : HttpService(getDefaultProtocol()) {
 }

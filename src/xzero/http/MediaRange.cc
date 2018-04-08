@@ -10,12 +10,6 @@
 #include <list>
 #include <stdlib.h>
 
-template<typename... Args> constexpr void TRACE(const char* msg, Args... args) {
-#ifndef NDEBUG
-  ::xzero::logTrace(std::string("http.MediaRange: ") + msg, args...);
-#endif
-}
-
 namespace xzero::http {
 
 MediaRange::MediaRange(const std::string& type,

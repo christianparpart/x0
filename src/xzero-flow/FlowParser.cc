@@ -34,64 +34,8 @@ struct hash<OpSig> {
 };
 }
 
-#define TRACE(msg, ...) do {} while (0)
-// template<typename... Args> constexpr void TRACE(const char* msg, Args... args) {
-// #ifndef NDEBUG
-//   ::xzero::logTrace(std::string("flow.Parser: ") + msg, args...);
-// #endif
-// }
-
 namespace xzero {
 namespace flow {
-
-//#define FLOW_DEBUG_PARSER 1
-
-#if defined(FLOW_DEBUG_PARSER)
-// {{{ trace
-static size_t fnd = 0;
-struct fntrace {
-  std::string msg_;
-
-  fntrace(const char* msg) : msg_(msg) {
-    size_t i = 0;
-    char fmt[1024];
-
-    for (i = 0; i < 2 * fnd;) {
-      fmt[i++] = ' ';
-      fmt[i++] = ' ';
-    }
-    fmt[i++] = '-';
-    fmt[i++] = '>';
-    fmt[i++] = ' ';
-    strcpy(fmt + i, msg_.c_str());
-
-    logTrace(fmt);
-    ++fnd;
-  }
-
-  ~fntrace() {
-    --fnd;
-
-    size_t i = 0;
-    char fmt[1024];
-
-    for (i = 0; i < 2 * fnd;) {
-      fmt[i++] = ' ';
-      fmt[i++] = ' ';
-    }
-    fmt[i++] = '<';
-    fmt[i++] = '-';
-    fmt[i++] = ' ';
-    strcpy(fmt + i, msg_.c_str());
-
-    logTrace(fmt);
-  }
-};
-// }}}
-#define FNTRACE() fntrace _(__PRETTY_FUNCTION__)
-#else
-#define FNTRACE()     do {} while (0)
-#endif
 
 // {{{ scoped(SCOPED_SYMBOL)
 class FlowParser::Scope {
@@ -436,8 +380,6 @@ std::unique_ptr<UnitSym> FlowParser::unit() {
 
 void FlowParser::importRuntime() {
   if (runtime_) {
-    TRACE("importing runtime, {} builtins", runtime_->builtins().size());
-
     for (const auto& builtin : runtime_->builtins()) {
       declareBuiltin(builtin);
     }
@@ -445,9 +387,6 @@ void FlowParser::importRuntime() {
 }
 
 void FlowParser::declareBuiltin(const NativeCallback* native) {
-  TRACE("declareBuiltin (scope:{}): {}",
-        currentScope()->name(), native->signature());
-
   if (native->isHandler()) {
     createSymbol<BuiltinHandlerSym>(*native);
   } else {
@@ -456,8 +395,6 @@ void FlowParser::declareBuiltin(const NativeCallback* native) {
 }
 
 std::unique_ptr<Symbol> FlowParser::decl() {
-  FNTRACE();
-
   switch (token()) {
     case FlowToken::Var:
       return varDecl();
@@ -472,7 +409,6 @@ std::unique_ptr<Symbol> FlowParser::decl() {
 
 // 'var' IDENT ['=' EXPR] ';'
 std::unique_ptr<VariableSym> FlowParser::varDecl() {
-  FNTRACE();
   SourceLocation loc(lexer_->location());
 
   if (!consume(FlowToken::Var)) return nullptr;
@@ -493,8 +429,6 @@ std::unique_ptr<VariableSym> FlowParser::varDecl() {
 }
 
 bool FlowParser::importDecl(UnitSym* unit) {
-  FNTRACE();
-
   // 'import' NAME_OR_NAMELIST ['from' PATH] ';'
   nextToken();  // skip 'import'
 
@@ -576,8 +510,6 @@ bool FlowParser::importOne(std::list<std::string>& names) {
 
 // handlerDecl ::= 'handler' IDENT (';' | [do] stmt)
 std::unique_ptr<HandlerSym> FlowParser::handlerDecl(bool keyword) {
-  FNTRACE();
-
   SourceLocation loc(location());
 
   if (keyword) {
@@ -616,14 +548,10 @@ std::unique_ptr<HandlerSym> FlowParser::handlerDecl(bool keyword) {
 // }}}
 // {{{ expr
 std::unique_ptr<Expr> FlowParser::expr() {
-  FNTRACE();
-
   return logicExpr();
 }
 
 std::unique_ptr<Expr> FlowParser::logicExpr() {
-  FNTRACE();
-
   std::unique_ptr<Expr> lhs = notExpr();
   if (!lhs) return nullptr;
 
@@ -656,8 +584,6 @@ std::unique_ptr<Expr> FlowParser::logicExpr() {
 }
 
 std::unique_ptr<Expr> FlowParser::notExpr() {
-  FNTRACE();
-
   size_t nots = 0;
 
   SourceLocation loc = location();
@@ -681,8 +607,6 @@ std::unique_ptr<Expr> FlowParser::notExpr() {
 }
 
 std::unique_ptr<Expr> FlowParser::relExpr() {
-  FNTRACE();
-
   std::unique_ptr<Expr> lhs = addExpr();
   if (!lhs)
     return nullptr;
@@ -720,8 +644,6 @@ std::unique_ptr<Expr> FlowParser::relExpr() {
 }
 
 std::unique_ptr<Expr> FlowParser::addExpr() {
-  FNTRACE();
-
   std::unique_ptr<Expr> lhs = mulExpr();
   if (!lhs) return nullptr;
 
@@ -752,8 +674,6 @@ std::unique_ptr<Expr> FlowParser::addExpr() {
 }
 
 std::unique_ptr<Expr> FlowParser::mulExpr() {
-  FNTRACE();
-
   std::unique_ptr<Expr> lhs = powExpr();
   if (!lhs) return nullptr;
 
@@ -788,8 +708,6 @@ std::unique_ptr<Expr> FlowParser::mulExpr() {
 
 std::unique_ptr<Expr> FlowParser::powExpr() {
   // powExpr ::= negExpr ('**' powExpr)*
-  FNTRACE();
-
   SourceLocation sloc(location());
   std::unique_ptr<Expr> left = negExpr();
   if (!left) return nullptr;
@@ -815,8 +733,6 @@ std::unique_ptr<Expr> FlowParser::powExpr() {
 
 std::unique_ptr<Expr> FlowParser::negExpr() {
   // negExpr ::= ['-'] primaryExpr
-  FNTRACE();
-
   SourceLocation loc = location();
 
   if (consumeIf(FlowToken::Minus)) {
@@ -840,8 +756,6 @@ std::unique_ptr<Expr> FlowParser::negExpr() {
 
 std::unique_ptr<Expr> FlowParser::bitNotExpr() {
   // negExpr ::= ['~'] primaryExpr
-  FNTRACE();
-
   SourceLocation loc = location();
 
   if (consumeIf(FlowToken::BitNot)) {
@@ -869,8 +783,6 @@ std::unique_ptr<Expr> FlowParser::bitNotExpr() {
 //               | '(' expr ')'
 //               | '[' exprList ']'
 std::unique_ptr<Expr> FlowParser::primaryExpr() {
-  FNTRACE();
-
   switch (token()) {
     case FlowToken::String:
     case FlowToken::RawString:
@@ -983,7 +895,6 @@ std::unique_ptr<Expr> FlowParser::primaryExpr() {
     case FlowToken::BrOpen:
       return arrayExpr();
     default:
-      TRACE("Expected primary expression. Got something... else.");
       reportUnexpectedToken();
       return nullptr;
   }
@@ -1040,8 +951,6 @@ std::unique_ptr<Expr> FlowParser::arrayExpr() {
 }
 
 std::unique_ptr<Expr> FlowParser::literalExpr() {
-  FNTRACE();
-
   // literalExpr  ::= NUMBER [UNIT]
   //                | BOOL
   //                | STRING
@@ -1146,8 +1055,6 @@ std::unique_ptr<ParamList> FlowParser::paramList() {
   // paramList       ::= namedExpr *(',' namedExpr)
   //                   | expr *(',' expr)
 
-  FNTRACE();
-
   if (token() == FlowToken::NamedParam) {
     std::unique_ptr<ParamList> args = std::make_unique<ParamList>(true);
     std::string name;
@@ -1212,8 +1119,6 @@ std::unique_ptr<Expr> asString(std::unique_ptr<Expr>&& expr) {
 }
 
 std::unique_ptr<Expr> FlowParser::interpolatedStr() {
-  FNTRACE();
-
   SourceLocation sloc(location());
   std::unique_ptr<Expr> result =
       std::make_unique<StringExpr>(stringValue(), sloc.update(end()));
@@ -1270,8 +1175,6 @@ std::unique_ptr<Expr> FlowParser::interpolatedStr() {
 //            | 'string' '(' expr ')'
 //            | 'bool' '(' expr ')'
 std::unique_ptr<Expr> FlowParser::castExpr() {
-  FNTRACE();
-
   SourceLocation sloc(location());
 
   FlowToken targetTypeToken = token();
@@ -1306,8 +1209,6 @@ std::unique_ptr<Expr> FlowParser::castExpr() {
 // }}}
 // {{{ stmt
 std::unique_ptr<Stmt> FlowParser::stmt() {
-  FNTRACE();
-
   switch (token()) {
     case FlowToken::If:
       return ifStmt();
@@ -1331,7 +1232,6 @@ std::unique_ptr<Stmt> FlowParser::stmt() {
 
 std::unique_ptr<Stmt> FlowParser::ifStmt() {
   // ifStmt ::= 'if' expr ['then'] stmt ['else' stmt]
-  FNTRACE();
   SourceLocation sloc(location());
 
   consume(FlowToken::If);
@@ -1369,8 +1269,6 @@ std::unique_ptr<Stmt> FlowParser::ifStmt() {
 }
 
 std::unique_ptr<Stmt> FlowParser::matchStmt() {
-  FNTRACE();
-
   // matchStmt       ::= 'match' expr [MATCH_OP] '{' *matchCase ['else' stmt]
   // '}'
   // matchCase       ::= 'on' literalExpr *(',' 'on' literalExpr) stmt
@@ -1481,7 +1379,6 @@ std::unique_ptr<Stmt> FlowParser::matchStmt() {
 
 // compoundStmt ::= '{' varDecl* stmt* '}'
 std::unique_ptr<Stmt> FlowParser::compoundStmt() {
-  FNTRACE();
   SourceLocation sloc(location());
   nextToken();  // '{'
 
@@ -1508,8 +1405,6 @@ std::unique_ptr<Stmt> FlowParser::compoundStmt() {
 }
 
 std::unique_ptr<Stmt> FlowParser::identStmt() {
-  FNTRACE();
-
   // identStmt  ::= callStmt | assignStmt
   // callStmt   ::= NAME ['(' paramList ')' | paramList] (';' | LF)
   // assignStmt ::= NAME '=' expr [';' | LF]
@@ -1588,8 +1483,6 @@ std::unique_ptr<Stmt> FlowParser::identStmt() {
 
 std::unique_ptr<CallExpr> FlowParser::callStmt(
     const std::list<Symbol*>& symbols) {
-  FNTRACE();
-
   // callStmt ::= NAME ['(' paramList ')' | paramList] (';' | LF)
   // namedArg ::= NAME ':' expr
 
@@ -1653,8 +1546,6 @@ Signature makeSignature(const CallableSym* callee, const ParamList& params) {
 
 std::unique_ptr<CallExpr> FlowParser::resolve(
     const std::list<CallableSym*>& callables, ParamList&& params) {
-  FNTRACE();
-
   auto inputSignature = makeSignature(callables.front(), params);
 
   // attempt to find a full match first
@@ -1706,8 +1597,6 @@ std::unique_ptr<CallExpr> FlowParser::resolve(
 
 std::unique_ptr<Stmt> FlowParser::postscriptStmt(
     std::unique_ptr<Stmt> baseStmt) {
-  FNTRACE();
-
   FlowToken op = token();
   switch (op) {
     case FlowToken::If:

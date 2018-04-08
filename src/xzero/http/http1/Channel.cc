@@ -22,12 +22,6 @@ namespace xzero {
 namespace http {
 namespace http1 {
 
-template<typename... Args> constexpr void TRACE(const char* msg, Args... args) {
-#ifndef NDEBUG
-  ::xzero::logTrace(std::string("http.h1.Channel: ") + msg, args...);
-#endif
-}
-
 Channel::Channel(Connection* transport,
                  Executor* executor,
                  const HttpHandlerFactory& handlerFactory,
@@ -52,7 +46,6 @@ void Channel::reset() {
 
 void Channel::upgrade(const std::string& protocol,
                       std::function<void(TcpEndPoint*)> callback) {
-  TRACE("upgrade: {}", protocol);
   Connection* connection = static_cast<Connection*>(transport_);
 
   connection->upgrade(protocol, callback);
@@ -101,7 +94,6 @@ void Channel::onMessageHeader(const BufferRef& name,
     connectionOptions_.push_back(option.str());
 
     if (iequals(option, "Keep-Alive")) {
-      TRACE("enable keep-alive");
       persistent_ = true;
     } else if (iequals(option, "close")) {
       persistent_ = false;
@@ -129,8 +121,6 @@ void Channel::onMessageHeaderEnd() {
 }
 
 void Channel::h2cVerifyUpgrade(std::string&& settingsPayload) {
-  TRACE("http1: verify upgrade to h2c");
-
   Buffer settingsBuffer;
   settingsBuffer.reserve(base64::decodeLength(settingsPayload));
   settingsBuffer.resize(base64url::decode(settingsPayload.begin(),
@@ -179,8 +169,6 @@ void Channel::h2cUpgrade(const Http2Settings& settings,
                          HttpOutputCompressor* outputCompressor,
                          size_t maxRequestBodyLength,
                          size_t maxRequestCount) {
-  TRACE("http1: Upgrading to h2c.");
-
   // TODO: pass negotiated settings
   // TODO: pass initial request to be served directly
 
@@ -201,8 +189,6 @@ void Channel::h2cUpgrade(const Http2Settings& settings,
 }
 
 void Channel::onError(std::error_code ec) {
-  TRACE("Protocol Error: {}", ec.message());
-
   request_->setBytesReceived(bytesReceived());
 
   if (!response_->isCommitted()) {
