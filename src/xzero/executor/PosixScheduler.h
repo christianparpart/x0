@@ -8,6 +8,7 @@
 #pragma once
 
 #include <xzero/executor/EventLoop.h>
+#include <xzero/io/SystemPipe.h>
 #include <xzero/MonotonicTime.h>
 #include <xzero/sysconfig.h>
 #include <xzero/defines.h>

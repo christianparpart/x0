@@ -65,11 +65,7 @@ PosixScheduler::PosixScheduler(ExceptionHandler eh)
       input_{},
       output_{},
       error_{} {
-  if (pipe(wakeupPipe_) < 0) {
-    RAISE_ERRNO(errno);
-  }
-  fcntl(wakeupPipe_[0], F_SETFL, O_NONBLOCK);
-  fcntl(wakeupPipe_[1], F_SETFL, O_NONBLOCK);
+  wakeupPipe_.setNonBlocking(true);
 
   struct rlimit rlim{};
   memset(&rlim, 0, sizeof(rlim));
@@ -84,8 +80,8 @@ PosixScheduler::PosixScheduler(ExceptionHandler eh)
     w = std::make_shared<Watcher>();
 
   TRACE("ctor: wakeupPipe {read={}, write={}, nofile={}}",
-      wakeupPipe_[PIPE_READ_END],
-      wakeupPipe_[PIPE_WRITE_END],
+      wakeupPipe_.readerFd(),
+      wakeupPipe_.writerFd(),
       nofile);
 }
 
@@ -95,8 +91,6 @@ PosixScheduler::PosixScheduler()
 
 PosixScheduler::~PosixScheduler() {
   TRACE("~dtor");
-  ::close(wakeupPipe_[PIPE_READ_END]);
-  ::close(wakeupPipe_[PIPE_WRITE_END]);
 }
 
 void PosixScheduler::updateTime() {
@@ -119,8 +113,8 @@ void PosixScheduler::execute(Task task) {
 
 std::string PosixScheduler::toString() const {
   return fmt::format("PosixScheduler: wakeupPipe{{}, {}}",
-      wakeupPipe_[PIPE_READ_END],
-      wakeupPipe_[PIPE_WRITE_END]);
+      wakeupPipe_.readerFd(),
+      wakeupPipe_.writerFd());
 }
 
 EventLoop::HandleRef PosixScheduler::executeAfter(Duration delay, Task task) {
@@ -345,13 +339,8 @@ PosixScheduler::HandleRef PosixScheduler::setupWatcher(
 }
 
 void PosixScheduler::collectActiveHandles(std::list<Task>* result) {
-  if (FD_ISSET(wakeupPipe_[PIPE_READ_END], &input_)) {
-    bool consumeMore = true;
-    while (consumeMore) {
-      char buf[sizeof(int) * 128];
-      consumeMore = ::read(wakeupPipe_[PIPE_READ_END], buf, sizeof(buf)) > 0;
-    }
-  }
+  if (FD_ISSET(wakeupPipe_.readerFd(), &input_))
+    wakeupPipe_.consume();
 
   Watcher* w = firstWatcher_;
 
@@ -424,8 +413,8 @@ size_t PosixScheduler::waitForEvents() noexcept {
 
   int wmark = collectWatches();
 
-  FD_SET(wakeupPipe_[PIPE_READ_END], &input_);
-  wmark = std::max(wmark, wakeupPipe_[PIPE_READ_END]);
+  FD_SET(wakeupPipe_.readerFd(), &input_);
+  wmark = std::max(wmark, wakeupPipe_.readerFd());
 
   now_.update();
 
@@ -504,8 +493,8 @@ void PosixScheduler::breakLoop() {
 }
 
 void PosixScheduler::wakeupLoop() {
-  int dummy = 42;
-  ::write(wakeupPipe_[PIPE_WRITE_END], &dummy, sizeof(dummy));
+  static const int dummy = 42;
+  wakeupPipe_.write(&dummy, sizeof(dummy));
 }
 
 void PosixScheduler::waitForReadable(int fd, Duration timeout) {
