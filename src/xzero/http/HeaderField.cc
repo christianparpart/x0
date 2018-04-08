@@ -11,11 +11,15 @@
 
 namespace xzero::http {
 
+static inline constexpr bool isSpace(char p) {
+  return p == ' ' || p == '\t';
+}
+
 HeaderField HeaderField::parse(const std::string& field) {
   size_t i = field.find(':');
   size_t k = i + 1;
 
-  while (std::isspace(field[k]))
+  while (isSpace(field[k]))
     k++;
 
   std::string name = field.substr(0, i);

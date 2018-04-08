@@ -82,7 +82,7 @@
 #define XZERO_NO_RETURN          /*!*/
 #define XZERO_DEPRECATED         /*!*/
 #define XZERO_PURE               /*!*/
-#define XZERO_PACKED __packed    /* ? */
+#define XZERO_PACKED             /*FIXME*/
 #define XZERO_INIT               /*!*/
 #define XZERO_FINI               /*!*/
 #define XZERO_DISABLE_COPY(ClassName) /*!*/

@@ -382,11 +382,6 @@ void TargetCodeGenerator::visit(RetInstr& retInstr) {
 }
 
 void TargetCodeGenerator::visit(MatchInstr& matchInstr) {
-  static const Opcode ops[] = {[(size_t)MatchClass::Same] = Opcode::SMATCHEQ,
-                               [(size_t)MatchClass::Head] = Opcode::SMATCHBEG,
-                               [(size_t)MatchClass::Tail] = Opcode::SMATCHEND,
-                               [(size_t)MatchClass::RegExp] = Opcode::SMATCHR, };
-
   const size_t matchId = cp_.makeMatchDef();
   MatchDef& matchDef = cp_.getMatchDef(matchId);
 
@@ -412,7 +407,20 @@ void TargetCodeGenerator::visit(MatchInstr& matchInstr) {
   }
 
   emitLoad(matchInstr.condition());
-  emitInstr(ops[(size_t)matchDef.op], matchId);
+  switch (matchDef.op) {
+  case MatchClass::Same:
+    emitInstr(Opcode::SMATCHEQ, matchId);
+    break;
+  case MatchClass::Head:
+    emitInstr(Opcode::SMATCHBEG, matchId);
+    break;
+  case MatchClass::Tail:
+    emitInstr(Opcode::SMATCHEND, matchId);
+    break;
+  case MatchClass::RegExp:
+    emitInstr(Opcode::SMATCHR, matchId);
+    break;
+  }
 }
 
 void TargetCodeGenerator::visit(CastInstr& castInstr) {

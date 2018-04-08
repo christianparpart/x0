@@ -14,6 +14,7 @@
 #include <xzero/net/IPAddress.h>
 #include <xzero/net/Cidr.h>
 
+#include <deque>
 #include <string>
 #include <vector>
 #include <list>

@@ -10,6 +10,7 @@
 #include <xzero/http/HttpResponse.h>
 #include <xzero/http/HttpRangeDef.h>
 #include <xzero/http/HeaderFieldList.h>
+#include <xzero/Random.h>
 #include <xzero/io/File.h>
 #include <xzero/io/FileView.h>
 #include <xzero/UnixTime.h>
@@ -47,11 +48,12 @@ inline constexpr std::pair<size_t, size_t> makeOffsets(
  * \return a value usable as boundary tag.
  */
 static std::string generateDefaultBoundaryID() {
+  static Random rng;
   static const char* map = "0123456789abcdef";
   char buf[16 + 1];
 
   for (size_t i = 0; i < sizeof(buf) - 1; ++i)
-    buf[i] = map[random() % (sizeof(buf) - 1)];
+    buf[i] = map[rng.random64() % (sizeof(buf) - 1)];
 
   buf[sizeof(buf) - 1] = '\0';
 
