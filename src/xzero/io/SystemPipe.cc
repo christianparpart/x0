@@ -35,6 +35,30 @@ SystemPipe::~SystemPipe() {
   closeWriter();
 }
 
+void SystemPipe::closeReader() {
+#if defined(XZERO_OS_WIN32)
+  CloseHandle(reader_);
+  writer_ = nullptr;
+#else
+  if (fds_[0] != -1) {
+    ::close(fds_[0]);
+    fds_[0] = -1;
+  }
+#endif
+}
+
+void SystemPipe::closeWriter() {
+#if defined(XZERO_OS_WIN32)
+  CloseHandle(writer_);
+  writer_ = nullptr;
+#else
+  if (fds_[1] != -1) {
+    ::close(fds_[1]);
+    fds_[1] = -1;
+  }
+#endif
+}
+
 int SystemPipe::write(const std::string& msg) {
 #if defined(XZERO_OS_WIN32)
   DWORD nwritten = 0;
@@ -42,6 +66,16 @@ int SystemPipe::write(const std::string& msg) {
   return nwritten;
 #else
   return ::write(writerFd(), msg.data(), msg.size());
+#endif
+}
+
+void SystemPipe::consume() {
+#if defined(XZERO_OS_WIN32)
+  // TODO
+#else
+  char buf[1024];
+  while (::read(readerFd(), buf, sizeof(buf)) > 0)
+    ;
 #endif
 }
 

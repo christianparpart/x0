@@ -26,6 +26,7 @@ class SystemPipe {
   ~SystemPipe();
 
   int write(const std::string& msg);
+  void consume();
 
 #if defined(XZERO_OS_WIN32)
   HANDLE readerFd() const noexcept { return reader_; }
@@ -46,27 +47,5 @@ class SystemPipe {
   int fds_[2];
 #endif
 };
-
-inline void SystemPipe::closeReader() {
-#if defined(XZERO_OS_WIN32)
-  CloseHandle(reader_);
-#else
-  if (fds_[READER] != -1) {
-    ::close(fds_[READER]);
-    fds_[READER] = -1;
-  }
-#endif
-}
-
-inline void SystemPipe::closeWriter() {
-#if defined(XZERO_OS_WIN32)
-  CloseHandle(writer_);
-#else
-  if (fds_[WRITER] != -1) {
-    ::close(fds_[WRITER]);
-    fds_[WRITER] = -1;
-  }
-#endif
-}
 
 } // namespace xzero

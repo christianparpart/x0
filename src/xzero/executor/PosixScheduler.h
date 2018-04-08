@@ -221,9 +221,9 @@ class PosixScheduler : public EventLoop {
    */
   std::mutex lock_;
 
-  int wakeupPipe_[2];        //!< system pipe, used to wakeup the waiting syscall
+  SystemPipe wakeupPipe_;           //!< system pipe, used to wakeup the waiting syscall
 
-  std::list<Task> tasks_;            //!< list of pending tasks
+  std::list<Task> tasks_;           //!< list of pending tasks
   std::list<std::shared_ptr<Timer>> timers_;  //!< ASC-sorted list of timers
 
   std::vector<std::shared_ptr<Watcher>> watchers_; //!< I/O watchers
