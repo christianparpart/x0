@@ -24,6 +24,11 @@
 #include <cmath>
 #include <inttypes.h>
 
+// XXX Visual Studio doesn't support computed goto statements
+#if defined(_MSC_VER)
+#define FLOW_VM_LOOP_SWITCH 1
+#endif
+
 namespace xzero::flow {
 
 // {{{ VM helper preprocessor definitions
@@ -32,47 +37,36 @@ namespace xzero::flow {
 #define B operandB((Instruction) * pc)
 #define C operandC((Instruction) * pc)
 
-#define SP(i) stack_[(i)]
+#define SP(i)           stack_[(i)]
+#define popStringPtr()  ((FlowString*)  stack_.pop())
+#define incr_pc()       do { ++pc; } while (0)
+#define jump_to(offset) do { set_pc(offset); jump; } while (0)
 
-#define popStringPtr()      ((FlowString*)  stack_.pop())
-
-#define incr_pc()       \
-  do {                  \
-    ++pc;               \
-  } while (0)
-
-#define jump_to(offset) \
-  do {                  \
-    set_pc(offset);     \
-    jump;               \
-  } while (0)
-
-#if defined(ENABLE_FLOW_DIRECT_THREADED_VM)
-#define instr(name) \
-  l_##name : ++pc;  \
-  logDebug("{}",    \
-        disassemble((Instruction) * pc, (pc - code.data()) / 2), &program_->constants());
-
-#define get_pc() ((pc - code.data()) / 2)
-#define set_pc(offset)               \
-  do {                               \
-    pc = code.data() + (offset) * 2; \
-  } while (0)
-#define jump goto*(void*)*pc
-#define next goto*(void*)*++pc
+#if defined(FLOW_VM_LOOP_SWITCH)
+  #define LOOP_BEGIN()    for (;;) { switch (OP) {
+  #define LOOP_END()      default: logFatal("Unknown OP hit!"); } }
+  #define instr(NAME)     case NAME: logDebug("{}", disassemble(*pc, pc - code.data(), &sp_, &program_->constants()));
+  #define get_pc()        (pc - code.data())
+  #define set_pc(offset)  do { pc = code.data() + (offset); } while (0)
+  #define jump            if (true) { break; }
+  #define next            if (true) { ++pc; break; }
+#elif defined(ENABLE_FLOW_DIRECT_THREADED_VM)
+  #define LOOP_BEGIN()    do { jump; } while (0)
+  #define LOOP_END()      do {} while (0)
+  #define instr(name)     l_##name : ++pc; logDebug("{}", disassemble((Instruction) * pc, (pc - code.data()) / 2), &program_->constants());
+  #define get_pc()        ((pc - code.data()) / 2)
+  #define set_pc(offset)  do { pc = code.data() + (offset) * 2; } while (0)
+  #define jump            goto*(void*)*pc
+  #define next            goto*(void*)*++pc
 #else
-#define instr(name) \
-  l_##name : logDebug("{}", disassemble(*pc, pc - code.data(), &sp_, &program_->constants()));
-
-#define get_pc() (pc - code.data())
-#define set_pc(offset)           \
-  do {                           \
-    pc = code.data() + (offset); \
-  } while (0)
-#define jump goto* ops[OP]
-#define next goto* ops[opcode(*++pc)]
+  #define LOOP_BEGIN()    do { jump; } while (0)
+  #define LOOP_END()      do {} while (0)
+  #define instr(name)     l_##name : logDebug("{}", disassemble(*pc, pc - code.data(), &sp_, &program_->constants()));
+  #define get_pc()        (pc - code.data())
+  #define set_pc(offset)  do { pc = code.data() + (offset); } while (0)
+  #define jump            goto* ops[OP]
+  #define next            goto* ops[opcode(*++pc)]
 #endif
-
 // }}}
 
 static FlowString* t = nullptr;
@@ -136,6 +130,7 @@ bool Runner::loop() {
   const auto& code = handler_->code();
 #endif
 
+#if !defined(FLOW_VM_LOOP_SWITCH)
 // {{{ jump table
 #define label(opcode) &&l_##opcode
   static const void* const ops[] = {
@@ -203,11 +198,11 @@ bool Runner::loop() {
 // const void** pc = code.data();
 #endif
   // }}}
-
+#endif
   const auto* pc = code.data();
   set_pc(pc_);
 
-  jump;
+  LOOP_BEGIN()
 
   // {{{ misc
   instr(NOP) {
@@ -680,6 +675,8 @@ bool Runner::loop() {
     jump;
   }
   // }}}
+
+  LOOP_END()
 }
 
 }  // namespace xzero::flow
