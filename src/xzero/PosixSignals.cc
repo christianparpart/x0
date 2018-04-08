@@ -38,7 +38,7 @@ PosixSignals::HandleRef PosixSignals::notify(int signo, SignalHandler task) {
   if (watchers_[signo].empty()) {
     TRACE("installing signal handler {} ({})", signo, toString(signo));
 #if defined(XZERO_OS_WIN32)
-    signal(signo, &PosixSignals::onSignal3);
+    signal(signo, &PosixSignals::onSignal);
 #else
     struct sigaction sa{};
     memset(&sa, 0, sizeof(sa));
@@ -55,7 +55,7 @@ PosixSignals::HandleRef PosixSignals::notify(int signo, SignalHandler task) {
 
 #if defined(XZERO_OS_WIN32)
 void PosixSignals::onSignal(int signo) {
-  singleton_->onSignal2(signo, 0, 0, ptr);
+  singleton_->onSignal2(signo, 0, 0, nullptr);
 }
 #else
 void PosixSignals::onSignal(int signo, siginfo_t* info, void* ptr) {

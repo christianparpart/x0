@@ -24,13 +24,11 @@
 #include <cmath>
 #include <inttypes.h>
 
-#if 1 // !defined(NDEBUG)
-#define TRACE(msg...) logTrace(msg)
-#define DEBUG(msg...) logDebug(msg)
-#else
-#define TRACE(msg...) do {} while (0)
-#define DEBUG(msg...) do {} while (0)
+template<typename... Args> constexpr void TRACE(const char* msg, Args... args) {
+#ifndef NDEBUG
+  ::xzero::logTrace(std::string("flow.vm.Runner: ") + msg, args...);
 #endif
+}
 
 namespace xzero::flow {
 

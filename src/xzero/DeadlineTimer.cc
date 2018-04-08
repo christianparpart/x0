@@ -12,13 +12,13 @@
 #include <xzero/executor/Executor.h>
 #include <cassert>
 
-namespace xzero {
-
+template<typename... Args> constexpr void TRACE(const char* msg, Args... args) {
 #ifndef NDEBUG
-#define TRACE(msg...) do { logTrace("DeadlineTimer: " msg); } while (0)
-#else
-#define TRACE(msg...) do {} while (0)
+  ::xzero::logTrace(std::string("DeadlineTimer: ") + msg, args...);
 #endif
+}
+
+namespace xzero {
 
 DeadlineTimer::DeadlineTimer(Executor* executor,
                              Executor::Task cb,
