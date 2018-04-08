@@ -22,7 +22,7 @@
 namespace xzero::flow {
 
 #if !defined(NDEBUG)
-#define TRACE(msg, ...) logTrace("flow.vm.Program" msg, __VA_ARG__)
+#define TRACE(msg, ...) logTrace("flow.vm.Program" msg __VA_ARGS__)
 #else
 #define TRACE(msg, ...) do {} while (0)
 #endif
@@ -58,12 +58,12 @@ Program::Program(ConstantPool&& cp)
       matches_(),
       nativeHandlers_(),
       nativeFunctions_() {
-  TRACE("Program.ctor");
+  TRACE("ctor");
   setup();
 }
 
 Program::~Program() {
-  TRACE("~Program.dtor");
+  TRACE("~dtor");
 }
 
 Handler* Program::handler(size_t index) const {
@@ -71,11 +71,11 @@ Handler* Program::handler(size_t index) const {
 }
 
 void Program::setup() {
-  TRACE("Program.setup: create handlers");
+  TRACE("setup: create handlers");
   for (const auto& handler : cp_.getHandlers())
     createHandler(handler.first, handler.second);
 
-  TRACE("Program.setup: create matches");
+  TRACE("setup: create matches");
   const std::vector<MatchDef>& matches = cp_.getMatchDefs();
   for (size_t i = 0, e = matches.size(); i != e; ++i) {
     const MatchDef& def = matches[i];

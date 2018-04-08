@@ -9,6 +9,7 @@
 #include <xzero/time_constants.h>
 #include <xzero/CivilTime.h>
 #include <xzero/Duration.h>
+#include <fmt/format.h>
 #include <optional>
 #include <ctime>
 #include <inttypes.h>
@@ -155,3 +156,17 @@ namespace std {
 }
 
 #include <xzero/UnixTime_impl.h>
+
+namespace fmt {
+  template<>
+  struct formatter<xzero::UnixTime> {
+    template <typename ParseContext>
+    constexpr auto parse(ParseContext &ctx) { return ctx.begin(); }
+
+    template <typename FormatContext>
+    constexpr auto format(const xzero::UnixTime& v, FormatContext &ctx) {
+      return format_to(ctx.begin(), "{}", v.unixtime());
+    }
+  };
+}
+

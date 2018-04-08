@@ -16,11 +16,11 @@ namespace xzero {
 namespace http {
 namespace hpack {
 
-#if !defined(NDEBUG)
-#define TRACE(msg...) logTrace("http.hpack.Parser: " msg)
-#else
-#define TRACE(msg...) do {} while (0)
+template<typename... Args> constexpr void TRACE(const char* msg, Args... args) {
+#ifndef NDEBUG
+  ::xzero::logTrace(std::string("http.hpack.Parser: ") + msg, args...);
 #endif
+}
 
 // 2^n
 #define BIT(n) (1 << (n))

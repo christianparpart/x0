@@ -12,13 +12,11 @@
 
 namespace xzero {
 
-#if !defined(NDEBUG)
-#define TRACE(msg...) logTrace("LinuxSignals: " msg)
-#define DEBUG(msg...) logDebug("LinuxSignals: " msg)
-#else
-#define TRACE(msg...) do {} while (0)
-#define DEBUG(msg...) do {} while (0)
+template<typename... Args> constexpr void TRACE(const char* msg, Args... args) {
+#ifndef NDEBUG
+  ::xzero::logTrace(std::string("LinuxSignals: ") + msg, args...);
 #endif
+}
 
 LinuxSignals::LinuxSignals(Executor* executor)
     : executor_(executor),
@@ -99,10 +97,10 @@ void LinuxSignals::onSignal() {
       int signo = event.ssi_signo;
       std::list<std::shared_ptr<SignalWatcher>>& watchers = watchers_[signo];
 
-      DEBUG("Caught signal {} from PID {} UID {}.",
-            toString(signo),
-            event.ssi_pid,
-            event.ssi_uid);
+      logDebug("Caught signal {} from PID {} UID {}.",
+               toString(signo),
+               event.ssi_pid,
+               event.ssi_uid);
 
       for (std::shared_ptr<SignalWatcher>& watcher: watchers) {
         watcher->info.signal = signo;

@@ -12,13 +12,11 @@
 #include <xzero/JsonWriter.h>
 #include <algorithm>
 
-#if 0 // !defined(NDEBUG)
-# define DEBUG(msg...) logDebug("http.cluster.HealthMonitor: " msg)
-# define TRACE(msg...) logTrace("http.cluster.HealthMonitor: " msg)
-#else
-# define DEBUG(msg...) do {} while (0)
-# define TRACE(msg...) do {} while (0)
+template<typename... Args> constexpr void TRACE(const char* msg, Args... args) {
+#ifndef NDEBUG
+  ::xzero::logTrace(std::string("http.cluster.HealthMonitor: ") + msg, args...);
 #endif
+}
 
 namespace xzero::http::cluster {
 
@@ -146,7 +144,7 @@ void HealthMonitor::onCheckNow() {
 }
 
 void HealthMonitor::onFailure(const std::error_code& ec) {
-  DEBUG("Connecting to backend failed. {}", ec.message());
+  logDebug("Connecting to backend failed. {}", ec.message());
   logFailure();
 }
 
@@ -156,9 +154,9 @@ void HealthMonitor::onResponseReceived(const HttpClient::Response& response) {
                      successCodes_.end(),
                      response.status());
   if (i == successCodes_.end()) {
-    DEBUG("Received bad response status code. {} {}",
-          static_cast<int>(response.status()),
-          response.status());
+    logDebug("Received bad response status code. {} {}",
+             static_cast<int>(response.status()),
+             response.status());
     logFailure();
     return;
   }

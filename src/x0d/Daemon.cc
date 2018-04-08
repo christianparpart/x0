@@ -60,14 +60,11 @@
 using namespace xzero;
 using namespace xzero::http;
 
-#if !defined(NDEBUG)
-#define TRACE(msg...) logTrace(msg)
-#define DEBUG(msg...) logDebug(msg)
-#else
-#define TRACE(msg...) do {} while (0)
-#define DEBUG(msg...) do {} while (0)
+template<typename... Args> constexpr void TRACE(const char* msg, Args... args) {
+#ifndef NDEBUG
+  ::xzero::logTrace(std::string("x0d.Daemon: ") + msg, args...);
 #endif
-
+}
 
 // XXX variable defined by mimetypes2cc compiler
 extern std::unordered_map<std::string, std::string> mimetypes2cc;

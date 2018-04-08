@@ -16,7 +16,11 @@ namespace xzero {
 namespace http {
 namespace http2 {
 
-#define TRACE(msg...) logNotice("http2.Connection: " msg)
+template<typename... Args> constexpr void TRACE(const char* msg, Args... args) {
+#ifndef NDEBUG
+  ::xzero::logTrace(std::string("http.h2.Connection: ") + msg, args...);
+#endif
+}
 
 Connection::Connection(TcpEndPoint* endpoint,
                        Executor* executor,

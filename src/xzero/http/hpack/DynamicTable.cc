@@ -13,11 +13,11 @@ namespace xzero {
 namespace http {
 namespace hpack {
 
-#if !defined(NDEBUG)
-#define TRACE(msg...) logTrace("http.hpack.DynamicTable: " msg)
-#else
-#define TRACE(msg...) do {} while (0)
+template<typename... Args> constexpr void TRACE(const char* msg, Args... args) {
+#ifndef NDEBUG
+  ::xzero::logTrace(std::string("http.hpack.DynamicTable: ") + msg, args...);
 #endif
+}
 
 DynamicTable::DynamicTable(size_t maxSize)
     : maxSize_(maxSize),

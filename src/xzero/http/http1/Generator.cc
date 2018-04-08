@@ -21,11 +21,11 @@ namespace xzero {
 namespace http {
 namespace http1 {
 
-#if !defined(NDEBUG)
-#define TRACE(msg...) logTrace("http.http1.Generator: " msg)
-#else
-#define TRACE(msg...) do {} while (0)
+template<typename... Args> constexpr void TRACE(const char* msg, Args... args) {
+#ifndef NDEBUG
+  ::xzero::logTrace(std::string("http.h1.Generator: ") + msg, args...);
 #endif
+}
 
 bool isContentForbidden(HttpMethod method) {
   switch (method) {

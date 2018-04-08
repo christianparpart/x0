@@ -21,11 +21,11 @@
 #include <xzero/logging.h>
 #include <algorithm>
 
-#if !defined(NDEBUG)
-#define TRACE(msg...) logTrace("HttpClient: " msg)
-#else
-#define TRACE(msg...) do {} while (0)
+template<typename... Args> constexpr void TRACE(const char* msg, Args... args) {
+#ifndef NDEBUG
+  ::xzero::logTrace(std::string("http.client.HttpClient: ") + msg, args...);
 #endif
+}
 
 namespace xzero::http::client {
 

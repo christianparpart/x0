@@ -38,8 +38,8 @@ struct InstructionInfo {
 };
 
 #define IIDEF(opcode, operandSig, stackChange, stackOutput) \
-  [(size_t)(Opcode:: opcode)] = { Opcode:: opcode, #opcode, OperandSig:: operandSig, stackChange, LiteralType:: stackOutput }
-  // { Opcode:: opcode, #opcode, OperandSig:: operandSig, stackChange, LiteralType:: stackOutput }
+                                   { Opcode:: opcode, #opcode, OperandSig:: operandSig, stackChange, LiteralType:: stackOutput }
+  // [(size_t)(Opcode:: opcode)] = { Opcode:: opcode, #opcode, OperandSig:: operandSig, stackChange, LiteralType:: stackOutput }
 
 // OPCODE, operandSignature, stackChange
 static InstructionInfo instructionInfos[] = {

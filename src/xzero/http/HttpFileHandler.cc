@@ -22,11 +22,11 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 
-#if 1 //!defined(NDEBUG)
-#define TRACE(msg...) logTrace("http.FileHandler: " msg)
-#else
-#define TRACE(msg...) do {} while (0)
+template<typename... Args> constexpr void TRACE(const char* msg, Args... args) {
+#ifndef NDEBUG
+  ::xzero::logTrace(std::string("http.FileHandler: ") + msg, args...);
 #endif
+}
 
 namespace xzero {
 namespace http {

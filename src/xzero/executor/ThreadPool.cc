@@ -26,13 +26,11 @@
 
 namespace xzero {
 
-#define ERROR(msg...) logError("ThreadPool: " msg)
-
+template<typename... Args> constexpr void TRACE(const char* msg, Args... args) {
 #ifndef NDEBUG
-#define TRACE(msg...) logTrace("ThreadPool", msg)
-#else
-#define TRACE(msg...) do {} while (0)
+  ::xzero::logTrace(std::string("ThreadPool: ") + msg, args...);
 #endif
+}
 
 ThreadPool::ThreadPool()
     : ThreadPool(Application::processorCount(), nullptr) {

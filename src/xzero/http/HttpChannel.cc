@@ -24,11 +24,11 @@
 namespace xzero {
 namespace http {
 
+template<typename... Args> constexpr void TRACE(const char* msg, Args... args) {
 #ifndef NDEBUG
-#define TRACE(msg...) logTrace("http.HttpChannel: " msg)
-#else
-#define TRACE(msg...) do {} while (0)
+  ::xzero::logTrace(std::string("http.HttpChannel: ") + msg, args...);
 #endif
+}
 
 std::string as_string(HttpChannelState state) {
   switch (state) {

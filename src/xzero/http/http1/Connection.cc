@@ -28,13 +28,11 @@ namespace xzero {
 namespace http {
 namespace http1 {
 
-#define ERROR(msg...) logError("http.http1.Connection: " msg)
-
-#if !defined(NDEBUG)
-#define TRACE(msg...) logTrace("http.http1.Connection: " msg)
-#else
-#define TRACE(msg...) do {} while (0)
+template<typename... Args> constexpr void TRACE(const char* msg, Args... args) {
+#ifndef NDEBUG
+  ::xzero::logTrace(std::string("http.h1.Connection: ") + msg, args...);
 #endif
+}
 
 Connection::Connection(TcpEndPoint* endpoint,
                        Executor* executor,

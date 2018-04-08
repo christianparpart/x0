@@ -8,6 +8,8 @@
 #include <xzero/AnsiColor.h>
 #include <stdio.h>
 
+#define TS_TRACE(msg, ...) do {} while (0)
+
 namespace xzero {
 
 // {{{ TokenShaper<T> impl
@@ -570,8 +572,7 @@ void TokenShaper<T>::Node::updateQueueTimer() {
     if (age < queueTimeout_)
       break;
 
-    TS_TRACE("updateQueueTimer: dequeueing timed out request. {} < {}",
-             age, queueTimeout_);
+    TS_TRACE("updateQueueTimer: dequeueing timed out request. {} < {}", age, queueTimeout_);
     queue_.pop_front();
     --queued_;
     ++dropped_;
@@ -636,3 +637,5 @@ inline void dump(const TokenShaper<T>& shaper, const char* title) {
 // }}}
 
 } // namespace xzero
+
+#undef TS_TRACE

@@ -42,9 +42,9 @@
 #endif
 
 #if !defined(NDEBUG)
-#define TRACE(msg...) logTrace("TcpConnector: " msg)
+#define TRACE(msg, ...) logTrace("TcpConnector: " msg, __VA_ARGS__)
 #else
-#define TRACE(msg...) do {} while (0)
+#define TRACE(msg, ...) do {} while (0)
 #endif
 
 namespace xzero {
@@ -198,7 +198,6 @@ bool TcpConnector::isOpen() const XZERO_NOEXCEPT {
 }
 
 TcpConnector::~TcpConnector() {
-  TRACE("~TcpConnector");
   if (isStarted()) {
     stop();
   }
@@ -570,7 +569,7 @@ std::list<std::shared_ptr<TcpEndPoint>> TcpConnector::connectedEndPoints() {
 }
 
 void TcpConnector::onEndPointClosed(TcpEndPoint* endpoint) {
-  TRACE("onEndPointClosed()");
+  //TRACE("onEndPointClosed()");
   assert(endpoint != nullptr);
 
   // XXX: e.g. SSL doesn't have a connection in case the handshake failed

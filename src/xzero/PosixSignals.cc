@@ -13,11 +13,9 @@
 namespace xzero {
 
 #if !defined(NDEBUG)
-#define TRACE(msg...) logTrace("PosixSignals: " msg)
-#define DEBUG(msg...) logDebug("PosixSignals: " msg)
+#define TRACE(msg, ...) logTrace("PosixSignals: " msg, __VA_ARGS__)
 #else
-#define TRACE(msg...) do {} while (0)
-#define DEBUG(msg...) do {} while (0)
+#define TRACE(msg, ...) do {} while (0)
 #endif
 
 PosixSignals* PosixSignals::singleton_ = nullptr;

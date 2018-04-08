@@ -10,11 +10,11 @@
 #include <xzero/logging.h>
 #include <unistd.h>
 
+template<typename... Args> constexpr void TRACE(const char* msg, Args... args) {
 #ifndef NDEBUG
-#define TRACE(msg...) logTrace("net.EndPointWriter: " msg)
-#else
-#define TRACE(msg...) do {} while (0)
+  ::xzero::logTrace(std::string("net.EndPointWriter: ") + msg, args...);
 #endif
+}
 
 namespace xzero {
 

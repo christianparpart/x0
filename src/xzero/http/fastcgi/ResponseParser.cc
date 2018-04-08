@@ -15,9 +15,11 @@ namespace xzero {
 namespace http {
 namespace fastcgi {
 
-#define TRACE(msg...) do { \
-  logTrace("fastcgi: ResponseParser: " msg); \
-} while (0)
+template<typename... Args> constexpr void TRACE(const char* msg, Args... args) {
+#ifndef NDEBUG
+  ::xzero::logTrace(std::string("http.fcgi.ResponseParser: ") + msg, args...);
+#endif
+}
 
 // {{{ ResponseParser::StreamState impl
 ResponseParser::StreamState::StreamState()

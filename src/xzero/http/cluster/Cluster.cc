@@ -19,13 +19,11 @@
 
 namespace xzero::http::cluster {
 
+template<typename... Args> constexpr void TRACE(const char* msg, Args... args) {
 #ifndef NDEBUG
-# define DEBUG(msg...) logDebug("http.cluster.Cluster: " msg)
-# define TRACE(msg...) logTrace("http.cluster.Cluster: " msg)
-#else
-# define DEBUG(msg...) do {} while (0)
-# define TRACE(msg...) do {} while (0)
+  ::xzero::logTrace(std::string("http.cluster.Cluster: ") + msg, args...);
 #endif
+}
 
 Cluster::Cluster(const std::string& name,
                  const std::string& storagePath,
@@ -793,12 +791,12 @@ void Cluster::enqueue(Context* cx) {
     cx->bucket->enqueue(cx);
     ++queued_;
 
-    DEBUG("HTTP cluster {} [{}] overloaded. Enqueueing request ({}).",
-          name(),
-          cx->bucket->name(),
-          cx->bucket->queued().current());
+    logDebug("HTTP cluster {} [{}] overloaded. Enqueueing request ({}).",
+             name(),
+             cx->bucket->name(),
+             cx->bucket->queued().current());
   } else {
-    DEBUG("director: '{}' queue limit {} reached.", name(), queueLimit());
+    logDebug("director: '{}' queue limit {} reached.", name(), queueLimit());
     serviceUnavailable(cx);
   }
 }
@@ -813,8 +811,8 @@ void Cluster::dequeueTo(Backend* backend) {
   if (auto cx = dequeue()) {
     cx->post([this, backend, cx]() {
       cx->tokens = 1;
-      DEBUG("Dequeueing request to backend {} @ {} ({})",
-          backend->name(), name(), queued_.current());
+      logDebug("Dequeueing request to backend {} @ {} ({})",
+               backend->name(), name(), queued_.current());
       SchedulerStatus rc = backend->tryProcess(cx);
       if (rc != SchedulerStatus::Success) {
         cx->tokens = 0;
@@ -856,8 +854,8 @@ void Cluster::onTimeout(Context* cx) {
 
 // {{{ EventListener overrides
 void Cluster::onEnabledChanged(Backend* backend) {
-  DEBUG("onBackendEnabledChanged: {} {}",
-        backend->name(), backend->isEnabled() ? "enabled" : "disabled");
+  logDebug("onBackendEnabledChanged: {} {}",
+           backend->name(), backend->isEnabled() ? "enabled" : "disabled");
   TRACE("onBackendEnabledChanged: {} {}",
         backend->name(), backend->isEnabled() ? "enabled" : "disabled");
 

@@ -25,9 +25,11 @@
 // #define PACKAGE_VERSION X0_VERSION
 #define PACKAGE_HOMEPAGE_URL "https://xzero.io"
 
-#define VERBOSE(msg...) logInfo(msg)
-#define DEBUG(msg...) logDebug(msg)
-#define TRACE(msg...) logTrace(msg)
+template<typename... Args> constexpr void TRACE(const char* msg, Args... args) {
+#ifndef NDEBUG
+  ::xzero::logTrace(std::string("xurl: ") + msg, args...);
+#endif
+}
 
 using namespace xzero;
 using namespace xzero::http;
@@ -231,17 +233,17 @@ void XUrl::query(const Uri& uri) {
                   std::move(body));
   req.setScheme(uri.scheme());
 
-  VERBOSE("* connecting to {}", inetAddr);
+  logInfo("* connecting to {}", inetAddr);
 
-  VERBOSE("> {} {} HTTP/{}", req.unparsedMethod(),
+  logInfo("> {} {} HTTP/{}", req.unparsedMethod(),
                              req.unparsedUri(),
                              req.version());
 
   for (const HeaderField& field: req.headers())
     if (field.name()[0] != ':')
-      VERBOSE("> {}: {}", field.name(), field.value());
+      logInfo("> {}: {}", field.name(), field.value());
 
-  VERBOSE(">");
+  logInfo(">");
 
   HttpClient httpClient(&scheduler_, inetAddr,
                         connectTimeout_, readTimeout_, writeTimeout_,
@@ -250,14 +252,14 @@ void XUrl::query(const Uri& uri) {
   Future<HttpClient::Response> f = httpClient.send(req);
 
   f.onSuccess([](HttpClient::Response& response) {
-    VERBOSE("< HTTP/{} {} {}", response.version(),
+    logInfo("< HTTP/{} {} {}", response.version(),
                                (int) response.status(),
                                response.reason());
 
     for (const HeaderField& field: response.headers())
-      VERBOSE("< {}: {}", field.name(), field.value());
+      logInfo("< {}: {}", field.name(), field.value());
 
-    VERBOSE("<");
+    logInfo("<");
 
     const BufferRef& content = response.content().getBuffer();
     write(STDOUT_FILENO, content.data(), content.size());
