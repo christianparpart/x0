@@ -18,7 +18,9 @@
 #include <exception>
 #include <typeinfo>
 
+#if defined(HAVE_PTHREAD_H)
 #include <pthread.h>
+#endif
 
 #ifdef HAVE_UNISTD_H
 #include <unistd.h>

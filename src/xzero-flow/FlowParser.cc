@@ -34,6 +34,12 @@ struct hash<OpSig> {
 };
 }
 
+template<typename... Args> constexpr void TRACE(const char* msg, Args... args) {
+#ifndef NDEBUG
+  ::xzero::logTrace(std::string("flow.Parser: ") + msg, args...);
+#endif
+}
+
 namespace xzero {
 namespace flow {
 
@@ -82,10 +88,8 @@ struct fntrace {
 };
 // }}}
 #define FNTRACE() fntrace _(__PRETTY_FUNCTION__)
-#define TRACE(msg...) logTrace(msg)
 #else
 #define FNTRACE()     do {} while (0)
-#define TRACE(msg...) do {} while (0)
 #endif
 
 // {{{ scoped(SCOPED_SYMBOL)

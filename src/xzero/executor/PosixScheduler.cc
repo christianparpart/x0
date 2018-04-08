@@ -18,14 +18,25 @@
 #include <algorithm>
 #include <vector>
 #include <sstream>
+
 #include <sys/types.h>
-#include <sys/time.h>
-#include <sys/select.h>
-#include <sys/resource.h>
-#include <unistd.h>
 #include <fcntl.h>
 
-namespace xzero {
+#if defined(HAVE_SYS_SELECT_H)
+#include <sys/select.h>
+#endif
+
+#if defined(HAVE_SYS_RESOURCE_H)
+#include <sys/resource.h>
+#endif
+
+#if defined(HAVE_UNISTD_H)
+#include <unistd.h>
+#endif
+
+#if defined(HAVE_SYS_TIME_H)
+#include <sys/time.h>
+#endif
 
 #define PIPE_READ_END  0
 #define PIPE_WRITE_END 1
@@ -35,6 +46,8 @@ template<typename... Args> constexpr void TRACE(const char* msg, Args... args) {
   ::xzero::logTrace(std::string("PosixScheduler: ") + msg, args...);
 #endif
 }
+
+namespace xzero {
 
 PosixScheduler::PosixScheduler(ExceptionHandler eh)
     : EventLoop{std::move(eh)},

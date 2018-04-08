@@ -17,7 +17,7 @@
 #endif
 
 #if defined(XZERO_OS_WIN32)
-#include <Windows.h>
+#include <windef.h>
 #endif
 
 namespace xzero {

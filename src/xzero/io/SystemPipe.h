@@ -14,19 +14,13 @@
 #include <unistd.h>
 #endif
 
-#if defined(HAVE_WINDOWS_H)
-#include <Windows.h>
+#if defined(XZERO_OS_WIN32)
+#include <windef.h>
 #endif
 
 namespace xzero {
 
 class SystemPipe {
- private:
-  enum {
-    READER = 0,
-    WRITER = 1,
-  };
-
  public:
   SystemPipe();
   ~SystemPipe();
@@ -37,8 +31,8 @@ class SystemPipe {
   HANDLE readerFd() const noexcept { return reader_; }
   HANDLE writerFd() const noexcept { return writer_; }
 #else
-  int readerFd() const noexcept { return fds_[READER]; }
-  int writerFd() const noexcept { return fds_[WRITER]; }
+  int readerFd() const noexcept { return fds_[0]; }
+  int writerFd() const noexcept { return fds_[1]; }
 #endif
 
   void closeReader();

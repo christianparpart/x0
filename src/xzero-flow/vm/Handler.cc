@@ -12,9 +12,13 @@
 #include <xzero/logging.h>
 #include <xzero/sysconfig.h>
 
-namespace xzero::flow {
+template<typename... Args> constexpr void TRACE(const char* msg, Args... args) {
+#ifndef NDEBUG
+  ::xzero::logTrace(std::string("flow.Handler: ") + msg, args...);
+#endif
+}
 
-#define TRACE(msg...) logTrace("flow.vm.Handler" msg)
+namespace xzero::flow {
 
 Handler::Handler() {
 }
@@ -31,7 +35,7 @@ Handler::Handler(Program* program,
       directThreadedCode_()
 #endif
 {
-  TRACE("Handler.ctor: {} {}", name_, (long long) this);
+  TRACE("ctor: {} {}", name_, (long long) this);
   setCode(code);
 }
 
@@ -45,7 +49,7 @@ Handler::Handler(const Handler& v)
       directThreadedCode_(v.directThreadedCode_)
 #endif
 {
-  TRACE("Handler.ctor(&): {} {}", name_, (long long) this);
+  TRACE("ctor(&): {} {}", name_, (long long) this);
 }
 
 Handler::Handler(Handler&& v)
@@ -58,11 +62,11 @@ Handler::Handler(Handler&& v)
       directThreadedCode_(std::move(v.directThreadedCode_))
 #endif
 {
-  TRACE("Handler.ctor(&&): {} {}", name_, (long long) this);
+  TRACE("ctor(&&): {} {}", name_, (long long) this);
 }
 
 Handler::~Handler() {
-  TRACE("~Handler: {} {}", name_, (long long) this);
+  TRACE("~dtor: {} {}", name_, (long long) this);
 }
 
 void Handler::setCode(const std::vector<Instruction>& code) {
