@@ -11,7 +11,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
-#include <unistd.h>
+#include <fstream>
 
 namespace xzero {
 namespace flow {
@@ -23,24 +23,20 @@ std::string SourceLocation::str() const {
 }
 
 std::string SourceLocation::text() const {
-  FileDescriptor fd = open(filename.c_str(), O_RDONLY);
-  if (fd < 0)
-    return {};
-
   int size = 1 + end.offset - begin.offset;
   if (size <= 0)
     return {};
 
-  if (lseek(fd, begin.offset, SEEK_SET) < 0)
-    return {};
+  std::ifstream fs(filename);
+  fs.seekg(end.offset, fs.beg);
+
 
   std::string result;
   result.reserve(size + 1);
-  ssize_t n = read(fd, const_cast<char*>(result.data()), size);
-  if (n < 0)
-    return {};
 
-  result.resize(static_cast<size_t>(n));
+  fs.read(const_cast<char*>(result.data()), size);
+  result.resize(static_cast<size_t>(size));
+
   return result;
 }
 

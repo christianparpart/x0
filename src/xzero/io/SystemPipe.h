@@ -8,6 +8,7 @@
 
 #include <string>
 #include <xzero/sysconfig.h>
+#include <xzero/defines.h>
 
 #if defined(HAVE_UNISTD_H)
 #include <unistd.h>
@@ -27,38 +28,51 @@ class SystemPipe {
   };
 
  public:
-  SystemPipe(int reader, int writer);
   SystemPipe();
   ~SystemPipe();
 
   int write(const std::string& msg);
 
-  bool isValid() const noexcept { return fds_[READER] != -1; }
+#if defined(XZERO_OS_WIN32)
+  HANDLE readerFd() const noexcept { return reader_; }
+  HANDLE writerFd() const noexcept { return writer_; }
+#else
   int readerFd() const noexcept { return fds_[READER]; }
   int writerFd() const noexcept { return fds_[WRITER]; }
+#endif
 
   void closeReader();
   void closeWriter();
 
  private:
-  void closeEndPoint(int index);
-
- private:
+#if defined(XZERO_OS_WIN32)
+   HANDLE writer_;
+   HANDLE reader_;
+#else
   int fds_[2];
+#endif
 };
 
 inline void SystemPipe::closeReader() {
-  closeEndPoint(READER);
+#if defined(XZERO_OS_WIN32)
+  CloseHandle(reader_);
+#else
+  if (fds_[READER] != -1) {
+    ::close(fds_[READER]);
+    fds_[READER] = -1;
+  }
+#endif
 }
 
 inline void SystemPipe::closeWriter() {
-  closeEndPoint(WRITER);
-}
-
-inline void SystemPipe::closeEndPoint(int index) {
-  if (fds_[index] != -1) {
-    ::close(fds_[index]);
+#if defined(XZERO_OS_WIN32)
+  CloseHandle(writer_);
+#else
+  if (fds_[WRITER] != -1) {
+    ::close(fds_[WRITER]);
+    fds_[WRITER] = -1;
   }
+#endif
 }
 
 } // namespace xzero

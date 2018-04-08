@@ -12,6 +12,7 @@
 #include <xzero-flow/ir/IRBuiltinFunction.h>
 #include <xzero-flow/ir/BasicBlock.h>
 #include <xzero/logging.h>
+#include <fmt/format.h>
 #include <utility>
 #include <assert.h>
 #include <inttypes.h>
@@ -117,9 +118,9 @@ std::unique_ptr<Instr> Instr::replace(std::unique_ptr<Instr> newInstr) {
 
 void Instr::dumpOne(const char* mnemonic) {
   if (type() != LiteralType::Void) {
-    printf("\t%%%s = %s", name().c_str() ?: "?", mnemonic);
+    fmt::print("\t%{} = {}", !name().empty() ? name() : "?", mnemonic);
   } else {
-    printf("\t%s", mnemonic);
+    fmt::print("\t{}", mnemonic);
   }
 
   for (size_t i = 0, e = operands_.size(); i != e; ++i) {

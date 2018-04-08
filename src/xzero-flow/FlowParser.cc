@@ -13,7 +13,6 @@
 #include <xzero/logging.h>
 #include <unordered_map>
 #include <memory>
-#include <unistd.h>
 
 enum class OpSig {
   Invalid,

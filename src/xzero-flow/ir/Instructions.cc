@@ -28,63 +28,59 @@ inline std::vector<U> join(const T& a, const std::vector<U>& vec)  // {{{
 // }}}
 const char* cstr(UnaryOperator op)  // {{{
 {
-  static const char* ops[] = {
-          // numerical
-          [(size_t)UnaryOperator::INeg] = "ineg",
-          [(size_t)UnaryOperator::INot] = "inot",
-          // binary
-          [(size_t)UnaryOperator::BNot] = "bnot",
-          // string
-          [(size_t)UnaryOperator::SLen] = "slen",
-          [(size_t)UnaryOperator::SIsEmpty] = "sisempty", };
-
-  return ops[(size_t)op];
+  switch (op) {
+  case UnaryOperator::INeg: return "ineg";
+  case UnaryOperator::INot: return "inot";
+  case UnaryOperator::BNot: return "bnot";
+  case UnaryOperator::SLen: return "slen";
+  case UnaryOperator::SIsEmpty: return "sisempty";
+  }
 }
 // }}}
 const char* cstr(BinaryOperator op)  // {{{
 {
-  static const char* ops[] = {
-          // numerical
-          [(size_t)BinaryOperator::IAdd] = "iadd",
-          [(size_t)BinaryOperator::ISub] = "isub",
-          [(size_t)BinaryOperator::IMul] = "imul",
-          [(size_t)BinaryOperator::IDiv] = "idiv",
-          [(size_t)BinaryOperator::IRem] = "irem",
-          [(size_t)BinaryOperator::IPow] = "ipow",
-          [(size_t)BinaryOperator::IAnd] = "iand",
-          [(size_t)BinaryOperator::IOr] = "ior",
-          [(size_t)BinaryOperator::IXor] = "ixor",
-          [(size_t)BinaryOperator::IShl] = "ishl",
-          [(size_t)BinaryOperator::IShr] = "ishr",
-          [(size_t)BinaryOperator::ICmpEQ] = "icmpeq",
-          [(size_t)BinaryOperator::ICmpNE] = "icmpne",
-          [(size_t)BinaryOperator::ICmpLE] = "icmple",
-          [(size_t)BinaryOperator::ICmpGE] = "icmpge",
-          [(size_t)BinaryOperator::ICmpLT] = "icmplt",
-          [(size_t)BinaryOperator::ICmpGT] = "icmpgt",
-          // boolean
-          [(size_t)BinaryOperator::BAnd] = "band",
-          [(size_t)BinaryOperator::BOr] = "bor",
-          [(size_t)BinaryOperator::BXor] = "bxor",
-          // string
-          [(size_t)BinaryOperator::SAdd] = "sadd",
-          [(size_t)BinaryOperator::SSubStr] = "ssubstr",
-          [(size_t)BinaryOperator::SCmpEQ] = "scmpeq",
-          [(size_t)BinaryOperator::SCmpNE] = "scmpne",
-          [(size_t)BinaryOperator::SCmpLE] = "scmple",
-          [(size_t)BinaryOperator::SCmpGE] = "scmpge",
-          [(size_t)BinaryOperator::SCmpLT] = "scmplt",
-          [(size_t)BinaryOperator::SCmpGT] = "scmpgt",
-          [(size_t)BinaryOperator::SCmpRE] = "scmpre",
-          [(size_t)BinaryOperator::SCmpBeg] = "scmpbeg",
-          [(size_t)BinaryOperator::SCmpEnd] = "scmpend",
-          [(size_t)BinaryOperator::SIn] = "sin",
-          // ip
-          [(size_t)BinaryOperator::PCmpEQ] = "pcmpeq",
-          [(size_t)BinaryOperator::PCmpNE] = "pcmpne",
-          [(size_t)BinaryOperator::PInCidr] = "pincidr", };
-
-  return ops[(size_t)op];
+  switch (op) {
+    // numerical
+    case BinaryOperator::IAdd: return"iadd";
+    case BinaryOperator::ISub: return"isub";
+    case BinaryOperator::IMul: return"imul";
+    case BinaryOperator::IDiv: return"idiv";
+    case BinaryOperator::IRem: return "irem";
+    case BinaryOperator::IPow: return "ipow";
+    case BinaryOperator::IAnd: return "iand";
+    case BinaryOperator::IOr: return "ior";
+    case BinaryOperator::IXor: return "ixor";
+    case BinaryOperator::IShl: return "ishl";
+    case BinaryOperator::IShr: return "ishr";
+    case BinaryOperator::ICmpEQ: return "icmpeq";
+    case BinaryOperator::ICmpNE: return "icmpne";
+    case BinaryOperator::ICmpLE: return "icmple";
+    case BinaryOperator::ICmpGE: return "icmpge";
+    case BinaryOperator::ICmpLT: return "icmplt";
+    case BinaryOperator::ICmpGT: return "icmpgt";
+    // boolean
+    case BinaryOperator::BAnd: return "band";
+    case BinaryOperator::BOr: return "bor";
+    case BinaryOperator::BXor: return "bxor";
+    // string
+    case BinaryOperator::SAdd: return "sadd";
+    case BinaryOperator::SSubStr: return "ssubstr";
+    case BinaryOperator::SCmpEQ: return "scmpeq";
+    case BinaryOperator::SCmpNE: return "scmpne";
+    case BinaryOperator::SCmpLE: return "scmple";
+    case BinaryOperator::SCmpGE: return "scmpge";
+    case BinaryOperator::SCmpLT: return "scmplt";
+    case BinaryOperator::SCmpGT: return "scmpgt";
+    case BinaryOperator::SCmpRE: return "scmpre";
+    case BinaryOperator::SCmpBeg: return "scmpbeg";
+    case BinaryOperator::SCmpEnd: return "scmpend";
+    case BinaryOperator::SIn: return "sin";
+    // ip
+    case BinaryOperator::PCmpEQ: return "pcmpeq";
+    case BinaryOperator::PCmpNE: return "pcmpne";
+    case BinaryOperator::PInCidr: return "pincidr";
+    default: return "?";
+  };
 }
 // }}}
 // {{{ NopInstr
@@ -110,8 +106,7 @@ void CastInstr::accept(InstructionVisitor& v) {
 }
 // }}}
 // {{{ CondBrInstr
-CondBrInstr::CondBrInstr(Value* cond, BasicBlock* trueBlock,
-                         BasicBlock* falseBlock)
+CondBrInstr::CondBrInstr(Value* cond, BasicBlock* trueBlock, BasicBlock* falseBlock)
     : TerminateInstr({cond, trueBlock, falseBlock}) {}
 
 void CondBrInstr::dump() { dumpOne("condbr"); }
