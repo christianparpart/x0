@@ -21,7 +21,11 @@
 
 namespace xzero::flow {
 
-#define TRACE(msg...) logTrace("flow.vm.Program" msg)
+#if !defined(NDEBUG)
+#define TRACE(msg, ...) logTrace("flow.vm.Program" msg, __VA_ARG__)
+#else
+#define TRACE(msg, ...) do {} while (0)
+#endif
 
 /* {{{ possible binary file format
  * ----------------------------------------------

@@ -8,13 +8,17 @@
 #include <xzero-flow/FlowLexer.h>
 #include <xzero/net/IPAddress.h>
 #include <xzero/RuntimeError.h>
+#include <xzero/sysconfig.h>
 #include <sstream>
 #include <unordered_map>
 #include <string.h>
+
+#if defined(HAVE_GLOB_H)
 #include <glob.h>
+#endif
 
 //#define TRACE(msg...) XZERO_DEBUG("FlowLexer", (level), msg)
-#define TRACE(msg...) do {} while (0)
+#define TRACE(msg, ...) do {} while (0)
 
 namespace xzero {
 namespace flow {
@@ -282,6 +286,7 @@ void FlowLexer::processCommand(const std::string& line) {
 
   TRACE("Process include: '{}'", pattern);
 
+#if defined(HAVE_GLOB_H)
   glob_t gl;
 
   int globOptions = 0;
@@ -306,6 +311,9 @@ void FlowLexer::processCommand(const std::string& line) {
   }
 
   globfree(&gl);
+#else
+  enterScope(pattern);
+#endif
 }
 
 FlowToken FlowLexer::nextToken() {

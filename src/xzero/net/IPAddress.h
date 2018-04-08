@@ -123,8 +123,8 @@ inline IPAddress& IPAddress::operator=(const std::string& text) {
 
 inline IPAddress& IPAddress::operator=(const IPAddress& v) {
   family_ = v.family_;
-  std::strncpy(cstr_, v.cstr_, sizeof(cstr_));
-  std::memcpy(buf_, v.buf_, v.size());
+  strncpy(cstr_, v.cstr_, sizeof(cstr_));
+  memcpy(buf_, v.buf_, v.size());
 
   return *this;
 }

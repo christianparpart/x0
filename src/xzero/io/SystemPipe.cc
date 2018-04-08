@@ -12,21 +12,22 @@
 #include <unistd.h>
 #endif
 
-#if defined(HAVE_WINDOWS_H)
+#if defined(XZERO_OS_WIN32)
 #include <Windows.h>
 #endif
 
 namespace xzero {
 
-SystemPipe::SystemPipe(int reader, int writer) {
-  fds_[READER] = reader;
-  fds_[WRITER] = writer;
-}
-
-SystemPipe::SystemPipe() : SystemPipe(-1, -1) {
+SystemPipe::SystemPipe() {
+#if defined(XZERO_OS_WIN32)
+  if (CreatePipe(&reader_, &writer_, nullptr, 4096) == FALSE) {
+    // TODO: handle error with `DWORD GetLastError();`
+  }
+#else
   if (pipe(fds_) < 0) {
     RAISE_ERRNO(errno);
   }
+#endif
 }
 
 SystemPipe::~SystemPipe() {
@@ -35,7 +36,13 @@ SystemPipe::~SystemPipe() {
 }
 
 int SystemPipe::write(const std::string& msg) {
+#if defined(XZERO_OS_WIN32)
+  DWORD nwritten = 0;
+  WriteFile(writer_, msg.data(), msg.size(), &nwritten, nullptr);
+  return nwritten;
+#else
   return ::write(writerFd(), msg.data(), msg.size());
+#endif
 }
 
 } // namespace xzero

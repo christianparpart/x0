@@ -7,6 +7,7 @@
 
 #include <xzero-flow/ASTPrinter.h>
 #include <xzero-flow/AST.h>
+#include <cctype>
 
 namespace xzero {
 namespace flow {

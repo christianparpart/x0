@@ -93,10 +93,10 @@ class Cidr {
 namespace std {
 
 template <>
-struct hash<xzero::Cidr> : public unary_function<xzero::Cidr, size_t> {
-  size_t operator()(const xzero::Cidr& v) const {
+struct hash<xzero::Cidr> {
+  size_t operator()(const xzero::Cidr& v) const noexcept {
     // TODO: let it honor IPv6 better
-    return *(uint32_t*)(v.address().data()) + v.prefix();
+    return static_cast<size_t>(*(uint32_t*)(v.address().data()) + v.prefix());
   }
 };
 

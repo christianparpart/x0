@@ -68,7 +68,7 @@ struct fntrace3 {
 #define TRACE(level, msg...) XZERO_DEBUG("IRGenerator", (level), msg)
 #else
 #define FNTRACE()            do {} while (0)
-#define TRACE(level, msg...) do {} while (0)
+#define TRACE(level, msg, ...) do {} while (0)
 #endif
 
 IRGenerator::IRGenerator()
