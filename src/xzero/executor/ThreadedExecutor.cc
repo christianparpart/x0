@@ -30,17 +30,11 @@
 
 namespace xzero {
 
-#if 0 //!defined(NDEBUG)
-static std::mutex m;
-#define TRACE(msg...)  do { \
-    m.lock(); \
-    printf("ThreadedExecutor: " msg); \
-    printf("\n"); \
-    m.unlock(); \
-  } while (0);
-#else
-#define TRACE(msg...) do { } while (0)
+template<typename... Args> constexpr void TRACE(const char* msg, Args... args) {
+#ifndef NDEBUG
+  ::xzero::logTrace(std::string("ThreadedExecutor: ") + msg, args...);
 #endif
+}
 
 ThreadedExecutor::ThreadedExecutor(ExceptionHandler eh)
     : Executor(eh),

@@ -16,11 +16,11 @@ namespace xzero {
 namespace http {
 namespace fastcgi {
 
+template<typename... Args> constexpr void TRACE(const char* msg, Args... args) {
 #ifndef NDEBUG
-#define TRACE(msg...) logTrace("http.fastcgi.Generator: " msg)
-#else
-#define TRACE(msg...) do {} while (0)
+  ::xzero::logTrace(std::string("http.fcgi.Generator: ") + msg, args...);
 #endif
+}
 
 // THOUGHTS:
 //

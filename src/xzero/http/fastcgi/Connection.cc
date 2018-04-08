@@ -36,16 +36,6 @@ namespace fastcgi {
  * - test this class for early server aborts
  */
 
-#ifndef NDEBUG
-#define TRACE_CONN(msg...) logTrace("http.fastcgi.Connection: " msg)
-#define TRACE_TRANSPORT(msg...) logTrace("http.fastcgi.Transport: " msg)
-#define TRACE_CHANNEL(msg...) logTrace("http.fastcgi.Channel: " msg)
-#else
-#define TRACE_CONN(msg...) do {} while (0)
-#define TRACE_TRANSPORT(msg...) do {} while (0)
-#define TRACE_CHANNEL(msg...) do {} while (0)
-#endif
-
 class HttpFastCgiTransport : public HttpTransport { // {{{
  public:
   HttpFastCgiTransport(Connection* connection,
@@ -86,7 +76,7 @@ void HttpFastCgiTransport::setCompleter(CompletionHandler onComplete) {
   onComplete_ = onComplete;
 
   connection_->onComplete_.emplace_back([this](bool success) {
-    TRACE_TRANSPORT("{} setCompleter: callback({})", (void*)this, success ? "success" : "failed");
+    //TRACE_TRANSPORT("{} setCompleter: callback({})", (void*)this, success ? "success" : "failed");
     auto cb = std::move(onComplete_);
     onComplete_ = nullptr;
     cb(success);
@@ -103,15 +93,15 @@ HttpFastCgiTransport::HttpFastCgiTransport(Connection* connection,
       channel_(nullptr),
       id_(id),
       generator_(id, writer) {
-  TRACE_TRANSPORT("{} ctor", (void*)this);
+  //TRACE_TRANSPORT("{} ctor", (void*)this);
 }
 
 HttpFastCgiTransport::~HttpFastCgiTransport() {
-  TRACE_TRANSPORT("{} dtor", (void*)this);
+  //TRACE_TRANSPORT("{} dtor", (void*)this);
 }
 
 void HttpFastCgiTransport::abort() { // TODO
-  TRACE_TRANSPORT("{} abort!", (void*)this);
+  //TRACE_TRANSPORT("{} abort!", (void*)this);
   logFatal("NotImplementedError");
 
   // channel_->response()->setBytesTransmitted(generator_.bytesTransmitted());
@@ -120,7 +110,7 @@ void HttpFastCgiTransport::abort() { // TODO
 }
 
 void HttpFastCgiTransport::completed() {
-  TRACE_TRANSPORT("{} completed()", (void*)this);
+  //TRACE_TRANSPORT("{} completed()", (void*)this);
 
   if (onComplete_)
     throw InvalidState{"there is still another completion hook."};
@@ -132,7 +122,7 @@ void HttpFastCgiTransport::completed() {
 }
 
 void HttpFastCgiTransport::onResponseComplete(bool success) {
-  TRACE_TRANSPORT("{} onResponseComplete({})", (void*) this, success ? "success" : "failure");
+  //TRACE_TRANSPORT("{} onResponseComplete({})", (void*) this, success ? "success" : "failure");
 
   channel_->response()->setBytesTransmitted(generator_.bytesTransmitted());
   channel_->responseEnd();
@@ -233,15 +223,15 @@ Connection::Connection(TcpEndPoint* endpoint,
       writer_(),
       onComplete_() {
   inputBuffer_.reserve(4096);
-  TRACE_CONN("{} ctor", (void*)this);
+  //TRACE_CONN("{} ctor", (void*)this);
 }
 
 Connection::~Connection() {
-  TRACE_CONN("{} dtor", (void*)this);
+  //TRACE_CONN("{} dtor", (void*)this);
 }
 
 void Connection::onOpen(bool dataReady) {
-  TRACE_CONN("{} onOpen", (void*)this);
+  //TRACE_CONN("{} onOpen", (void*)this);
   TcpConnection::onOpen(dataReady);
 
   if (dataReady)
@@ -251,11 +241,11 @@ void Connection::onOpen(bool dataReady) {
 }
 
 void Connection::onReadable() {
-  TRACE_CONN("{} onReadable", (void*) this);
+  //TRACE_CONN("{} onReadable", (void*) this);
 
-  TRACE_CONN("{} onReadable: calling read()", (void*) this);
+  //TRACE_CONN("{} onReadable: calling read()", (void*) this);
   if (endpoint()->read(&inputBuffer_) == 0) {
-    TRACE_CONN("{} onReadable: read() returned 0", (void*) this);
+    //TRACE_CONN("{} onReadable: read() returned 0", (void*) this);
     endpoint()->close();
     // throw RemoteDisconnected{};
     return;
@@ -265,30 +255,30 @@ void Connection::onReadable() {
 }
 
 void Connection::parseFragment() {
-  TRACE_CONN("parseFragment: calling parseFragment ({} into {})",
-             inputOffset_, inputBuffer_.size());
+  //TRACE_CONN("parseFragment: calling parseFragment ({} into {})",
+  //           inputOffset_, inputBuffer_.size());
   size_t n = parser_.parseFragment(inputBuffer_.ref(inputOffset_));
-  TRACE_CONN("parseFragment: called ({} into {}) => {}",
-             inputOffset_, inputBuffer_.size(), n);
+  //TRACE_CONN("parseFragment: called ({} into {}) => {}",
+  //           inputOffset_, inputBuffer_.size(), n);
   inputOffset_ += n;
 }
 
 void Connection::onWriteable() {
-  TRACE_CONN("{} onWriteable", (void*) this);
+  //TRACE_CONN("{} onWriteable", (void*) this);
 
   const bool complete = writer_.flushTo(endpoint());
 
   if (complete) {
-    TRACE_CONN("{} onWriteable: completed. ({})",
-          (void*) this,
-          (!onComplete_.empty() ? "onComplete cb set" : "onComplete cb not set"));
+    //TRACE_CONN("{} onWriteable: completed. ({})",
+    //      (void*) this,
+    //      (!onComplete_.empty() ? "onComplete cb set" : "onComplete cb not set"));
 
     if (!onComplete_.empty()) {
-      TRACE_CONN("{} onWriteable: invoking completion {} callback(s)", (void*) this, onComplete_.size());
+      //TRACE_CONN("{} onWriteable: invoking completion {} callback(s)", (void*) this, onComplete_.size());
       auto callbacks = std::move(onComplete_);
       onComplete_.clear();
       for (const auto& hook: callbacks) {
-        TRACE_CONN("{} onWriteable: invoking one cb", (void*) this);
+        //TRACE_CONN("{} onWriteable: invoking one cb", (void*) this);
         hook(true);
       }
     }
@@ -299,8 +289,8 @@ void Connection::onWriteable() {
 }
 
 void Connection::onInterestFailure(const std::exception& error) {
-  TRACE_CONN("{} onInterestFailure({}): {}",
-             (void*) this, typeid(error).name(), error.what());
+  //TRACE_CONN("{} onInterestFailure({}): {}",
+  //           (void*) this, typeid(error).name(), error.what());
 
   // TODO: improve logging here, as this eats our exception here.
   // e.g. via (factory or connector)->error(error);
@@ -311,7 +301,7 @@ void Connection::onInterestFailure(const std::exception& error) {
 
   // notify the callback that we failed doing something wrt. I/O.
   if (!callback.empty()) {
-    TRACE_CONN("{} onInterestFailure: invoking onComplete(false)", (void*) this);
+    //TRACE_CONN("{} onInterestFailure: invoking onComplete(false)", (void*) this);
     for (const auto& hook: onComplete_) {
       hook(false);
     }
@@ -321,15 +311,15 @@ void Connection::onInterestFailure(const std::exception& error) {
 }
 
 HttpListener* Connection::onCreateChannel(int request, bool keepAlive) {
-  TRACE_CONN("{} onCreateChannel(requestID={}, keepalive={})",
-             (void*) this, request, keepAlive ? "yes" : "no");
+  //TRACE_CONN("{} onCreateChannel(requestID={}, keepalive={})",
+  //           (void*) this, request, keepAlive ? "yes" : "no");
   setPersistent(keepAlive);
   return createChannel(request);
 }
 
 void Connection::onUnknownPacket(int request, int record) {
-  TRACE_CONN("{} onUnknownPacket: request={}, record={} {}",
-        (void*) this, request, record, static_cast<Type>(record));
+  //TRACE_CONN("{} onUnknownPacket: request={}, record={} {}",
+  //      (void*) this, request, record, static_cast<Type>(record));
 }
 
 void Connection::onAbortRequest(int request) {
@@ -362,8 +352,8 @@ HttpChannel* Connection::createChannel(int request) {
 }
 
 void Connection::removeChannel(int request) {
-  TRACE_CONN("{} removeChannel({}) {}",
-             (void*) this, request, isPersistent() ? "keepalive" : "close");
+  //TRACE_CONN("{} removeChannel({}) {}",
+  //           (void*) this, request, isPersistent() ? "keepalive" : "close");
 
   auto i = channels_.find(request);
   if (i != channels_.end()) {
@@ -380,9 +370,7 @@ void Connection::removeChannel(int request) {
 }
 
 void Connection::setPersistent(bool enable) {
-  TRACE_CONN("setPersistent({}) (timeout={}s)",
-      enable ? "yes" : "no",
-      maxKeepAlive_.seconds());
+  //TRACE_CONN("setPersistent({}) (timeout={}s)", enable ? "yes" : "no", maxKeepAlive_.seconds());
 
   if (maxKeepAlive_ != Duration::Zero) {
     persistent_ = enable;

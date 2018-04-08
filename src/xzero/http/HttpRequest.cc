@@ -14,13 +14,11 @@
 namespace xzero {
 namespace http {
 
+template<typename... Args> constexpr void TRACE(const char* msg, Args... args) {
 #ifndef NDEBUG
-# define DEBUG(msg...) logDebug("http.HttpRequest: " msg)
-# define TRACE(msg...) logTrace("http.HttpRequest: " msg)
-#else
-# define DEBUG(msg...) do {} while (0)
-# define TRACE(msg...) do {} while (0)
+  ::xzero::logTrace(std::string("http.HttpRequest: ") + msg, args...);
 #endif
+}
 
 HttpRequest::HttpRequest()
     : HttpRequest(HttpVersion::UNKNOWN, "", "", {}, false, {}) {

@@ -18,11 +18,11 @@ namespace xzero {
 namespace http {
 namespace client {
 
-#if !defined(NDEBUG)
-#define TRACE(msg...) logTrace("http.client.Http1Connection: " msg)
-#else
-#define TRACE(msg...) do {} while (0)
+template<typename... Args> constexpr void TRACE(const char* msg, Args... args) {
+#ifndef NDEBUG
+  ::xzero::logTrace(std::string("http.client.Http1Connection: ") + msg, args...);
 #endif
+}
 
 Http1Connection::Http1Connection(HttpListener* channel,
                                  TcpEndPoint* endpoint,

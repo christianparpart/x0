@@ -37,6 +37,12 @@
 #include <xzero-flow/ir/ConstantArray.h>
 #include <fmt/format.h>
 
+template<typename... Args> constexpr void TRACE(const char* msg, Args... args) {
+#ifndef NDEBUG
+  ::xzero::logTrace(std::string("x0d.proxy: ") + msg, args...);
+#endif
+}
+
 namespace x0d {
 
 using namespace xzero;

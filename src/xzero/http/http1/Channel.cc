@@ -22,11 +22,11 @@ namespace xzero {
 namespace http {
 namespace http1 {
 
-#if !defined(NDEBUG)
-#define TRACE(fmt...) logTrace("http.http1.Channel", fmt)
-#else
-#define TRACE(msg...) do {} while (0)
+template<typename... Args> constexpr void TRACE(const char* msg, Args... args) {
+#ifndef NDEBUG
+  ::xzero::logTrace(std::string("http.h1.Channel: ") + msg, args...);
 #endif
+}
 
 Channel::Channel(Connection* transport,
                  Executor* executor,

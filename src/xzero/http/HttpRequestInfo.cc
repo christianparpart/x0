@@ -11,13 +11,11 @@
 namespace xzero {
 namespace http {
 
-#define DEBUG(msg...) logDebug(msg)
-
+template<typename... Args> constexpr void TRACE(const char* msg, Args... args) {
 #ifndef NDEBUG
-# define TRACE(msg...) logTrace("http.HttpRequestInfo: " msg)
-#else
-# define TRACE(msg...) do {} while (0)
+  ::xzero::logTrace(std::string("http.HttpRequestInfo: ") + msg, args...);
 #endif
+}
 
 void HttpRequestInfo::reset() {
   HttpInfo::reset();
@@ -228,7 +226,7 @@ bool HttpRequestInfo::setUri(const std::string& uri) {
           break;
         }
 
-        DEBUG("Failed decoding Request-URI.");
+        logDebug("Failed decoding Request-URI.");
         return false;
       case UriState::QuoteChar2:
         if (ch >= '0' && ch <= '9') {
@@ -237,7 +235,7 @@ bool HttpRequestInfo::setUri(const std::string& uri) {
 
           switch (ch) {
             case '\0':
-              DEBUG("Client attempted to inject ASCII-0 into Request-URI.");
+              logDebug("Client attempted to inject ASCII-0 into Request-URI.");
               return false;
             case '%':
               state = UriState::Content;
@@ -273,7 +271,7 @@ bool HttpRequestInfo::setUri(const std::string& uri) {
 
           switch (ch) {
             case '\0':
-              DEBUG("Client attempted to inject ASCII-0 into Request-URI.");
+              logDebug("Client attempted to inject ASCII-0 into Request-URI.");
               return false;
             case '%':
               state = UriState::Content;
@@ -288,7 +286,7 @@ bool HttpRequestInfo::setUri(const std::string& uri) {
           break;
         }
 
-        DEBUG("Failed decoding Request-URI.");
+        logDebug("Failed decoding Request-URI.");
         return false;
       case UriState::QueryStart:
         if (ch == '?') {
@@ -308,7 +306,7 @@ bool HttpRequestInfo::setUri(const std::string& uri) {
   switch (state) {
     case UriState::QuoteStart:
     case UriState::QuoteChar2:
-      DEBUG("Failed decoding Request-URI.");
+      logDebug("Failed decoding Request-URI.");
       return false;
     default:
       break;

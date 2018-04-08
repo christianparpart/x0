@@ -16,11 +16,11 @@ namespace xzero {
 namespace http {
 namespace http1 {
 
-#if 0 // !defined(NDEBUG)
-#define TRACE(fmt...) logTrace("http.http1.Parser", fmt)
-#else
-#define TRACE(msg...) do {} while (0)
+template<typename... Args> constexpr void TRACE(const char* msg, Args... args) {
+#ifndef NDEBUG
+  ::xzero::logTrace(std::string("http.h1.Parser: ") + msg, args...);
 #endif
+}
 
 std::string as_string(Parser::State state) {
   switch (state) {

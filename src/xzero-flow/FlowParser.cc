@@ -360,18 +360,11 @@ void FlowParser::reportWarning(const std::string& message) {
 }
 
 void FlowParser::reportError(const std::string& message) {
-  if (!errorHandler) {
-    char buf[1024];
-    int n = snprintf(buf, sizeof(buf), "[%04zu:%02zu] %s\n", lexer_->line(),
-                     lexer_->column(), message.c_str());
-    write(2, buf, n);
-    return;
+  if (errorHandler) {
+    errorHandler(fmt::format("[{:0>4}:{:0>2}] {}", lexer_->line(), lexer_->column(), message));
+  } else {
+    fmt::print("[{:0>4}:{:0>2}] {}\n", lexer_->line(), lexer_->column(), message);
   }
-
-  char buf[1024];
-  snprintf(buf, sizeof(buf), "[%04zu:%02zu] %s", lexer_->line(),
-           lexer_->column(), message.c_str());
-  errorHandler(buf);
 }
 // }}}
 // {{{ lexing

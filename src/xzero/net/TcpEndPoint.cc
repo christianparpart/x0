@@ -25,11 +25,11 @@
 namespace xzero {
 
 #if !defined(NDEBUG)
-#define TRACE(msg...) logTrace("TcpEndPoint: " msg)
-#define DEBUG(msg...) logDebug("TcpEndPoint: " msg)
+#define TRACE(msg, ...) logTrace("TcpEndPoint: " msg, __VA_ARGS__)
+#define DEBUG(msg, ...) logDebug("TcpEndPoint: " msg, __VA_ARGS__)
 #else
-#define TRACE(msg...) do {} while (0)
-#define DEBUG(msg...) do {} while (0)
+#define TRACE(msg, ...) do {} while (0)
+#define DEBUG(msg, ...) do {} while (0)
 #endif
 
 TcpEndPoint::TcpEndPoint(FileDescriptor&& socket,
@@ -327,7 +327,7 @@ void onConnectComplete(InetAddress address,
   socklen_t vlen = sizeof(val);
   if (getsockopt(fd, SOL_SOCKET, SO_ERROR, &val, &vlen) == 0) {
     if (val == 0) {
-      TRACE("onConnectComplete: Connected.");
+      TRACE("onConnectComplete: {}.", "Connected");
       promise.success(std::make_shared<TcpEndPoint>(FileDescriptor{fd},
                                                     address.family(),
                                                     readTimeout,
@@ -371,7 +371,7 @@ Future<std::shared_ptr<TcpEndPoint>> TcpEndPoint::connect(const InetAddress& add
 
   std::error_code ec = TcpUtil::connect(fd, address);
   if (!ec) {
-    TRACE("connect: connected instantly");
+    TRACE("connect: {}", "connected instantly");
     promise.success(std::make_shared<TcpEndPoint>(FileDescriptor{fd},
                                                   address.family(),
                                                   readTimeout,
@@ -379,7 +379,7 @@ Future<std::shared_ptr<TcpEndPoint>> TcpEndPoint::connect(const InetAddress& add
                                                   executor,
                                                   nullptr));
   } else if (ec == std::errc::operation_in_progress) {
-    TRACE("connect: backgrounding");
+    TRACE("connect: {}", "backgrounding");
     executor->executeOnWritable(fd,
         std::bind(&onConnectComplete, address, fd, readTimeout, writeTimeout, executor, promise),
         connectTimeout,

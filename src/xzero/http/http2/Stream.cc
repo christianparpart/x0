@@ -17,7 +17,11 @@ namespace xzero {
 namespace http {
 namespace http2 {
 
-#define TRACE(msg...) logTrace("http.http2.Stream: " msg)
+template<typename... Args> constexpr void TRACE(const char* msg, Args... args) {
+#ifndef NDEBUG
+  ::xzero::logTrace(std::string("http.h2.Stream: ") + msg, args...);
+#endif
+}
 
 Stream::Stream(StreamID id,
                Stream* parentStream,

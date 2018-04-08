@@ -32,7 +32,7 @@
 
 namespace xzero {
 
-#define TRACE(msg...) logTrace("TcpUtil: " msg)
+#define TRACE(msg, ...) logTrace("TcpUtil: " msg, __VA_ARGS__)
 
 Result<InetAddress> TcpUtil::getRemoteAddress(int fd, int addressFamily) {
   if (fd < 0)
@@ -128,10 +128,10 @@ Future<int> TcpUtil::connect(const InetAddress& address,
   std::error_code ec = TcpUtil::connect(fd, address);
 
   if (!ec) {
-    TRACE("connect: connected instantly");
+    TRACE("connect: {}", "connected instantly");
     promise.success(fd);
   } else if (ec == std::errc::operation_in_progress) {
-    TRACE("connect: backgrounding");
+    TRACE("connect: {}", "backgrounding");
     executor->executeOnWritable(
         fd,
         [promise, fd]() { promise.success(fd); },
@@ -139,7 +139,7 @@ Future<int> TcpUtil::connect(const InetAddress& address,
         [promise, fd]() { FileUtil::close(fd);
                           promise.failure(std::errc::timed_out); });
   } else {
-    TRACE("TcpUtil.connect: failed. {}", ec.message());
+    TRACE("connect: failed. {}", ec.message());
     promise.failure(ec);
   }
 
@@ -158,7 +158,7 @@ std::error_code TcpUtil::connect(int fd, const InetAddress& address) {
              address.ip().data(),
              address.ip().size());
 
-      TRACE("connect: connect(ipv4)");
+      TRACE("connect: {}", "connect(ipv4)");
       rv = ::connect(fd, (const struct sockaddr*) &saddr, sizeof(saddr));
       break;
     }
@@ -171,7 +171,7 @@ std::error_code TcpUtil::connect(int fd, const InetAddress& address) {
              address.ip().data(),
              address.ip().size());
 
-      TRACE("connect: connect(ipv6)");
+      TRACE("connect: {}", "connect(ipv6)");
       rv = ::connect(fd, (const struct sockaddr*) &saddr, sizeof(saddr));
       break;
     }

@@ -22,14 +22,14 @@
 
 namespace xzero {
 
+template<typename... Args> constexpr void TRACE(const char* msg, Args... args) {
 #ifndef NDEBUG
-#define TRACE(msg...) logTrace("SslEndPoint" msg)
-#else
-#define TRACE(msg...) do {} while (0)
+  ::xzero::logTrace(std::string("SslEndPoint: ") + msg, args...);
 #endif
+}
 
 #define THROW_SSL_ERROR() {                                                   \
-  RAISE_CATEGORY(ERR_get_error(), SslErrorCategory::get());                      \
+  RAISE_CATEGORY(ERR_get_error(), SslErrorCategory::get());                   \
 }
 
 // {{{ SslErrorCategory

@@ -30,8 +30,6 @@
 
 namespace xzero {
 
-#define TS_TRACE(msg...) logTrace("TokenShaper: " msg)
-
 /**
  * TokenShaper mutation result codes.
  */

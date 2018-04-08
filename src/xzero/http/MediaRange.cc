@@ -10,11 +10,11 @@
 #include <list>
 #include <stdlib.h>
 
-#if !defined(NDEBUG)
-#define TRACE(msg...) logTrace("http.MediaRange: " msg)
-#else
-#define TRACE(msg...) do {} while (0)
+template<typename... Args> constexpr void TRACE(const char* msg, Args... args) {
+#ifndef NDEBUG
+  ::xzero::logTrace(std::string("http.MediaRange: ") + msg, args...);
 #endif
+}
 
 namespace xzero::http {
 

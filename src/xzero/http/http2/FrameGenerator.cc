@@ -17,11 +17,11 @@
 
 namespace xzero::http::http2 {
 
-#if !defined(NDEBUG)
-#define TRACE(msg...) logTrace("http.http2.FrameGenerator: " msg)
-#else
-#define TRACE(msg...) do {} while (0)
+template<typename... Args> constexpr void TRACE(const char* msg, Args... args) {
+#ifndef NDEBUG
+  ::xzero::logTrace(std::string("http.h2.FrameGenerator: ") + msg, args...);
 #endif
+}
 
 constexpr size_t FrameHeaderSize = 9;
 

@@ -17,11 +17,11 @@
 
 namespace xzero {
 
+template<typename... Args> constexpr void TRACE(const char* msg, Args... args) {
 #ifndef NDEBUG
-#define TRACE(msg...) logTrace("SslConnector: " msg)
-#else
-#define TRACE(msg...) do {} while (0)
+  ::xzero::logTrace(std::string("net.SslConnector: ") + msg, args...);
 #endif
+}
 
 SslConnector::SslConnector(const std::string& name, Executor* executor,
                            ExecutorSelector clientExecutorSelector,

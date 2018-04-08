@@ -13,11 +13,11 @@
 
 namespace xzero {
 
+template<typename... Args> constexpr void TRACE(const char* msg, Args... args) {
 #ifndef NDEBUG
-#define TRACE(msg...) logTrace("executor.LocalExecutor: " msg)
-#else
-#define TRACE(msg...) do {} while (0)
+  ::xzero::logTrace(std::string("LocalExecutor: ") + msg, args...);
 #endif
+}
 
 LocalExecutor::LocalExecutor(
     bool recursive,

@@ -15,13 +15,11 @@
 
 namespace xzero::http::cluster {
 
-#if !defined(NDEBUG)
-# define DEBUG(msg...) logDebug("http.cluster.Context: " msg)
-# define TRACE(msg...) logTrace("http.cluster.Context: " msg)
-#else
-# define DEBUG(msg...) do {} while (0)
-# define TRACE(msg...) do {} while (0)
+template<typename... Args> constexpr void TRACE(const char* msg, Args... args) {
+#ifndef NDEBUG
+  ::xzero::logTrace(std::string("http.cluster.Context: ") + msg, args...);
 #endif
+}
 
 Context::Context(const HttpRequest& _request,
                  std::unique_ptr<HttpListener> _responseListener,
