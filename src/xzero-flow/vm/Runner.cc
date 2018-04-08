@@ -51,16 +51,16 @@ namespace xzero::flow {
   #define jump            if (true) { break; }
   #define next            if (true) { ++pc; break; }
 #elif defined(ENABLE_FLOW_DIRECT_THREADED_VM)
-  #define LOOP_BEGIN()    do { jump; } while (0)
-  #define LOOP_END()      do {} while (0)
+  #define LOOP_BEGIN()    jump;
+  #define LOOP_END()
   #define instr(name)     l_##name : ++pc; logDebug("{}", disassemble((Instruction) * pc, (pc - code.data()) / 2), &program_->constants());
   #define get_pc()        ((pc - code.data()) / 2)
   #define set_pc(offset)  do { pc = code.data() + (offset) * 2; } while (0)
   #define jump            goto*(void*)*pc
   #define next            goto*(void*)*++pc
 #else
-  #define LOOP_BEGIN()    do { jump; } while (0)
-  #define LOOP_END()      do {} while (0)
+  #define LOOP_BEGIN()    jump;
+  #define LOOP_END()
   #define instr(name)     l_##name : logDebug("{}", disassemble(*pc, pc - code.data(), &sp_, &program_->constants()));
   #define get_pc()        (pc - code.data())
   #define set_pc(offset)  do { pc = code.data() + (offset); } while (0)
