@@ -12,12 +12,6 @@
 #include <xzero/executor/Executor.h>
 #include <cassert>
 
-template<typename... Args> constexpr void TRACE(const char* msg, Args... args) {
-#ifndef NDEBUG
-  ::xzero::logTrace(std::string("DeadlineTimer: ") + msg, args...);
-#endif
-}
-
 namespace xzero {
 
 DeadlineTimer::DeadlineTimer(Executor* executor,
@@ -115,7 +109,6 @@ void DeadlineTimer::schedule() {
 }
 
 void DeadlineTimer::onFired() {
-  TRACE("DeadlineTimer({}).onFired: active={}", (void*)this, isActive());
   if (!isActive()) {
     return;
   }

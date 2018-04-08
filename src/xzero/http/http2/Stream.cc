@@ -17,12 +17,6 @@ namespace xzero {
 namespace http {
 namespace http2 {
 
-template<typename... Args> constexpr void TRACE(const char* msg, Args... args) {
-#ifndef NDEBUG
-  ::xzero::logTrace(std::string("http.h2.Stream: ") + msg, args...);
-#endif
-}
-
 Stream::Stream(StreamID id,
                Stream* parentStream,
                bool exclusiveDependency,
@@ -140,7 +134,6 @@ void Stream::setCompleter(CompletionHandler cb) {
 
 void Stream::invokeCompleter(bool success) {
   if (onComplete_) {
-    TRACE("invoking completion callback");
     auto callback = std::move(onComplete_);
     onComplete_ = nullptr;
     callback(success);

@@ -8,8 +8,6 @@
 #include <xzero/AnsiColor.h>
 #include <stdio.h>
 
-#define TS_TRACE(msg, ...) do {} while (0)
-
 namespace xzero {
 
 // {{{ TokenShaper<T> impl
@@ -468,7 +466,6 @@ T* TokenShaper<T>::Node::dequeue() {
   // We could not actually dequeue request from any of the child buckets,
   // so try in current bucket itself, if its queue is non-empty.
   if (!queue_.empty()) {
-    TS_TRACE("dequeue(): try dequeing from {}, queue size {}", name_, queue_.size());
     if (get(1)) {  // XXX token count of 1 is hard coded. doh.
       QueueItem item = queue_.front();
       queue_.pop_front();
@@ -572,7 +569,6 @@ void TokenShaper<T>::Node::updateQueueTimer() {
     if (age < queueTimeout_)
       break;
 
-    TS_TRACE("updateQueueTimer: dequeueing timed out request. {} < {}", age, queueTimeout_);
     queue_.pop_front();
     --queued_;
     ++dropped_;
@@ -583,7 +579,6 @@ void TokenShaper<T>::Node::updateQueueTimer() {
   }
 
   if (queue_.empty()) {
-    // TRACE("updateQueueTimer: queue empty. not starting new timer.");
     return;
   }
 
@@ -591,8 +586,6 @@ void TokenShaper<T>::Node::updateQueueTimer() {
   QueueItem front = queue_.front();
   Duration age = now - front.ctime;
   Duration ttl = queueTimeout_ - age;
-
-  TS_TRACE("updateQueueTimer: starting new timer with TTL {}, age {}", ttl, age);
 
   executor_->executeAfter(
       ttl,
@@ -637,5 +630,3 @@ inline void dump(const TokenShaper<T>& shaper, const char* title) {
 // }}}
 
 } // namespace xzero
-
-#undef TS_TRACE

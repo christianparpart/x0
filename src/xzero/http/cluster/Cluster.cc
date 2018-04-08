@@ -19,12 +19,6 @@
 
 namespace xzero::http::cluster {
 
-template<typename... Args> constexpr void TRACE(const char* msg, Args... args) {
-#ifndef NDEBUG
-  ::xzero::logTrace(std::string("http.cluster.Cluster: ") + msg, args...);
-#endif
-}
-
 Cluster::Cluster(const std::string& name,
                  const std::string& storagePath,
                  Executor* executor)
@@ -102,7 +96,6 @@ Cluster::Cluster(const std::string& name,
       load_(),
       queued_(),
       dropped_() {
-  TRACE("ctor(name: {})", name_);
 }
 
 Cluster::~Cluster() {
@@ -434,8 +427,6 @@ void Cluster::setConfiguration(const std::string& text,
 void Cluster::loadBackend(const IniFile& settings, const std::string& key) {
   std::string name = key.substr(strlen("backend="));
 
-  TRACE("Cluster {}: loading backend: {}", name_, name);
-
   // capacity
   std::string capacityStr;
   if (!settings.load(key, "capacity", capacityStr)) {
@@ -592,8 +583,6 @@ void Cluster::addMember(const std::string& name,
                         Duration healthCheckInterval) {
   Executor* const executor = executor_; // TODO: get as function arg for passing: daemon().selectClientScheduler()
 
-  TRACE("addMember: {} {}", name, addr);
-
   std::unique_ptr<Backend> backend = std::make_unique<Backend>(
       this,
       executor,
@@ -727,8 +716,6 @@ void Cluster::schedule(Context* cx, Bucket* bucket) {
 }
 
 void Cluster::reschedule(Context* cx) {
-  TRACE("reschedule");
-
   if (verifyTryCount(cx)) {
     SchedulerStatus status = scheduler()->schedule(cx);
 
@@ -750,7 +737,6 @@ bool Cluster::verifyTryCount(Context* cx) {
   if (cx->tryCount <= maxRetryCount())
     return true;
 
-  TRACE("proxy.cluster %s: request failed %d times.", name().c_str(), cx->tryCount);
   serviceUnavailable(cx);
   return false;
 }
@@ -824,8 +810,6 @@ void Cluster::dequeueTo(Backend* backend) {
         verifyTryCount(cx);
       }
     });
-  } else {
-    TRACE("dequeueTo: queue empty.");
   }
 }
 
@@ -856,8 +840,6 @@ void Cluster::onTimeout(Context* cx) {
 void Cluster::onEnabledChanged(Backend* backend) {
   logDebug("onBackendEnabledChanged: {} {}",
            backend->name(), backend->isEnabled() ? "enabled" : "disabled");
-  TRACE("onBackendEnabledChanged: {} {}",
-        backend->name(), backend->isEnabled() ? "enabled" : "disabled");
 
   if (backend->isEnabled()) {
     shaper()->resize(shaper()->size() + backend->capacity());
@@ -868,7 +850,6 @@ void Cluster::onEnabledChanged(Backend* backend) {
 
 void Cluster::onCapacityChanged(Backend* member, size_t old) {
   if (member->isEnabled()) {
-    TRACE("onCapacityChanged: member {} capacity {}", member->name(), member->capacity());
     shaper()->resize(shaper()->size() - old + member->capacity());
   }
 }
@@ -886,9 +867,6 @@ void Cluster::onHealthChanged(Backend* backend, HealthMonitor::State oldState) {
   if (backend->healthMonitor()->isOnline()) {
     // backend is online and enabled
 
-    TRACE("onHealthChanged: adding capacity to shaper ({} + {})",
-           shaper()->size(), backend->capacity());
-
     shaper()->resize(shaper()->size() + backend->capacity());
 
     if (!stickyOfflineMode()) {
@@ -903,8 +881,6 @@ void Cluster::onHealthChanged(Backend* backend, HealthMonitor::State oldState) {
     }
   } else if (oldState == HealthMonitor::State::Online) {
     // backend is offline and enabled
-    TRACE("onHealthChanged: removing capacity from shaper ({} - {})",
-          shaper()->size(), backend->capacity());
     shaper()->resize(shaper()->size() - backend->capacity());
   }
 }

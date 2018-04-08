@@ -15,12 +15,6 @@
 
 namespace xzero::http::cluster {
 
-template<typename... Args> constexpr void TRACE(const char* msg, Args... args) {
-#ifndef NDEBUG
-  ::xzero::logTrace(std::string("http.cluster.Context: ") + msg, args...);
-#endif
-}
-
 Context::Context(const HttpRequest& _request,
                  std::unique_ptr<HttpListener> _responseListener,
                  Executor* _executor,
@@ -38,7 +32,6 @@ Context::Context(const HttpRequest& _request,
       proxyId_{proxyId},
       viaText_{},
       responseListener{std::move(_responseListener)} {
-  TRACE("ctor: executor: {}", executor->toString());
 }
 
 Context::~Context() {
@@ -89,8 +82,6 @@ void Context::onMessageContent(FileView&& chunk) {
 }
 
 void Context::onMessageEnd() {
-  TRACE("onMessageEnd!");
-
   // FYI: timed out requests do not have tokens, backend and bucket
   if (tokens) {
     assert(bucket != nullptr);

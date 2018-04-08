@@ -16,12 +16,6 @@ namespace xzero {
 namespace http {
 namespace http1 {
 
-template<typename... Args> constexpr void TRACE(const char* msg, Args... args) {
-#ifndef NDEBUG
-  ::xzero::logTrace(std::string("http.h1.Parser: ") + msg, args...);
-#endif
-}
-
 std::string as_string(Parser::State state) {
   switch (state) {
     // artificial
@@ -264,11 +258,6 @@ std::size_t Parser::parseFragment(const BufferRef& chunk) {
     bytesReceived_ += n;
   };
 
-  // TRACE(2, "process(curState:%s): size: %ld: '%s'", as_string(state()).c_str(),
-  // chunk.size(), chunk.str().c_str());
-  TRACE("process(curState:{}): size: {}", as_string(state()).c_str(),
-        chunk.size());
-
 #if 0
     switch (state_) {
         case CONTENT: // fixed size content
@@ -289,16 +278,6 @@ std::size_t Parser::parseFragment(const BufferRef& chunk) {
 #endif
 
   while (i != e) {
-#if 0 // !defined(NDEBUG)
-    if (std::isprint(*i)) {
-      TRACE("parse: %4ld, 0x%02X (%c),  %s", *nparsed, *i, *i,
-            as_string(state()).c_str());
-    } else {
-      TRACE("parse: %4ld, 0x%02X,     %s", *nparsed, *i,
-            as_string(state()).c_str());
-    }
-#endif
-
     switch (state_) {
       case MESSAGE_BEGIN:
         contentLength_ = -1;
@@ -456,10 +435,6 @@ std::size_t Parser::parseFragment(const BufferRef& chunk) {
         if (*i == LF) {
           state_ = HEADER_NAME_BEGIN;
           nextChar();
-
-          TRACE("request-line: method={}, entity={}, vmaj={}, vmin={}",
-                method_.str(), entity_.str(), versionMajor_, versionMinor_);
-
           onMessageBegin(method_, entity_, versionMajor_, versionMinor_);
         } else {
           onProtocolError();
@@ -585,9 +560,6 @@ std::size_t Parser::parseFragment(const BufferRef& chunk) {
         if (*i == LF) {
           state_ = HEADER_NAME_BEGIN;
           nextChar();
-
-          // TRACE("status-line: HTTP/{}.{}, code={}, message={}",
-          // versionMajor_, versionMinor_, code_, message_);
           onMessageBegin(versionMajor_, versionMinor_, code_, message_);
         } else {
           onProtocolError();
@@ -724,11 +696,8 @@ std::size_t Parser::parseFragment(const BufferRef& chunk) {
         }
         break;
       case HEADER_VALUE_END: {
-        TRACE("header: name='{}', value='{}'", name_.str(), value_.str());
-
         if (iequals(name_, "Content-Length")) {
           contentLength_ = value_.toInt();
-          TRACE("set content length to: {}", contentLength_);
           // do not pass header to upper layer
           // as this is an HTTP/1 transport-layer specific header
           onMessageHeader(name_, value_);
@@ -784,13 +753,8 @@ std::size_t Parser::parseFragment(const BufferRef& chunk) {
       case CONTENT_ENDLESS: {
         // body w/o content-length (allowed in simple MESSAGE types only)
         BufferRef c(chunk.ref(*nparsed - initialOutOffset));
-
-        // TRACE("prepared content-chunk ({} bytes): {}", c.size(), c.str());
-
         nextChar(c.size());
-
         onMessageContent(c);
-
         break;
       }
       case CONTENT: {
@@ -846,7 +810,6 @@ std::size_t Parser::parseFragment(const BufferRef& chunk) {
           onProtocolError();
           state_ = PROTOCOL_ERROR;
         } else {
-          // TRACE("content_length: {}", contentLength_);
           if (contentLength_ != 0)
             state_ = CONTENT_CHUNK_BODY;
           else
@@ -906,17 +869,6 @@ std::size_t Parser::parseFragment(const BufferRef& chunk) {
       case PROTOCOL_ERROR:
         goto done;
       default:
-#if !defined(NDEBUG)
-        TRACE("parse: unknown state {}", state_);
-        if (std::isprint(*i)) {
-          TRACE("parse: internal error at nparsed: {}, character: '{}'",
-                *nparsed, *i);
-        } else {
-          TRACE("parse: internal error at nparsed: {}, character: {}",
-                *nparsed, *i);
-        }
-        TRACE("{}", chunk.hexdump().c_str());
-#endif
         goto done;
     }
   }

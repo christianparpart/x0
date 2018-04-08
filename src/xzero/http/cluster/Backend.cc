@@ -16,12 +16,6 @@
 
 namespace xzero::http::cluster {
 
-template<typename... Args> constexpr void TRACE(const char* msg, Args... args) {
-#ifndef NDEBUG
-  ::xzero::logTrace(std::string("http.cluster.Backend: ") + msg, args...);
-#endif
-}
-
 Backend::Backend(
     EventListener* eventListener,
     Executor* executor,
@@ -87,9 +81,6 @@ SchedulerStatus Backend::tryProcess(Context* cr) {
 
   if (capacity_ && load_.current() >= capacity_)
     return SchedulerStatus::Overloaded;
-
-  TRACE("Processing request by backend {} {}", name(), inetAddress_);
-  TRACE("tryProcess: with executor: {}", cr->executor->toString());
 
   ++load_;
   cr->backend = this;

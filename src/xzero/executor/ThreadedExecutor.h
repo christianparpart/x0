@@ -9,16 +9,10 @@
 
 #include <xzero/executor/Executor.h>
 #include <xzero/sysconfig.h>
+
 #include <deque>
 #include <mutex>
-
-#if defined(HAVE_PTHREAD_H)
-#include <pthread.h>
-#endif
-
-#if defined(XZERO_OS_WIN32)
-#include <windef.h>
-#endif
+#include <thread>
 
 namespace xzero {
 
@@ -48,14 +42,10 @@ class ThreadedExecutor : public Executor {
   void joinAll();
 
  private:
-  static void* launchme(void* ptr);
+  void setThreadName(const std::string& name);
 
-#if defined(XZERO_OS_WIN32)
-  std::deque<HANDLE> threads_;
-#else
-  std::deque<pthread_t> threads_;
-#endif
-
+ private:
+  std::deque<std::thread> threads_;
   std::mutex mutex_;
 };
 

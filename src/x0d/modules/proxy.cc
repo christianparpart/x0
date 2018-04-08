@@ -37,12 +37,6 @@
 #include <xzero-flow/ir/ConstantArray.h>
 #include <fmt/format.h>
 
-template<typename... Args> constexpr void TRACE(const char* msg, Args... args) {
-#ifndef NDEBUG
-  ::xzero::logTrace(std::string("x0d.proxy: ") + msg, args...);
-#endif
-}
-
 namespace x0d {
 
 using namespace xzero;
@@ -53,9 +47,6 @@ using xzero::http::cluster::ApiHandler;
 using ClusterContext = xzero::http::cluster::Context;
 using xzero::http::cluster::Cluster;
 using xzero::http::client::HttpClient;
-
-#define TRACE(msg...) logTrace(msg)
-#define DEBUG(msg...) logDebug(msg)
 
 template<typename T>
 static bool isConnectionHeader(const T& name) {
@@ -172,9 +163,7 @@ bool ProxyModule::verify_proxy_cluster(xzero::flow::Instr* call, xzero::flow::IR
 }
 
 void ProxyModule::onPostConfig() {
-  TRACE("clusterInit count: {}", clusterInit_.size());
   for (const auto& init: clusterInit_) {
-    TRACE("clusterInit: spawning {}", init.first);
     std::string name = init.first;
     std::string path = init.second;
 
@@ -301,8 +290,6 @@ bool ProxyModule::proxy_cluster(Context* cx, Params& args) {
 
   if (cx->tryServeTraceProxy())
     return true;
-
-  TRACE("proxy.cluster: {}", cluster->name());
 
   Cluster::RequestShaper::Node* bucket = cluster->rootBucket();
   if (!bucketName.empty()) {

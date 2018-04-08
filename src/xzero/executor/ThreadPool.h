@@ -47,8 +47,6 @@ class ThreadPool : public Executor {
 
   ~ThreadPool();
 
-  static std::string getThreadName(const void* id);
-
   /**
    * Retrieves the number of pending tasks.
    */

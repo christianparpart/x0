@@ -280,6 +280,8 @@ TEST_F(http_HttpFileHandler, GET_if_modified_since) {
   std::string path = "/12345.txt";
   auto file = getFile(path);
 
+  logf("file's lastModified: {}", file->lastModified());
+
   // test exact-date match
   transport.run(HttpVersion::VERSION_1_1, "GET", path,
       {{"Host", "test"},

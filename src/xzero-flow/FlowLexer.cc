@@ -8,6 +8,7 @@
 #include <xzero-flow/FlowLexer.h>
 #include <xzero/net/IPAddress.h>
 #include <xzero/RuntimeError.h>
+#include <xzero/logging.h>
 #include <xzero/sysconfig.h>
 #include <sstream>
 #include <unordered_map>
@@ -16,9 +17,6 @@
 #if defined(HAVE_GLOB_H)
 #include <glob.h>
 #endif
-
-//#define TRACE(msg...) XZERO_DEBUG("FlowLexer", (level), msg)
-#define TRACE(msg, ...) do {} while (0)
 
 namespace xzero {
 namespace flow {
@@ -126,8 +124,6 @@ FlowLexer::Scope* FlowLexer::enterScope(
   std::unique_ptr<Scope> cx = std::make_unique<Scope>();
   if (!cx) return nullptr;
 
-  TRACE("ENTER SCOPE '{}' (depth: {})", filename, contexts_.size() + 1);
-
   cx->setStream(filename, std::move(ifs));
   cx->backupChar = currentChar();
 
@@ -151,8 +147,6 @@ FlowLexer::Scope* FlowLexer::enterScope(const std::string& filename) {
 }
 
 void FlowLexer::leaveScope() {
-  TRACE("LEAVE SCOPE '{}' (depth: {})", scope()->filename, contexts_.size());
-
   currentChar_ = scope()->backupChar;
   contexts_.pop_front();
 }
@@ -213,7 +207,7 @@ bool FlowLexer::consumeSpace() {
     if (std::isprint(currentChar_)) break;
 
     // TODO proper error reporting through API callback
-    TRACE("{}[{}:{}]: invalid byte {}",
+    fmt::print("{}[{}:{}]: invalid byte {}\n",
           location_.filename, line(), column(), currentChar() & 0xFF);
   }
 
@@ -278,13 +272,13 @@ void FlowLexer::processCommand(const std::string& line) {
   size_t beg = line.find('"');
   size_t end = line.rfind('"');
   if (beg == std::string::npos || end == std::string::npos) {
-    TRACE("Malformed #include line");
+    logDebug("Malformed #include line");
     return;
   }
 
   std::string pattern = line.substr(beg + 1, end - beg - 1);
 
-  TRACE("Process include: '{}'", pattern);
+  logDebug("Process include: '{}'", pattern);
 
 #if defined(HAVE_GLOB_H)
   glob_t gl;
@@ -300,7 +294,7 @@ void FlowLexer::processCommand(const std::string& line) {
         {GLOB_NOSPACE, "No space"},
         {GLOB_ABORTED, "Aborted"},
         {GLOB_NOMATCH, "No Match"}, };
-    TRACE("glob() error: {}", globErrs[rv]);
+    logDebug("glob() error: {}", globErrs[rv]);
     return;
   }
 
@@ -323,16 +317,6 @@ FlowToken FlowLexer::nextToken() {
 
   location_.filename = scope()->filename;
   location_.begin = scope()->currPos;
-
-  TRACE("nextToken(): currentChar {} curr[{}:{}:{}] curr_tok({}) next[{}:{}:{}]",
-        escape(currentChar_),
-        scope()->currPos.line,
-        scope()->currPos.column,
-        scope()->currPos.offset,
-        token(),
-        scope()->nextPos.line,
-        scope()->nextPos.column,
-        scope()->nextPos.offset);
 
   switch (currentChar()) {
     case '~':
@@ -505,7 +489,7 @@ FlowToken FlowLexer::nextToken() {
       if (std::isalpha(currentChar()) || currentChar() == '_')
         return token_ = parseIdent();
 
-      TRACE("nextToken: unknown char {} ({})",
+      logDebug("nextToken: unknown char {} ({})",
             escape(currentChar()), (int)(currentChar() & 0xFF));
 
       nextChar();
@@ -876,7 +860,7 @@ FlowToken FlowLexer::continueCidr(size_t range) {
   nextChar();  // consume '/'
 
   if (!std::isdigit(currentChar())) {
-    TRACE("{}[{}:{}]: invalid byte {}",
+    logDebug("{}[{}:{}]: invalid byte {}",
           location_.filename,
           line(),
           column(),
@@ -893,8 +877,8 @@ FlowToken FlowLexer::continueCidr(size_t range) {
   }
 
   if (numberValue_ > static_cast<decltype(numberValue_)>(range)) {
-    TRACE("{}[{}:{}]: CIDR prefix out of range.",
-          location_.filename, line(), column());
+    logDebug("{}[{}:{}]: CIDR prefix out of range.",
+             location_.filename, line(), column());
     return token_ = FlowToken::Unknown;
   }
 

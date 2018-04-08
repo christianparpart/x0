@@ -16,12 +16,6 @@ namespace xzero {
 namespace http {
 namespace hpack {
 
-template<typename... Args> constexpr void TRACE(const char* msg, Args... args) {
-#ifndef NDEBUG
-  ::xzero::logTrace(std::string("http.hpack.Parser: ") + msg, args...);
-#endif
-}
-
 // 2^n
 #define BIT(n) (1 << (n))
 

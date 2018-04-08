@@ -15,12 +15,6 @@ namespace xzero {
 namespace http {
 namespace fastcgi {
 
-template<typename... Args> constexpr void TRACE(const char* msg, Args... args) {
-#ifndef NDEBUG
-  ::xzero::logTrace(std::string("http.fcgi.ResponseParser: ") + msg, args...);
-#endif
-}
-
 // {{{ ResponseParser::StreamState impl
 ResponseParser::StreamState::StreamState()
     : listener(nullptr),
@@ -121,8 +115,6 @@ void ResponseParser::process(const fastcgi::Record* record) {
 }
 
 void ResponseParser::streamStdOut(const fastcgi::Record* record) {
-  TRACE("streamStdOut: {}", record->contentLength());
-
   StreamState& stream = getStream(record->requestId());
   stream.totalBytesReceived += record->size();
 
@@ -133,14 +125,11 @@ void ResponseParser::streamStdOut(const fastcgi::Record* record) {
   stream.http1Parser.parseFragment(content);
 
   if (stream.contentFullyReceived) {
-    TRACE("streamStdOut: onMessageEnd");
     stream.listener->onMessageEnd();
   }
 }
 
 void ResponseParser::streamStdErr(const fastcgi::Record* record) {
-  TRACE("streamStdErr: {}", record->contentLength());
-
   StreamState& stream = getStream(record->requestId());
   stream.totalBytesReceived += record->size();
 

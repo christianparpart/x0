@@ -22,12 +22,6 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 
-template<typename... Args> constexpr void TRACE(const char* msg, Args... args) {
-#ifndef NDEBUG
-  ::xzero::logTrace(std::string("http.FileHandler: ") + msg, args...);
-#endif
-}
-
 namespace xzero {
 namespace http {
 

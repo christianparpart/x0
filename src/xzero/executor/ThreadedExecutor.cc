@@ -17,9 +17,6 @@
 #include <algorithm>
 #include <limits>
 
-#if defined(HAVE_WINDOWS_H)
-#endif
-
 #if defined(HAVE_PTHREAD_H)
 #include <pthread.h>
 #endif
@@ -29,12 +26,6 @@
 #endif
 
 namespace xzero {
-
-template<typename... Args> constexpr void TRACE(const char* msg, Args... args) {
-#ifndef NDEBUG
-  ::xzero::logTrace(std::string("ThreadedExecutor: ") + msg, args...);
-#endif
-}
 
 ThreadedExecutor::ThreadedExecutor(ExceptionHandler eh)
     : Executor(eh),
@@ -47,32 +38,21 @@ ThreadedExecutor::~ThreadedExecutor() {
 
 void ThreadedExecutor::joinAll() {
   for (;;) {
-    pthread_t tid = 0;
+    std::thread t;
     {
-      TRACE("joinAll: getting lock for getting TID");
       std::lock_guard<std::mutex> lock(mutex_);
       if (threads_.empty())
         break;
 
-      tid = threads_.front();
+      t = std::move(threads_.front());
       threads_.pop_front();
     }
-    TRACE("joinAll: join({}) {}", tid, ThreadPool::getThreadName(&tid));
-    pthread_join(tid, nullptr);
+    t.join();
   }
-  TRACE("joinAll: done");
 }
 
-void* ThreadedExecutor::launchme(void* ptr) {
-  TRACE("launchme[{}]({}) enter", pthread_self(), ptr);
-  std::unique_ptr<Executor::Task> task(reinterpret_cast<Executor::Task*>(ptr));
-  (*task)();
-  TRACE("launchme[{}]({}) leave", pthread_self(), ptr);
-  return nullptr;
-}
-
-void ThreadedExecutor::execute(const std::string& name, Task task) {
-  auto runner = [this, name, task]() {
+void ThreadedExecutor::setThreadName(const std::string& name) {
+#if defined(HAVE_PTHREAD_H)
     pthread_t tid = pthread_self();
 #if defined(HAVE_DECL_PTHREAD_SETNAME_NP) && HAVE_DECL_PTHREAD_SETNAME_NP
 # if XZERO_OS_DARWIN
@@ -82,28 +62,27 @@ void ThreadedExecutor::execute(const std::string& name, Task task) {
     pthread_setname_np(tid, name.c_str());
 # endif
 #endif
+#endif
+}
+
+void ThreadedExecutor::execute(const std::string& name, Task task) {
+  auto runner = [this, name, task]() {
+    setThreadName(name);
     safeCall(task);
     {
-      TRACE("task {} finished. getting lock for cleanup", ThreadPool::getThreadName(&tid));
       std::lock_guard<std::mutex> lock(mutex_);
-      pthread_detach(tid);
-      auto i = std::find(threads_.begin(), threads_.end(), tid);
+      auto i = std::find_if(threads_.begin(), threads_.end(), [](std::thread& t) {
+          return t.get_id() == std::this_thread::get_id();
+      });
       if (i != threads_.end()) {
+        i->detach();
         threads_.erase(i);
       }
     }
   };
 
-  pthread_t tid;
-  std::unique_ptr<Task> state(std::make_unique<Task>(std::move(runner)));
-  int errorNumber = pthread_create(&tid, NULL, &launchme, state.get());
-  if (errorNumber == 0) {
-    state.release(); // XXX ownership moved to thread
-    std::lock_guard<std::mutex> lock(mutex_);
-    threads_.push_back(tid);
-  } else {
-    RAISE_ERRNO(errorNumber);
-  }
+  std::lock_guard<std::mutex> lock(mutex_);
+  threads_.emplace_back(runner);
 }
 
 void ThreadedExecutor::execute(Task task) {

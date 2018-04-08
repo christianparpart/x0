@@ -3,6 +3,15 @@
 
 All the things I've found out on the way, that need retouching
 
+- [ ] EventPipe | EventSignal
+
+```
+EventPipe { // pipe/pipe2/eventfd -- PosixScheduler, LinuxScheduler
+  void send(uint64_t incr = 1);
+  uin64_t receive();
+};
+```
+
 - [ ] rename FlowLocation -> SourceLocation
 - [ ] ensure SourceLocation is properly containing [begin, end] of the source code representation of the given AST
 - [ ] ensure the AST always contains the right SourceLocation

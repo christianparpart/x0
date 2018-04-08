@@ -22,12 +22,6 @@
 
 namespace xzero {
 
-template<typename... Args> constexpr void TRACE(const char* msg, Args... args) {
-#ifndef NDEBUG
-  ::xzero::logTrace(std::string("SslEndPoint: ") + msg, args...);
-#endif
-}
-
 #define THROW_SSL_ERROR() {                                                   \
   RAISE_CATEGORY(ERR_get_error(), SslErrorCategory::get());                   \
 }
@@ -65,7 +59,6 @@ Future<std::shared_ptr<SslEndPoint>> SslEndPoint::connect(
   fd.onFailure(promise);
 
   fd.onSuccess([=, endpoint = std::shared_ptr<SslEndPoint>{}](int& socket) mutable {
-    TRACE("connect: fd {} connected", socket);
     endpoint = std::make_shared<SslEndPoint>(FileDescriptor{socket},
                                              target.family(),
                                              readTimeout,
@@ -99,7 +92,6 @@ SslEndPoint::SslEndPoint(FileDescriptor&& fd,
       bioDesire_(Desire::None),
       connectionFactory_(connectionFactory)
 {
-  TRACE("{} SslEndPoint() ctor, cfd={}", (void*) this, handle());
   SslContext::initialize();
 
   SSL_CTX* ctx;
@@ -123,10 +115,7 @@ SslEndPoint::SslEndPoint(FileDescriptor&& fd,
   SSL_set_fd(ssl_, handle());
 
   if (!sni.empty()) {
-    TRACE("SSL TLS ext host_name: '{}'", sni);
     SSL_set_tlsext_host_name(ssl_, sni.c_str());
-  } else {
-    TRACE("No SNI provided.");
   }
 
 #if !defined(NDEBUG)
@@ -149,8 +138,6 @@ SslEndPoint::SslEndPoint(FileDescriptor&& fd,
       ssl_(nullptr),
       bioDesire_(Desire::None),
       connectionFactory_(connectionFactory) {
-  TRACE("{} SslEndPoint() ctor, cfd={}", (void*) this, handle());
-
   ssl_ = SSL_new(defaultContext->get());
   SSL_set_fd(ssl_, handle());
 
@@ -161,8 +148,6 @@ SslEndPoint::SslEndPoint(FileDescriptor&& fd,
 }
 
 SslEndPoint::~SslEndPoint() {
-  TRACE("{} ~SslEndPoint() dtor", (void*) this);
-
   close();
   SSL_free(ssl_);
 }
@@ -183,8 +168,6 @@ void SslEndPoint::close() {
 
 void SslEndPoint::shutdown() {
   int rv = SSL_shutdown(ssl_);
-
-  TRACE("{} close: SSL_shutdown -> {}", (void*) this, rv);
   if (rv == 1) {
     TcpEndPoint::close();
     // FIXME unref(); // XXX: <- incremented in client connect
@@ -217,7 +200,6 @@ void SslEndPoint::shutdown() {
 size_t SslEndPoint::read(Buffer* sink, size_t space) {
   int rv = SSL_read(ssl_, sink->end(), space);
   if (rv > 0) {
-    TRACE("{} read(Buffer:{}) -> {}", (void*) this, space, rv);
     bioDesire_ = Desire::None;
     sink->resize(sink->size() + rv);
     return rv;
@@ -231,22 +213,17 @@ size_t SslEndPoint::read(Buffer* sink, size_t space) {
         return 0; // XXX treat as EOF
       }
     case SSL_ERROR_WANT_READ:
-      TRACE("{} read(Buffer:{}) -> want read", (void*) this, space);
       bioDesire_ = Desire::Read;
       break;
     case SSL_ERROR_WANT_WRITE:
-      TRACE("{} read(Buffer:{}) -> want write", (void*) this, space);
       bioDesire_ = Desire::Write;
       break;
     case SSL_ERROR_ZERO_RETURN:
-      TRACE("{} read(Buffer:{}) -> remote endpoint closed", (void*) this, space);
       close();
       break;
     default:
       logDebug("SslEndPoint: Failed to fill. {}",
           SslErrorCategory::get().message(SSL_get_error(ssl_, rv)));
-      TRACE("{} read(Buffer:{}): SSL_read() -> {}",
-            (void*) this, space, SSL_get_error(ssl_, rv));
       THROW_SSL_ERROR();
   }
   errno = EAGAIN;
@@ -257,9 +234,6 @@ size_t SslEndPoint::write(const BufferRef& source) {
   int rv = SSL_write(ssl_, source.data(), source.size());
   if (rv > 0) {
     bioDesire_ = Desire::None;
-    TRACE("{} write(BufferRef, {}, {}/{} bytes)",
-          (void*) this, source.data(), rv, source.size());
-
     return rv;
   }
 
@@ -267,21 +241,17 @@ size_t SslEndPoint::write(const BufferRef& source) {
     case SSL_ERROR_SYSCALL:
       RAISE_ERRNO(errno);
     case SSL_ERROR_WANT_READ:
-      TRACE("{} write(BufferRef, @{}, {} bytes) failed -> want read.", (void*) this, source.data(), source.size());
       bioDesire_ = Desire::Read;
       break;
     case SSL_ERROR_WANT_WRITE:
-      TRACE("{} write(BufferRef, @{}, {} bytes) failed -> want write.", (void*) this, source.data(), source.size());
       bioDesire_ = Desire::Read;
       break;
     case SSL_ERROR_ZERO_RETURN:
-      TRACE("{} write(BufferRef, @{}, {} bytes) failed -> remote endpoint closed.", (void*) this, source.data(), source.size());
       close();
       break;
     default:
       logDebug("SslEndPoint: Failed to flush. {}",
           SslErrorCategory::get().message(SSL_get_error(ssl_, rv)));
-      TRACE("{} write(BufferRef, @{}, {} bytes) failed. error.", (void*) this, source.data(), source.size());
       THROW_SSL_ERROR();
   }
   errno = EAGAIN;
@@ -296,20 +266,17 @@ size_t SslEndPoint::write(const FileView& view) {
 
 void SslEndPoint::wantRead() {
   if (io_) {
-    TRACE("{} wantRead: ignored due to active io", (void*) this);
     return;
   }
 
   switch (bioDesire_) {
     case Desire::None:
     case Desire::Read:
-      TRACE("{} wantRead: read", (void*) this);
       io_ = executor_->executeOnReadable(
           handle(),
           std::bind(&SslEndPoint::fillable, this));
       break;
     case Desire::Write:
-      TRACE("{} wantRead: write", (void*) this);
       io_ = executor_->executeOnWritable(
           handle(),
           std::bind(&SslEndPoint::fillable, this));
@@ -318,7 +285,6 @@ void SslEndPoint::wantRead() {
 }
 
 void SslEndPoint::fillable() {
-  TRACE("{} fillable()", (void*) this);
   std::shared_ptr<TcpEndPoint> _guard(shared_from_this());
   try {
     io_.reset();
@@ -331,18 +297,15 @@ void SslEndPoint::fillable() {
 
 void SslEndPoint::wantWrite() {
   if (io_) {
-    TRACE("{} wantWrite: ignored due to active io", (void*) this);
     return;
   }
 
   switch (bioDesire_) {
     case Desire::Read:
-      TRACE("{} wantWrite: read", (void*) this);
       TcpEndPoint::wantRead();
       break;
     case Desire::None:
     case Desire::Write:
-      TRACE("{} wantWrite: write", (void*) this);
       TcpEndPoint::wantWrite();
       break;
   }
@@ -392,23 +355,19 @@ void SslEndPoint::onClientHandshakeDone(Promise<std::shared_ptr<SslEndPoint>> pr
     connection()->onOpen(false);
     promise.success(std::shared_ptr<SslEndPoint>(this));
   } else {
-    TRACE("Couldn't create application protocol layer. closing.");
     close();
   }
 }
 
 void SslEndPoint::onServerHandshake() {
-  TRACE("{} onServerHandshake begin...", (void*) this);
   int rv = SSL_accept(ssl_);
   if (rv <= 0) {
     switch (SSL_get_error(ssl_, rv)) {
       case SSL_ERROR_WANT_READ:
-        TRACE("{} onServerHandshake (want read)", (void*) this);
         io_ = executor_->executeOnReadable(
             handle(), std::bind(&SslEndPoint::onServerHandshake, this));
         break;
       case SSL_ERROR_WANT_WRITE:
-        TRACE("{} onServerHandshake (want write)", (void*) this);
         io_ = executor_->executeOnWritable(
             handle(), std::bind(&SslEndPoint::onServerHandshake, this));
         break;
@@ -426,7 +385,6 @@ void SslEndPoint::onServerHandshake() {
     bioDesire_ = Desire::None;
     std::shared_ptr<TcpEndPoint> _guard = shared_from_this();
     std::string protocolName = applicationProtocolName().str();
-    TRACE("{} handshake complete (next protocol: \"{}\")", (void*) this, protocolName.c_str());
 
     connectionFactory_(protocolName, this);
     if (connection()) {
@@ -438,7 +396,6 @@ void SslEndPoint::onServerHandshake() {
 }
 
 void SslEndPoint::flushable() {
-  TRACE("{} flushable()", (void*) this);
   std::shared_ptr<TcpEndPoint> _guard = shared_from_this();
   try {
     io_.reset();

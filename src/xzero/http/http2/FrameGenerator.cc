@@ -17,12 +17,6 @@
 
 namespace xzero::http::http2 {
 
-template<typename... Args> constexpr void TRACE(const char* msg, Args... args) {
-#ifndef NDEBUG
-  ::xzero::logTrace(std::string("http.h2.FrameGenerator: ") + msg, args...);
-#endif
-}
-
 constexpr size_t FrameHeaderSize = 9;
 
 constexpr size_t InitialHeaderTableSize = 4096;
@@ -387,9 +381,6 @@ void FrameGenerator::generateFrameHeader(FrameType frameType, unsigned frameFlag
    * |                   Frame Payload (0...)                      ...
    * +---------------------------------------------------------------+
    */
-
-  TRACE("header: type:{} flags:{}, sid:{}, payloadSize:{}",
-      frameType, frameFlags, streamID, payloadSize);
 
   write24(payloadSize);
   write8((unsigned) frameType);

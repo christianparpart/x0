@@ -14,12 +14,6 @@
 namespace xzero {
 namespace http {
 
-template<typename... Args> constexpr void TRACE(const char* msg, Args... args) {
-#ifndef NDEBUG
-  ::xzero::logTrace(std::string("http.HttpRequest: ") + msg, args...);
-#endif
-}
-
 HttpRequest::HttpRequest()
     : HttpRequest(HttpVersion::UNKNOWN, "", "", {}, false, {}) {
   // .
@@ -70,8 +64,6 @@ const std::optional<InetAddress>& HttpRequest::localAddress() const {
 }
 
 void HttpRequest::recycle() {
-  TRACE("{} recycle", (void*)this);
-
   HttpRequestInfo::reset();
 
   remoteAddress_.reset();
@@ -102,7 +94,6 @@ void HttpRequest::consumeContent(std::function<void()> onReady) {
 }
 
 void HttpRequest::fillContent(const BufferRef& chunk) {
-  TRACE("fillContent {} bytes: '{}'", chunk.size(), chunk);
   setContentLength(contentLength() + chunk.size());
 
   if (onContentAvailable_) {

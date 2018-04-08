@@ -12,12 +12,6 @@
 #include <xzero/JsonWriter.h>
 #include <algorithm>
 
-template<typename... Args> constexpr void TRACE(const char* msg, Args... args) {
-#ifndef NDEBUG
-  ::xzero::logTrace(std::string("http.cluster.HealthMonitor: ") + msg, args...);
-#endif
-}
-
 namespace xzero::http::cluster {
 
 HealthMonitor::HealthMonitor(Executor* executor,
@@ -51,8 +45,6 @@ HealthMonitor::HealthMonitor(Executor* executor,
       totalOfflineTime_(Duration::Zero),
       client_(executor, inetAddress,
               connectTimeout, readTimeout, writeTimeout, Duration::Zero) {
-  TRACE("ctor: {}", inetAddress);
-
   start();
 }
 
@@ -65,26 +57,22 @@ void HealthMonitor::start() {
 }
 
 void HealthMonitor::stop() {
-  TRACE("stop");
   if (timerHandle_) {
     timerHandle_->cancel();
   }
 }
 
 void HealthMonitor::recheck() {
-  TRACE("recheck with interval {}", interval_);
   timerHandle_ = executor_->executeAfter(
       interval_,
       std::bind(&HealthMonitor::onCheckNow, this));
 }
 
 void HealthMonitor::logSuccess() {
-  TRACE("logSuccess!");
   ++consecutiveSuccessCount_;
 
   if (consecutiveSuccessCount_ >= successThreshold_ &&
       state() != State::Online) {
-    TRACE("The successThreshold reached. Going online.");
     setState(State::Online);
   }
 
@@ -94,7 +82,6 @@ void HealthMonitor::logSuccess() {
 void HealthMonitor::logFailure() {
   ++totalFailCount_;
   consecutiveSuccessCount_ = 0;
-  TRACE("logFailure {}", totalFailCount_);
 
   setState(State::Offline);
 
@@ -109,8 +96,6 @@ void HealthMonitor::setState(State value) {
   if (state_ == value)
     return;
 
-  TRACE("setState {} -> {}", state_, value);
-
   State oldState = state_;
   state_ = value;
 
@@ -124,8 +109,6 @@ void HealthMonitor::setState(State value) {
 }
 
 void HealthMonitor::onCheckNow() {
-  TRACE("onCheckNow");
-
   timerHandle_.reset();
 
   Future<HttpClient::Response> f = 
@@ -149,7 +132,6 @@ void HealthMonitor::onFailure(const std::error_code& ec) {
 }
 
 void HealthMonitor::onResponseReceived(const HttpClient::Response& response) {
-  TRACE("onResponseReceived");
   auto i = std::find(successCodes_.begin(),
                      successCodes_.end(),
                      response.status());

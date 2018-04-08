@@ -41,12 +41,6 @@
 #define SO_REUSEPORT 15
 #endif
 
-#if !defined(NDEBUG)
-#define TRACE(msg, ...) logTrace("TcpConnector: " msg, __VA_ARGS__)
-#else
-#define TRACE(msg, ...) do {} while (0)
-#endif
-
 namespace xzero {
 
 TcpConnector::TcpConnector(const std::string& name, Executor* executor,
@@ -111,9 +105,6 @@ void TcpConnector::open(const IPAddress& ipaddress, int port, int backlog,
     logFatal("TcpConnector already open.");
 
   socket_ = ::socket(ipaddress.family(), SOCK_STREAM, 0);
-
-  TRACE("open: ip={}, port={}, backlog={}, reuseAddr={}, reusePort={}",
-      ipaddress, port, backlog, reuseAddr, reusePort);
 
   if (socket_ < 0)
     RAISE_ERRNO(errno);
@@ -422,7 +413,6 @@ void TcpConnector::setTcpFinTimeout(Duration value) {
 }
 
 void TcpConnector::start() {
-  TRACE("start: ip={}, port={}", bindAddress_, port_);
   if (!isOpen()) {
     throw std::logic_error{"TcpConnector is already started."};
   }
@@ -453,8 +443,6 @@ bool TcpConnector::isStarted() const XZERO_NOEXCEPT {
 }
 
 void TcpConnector::stop() {
-  TRACE("stop: {}", (void*) this);
-
   if (io_)
     io_->cancel();
 
@@ -470,8 +458,6 @@ void TcpConnector::onConnect() {
       int cfd = acceptOne();
       if (cfd < 0)
         break;
-
-      TRACE("onConnect: fd={}", cfd);
 
       Executor* clientExecutor = selectClientExecutor_();
       std::shared_ptr<TcpEndPoint> ep = createEndPoint(cfd, clientExecutor);
@@ -569,7 +555,6 @@ std::list<std::shared_ptr<TcpEndPoint>> TcpConnector::connectedEndPoints() {
 }
 
 void TcpConnector::onEndPointClosed(TcpEndPoint* endpoint) {
-  //TRACE("onEndPointClosed()");
   assert(endpoint != nullptr);
 
   // XXX: e.g. SSL doesn't have a connection in case the handshake failed
@@ -601,7 +586,6 @@ void TcpConnector::addConnectionFactory(const std::string& protocolName,
 
 void TcpConnector::createConnection(const std::string& protocolName,
                                     TcpEndPoint* endpoint) {
-  TRACE("createConnection: \"{}\"", protocolName);
   auto factory = connectionFactory(protocolName);
   std::unique_ptr<TcpConnection> c = factory
       ? factory(this, endpoint)

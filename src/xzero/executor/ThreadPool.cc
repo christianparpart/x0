@@ -5,17 +5,19 @@
 // file except in compliance with the License. You may obtain a copy of
 // the License at: http://opensource.org/licenses/MIT
 
-#include <xzero/executor/ThreadPool.h>
-#include <xzero/executor/PosixScheduler.h>
-#include <xzero/thread/Wakeup.h>
 #include <xzero/Application.h>
-#include <xzero/WallClock.h>
 #include <xzero/UnixTime.h>
+#include <xzero/WallClock.h>
+#include <xzero/defines.h>
+#include <xzero/executor/PosixScheduler.h>
+#include <xzero/executor/ThreadPool.h>
 #include <xzero/logging.h>
 #include <xzero/sysconfig.h>
+#include <xzero/thread/Wakeup.h>
+
+#include <exception>
 #include <system_error>
 #include <thread>
-#include <exception>
 #include <typeinfo>
 
 #if defined(HAVE_PTHREAD_H)
@@ -27,12 +29,6 @@
 #endif
 
 namespace xzero {
-
-template<typename... Args> constexpr void TRACE(const char* msg, Args... args) {
-#ifndef NDEBUG
-  ::xzero::logTrace(std::string("ThreadPool: ") + msg, args...);
-#endif
-}
 
 ThreadPool::ThreadPool()
     : ThreadPool(Application::processorCount(), nullptr) {
@@ -84,18 +80,13 @@ size_t ThreadPool::activeCount() const {
 }
 
 void ThreadPool::wait() {
-  TRACE("{} wait()", (void*) this);
   std::unique_lock<std::mutex> lock(mutex_);
 
   if (pendingTasks_.empty() && activeTasks_ == 0) {
-    TRACE("{} wait: pending={}, active={} (immediate return)",
-          (void*) this, pendingTasks_.size(), activeTasks_.load());
     return;
   }
 
   condition_.wait(lock, [&]() -> bool {
-    TRACE("{} wait: pending={}, active={}",
-          (void*) this, pendingTasks_.size(), activeTasks_.load());
     return pendingTasks_.empty() && activeTasks_.load() == 0;
   });
 }
@@ -105,21 +96,7 @@ void ThreadPool::stop() {
   condition_.notify_all();
 }
 
-std::string ThreadPool::getThreadName(const void* tid) {
-  // musl libc doesn't support that ;-(
-#if defined(HAVE_DECL_PTHREAD_GETNAME_NP) && HAVE_DECL_PTHREAD_GETNAME_NP
-  char name[16];
-  name[0] = '\0';
-  pthread_getname_np(*(const pthread_t*)tid, name, sizeof(name));
-  return name;
-#else
-  return Application::appName();
-#endif
-}
-
 void ThreadPool::work(int workerId) {
-  TRACE("{} worker[{}] enter", (void*) this, workerId);
-
   while (active_) {
     Task task;
     {
@@ -129,7 +106,6 @@ void ThreadPool::work(int workerId) {
       if (!active_)
         break;
 
-      TRACE("{} work[{}]: task received", (void*) this, workerId);
       task = std::move(pendingTasks_.front());
       pendingTasks_.pop_front();
     }
@@ -141,14 +117,11 @@ void ThreadPool::work(int workerId) {
     // notify the potential wait() call
     condition_.notify_all();
   }
-
-  TRACE("{} worker[{}] leave", (void*) this, workerId);
 }
 
 void ThreadPool::execute(Task task) {
   {
     std::unique_lock<std::mutex> lock(mutex_);
-    TRACE("{} execute: enqueue task & notify_all", (void*) this);
     pendingTasks_.emplace_back(std::move(task));
   }
   condition_.notify_all();

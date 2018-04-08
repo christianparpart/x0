@@ -13,12 +13,6 @@
 
 namespace xzero {
 
-template<typename... Args> constexpr void TRACE(const char* msg, Args... args) {
-#ifndef NDEBUG
-  ::xzero::logTrace(std::string("LocalExecutor: ") + msg, args...);
-#endif
-}
-
 LocalExecutor::LocalExecutor(
     bool recursive,
     ExceptionHandler eh)
@@ -31,12 +25,10 @@ LocalExecutor::LocalExecutor(
 void LocalExecutor::execute(Task task) {
   if (isRunning() && !isRecursive()) {
     deferred_.emplace_back(std::move(task));
-    TRACE("{} execute: enqueue task ({})", (void*)this, deferred_.size());
     return;
   }
 
   running_++;
-  TRACE("{} execute: run top-level task", (void*)this);
   safeCall(task);
   executeDeferredTasks();
   running_--;
@@ -44,7 +36,6 @@ void LocalExecutor::execute(Task task) {
 
 void LocalExecutor::executeDeferredTasks() {
   while (!deferred_.empty()) {
-    TRACE("{} execute: run deferred task (-{})", (void*)this, deferred_.size());
     safeCall(deferred_.front());
     deferred_.pop_front();
   }

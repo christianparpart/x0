@@ -25,12 +25,6 @@
 
 namespace xzero {
 
-template<typename... Args> constexpr void TRACE(const char* msg, Args... args) {
-#ifndef NDEBUG
-  ::xzero::logTrace(std::string("net.SslContext: ") + msg, args...);
-#endif
-}
-
 #define THROW_SSL_ERROR() {                                                   \
   RAISE_CATEGORY(ERR_get_error(), SslErrorCategory::get());                   \
 }
@@ -100,8 +94,6 @@ SslContext::SslContext(const std::string& crtFilePath,
       alpn_(alpn),
       dnsNames_(),
       getContext_(getContext) {
-  TRACE("{} SslContext(\"{}\", \"{}\"", (void*) this, crtFilePath, keyFilePath);
-
   initialize();
 
 #if defined(SSL_TXT_TLSV1_2)
@@ -135,7 +127,6 @@ SslContext::SslContext(const std::string& crtFilePath,
 }
 
 SslContext::~SslContext() {
-  TRACE("{} ~SslContext()", (void*) this);
   SSL_CTX_free(ctx_);
 }
 
@@ -145,11 +136,9 @@ int SslContext::onAppLayerProtoNegotiation(
     const unsigned char *in, unsigned int inlen,
     void *pself) {
 #ifdef TLSEXT_TYPE_application_layer_protocol_negotiation
-  TRACE("SSL ALPN callback: inlen={}, outlen={}", inlen, *outlen);
 
   for (unsigned int i = 0; i < inlen; i += in[i] + 1) {
     std::string proto((char*)&in[i + 1], in[i]);
-    TRACE("SSL ALPN client support: \"{}\"", proto.c_str());
   }
 
   SslContext* self = (SslContext*) pself;
@@ -160,8 +149,6 @@ int SslContext::onAppLayerProtoNegotiation(
     return SSL_TLSEXT_ERR_NOACK;
   }
 
-  TRACE("SSL ALPN selected: ({}) \"{}\"", (size_t)*outlen, BufferRef((char*)*out, (size_t)*outlen));
-
   return SSL_TLSEXT_ERR_OK;
 #else
   return SSL_TLSEXT_ERR_NOACK;
@@ -169,10 +156,8 @@ int SslContext::onAppLayerProtoNegotiation(
 }
 
 int SslContext::onServerName(SSL* ssl, int* ad, SslContext* self) {
-  TRACE("{} onServerName()", (void*) self);
   const char* name = SSL_get_servername(ssl, TLSEXT_NAMETYPE_host_name);
   if (!name) {
-    TRACE("{} onServerName() no SNI given; chosing default context", (void*) self);
     if (SslContext* ctx = self->getContext_(nullptr)) {
       SSL_set_SSL_CTX(ssl, ctx->get());
       return SSL_TLSEXT_ERR_OK;
@@ -180,8 +165,6 @@ int SslContext::onServerName(SSL* ssl, int* ad, SslContext* self) {
       return SSL_TLSEXT_ERR_NOACK;
     }
   }
-
-  TRACE("{} onServerName(): name={}", (void*) self, name);
 
   if (SslContext* ctx = self->getContext_(name)) {
     SSL_set_SSL_CTX(ssl, ctx->get());

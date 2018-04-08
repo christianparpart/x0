@@ -13,12 +13,6 @@ namespace xzero {
 namespace http {
 namespace hpack {
 
-template<typename... Args> constexpr void TRACE(const char* msg, Args... args) {
-#ifndef NDEBUG
-  ::xzero::logTrace(std::string("http.hpack.DynamicTable: ") + msg, args...);
-#endif
-}
-
 DynamicTable::DynamicTable(size_t maxSize)
     : maxSize_(maxSize),
       size_(0),
@@ -71,18 +65,12 @@ void DynamicTable::evict() {
   size_t n = 0;
 
   while (size_ > maxSize_) {
-    TRACE("evict: evicting last field as current size {} > max size {}",
-          size_, maxSize_);
     size_ -= (entries_.back().first.size() +
               entries_.back().second.size() +
               HeaderFieldOverheadSize);
     n++;
 
     entries_.pop_back();
-  }
-
-  if (n) {
-    TRACE("evict: evicted {} fields", n);
   }
 }
 

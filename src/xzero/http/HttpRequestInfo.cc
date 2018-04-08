@@ -11,12 +11,6 @@
 namespace xzero {
 namespace http {
 
-template<typename... Args> constexpr void TRACE(const char* msg, Args... args) {
-#ifndef NDEBUG
-  ::xzero::logTrace(std::string("http.HttpRequestInfo: ") + msg, args...);
-#endif
-}
-
 void HttpRequestInfo::reset() {
   HttpInfo::reset();
 
@@ -95,9 +89,6 @@ bool HttpRequestInfo::setUri(const std::string& uri) {
 #endif
 
   while (i != e) {
-    // TRACE("parse-uri: ch:%c, i:%c, state:%s, depth:%d", ch, *i,
-    //       uriStateNames[(int)state], depth);
-
     switch (state) {
       case UriState::Content:
         switch (ch) {
@@ -231,7 +222,6 @@ bool HttpRequestInfo::setUri(const std::string& uri) {
       case UriState::QuoteChar2:
         if (ch >= '0' && ch <= '9') {
           ch = decodedChar | (ch - '0');
-          TRACE("parse-uri: decoded character {}", (unsigned int)(ch & 0xFF));
 
           switch (ch) {
             case '\0':
@@ -266,8 +256,6 @@ bool HttpRequestInfo::setUri(const std::string& uri) {
           // not intersect.
           //
           ch = decodedChar | (ch - ('a' - 10));
-
-          TRACE("parse-uri: decoded character {}", (unsigned int)(ch & 0xFF));
 
           switch (ch) {
             case '\0':
@@ -313,9 +301,6 @@ bool HttpRequestInfo::setUri(const std::string& uri) {
   }
 
 done:
-  TRACE("parse-uri({}): success. path:{}, query:{}, depth:{}, mindepth:{}, state:{}",
-        unparsedUri_,
-        path_, query_, depth, minDepth, uriStateNames[(int)state]);
   directoryDepth_ = depth;
 
   if (minDepth < 0) {
@@ -324,7 +309,6 @@ done:
 
   return true;
 }
-
 
 }  // namespace http
 }  // namespace xzero

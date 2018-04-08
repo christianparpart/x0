@@ -16,12 +16,6 @@ namespace xzero {
 namespace http {
 namespace fastcgi {
 
-template<typename... Args> constexpr void TRACE(const char* msg, Args... args) {
-#ifndef NDEBUG
-  ::xzero::logTrace(std::string("http.fcgi.Generator: ") + msg, args...);
-#endif
-}
-
 // THOUGHTS:
 //
 // - maybe splitup generator into request/response generator, too
@@ -83,10 +77,6 @@ void Generator::generateRequest(const HttpRequestInfo& info, const BufferRef& ch
 }
 
 void Generator::generateResponse(const HttpResponseInfo& info) {
-  TRACE("generateResponse! status={} {}",
-        static_cast<int>(info.status()),
-        info.status());
-
   mode_ = GenerateResponse;
 
   Buffer payload;
@@ -96,7 +86,6 @@ void Generator::generateResponse(const HttpResponseInfo& info) {
   payload.push_back("\r\n");
 
   for (const HeaderField& header: info.headers()) {
-    TRACE("  {}: {}", header.name().c_str(), header.value().c_str());
     payload.push_back(header.name());
     payload.push_back(": ");
     payload.push_back(header.value());
@@ -171,8 +160,6 @@ void Generator::generateBody(FileView&& chunk) {
 }
 
 void Generator::generateEnd() {
-  TRACE("generateEnd()");
-
   // exit mark for request/response stream
   switch (mode_) {
     case GenerateRequest: {
@@ -199,8 +186,6 @@ void Generator::generateEnd() {
 }
 
 void Generator::write(Type type, int requestId, const char* buf, size_t len) {
-  TRACE("write<{}>(rid={}, len={})", type, requestId, len);
-
   if (len != 0) {
     constexpr size_t chunkSizeCap = 0xFFFF;
     constexpr char padding[8] = {0};
@@ -224,7 +209,6 @@ void Generator::write(Type type, int requestId, const char* buf, size_t len) {
 }
 
 void Generator::flushBuffer() {
-  TRACE("flushBuffer: {} bytes", buffer_.size());
   if (!buffer_.empty()) {
     bytesTransmitted_ += buffer_.size();
     writer_->write(std::move(buffer_));

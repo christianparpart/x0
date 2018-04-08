@@ -17,14 +17,6 @@
 
 namespace xzero::flow {
 
-//#define FLOW_DEBUG_IR 1
-
-#if defined(FLOW_DEBUG_IR)
-#define TRACE(level, msg...) XZERO_DEBUG("IR", (level), msg)
-#else
-#define TRACE(level, msg...) do {} while (0)
-#endif
-
 IRBuilder::IRBuilder()
     : program_(nullptr),
       handler_(nullptr),
@@ -69,7 +61,6 @@ IRHandler* IRBuilder::setHandler(IRHandler* hn) {
 
 BasicBlock* IRBuilder::createBlock(const std::string& name) {
   std::string n = makeName(name);
-  TRACE(1, "createBlock() {}", n);
   return handler_->createBlock(n);
 }
 
@@ -77,8 +68,6 @@ void IRBuilder::setInsertPoint(BasicBlock* bb) {
   assert(bb != nullptr);
   assert(bb->getHandler() == handler() &&
          "insert point must belong to the current handler.");
-
-  TRACE(1, "setInsertPoint() {}", bb->name());
 
   insertPoint_ = bb;
 }
