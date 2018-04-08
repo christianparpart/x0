@@ -42,7 +42,7 @@ void CatchAndAbortExceptionHandler::onException(
     auto rte = dynamic_cast<const RuntimeError&>(error);
     //rte.debugPrint();
   } catch (const std::exception& cast_error) {
-    fprintf(stderr, "foreign exception: %s\n", error.what());
+    fprintf(stderr, "foreign exception: %s\n", cast_error.what());
   }
 
   fprintf(stderr, "Aborting...\n");
