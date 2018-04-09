@@ -19,16 +19,87 @@
 
 namespace xzero {
 
-SystemPipe::SystemPipe() {
 #if defined(XZERO_OS_WIN32)
-  if (CreatePipe(&reader_, &writer_, nullptr, 4096) == FALSE) {
-    // TODO: handle error with `DWORD GetLastError();`
+struct WinSocket {
+  SOCKET handle;
+
+  WinSocket() : WinSocket{ INVALID_SOCKET } {}
+  WinSocket(SOCKET h) : handle{h} {}
+
+  WinSocket(const WinSocket&) = delete;
+  WinSocket& operator=(const WinSocket&) = delete;
+
+  ~WinSocket () {
+    if (handle != INVALID_SOCKET) {
+      closesocket(handle);
+    }
   }
-#else
+
+  WinSocket& operator=(SOCKET other) {
+    if (handle != INVALID_SOCKET) {
+      closesocket(handle);
+    }
+    handle = other;
+    return *this;
+  }
+
+  bool operator!() const noexcept {
+    return handle == INVALID_SOCKET;
+  }
+
+  operator SOCKET () {
+    return ws;
+  }
+
+  int make_filedes() {
+    int fd = _open_osfhandle(handle, 0);
+    handle = INVALID_SOCKET;
+    return fd;
+  }
+};
+
+int pipe(int fd[2]) {
+  // XXX setup listener
+  WinSocket listener = WSASocket(AF_INET, SOCK_STREAM, 0, 0, 0, 0);
+  sockaddr_in addr = { 0 };
+  int addr_size = sizeof(addr);
+  addr.sin_family = AF_INET;
+  addr.sin_addr.s_addr = htonl (INADDR_LOOPBACK);
+  addr.sin_port = 0;
+
+  if (bind(listener, (struct sockaddr *)&addr, addr_size) == -1)
+    return -1;
+
+  if (getsockname(listener, (sockaddr *)&addr, &addr_size) == -1)
+    return -1;
+
+  if (listen(listener, 1) == -1)
+    return -1;
+
+  // XXX setup sender/receiver
+  WinSocket receiver = WSASocket(AF_INET, SOCK_STREAM, 0, 0, 0, 0);
+  if (connect(receiver, (struct sockaddr *)&addr, addr_size) == -1)
+    return -1;
+
+  WinSocket sender = accept(listener, 0, 0);
+  if (!sender)
+    return -1;
+
+  sockaddr_in addr2;
+  int addr2_size = sizeof(addr2);
+  getpeername(receiver, (sockaddr*)&addr2, &addr2_size);
+  getpeername(sender, (sockaddr*)&addr, &addr_size);
+
+  fd[0] = receiver.make_filedes();
+  fd[1] = sender.make_filedes();
+  return 0;
+}
+#endif
+
+SystemPipe::SystemPipe() {
   if (pipe(fds_) < 0) {
     RAISE_ERRNO(errno);
   }
-#endif
 }
 
 SystemPipe::~SystemPipe() {
