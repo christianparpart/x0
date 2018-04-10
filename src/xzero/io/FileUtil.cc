@@ -34,6 +34,8 @@ namespace fs = std::experimental::filesystem;
 static inline int read(int fd, void* buf, unsigned count) { return _read(fd, buf, count); }
 #else
 #include <unistd.h>
+#include <pwd.h>
+#include <grp.h>
 #endif
 
 namespace xzero {
@@ -91,8 +93,8 @@ size_t FileUtil::sizeRecursive(const std::string& path) {
 
 void FileUtil::ls(const std::string& path,
                   std::function<bool(const std::string&)> callback) {
-  for (auto& dir : fs::directory_iterator(path)) {
-    fs::path& p = dir.path();
+  for (const auto& dir : fs::directory_iterator(path)) {
+    const fs::path& p = dir.path();
     if (p == ".." || p == ".")
       continue;
 
@@ -382,6 +384,7 @@ void FileUtil::chown(const std::string& path, int uid, int gid) {
 void FileUtil::chown(const std::string& path,
                      const std::string& user,
                      const std::string& group) {
+#if defined(XZERO_OS_UNIX)
   errno = 0;
   struct passwd* pw = getpwnam(user.c_str());
   if (!pw) {
@@ -405,6 +408,9 @@ void FileUtil::chown(const std::string& path,
   int gid = gr->gr_gid;
 
   FileUtil::chown(path, uid, gid);
+#else
+  // TODO: windows implementation decision
+#endif
 }
 
 int FileUtil::createTempFile() {
