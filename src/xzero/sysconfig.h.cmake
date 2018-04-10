@@ -16,6 +16,8 @@
 // --------------------------------------------------------------------------
 // feature tests
 
+#cmakedefine XZERO_ENABLE_OPENSSL
+
 // Build with inotify support
 #cmakedefine XZERO_ENABLE_INOTIFY
 

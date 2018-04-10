@@ -82,6 +82,7 @@ if(UNIX)
   include(FindOpenSSL)
   if (OPENSSL_FOUND)
     message(STATUS "OpenSSL found ;-)")
+    set(XZERO_ENABLE_OPENSSL TRUE)
   else()
     message(FATAL_ERROR "OpenSSL not found ;-(")
   endif()
@@ -196,7 +197,6 @@ set(libXzero_SRC src/xzero/AnsiColor.cc
                  src/xzero/base64url.cc
                  src/xzero/executor/Executor.cc
                  src/xzero/executor/LocalExecutor.cc
-                 src/xzero/executor/PosixScheduler.cc
                  src/xzero/executor/SafeCall.cc
                  src/xzero/executor/ThreadPool.cc
                  src/xzero/executor/ThreadedExecutor.cc
@@ -311,6 +311,10 @@ if (HAVE_ZLIB_H)
   set(libXzero_SRC ${libXzero_SRC} src/xzero/io/GzipFilter.cc)
 endif()
 
+if(UNIX)
+  set(libXzero_SRC ${libXzero_SRC} src/xzero/executor/PosixScheduler.cc)
+endif()
+
 if(UNIX AND NOT APPLE) 
   set(libXzero_SRC ${libXzero_SRC}
                    src/xzero/LinuxSignals.cc
@@ -320,6 +324,10 @@ endif()
 if(APPLE)
   set(libXzero_SRC ${libXzero_SRC} src/xzero/KQueueSignals.cc)
 endif()
+
+# if(MSVC)
+#   set(libXzero_SRC ${libXzero_SRC} src/xzero/WinSockScheduler.cc)
+# endif()
 
 set(XZERO_LIBRARIES ${ZLIB_LIBRARIES} ${OPENSSL_LIBRARIES} ${RT_LIBRARIES} ${FMT_LIBRARIES})
 if(UNIX)
