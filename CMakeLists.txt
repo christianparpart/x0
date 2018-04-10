@@ -318,7 +318,8 @@ else()
 endif()
 
 if (HAVE_ZLIB_H)
-list(append libXzero_SRC src/xzero/io/GzipFilter.cc)
+set(libXzero_SRC ${libXzero_SRC} src/xzero/io/GzipFilter.cc)
+#list(append libXzero_SRC src/xzero/io/GzipFilter.cc)
 endif()
 
 if(APPLE)
@@ -327,8 +328,12 @@ else()
   set(libXzero_APPLE_SRC)
 endif()
 
-set(XZERO_LIBRARIES pthread dl
+set(XZERO_LIBRARIES
     ${ZLIB_LIBRARIES} ${OPENSSL_LIBRARIES} ${RT_LIBRARIES} ${FMT_LIBRARIES})
+
+if(UNIX)
+set(XZERO_LIBRARIES ${XZERO_LIBRARIES} pthread dl stdc++fs)
+endif()
 
 add_library(Xzero STATIC ${libXzero_SRC} ${libXzero_LINUX_SRC}
     ${libXzero_APPLE_SRC})
