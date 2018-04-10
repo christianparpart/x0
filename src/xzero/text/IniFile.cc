@@ -7,6 +7,7 @@
 
 #include <xzero/text/IniFile.h>
 #include <xzero/StringUtil.h>
+#include <xzero/defines.h>
 
 #include <exception>
 #include <stdexcept>
@@ -19,7 +20,6 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
-#include <unistd.h>
 
 namespace xzero {
 

@@ -7,6 +7,7 @@
 
 #include <xzero/http/fastcgi/bits.h>
 #include <string>
+#include <cctype>
 
 namespace xzero {
 namespace http {

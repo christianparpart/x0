@@ -18,8 +18,24 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <fcntl.h>
-#include <unistd.h>
 #include <errno.h>
+
+#if defined(XZERO_OS_WIN32)
+#include <io.h>
+#include <experimental/filesystem>
+namespace fs = std::experimental::filesystem;
+#define open _open
+#endif
+
+#if defined(XZERO_OS_UNIX)
+#include <unistd.h>
+#endif
+
+#if defined(WIN32) || defined(WIN64)
+// Copied from linux libc sys/stat.h:
+#define S_ISREG(m) (((m) & S_IFMT) == S_IFREG)
+#define S_ISDIR(m) (((m) & S_IFMT) == S_IFDIR)
+#endif
 
 namespace xzero {
 
@@ -57,7 +73,13 @@ bool LocalFile::isDirectory() const noexcept {
 }
 
 bool LocalFile::isExecutable() const noexcept {
+#if defined(XZERO_OS_UNIX)
   return stat_.st_mode & (S_IXUSR | S_IXGRP | S_IXOTH);
+#elif defined(XZERO_OS_WIN32)
+  return fs::path(path()).extension() == ".exe";
+#else
+  return false;
+#endif
 }
 
 const std::string& LocalFile::etag() const {
@@ -110,15 +132,6 @@ int LocalFile::createPosixChannel(OpenFlags oflags, int mode) {
   } else {
     return ::open(path().c_str(), to_posix(oflags));
   }
-}
-
-std::unique_ptr<MemoryMap> LocalFile::createMemoryMap(bool rw) {
-  // use FileDescriptor for auto-closing here, in case of exceptions
-  FileDescriptor fd = ::open(path().c_str(), rw ? O_RDWR : O_RDONLY);
-  if (fd < 0)
-    RAISE_ERRNO(errno);
-
-  return std::make_unique<MemoryMap>(fd, 0, size(), rw);
 }
 
 std::shared_ptr<LocalFile> LocalFile::get(const std::string& path) {

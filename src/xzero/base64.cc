@@ -10,7 +10,7 @@
 namespace xzero {
 namespace base64 {
 
-const int indexmap[256] = {
+const unsigned char indexmap[256] = {
     /* ASCII table */
     64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, //   0..15
     64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, //  16..31

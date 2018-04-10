@@ -7,27 +7,40 @@
 
 #include <xzero/Api.h>
 #include <xzero/io/Filter.h>
+#include <xzero/sysconfig.h>
 #include <string>
 
+#if defined(HAVE_ZLIB_H)
 #include <zlib.h>
+#endif
 
 namespace xzero {
 
-/**
- * Gzip encoding filter.
- */
-class GzipFilter : public Filter {
- public:
-  explicit GzipFilter(int level);
-  ~GzipFilter();
+  /**
+   * Gzip encoding filter.
+   */
+  class GzipFilter : public Filter {
+  public:
+    explicit GzipFilter(int level);
+    ~GzipFilter();
 
-  void filter(const BufferRef& input, Buffer* output, bool last) override;
+    void filter(const BufferRef& input, Buffer* output, bool last) override;
+
+    static bool isSupported() {
+#if defined(HAVE_ZLIB_H)
+      return true;
+#else
+      return false;
+#endif
+    }
 
  private:
   std::string z_code(int code) const;
 
  private:
+#if defined(HAVE_ZLIB_H)
   z_stream z_;
+#endif
 };
 
 } // namespace xzero

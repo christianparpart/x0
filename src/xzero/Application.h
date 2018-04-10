@@ -20,9 +20,6 @@ class Application {
 
   static void logToStderr(LogLevel loglevel = LogLevel::Info);
 
-  static void redirectStdOutToLogger(Executor* executor);
-  static void redirectStdErrToLogger(Executor* executor);
-
   static void installGlobalExceptionHandler();
 
   /**

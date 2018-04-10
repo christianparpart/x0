@@ -10,7 +10,7 @@
 #include <string>
 #include <fmt/format.h>
 
-// WTF MSVC?
+// WTF MICROSOFT?!? (winnt.h)
 #ifdef DELETE
 #undef DELETE
 #endif

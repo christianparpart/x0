@@ -10,11 +10,15 @@
 #include <xzero/sysconfig.h>
 #include <stdexcept>
 #include <system_error>
+
+#if defined(HAVE_ZLIB_H)
 #include <zlib.h>
+#endif
 
 namespace xzero {
 
 GzipFilter::GzipFilter(int level) {
+#if defined(HAVE_ZLIB_H)
   z_.total_in = 0;
   z_.total_out = 0;
   z_.zalloc = Z_NULL;
@@ -33,13 +37,17 @@ GzipFilter::GzipFilter(int level) {
 
   if (rv != Z_OK)
     throw std::runtime_error("deflateInit2 failed.");
+#endif
 }
 
 GzipFilter::~GzipFilter() {
+#if defined(HAVE_ZLIB_H)
   deflateEnd(&z_);
+#endif
 }
 
 std::string GzipFilter::z_code(int code) const {
+#if defined(HAVE_ZLIB_H)
   char msg[128];
   switch (code) {
     case Z_NEED_DICT:
@@ -65,9 +73,11 @@ std::string GzipFilter::z_code(int code) const {
       snprintf(msg, sizeof(msg), "Z_<%d>", code);
       return msg;
   }
+#endif
 }
 
 void GzipFilter::filter(const BufferRef& input, Buffer* output, bool last) {
+#if defined(HAVE_ZLIB_H)
   int mode;
   int expectedResult;
 
@@ -120,6 +130,7 @@ void GzipFilter::filter(const BufferRef& input, Buffer* output, bool last) {
   assert(z_.avail_in == 0);
 
   output->resize(output->capacity() - z_.avail_out);
+#endif
 }
 
 } // namespace xzero

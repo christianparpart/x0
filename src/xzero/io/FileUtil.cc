@@ -14,18 +14,27 @@
 #include <xzero/Buffer.h>
 #include <xzero/logging.h>
 #include <xzero/sysconfig.h>
+#include <xzero/defines.h>
 #include <fmt/format.h>
 
 #include <system_error>
 #include <sys/types.h>
 #include <sys/stat.h>
-#include <dirent.h>
-#include <unistd.h>
 #include <fcntl.h>
+#include <fstream>
 #include <limits.h>
 #include <stdlib.h>
-#include <pwd.h>
-#include <grp.h>
+
+#include <experimental/filesystem>
+namespace fs = std::experimental::filesystem;
+
+#if defined(XZERO_OS_WIN32)
+#include <io.h>
+//static inline int lseek(int fd, long offset, int origin) { return _lseek(fd, offset, origin); }
+static inline int read(int fd, void* buf, unsigned count) { return _read(fd, buf, count); }
+#else
+#include <unistd.h>
+#endif
 
 namespace xzero {
 
@@ -36,11 +45,7 @@ char FileUtil::pathSeperator() noexcept {
 }
 
 std::string FileUtil::currentWorkingDirectory() {
-  char buf[PATH_MAX];
-  if (getcwd(buf, sizeof(buf)))
-    return buf;
-
-  RAISE_ERRNO(errno);
+  return fs::current_path().string();
 }
 
 std::string FileUtil::absolutePath(const std::string& relpath) {
@@ -54,11 +59,8 @@ std::string FileUtil::absolutePath(const std::string& relpath) {
 }
 
 Result<std::string> FileUtil::realpath(const std::string& relpath) {
-  char result[PATH_MAX];
-  if (::realpath(relpath.c_str(), result) == nullptr)
-    return std::make_error_code(static_cast<std::errc>(errno));
-
-  return Success(std::string(result));
+  fs::path abspath = fs::absolute(fs::path(relpath));
+  return Success(abspath.string());
 }
 
 bool FileUtil::exists(const std::string& path) {
@@ -67,81 +69,36 @@ bool FileUtil::exists(const std::string& path) {
 }
 
 bool FileUtil::isDirectory(const std::string& path) {
-  struct stat st;
-  return stat(path.c_str(), &st) == 0 && S_ISDIR(st.st_mode);
+  return fs::is_directory(path);
 }
 
 bool FileUtil::isRegular(const std::string& path) {
-  struct stat st;
-  return stat(path.c_str(), &st) == 0 && S_ISREG(st.st_mode);
+  return fs::is_regular_file(path);
 }
 
 size_t FileUtil::size(const std::string& path) {
-  struct stat st;
-
-  if (stat(path.c_str(), &st) == 0)
-    return st.st_size;
-
-  RAISE_ERRNO(errno);
+  return fs::file_size(path);
 }
 
 size_t FileUtil::sizeRecursive(const std::string& path) {
-  struct stat st;
-  if (stat(path.c_str(), &st) < 0)
-    RAISE_ERRNO(errno);
-
-  if (S_ISREG(st.st_mode))
-    return st.st_size;
-
-  if (!S_ISDIR(st.st_mode))
-    return 0;
-
   size_t totalSize = 0;
-  FileUtil::ls(path, [&totalSize](const std::string& childpath) -> bool {
-    totalSize += sizeRecursive(childpath);
-    return true;
-  });
+  for (auto& dir : fs::recursive_directory_iterator(path))
+    if (fs::is_regular_file(dir.path()))
+      totalSize += fs::file_size(dir.path());
+
   return totalSize;
 }
 
 void FileUtil::ls(const std::string& path,
                   std::function<bool(const std::string&)> callback) {
-  DIR* dir = opendir(path.c_str());
-  if (!dir)
-    RAISE_ERRNO(errno);
-
-  int len = offsetof(dirent, d_name) + pathconf(path.c_str(), _PC_NAME_MAX);
-  std::unique_ptr<uint8_t[]> space = std::make_unique<uint8_t[]>(len + 1);
-  dirent* dep = (dirent*) &space[0];
-  dirent* res = nullptr;
-  Buffer buf;
-
-  std::string filename;
-  filename = joinPaths(path, "/");
-  std::size_t baseFileNameLength = filename.size();
-
-  while (readdir_r(dir, dep, &res) == 0 && res) {
-    // skip "."
-    if (dep->d_name[0] == '.' && dep->d_name[1] == 0)
+  for (auto& dir : fs::directory_iterator(path)) {
+    fs::path& p = dir.path();
+    if (p == ".." || p == ".")
       continue;
 
-    // skip ".."
-    if (dep->d_name[0] == '.' && dep->d_name[1] == '.' && dep->d_name[2] == 0)
-      continue;
-
-    // prepare filename
-    filename += static_cast<char*>(dep->d_name);
-
-    // callback
-    if (!callback(filename))
+    if (!callback(p.string()))
       break;
-
-    // reset filename to its base-length
-    filename.resize(baseFileNameLength);
   }
-
-  // free resources
-  closedir(dir);
 }
 
 std::string FileUtil::joinPaths(const std::string& base,
@@ -181,7 +138,13 @@ size_t FileUtil::read(int fd, Buffer* output) {
   if (st.st_size > 0) {
     size_t beg = output->size();
     output->reserve(beg + st.st_size + 1);
-    ssize_t nread = ::pread(fd, output->data() + beg, st.st_size, 0);
+    ssize_t nread;
+#if defined(HAVE_PTREAD)
+    nread = ::pread(fd, output->data() + beg, st.st_size, 0);
+#else
+    nread = ::read(fd, output->data() + beg, st.st_size);
+#endif
+
     if (nread < 0)
       RAISE_ERRNO(errno);
 
@@ -226,10 +189,19 @@ size_t FileUtil::read(const std::string& path, Buffer* output) {
 size_t FileUtil::read(const FileView& file, Buffer* output) {
   output->reserve(file.size() + 1);
   size_t nread = 0;
+  size_t count = file.size();
+
+#if !defined(HAVE_PREAD)
+  FileUtil::seek(file.handle(), file.offset());
+#endif
 
   do {
-    ssize_t rv = ::pread(file.handle(), output->data(),
-                         file.size() - nread, file.offset() + nread);
+    ssize_t rv;
+#if defined(HAVE_PREAD)
+    rv = ::pread(file.handle(), output->data(), file.size() - nread, file.offset() + nread);
+#else
+    rv = ::read(file.handle(), output->data(), count);
+#endif
     if (rv < 0) {
       switch (errno) {
         case EINTR:

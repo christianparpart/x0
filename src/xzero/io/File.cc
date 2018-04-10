@@ -9,14 +9,23 @@
 #include <xzero/Buffer.h>
 #include <xzero/logging.h>
 #include <xzero/sysconfig.h>
+#include <xzero/defines.h>
 
 #include <ctime>
 #include <sys/stat.h>
-#include <sys/mman.h>
 #include <sys/types.h>
 #include <fcntl.h>
-#include <unistd.h>
 #include <errno.h>
+
+#if defined(XZERO_OS_UNIX)
+#include <unistd.h>
+#endif
+
+#if defined(WIN32) || defined(WIN64)
+static inline int gmtime_r(const time_t* tt, struct tm* tm) {
+  return gmtime_s(tm, tt);
+}
+#endif
 
 namespace xzero {
 

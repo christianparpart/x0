@@ -117,7 +117,7 @@ namespace base64 {
   template<typename Iterator, typename IndexTable, typename Output>
   size_t decode(Iterator begin, Iterator end, const IndexTable& indexmap,
                 Output output) {
-    auto index = [indexmap](Iterator i) -> size_t {
+    auto index = [indexmap](Iterator i) {
       return indexmap[static_cast<size_t>(*i)];
     };
 

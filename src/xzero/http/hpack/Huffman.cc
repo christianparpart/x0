@@ -20,6 +20,7 @@ struct HuffmanCode {
 
 static HuffmanCode huffmanCodes[] = {
   // TODO [sym] = { nbits, code },
+  { 0, 0 }
 };
 
 size_t Huffman::encodeLength(const std::string& value) {

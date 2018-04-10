@@ -7,14 +7,29 @@
 
 #include <xzero/io/MemoryMap.h>
 #include <xzero/RuntimeError.h>
+#include <xzero/sysconfig.h>
+#include <xzero/defines.h>
 #include <sys/types.h>
-#include <sys/mman.h>
-#include <unistd.h>
 #include <fcntl.h>
 #include <errno.h>
 
+#if defined(XZERO_OS_WIN32)
+#include <Windows.h>
+#endif
+
+#if defined(XZERO_OS_UNIX)
+#include <unistd.h>
+#endif
+
+#if defined(HAVE_SYS_MMAN_H)
+#include <sys/mman.h>
+#endif
+
 namespace xzero {
 
+// TODO: on Windows, use CreateFileMapping()
+
+#if defined(XZERO_OS_UNIX)
 static inline char* createMemoryMap(int fd, off_t ofs, size_t size, bool rw) {
   int prot = rw ? PROT_READ | PROT_WRITE : PROT_READ;
   char* data = (char*) mmap(nullptr, size, prot, MAP_SHARED, fd, ofs);
@@ -23,6 +38,7 @@ static inline char* createMemoryMap(int fd, off_t ofs, size_t size, bool rw) {
 
   return data;
 }
+#endif
 
 MemoryMap::MemoryMap(int fd, off_t ofs, size_t size, bool rw)
     : FixedBuffer(createMemoryMap(fd, ofs, size, rw), size, size),

@@ -266,12 +266,10 @@ set(libXzero_SRC src/xzero/AnsiColor.cc
                  src/xzero/io/FileUtil.cc
                  src/xzero/io/FileView.cc
                  src/xzero/io/Filter.cc
-                 src/xzero/io/GzipFilter.cc
                  src/xzero/io/LocalFile.cc
                  src/xzero/io/LocalFileRepository.cc
                  src/xzero/io/MemoryFile.cc
                  src/xzero/io/MemoryFileRepository.cc
-                 src/xzero/io/MemoryMap.cc
                  src/xzero/io/SystemPipe.cc
                  src/xzero/logging.cc
                  src/xzero/net/Cidr.cc
@@ -317,6 +315,10 @@ if(UNIX AND NOT APPLE)
                          src/xzero/executor/LinuxScheduler.cc)
 else()
   set(libXzero_LINUX_SRC)
+endif()
+
+if (HAVE_ZLIB_H)
+list(append libXzero_SRC src/xzero/io/GzipFilter.cc)
 endif()
 
 if(APPLE)
@@ -496,7 +498,6 @@ set(xzero_test_SRC
 		src/xzero/http/http2/Stream-test.cc
 		src/xzero/io/DataChain-test.cc
 		src/xzero/io/MemoryFile-test.cc
-		src/xzero/io/MemoryMap-test.cc
 		src/xzero/net/Cidr-test.cc
 		src/xzero/net/TcpConnector-test.cc
 		src/xzero/raft/Generator-test.cc
