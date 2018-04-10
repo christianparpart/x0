@@ -6,12 +6,9 @@
 // the License at: http://opensource.org/licenses/MIT
 #pragma once
 
-#define PACKAGE_VERSION "@X0_VERSION@"
+#define PACKAGE_VERSION "@x0_VERSION_MAJOR@.@x0_VERSION_MINOR@.@x0_VERSION_PATCH@"
 
 // #define XZERO_CLUSTERDIR "@XZERO_CLUSTERDIR@"
-// #define X0D_CONFIGFILE "@X0D_CONFIGFILE@"
-// #define X0D_LOGDIR "@X0D_LOGDIR@"
-// #define X0D_PIDFILE "@X0D_PIDFILE@"
 
 // --------------------------------------------------------------------------
 // feature tests

@@ -72,14 +72,15 @@ include(CheckLibraryExists)
 include(CheckCSourceCompiles)
 include(CMakeDetermineCCompiler)
 
-if(WINDOWS)
-CHECK_FUNCTION_EXISTS(gmtime_s HAVE_GMTIME_S)
-CHECK_INCLUDE_FILES(Windows.h HAVE_WINDOWS_H)
+if(MSVC)
+  CHECK_FUNCTION_EXISTS(gmtime_s HAVE_GMTIME_S)
+  CHECK_INCLUDE_FILES(Windows.h HAVE_WINDOWS_H)
 endif()
 
 if(UNIX)
   include(FindPkgConfig)
   include(FindOpenSSL)
+
   if (OPENSSL_FOUND)
     message(STATUS "OpenSSL found ;-)")
     set(XZERO_ENABLE_OPENSSL TRUE)
@@ -145,13 +146,6 @@ if(UNIX)
 	  CHECK_LIBRARY_EXISTS(bz2 BZ2_bzCompressInit "" HAVE_LIBBZ2)
 	  set(BZIP2_LIBRARIES bz2)
   endif(HAVE_BZLIB_H)
-
-  # required for shm_open/shm_unlink
-  if(APPLE)
-    set(RT_LIBRARIES)
-  else()
-    set(RT_LIBRARIES rt)
-  endif()
 endif(UNIX)
 
 include_directories(${CMAKE_CURRENT_BINARY_DIR}/src
@@ -307,32 +301,23 @@ set(libXzero_SRC src/xzero/AnsiColor.cc
                  src/xzero/util/SimpleRateLimit.cc
                  )
 
-if (HAVE_ZLIB_H)
+if(HAVE_ZLIB_H)
   set(libXzero_SRC ${libXzero_SRC} src/xzero/io/GzipFilter.cc)
 endif()
-
 if(UNIX)
   set(libXzero_SRC ${libXzero_SRC} src/xzero/executor/PosixScheduler.cc)
 endif()
-
 if(UNIX AND NOT APPLE) 
   set(libXzero_SRC ${libXzero_SRC}
                    src/xzero/LinuxSignals.cc
                    src/xzero/executor/LinuxScheduler.cc)
 endif()
-
 if(APPLE)
   set(libXzero_SRC ${libXzero_SRC} src/xzero/KQueueSignals.cc)
 endif()
-
 # if(MSVC)
 #   set(libXzero_SRC ${libXzero_SRC} src/xzero/WinSockScheduler.cc)
 # endif()
-
-set(XZERO_LIBRARIES ${ZLIB_LIBRARIES} ${OPENSSL_LIBRARIES} ${RT_LIBRARIES} ${FMT_LIBRARIES})
-if(UNIX)
-  set(XZERO_LIBRARIES ${XZERO_LIBRARIES} pthread dl stdc++fs)
-endif()
 
 add_library(Xzero STATIC ${libXzero_SRC})
 add_dependencies(Xzero fmt)
@@ -341,7 +326,14 @@ set_target_properties(Xzero PROPERTIES CXX_STANDARD 17 CXX_STANDARD_REQUIRED ON)
 if(CLANG_TIDY_EXE)
   set_target_properties(Xzero PROPERTIES CXX_CLANG_TIDY "${DO_CLANG_TIDY}")
 endif()
-target_link_libraries(Xzero ${XZERO_LIBRARIES})
+target_link_libraries(Xzero ${ZLIB_LIBRARIES} ${OPENSSL_LIBRARIES} ${FMT_LIBRARIES})
+if(UNIX)
+  target_link_libraries(Xzero pthread dl stdc++fs)
+endif()
+if(NOT APPLE)
+  target_link_libraries(Xzero rt)
+endif()
+
 install(TARGETS Xzero
         DESTINATION ${CMAKE_INSTALL_PREFIX}/lib)
 install(DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/src/xzero/"
@@ -403,7 +395,7 @@ set_target_properties(XzeroFlow PROPERTIES
 if(CLANG_TIDY_EXE)
   set_target_properties(XzeroFlow PROPERTIES CXX_CLANG_TIDY "${DO_CLANG_TIDY}")
 endif()
-target_link_libraries(XzeroFlow pthread dl Xzero)
+target_link_libraries(XzeroFlow Xzero)
 install(TARGETS XzeroFlow DESTINATION ${CMAKE_INSTALL_PREFIX}/lib)
 install(
     DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/src/xzero-flow/"
@@ -429,8 +421,6 @@ set(x0d_SRC ${MT_SRC}
             src/x0d/modules/webdav.cc
 )
 
-set(X0D_LIBS pam)
-
 add_executable(x0d ${x0d_SRC})
 target_compile_definitions(x0d PRIVATE
                            PACKAGE_URL="${PACKAGE_URL}"
@@ -441,7 +431,7 @@ set_target_properties(x0d PROPERTIES CXX_STANDARD 17 CXX_STANDARD_REQUIRED ON)
 if(CLANG_TIDY_EXE)
   set_target_properties(x0d PROPERTIES CXX_CLANG_TIDY "${DO_CLANG_TIDY}")
 endif()
-target_link_libraries(x0d Xzero XzeroFlow ${X0D_LIBS})
+target_link_libraries(x0d Xzero XzeroFlow pam)
 install(TARGETS x0d
         DESTINATION "${CMAKE_INSTALL_PREFIX}/bin")
 install(DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/src/x0d/"
@@ -538,9 +528,7 @@ endif(ENABLE_TESTS)
 # {{{ examples
 add_executable(hello_http examples/hello_http.cc)
 target_link_libraries(hello_http Xzero)
-set_target_properties(hello_http PROPERTIES
-		CXX_STANDARD 17
-		CXX_STANDARD_REQUIRED ON)
+set_target_properties(hello_http PROPERTIES	CXX_STANDARD 17	CXX_STANDARD_REQUIRED ON)
 if(CLANG_TIDY_EXE)
   set_target_properties(hello_http PROPERTIES CXX_CLANG_TIDY "${DO_CLANG_TIDY}")
 endif()
