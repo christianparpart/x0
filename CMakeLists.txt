@@ -71,89 +71,87 @@ include(CheckTypeSize)
 include(CheckLibraryExists)
 include(CheckCSourceCompiles)
 include(CMakeDetermineCCompiler)
+
+if(WINDOWS)
+CHECK_FUNCTION_EXISTS(gmtime_s HAVE_GMTIME_S)
+CHECK_INCLUDE_FILES(Windows.h HAVE_WINDOWS_H)
+endif()
+
 if(UNIX)
   include(FindPkgConfig)
   include(FindOpenSSL)
-endif()
-
-CHECK_FUNCTION_EXISTS(gmtime_s HAVE_GMTIME_S)
-CHECK_INCLUDE_FILES(cxxabi.h HAVE_CXXABI_H)
-CHECK_INCLUDE_FILES(Windows.h HAVE_WINDOWS_H)
-
-if(UNIX)
-CHECK_INCLUDE_FILES(glob.h HAVE_GLOB_H)
-CHECK_INCLUDE_FILES(sys/sendfile.h HAVE_SYS_SENDFILE_H)
-CHECK_FUNCTION_EXISTS(sendfile HAVE_SENDFILE)
-CHECK_FUNCTION_EXISTS(posix_fadvise HAVE_POSIX_FADVISE)
-CHECK_FUNCTION_EXISTS(readahead HAVE_READAHEAD)
-CHECK_FUNCTION_EXISTS(pread HAVE_PREAD)
-CHECK_FUNCTION_EXISTS(gmtime_r HAVE_GMTIME_R)
-CHECK_FUNCTION_EXISTS(getrlimit HAVE_GETRLIMIT)
-
-CHECK_INCLUDE_FILES(fcntl.h HAVE_FCNTL_H)
-CHECK_INCLUDE_FILES(unistd.h HAVE_UNISTD_H)
-CHECK_INCLUDE_FILES(sys/inotify.h HAVE_SYS_INOTIFY_H)
-CHECK_INCLUDE_FILES(sys/wait.h HAVE_SYS_WAIT_H)
-CHECK_INCLUDE_FILES(sys/time.h HAVE_SYS_TIME_H)
-CHECK_INCLUDE_FILES(sys/resource.h HAVE_SYS_RESOURCE_H)
-CHECK_INCLUDE_FILES(sys/mman.h HAVE_SYS_MMAN_H)
-CHECK_INCLUDE_FILES(sys/limits.h HAVE_SYS_LIMITS_H)
-CHECK_INCLUDE_FILES(pwd.h HAVE_PWD_H)
-CHECK_INCLUDE_FILES(syslog.h HAVE_SYSLOG_H)
-CHECK_INCLUDE_FILES(dlfcn.h HAVE_DLFCN_H)
-CHECK_INCLUDE_FILES(execinfo.h HAVE_EXECINFO_H)
-CHECK_INCLUDE_FILES(uuid/uuid.h HAVE_UUID_UUID_H)
-CHECK_INCLUDE_FILES(security/pam_appl.h HAVE_SECURITY_PAM_APPL_H)
-
-CHECK_FUNCTION_EXISTS(strptime HAVE_STRPTIME)
-CHECK_FUNCTION_EXISTS(sysconf HAVE_SYSCONF)
-CHECK_FUNCTION_EXISTS(pathconf HAVE_PATHCONF)
-CHECK_FUNCTION_EXISTS(accept4 HAVE_ACCEPT4)
-CHECK_FUNCTION_EXISTS(pipe2 HAVE_PIPE2)
-CHECK_FUNCTION_EXISTS(dup2 HAVE_DUP2)
-CHECK_FUNCTION_EXISTS(dladdr HAVE_DLADDR)
-CHECK_FUNCTION_EXISTS(fork HAVE_FORK)
-CHECK_FUNCTION_EXISTS(backtrace HAVE_BACKTRACE)
-CHECK_FUNCTION_EXISTS(backtrace_symbols HAVE_BACKTRACE_SYMBOLS)
-CHECK_FUNCTION_EXISTS(clock_gettime HAVE_CLOCK_GETTIME)
-CHECK_FUNCTION_EXISTS(sigprocmask HAVE_SIGPROCMASK)
-
-CHECK_INCLUDE_FILES(pthread.h HAVE_PTHREAD_H)
-CHECK_LIBRARY_EXISTS(pthread pthread_setname_np "" HAVE_PTHREAD_SETNAME_NP)
-CHECK_LIBRARY_EXISTS(pthread pthread_setaffinity_np "" HAVE_PTHREAD_SETAFFINITY_NP)
-
-CHECK_INCLUDE_FILES(sys/inotify.h HAVE_SYS_INOTIFY_H)
-if(HAVE_SYS_INOTIFY_H)
-  CHECK_FUNCTION_EXISTS(inotify_init1 HAVE_INOTIFY_INIT1)
-endif(HAVE_SYS_INOTIFY_H)
-
-CHECK_INCLUDE_FILES(zlib.h HAVE_ZLIB_H)
-if(HAVE_ZLIB_H)
-  CHECK_LIBRARY_EXISTS(z deflate "" HAVE_LIBZ)
-  set(ZLIB_LIBRARIES z)
-endif(HAVE_ZLIB_H)
-
-CHECK_INCLUDE_FILES(bzlib.h HAVE_BZLIB_H)
-if(HAVE_BZLIB_H)
-  CHECK_LIBRARY_EXISTS(bz2 BZ2_bzCompressInit "" HAVE_LIBBZ2)
-  set(BZIP2_LIBRARIES bz2)
-endif(HAVE_BZLIB_H)
-endif(UNIX)
-
-# required for shm_open/shm_unlink
-if(APPLE)
-  set(RT_LIBRARIES)
-else()
-  set(RT_LIBRARIES rt)
-endif()
-
-if(UNIX)
   if (OPENSSL_FOUND)
     message(STATUS "OpenSSL found ;-)")
   else()
     message(FATAL_ERROR "OpenSSL not found ;-(")
   endif()
-endif()
+
+  CHECK_INCLUDE_FILES(cxxabi.h HAVE_CXXABI_H)
+  CHECK_INCLUDE_FILES(glob.h HAVE_GLOB_H)
+  CHECK_INCLUDE_FILES(sys/sendfile.h HAVE_SYS_SENDFILE_H)
+  CHECK_FUNCTION_EXISTS(sendfile HAVE_SENDFILE)
+  CHECK_FUNCTION_EXISTS(posix_fadvise HAVE_POSIX_FADVISE)
+  CHECK_FUNCTION_EXISTS(readahead HAVE_READAHEAD)
+  CHECK_FUNCTION_EXISTS(pread HAVE_PREAD)
+  CHECK_FUNCTION_EXISTS(gmtime_r HAVE_GMTIME_R)
+  CHECK_FUNCTION_EXISTS(getrlimit HAVE_GETRLIMIT)
+
+  CHECK_INCLUDE_FILES(fcntl.h HAVE_FCNTL_H)
+  CHECK_INCLUDE_FILES(unistd.h HAVE_UNISTD_H)
+  CHECK_INCLUDE_FILES(sys/inotify.h HAVE_SYS_INOTIFY_H)
+  CHECK_INCLUDE_FILES(sys/wait.h HAVE_SYS_WAIT_H)
+  CHECK_INCLUDE_FILES(sys/time.h HAVE_SYS_TIME_H)
+  CHECK_INCLUDE_FILES(sys/resource.h HAVE_SYS_RESOURCE_H)
+  CHECK_INCLUDE_FILES(sys/mman.h HAVE_SYS_MMAN_H)
+  CHECK_INCLUDE_FILES(sys/limits.h HAVE_SYS_LIMITS_H)
+  CHECK_INCLUDE_FILES(pwd.h HAVE_PWD_H)
+  CHECK_INCLUDE_FILES(syslog.h HAVE_SYSLOG_H)
+  CHECK_INCLUDE_FILES(dlfcn.h HAVE_DLFCN_H)
+  CHECK_INCLUDE_FILES(execinfo.h HAVE_EXECINFO_H)
+  CHECK_INCLUDE_FILES(uuid/uuid.h HAVE_UUID_UUID_H)
+  CHECK_INCLUDE_FILES(security/pam_appl.h HAVE_SECURITY_PAM_APPL_H)
+
+  CHECK_FUNCTION_EXISTS(strptime HAVE_STRPTIME)
+  CHECK_FUNCTION_EXISTS(sysconf HAVE_SYSCONF)
+  CHECK_FUNCTION_EXISTS(pathconf HAVE_PATHCONF)
+  CHECK_FUNCTION_EXISTS(accept4 HAVE_ACCEPT4)
+  CHECK_FUNCTION_EXISTS(pipe2 HAVE_PIPE2)
+  CHECK_FUNCTION_EXISTS(dup2 HAVE_DUP2)
+  CHECK_FUNCTION_EXISTS(dladdr HAVE_DLADDR)
+  CHECK_FUNCTION_EXISTS(fork HAVE_FORK)
+  CHECK_FUNCTION_EXISTS(backtrace HAVE_BACKTRACE)
+  CHECK_FUNCTION_EXISTS(backtrace_symbols HAVE_BACKTRACE_SYMBOLS)
+  CHECK_FUNCTION_EXISTS(clock_gettime HAVE_CLOCK_GETTIME)
+  CHECK_FUNCTION_EXISTS(sigprocmask HAVE_SIGPROCMASK)
+
+  CHECK_INCLUDE_FILES(pthread.h HAVE_PTHREAD_H)
+  CHECK_LIBRARY_EXISTS(pthread pthread_setname_np "" HAVE_PTHREAD_SETNAME_NP)
+  CHECK_LIBRARY_EXISTS(pthread pthread_setaffinity_np "" HAVE_PTHREAD_SETAFFINITY_NP)
+
+  CHECK_INCLUDE_FILES(sys/inotify.h HAVE_SYS_INOTIFY_H)
+  if(HAVE_SYS_INOTIFY_H)
+	  CHECK_FUNCTION_EXISTS(inotify_init1 HAVE_INOTIFY_INIT1)
+  endif(HAVE_SYS_INOTIFY_H)
+
+  CHECK_INCLUDE_FILES(zlib.h HAVE_ZLIB_H)
+  if(HAVE_ZLIB_H)
+	  CHECK_LIBRARY_EXISTS(z deflate "" HAVE_LIBZ)
+	  set(ZLIB_LIBRARIES z)
+  endif(HAVE_ZLIB_H)
+
+  CHECK_INCLUDE_FILES(bzlib.h HAVE_BZLIB_H)
+  if(HAVE_BZLIB_H)
+	  CHECK_LIBRARY_EXISTS(bz2 BZ2_bzCompressInit "" HAVE_LIBBZ2)
+	  set(BZIP2_LIBRARIES bz2)
+  endif(HAVE_BZLIB_H)
+
+  # required for shm_open/shm_unlink
+  if(APPLE)
+    set(RT_LIBRARIES)
+  else()
+    set(RT_LIBRARIES rt)
+  endif()
+endif(UNIX)
 
 include_directories(${CMAKE_CURRENT_BINARY_DIR}/src
                     ${CMAKE_CURRENT_SOURCE_DIR}/src
@@ -309,56 +307,44 @@ set(libXzero_SRC src/xzero/AnsiColor.cc
                  src/xzero/util/SimpleRateLimit.cc
                  )
 
-# XXX if(LINUX) doesn't work on WSL; too bad; why?
-if(UNIX AND NOT APPLE) 
-  set(libXzero_LINUX_SRC src/xzero/LinuxSignals.cc
-                         src/xzero/executor/LinuxScheduler.cc)
-else()
-  set(libXzero_LINUX_SRC)
+if (HAVE_ZLIB_H)
+  set(libXzero_SRC ${libXzero_SRC} src/xzero/io/GzipFilter.cc)
 endif()
 
-if (HAVE_ZLIB_H)
-set(libXzero_SRC ${libXzero_SRC} src/xzero/io/GzipFilter.cc)
-#list(append libXzero_SRC src/xzero/io/GzipFilter.cc)
+if(UNIX AND NOT APPLE) 
+  set(libXzero_SRC ${libXzero_SRC}
+                   src/xzero/LinuxSignals.cc
+                   src/xzero/executor/LinuxScheduler.cc)
 endif()
 
 if(APPLE)
-  set(libXzero_APPLE_SRC src/xzero/KQueueSignals.cc)
-else()
-  set(libXzero_APPLE_SRC)
+  set(libXzero_SRC ${libXzero_SRC} src/xzero/KQueueSignals.cc)
 endif()
 
-set(XZERO_LIBRARIES
-    ${ZLIB_LIBRARIES} ${OPENSSL_LIBRARIES} ${RT_LIBRARIES} ${FMT_LIBRARIES})
-
+set(XZERO_LIBRARIES ${ZLIB_LIBRARIES} ${OPENSSL_LIBRARIES} ${RT_LIBRARIES} ${FMT_LIBRARIES})
 if(UNIX)
-set(XZERO_LIBRARIES ${XZERO_LIBRARIES} pthread dl stdc++fs)
+  set(XZERO_LIBRARIES ${XZERO_LIBRARIES} pthread dl stdc++fs)
 endif()
 
-add_library(Xzero STATIC ${libXzero_SRC} ${libXzero_LINUX_SRC}
-    ${libXzero_APPLE_SRC})
+add_library(Xzero STATIC ${libXzero_SRC})
 add_dependencies(Xzero fmt)
-set_target_properties(Xzero PROPERTIES
-		CXX_STANDARD 17
-		CXX_STANDARD_REQUIRED ON
-		COMPILE_FLAGS "-DXZERO_CLUSTERDIR=\\\"${XZERO_CLUSTERDIR}\\\"")
+target_compile_definitions(Xzero PRIVATE XZERO_CLUSTERDIR="${XZERO_CLUSTERDIR}")
+set_target_properties(Xzero PROPERTIES CXX_STANDARD 17 CXX_STANDARD_REQUIRED ON)
 if(CLANG_TIDY_EXE)
   set_target_properties(Xzero PROPERTIES CXX_CLANG_TIDY "${DO_CLANG_TIDY}")
 endif()
 target_link_libraries(Xzero ${XZERO_LIBRARIES})
-install(TARGETS Xzero DESTINATION ${CMAKE_INSTALL_PREFIX}/lib)
-install(
-    DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/src/xzero/"
-    DESTINATION "${CMAKE_INSTALL_PREFIX}/include/xzero"
-    FILES_MATCHING PATTERN "*.h")
-install(
-    DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/src/xzero/"
-    DESTINATION "${CMAKE_INSTALL_PREFIX}/include/xzero"
-    FILES_MATCHING PATTERN "*.h")
+install(TARGETS Xzero
+        DESTINATION ${CMAKE_INSTALL_PREFIX}/lib)
+install(DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/src/xzero/"
+        DESTINATION "${CMAKE_INSTALL_PREFIX}/include/xzero"
+        FILES_MATCHING PATTERN "*.h")
+install(DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/src/xzero/"
+        DESTINATION "${CMAKE_INSTALL_PREFIX}/include/xzero"
+        FILES_MATCHING PATTERN "*.h")
 # }}}
 # {{{ libXzeroTesting
 set(libXzeroTest_SRC src/xzero/testing_main.cc)
-
 add_library(XzeroTest STATIC ${libXzeroTest_SRC})
 target_link_libraries(XzeroTest Xzero)
 install(TARGETS XzeroTest DESTINATION ${CMAKE_INSTALL_PREFIX}/lib)
@@ -438,22 +424,21 @@ set(x0d_SRC ${MT_SRC}
 set(X0D_LIBS pam)
 
 add_executable(x0d ${x0d_SRC})
-set_target_properties(x0d PROPERTIES
-		CXX_STANDARD 17
-		CXX_STANDARD_REQUIRED ON
-    COMPILE_FLAGS "-DPACKAGE_URL=\\\"${PACKAGE_URL}\\\" \
-                   -DX0D_PIDFILE=\\\"${X0D_PIDFILE}\\\" \
-                   -DX0D_LOGDIR=\\\"${X0D_LOGDIR}\\\" \
-                   -DX0D_CONFIGFILE=\\\"${X0D_CONFIGFILE}\\\"")
+target_compile_definitions(x0d PRIVATE
+                           PACKAGE_URL="${PACKAGE_URL}"
+                           X0D_PIDFILE="${X0D_PIDFILE}"
+                           X0D_LOGDIR="${X0D_LOGDIR}"
+                           X0D_CONFIGFILE="${X0D_CONFIGFILE}")
+set_target_properties(x0d PROPERTIES CXX_STANDARD 17 CXX_STANDARD_REQUIRED ON)
 if(CLANG_TIDY_EXE)
   set_target_properties(x0d PROPERTIES CXX_CLANG_TIDY "${DO_CLANG_TIDY}")
 endif()
 target_link_libraries(x0d Xzero XzeroFlow ${X0D_LIBS})
-install(TARGETS x0d DESTINATION ${CMAKE_INSTALL_PREFIX}/bin)
-install(
-    DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/src/x0d/"
-    DESTINATION "${CMAKE_INSTALL_PREFIX}/include/x0d"
-    FILES_MATCHING PATTERN "*.h")
+install(TARGETS x0d
+        DESTINATION "${CMAKE_INSTALL_PREFIX}/bin")
+install(DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/src/x0d/"
+        DESTINATION "${CMAKE_INSTALL_PREFIX}/include/x0d"
+        FILES_MATCHING PATTERN "*.h")
 # }}}
 # {{{ test
 if(ENABLE_TESTS)
