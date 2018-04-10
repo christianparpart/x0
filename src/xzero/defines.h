@@ -13,9 +13,15 @@
 #include <stdio.h>
 
 // platforms
-#if defined(_WIN32) || defined(__WIN32__)
+#if defined(_WIN32) || defined(_WIN64)
+#define XZERO_OS_WINDOWS
+#endif
+
+#if defined(_WIN32)
 #define XZERO_OS_WIN32 1
 //#	define _WIN32_WINNT 0x0510
+#elif defined(_WIN64)
+#define XZERO_OS_WIN64 1
 #else
 #define XZERO_OS_UNIX 1
 #if defined(__CYGWIN__)

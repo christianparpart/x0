@@ -19,7 +19,7 @@
 
 #include <fmt/format.h>
 
-#if defined(XZERO_OS_WIN32)
+#if defined(XZERO_OS_WINDOWS)
 #include <winsock2.h>
 #include <ws2tcpip.h>
 #else
@@ -123,7 +123,11 @@ inline IPAddress& IPAddress::operator=(const std::string& text) {
 
 inline IPAddress& IPAddress::operator=(const IPAddress& v) {
   family_ = v.family_;
+#if defined(XZERO_OS_WINDOWS)
+  strncpy_s(cstr_, sizeof(cstr_), v.cstr_, sizeof(v.cstr_));
+#else
   strncpy(cstr_, v.cstr_, sizeof(cstr_));
+#endif
   memcpy(buf_, v.buf_, v.size());
 
   return *this;
@@ -142,7 +146,13 @@ inline bool IPAddress::set(const std::string& text, int family) {
     cstr_[0] = 0;
     return false;
   }
+
+#if defined(XZERO_OS_WINDOWS)
+  strncpy_s(cstr_, sizeof(cstr_), text.c_str(), text.size());
+#else
   strncpy(cstr_, text.c_str(), sizeof(cstr_));
+#endif
+
   return true;
 }
 
@@ -192,22 +202,12 @@ inline bool operator!=(const IPAddress& a, const IPAddress& b) {
 }  // namespace xzero
 
 namespace std {
-#if defined(XZERO_OS_WIN32)
   template <>
   struct hash<::xzero::IPAddress> {
-    size_t operator()(const ::xzero::IPAddress& v) const noexcept {
-      return static_cast<size_t>(*(uint32_t*)(v.data()));
-    }
-  };
-#else
-  template <>
-  struct hash<::xzero::IPAddress>
-    : public unary_function<::xzero::IPAddress, size_t> {
     size_t operator()(const ::xzero::IPAddress& v) const {
       return *(uint32_t*)(v.data());
     }
   };
-#endif
 } // namespace std
 
 namespace fmt {

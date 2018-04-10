@@ -52,7 +52,7 @@ LiteralType elementTypeOf(LiteralType type);
 // {{{ array types
 class FlowArray {
  public:
-  size_t size() const { return base_[0]; }
+  size_t size() const { return static_cast<size_t>(base_[0]); }
 
  protected:
   explicit FlowArray(const Register* base) : base_(base) {}
