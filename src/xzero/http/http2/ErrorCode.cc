@@ -6,10 +6,8 @@
 // the License at: http://opensource.org/licenses/MIT
 
 #include <xzero/http/http2/ErrorCode.h>
-#include <xzero/StringUtil.h>
-#include <iosfwd>
 #include <string>
-#include <stdio.h>
+#include <fmt/format.h>
 
 namespace xzero::http::http2 {
 
@@ -44,10 +42,7 @@ std::string as_string(ErrorCode ec) {
     case ErrorCode::Http11Required:
       return "Http11Required";
     default: {
-      char buf[128];
-      int n = snprintf(buf, sizeof(buf), "ERROR_CODE_%u",
-                       static_cast<unsigned>(ec));
-      return std::string(buf, n);
+      return fmt::format("ERROR_CODE_{}", static_cast<unsigned>(ec));
     }
   }
 }

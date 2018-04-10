@@ -1656,7 +1656,7 @@ namespace fmt {
       return pointer_from(end);
     }
 
-    context::iterator format(const xzero::BufferRef& arg, context& ctx) {
+    format_context::iterator format(const xzero::BufferRef& arg, format_context& ctx) {
       internal::buffer& buf = internal::get_container(ctx.begin());
       const std::size_t start = buf.size();
       const std::size_t count = arg.size();

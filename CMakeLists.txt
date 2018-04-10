@@ -72,11 +72,6 @@ include(CheckLibraryExists)
 include(CheckCSourceCompiles)
 include(CMakeDetermineCCompiler)
 
-if(MSVC)
-  CHECK_FUNCTION_EXISTS(gmtime_s HAVE_GMTIME_S)
-  CHECK_INCLUDE_FILES(Windows.h HAVE_WINDOWS_H)
-endif()
-
 if(UNIX)
   include(FindPkgConfig)
   include(FindOpenSSL)
