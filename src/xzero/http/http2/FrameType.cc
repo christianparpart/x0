@@ -6,8 +6,7 @@
 // the License at: http://opensource.org/licenses/MIT
 
 #include <xzero/http/http2/FrameType.h>
-#include <xzero/StringUtil.h>
-#include <stdio.h>
+#include <fmt/format.h>
 
 namespace xzero::http::http2 {
 
@@ -34,9 +33,7 @@ std::string as_string(FrameType type) {
     case FrameType::Continuation:
       return "CONTINUATION";
     default: {
-      char buf[128];
-      int n = snprintf(buf, sizeof(buf), "FRAME_TYPE_%u", (unsigned) type);
-      return std::string(buf, n);
+      return fmt::format("FRAME_TYPE_{}", static_cast<unsigned>(type));
     }
   }
 }
