@@ -5,9 +5,17 @@
 // file except in compliance with the License. You may obtain a copy of
 // the License at: http://opensource.org/licenses/MIT
 
+#include <xzero/sysconfig.h>
+#include <xzero/defines.h>
 #include <xzero/io/FileDescriptor.h>
 #include <xzero/io/FileUtil.h>
+
+#if defined(XZERO_OS_WIN32)
+#include <io.h>
+#define dup _dup
+#else
 #include <unistd.h>
+#endif
 
 namespace xzero {
 

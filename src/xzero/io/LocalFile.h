@@ -35,7 +35,6 @@ class LocalFile : public File {
   bool isDirectory() const noexcept override;
   bool isExecutable() const noexcept override;
   int createPosixChannel(OpenFlags flags, int mode = 0) override;
-  std::unique_ptr<MemoryMap> createMemoryMap(bool rw = true) override;
 
   void update();
 

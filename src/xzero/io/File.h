@@ -78,12 +78,6 @@ class File {
    */
   virtual int createPosixChannel(OpenFlags oflags, int mode = 0) = 0;
 
-  /** Creates a memory-map for a given file.
-   *
-   * @param rw weather to map file in read/write mode, or just in read-only.
-   */
-  virtual std::unique_ptr<MemoryMap> createMemoryMap(bool rw = true) = 0;
-
   /**
    * Sets file-error code, that is only used for the validity of the entity.
    */

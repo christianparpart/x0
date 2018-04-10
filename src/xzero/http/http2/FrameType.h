@@ -19,7 +19,6 @@
 #include <unordered_map>
 #include <map>
 #include <iosfwd>
-#include <arpa/inet.h>
 
 namespace xzero::http::http2 {
 

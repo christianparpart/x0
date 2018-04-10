@@ -12,6 +12,8 @@
 
 #if defined(XZERO_OS_WIN32)
 #include <Windows.h>
+#include <WinSock2.h>
+#include <io.h>
 #else
 #include <fcntl.h>
 #include <unistd.h>
@@ -48,7 +50,7 @@ struct WinSocket {
   }
 
   operator SOCKET () {
-    return ws;
+    return handle;
   }
 
   int make_filedes() {

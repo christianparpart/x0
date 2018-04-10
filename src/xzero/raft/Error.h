@@ -45,9 +45,9 @@ inline std::error_code make_error_code(RaftError ec) {
 
 namespace std {
   template <>
-  struct hash<xzero::raft::RaftError> : public unary_function<xzero::raft::RaftError, size_t> {
+  struct hash<xzero::raft::RaftError> {
     size_t operator()(xzero::raft::RaftError error) const {
-      return (size_t) error;
+      return static_cast<size_t>(error);
     }
   };
 

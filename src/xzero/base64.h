@@ -12,7 +12,7 @@
 
 namespace xzero {
 namespace base64 {
-  extern const int indexmap[256];
+  extern const unsigned char indexmap[256];
 
   std::string encode(const std::string& value);
 

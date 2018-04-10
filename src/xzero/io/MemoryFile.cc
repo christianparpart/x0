@@ -152,17 +152,4 @@ int MemoryFile::createPosixChannel(OpenFlags oflags, int mode) {
 #endif
 }
 
-std::unique_ptr<MemoryMap> MemoryFile::createMemoryMap(bool rw) {
-#if defined(XZERO_MEMORYFILE_USE_TMPFILE)
-  // use FileDescriptor for auto-closing here, in case of exceptions
-  FileDescriptor fd = ::open(fspath_.c_str(), rw ? O_RDWR : O_RDONLY);
-  if (fd < 0)
-    RAISE_ERRNO(errno);
-
-  return std::make_unique<MemoryMap>(fd, 0, size(), rw);
-#else
-  return std::make_unique<MemoryMap>(fd_, 0, size(), rw);
-#endif
-}
-
 } // namespace xzero

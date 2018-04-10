@@ -8,7 +8,6 @@
 #include <xzero/net/EndPointWriter.h>
 #include <xzero/net/TcpEndPoint.h>
 #include <xzero/logging.h>
-#include <unistd.h>
 
 namespace xzero {
 

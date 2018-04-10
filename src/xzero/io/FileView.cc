@@ -7,10 +7,17 @@
 
 #include <xzero/io/FileView.h>
 #include <xzero/sysconfig.h>
+#include <xzero/defines.h>
 #include <system_error>
 #include <stdexcept>
 #include <cerrno>
+
+#if defined(XZERO_OS_UNIX)
 #include <unistd.h>
+#else
+#include <experimental/filesystem>
+namespace fs = std::experimental::filesystem;
+#endif
 
 namespace xzero {
 
@@ -27,7 +34,8 @@ void FileView::read(Buffer* output) const {
 
   output->resize(output->size() + n);
 #else
-# error "Implementation missing"
+  // TODO: implementation on windows
+  throw std::runtime_error{ "FileView::read() not implemented on this platform." };
 #endif
 }
 

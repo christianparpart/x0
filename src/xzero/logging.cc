@@ -5,6 +5,8 @@
 // file except in compliance with the License. You may obtain a copy of
 // the License at: http://opensource.org/licenses/MIT
 
+#include <xzero/sysconfig.h>
+#include <xzero/defines.h>
 #include <xzero/logging.h>
 #include <xzero/inspect.h>
 #include <xzero/StackTrace.h>
@@ -19,8 +21,14 @@
 #include <stdexcept>
 #include <iostream>
 #include <stdlib.h>
+
+#if defined(XZERO_OS_UNIX)
 #include <unistd.h>
+#endif
+
+#if defined(HAVE_SYSLOG_H)
 #include <syslog.h>
+#endif
 
 namespace xzero {
 
@@ -239,15 +247,21 @@ std::string ConsoleLogTarget::createTimestamp() const {
 }
 // }}}
 // {{{ SyslogTarget
+// TODO(Win): we could instead log to the Windows System Event Log (equivalent to Unix's syslog)
 SyslogTarget::SyslogTarget(const std::string& ident) {
+#if defined(HAVE_SYSLOG_H)
   openlog(ident.c_str(), LOG_PID, LOG_DAEMON);
+#endif
 }
 
 SyslogTarget::~SyslogTarget() {
+#if defined(HAVE_SYSLOG_H)
   closelog();
+#endif
 }
 
-int makeSyslogPriority(LogLevel level) {
+#if defined(HAVE_SYSLOG_H)
+static inline int makeSyslogPriority(LogLevel level) {
   switch (level) {
     case LogLevel::None:
       return 0; // TODO
@@ -268,11 +282,12 @@ int makeSyslogPriority(LogLevel level) {
       logFatal("Invalid LogLevel.");
   }
 }
+#endif
 
-void SyslogTarget::log(LogLevel level,
-                       const std::string& message) {
-
+void SyslogTarget::log(LogLevel level, const std::string& message) {
+#if defined(HAVE_SYSLOG_H)
   syslog(makeSyslogPriority(level), "%s", message.c_str());
+#endif
 }
 
 SyslogTarget* SyslogTarget::get() {

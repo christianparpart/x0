@@ -5,6 +5,21 @@
 // file except in compliance with the License. You may obtain a copy of
 // the License at: http://opensource.org/licenses/MIT
 
+#include <xzero/defines.h>
+#include <xzero/sysconfig.h>
+
+#if defined(XZERO_OS_WIN32)
+#include <WinSock2.h>
+#include <Windows.h>
+#include <lmcons.h>
+#include <process.h>
+#else
+#include <pwd.h>
+#include <grp.h>
+#include <unistd.h>
+#include <sys/utsname.h>
+#endif
+
 #include <xzero/Application.h>
 #include <xzero/Buffer.h>
 #include <xzero/StringUtil.h>
@@ -19,59 +34,35 @@
 #include <cstdlib>
 #include <fcntl.h>
 
-#include <pwd.h>
-#include <grp.h>
-#include <unistd.h>
-#include <sys/utsname.h>
-
 namespace xzero {
 
 void Application::init() {
   Application::installGlobalExceptionHandler();
 
+#if !defined(XZERO_OS_WIN32)
   thread::SignalHandler::ignore(SIGPIPE);
 
   // well, when you detach from the terminal, you're garanteed to not get one.
   // unless someone sends it explicitely (so why ignoring then)?
   thread::SignalHandler::ignore(SIGHUP);
+#endif
 }
 
 std::string Application::appName() {
+#if defined(XZERO_OS_WIN32)
+  TCHAR fileName[MAX_PATH + 1];
+  GetModuleFileName(NULL, fileName, sizeof(fileName));
+  return fileName;
+#else
   return StringUtil::split(
       FileUtil::read(fmt::format("/proc/{}/cmdline", getpid())).str(),
       " ")[0];
+#endif
 }
 
 void Application::logToStderr(LogLevel loglevel) {
   Logger::get()->setMinimumLogLevel(loglevel);
   Logger::get()->addTarget(ConsoleLogTarget::get());
-}
-
-void Application::redirectStdOutToLogger(Executor* executor) {
-  static SystemPipe pipe;
-
-  int ec = dup2(pipe.writerFd(), STDOUT_FILENO);
-  if (ec < 0)
-    RAISE_ERRNO(errno);
-
-  int fd = pipe.readerFd();
-  fcntl(fd, F_SETFL, O_NONBLOCK);
-
-  executor->executeOnReadable(fd, [fd]() {
-    fprintf(stderr, "[stdout]: received message\n");
-    Buffer buf(4096);
-    FileUtil::read(fd, &buf);
-    if (buf.size() > 0) {
-      fprintf(stderr, "[stdout] %s\n", buf.c_str());
-      logInfo(buf.str());
-      buf.clear();
-    }
-    fflush(stderr);
-  });
-}
-
-void Application::redirectStdErrToLogger(Executor* executor) {
-  // TODO
 }
 
 static void globalEH() {
@@ -91,17 +82,30 @@ void Application::installGlobalExceptionHandler() {
 }
 
 std::string Application::userName() {
+#if defined(XZERO_OS_WIN32)
+  char username[UNLEN + 1];
+  DWORD slen = UNLEN + 1;
+  if (GetUserName(username, &slen))
+    return std::string(username, slen);
+  else
+    return std::string();
+#else
   if (struct passwd* pw = getpwuid(getuid()))
     return pw->pw_name;
 
   RAISE_ERRNO(errno);
+#endif
 }
 
 std::string Application::groupName() {
+#if defined(XZERO_OS_WIN32)
+  return "";
+#else
   if (struct group* gr = getgrgid(getgid()))
     return gr->gr_name;
 
   RAISE_ERRNO(errno);
+#endif
 }
 
 #if !defined(HOST_NAME_MAX)
@@ -118,6 +122,9 @@ std::string Application::hostname() {
 
 void Application::dropPrivileges(const std::string& username,
                                  const std::string& groupname) {
+#if defined(XZERO_OS_WIN32)
+  // TODO: is that even possible?
+#else
   if (username == Application::userName() && groupname == Application::groupName())
     return;
 
@@ -170,13 +177,18 @@ void Application::dropPrivileges(const std::string& username,
     logWarning("Service is still running with administrative permissions.");
 #endif
   }
+#endif
 }
 
 void Application::daemonize() {
+#if defined(XZERO_OS_WIN32)
+  // TODO: how to become a service on Windows?
+#else
   // XXX raises a warning on OS/X, but heck, how do you do it then on OS/X?
   if (::daemon(true /*no chdir*/, true /*no close*/) < 0) {
     RAISE_ERRNO(errno);
   }
+#endif
 }
 
 size_t Application::pageSize() {
@@ -204,16 +216,26 @@ size_t Application::processorCount() {
 }
 
 ProcessID Application::processId() {
+#if defined(XZERO_OS_WIN32)
+  return GetCurrentProcessId();
+#elif defined(HAVE_GETPID)
   return getpid();
+#else
+  return 0;
+#endif
 }
 
 bool Application::isWSL() {
+#if defined(XZERO_OS_LINUX)
   struct utsname uts;
   int rv = uname(&uts);
   if (rv < 0)
     RAISE_ERRNO(errno);
 
   return StringUtil::endsWith(uts.release, "Microsoft");
+#else
+  return false;
+#endif
 }
 
 } // namespace xzero

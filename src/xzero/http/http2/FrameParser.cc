@@ -14,6 +14,8 @@
 #include <xzero/Buffer.h>
 #include <xzero/logging.h>
 
+#include <cctype>
+
 #define HTTP2_STRICT 1
 
 namespace xzero {

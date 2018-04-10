@@ -11,6 +11,7 @@
 #include <xzero/http/BadMessage.h>
 #include <xzero/StringUtil.h>
 #include <xzero/logging.h>
+#include <cctype>
 
 namespace xzero {
 namespace http {
