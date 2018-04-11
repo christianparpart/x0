@@ -7,7 +7,8 @@
 
 #pragma once
 
-#include <xzero/Api.h>
+#include <xzero/sysconfig.h>
+#include <xzero/defines.h>
 #include <xzero/io/FileDescriptor.h>
 #include <xzero/Duration.h>
 #include <xzero/net/TcpEndPoint.h>
@@ -16,7 +17,10 @@
 #include <string>
 #include <vector>
 #include <system_error>
+
+#if defined(XZERO_OS_UNIX)
 #include <openssl/ssl.h>
+#endif
 
 namespace xzero {
 
@@ -195,6 +199,7 @@ class SslEndPoint : public TcpEndPoint {
 
   enum class Desire { None, Read, Write };
 
+#if defined(XZERO_OS_UNIX)
   static int onVerifyCallback(int ok, X509_STORE_CTX *ctx);
 
   static void tlsext_debug_cb(
@@ -205,6 +210,9 @@ class SslEndPoint : public TcpEndPoint {
   SSL* ssl_;
   Desire bioDesire_;
   ProtocolCallback connectionFactory_;
+#else
+  // TODO
+#endif
 };
 
 } // namespace xzero
