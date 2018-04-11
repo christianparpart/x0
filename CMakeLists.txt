@@ -83,7 +83,6 @@ if(UNIX)
     message(FATAL_ERROR "OpenSSL not found ;-(")
   endif()
 
-  CHECK_INCLUDE_FILES(cxxabi.h HAVE_CXXABI_H)
   CHECK_INCLUDE_FILES(glob.h HAVE_GLOB_H)
   CHECK_INCLUDE_FILES(sys/sendfile.h HAVE_SYS_SENDFILE_H)
   CHECK_FUNCTION_EXISTS(sendfile HAVE_SENDFILE)
