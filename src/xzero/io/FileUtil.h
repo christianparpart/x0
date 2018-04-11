@@ -61,7 +61,6 @@ class FileUtil {
   static void mkdir_p(const std::string& path, int mode = 0775);
   static void rm(const std::string& path);
   static void mv(const std::string& path, const std::string& target);
-  static void chown(const std::string& path, int uid, int gid);
   static void chown(const std::string& path,
                     const std::string& user,
                     const std::string& group);

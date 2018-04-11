@@ -262,9 +262,6 @@ set(libXzero_SRC src/xzero/AnsiColor.cc
                  src/xzero/net/DnsClient.cc
                  src/xzero/net/EndPointWriter.cc
                  src/xzero/net/InetAddress.cc
-                 src/xzero/net/SslConnector.cc
-                 src/xzero/net/SslContext.cc
-                 src/xzero/net/SslEndPoint.cc
                  src/xzero/net/TcpConnection.cc
                  src/xzero/net/TcpConnector.cc
                  src/xzero/net/TcpEndPoint.cc
@@ -295,6 +292,12 @@ set(libXzero_SRC src/xzero/AnsiColor.cc
                  src/xzero/util/SimpleRateLimit.cc
                  )
 
+if(OPENSSL_FOUND)
+  set(libXzero_SRC ${libXzero_SRC}
+                   src/xzero/net/SslConnector.cc
+                   src/xzero/net/SslContext.cc
+                   src/xzero/net/SslEndPoint.cc)
+endif()
 if(HAVE_ZLIB_H)
   set(libXzero_SRC ${libXzero_SRC} src/xzero/io/GzipFilter.cc)
 endif()

@@ -9,6 +9,7 @@
 #include <xzero/defines.h>
 #include <xzero/sysconfig.h>
 #include <xzero/RuntimeError.h>
+#include <xzero/logging.h>
 
 #if defined(XZERO_OS_WIN32)
 #include <Windows.h>
@@ -110,9 +111,7 @@ SystemPipe::~SystemPipe() {
 }
 
 void SystemPipe::setNonBlocking(bool enable) {
-#if defined(XZERO_OS_WIN32)
-  logFatal("Not Implemented yet.");
-#else
+#if defined(F_SETFL) && defined(O_NONBLOCK)
   if (enable) {
     fcntl(fds_[0], F_SETFL, O_NONBLOCK);
     fcntl(fds_[1], F_SETFL, O_NONBLOCK);
@@ -124,41 +123,27 @@ void SystemPipe::setNonBlocking(bool enable) {
       }
     }
   }
+#else
+  // TODO: omg, world's going to blow up (Windows)
 #endif
 }
 
 void SystemPipe::closeReader() {
-#if defined(XZERO_OS_WIN32)
-  CloseHandle(reader_);
-  writer_ = nullptr;
-#else
   if (fds_[0] != -1) {
     ::close(fds_[0]);
     fds_[0] = -1;
   }
-#endif
 }
 
 void SystemPipe::closeWriter() {
-#if defined(XZERO_OS_WIN32)
-  CloseHandle(writer_);
-  writer_ = nullptr;
-#else
   if (fds_[1] != -1) {
     ::close(fds_[1]);
     fds_[1] = -1;
   }
-#endif
 }
 
 int SystemPipe::write(const void* buf, size_t count) {
-#if defined(XZERO_OS_WIN32)
-  DWORD nwritten = 0;
-  WriteFile(writer_, buf, count, &nwritten, nullptr);
-  return nwritten;
-#else
   return ::write(writerFd(), buf, count);
-#endif
 }
 
 int SystemPipe::write(const std::string& msg) {
@@ -166,14 +151,10 @@ int SystemPipe::write(const std::string& msg) {
 }
 
 void SystemPipe::consume() {
-#if defined(XZERO_OS_WIN32)
-  logFatal("Not Implemented yet.");
-#else
   char buf[4096];
   int n;
   do n = ::read(readerFd(), buf, sizeof(buf));
   while (n > 0);
-#endif
 }
 
 } // namespace xzero
