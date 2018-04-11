@@ -21,11 +21,15 @@ void SignalHandler::ignore(int signum) {
 }
 
 void SignalHandler::ignoreSIGHUP() {
+#if defined(SIGHUP)
   ignore(SIGHUP);
+#endif
 }
 
 void SignalHandler::ignoreSIGPIPE() {
+#if defined(SIGPIPE)
   ignore(SIGPIPE);
+#endif
 }
 
 }  // namespace thread
