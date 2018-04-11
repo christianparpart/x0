@@ -16,11 +16,20 @@
 #include <xzero/RuntimeError.h>
 #include <xzero/Buffer.h>
 #include <xzero/sysconfig.h>
+#include <xzero/defines.h>
+
 #include <stdexcept>
-#include <netinet/tcp.h>
-#include <unistd.h>
 #include <fcntl.h>
 #include <errno.h>
+
+#if defined(XZERO_OS_UNIX)
+#include <netinet/tcp.h>
+#include <unistd.h>
+#endif
+
+#if defined(XZERO_OS_WINDOWS)
+#include <winsock2.h>
+#endif
 
 namespace xzero {
 

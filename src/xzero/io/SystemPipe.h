@@ -31,24 +31,14 @@ class SystemPipe {
   int write(const void* buf, size_t count);
   void consume();
 
-#if defined(XZERO_OS_WIN32)
-  HANDLE readerFd() const noexcept { return reader_; }
-  HANDLE writerFd() const noexcept { return writer_; }
-#else
   int readerFd() const noexcept { return fds_[0]; }
   int writerFd() const noexcept { return fds_[1]; }
-#endif
 
   void closeReader();
   void closeWriter();
 
  private:
-#if defined(XZERO_OS_WIN32)
-   HANDLE writer_;
-   HANDLE reader_;
-#else
   int fds_[2];
-#endif
 };
 
 } // namespace xzero

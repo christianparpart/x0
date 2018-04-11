@@ -7,11 +7,13 @@
 
 #pragma once
 
-#include <xzero/Api.h>
+#include <xzero/sysconfig.h>
+#include <xzero/defines.h>
 #include <xzero/Buffer.h>
 #include <string>
 #include <functional>
 #include <stdexcept>
+
 #include <openssl/ssl.h>
 
 namespace xzero {
@@ -33,16 +35,17 @@ class SslContext {
 
   ~SslContext();
 
-  SSL_CTX* get() const;
-
   const std::vector<std::string>& dnsNames() const;
 
   bool isValidDnsName(const std::string& servername) const;
 
   static void initialize();
 
- private:
+  SSL_CTX* get() const;
+
+private:
   static bool imatch(const std::string& pattern, const std::string& value);
+
   static int onServerName(SSL* ssl, int* ad, SslContext* self);
   static int onAppLayerProtoNegotiation(
       SSL* ssl,
@@ -52,6 +55,7 @@ class SslContext {
 
  private:
   SSL_CTX* ctx_;
+
   BufferRef alpn_;
 
   std::vector<std::string> dnsNames_;

@@ -191,12 +191,7 @@ void Server::sendVoteRequest() {
   setCurrentTerm(currentTerm() + 1);
   storage_->setVotedFor(id_, currentTerm());
 
-  VoteRequest voteRequest{
-    .term         = currentTerm(),
-    .candidateId  = id_,
-    .lastLogIndex = latestIndex(),
-    .lastLogTerm  = getLogTerm(latestIndex()),
-  };
+  VoteRequest voteRequest{ currentTerm(), id_, latestIndex(), getLogTerm(latestIndex()) };
 
   for (Id peerId: discovery_->listMembers()) {
     if (peerId != id_) {
@@ -317,9 +312,7 @@ void Server::handleResponse(Id peerId, const VoteResponse& resp) {
   }
 }
 
-AppendEntriesResponse Server::handleRequest(
-    Id peerId,
-    const AppendEntriesRequest& req) {
+AppendEntriesResponse Server::handleRequest(Id peerId, const AppendEntriesRequest& req) {
   timer_.touch();
   std::lock_guard<decltype(serverLock_)> _lk(serverLock_);
 

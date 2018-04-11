@@ -376,11 +376,6 @@ void FileUtil::mv(const std::string& path, const std::string& target) {
     RAISE_ERRNO(errno);
 }
 
-void FileUtil::chown(const std::string& path, int uid, int gid) {
-  if (::chown(path.c_str(), uid, gid) < 0)
-    RAISE_ERRNO(errno);
-}
-
 void FileUtil::chown(const std::string& path,
                      const std::string& user,
                      const std::string& group) {
@@ -407,7 +402,8 @@ void FileUtil::chown(const std::string& path,
   }
   int gid = gr->gr_gid;
 
-  FileUtil::chown(path, uid, gid);
+  if (::chown(path.c_str(), uid, gid) < 0)
+    RAISE_ERRNO(errno);
 #else
   // TODO: windows implementation decision
 #endif

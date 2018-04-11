@@ -15,7 +15,12 @@
 #include <random>
 #include <chrono>
 #include <cstdlib>
+
+#if defined(XZERO_OS_WINDOWS)
+#include <Shlwapi.h>
+#else
 #include <fnmatch.h>
+#endif
 
 namespace xzero {
 namespace testing {
@@ -213,6 +218,13 @@ void UnitTest::filterTests(const std::string& filter,
     std::string matchName = fmt::format("{}.{}",
         testInfo->testCaseName(), testInfo->testName());
 
+#if defined(XZERO_OS_WINDOWS)
+    if (!exclude.empty() && PathMatchSpec(matchName.c_str(), exclude.c_str()) == S_OK)
+      continue; // exclude this one
+
+    if (PathMatchSpec(matchName.c_str(), filter.c_str()) == S_OK)
+      filtered.push_back(activeTests_[i]);
+#else
     const int flags = 0;
 
     if (!exclude.empty() && fnmatch(exclude.c_str(), matchName.c_str(), flags) == 0)
@@ -221,6 +233,7 @@ void UnitTest::filterTests(const std::string& filter,
     if (fnmatch(filter.c_str(), matchName.c_str(), flags) == 0) {
       filtered.push_back(activeTests_[i]);
     }
+#endif
   }
   activeTests_ = std::move(filtered);
 }
