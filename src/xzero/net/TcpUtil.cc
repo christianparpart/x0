@@ -14,17 +14,26 @@
 #include <xzero/RuntimeError.h>
 #include <xzero/logging.h>
 #include <xzero/sysconfig.h>
+#include <xzero/defines.h>
 
-#include <netinet/tcp.h>
-#include <arpa/inet.h>
 #include <sys/types.h>
-#include <sys/socket.h>
-#include <sys/un.h>
-#include <netdb.h>
 #include <fcntl.h>
 #include <errno.h>
-#include <unistd.h>
 #include <assert.h>
+
+#if defined(XZERO_OS_WINDOWS)
+#include <Windows.h>
+#include <WinSock2.h>
+#endif
+
+#if defined(XZERO_OS_UNIX)
+#include <sys/socket.h>
+#include <netinet/tcp.h>
+#include <arpa/inet.h>
+#include <sys/un.h>
+#include <netdb.h>
+#include <unistd.h>
+#endif
 
 #if defined(HAVE_SYS_SENDFILE_H)
 #include <sys/sendfile.h>
