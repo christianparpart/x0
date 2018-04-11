@@ -16,7 +16,7 @@
 #include <fcntl.h>
 #include <sys/types.h>
 
-#if defined(HAVE_CXXABI_H)
+#if defined(XZERO_OS_UNIX)
 #include <cxxabi.h>
 #endif
 
@@ -76,7 +76,7 @@ StackTrace::~StackTrace() {
 }
 
 std::string StackTrace::demangleSymbol(const char* symbol) {
-#if defined(HAVE_CXXABI_H)
+#if defined(XZERO_OS_UNIX)
   int status = 0;
   char* demangled = abi::__cxa_demangle(symbol, nullptr, 0, &status);
 
