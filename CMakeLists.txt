@@ -177,7 +177,6 @@ set(libXzero_SRC src/xzero/AnsiColor.cc
                  src/xzero/TokenShaper.cc
                  src/xzero/Tokenizer.cc
                  src/xzero/UTF8.cc
-                 src/xzero/UnixSignals.cc
                  src/xzero/UnixTime.cc
                  src/xzero/Uri.cc
                  src/xzero/WallClock.cc
@@ -185,6 +184,7 @@ set(libXzero_SRC src/xzero/AnsiColor.cc
                  src/xzero/base64url.cc
                  src/xzero/executor/Executor.cc
                  src/xzero/executor/LocalExecutor.cc
+                 src/xzero/executor/PosixScheduler.cc
                  src/xzero/executor/SafeCall.cc
                  src/xzero/executor/ThreadPool.cc
                  src/xzero/executor/ThreadedExecutor.cc
@@ -262,6 +262,8 @@ set(libXzero_SRC src/xzero/AnsiColor.cc
                  src/xzero/net/DnsClient.cc
                  src/xzero/net/EndPointWriter.cc
                  src/xzero/net/InetAddress.cc
+                 src/xzero/net/Socket.cc
+                 src/xzero/net/SocketPair.cc
                  src/xzero/net/TcpConnection.cc
                  src/xzero/net/TcpConnector.cc
                  src/xzero/net/TcpEndPoint.cc
@@ -301,13 +303,11 @@ endif()
 if(HAVE_ZLIB_H)
   set(libXzero_SRC ${libXzero_SRC} src/xzero/io/GzipFilter.cc)
 endif()
-if(UNIX)
-  set(libXzero_SRC ${libXzero_SRC} src/xzero/executor/PosixScheduler.cc)
-endif()
+# if(UNIX)
+#   set(libXzero_SRC ${libXzero_SRC} src/xzero/executor/PosixScheduler.cc)
+# endif()
 if(UNIX AND NOT APPLE) 
-  set(libXzero_SRC ${libXzero_SRC}
-                   src/xzero/LinuxSignals.cc
-                   src/xzero/executor/LinuxScheduler.cc)
+  set(libXzero_SRC ${libXzero_SRC} src/xzero/executor/LinuxScheduler.cc)
 endif()
 if(APPLE)
   set(libXzero_SRC ${libXzero_SRC} src/xzero/KQueueSignals.cc)

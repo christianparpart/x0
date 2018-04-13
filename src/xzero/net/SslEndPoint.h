@@ -92,8 +92,7 @@ class SslEndPoint : public TcpEndPoint {
   /**
    * Connects to target and starts SSL on the connected session.
    *
-   * @param fd file descriptor for the underlying network I/O.
-   * @param addressFamily Network address family of given file descriptor @p fd
+   * @param socket socket for the underlying network I/O.
    * @param readTimeout Accepted time to wait for any network read
    * @param writeTimeout Accepted time to wait for any network write to complete
    * @param executor Executor API to use for any underlying I/O task execution.
@@ -104,8 +103,7 @@ class SslEndPoint : public TcpEndPoint {
    *                                    application protocol
    */
   static Future<std::shared_ptr<SslEndPoint>> start(
-      FileDescriptor&& fd,
-      int addressFamily,
+      Socket&& socket,
       Duration readTimeout,
       Duration writeTimeout,
       Executor* executor,
@@ -114,8 +112,7 @@ class SslEndPoint : public TcpEndPoint {
       ProtocolCallback createApplicationConnection);
 
   // client initializer
-  SslEndPoint(FileDescriptor&& fd,
-              int addressFamily,
+  SslEndPoint(Socket&& socket,
               Duration readTimeout,
               Duration writeTimeout,
               Executor* executor,
@@ -126,8 +123,7 @@ class SslEndPoint : public TcpEndPoint {
   /**
    * Initializes an SSL endpoint.
    *
-   * @param fd
-   * @param addressFamily
+   * @param socket
    * @param readTimeout
    * @param writeTimeout
    * @param defaultContext
@@ -135,8 +131,7 @@ class SslEndPoint : public TcpEndPoint {
    * @param onEndPointClosed
    * @param executor
    */
-  SslEndPoint(FileDescriptor&& fd,
-              int addressFamily,
+  SslEndPoint(Socket&& socket,
               Duration readTimeout,
               Duration writeTimeout,
               SslContext* defaultContext,

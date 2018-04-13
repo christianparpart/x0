@@ -7,10 +7,29 @@
 
 #include <xzero/PosixSignals.h>
 #include <xzero/logging.h>
-#include <csignal>
+#include <xzero/sysconfig.h>
+
 #include <cassert>
+#include <csignal>
 
 namespace xzero {
+
+class PosixSignals::SignalWatcher : public Executor::Handle {
+ public:
+  typedef Executor::Task Task;
+
+  explicit SignalWatcher(SignalHandler action)
+      : action_(action) {};
+
+  void fire() {
+    Executor::Handle::fire(std::bind(action_, info));
+  }
+
+  UnixSignalInfo info;
+
+ private:
+  SignalHandler action_;
+};
 
 PosixSignals* PosixSignals::singleton_ = nullptr;
 
@@ -73,12 +92,123 @@ void PosixSignals::onSignal2(int signo, int pid, int uid, void* ptr) {
   }
 
   // notify interests (XXX must not be invoked on local stack)
-  for (const auto& hr : pending)
-    executor_->execute(std::bind(&SignalWatcher::fire, hr));
+  for (const auto& p: pending)
+    executor_->execute(std::bind(&SignalWatcher::fire, p));
 }
 
 PosixSignals* PosixSignals::get() {
   return singleton_;
+}
+
+void PosixSignals::blockSignal(int signo) {
+#if defined(HAVE_SIGPROCMASK)
+  sigset_t sigset;
+  sigemptyset(&sigset);
+  sigaddset(&sigset, signo);
+  int rv = sigprocmask(SIG_BLOCK, &sigset, nullptr);
+  if (rv < 0)
+    RAISE_ERRNO(errno);
+#else
+  logFatal("Not Implemented");
+#endif
+}
+
+void PosixSignals::unblockSignal(int signo) {
+#if defined(HAVE_SIGPROCMASK)
+  sigset_t sigset;
+  sigemptyset(&sigset);
+  sigaddset(&sigset, signo);
+  int rv = sigprocmask(SIG_UNBLOCK, &sigset, nullptr);
+  if (rv < 0)
+    RAISE_ERRNO(errno);
+#else
+  logFatal("Not Implemented");
+#endif
+}
+
+std::string PosixSignals::toString(int signo) {
+  switch (signo) {
+    // XXX POSIX.1-1990
+#if defined(SIGHUP)
+    case SIGHUP: return "SIGHUP";
+#endif
+    case SIGINT: return "SIGINT";
+#if defined(SIGQUIT)
+    case SIGQUIT: return "SIGQUIT";
+#endif
+    case SIGILL: return "SIGILL";
+    case SIGABRT: return "SIGABRT";
+    case SIGFPE: return "SIGFPE";
+    /* SIGKILL: cannot be trapped */
+    case SIGSEGV: return "SIGSEGV";
+#if defined(SIGPIPE)
+    case SIGPIPE: return "SIGPIPE";
+#endif
+#if defined(SIGALRM)
+    case SIGALRM: return "SIGALRM";
+#endif
+    case SIGTERM: return "SIGTERM";
+#if defined(SIGUSR1)
+    case SIGUSR1: return "SIGUSR1";
+#endif
+#if defined(SIGUSR2)
+    case SIGUSR2: return "SIGUSR2";
+#endif
+#if defined(SIGCHLD)
+    case SIGCHLD: return "SIGCHLD";
+#endif
+#if defined(SIGCONT)
+    case SIGCONT: return "SIGCONT";
+#endif
+    /* SIGSTOP: cannot be trapped */
+    // XXX POSIX.1-2001
+#if defined(SIGSTP)
+    case SIGTSTP: return "SIGTSTP";
+#endif
+#if defined(SIGTTIN)
+    case SIGTTIN: return "SIGTTIN";
+#endif
+#if defined(SIGTTOU)
+    case SIGTTOU: return "SIGTTOU";
+#endif
+#if defined(SIGBUS)
+    case SIGBUS: return "SIGBUS";
+#endif
+#if defined(SIGIO)
+    case SIGIO: return "SIGIO";
+#endif
+#if defined(SIGPROF)
+    case SIGPROF: return "SIGPROF";
+#endif
+#if defined(SIGSYS)
+    case SIGSYS: return "SIGSYS";
+#endif
+#if defined(SIGTRAP)
+    case SIGTRAP: return "SIGTRAP";
+#endif
+#if defined(SIGURG)
+    case SIGURG: return "SIGURG";
+#endif
+#if defined(SIGVTALRM)
+    case SIGVTALRM: return "SIGVTALRM";
+#endif
+#if defined(SIGXCPU)
+    case SIGXCPU: return "SIGXCPU";
+#endif
+#if defined(SIGXFSZ)
+    case SIGXFSZ: return "SIGXFSZ";
+#endif
+    // XXX various other signals
+#if defined(SIGPWR)
+    case SIGPWR: return "SIGPWR";
+#endif
+#if defined(SIGWINCH)
+    case SIGWINCH: return "SIGWINCH";
+#endif
+    default: break;
+  }
+
+  return fmt::format("<{}>", signo);
 }
 
 }  // namespace xzero

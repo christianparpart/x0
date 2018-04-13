@@ -43,6 +43,7 @@ std::error_category& SslErrorCategory::get() {
 }
 // }}}
 
+#if 0 // TODO: client side SSL connect
 Future<std::shared_ptr<SslEndPoint>> SslEndPoint::connect(
       const InetAddress& target,
       Duration connectTimeout,
@@ -55,7 +56,7 @@ Future<std::shared_ptr<SslEndPoint>> SslEndPoint::connect(
 
   Promise<std::shared_ptr<SslEndPoint>> promise;
 
-  Future<int> fd = TcpUtil::connect(target, connectTimeout, executor);
+  Socket socket = TcpUtil::connect(target, connectTimeout, executor);
   fd.onFailure(promise);
 
   fd.onSuccess([=, endpoint = std::shared_ptr<SslEndPoint>{}](int& socket) mutable {
@@ -76,21 +77,20 @@ Future<std::shared_ptr<SslEndPoint>> SslEndPoint::connect(
 
   return promise.future();
 }
+#endif
 
-SslEndPoint::SslEndPoint(FileDescriptor&& fd,
-                         int addressFamily,
+SslEndPoint::SslEndPoint(Socket&& socket,
                          Duration readTimeout,
                          Duration writeTimeout,
                          Executor* executor,
                          const std::string& sni,
                          const std::vector<std::string>& applicationProtocolsSupported,
                          ProtocolCallback connectionFactory)
-    : TcpEndPoint(fd.release(), addressFamily,
-                  readTimeout, writeTimeout,
+    : TcpEndPoint(std::move(socket), readTimeout, writeTimeout,
                   executor, /*onEndPointClosed*/ nullptr),
-      ssl_(nullptr),
-      bioDesire_(Desire::None),
-      connectionFactory_(connectionFactory)
+      ssl_{nullptr},
+      bioDesire_{Desire::None},
+      connectionFactory_{connectionFactory}
 {
   SslContext::initialize();
 
@@ -124,20 +124,19 @@ SslEndPoint::SslEndPoint(FileDescriptor&& fd,
 #endif
 }
 
-SslEndPoint::SslEndPoint(FileDescriptor&& fd,
-                         int addressFamily,
+SslEndPoint::SslEndPoint(Socket&& socket,
                          Duration readTimeout,
                          Duration writeTimeout,
                          SslContext* defaultContext,
                          ProtocolCallback connectionFactory,
                          std::function<void(TcpEndPoint*)> onEndPointClosed,
                          Executor* executor)
-    : TcpEndPoint(fd.release(), addressFamily,
+    : TcpEndPoint{std::move(socket),
                   readTimeout, writeTimeout,
-                  executor, onEndPointClosed),
-      ssl_(nullptr),
-      bioDesire_(Desire::None),
-      connectionFactory_(connectionFactory) {
+                  executor, onEndPointClosed},
+      ssl_{nullptr},
+      bioDesire_{Desire::None},
+      connectionFactory_{connectionFactory} {
   ssl_ = SSL_new(defaultContext->get());
   SSL_set_fd(ssl_, handle());
 
@@ -312,9 +311,7 @@ void SslEndPoint::wantWrite() {
 }
 
 std::string SslEndPoint::toString() const {
-  char buf[64];
-  int n = snprintf(buf, sizeof(buf), "SslEndPoint(fd=%d)", handle());
-  return std::string(buf, n);
+  return fmt::format("SslEndPoint({})", handle());
 }
 
 void SslEndPoint::onClientHandshake(Promise<std::shared_ptr<SslEndPoint>> promise) {
@@ -324,10 +321,10 @@ void SslEndPoint::onClientHandshake(Promise<std::shared_ptr<SslEndPoint>> promis
       onClientHandshakeDone(promise);
       break;
     case SSL_ERROR_WANT_READ:
-      executor_->executeOnReadable(handle_, std::bind(&SslEndPoint::onClientHandshake, this, promise));
+      executor_->executeOnReadable(socket_, std::bind(&SslEndPoint::onClientHandshake, this, promise));
       break;
     case SSL_ERROR_WANT_WRITE:
-      executor_->executeOnWritable(handle_, std::bind(&SslEndPoint::onClientHandshake, this, promise));
+      executor_->executeOnWritable(socket_, std::bind(&SslEndPoint::onClientHandshake, this, promise));
       break;
     case SSL_ERROR_SYSCALL:
     case SSL_ERROR_SSL:

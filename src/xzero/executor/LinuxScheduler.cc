@@ -5,14 +5,16 @@
 // file except in compliance with the License. You may obtain a copy of
 // the License at: http://opensource.org/licenses/MIT
 
-#include <xzero/executor/LinuxScheduler.h>
-#include <xzero/thread/Wakeup.h>
-#include <xzero/MonotonicTime.h>
-#include <xzero/MonotonicClock.h>
-#include <xzero/WallClock.h>
 #include <xzero/ExceptionHandler.h>
+#include <xzero/MonotonicClock.h>
+#include <xzero/MonotonicTime.h>
+#include <xzero/WallClock.h>
+#include <xzero/executor/LinuxScheduler.h>
 #include <xzero/logging.h>
+#include <xzero/net/Socket.h>
 #include <xzero/sysconfig.h>
+#include <xzero/thread/Wakeup.h>
+
 #include <algorithm>
 #include <iostream>
 #include <vector>
@@ -36,7 +38,9 @@ LinuxScheduler::LinuxScheduler(ExceptionHandler eh)
       timers_(),
       epollfd_(),
       eventfd_(),
+      signalLock_{},
       signalfd_(),
+      signalMask_{},
       now_(0),
       activeEvents_(1024),
       readerCount_(0),
@@ -51,7 +55,11 @@ LinuxScheduler::LinuxScheduler(ExceptionHandler eh)
   event.events = EPOLLIN;
   epoll_ctl(epollfd_, EPOLL_CTL_ADD, eventfd_, &event);
 
-  //TODO signalfd_ = ...;
+  // setup signalfd
+  sigemptyset(&signalMask_);
+  signalfd_ = signalfd(-1, &signalMask_, SFD_NONBLOCK | SFD_CLOEXEC);
+  if (signalfd_.isClosed() && errno != ENOSYS)
+    RAISE_ERRNO(errno);
 }
 
 LinuxScheduler::LinuxScheduler()
@@ -92,10 +100,114 @@ Executor::HandleRef LinuxScheduler::executeAt(UnixTime when, Task task) {
   return insertIntoTimersList(time, task);
 }
 
+Executor::HandleRef LinuxScheduler::executeOnSignal(int signo, SignalHandler handler) {
+  if (signalfd_.isClosed())
+    return Executor::executeOnSignal(signo, handler);
+
+  std::lock_guard<std::mutex> _l(signalLock_);
+
+  sigaddset(&signalMask_, signo);
+
+  int rv = signalfd(signalfd_, &signalMask_, 0);
+  if (rv < 0) {
+    RAISE_ERRNO(errno);
+  }
+
+  // block this signal also to avoid default disposition
+  sigprocmask(SIG_BLOCK, &signalMask_, nullptr);
+
+  auto hr = std::make_shared<SignalWatcher>(handler);
+  signalWatchers_[signo].emplace_back(hr);
+
+  if (signalInterests_.load() == 0) {
+    //TODO executeOnReadable(signalfd_, std::bind(&LinuxScheduler::onSignal, this));
+    unref();
+  }
+
+  signalInterests_++;
+
+  return hr;
+}
+
+void LinuxScheduler::onSignal() {
+  std::lock_guard<std::mutex> _l(signalLock_);
+  ref();
+
+  sigset_t clearMask;
+  sigemptyset(&clearMask);
+
+  signalfd_siginfo events[16];
+  ssize_t n = 0;
+  for (;;) {
+    n = read(signalfd_, events, sizeof(events));
+    if (n < 0) {
+      if (errno == EINTR)
+        continue;
+
+      RAISE_ERRNO(errno);
+    }
+    break;
+  }
+
+  // move pending signals out of the watchers
+  std::vector<std::shared_ptr<SignalWatcher>> pending;
+  n /= sizeof(*events);
+  pending.reserve(n);
+  {
+    for (int i = 0; i < n; ++i) {
+      const signalfd_siginfo& event = events[i];
+      int signo = event.ssi_signo;
+      std::list<std::shared_ptr<SignalWatcher>>& watchers = signalWatchers_[signo];
+
+      logDebug("Caught signal {} from PID {} UID {}.",
+               PosixSignals::toString(signo),
+               event.ssi_pid,
+               event.ssi_uid);
+
+      for (std::shared_ptr<SignalWatcher>& watcher: watchers) {
+        watcher->info.signal = signo;
+        watcher->info.pid = event.ssi_pid;
+        watcher->info.uid = event.ssi_uid;
+      }
+
+      sigdelset(&signalMask_, signo);
+      signalInterests_ -= signalWatchers_[signo].size();
+      pending.insert(pending.end(), watchers.begin(), watchers.end());
+      watchers.clear();
+    }
+
+    // reregister for further signals, if anyone interested
+    if (signalInterests_.load() > 0) {
+      // TODO executeOnReadable(signalfd_, std::bind(&LinuxSignals::onSignal, this));
+      unref();
+    }
+  }
+
+  // update signal mask
+  sigprocmask(SIG_BLOCK, &signalMask_, nullptr);
+  signalfd(signalfd_, &signalMask_, 0);
+
+  // notify interests (XXX must not be invoked on local stack)
+  for (std::shared_ptr<SignalWatcher>& hr: pending)
+    execute(std::bind(&SignalWatcher::fire, hr));
+}
+
+Executor::HandleRef LinuxScheduler::executeOnReadable(const Socket& s, Task task,
+                                                      Duration tmo, Task tcb) {
+  std::lock_guard<std::mutex> lk(lock_);
+  return createWatcher(Mode::READABLE, s.native(), task, tmo, tcb);
+}
+
 Executor::HandleRef LinuxScheduler::executeOnReadable(int fd, Task task,
                                                       Duration tmo, Task tcb) {
   std::lock_guard<std::mutex> lk(lock_);
   return createWatcher(Mode::READABLE, fd, task, tmo, tcb);
+}
+
+Executor::HandleRef LinuxScheduler::executeOnWritable(const Socket& s, Task task,
+                                                      Duration tmo, Task tcb) {
+  std::lock_guard<std::mutex> lk(lock_);
+  return createWatcher(Mode::WRITABLE, s.native(), task, tmo, tcb);
 }
 
 Executor::HandleRef LinuxScheduler::executeOnWritable(int fd, Task task,
@@ -256,13 +368,6 @@ MonotonicTime LinuxScheduler::nextTimeout() const noexcept {
                         : now() + 61_seconds;
 
   return std::min(a, b);
-}
-
-void LinuxScheduler::cancelFD(int fd) {
-  HandleRef ref = findWatcher(fd);
-  if (ref != nullptr) {
-    ref->cancel();
-  }
 }
 
 void LinuxScheduler::executeOnWakeup(Task task, Wakeup* wakeup, long generation) {

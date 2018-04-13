@@ -15,7 +15,6 @@
 #include <xzero/Callback.h>
 #include <xzero/UnixTime.h>
 #include <xzero/Duration.h>
-#include <xzero/UnixSignals.h>
 #include <xzero/net/TcpConnector.h>
 #include <xzero/executor/ThreadedExecutor.h>
 #include <xzero/executor/NativeScheduler.h>
@@ -83,6 +82,8 @@ class Daemon : public xzero::flow::Runtime {
   ~Daemon();
 
   void setOptimizationLevel(int level) { optimizationLevel_ = level; }
+
+  xzero::EventLoop* mainEventLoop() const { return eventLoops_[0].get(); }
 
   // {{{ config management
   std::unique_ptr<xzero::flow::Program> loadConfigFile(
@@ -242,7 +243,6 @@ class Daemon : public xzero::flow::Runtime {
   std::unique_ptr<Config> config_;
 
   // signal handling
-  std::unique_ptr<xzero::UnixSignals> signals_;
   DaemonState state_;
 
   friend class CoreModule;

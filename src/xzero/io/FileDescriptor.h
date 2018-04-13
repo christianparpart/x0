@@ -14,7 +14,7 @@ namespace xzero {
 /**
  * Represents a system file descriptor that gets automatically closed.
  */
-class FileDescriptor {
+class [[nodiscard]] FileDescriptor {
  public:
   FileDescriptor() : fd_(-1) {}
   FileDescriptor(int fd) : fd_(fd) {}

@@ -77,10 +77,9 @@ int SslConnector::selectContext(
   return SSL_TLSEXT_ERR_OK;
 }
 
-std::shared_ptr<TcpEndPoint> SslConnector::createEndPoint(int cfd, Executor* executor) {
+std::shared_ptr<TcpEndPoint> SslConnector::createEndPoint(Socket&& s, Executor* executor) {
   return std::make_shared<SslEndPoint>(
-      FileDescriptor(cfd),
-      addressFamily(),
+      std::move(s),
       readTimeout(),
       writeTimeout(),
       defaultContext(),

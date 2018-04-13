@@ -46,7 +46,7 @@ class Cidr {
   /**
    * @brief Sets the address part of this CIDR notation.
    */
-  bool setAddress(const std::string& text, size_t family) {
+  bool setAddress(const std::string& text, IPAddress::Family family) {
     return ipaddr_.set(text, family);
   }
 

@@ -9,7 +9,8 @@
 
 #include <xzero/Api.h>
 #include <xzero/executor/Executor.h>
-#include <xzero/net/IPAddress.h>
+#include <xzero/net/InetAddress.h>
+#include <xzero/net/Socket.h>
 #include <functional>
 #include <memory>
 
@@ -40,14 +41,14 @@ class UdpConnector {
   UdpConnector(const std::string& name,
                Handler handler,
                Executor* executor,
-               const IPAddress& ipaddress, int port,
+               const InetAddress& address,
                bool reuseAddr, bool reusePort);
 
   ~UdpConnector();
 
   Handler handler() const;
 
-  int handle() const noexcept { return socket_; }
+  const Socket& handle() const noexcept { return socket_; }
 
   /**
    * Starts handling incoming messages.
@@ -67,7 +68,7 @@ class UdpConnector {
   Executor* executor() const noexcept;
 
  private:
-  void open(const IPAddress& bind, int port, bool reuseAddr, bool reusePort);
+  void open(const InetAddress& address, bool reuseAddr, bool reusePort);
 
   void notifyOnEvent();
   void onMessage();
@@ -78,8 +79,7 @@ class UdpConnector {
   Executor* executor_;
 
   Executor::HandleRef io_;
-  int socket_;
-  int addressFamily_;
+  Socket socket_;
 };
 
 inline Executor* UdpConnector::executor() const noexcept {

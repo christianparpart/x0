@@ -7,17 +7,20 @@
 
 #pragma once
 
-#include <xzero/Api.h>
-#include <xzero/net/IPAddress.h>
-#include <xzero/io/FileDescriptor.h>
-#include <xzero/executor/Executor.h> // for Executor::HandleRef
-#include <xzero/net/TcpConnection.h>
 #include <xzero/Duration.h>
+#include <xzero/defines.h>
+#include <xzero/executor/Executor.h> // for Executor::HandleRef
+#include <xzero/net/IPAddress.h>
+#include <xzero/net/Socket.h>
+#include <xzero/net/TcpConnection.h>
+#include <xzero/sysconfig.h>
+
+#include <deque>
+#include <list>
+#include <mutex>
+#include <optional>
 #include <unordered_map>
 #include <vector>
-#include <list>
-#include <deque>
-#include <mutex>
 
 namespace xzero {
 
@@ -137,12 +140,7 @@ class TcpConnector {
   /**
    * Returns the IP address family, such as @c IPAddress::V4 or @c IPAddress::V6.
    */
-  int addressFamily() const { return addressFamily_; }
-
-  /**
-   * Sets the underlying system socket handle.
-   */
-  void setSocket(FileDescriptor&& socket);
+  Socket::AddressFamily addressFamily() const { return socket_.addressFamily(); }
 
   size_t backlog() const noexcept;
   void setBacklog(size_t enable);
@@ -340,7 +338,7 @@ class TcpConnector {
    * @see isBlocking() const
    * @see setBlocking(bool enable)
    */
-  int acceptOne();
+  std::optional<Socket> acceptOne();
 
   /**
    * Creates an TcpEndPoint instance for given client file descriptor.
@@ -348,7 +346,7 @@ class TcpConnector {
    * @param cfd       client's file descriptor
    * @param executor  client's designated I/O scheduler
    */
-  virtual std::shared_ptr<TcpEndPoint> createEndPoint(int cfd, Executor* executor);
+  virtual std::shared_ptr<TcpEndPoint> createEndPoint(Socket&& cfd, Executor* executor);
 
   /**
    * By default, creates TcpConnection from default connection factory and initiates it.
@@ -382,13 +380,11 @@ class TcpConnector {
   Executor::HandleRef io_;
   ExecutorSelector selectClientExecutor_;
 
-  IPAddress bindAddress_;
-  int port_;
+  InetAddress address_;
 
   std::list<std::shared_ptr<TcpEndPoint>> connectedEndPoints_;
   std::mutex mutex_;
-  FileDescriptor socket_;
-  int addressFamily_;
+  Socket socket_;
   int typeMask_;
   int flags_;
   bool blocking_;
@@ -402,11 +398,11 @@ class TcpConnector {
 };
 
 inline const IPAddress& TcpConnector::bindAddress() const noexcept {
-  return bindAddress_;
+  return address_.ip();
 }
 
 inline int TcpConnector::port() const noexcept {
-  return port_;
+  return address_.port();
 }
 
 inline Duration TcpConnector::readTimeout() const noexcept {

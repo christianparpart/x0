@@ -8,6 +8,7 @@
 #include <xzero/net/TcpUtil.h>
 #include <xzero/net/InetAddress.h>
 #include <xzero/net/IPAddress.h>
+#include <xzero/net/Socket.h>
 #include <xzero/io/FileUtil.h>
 #include <xzero/io/FileView.h>
 #include <xzero/executor/Executor.h>
@@ -41,140 +42,31 @@
 
 namespace xzero {
 
-Result<InetAddress> TcpUtil::getRemoteAddress(int fd, int addressFamily) {
-  if (fd < 0)
-    return static_cast<std::errc>(EINVAL);
-
-  switch (addressFamily) {
-    case AF_INET6: {
-      sockaddr_in6 saddr;
-      socklen_t slen = sizeof(saddr);
-      if (getpeername(fd, (sockaddr*)&saddr, &slen) < 0)
-        return static_cast<std::errc>(errno);
-
-      return Success(InetAddress(IPAddress(&saddr), ntohs(saddr.sin6_port)));
-    }
-    case AF_INET: {
-      sockaddr_in saddr;
-      socklen_t slen = sizeof(saddr);
-      if (getpeername(fd, (sockaddr*)&saddr, &slen) < 0)
-        return static_cast<std::errc>(errno);
-
-      return Success(InetAddress(IPAddress(&saddr), ntohs(saddr.sin_port)));
-    }
-    default:
-      return static_cast<std::errc>(EINVAL);
-  }
-}
-
-Result<InetAddress> TcpUtil::getLocalAddress(int fd, int addressFamily) {
-  if (fd < 0)
-    return static_cast<std::errc>(EINVAL);
-
-  switch (addressFamily) {
-    case AF_INET6: {
-      sockaddr_in6 saddr;
-      socklen_t slen = sizeof(saddr);
-
-      if (getsockname(fd, (sockaddr*)&saddr, &slen) < 0)
-        return static_cast<std::errc>(errno);
-
-      return Success(InetAddress(IPAddress(&saddr), ntohs(saddr.sin6_port)));
-    }
-    case AF_INET: {
-      sockaddr_in saddr;
-      socklen_t slen = sizeof(saddr);
-
-      if (getsockname(fd, (sockaddr*)&saddr, &slen) < 0)
-        return static_cast<std::errc>(errno);
-
-      return Success(InetAddress(IPAddress(&saddr), ntohs(saddr.sin_port)));
-    }
-    default:
-      return static_cast<std::errc>(EINVAL);
-  }
-}
-
-int TcpUtil::getLocalPort(int socket, int addressFamily) {
-  switch (addressFamily) {
-    case AF_INET6: {
-      sockaddr_in6 saddr;
-      socklen_t slen = sizeof(saddr);
-      if (getsockname(socket, (sockaddr*)&saddr, &slen) < 0)
-        RAISE_ERRNO(errno);
-
-      return ntohs(saddr.sin6_port);
-    }
-    case AF_INET: {
-      sockaddr_in saddr;
-      socklen_t slen = sizeof(saddr);
-      if (getsockname(socket, (sockaddr*)&saddr, &slen) < 0)
-        RAISE_ERRNO(errno);
-
-      return ntohs(saddr.sin_port);
-    }
-    default: {
-      throw std::logic_error{"TcpUtil::getLocalPort() invoked on invalid address family"};
-    }
-  }
-}
-
-Future<int> TcpUtil::connect(const InetAddress& address,
-                             Duration timeout,
-                             Executor* executor) {
-  Promise<int> promise;
-
-  int fd = socket(address.family(), SOCK_STREAM, IPPROTO_TCP);
-  if (fd < 0) {
-    promise.failure(static_cast<std::errc>(errno));
-    return promise.future();
-  }
-
-  FileUtil::setBlocking(fd, false);
-
-  std::error_code ec = TcpUtil::connect(fd, address);
-
-  if (!ec) {
-    promise.success(fd);
-  } else if (ec == std::errc::operation_in_progress) {
-    executor->executeOnWritable(
-        fd,
-        [promise, fd]() { promise.success(fd); },
-        timeout,
-        [promise, fd]() { FileUtil::close(fd);
-                          promise.failure(std::errc::timed_out); });
-  } else {
-    promise.failure(ec);
-  }
-
-  return promise.future();
-}
-
-std::error_code TcpUtil::connect(int fd, const InetAddress& address) {
+std::error_code TcpUtil::connect(Socket& sd, const InetAddress& address) {
   int rv;
   switch (address.family()) {
-    case AF_INET: {
+    case IPAddress::Family::V4: {
       struct sockaddr_in saddr;
       memset(&saddr, 0, sizeof(saddr));
-      saddr.sin_family = address.family();
+      saddr.sin_family = static_cast<int>(address.family());
       saddr.sin_port = htons(address.port());
       memcpy(&saddr.sin_addr,
              address.ip().data(),
              address.ip().size());
 
-      rv = ::connect(fd, (const struct sockaddr*) &saddr, sizeof(saddr));
+      rv = ::connect(sd, (const struct sockaddr*) &saddr, sizeof(saddr));
       break;
     }
-    case AF_INET6: {
+    case IPAddress::Family::V6: {
       struct sockaddr_in6 saddr;
       memset(&saddr, 0, sizeof(saddr));
-      saddr.sin6_family = address.family();
+      saddr.sin6_family = static_cast<int>(address.family());
       saddr.sin6_port = htons(address.port());
       memcpy(&saddr.sin6_addr,
              address.ip().data(),
              address.ip().size());
 
-      rv = ::connect(fd, (const struct sockaddr*) &saddr, sizeof(saddr));
+      rv = ::connect(sd, (const struct sockaddr*) &saddr, sizeof(saddr));
       break;
     }
     default: {
@@ -220,6 +112,17 @@ void TcpUtil::setCorking(int fd, bool enable) {
 #if defined(TCP_CORK)
   int flag = enable ? 1 : 0;
   if (setsockopt(fd, IPPROTO_TCP, TCP_CORK, &flag, sizeof(flag)) < 0)
+    RAISE_ERRNO(errno);
+#endif
+}
+
+void TcpUtil::setLingering(int fd, Duration d) {
+#if defined(TCP_LINGER2)
+  int waitTime = d.seconds();
+  if (!waitTime)
+    return;
+
+  if (setsockopt(fd, SOL_TCP, TCP_LINGER2, &waitTime, sizeof(waitTime)) < 0)
     RAISE_ERRNO(errno);
 #endif
 }

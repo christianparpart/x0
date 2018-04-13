@@ -5,15 +5,16 @@
 // file except in compliance with the License. You may obtain a copy of
 // the License at: http://opensource.org/licenses/MIT
 
-#include <xzero/executor/PosixScheduler.h>
-#include <xzero/MonotonicClock.h>
-#include <xzero/thread/Wakeup.h>
-#include <xzero/RuntimeError.h>
-#include <xzero/WallClock.h>
-#include <xzero/StringUtil.h>
 #include <xzero/ExceptionHandler.h>
+#include <xzero/MonotonicClock.h>
+#include <xzero/RuntimeError.h>
+#include <xzero/StringUtil.h>
+#include <xzero/WallClock.h>
+#include <xzero/executor/PosixScheduler.h>
 #include <xzero/logging.h>
+#include <xzero/net/Socket.h>
 #include <xzero/sysconfig.h>
+#include <xzero/thread/Wakeup.h>
 
 #include <algorithm>
 #include <vector>
@@ -247,23 +248,16 @@ Executor::HandleRef PosixScheduler::findWatcher(int fd) {
   }
 }
 
-EventLoop::HandleRef PosixScheduler::executeOnReadable(int fd, Task task, Duration tmo, Task tcb) {
+EventLoop::HandleRef PosixScheduler::executeOnReadable(const Socket& s, Task task, Duration tmo, Task tcb) {
   readerCount_++;
   std::lock_guard<std::mutex> lk(lock_);
-  return setupWatcher(fd, Mode::READABLE, task, tmo, tcb);
+  return setupWatcher(s, Mode::READABLE, task, tmo, tcb);
 }
 
-EventLoop::HandleRef PosixScheduler::executeOnWritable(int fd, Task task, Duration tmo, Task tcb) {
+EventLoop::HandleRef PosixScheduler::executeOnWritable(const Socket& s, Task task, Duration tmo, Task tcb) {
   writerCount_++;
   std::lock_guard<std::mutex> lk(lock_);
-  return setupWatcher(fd, Mode::WRITABLE, task, tmo, tcb);
-}
-
-void PosixScheduler::cancelFD(int fd) {
-  HandleRef ref = findWatcher(fd);
-  if (ref != nullptr) {
-    ref->cancel();
-  }
+  return setupWatcher(s, Mode::WRITABLE, task, tmo, tcb);
 }
 
 PosixScheduler::HandleRef PosixScheduler::setupWatcher(
@@ -451,16 +445,16 @@ void PosixScheduler::wakeupLoop() {
   wakeupPipe_.write(&dummy, sizeof(dummy));
 }
 
-void PosixScheduler::waitForReadable(int fd, Duration timeout) {
+void PosixScheduler::waitForReadable(const Socket& s, Duration timeout) {
   fd_set input, output;
 
   FD_ZERO(&input);
   FD_ZERO(&output);
-  FD_SET(fd, &input);
+  FD_SET(s, &input);
 
   struct timeval tv = timeout;
 
-  int res = select(fd + 1, &input, &output, &input, &tv);
+  int res = select(s + 1, &input, &output, &input, &tv);
 
   if (res == 0) {
     throw TimeoutError{"unexpected timeout while select()ing"};
@@ -471,14 +465,14 @@ void PosixScheduler::waitForReadable(int fd, Duration timeout) {
   }
 }
 
-void PosixScheduler::waitForReadable(int fd) {
+void PosixScheduler::waitForReadable(const Socket& s) {
   fd_set input, output;
 
   FD_ZERO(&input);
   FD_ZERO(&output);
-  FD_SET(fd, &input);
+  FD_SET(s, &input);
 
-  int res = select(fd + 1, &input, &output, &input, nullptr);
+  int res = select(s + 1, &input, &output, &input, nullptr);
 
   if (res == 0) {
     throw TimeoutError{"unexpected timeout while select()ing"};
@@ -489,17 +483,17 @@ void PosixScheduler::waitForReadable(int fd) {
   }
 }
 
-void PosixScheduler::waitForWritable(int fd, Duration timeout) {
+void PosixScheduler::waitForWritable(const Socket& s, Duration timeout) {
   fd_set input;
   FD_ZERO(&input);
 
   fd_set output;
   FD_ZERO(&output);
-  FD_SET(fd, &output);
+  FD_SET(s, &output);
 
   struct timeval tv = timeout;
 
-  int res = select(fd + 1, &input, &output, &input, &tv);
+  int res = select(s + 1, &input, &output, &input, &tv);
 
   if (res == 0) {
     throw TimeoutError{"unexpected timeout while select()ing"};
@@ -510,15 +504,15 @@ void PosixScheduler::waitForWritable(int fd, Duration timeout) {
   }
 }
 
-void PosixScheduler::waitForWritable(int fd) {
+void PosixScheduler::waitForWritable(const Socket& s) {
   fd_set input;
   FD_ZERO(&input);
 
   fd_set output;
   FD_ZERO(&output);
-  FD_SET(fd, &output);
+  FD_SET(s, &output);
 
-  int res = select(fd + 1, &input, &output, &input, nullptr);
+  int res = select(s + 1, &input, &output, &input, nullptr);
 
   if (res == 0) {
     throw TimeoutError{"unexpected timeout while select()ing"};

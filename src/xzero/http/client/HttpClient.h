@@ -17,6 +17,7 @@
 #include <xzero/http/HttpRequest.h>
 #include <xzero/http/HttpResponseInfo.h>
 #include <xzero/http/HttpListener.h>
+#include <xzero/net/TcpEndPoint.h>
 #include <xzero/thread/Future.h>
 #include <functional>
 #include <vector>
@@ -67,12 +68,6 @@ class HttpClient : public CustomData {
              Duration writeTimeout,
              Duration keepAlive);
 
-  using CreateEndPoint = std::function<Future<std::shared_ptr<TcpEndPoint>>()>;
-
-  HttpClient(Executor* executor,
-             CreateEndPoint endpointCreator,
-             Duration keepAlive);
-
   HttpClient(HttpClient&& other);
 
   /**
@@ -106,20 +101,12 @@ class HttpClient : public CustomData {
 
   void releaseContext(Context* ctx);
 
-  Future<std::shared_ptr<TcpEndPoint>> createTcpPlain(InetAddress addr,
-                                                      Duration connectTimeout,
-                                                      Duration readTimeout,
-                                                      Duration writeTimeout);
-
-  Future<std::shared_ptr<TcpEndPoint>> createTcpSecure(InetAddress addr,
-                                                       const std::string& sni,
-                                                       Duration connectTimeout,
-                                                       Duration readTimeout,
-                                                       Duration writeTimeout);
-
  private:
   Executor* executor_;
-  const CreateEndPoint createEndPoint_;
+  InetAddress address_;
+  Duration connectTimeout_;
+  Duration readTimeout_;
+  Duration writeTimeout_;
   const Duration keepAlive_;
 
   std::list<std::unique_ptr<Context>> contexts_;
@@ -127,22 +114,33 @@ class HttpClient : public CustomData {
 
 class HttpClient::Context {
  public:
-  Context(Executor* executor, std::function<void(Context*)> done, const Request& req, HttpListener* resp);
-  Context(Executor* executor, std::function<void(Context*)> done, const Request& req, std::unique_ptr<HttpListener> resp);
+  Context(Executor* executor,
+          Duration readTimeout,
+          Duration writeTimeout,
+          std::function<void(Context*)> done,
+          const Request& req,
+          HttpListener* resp);
 
-  void execute(CreateEndPoint createEndPoint);
+  Context(Executor* executor,
+          Duration readTimeout,
+          Duration writeTimeout,
+          std::function<void(Context*)> done,
+          const Request& req,
+          std::unique_ptr<HttpListener> resp);
+
+  void execute(const InetAddress& address, Duration connectTimeout);
 
  private:
-  void onConnected(std::shared_ptr<TcpEndPoint> ep);
+  void onConnected();
+  void onFailure(const std::error_code& ec);
 
  private:
   Executor* executor_;
+  TcpEndPoint endpoint_;
   std::function<void(Context*)> done_;
   Request request_;
   HttpListener* listener_;
   std::unique_ptr<HttpListener> ownedListener_;
-
-  std::shared_ptr<TcpEndPoint> endpoint_;
 };
 
 class HttpClient::Response : public HttpResponseInfo {

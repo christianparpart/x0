@@ -54,12 +54,12 @@ inline void Executor::Handle::fire(Task task) {
   }
 }
 
-inline Executor::HandleRef Executor::executeOnReadable(int fd, Task task) {
-  return executeOnReadable(fd, task, 5_years, nullptr);
+inline Executor::HandleRef Executor::executeOnReadable(const Socket& s, Task task) {
+  return executeOnReadable(s, task, 5_years, nullptr);
 }
 
-inline Executor::HandleRef Executor::executeOnWritable(int fd, Task task) {
-  return executeOnWritable(fd, task, 5_years, nullptr);
+inline Executor::HandleRef Executor::executeOnWritable(const Socket& s, Task task) {
+  return executeOnWritable(s, task, 5_years, nullptr);
 }
 
 inline int Executor::referenceCount() const noexcept {

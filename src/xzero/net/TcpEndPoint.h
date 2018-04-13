@@ -9,13 +9,16 @@
 
 #include <xzero/Api.h>
 #include <xzero/Buffer.h>
-#include <xzero/io/FileDescriptor.h>
-#include <xzero/thread/Future.h>
-#include <xzero/net/InetAddress.h>
 #include <xzero/executor/Executor.h>
+#include <xzero/net/InetAddress.h>
+#include <xzero/net/Socket.h>
+#include <xzero/thread/Future.h>
+
 #include <atomic>
 #include <memory>
 #include <optional>
+#include <functional>
+#include <system_error>
 
 namespace xzero {
 
@@ -38,19 +41,21 @@ class TcpEndPoint : public std::enable_shared_from_this<TcpEndPoint> {
    *
    * @param socket system file handle representing the client-side socket to
    *               the server.
-   * @param addressFamily TCP/IP address-family,
-   *                      that is: @c AF_INET or @c AF_INET6.
    * @param readTimeout read-readiness timeout.
    * @param writeTimeout write-readiness timeout.
    * @param executor Task scheduler used for I/O.
    * @param onEndPointClosed invoked when this socket gets closed.
    */
-  TcpEndPoint(FileDescriptor&& socket,
-              int addressFamily,
+  TcpEndPoint(Socket&& socket,
               Duration readTimeout,
               Duration writeTimeout,
               Executor* executor,
               Callback onEndPointClosed);
+
+  TcpEndPoint(Duration readTimeout,
+              Duration writeTimeout,
+              Executor* executor,
+              Callback onEndPointClosed = Callback{});
 
   virtual ~TcpEndPoint();
 
@@ -61,25 +66,21 @@ class TcpEndPoint : public std::enable_shared_from_this<TcpEndPoint> {
    *
    * @param address TCP/IP server address and port.
    * @param connectTimeout timeout until the connect must have been completed.
-   * @param readTimeout TcpEndPoint-read timeout.
-   * @param writeTimeout TcpEndPoint-write timeout.
-   * @param executor Task scheduler used for I/O.
    */
-  static Future<std::shared_ptr<TcpEndPoint>> connect(const InetAddress& address,
-                                                      Duration connectTimeout,
-                                                      Duration readTimeout,
-                                                      Duration writeTimeout,
-                                                      Executor* executor);
+  void connect(const InetAddress& address,
+               Duration connectTimeout,
+               std::function<void()> onConnected,
+               std::function<void(std::error_code ec)> onFailure);
 
   /**
    * Native operating system handle to the file descriptor.
    */
-  int handle() const noexcept { return handle_; }
+  const Socket& handle() const noexcept { return socket_; }
 
   /**
    * Returns the underlying address family, such as @c AF_INET or @c AF_INET6.
    */
-  int addressFamily() const noexcept { return addressFamily_; }
+  IPAddress::Family addressFamily() const noexcept { return socket_.addressFamily(); }
 
   /**
    * Tests whether or not this endpoint is still connected.
@@ -224,6 +225,9 @@ class TcpEndPoint : public std::enable_shared_from_this<TcpEndPoint> {
   std::optional<InetAddress> localAddress() const;
 
  protected:
+  void onConnectComplete(InetAddress address,
+                         std::function<void()> onConnected,
+                         std::function<void(std::error_code ec)> onFailure);
   void onDetectProtocol(ProtocolCallback createConnection);
   void fillable();
   void flushable();
@@ -236,8 +240,7 @@ class TcpEndPoint : public std::enable_shared_from_this<TcpEndPoint> {
   Duration writeTimeout_;
   Buffer inputBuffer_;
   size_t inputOffset_;
-  FileDescriptor handle_;
-  int addressFamily_;
+  Socket socket_;
   bool isCorking_;
   Callback onEndPointClosed_;
   std::unique_ptr<TcpConnection> connection_;

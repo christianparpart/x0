@@ -74,19 +74,10 @@ class ThreadPool : public Executor {
   void execute(Task task) override;
   HandleRef executeAfter(Duration delay, Task task) override;
   HandleRef executeAt(UnixTime dt, Task task) override;
-  HandleRef executeOnReadable(int fd, Task task, Duration tmo, Task tcb) override;
-  HandleRef executeOnWritable(int fd, Task task, Duration tmo, Task tcb) override;
-  void cancelFD(int fd) override;
+  HandleRef executeOnReadable(const Socket& s, Task task, Duration tmo, Task tcb) override;
+  HandleRef executeOnWritable(const Socket& s, Task task, Duration tmo, Task tcb) override;
   void executeOnWakeup(Task task, Wakeup* wakeup, long generation) override;
   std::string toString() const override;
-
-  // compatibility layer to old ThreadPool API
-  XZERO_DEPRECATED void run(std::function<void()> task);
-  XZERO_DEPRECATED void runOnReadable(std::function<void()> task, int fd);
-  XZERO_DEPRECATED void runOnWritable(std::function<void()> task, int fd);
-  XZERO_DEPRECATED void runOnWakeup(std::function<void()> task,
-                                  Wakeup* wakeup,
-                                  long generation);
 
  private:
   void work(int workerId);

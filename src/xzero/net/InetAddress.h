@@ -15,11 +15,11 @@ namespace xzero {
 
 class InetAddress {
  public:
-  static const int V4 = IPAddress::V4;
-  static const int V6 = IPAddress::V6;
+  using Family = IPAddress::Family;
 
   InetAddress();
-  InetAddress(const std::string& ipaddr, int port, int family = 0);
+  InetAddress(const std::string& ipaddr, int port);
+  InetAddress(const std::string& ipaddr, int port, Family family);
   InetAddress(const IPAddress& ipaddr, int port);
   explicit InetAddress(const std::string& spec);
   InetAddress(const InetAddress&) = default;
@@ -31,7 +31,7 @@ class InetAddress {
   int port() const noexcept;
   void setPort(int value);
 
-  int family() const noexcept;
+  Family family() const noexcept;
 
  private:
   IPAddress ipaddress_;
@@ -39,7 +39,7 @@ class InetAddress {
 };
 
 // {{{ inlines
-inline InetAddress::InetAddress(const std::string& ipaddr, int port, int family)
+inline InetAddress::InetAddress(const std::string& ipaddr, int port, Family family)
     : ipaddress_(ipaddr, family), port_(port) {
 }
 
@@ -63,7 +63,7 @@ inline void InetAddress::setPort(int value) {
   port_ = value;
 }
 
-inline int InetAddress::family() const noexcept {
+inline InetAddress::Family InetAddress::family() const noexcept {
   return ipaddress_.family();
 }
 // }}}

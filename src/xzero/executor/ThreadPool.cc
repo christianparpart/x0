@@ -127,31 +127,28 @@ void ThreadPool::execute(Task task) {
   condition_.notify_all();
 }
 
-ThreadPool::HandleRef ThreadPool::executeOnReadable(int fd, Task task, Duration tmo, Task tcb) {
+ThreadPool::HandleRef ThreadPool::executeOnReadable(const Socket& s, Task task, Duration tmo, Task tcb) {
   // TODO: honor timeout
   HandleRef hr = std::make_shared<Handle>(nullptr);
   activeReaders_++;
-  execute([this, task, hr, fd] {
-    PosixScheduler::waitForReadable(fd);
+  execute([this, task, hr, s = std::cref(s)] {
+    PosixScheduler::waitForReadable(s);
     safeCall([&] { hr->fire(task); });
     activeReaders_--;
   });
   return nullptr;
 }
 
-ThreadPool::HandleRef ThreadPool::executeOnWritable(int fd, Task task, Duration tmo, Task tcb) {
+ThreadPool::HandleRef ThreadPool::executeOnWritable(const Socket& s, Task task, Duration tmo, Task tcb) {
   // TODO: honor timeout
   HandleRef hr = std::make_shared<Handle>(nullptr);
   activeWriters_++;
-  execute([this, task, hr, fd] {
-    PosixScheduler::waitForWritable(fd);
+  execute([this, task, hr, s = std::cref(s)] {
+    PosixScheduler::waitForWritable(s);
     safeCall([&] { hr->fire(task); });
     activeWriters_--;
   });
   return hr;
-}
-
-void ThreadPool::cancelFD(int fd) {
 }
 
 ThreadPool::HandleRef ThreadPool::executeAfter(Duration delay, Task task) {
@@ -195,24 +192,6 @@ std::string ThreadPool::toString() const {
                    this);
 
   return std::string(buf, n);
-}
-
-void ThreadPool::run(std::function<void()> task) {
-  execute(std::move(task));
-}
-
-void ThreadPool::runOnReadable(std::function<void()> task, int fd) {
-  executeOnReadable(fd, std::move(task));
-}
-
-void ThreadPool::runOnWritable(std::function<void()> task, int fd) {
-  executeOnWritable(fd, std::move(task));
-}
-
-void ThreadPool::runOnWakeup(std::function<void()> task,
-                             Wakeup* wakeup,
-                             long generation) {
-  executeOnWakeup(std::move(task), wakeup, generation);
 }
 
 } // namespace xzero

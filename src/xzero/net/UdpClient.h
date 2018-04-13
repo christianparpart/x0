@@ -9,17 +9,17 @@
 
 #include <xzero/Api.h>
 #include <xzero/Buffer.h>
+#include <xzero/net/InetAddress.h>
+#include <xzero/net/Socket.h>
 
 namespace xzero {
-
-class IPAddress;
 
 /**
  * Simple UDP client.
  */
 class UdpClient {
  public:
-  UdpClient(const IPAddress& ip, int port);
+  explicit UdpClient(const InetAddress& inet);
   ~UdpClient();
 
   /**
@@ -27,20 +27,15 @@ class UdpClient {
    *
    * Use this for Event registration in Scheduler API.
    */
-  int handle() const noexcept;
+  const Socket& handle() const noexcept { return socket_; }
 
   size_t send(const BufferRef& message);
   size_t receive(Buffer* message);
 
  private:
-  int socket_;
-  int addressFamily_;
+  Socket socket_;
   void* sockAddr_;
   int sockAddrLen_;
 };
-
-inline int UdpClient::handle() const noexcept {
-  return socket_;
-}
 
 } // namespace xzero

@@ -66,7 +66,6 @@ libXzero_a_SOURCES = \
 	src/xzero/TokenShaper.cc \
 	src/xzero/Tokenizer.cc \
 	src/xzero/UTF8.cc \
-	src/xzero/UnixSignals.cc \
 	src/xzero/UnixTime.cc \
 	src/xzero/Uri.cc \
 	src/xzero/WallClock.cc \
@@ -223,7 +222,6 @@ nobase_libXzero_HEADERS = \
 	src/xzero/Tokenizer.h \
 	src/xzero/UTF8.h \
 	src/xzero/UnixSignalInfo.h \
-	src/xzero/UnixSignals.h \
 	src/xzero/UnixTime.h \
 	src/xzero/UnixTime_impl.h \
 	src/xzero/Uri.h \
@@ -389,11 +387,9 @@ nobase_libXzero_HEADERS = \
 # TODO: finalize
 if PLATFORM_LINUX
 libXzero_a_SOURCES += \
-	src/xzero/LinuxSignals.cc \
 	src/xzero/executor/LinuxScheduler.cc
 
 nobase_libXzero_HEADERS += \
-	src/xzero/LinuxSignals.h \
 	src/xzero/executor/LinuxScheduler.h
 endif
 

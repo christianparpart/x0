@@ -7,10 +7,11 @@
 
 #pragma once
 
-#include <xzero/executor/SafeCall.h>
-#include <xzero/ExceptionHandler.h>
 #include <xzero/Duration.h>
+#include <xzero/ExceptionHandler.h>
+#include <xzero/UnixSignalInfo.h>
 #include <xzero/UnixTime.h>
+#include <xzero/executor/SafeCall.h>
 
 #include <memory>
 #include <mutex>
@@ -23,7 +24,9 @@
 
 namespace xzero {
 
+class Socket;
 class Wakeup;
+class PosixSignals;
 struct UnixSignalInfo;
 
 class TimeoutError : public std::runtime_error {
@@ -74,7 +77,7 @@ class Executor {
 
   explicit Executor(ExceptionHandler eh);
 
-  virtual ~Executor() = default;
+  virtual ~Executor();
 
   void setExceptionHandler(ExceptionHandler eh);
 
@@ -89,9 +92,14 @@ class Executor {
   virtual void execute(Task task) = 0;
 
   /**
+   * Executes @p task when signal @p signo has been raised.
+   */
+  virtual HandleRef executeOnSignal(int signo, SignalHandler handler);
+
+  /**
    * Runs given task when given selectable is non-blocking readable.
    *
-   * @param fd file descriptor to watch for non-blocking readability.
+   * @param s file descriptor to watch for non-blocking readability.
    * @param task Task to execute upon given event.
    * @param timeout Duration to wait for readability.
    *                When this timeout is hit and no readable-event was
@@ -99,39 +107,37 @@ class Executor {
    *                instead and the selectable will no longer be watched on.
    */
   virtual HandleRef executeOnReadable(
-      int fd, Task task,
+      const Socket& s, Task task,
       Duration timeout, Task onTimeout) = 0;
 
   /**
    * Runs given task when given selectable is non-blocking writable.
    *
-   * @param fd file descriptor to watch for non-blocking readability.
+   * @param s file descriptor to watch for non-blocking readability.
    * @param task Task to execute upon given event.
    * @param timeout timeout to wait for readability. When the timeout is hit
    *                and no readable-event was generated yet, an
-   *                the task isstill fired but fd will raise with ETIMEDOUT.
+   *                the task isstill fired but s will raise with ETIMEDOUT.
    */
   virtual HandleRef executeOnWritable(
-      int fd, Task task,
+      const Socket& s, Task task,
       Duration timeout, Task onTimeout) = 0;
-
-  virtual void cancelFD(int fd) = 0;
 
   /**
    * Runs given task when given selectable is non-blocking readable.
    *
-   * @param fd file descriptor to watch for non-blocking readability.
+   * @param s file descriptor to watch for non-blocking readability.
    * @param task Task to execute upon given event.
    */
-  HandleRef executeOnReadable(int fd, Task task);
+  HandleRef executeOnReadable(const Socket& s, Task task);
 
   /**
    * Runs given task when given selectable is non-blocking writable.
    *
-   * @param fd file descriptor to watch for non-blocking readability.
+   * @param s file descriptor to watch for non-blocking readability.
    * @param task Task to execute upon given event.
    */
-  HandleRef executeOnWritable(int fd, Task task);
+  HandleRef executeOnWritable(const Socket& s, Task task);
 
   /**
    * Schedules given task to be run after given delay.
@@ -218,6 +224,7 @@ class Executor {
 
  protected:
   SafeCall safeCall_;
+  std::unique_ptr<PosixSignals> signals_;
   std::atomic<int> refs_;
 };
 

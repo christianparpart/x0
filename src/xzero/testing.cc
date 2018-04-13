@@ -529,10 +529,10 @@ TestInfo* UnitTest::addTest(const char* testCaseName,
 }
 
 void UnitTest::log(const std::string& message) {
-  std::string component = fmt::format("{}.{}",
+  logDebug("{}.{}: {}",
       currentTestCase_->testCaseName(),
-      currentTestCase_->testName());
-  logDebug(component, "{}", message);
+      currentTestCase_->testName(),
+      message);
 }
 
 } // namespace testing
