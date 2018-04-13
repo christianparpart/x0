@@ -87,7 +87,7 @@ class FlowParser {
   bool testTokens(A1 token, Args... tokens) const;
 
   std::string stringValue() const { return lexer_->stringValue(); }
-  double numberValue() const { return lexer_->numberValue(); }
+  FlowNumber numberValue() const { return lexer_->numberValue(); }
   bool booleanValue() const { return lexer_->numberValue(); }
 
   // scoping

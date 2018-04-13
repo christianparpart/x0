@@ -31,8 +31,8 @@ class FileUtil {
   static bool exists(const std::string& path);
   static bool isDirectory(const std::string& path);
   static bool isRegular(const std::string& path);
-  static size_t size(const std::string& path);
-  static size_t sizeRecursive(const std::string& path);
+  static uintmax_t size(const std::string& path);
+  static uintmax_t sizeRecursive(const std::string& path);
   XZERO_DEPRECATED static size_t du_c(const std::string& path) { return sizeRecursive(path); }
   static void ls(const std::string& path, std::function<bool(const std::string&)> cb);
 

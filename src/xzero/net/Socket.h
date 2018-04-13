@@ -81,12 +81,13 @@ class [[nodiscard]] Socket {
  private:
 #if defined(XZERO_OS_UNIX)
   FileDescriptor handle_;
-  AddressFamily addressFamily_;
 #endif
 
 #if defined(XZERO_OS_WINDOWS)
   SOCKET handle_;
 #endif
+
+  AddressFamily addressFamily_;
 };
 
 } // namespace xzero
