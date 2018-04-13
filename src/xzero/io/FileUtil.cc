@@ -78,12 +78,12 @@ bool FileUtil::isRegular(const std::string& path) {
   return fs::is_regular_file(path);
 }
 
-size_t FileUtil::size(const std::string& path) {
+uintmax_t FileUtil::size(const std::string& path) {
   return fs::file_size(path);
 }
 
-size_t FileUtil::sizeRecursive(const std::string& path) {
-  size_t totalSize = 0;
+uintmax_t FileUtil::sizeRecursive(const std::string& path) {
+  uintmax_t totalSize = 0;
   for (auto& dir : fs::recursive_directory_iterator(path))
     if (fs::is_regular_file(dir.path()))
       totalSize += fs::file_size(dir.path());

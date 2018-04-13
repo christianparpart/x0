@@ -56,7 +56,7 @@ class FlowLexer {
   std::string stringValue() const { return stringValue_; }
   const IPAddress& ipValue() const { return ipValue_; }
   Cidr cidr() const { return Cidr(ipValue_, static_cast<size_t>(numberValue_)); }
-  long long numberValue() const { return numberValue_; }
+  FlowNumber numberValue() const { return numberValue_; }
 
  private:
   struct Scope;
@@ -100,7 +100,7 @@ class FlowLexer {
   FlowToken token_;
   std::string stringValue_;
   IPAddress ipValue_;
-  long long numberValue_;
+  FlowNumber numberValue_;
 
   int interpolationDepth_;
 };
