@@ -7,7 +7,7 @@
 
 #include <xzero/net/UdpConnector.h>
 #include <xzero/net/UdpEndPoint.h>
-#include <xzero/net/IPAddress.h>
+#include <xzero/net/InetAddress.h>
 #include <xzero/io/FileUtil.h>
 #include <xzero/executor/Executor.h>
 #include <xzero/RuntimeError.h>
@@ -31,16 +31,14 @@ namespace xzero {
 UdpConnector::UdpConnector(const std::string& name,
                            Handler handler,
                            Executor* executor,
-                           const IPAddress& ipaddr,
-                           int port,
+                           const InetAddress& address,
                            bool reuseAddr,
                            bool reusePort)
-    : name_(name),
-      handler_(handler),
-      executor_(executor),
-      socket_(-1),
-      addressFamily_(0) {
-  open(ipaddr, port, reuseAddr, reusePort);
+    : name_{name},
+      handler_{handler},
+      executor_{executor},
+      socket_{Socket::make_udp_ip(true)} {
+  open(address, reuseAddr, reusePort);
 
   BUG_ON(executor == nullptr);
 }
@@ -48,11 +46,6 @@ UdpConnector::UdpConnector(const std::string& name,
 UdpConnector::~UdpConnector() {
   if (isStarted()) {
     stop();
-  }
-
-  if (socket_ >= 0) {
-    FileUtil::close(socket_);
-    socket_ = -1;
   }
 }
 
@@ -74,16 +67,7 @@ void UdpConnector::stop() {
   }
 }
 
-void UdpConnector::open(
-    const IPAddress& ipaddr, int port,
-    bool reuseAddr, bool reusePort) {
-
-  socket_ = ::socket(ipaddr.family(), SOCK_DGRAM, 0);
-  addressFamily_ = ipaddr.family();
-
-  if (socket_ < 0)
-    RAISE_ERRNO(errno);
-
+void UdpConnector::open(const InetAddress& address, bool reuseAddr, bool reusePort) {
   if (reusePort) {
     int rc = 1;
     if (::setsockopt(socket_, SOL_SOCKET, SO_REUSEPORT, &rc, sizeof(rc)) < 0) {
@@ -98,25 +82,25 @@ void UdpConnector::open(
     }
   }
 
-  // bind(ipaddr, port);
+  // bind
   char sa[sizeof(sockaddr_in6)];
-  socklen_t salen = ipaddr.size();
+  socklen_t salen = address.ip().size();
 
-  switch (ipaddr.family()) {
-    case IPAddress::V4:
+  switch (address.family()) {
+    case IPAddress::Family::V4:
       salen = sizeof(sockaddr_in);
-      ((sockaddr_in*)sa)->sin_port = htons(port);
-      ((sockaddr_in*)sa)->sin_family = AF_INET;
-      memcpy(&((sockaddr_in*)sa)->sin_addr, ipaddr.data(), ipaddr.size());
+      ((sockaddr_in*) sa)->sin_port = htons(address.port());
+      ((sockaddr_in*) sa)->sin_family = AF_INET;
+      memcpy(&((sockaddr_in*)sa)->sin_addr, address.ip().data(), address.ip().size());
       break;
-    case IPAddress::V6:
+    case IPAddress::Family::V6:
       salen = sizeof(sockaddr_in6);
-      ((sockaddr_in6*)sa)->sin6_port = htons(port);
-      ((sockaddr_in6*)sa)->sin6_family = AF_INET6;
-      memcpy(&((sockaddr_in6*)sa)->sin6_addr, ipaddr.data(), ipaddr.size());
+      ((sockaddr_in6*) sa)->sin6_port = htons(address.port());
+      ((sockaddr_in6*) sa)->sin6_family = AF_INET6;
+      memcpy(&((sockaddr_in6*)sa)->sin6_addr, address.ip().data(), address.ip().size());
       break;
     default:
-      RAISE_ERRNO(EINVAL);
+      logFatal("Invalid IPAddress::Family");
   }
 
   int rv = ::bind(socket_, (sockaddr*)sa, salen);
@@ -139,12 +123,12 @@ void UdpConnector::onMessage() {
   sockaddr_in sin4;
   sockaddr_in6 sin6;
 
-  switch (addressFamily_) {
-    case IPAddress::V4:
+  switch (socket_.addressFamily()) {
+    case IPAddress::Family::V4:
       remoteAddr = (sockaddr*) &sin4;
       remoteAddrLen = sizeof(sin4);
       break;
-    case IPAddress::V6:
+    case IPAddress::Family::V6:
       remoteAddr = (sockaddr*) &sin6;
       remoteAddrLen = sizeof(sin6);
       break;
@@ -177,7 +161,7 @@ void UdpConnector::onMessage() {
         this, std::move(message), remoteAddr, remoteAddrLen);
     executor_->execute(std::bind(handler_, client));
   } else {
-    logTrace("UdpConnector: Ignoring incoming message of %i bytes. No handler set.", n);
+    logTrace("UdpConnector: Ignoring incoming message of {} bytes. No handler set.", n);
   }
 }
 

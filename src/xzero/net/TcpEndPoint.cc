@@ -33,8 +33,23 @@
 
 namespace xzero {
 
-TcpEndPoint::TcpEndPoint(FileDescriptor&& socket,
-                         int addressFamily,
+TcpEndPoint::TcpEndPoint(Duration readTimeout,
+                         Duration writeTimeout,
+                         Executor* executor,
+                         std::function<void(TcpEndPoint*)> onEndPointClosed)
+    : io_(),
+      executor_(executor),
+      readTimeout_(readTimeout),
+      writeTimeout_(writeTimeout),
+      inputBuffer_(),
+      inputOffset_(0),
+      socket_{Socket::NonBlockingTCP},
+      isCorking_(false),
+      onEndPointClosed_(onEndPointClosed),
+      connection_() {
+}
+
+TcpEndPoint::TcpEndPoint(Socket&& socket,
                          Duration readTimeout,
                          Duration writeTimeout,
                          Executor* executor,
@@ -45,8 +60,7 @@ TcpEndPoint::TcpEndPoint(FileDescriptor&& socket,
       writeTimeout_(writeTimeout),
       inputBuffer_(),
       inputOffset_(0),
-      handle_(std::move(socket)),
-      addressFamily_(addressFamily),
+      socket_(std::move(socket)),
       isCorking_(false),
       onEndPointClosed_(onEndPointClosed),
       connection_() {
@@ -67,7 +81,7 @@ TcpEndPoint::~TcpEndPoint() {
 }
 
 std::optional<InetAddress> TcpEndPoint::remoteAddress() const {
-  Result<InetAddress> addr = TcpUtil::getRemoteAddress(handle_, addressFamily());
+  Result<InetAddress> addr = socket_.getRemoteAddress();
   if (addr.isSuccess())
     return *addr;
   else {
@@ -79,7 +93,7 @@ std::optional<InetAddress> TcpEndPoint::remoteAddress() const {
 }
 
 std::optional<InetAddress> TcpEndPoint::localAddress() const {
-  Result<InetAddress> addr = TcpUtil::getLocalAddress(handle_, addressFamily());
+  Result<InetAddress> addr = socket_.getLocalAddress();
   if (addr.isSuccess())
     return *addr;
   else {
@@ -91,7 +105,7 @@ std::optional<InetAddress> TcpEndPoint::localAddress() const {
 }
 
 bool TcpEndPoint::isOpen() const XZERO_NOEXCEPT {
-  return handle_ >= 0;
+  return socket_.valid();
 }
 
 void TcpEndPoint::close() {
@@ -100,7 +114,7 @@ void TcpEndPoint::close() {
       onEndPointClosed_(this);
     }
 
-    handle_.close();
+    socket_.close();
   }
 }
 
@@ -109,11 +123,11 @@ void TcpEndPoint::setConnection(std::unique_ptr<TcpConnection>&& c) {
 }
 
 bool TcpEndPoint::isBlocking() const {
-  return !(fcntl(handle_, F_GETFL) & O_NONBLOCK);
+  return !(fcntl(socket_, F_GETFL) & O_NONBLOCK);
 }
 
 void TcpEndPoint::setBlocking(bool enable) {
-  FileUtil::setBlocking(handle_, enable);
+  FileUtil::setBlocking(socket_, enable);
 }
 
 bool TcpEndPoint::isCorking() const {
@@ -122,23 +136,21 @@ bool TcpEndPoint::isCorking() const {
 
 void TcpEndPoint::setCorking(bool enable) {
   if (isCorking_ != enable) {
-    TcpUtil::setCorking(handle_, enable);
+    TcpUtil::setCorking(socket_, enable);
     isCorking_ = enable;
   }
 }
 
 bool TcpEndPoint::isTcpNoDelay() const {
-  return TcpUtil::isTcpNoDelay(handle_);
+  return TcpUtil::isTcpNoDelay(socket_);
 }
 
 void TcpEndPoint::setTcpNoDelay(bool enable) {
-  TcpUtil::setTcpNoDelay(handle_, enable);
+  TcpUtil::setTcpNoDelay(socket_, enable);
 }
 
 std::string TcpEndPoint::toString() const {
-  char buf[32];
-  snprintf(buf, sizeof(buf), "TcpEndPoint(%d)@%p", handle(), this);
-  return buf;
+  return fmt::format("TcpEndPoint({})", socket_.getRemoteAddress());
 }
 
 void TcpEndPoint::startDetectProtocol(bool dataReady,
@@ -300,74 +312,41 @@ Duration TcpEndPoint::writeTimeout() const noexcept {
   return writeTimeout_;
 }
 
-void onConnectComplete(InetAddress address,
-                       int fd,
-                       Duration readTimeout,
-                       Duration writeTimeout,
-                       Executor* executor,
-                       Promise<std::shared_ptr<TcpEndPoint>> promise) {
-  int val = 0;
-  socklen_t vlen = sizeof(val);
-  if (getsockopt(fd, SOL_SOCKET, SO_ERROR, &val, &vlen) == 0) {
-    if (val == 0) {
-      promise.success(std::make_shared<TcpEndPoint>(FileDescriptor{fd},
-                                                    address.family(),
-                                                    readTimeout,
-                                                    writeTimeout,
-                                                    executor,
-                                                    nullptr));
-    } else {
-      logDebug("Connecting to {} failed. {}", address, strerror(val));
-      promise.failure(std::make_error_code(static_cast<std::errc>(val)));
-    }
+void TcpEndPoint::connect(const InetAddress& address,
+                          Duration connectTimeout,
+                          std::function<void()> onConnected,
+                          std::function<void(std::error_code ec)> onFailure) {
+  std::error_code ec = TcpUtil::connect(socket_, address);
+  if (!ec) {
+    onConnected();
+  } else if (ec == std::errc::operation_in_progress) {
+    executor_->executeOnWritable(socket_,
+        [=]() { onConnectComplete(address, onConnected, onFailure); },
+        connectTimeout,
+        [=]() { onFailure(std::make_error_code(std::errc::timed_out)); });
   } else {
-    logDebug("Connecting to {} failed. {}", address, strerror(val));
-    promise.failure(std::make_error_code(static_cast<std::errc>(val)));
+    onFailure(ec);
   }
 }
 
-Future<std::shared_ptr<TcpEndPoint>> TcpEndPoint::connect(const InetAddress& address,
-                                                          Duration connectTimeout,
-                                                          Duration readTimeout,
-                                                          Duration writeTimeout,
-                                                          Executor* executor) {
-  int flags = 0;
-#if defined(SOCK_CLOEXEC)
-  flags |= SOCK_CLOEXEC;
-#endif
-#if defined(SOCK_NONBLOCK)
-  flags |= SOCK_NONBLOCK;
-#endif
-
-  Promise<std::shared_ptr<TcpEndPoint>> promise;
-
-  int fd = socket(address.family(), SOCK_STREAM | flags, IPPROTO_TCP);
-  if (fd < 0) {
-    promise.failure(std::make_error_code(static_cast<std::errc>(errno)));
-    return promise.future();
-  }
-
-#if !defined(SOCK_NONBLOCK)
-  FileUtil::setBlocking(fd, false);
-#endif
-
-  std::error_code ec = TcpUtil::connect(fd, address);
-  if (!ec) {
-    promise.success(std::make_shared<TcpEndPoint>(FileDescriptor{fd},
-                                                  address.family(),
-                                                  readTimeout,
-                                                  writeTimeout,
-                                                  executor,
-                                                  nullptr));
-  } else if (ec == std::errc::operation_in_progress) {
-    executor->executeOnWritable(fd,
-        std::bind(&onConnectComplete, address, fd, readTimeout, writeTimeout, executor, promise),
-        connectTimeout,
-        [fd, promise]() { FileUtil::close(fd); promise.failure(std::errc::timed_out); });
+void TcpEndPoint::onConnectComplete(InetAddress address,
+                                    std::function<void()> onConnected,
+                                    std::function<void(std::error_code ec)> onFailure) {
+  int val = 0;
+  socklen_t vlen = sizeof(val);
+  if (getsockopt(socket_, SOL_SOCKET, SO_ERROR, &val, &vlen) == 0) {
+    if (val == 0) {
+      onConnected();
+    } else {
+      const std::error_code ec = std::make_error_code(static_cast<std::errc>(val));
+      logDebug("Connecting to {} failed. {}", address, ec.message());
+      onFailure(ec);
+    }
   } else {
-    promise.failure(std::make_error_code(static_cast<std::errc>(errno)));
+    const std::error_code ec = std::make_error_code(static_cast<std::errc>(val));
+    logDebug("Connecting to {} failed. {}", address, ec.message());
+    onFailure(ec);
   }
-  return promise.future();
 }
 
 } // namespace xzero

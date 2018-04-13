@@ -11,6 +11,7 @@
 #include <xzero/net/TcpUtil.h>
 #include <xzero/net/TcpConnection.h>
 #include <xzero/net/IPAddress.h>
+#include <xzero/io/FileDescriptor.h>
 #include <xzero/io/FileUtil.h>
 #include <xzero/util/BinaryWriter.h>
 #include <xzero/BufferUtil.h>
@@ -55,12 +56,10 @@ TcpConnector::TcpConnector(const std::string& name, Executor* executor,
       selectClientExecutor_(clientExecutorSelector
                                 ? clientExecutorSelector
                                 : [executor]() { return executor; }),
-      bindAddress_(),
-      port_(-1),
+      address_(),
       connectedEndPoints_(),
       mutex_(),
-      socket_(-1),
-      addressFamily_(IPAddress::V4),
+      socket_(Socket::InvalidSocket),
       typeMask_(0),
       flags_(0),
       blocking_(true),
@@ -104,10 +103,7 @@ void TcpConnector::open(const IPAddress& ipaddress, int port, int backlog,
   if (isOpen())
     logFatal("TcpConnector already open.");
 
-  socket_ = ::socket(ipaddress.family(), SOCK_STREAM, 0);
-
-  if (socket_ < 0)
-    RAISE_ERRNO(errno);
+  socket_ = std::move(Socket::make_tcp_ip(true, (Socket::AddressFamily) ipaddress.family()));
 
   setBacklog(backlog);
 
@@ -125,13 +121,13 @@ void TcpConnector::bind(const IPAddress& ipaddr, int port) {
   socklen_t salen = ipaddr.size();
 
   switch (ipaddr.family()) {
-    case IPAddress::V4:
+    case IPAddress::Family::V4:
       salen = sizeof(sockaddr_in);
       ((sockaddr_in*)sa)->sin_port = htons(port);
       ((sockaddr_in*)sa)->sin_family = AF_INET;
       memcpy(&((sockaddr_in*)sa)->sin_addr, ipaddr.data(), ipaddr.size());
       break;
-    case IPAddress::V6:
+    case IPAddress::Family::V6:
       salen = sizeof(sockaddr_in6);
       ((sockaddr_in6*)sa)->sin6_port = htons(port);
       ((sockaddr_in6*)sa)->sin6_family = AF_INET6;
@@ -145,12 +141,10 @@ void TcpConnector::bind(const IPAddress& ipaddr, int port) {
   if (rv < 0)
     RAISE_ERRNO(errno);
 
-  addressFamily_ = ipaddr.family();
-  bindAddress_ = ipaddr;
   if (port != 0) {
-    port_ = port;
+    address_ = InetAddress{ipaddr, port};
   } else {
-    port_ = TcpUtil::getLocalPort(socket_, addressFamily_);
+    address_ = InetAddress{ipaddr, socket_.getLocalPort()};
   }
 }
 
@@ -163,14 +157,13 @@ void TcpConnector::listen(int backlog) {
 
   if (backlog > somaxconn) {
     throw std::runtime_error{fmt::format(
-        "Listener {}:{} configured with a backlog higher than the system"
+        "Listener {} configured with a backlog higher than the system"
         " permits ({} > {})."
 #if defined(XZERO_OS_LINUX)
         " See /proc/sys/net/core/somaxconn for your system limits."
 #endif
         ,
-        bindAddress_.str(),
-        port_,
+        address_,
         backlog,
         somaxconn)};
   }
@@ -196,10 +189,6 @@ TcpConnector::~TcpConnector() {
 
 int TcpConnector::handle() const XZERO_NOEXCEPT {
   return socket_;
-}
-
-void TcpConnector::setSocket(FileDescriptor&& socket) {
-  socket_ = std::move(socket);
 }
 
 size_t TcpConnector::backlog() const XZERO_NOEXCEPT {
@@ -434,7 +423,7 @@ void TcpConnector::start() {
 
 void TcpConnector::notifyOnEvent() {
   io_ = executor()->executeOnReadable(
-      handle(),
+      socket_,
       std::bind(&TcpConnector::onConnect, this));
 }
 
@@ -455,12 +444,12 @@ void TcpConnector::stop() {
 void TcpConnector::onConnect() {
   try {
     for (size_t i = 0; i < multiAcceptCount_; i++) {
-      int cfd = acceptOne();
-      if (cfd < 0)
+      std::optional<Socket> clientSocket = acceptOne();
+      if (!clientSocket)
         break;
 
       Executor* clientExecutor = selectClientExecutor_();
-      std::shared_ptr<TcpEndPoint> ep = createEndPoint(cfd, clientExecutor);
+      std::shared_ptr<TcpEndPoint> ep = createEndPoint(std::move(*clientSocket), clientExecutor);
       {
         std::lock_guard<std::mutex> _lk(mutex_);
         connectedEndPoints_.push_back(ep);
@@ -478,17 +467,17 @@ void TcpConnector::onConnect() {
   }
 }
 
-int TcpConnector::acceptOne() {
+std::optional<Socket> TcpConnector::acceptOne() {
 #if defined(HAVE_ACCEPT4) && defined(ENABLE_ACCEPT4)
   bool flagged = true;
-  int cfd = ::accept4(socket_, nullptr, 0, typeMask_);
+  FileDescriptor cfd = ::accept4(socket_, nullptr, 0, typeMask_);
   if (cfd < 0 && errno == ENOSYS) {
     cfd = ::accept(socket_, nullptr, 0);
     flagged = false;
   }
 #else
   bool flagged = false;
-  int cfd = ::accept(socket_, nullptr, 0);
+  FileDescriptor cfd = ::accept(socket_, nullptr, 0);
 #endif
 
   if (cfd < 0) {
@@ -498,34 +487,22 @@ int TcpConnector::acceptOne() {
 #if EAGAIN != EWOULDBLOCK
       case EWOULDBLOCK:
 #endif
-        return -1;
+        return std::nullopt;
       default:
         RAISE_ERRNO(errno);
     }
   }
 
-  if (!flagged && flags_ &&
-        fcntl(cfd, F_SETFL, fcntl(cfd, F_GETFL) | flags_) < 0) {
-    FileUtil::close(cfd);
+  if (!flagged && flags_ && fcntl(cfd, F_SETFL, fcntl(cfd, F_GETFL) | flags_) < 0)
     RAISE_ERRNO(errno);
-  }
 
-#if defined(TCP_LINGER2)
-  if (tcpFinTimeout_ != Duration::Zero) {
-    int waitTime = tcpFinTimeout_.seconds();
-    int rv = setsockopt(cfd, SOL_TCP, TCP_LINGER2, &waitTime, sizeof(waitTime));
-    if (rv < 0) {
-      FileUtil::close(cfd);
-      RAISE_ERRNO(errno);
-    }
-  }
-#endif
+  TcpUtil::setLingering(cfd, tcpFinTimeout_);
 
-  return cfd;
+  return Socket::make_socket(std::move(cfd), addressFamily());
 }
 
-std::shared_ptr<TcpEndPoint> TcpConnector::createEndPoint(int cfd, Executor* executor) {
-  return std::make_shared<TcpEndPoint>(cfd, addressFamily(),
+std::shared_ptr<TcpEndPoint> TcpConnector::createEndPoint(Socket&& cfd, Executor* executor) {
+  return std::make_shared<TcpEndPoint>(std::move(cfd),
       readTimeout_, writeTimeout_, executor_,
       std::bind(&TcpConnector::onEndPointClosed, this, std::placeholders::_1));
 }
@@ -645,10 +622,7 @@ void TcpConnector::loadConnectionFactorySelector(const std::string& protocolName
 }
 
 std::string TcpConnector::toString() const {
-  char buf[128];
-  int n = snprintf(buf, sizeof(buf), "TcpConnector/%s@%p[%s:%d]",
-                   name().c_str(), this, bindAddress_.c_str(), port_);
-  return std::string(buf, n);
+  return fmt::format("TcpConnector({})<{}>", name(), address_);
 }
 
 }  // namespace xzero

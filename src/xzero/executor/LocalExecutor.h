@@ -23,11 +23,13 @@ class LocalExecutor : public Executor {
     bool recursive = false,
     ExceptionHandler eh = nullptr);
 
+  using Executor::executeOnReadable;
+  using Executor::executeOnWritable;
+
   std::string toString() const override;
   void execute(Task task) override;
-  HandleRef executeOnReadable(int fd, Task task, Duration timeout, Task onTimeout) override;
-  HandleRef executeOnWritable(int fd, Task task, Duration timeout, Task onTimeout) override;
-  void cancelFD(int fd) override;
+  HandleRef executeOnReadable(const Socket& s, Task task, Duration timeout, Task onTimeout) override;
+  HandleRef executeOnWritable(const Socket& s, Task task, Duration timeout, Task onTimeout) override;
   HandleRef executeAfter(Duration delay, Task task) override;
   HandleRef executeAt(UnixTime ts, Task task) override;
   void executeOnWakeup(Task task, Wakeup* wakeup, long generation) override;

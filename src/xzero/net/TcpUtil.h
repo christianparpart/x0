@@ -14,31 +14,24 @@
 
 namespace xzero {
 
-class FileView;
 class Executor;
+class FileView;
+class Socket;
 class TcpConnection;
 
 class TcpUtil {
  public:
   using ConnectionFactory = std::function<TcpConnection*(const std::string&)>;
 
-  static Result<int> openTcpSocket(int addressFamily);
-
-  static Future<int> connect(const InetAddress& remote,
-                             Duration timeout,
-                             Executor* executor);
-
-  static XZERO_NODISCARD std::error_code connect(int socket, const InetAddress& remote);
-
-  static XZERO_NODISCARD Result<InetAddress> getLocalAddress(int fd, int addressFamily);
-  static XZERO_NODISCARD Result<InetAddress> getRemoteAddress(int fd, int addressFamily);
-  static int getLocalPort(int socket, int addressFamily);
+  static std::error_code connect(Socket& socket, const InetAddress& remote);
 
   static bool isTcpNoDelay(int fd);
   static void setTcpNoDelay(int fd, bool enable);
 
   static bool isCorking(int fd);
   static void setCorking(int fd, bool enable);
+
+  static void setLingering(int fd, Duration d);
 
   static size_t sendfile(int target, const FileView& source);
 };

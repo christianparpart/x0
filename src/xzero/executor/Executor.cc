@@ -5,21 +5,35 @@
 // file except in compliance with the License. You may obtain a copy of
 // the License at: http://opensource.org/licenses/MIT
 
-#include <xzero/executor/Executor.h>
-#include <xzero/StringUtil.h>
-#include <xzero/thread/Wakeup.h>
 #include <fmt/format.h>
+#include <xzero/PosixSignals.h>
+#include <xzero/StringUtil.h>
+#include <xzero/executor/Executor.h>
+#include <xzero/thread/Wakeup.h>
+#include <xzero/PosixSignals.h>
+
 #include <iostream>
 
 namespace xzero {
 
 Executor::Executor(ExceptionHandler eh)
     : safeCall_{std::move(eh)},
+      signals_{},
       refs_(0) {
+}
+
+Executor::~Executor() {
 }
 
 void Executor::setExceptionHandler(ExceptionHandler eh) {
   safeCall_.setExceptionHandler(std::move(eh));
+}
+
+Executor::HandleRef Executor::executeOnSignal(int signo, SignalHandler handler) {
+  if (!signals_)
+    signals_ = std::make_unique<PosixSignals>(this);
+
+  return signals_->notify(signo, [this, handler](const auto& si) { execute(std::bind(handler, si)); });
 }
 
 /**

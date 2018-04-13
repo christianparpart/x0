@@ -23,14 +23,13 @@
 
 namespace xzero {
 
-UdpClient::UdpClient(const IPAddress& ipaddr, int port)
-    : socket_(-1),
-      addressFamily_(ipaddr.family()),
-      sockAddr_(nullptr),
-      sockAddrLen_(0)
+UdpClient::UdpClient(const InetAddress& address)
+    : socket_{Socket::make_udp_ip(false)},
+      sockAddr_{nullptr},
+      sockAddrLen_{0}
 {
-  switch (ipaddr.family()) {
-    case IPAddress::V4:
+  switch (address.family()) {
+    case IPAddress::Family::V4:
       sockAddrLen_ = sizeof(sockaddr_in);
 
       sockAddr_ = malloc(sockAddrLen_);
@@ -39,12 +38,12 @@ UdpClient::UdpClient(const IPAddress& ipaddr, int port)
 
       memset(sockAddr_, 0, sockAddrLen_);
 
-      ((sockaddr_in*)sockAddr_)->sin_port = htons(port);
-      ((sockaddr_in*)sockAddr_)->sin_family = AF_INET;
+      ((sockaddr_in*) sockAddr_)->sin_port = htons(address.port());
+      ((sockaddr_in*) sockAddr_)->sin_family = AF_INET;
       memcpy(&((sockaddr_in*)sockAddr_)->sin_addr,
-             ipaddr.data(), ipaddr.size());
+             address.ip().data(), address.ip().size());
       break;
-    case IPAddress::V6:
+    case IPAddress::Family::V6:
       sockAddrLen_ = sizeof(sockaddr_in6);
 
       sockAddr_ = malloc(sockAddrLen_);
@@ -53,22 +52,17 @@ UdpClient::UdpClient(const IPAddress& ipaddr, int port)
 
       memset(sockAddr_, 0, sockAddrLen_);
 
-      ((sockaddr_in6*)sockAddr_)->sin6_port = htons(port);
-      ((sockaddr_in6*)sockAddr_)->sin6_family = AF_INET6;
+      ((sockaddr_in6*) sockAddr_)->sin6_port = htons(address.port());
+      ((sockaddr_in6*) sockAddr_)->sin6_family = AF_INET6;
       memcpy(&((sockaddr_in6*)sockAddr_)->sin6_addr,
-             ipaddr.data(), ipaddr.size());
+             address.ip().data(), address.ip().size());
       break;
     default:
       logFatal("Invalid IPAddress.family()");
   }
-
-  socket_ = ::socket(ipaddr.family(), SOCK_DGRAM, 0);
 }
 
 UdpClient::~UdpClient() {
-  if (socket_ >= 0) {
-    FileUtil::close(socket_);
-  }
   free(sockAddr_);
 }
 

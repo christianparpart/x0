@@ -30,10 +30,12 @@ class ThreadedExecutor : public Executor {
 
   void execute(const std::string& name, Task task);
 
+  using Executor::executeOnReadable;
+  using Executor::executeOnWritable;
+
   void execute(Task task) override;
-  HandleRef executeOnReadable(int fd, Task task, Duration timeout, Task onTimeout) override;
-  HandleRef executeOnWritable(int fd, Task task, Duration timeout, Task onTimeout) override;
-  void cancelFD(int fd) override;
+  HandleRef executeOnReadable(const Socket& s, Task task, Duration timeout, Task onTimeout) override;
+  HandleRef executeOnWritable(const Socket& s, Task task, Duration timeout, Task onTimeout) override;
   HandleRef executeAfter(Duration delay, Task task) override;
   HandleRef executeAt(UnixTime ts, Task task) override;
   void executeOnWakeup(Task task, Wakeup* wakeup, long generation) override;

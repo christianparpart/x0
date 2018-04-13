@@ -654,7 +654,7 @@ FlowToken FlowLexer::parseNumber(int base) {
     nextChar();
   }
 
-  ipValue_.set(stringValue_.c_str(), IPAddress::V4);
+  ipValue_.set(stringValue_.c_str(), IPAddress::Family::V4);
 
   if (currentChar() != '/') return token_ = FlowToken::IP;
 
@@ -846,7 +846,7 @@ FlowToken FlowLexer::continueParseIPv6(bool firstComplete) {
     // Invalid IPv6
     return token_ = FlowToken::Unknown;
 
-  if (!ipValue_.set(stringValue_.c_str(), IPAddress::V6))
+  if (!ipValue_.set(stringValue_.c_str(), IPAddress::Family::V6))
     // Invalid IPv6
     return token_ = FlowToken::Unknown;
 

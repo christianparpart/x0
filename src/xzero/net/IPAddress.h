@@ -34,11 +34,13 @@ namespace xzero {
  */
 class IPAddress {
  public:
-  static const int V4 = AF_INET;
-  static const int V6 = AF_INET6;
+  enum class Family : int {
+    V4 = AF_INET,
+    V6 = AF_INET6,
+  };
 
  private:
-  int family_;
+  Family family_;
   mutable char cstr_[INET6_ADDRSTRLEN];
   uint8_t buf_[sizeof(struct in6_addr)];
 
@@ -48,16 +50,17 @@ class IPAddress {
   explicit IPAddress(const in6_addr* saddr);
   explicit IPAddress(const sockaddr_in* saddr);
   explicit IPAddress(const sockaddr_in6* saddr);
-  explicit IPAddress(const std::string& text, int family = 0);
+  explicit IPAddress(const std::string& text);
+  explicit IPAddress(const std::string& text, Family v);
 
   IPAddress& operator=(const std::string& value);
   IPAddress& operator=(const IPAddress& value);
 
-  bool set(const std::string& text, int family);
+  bool set(const std::string& text, Family family);
 
   void clear();
 
-  int family() const;
+  Family family() const;
   const void* data() const;
   size_t size() const;
   std::string str() const;
@@ -69,54 +72,55 @@ class IPAddress {
 
 // {{{ impl
 inline IPAddress::IPAddress() {
-  family_ = 0;
+  family_ = Family::V4;
   cstr_[0] = '\0';
   memset(buf_, 0, sizeof(buf_));
 }
 
 inline IPAddress::IPAddress(const in_addr* saddr) {
-  family_ = AF_INET;
+  family_ = Family::V4;
   cstr_[0] = '\0';
   memcpy(buf_, saddr, sizeof(*saddr));
 }
 
 inline IPAddress::IPAddress(const in6_addr* saddr) {
-  family_ = AF_INET6;
+  family_ = Family::V6;
   cstr_[0] = '\0';
   memcpy(buf_, saddr, sizeof(*saddr));
 }
 
 inline IPAddress::IPAddress(const sockaddr_in* saddr) {
-  family_ = AF_INET;
+  family_ = Family::V4;
   cstr_[0] = '\0';
   memcpy(buf_, &saddr->sin_addr, sizeof(saddr->sin_addr));
 }
 
 inline IPAddress::IPAddress(const sockaddr_in6* saddr) {
-  family_ = AF_INET6;
+  family_ = Family::V6;
   cstr_[0] = '\0';
   memcpy(buf_, &saddr->sin6_addr, sizeof(saddr->sin6_addr));
 }
 
 // I suggest to use a very strict IP filter to prevent spoofing or injection
-inline IPAddress::IPAddress(const std::string& text, int family) {
-  if (family != 0) {
-    set(text, family);
-    // You should use regex to parse ipv6 :) ( http://home.deds.nl/~aeron/regex/
-    // )
-  } else if (text.find(':') != std::string::npos) {
-    set(text, AF_INET6);
+inline IPAddress::IPAddress(const std::string& text) {
+  // You should use regex to parse ipv6 :) ( http://home.deds.nl/~aeron/regex/ )
+  if (text.find(':') != std::string::npos) {
+    set(text, Family::V6);
   } else {
-    set(text, AF_INET);
+    set(text, Family::V4);
   }
+}
+
+inline IPAddress::IPAddress(const std::string& text, Family version) {
+  set(text, version);
 }
 
 inline IPAddress& IPAddress::operator=(const std::string& text) {
   // You should use regex to parse ipv6 :) ( http://home.deds.nl/~aeron/regex/ )
   if (text.find(':') != std::string::npos) {
-    set(text, AF_INET6);
+    set(text, Family::V6);
   } else {
-    set(text, AF_INET);
+    set(text, Family::V4);
   }
   return *this;
 }
@@ -133,9 +137,9 @@ inline IPAddress& IPAddress::operator=(const IPAddress& v) {
   return *this;
 }
 
-inline bool IPAddress::set(const std::string& text, int family) {
+inline bool IPAddress::set(const std::string& text, Family family) {
   family_ = family;
-  int rv = inet_pton(family, text.c_str(), buf_);
+  int rv = inet_pton(static_cast<int>(family), text.c_str(), buf_);
   if (rv <= 0) {
     if (rv < 0)
       perror("inet_pton");
@@ -157,42 +161,37 @@ inline bool IPAddress::set(const std::string& text, int family) {
 }
 
 inline void IPAddress::clear() {
-  family_ = 0;
+  family_ = Family::V4;
   cstr_[0] = 0;
   memset(buf_, 0, sizeof(buf_));
 }
 
-inline int IPAddress::family() const { return family_; }
+inline IPAddress::Family IPAddress::family() const {
+  return family_;
+}
 
-inline const void* IPAddress::data() const { return buf_; }
+inline const void* IPAddress::data() const {
+  return buf_;
+}
 
 inline size_t IPAddress::size() const {
-  return family_ == V4 ? sizeof(in_addr) : sizeof(in6_addr);
+  return family_ == Family::V4 ? sizeof(in_addr) : sizeof(in6_addr);
 }
 
 inline std::string IPAddress::str() const { return c_str(); }
 
 inline const char* IPAddress::c_str() const {
   if (*cstr_ == '\0') {
-    inet_ntop(family_, &buf_, cstr_, sizeof(cstr_));
+    inet_ntop(static_cast<int>(family_), &buf_, cstr_, sizeof(cstr_));
   }
   return cstr_;
 }
 
 inline bool operator==(const IPAddress& a, const IPAddress& b) {
-  if (&a == &b) return true;
+  if (&a == &b)
+    return true;
 
-  if (a.family() != b.family()) return false;
-
-  switch (a.family()) {
-    case AF_INET:
-    case AF_INET6:
-      return memcmp(a.data(), b.data(), a.size()) == 0;
-    default:
-      return false;
-  }
-
-  return false;
+  return a.family() == b.family() && memcmp(a.data(), b.data(), a.size()) == 0;
 }
 
 inline bool operator!=(const IPAddress& a, const IPAddress& b) {

@@ -120,27 +120,20 @@ HttpClient::HttpClient(Executor* executor,
                        Duration writeTimeout,
                        Duration keepAlive)
     : executor_{executor},
-      createEndPoint_{std::bind(&HttpClient::createTcpPlain, this,
-            upstream,
-            connectTimeout,
-            readTimeout,
-            writeTimeout)},
-      keepAlive_{keepAlive},
-      contexts_{} {
-}
-
-HttpClient::HttpClient(Executor* executor,
-                       CreateEndPoint endpointCreator,
-                       Duration keepAlive)
-    : executor_{executor},
-      createEndPoint_{endpointCreator},
+      address_{upstream},
+      connectTimeout_{connectTimeout},
+      readTimeout_{readTimeout},
+      writeTimeout_{writeTimeout},
       keepAlive_{keepAlive},
       contexts_{} {
 }
 
 HttpClient::HttpClient(HttpClient&& other)
-    : executor_{other.executor_},
-      createEndPoint_{std::move(other.createEndPoint_)},
+    : executor_{std::move(other.executor_)},
+      address_{std::move(other.address_)},
+      connectTimeout_{std::move(other.connectTimeout_)},
+      readTimeout_{std::move(other.readTimeout_)},
+      writeTimeout_{std::move(other.writeTimeout_)},
       keepAlive_{std::move(other.keepAlive_)},
       contexts_{} {
 }
@@ -153,49 +146,6 @@ static std::string extractServerNameFromHostHeader(const std::string& hostHeader
     return hostHeader;
   }
 }
-
-Future<std::shared_ptr<TcpEndPoint>> HttpClient::createTcpPlain(
-    InetAddress address,
-    Duration connectTimeout,
-    Duration readTimeout,
-    Duration writeTimeout) {
-  return TcpEndPoint::connect(address,
-                              connectTimeout,
-                              readTimeout,
-                              writeTimeout,
-                              executor_);
-}
-
-// Future<std::shared_ptr<TcpEndPoint>> HttpClient::createTcpSecure(
-//     InetAddress address,
-//     const std::string& sni,
-//     Duration connectTimeout,
-//     Duration readTimeout,
-//     Duration writeTimeout) {
-//   auto createApplicationConnection = [this](const std::string& protocolName,
-//                                             TcpEndPoint* endpoint) {
-//     // TODO: make use of protocolName
-//     endpoint->setConnection(std::make_unique<Http1Connection>(listener_,
-//                                                               endpoint,
-//                                                               executor_));
-//   };
-// 
-//   Promise<std::shared_ptr<TcpEndPoint>> promise;
-// 
-//   Future<std::shared_ptr<SslEndPoint>> f = SslEndPoint::connect(
-//       address,
-//       connectTimeout,
-//       readTimeout,
-//       writeTimeout,
-//       executor_,
-//       sni,
-//       {"http/1.1"},
-//       createApplicationConnection);
-// 
-//   f.onSuccess(promise);
-//   f.onFailure(promise);
-//   return promise.future();
-// }
 
 Future<HttpClient::Response> HttpClient::send(const std::string& method,
                                               const Uri& url,
@@ -212,26 +162,24 @@ Future<HttpClient::Response> HttpClient::send(const Request& request) {
   Promise<Response> promise;
 
   std::unique_ptr<Context> cx = std::make_unique<Context>(
-      executor_,
+      executor_, readTimeout_, writeTimeout_,
       std::bind(&HttpClient::releaseContext, this, std::placeholders::_1),
-      request,
-      std::make_unique<ResponseBuilder>(promise));
+      request, std::make_unique<ResponseBuilder>(promise));
 
   contexts_.emplace_back(std::move(cx));
-  contexts_.back()->execute(createEndPoint_);
+  contexts_.back()->execute(address_, connectTimeout_);
 
   return promise.future();
 }
 
 void HttpClient::send(const Request& request, HttpListener* responseListener) {
   std::unique_ptr<Context> cx = std::make_unique<Context>(
-      executor_,
+      executor_, readTimeout_, writeTimeout_,
       std::bind(&HttpClient::releaseContext, this, std::placeholders::_1),
-      request,
-      responseListener);
+      request, responseListener);
 
   contexts_.emplace_back(std::move(cx));
-  contexts_.back()->execute(createEndPoint_);
+  contexts_.back()->execute(address_, connectTimeout_);
 }
 
 void HttpClient::releaseContext(Context* ctx) {
@@ -246,48 +194,46 @@ void HttpClient::releaseContext(Context* ctx) {
 // --------------------------------------------------------------------------
 
 HttpClient::Context::Context(Executor* executor,
+                             Duration readTimeout,
+                             Duration writeTimeout,
                              std::function<void(Context*)> done,
                              const Request& req,
                              HttpListener* resp)
   : executor_{executor},
-    done_(done),
+    endpoint_(readTimeout, writeTimeout, executor, nullptr),
+    done_{done},
     request_{req},
     listener_{resp},
     ownedListener_{} {
 }
 
 HttpClient::Context::Context(Executor* executor,
+                             Duration readTimeout,
+                             Duration writeTimeout,
                              std::function<void(Context*)> done,
                              const Request& req,
                              std::unique_ptr<HttpListener> resp)
   : executor_{executor},
-    done_(done),
+    endpoint_(readTimeout, writeTimeout, executor, nullptr),
+    done_{done},
     request_{req},
     listener_{resp.get()},
-    ownedListener_{std::move(resp)},
-    endpoint_() {
+    ownedListener_{std::move(resp)} {
 }
 
-void HttpClient::Context::execute(CreateEndPoint createEndPoint) {
-  Future<std::shared_ptr<TcpEndPoint>> f = createEndPoint();
-
-  f.onSuccess(std::bind(&HttpClient::Context::onConnected,
-                        this, std::placeholders::_1));
-
-  f.onFailure([this](std::error_code ec) {
-    listener_->onError(ec);
-    done_(this);
-  });
+void HttpClient::Context::execute(const InetAddress& address, Duration connectTimeout) {
+  endpoint_.connect(
+      address,
+      connectTimeout,
+      [this]() { onConnected(); },
+      [this](std::error_code ec) { listener_->onError(ec); done_(this); });
 }
 
-void HttpClient::Context::onConnected(std::shared_ptr<TcpEndPoint> ep) {
-  endpoint_ = ep;
-
-  ep->setConnection(std::make_unique<Http1Connection>(
-        listener_, ep.get(), executor_));
+void HttpClient::Context::onConnected() {
+  endpoint_.setConnection(std::make_unique<Http1Connection>(listener_, &endpoint_, executor_));
 
   // dynamic_cast, as we're having most-likely multiple inheritance here
-  HttpTransport* channel = dynamic_cast<HttpTransport*>(ep->connection());
+  HttpTransport* channel = dynamic_cast<HttpTransport*>(endpoint_.connection());
   assert(channel != nullptr);
 
   channel->setListener(listener_);

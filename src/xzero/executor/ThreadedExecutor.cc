@@ -28,8 +28,8 @@
 namespace xzero {
 
 ThreadedExecutor::ThreadedExecutor(ExceptionHandler eh)
-    : Executor(eh),
-      threads_() {
+    : Executor{eh},
+      threads_{} {
 }
 
 ThreadedExecutor::~ThreadedExecutor() {
@@ -89,19 +89,15 @@ void ThreadedExecutor::execute(Task task) {
   execute(Application::appName(), task);
 }
 
-Executor::HandleRef ThreadedExecutor::executeOnReadable(int fd, Task task, Duration timeout, Task onTimeout) {
-  PosixScheduler::waitForReadable(fd, timeout);
+Executor::HandleRef ThreadedExecutor::executeOnReadable(const Socket& s, Task task, Duration timeout, Task onTimeout) {
+  PosixScheduler::waitForReadable(s, timeout);
   // TODO if (timedout) { onTimeout(); return; }
   task();
 
   return Executor::HandleRef(); // TODO
 }
 
-Executor::HandleRef ThreadedExecutor::executeOnWritable(int fd, Task task, Duration timeout, Task onTimeout) {
-  logFatal("NotImplementedError"); // TODO
-}
-
-void ThreadedExecutor::cancelFD(int fd) {
+Executor::HandleRef ThreadedExecutor::executeOnWritable(const Socket& s, Task task, Duration timeout, Task onTimeout) {
   logFatal("NotImplementedError"); // TODO
 }
 

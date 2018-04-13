@@ -41,9 +41,9 @@ void LocalExecutor::executeDeferredTasks() {
   }
 }
 
-Executor::HandleRef LocalExecutor::executeOnReadable(int fd, Task task, Duration timeout, Task onTimeout) {
+Executor::HandleRef LocalExecutor::executeOnReadable(const Socket& s, Task task, Duration timeout, Task onTimeout) {
   try {
-    PosixScheduler::waitForReadable(fd, timeout);
+    PosixScheduler::waitForReadable(s, timeout);
   } catch (...) {
     onTimeout();
     return nullptr;
@@ -52,19 +52,15 @@ Executor::HandleRef LocalExecutor::executeOnReadable(int fd, Task task, Duration
   return nullptr;
 }
 
-Executor::HandleRef LocalExecutor::executeOnWritable(int fd, Task task, Duration timeout, Task onTimeout) {
+Executor::HandleRef LocalExecutor::executeOnWritable(const Socket& s, Task task, Duration timeout, Task onTimeout) {
   try {
-    PosixScheduler::waitForWritable(fd, timeout);
+    PosixScheduler::waitForWritable(s, timeout);
   } catch (...) {
     onTimeout();
     return nullptr;
   }
   task();
   return nullptr;
-}
-
-void LocalExecutor::cancelFD(int fd) {
-  logFatal("NotImplementedError"); // TODO
 }
 
 Executor::HandleRef LocalExecutor::executeAfter(Duration delay, Task task) {

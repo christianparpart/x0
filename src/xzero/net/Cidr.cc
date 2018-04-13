@@ -14,7 +14,7 @@ namespace xzero {
 std::string Cidr::str() const {
   char result[INET6_ADDRSTRLEN + 32];
 
-  inet_ntop(ipaddr_.family(), ipaddr_.data(), result, sizeof(result));
+  inet_ntop(static_cast<int>(ipaddr_.family()), ipaddr_.data(), result, sizeof(result));
 
   size_t n = strlen(result);
   snprintf(result + n, sizeof(result) - n, "/%zu", prefix_);
@@ -26,7 +26,7 @@ bool Cidr::contains(const IPAddress& ipaddr) const {
   if (ipaddr.family() != address().family()) return false;
 
   // IPv4
-  if (ipaddr.family() == IPAddress::V4) {
+  if (ipaddr.family() == IPAddress::Family::V4) {
     uint32_t ip = *(uint32_t*)ipaddr.data();
     uint32_t subnet = *(uint32_t*)address().data();
     uint32_t match = ip & (0xFFFFFFFF >> (32 - prefix()));
@@ -54,21 +54,10 @@ bool Cidr::contains(const IPAddress& ipaddr) const {
 }
 
 bool operator==(const Cidr& a, const Cidr& b) {
-  if (&a == &b) return true;
+  if (&a == &b)
+    return true;
 
-  if (a.address().family() != b.address().family()) return false;
-
-  switch (a.address().family()) {
-    case AF_INET:
-    case AF_INET6:
-      return memcmp(a.address().data(), b.address().data(),
-                    a.address().size()) == 0 &&
-             a.prefix_ == b.prefix_;
-    default:
-      return false;
-  }
-
-  return false;
+  return a.prefix_ == b.prefix_ && a.ipaddr_ == b.ipaddr_;
 }
 
 bool operator!=(const Cidr& a, const Cidr& b) { return !(a == b); }

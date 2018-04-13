@@ -9,6 +9,7 @@
 
 #include <xzero/Api.h>
 #include <xzero/MonotonicTime.h>
+#include <xzero/PosixSignals.h>
 #include <xzero/executor/EventLoop.h>
 #include <xzero/io/FileDescriptor.h>
 #include <vector>
@@ -43,10 +44,13 @@ class LinuxScheduler : public EventLoop {
   std::string toString() const override;
   HandleRef executeAfter(Duration delay, Task task) override;
   HandleRef executeAt(UnixTime dt, Task task) override;
-  HandleRef executeOnReadable(int fd, Task task, Duration tmo, Task tcb) override;
-  HandleRef executeOnWritable(int fd, Task task, Duration tmo, Task tcb) override;
-  void cancelFD(int fd) override;
+  HandleRef executeOnSignal(int signo, SignalHandler handler) override;
+  HandleRef executeOnReadable(const Socket& s, Task task, Duration tmo, Task tcb) override;
+  HandleRef executeOnWritable(const Socket& s, Task task, Duration tmo, Task tcb) override;
   void executeOnWakeup(Task task, Wakeup* wakeup, long generation) override;
+
+  HandleRef executeOnReadable(int fd, Task task, Duration tmo, Task tcb);
+  HandleRef executeOnWritable(int fd, Task task, Duration tmo, Task tcb);
 
   void runLoop() override;
   void runLoopOnce() override;
@@ -152,6 +156,8 @@ class LinuxScheduler : public EventLoop {
 
   void collectTimeouts(std::list<Task>* result);
 
+  void onSignal();
+
  private:
   std::mutex lock_; //!< mutex, to protect access to tasks, timers
 
@@ -164,7 +170,14 @@ class LinuxScheduler : public EventLoop {
 
   FileDescriptor epollfd_;
   FileDescriptor eventfd_;
+
+  std::mutex signalLock_;
   FileDescriptor signalfd_;
+  sigset_t signalMask_;
+  std::atomic<size_t> signalInterests_;
+  class SignalWatcher;
+  std::vector<std::list<std::shared_ptr<SignalWatcher>>> signalWatchers_;
+
   MonotonicTime now_;
 
   std::vector<epoll_event> activeEvents_;
@@ -172,6 +185,23 @@ class LinuxScheduler : public EventLoop {
   std::atomic<size_t> readerCount_;
   std::atomic<size_t> writerCount_;
   std::atomic<size_t> breakLoopCounter_;
+};
+
+class LinuxScheduler::SignalWatcher : public Executor::Handle {
+ public:
+  using Task = Executor::Task;
+
+  explicit SignalWatcher(SignalHandler action)
+      : action_(action) {};
+
+  void fire() {
+    Executor::Handle::fire(std::bind(action_, info));
+  }
+
+  UnixSignalInfo info;
+
+ private:
+  SignalHandler action_;
 };
 
 } // namespace xzero

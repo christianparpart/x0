@@ -84,19 +84,18 @@ Daemon::Daemon()
       http1_(),
       configFilePath_(),
       config_(createDefaultConfig()),
-      signals_(),
       state_(DaemonState::Inactive) {
   // main event loop is always available
   eventLoops_.emplace_back(createEventLoop());
 
   // setup singal handling
-  signals_ = UnixSignals::create(eventLoops_[0].get());
-  signals_->notify(SIGHUP, std::bind(&Daemon::onConfigReloadSignal, this, std::placeholders::_1));
-  signals_->notify(SIGUSR1, std::bind(&Daemon::onCycleLogsSignal, this, std::placeholders::_1));
-  signals_->notify(SIGUSR2, std::bind(&Daemon::onUpgradeBinarySignal, this, std::placeholders::_1));
-  signals_->notify(SIGQUIT, std::bind(&Daemon::onGracefulShutdownSignal, this, std::placeholders::_1));
-  signals_->notify(SIGTERM, std::bind(&Daemon::onQuickShutdownSignal, this, std::placeholders::_1));
-  signals_->notify(SIGINT, std::bind(&Daemon::onQuickShutdownSignal, this, std::placeholders::_1));
+  mainEventLoop()->executeOnSignal(SIGHUP, [&](const auto& si) { onConfigReloadSignal(si); });
+  //mainEventLoop()->executeOnSignal(SIGHUP, std::bind(&Daemon::onConfigReloadSignal, this, std::placeholders::_1));
+  mainEventLoop()->executeOnSignal(SIGUSR1, std::bind(&Daemon::onCycleLogsSignal, this, std::placeholders::_1));
+  mainEventLoop()->executeOnSignal(SIGUSR2, std::bind(&Daemon::onUpgradeBinarySignal, this, std::placeholders::_1));
+  mainEventLoop()->executeOnSignal(SIGQUIT, std::bind(&Daemon::onGracefulShutdownSignal, this, std::placeholders::_1));
+  mainEventLoop()->executeOnSignal(SIGTERM, std::bind(&Daemon::onQuickShutdownSignal, this, std::placeholders::_1));
+  mainEventLoop()->executeOnSignal(SIGINT, std::bind(&Daemon::onQuickShutdownSignal, this, std::placeholders::_1));
 
   loadModule<AccessModule>();
   loadModule<AccesslogModule>();
@@ -598,7 +597,7 @@ void Daemon::setupConnector(
     }
   } else {
     T* connector = doSetupConnector<T>(
-        eventLoops_[0].get(),
+        mainEventLoop(),
         std::bind(&Daemon::selectClientExecutor, this),
         bindAddress, port, backlog,
         multiAcceptCount, reuseAddr, deferAccept, reusePort);
@@ -643,29 +642,29 @@ T* Daemon::doSetupConnector(
 
 void Daemon::onConfigReloadSignal(const xzero::UnixSignalInfo& info) {
   logNotice("Reloading configuration. (requested via {} by UID {} PID {})",
-            UnixSignals::toString(info.signal),
+            PosixSignals::toString(info.signal),
             info.uid.value_or(-1),
             info.pid.value_or(-1));
 
   /* reloadConfiguration(); */
 
-  signals_->notify(SIGHUP, std::bind(&Daemon::onConfigReloadSignal, this, std::placeholders::_1));
+  mainEventLoop()->executeOnSignal(SIGHUP, std::bind(&Daemon::onConfigReloadSignal, this, std::placeholders::_1));
 }
 
 void Daemon::onCycleLogsSignal(const xzero::UnixSignalInfo& info) {
   logNotice("Cycling logs. (requested via {} by UID {} PID {})",
-            UnixSignals::toString(info.signal),
+            PosixSignals::toString(info.signal),
             info.uid.value_or(-1),
             info.pid.value_or(-1));
 
   onCycleLogs();
 
-  signals_->notify(SIGUSR1, std::bind(&Daemon::onCycleLogsSignal, this, std::placeholders::_1));
+  mainEventLoop()->executeOnSignal(SIGUSR1, std::bind(&Daemon::onCycleLogsSignal, this, std::placeholders::_1));
 }
 
 void Daemon::onUpgradeBinarySignal(const UnixSignalInfo& info) {
   logNotice("Upgrading binary. (requested via {} by UID {} PID {})",
-            UnixSignals::toString(info.signal),
+            PosixSignals::toString(info.signal),
             info.uid.value_or(-1),
             info.pid.value_or(-1));
 
@@ -680,7 +679,7 @@ void Daemon::onUpgradeBinarySignal(const UnixSignalInfo& info) {
 
 void Daemon::onQuickShutdownSignal(const xzero::UnixSignalInfo& info) {
   logNotice("Initiating quick shutdown. (requested via {} by UID {} PID {})",
-            UnixSignals::toString(info.signal),
+            PosixSignals::toString(info.signal),
             info.uid.value_or(-1),
             info.pid.value_or(-1));
 
@@ -689,7 +688,7 @@ void Daemon::onQuickShutdownSignal(const xzero::UnixSignalInfo& info) {
 
 void Daemon::onGracefulShutdownSignal(const xzero::UnixSignalInfo& info) {
   logNotice("Initiating graceful shutdown. (requested via {} by UID {} PID {})",
-            UnixSignals::toString(info.signal),
+            PosixSignals::toString(info.signal),
             info.uid.value_or(-1),
             info.pid.value_or(-1));
 

@@ -8,6 +8,7 @@
 #pragma once
 
 #include <xzero/executor/EventLoop.h>
+#include <xzero/PosixSignals.h>
 #include <xzero/io/SystemPipe.h>
 #include <xzero/MonotonicTime.h>
 #include <xzero/sysconfig.h>
@@ -67,9 +68,8 @@ class PosixScheduler : public EventLoop {
   std::string toString() const override;
   HandleRef executeAfter(Duration delay, Task task) override;
   HandleRef executeAt(UnixTime dt, Task task) override;
-  HandleRef executeOnReadable(int fd, Task task, Duration tmo, Task tcb) override;
-  HandleRef executeOnWritable(int fd, Task task, Duration tmo, Task tcb) override;
-  void cancelFD(int fd) override;
+  HandleRef executeOnReadable(const Socket& s, Task task, Duration tmo, Task tcb) override;
+  HandleRef executeOnWritable(const Socket& s, Task task, Duration tmo, Task tcb) override;
   void executeOnWakeup(Task task, Wakeup* wakeup, long generation) override;
 
   void runLoop() override;
@@ -81,22 +81,22 @@ class PosixScheduler : public EventLoop {
   /**
    * Waits at most @p timeout for @p fd to become readable without blocking.
    */
-  static void waitForReadable(int fd, Duration timeout);
+  static void waitForReadable(const Socket& s, Duration timeout);
 
   /**
    * Waits until given @p fd becomes readable without blocking.
    */
-  static void waitForReadable(int fd);
+  static void waitForReadable(const Socket& s);
 
   /**
    * Waits at most @p timeout for @p fd to become writable without blocking.
    */
-  static void waitForWritable(int fd, Duration timeout);
+  static void waitForWritable(const Socket& s, Duration timeout);
 
   /**
    * Waits until given @p fd becomes writable without blocking.
    */
-  static void waitForWritable(int fd);
+  static void waitForWritable(const Socket& s);
 
  public:
   enum class Mode { READABLE, WRITABLE };
@@ -216,10 +216,7 @@ class PosixScheduler : public EventLoop {
   friend std::string inspect(const PosixScheduler&);
 
  private:
-  /**
-   * mutex, to protect access to tasks, timers
-   */
-  std::mutex lock_;
+  std::mutex lock_;                 //!< mutex, to protect access to tasks, timers
 
   SystemPipe wakeupPipe_;           //!< system pipe, used to wakeup the waiting syscall
 

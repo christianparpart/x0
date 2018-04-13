@@ -6,7 +6,7 @@
 // the License at: http://opensource.org/licenses/MIT
 
 #include <xzero/executor/PosixScheduler.h>
-#include <xzero/io/SystemPipe.h>
+#include <xzero/net/SocketPair.h>
 #include <xzero/MonotonicTime.h>
 #include <xzero/MonotonicClock.h>
 #include <xzero/Application.h>
@@ -31,8 +31,8 @@ using TheScheduler = PosixScheduler;
  */
 TEST(PosixScheduler, timeoutBreak) {
   TheScheduler scheduler;
-  SystemPipe a;
-  SystemPipe b;
+  SocketPair a;
+  SocketPair b;
   MonotonicTime start = MonotonicClock::now();
   MonotonicTime a_fired_at;
   MonotonicTime b_fired_at;
@@ -47,9 +47,9 @@ TEST(PosixScheduler, timeoutBreak) {
   auto b_timeout = [&]() { b_timeout_at = MonotonicClock::now();
                            logTrace("b_timeout_at: {}", b_timeout_at - start); };
 
-  scheduler.executeOnReadable(a.readerFd(), a_fired,
+  scheduler.executeOnReadable(a.left(), a_fired,
                               500_milliseconds, a_timeout);
-  scheduler.executeOnReadable(b.readerFd(), b_fired,
+  scheduler.executeOnReadable(b.left(), b_fired,
                               100_milliseconds, b_timeout);
 
   scheduler.runLoop();
@@ -141,14 +141,14 @@ TEST(PosixScheduler, executeOnReadable) {
 
   TheScheduler sched;
 
-  SystemPipe pipe;
+  SocketPair pair;
   int fireCount = 0;
   int timeoutCount = 0;
 
-  pipe.write("blurb");
+  pair.right().write("blurb", 5);
 
   auto handle = sched.executeOnReadable(
-      pipe.readerFd(),
+      pair.left(),
       [&] { fireCount++; },
       Duration::Zero,
       [&] { timeoutCount++; } );
@@ -164,14 +164,14 @@ TEST(PosixScheduler, executeOnReadable) {
 
 TEST(PosixScheduler, executeOnReadable_timeout) {
   TheScheduler sched;
-  SystemPipe pipe;
+  SocketPair pair;
 
   int fireCount = 0;
   int timeoutCount = 0;
   auto onFire = [&] { fireCount++; };
   auto onTimeout = [&] { timeoutCount++; };
 
-  sched.executeOnReadable(pipe.readerFd(), onFire, 500_milliseconds, onTimeout);
+  sched.executeOnReadable(pair.left(), onFire, 500_milliseconds, onTimeout);
   sched.runLoop();
 
   EXPECT_EQ(0, fireCount);
@@ -180,7 +180,7 @@ TEST(PosixScheduler, executeOnReadable_timeout) {
 
 TEST(PosixScheduler, executeOnReadable_timeout_on_cancelled) {
   TheScheduler sched;
-  SystemPipe pipe;
+  SocketPair pair;
 
   int fireCount = 0;
   int timeoutCount = 0;
@@ -190,7 +190,7 @@ TEST(PosixScheduler, executeOnReadable_timeout_on_cancelled) {
     timeoutCount++; };
 
   auto handle = sched.executeOnReadable(
-      pipe.readerFd(), onFire, 500_milliseconds, onTimeout);
+      pair.left(), onFire, 500_milliseconds, onTimeout);
 
   handle->cancel();
   sched.runLoopOnce();
@@ -207,29 +207,29 @@ TEST(PosixScheduler, executeOnReadable_timeout_on_cancelled) {
 
 // TEST(PosixScheduler, executeOnReadable_twice_on_same_fd) {
 //   TheScheduler sched;
-//   SystemPipe pipe;
+//   SocketPair pair;
 // 
-//   sched.executeOnReadable(pipe.readerFd(), [] () {});
+//   sched.executeOnReadable(pair.left(), [] () {});
 // 
 //   EXPECT_THROW_STATUS(AlreadyWatchingOnResource,
-//                       sched.executeOnReadable(pipe.readerFd(), [] () {}));
+//                       sched.executeOnReadable(pair.left(), [] () {}));
 // 
 //   // same fd, different mode
 //   EXPECT_THROW_STATUS(AlreadyWatchingOnResource,
-//                       sched.executeOnWritable(pipe.readerFd(), [] () {}));
+//                       sched.executeOnWritable(pair.left(), [] () {}));
 // }
 
 TEST(PosixScheduler, executeOnWritable) {
   TheScheduler sched;
 
-  SystemPipe pipe;
+  SocketPair pair;
   int fireCount = 0;
   int timeoutCount = 0;
   const Duration timeout = 1_seconds;
   const auto onFire = [&]() { fireCount++; };
   const auto onTimeout = [&]() { timeoutCount++; };
 
-  sched.executeOnWritable(pipe.writerFd(), onFire, timeout, onTimeout);
+  sched.executeOnWritable(pair.right(), onFire, timeout, onTimeout);
 
   EXPECT_EQ(0, fireCount);
   EXPECT_EQ(0, timeoutCount);
@@ -242,27 +242,28 @@ TEST(PosixScheduler, executeOnWritable) {
 
 TEST(PosixScheduler, executeOnWritable_timeout) {
   TheScheduler sched;
-  SystemPipe pipe;
+  SocketPair pair{SocketPair::NonBlocking};
 
-  // fill pipe first
-  FileUtil::setBlocking(pipe.writerFd(), false);
-  for (unsigned long long n = 0;;) {
-    static const char buf[1024] = {0};
-    int rv = ::write(pipe.writerFd(), buf, sizeof(buf));
+  // fill pair first
+  logf("Filling RHS");
+  unsigned long long n = 0;
+  for (;;) {
+    static const char buf[4096] = {0};
+    int rv = ::write(pair.right(), buf, sizeof(buf));
     if (rv > 0) {
       n += rv;
     } else {
-      logf("Filled pipe with {} bytes", n);
       break;
     }
   }
+  logf("Filled pair.right with {} bytes", n);
 
   int fireCount = 0;
   int timeoutCount = 0;
   auto onFire = [&] { fireCount++; };
   auto onTimeout = [&] { timeoutCount++; };
 
-  sched.executeOnWritable(pipe.writerFd(), onFire, 500_milliseconds, onTimeout);
+  sched.executeOnWritable(pair.right(), onFire, 500_milliseconds, onTimeout);
   sched.runLoop();
 
   EXPECT_EQ(0, fireCount);
@@ -271,17 +272,17 @@ TEST(PosixScheduler, executeOnWritable_timeout) {
 
 TEST(PosixScheduler, executeOnWritable_timeout_on_cancelled) {
   TheScheduler sched;
-  SystemPipe pipe;
+  SocketPair pair;
 
-  // fill pipe first
-  FileUtil::setBlocking(pipe.writerFd(), false);
+  // fill pair first
+  FileUtil::setBlocking(pair.right(), false);
   for (unsigned long long n = 0;;) {
     static const char buf[1024] = {0};
-    int rv = ::write(pipe.writerFd(), buf, sizeof(buf));
+    int rv = ::write(pair.right(), buf, sizeof(buf));
     if (rv > 0) {
       n += rv;
     } else {
-      logf("Filled pipe with {} bytes", n);
+      logf("Filled pair with {} bytes", n);
       break;
     }
   }
@@ -294,21 +295,13 @@ TEST(PosixScheduler, executeOnWritable_timeout_on_cancelled) {
     timeoutCount++; };
 
   auto handle = sched.executeOnWritable(
-      pipe.writerFd(), onFire, 500_milliseconds, onTimeout);
+      pair.right(), onFire, 500_milliseconds, onTimeout);
 
   handle->cancel();
   sched.runLoopOnce();
 
   EXPECT_EQ(0, fireCount);
   EXPECT_EQ(0, timeoutCount);
-}
-
-TEST(PosixScheduler, cancelFD) {
-  TheScheduler sched;
-  SystemPipe pipe;
-  auto handle = sched.executeOnReadable(pipe.readerFd(), [](){});
-  sched.cancelFD(pipe.readerFd());
-  EXPECT_TRUE(handle->isCancelled());
 }
 
 // TEST(PosixScheduler, waitForReadable) {
