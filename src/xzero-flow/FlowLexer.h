@@ -10,6 +10,7 @@
 #include <xzero/defines.h>
 #include <xzero-flow/SourceLocation.h>
 #include <xzero-flow/FlowToken.h>
+#include <xzero-flow/LiteralType.h>
 #include <xzero/net/IPAddress.h>
 #include <xzero/net/Cidr.h>
 
