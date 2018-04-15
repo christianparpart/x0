@@ -104,7 +104,7 @@ std::optional<InetAddress> TcpEndPoint::localAddress() const {
   }
 }
 
-bool TcpEndPoint::isOpen() const XZERO_NOEXCEPT {
+bool TcpEndPoint::isOpen() const noexcept {
   return socket_.valid();
 }
 

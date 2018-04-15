@@ -177,7 +177,7 @@ void TcpConnector::listen(int backlog) {
     RAISE_ERRNO(errno);
 }
 
-bool TcpConnector::isOpen() const XZERO_NOEXCEPT {
+bool TcpConnector::isOpen() const noexcept {
   return socket_ >= 0;
 }
 
@@ -187,11 +187,11 @@ TcpConnector::~TcpConnector() {
   }
 }
 
-int TcpConnector::handle() const XZERO_NOEXCEPT {
+int TcpConnector::handle() const noexcept {
   return socket_;
 }
 
-size_t TcpConnector::backlog() const XZERO_NOEXCEPT {
+size_t TcpConnector::backlog() const noexcept {
   return backlog_;
 }
 
@@ -381,11 +381,11 @@ void TcpConnector::setReuseAddr(bool enable) {
   }
 }
 
-size_t TcpConnector::multiAcceptCount() const XZERO_NOEXCEPT {
+size_t TcpConnector::multiAcceptCount() const noexcept {
   return multiAcceptCount_;
 }
 
-void TcpConnector::setMultiAcceptCount(size_t value) XZERO_NOEXCEPT {
+void TcpConnector::setMultiAcceptCount(size_t value) noexcept {
   multiAcceptCount_ = value;
 }
 
@@ -427,7 +427,7 @@ void TcpConnector::notifyOnEvent() {
       std::bind(&TcpConnector::onConnect, this));
 }
 
-bool TcpConnector::isStarted() const XZERO_NOEXCEPT {
+bool TcpConnector::isStarted() const noexcept {
   return isStarted_;
 }
 

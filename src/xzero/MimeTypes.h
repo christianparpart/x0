@@ -25,7 +25,7 @@ class MimeTypes {
   void loadFromString(const std::string& value);
 
   /** Retrieves the default mimetype. */
-  const std::string& defaultMimeType() const XZERO_NOEXCEPT;
+  const std::string& defaultMimeType() const noexcept;
 
   /** Sets the default mimetype to given @p value. */
   void setDefaultMimeType(const std::string& value);
@@ -49,7 +49,7 @@ class MimeTypes {
   void load(const std::unordered_map<std::string, std::string>& entries);
 
   /** Retrieves the mimetype mappings (from file extension to mimetype). */
-  const std::unordered_map<std::string, std::string>& mimetypes() const XZERO_NOEXCEPT;
+  const std::unordered_map<std::string, std::string>& mimetypes() const noexcept;
 
  private:
   std::unordered_map<std::string, std::string> mimetypes_;
@@ -58,11 +58,11 @@ class MimeTypes {
 
 // {{{ inlines
 inline const std::unordered_map<std::string, std::string>&
-    MimeTypes::mimetypes() const XZERO_NOEXCEPT {
+    MimeTypes::mimetypes() const noexcept {
   return mimetypes_;
 }
 
-inline const std::string& MimeTypes::defaultMimeType() const XZERO_NOEXCEPT {
+inline const std::string& MimeTypes::defaultMimeType() const noexcept {
   return defaultMimeType_;
 }
 
