@@ -19,11 +19,17 @@
 #include <fstream>
 #include <ctime>
 #include <sys/stat.h>
-#include <sys/mman.h>
 #include <sys/types.h>
 #include <fcntl.h>
-#include <unistd.h>
 #include <errno.h>
+
+#if defined(XZERO_OS_UNIX)
+#include <sys/mman.h>
+#include <unistd.h>
+#endif
+
+#if defined(XZERO_OS_WINDOWS)
+#endif
 
 namespace xzero {
 
@@ -59,6 +65,7 @@ MemoryFile::MemoryFile(
       etag_(std::to_string(data.hash())),
       fspath_(),
       fd_(-1) {
+#if defined(XZERO_OS_UNIX)
 #if defined(XZERO_MEMORYFILE_USE_TMPFILE)
   fspath_ = FileUtil::joinPaths(FileUtil::tempDirectory(), "memfile.XXXXXXXX");
 
@@ -94,9 +101,15 @@ MemoryFile::MemoryFile(
 
   if (static_cast<size_t>(n) != data.size())
     RAISE_ERRNO(EIO);
+#elif defined(XZERO_OS_WINDOWS)
+#error "TODO"
+#else
+#error "Not Implemented"
+#endif
 }
 
 MemoryFile::~MemoryFile() {
+#if defined(XZERO_OS_UNIX)
 #if defined(XZERO_MEMORYFILE_USE_TMPFILE)
   if (fd_ >= 0) {
     FileUtil::close(fd_);
@@ -104,33 +117,38 @@ MemoryFile::~MemoryFile() {
 #else
   shm_unlink(fspath_.c_str());
 #endif
+#elif defined(XZERO_OS_WINDOWS)
+  // TODO
+#else
+#error "Not Implemented"
+#endif
 }
 
 const std::string& MemoryFile::etag() const {
   return etag_;
 }
 
-size_t MemoryFile::size() const XZERO_NOEXCEPT {
+size_t MemoryFile::size() const noexcept {
   return size_;
 }
 
-time_t MemoryFile::mtime() const XZERO_NOEXCEPT {
+time_t MemoryFile::mtime() const noexcept {
   return mtime_;
 }
 
-size_t MemoryFile::inode() const XZERO_NOEXCEPT {
+size_t MemoryFile::inode() const noexcept {
   return inode_;
 }
 
-bool MemoryFile::isRegular() const XZERO_NOEXCEPT {
+bool MemoryFile::isRegular() const noexcept {
   return true;
 }
 
-bool MemoryFile::isDirectory() const XZERO_NOEXCEPT {
+bool MemoryFile::isDirectory() const noexcept {
   return false;
 }
 
-bool MemoryFile::isExecutable() const XZERO_NOEXCEPT {
+bool MemoryFile::isExecutable() const noexcept {
   return false;
 }
 

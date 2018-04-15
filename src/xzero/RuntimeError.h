@@ -33,7 +33,7 @@ class RuntimeError : public std::system_error {
   template<typename T = RuntimeError>
   T setSource(const char* file, int line, const char* fn);
   const char* sourceFile() const { return sourceFile_; }
-  int sourceLine() const XZERO_NOEXCEPT { return sourceLine_; }
+  int sourceLine() const noexcept { return sourceLine_; }
   const char* functionName() const { return functionName_; }
 
   // XXX for backwards-compatibility only

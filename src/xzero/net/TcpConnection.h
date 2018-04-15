@@ -38,12 +38,12 @@ class TcpConnection {
   /**
    * Retrieves the corresponding endpoint for this connection.
    */
-  TcpEndPoint* endpoint() const XZERO_NOEXCEPT;
+  TcpEndPoint* endpoint() const noexcept;
 
   /**
    * Retrieves the Executor that may be used for handling this connection.
    */
-  Executor* executor() const XZERO_NOEXCEPT;
+  Executor* executor() const noexcept;
 
   /**
    * Closes the underlying endpoint.
@@ -101,11 +101,11 @@ class TcpConnection {
   Executor* executor_;
 };
 
-inline TcpEndPoint* TcpConnection::endpoint() const XZERO_NOEXCEPT {
+inline TcpEndPoint* TcpConnection::endpoint() const noexcept {
   return endpoint_;
 }
 
-inline Executor* TcpConnection::executor() const XZERO_NOEXCEPT {
+inline Executor* TcpConnection::executor() const noexcept {
   return executor_;
 }
 

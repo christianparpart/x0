@@ -142,6 +142,4 @@ typedef SSIZE_T ssize_t;
 /// the filename only part of __FILE__ (no leading path)
 #define __FILENAME__ ((std::strrchr(__FILE__, '/') ?: __FILE__ - 1) + 1)
 
-#define XZERO_NOEXCEPT noexcept
-
 #endif
