@@ -89,18 +89,17 @@ void Parser::parseVoteRequest() {
   Index lastLogIndex = static_cast<Index>(reader_.parseVarUInt());
   Term lastLogTerm = static_cast<Term>(reader_.parseVarUInt());
 
-  listener_->receive(VoteRequest{ .term = term,
-                                  .candidateId = candidateId,
-                                  .lastLogIndex = lastLogIndex,
-                                  .lastLogTerm = lastLogTerm });
+  listener_->receive(VoteRequest{term,
+                                 candidateId,
+                                 lastLogIndex,
+                                 lastLogTerm});
 }
 
 void Parser::parseVoteResponse() {
   Term term = static_cast<Term>(reader_.parseVarUInt());
   bool voteGranted = static_cast<bool>(reader_.parseVarUInt());
 
-  listener_->receive(VoteResponse{ .term = term,
-                                   .voteGranted = voteGranted });
+  listener_->receive(VoteResponse{ term, voteGranted });
 }
 
 void Parser::parseAppendEntriesRequest() {

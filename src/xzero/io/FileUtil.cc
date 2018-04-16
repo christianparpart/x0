@@ -28,7 +28,7 @@
 #include <experimental/filesystem>
 namespace fs = std::experimental::filesystem;
 
-#if defined(XZERO_OS_WIN32)
+#if defined(XZERO_OS_WINDOWS)
 #include <io.h>
 //static inline int lseek(int fd, long offset, int origin) { return _lseek(fd, offset, origin); }
 static inline int read(int fd, void* buf, unsigned count) { return _read(fd, buf, count); }
@@ -127,9 +127,14 @@ std::string FileUtil::joinPaths(const std::string& base,
 }
 
 void FileUtil::seek(int fd, off_t offset) {
+#if defined(XZERO_OS_WINDOWS)
+  if (_lseek(fd, offset, SEEK_SET) < 0)
+    RAISE_ERRNO(errno);
+#else
   off_t rv = ::lseek(fd, offset, SEEK_SET);
   if (rv == (off_t) -1)
     RAISE_ERRNO(errno);
+#endif
 }
 
 size_t FileUtil::read(int fd, Buffer* output) {
@@ -307,8 +312,12 @@ void FileUtil::copy(const std::string& from, const std::string& to) {
 }
 
 void FileUtil::truncate(const std::string& path, size_t size) {
+#if defined(HAVE_TRUNCATE)
   if (::truncate(path.c_str(), size) < 0)
     RAISE_ERRNO(errno);
+#else
+  RAISE_ERRNO(ENOTSUP);
+#endif
 }
 
 std::string FileUtil::dirname(const std::string& path) {
@@ -431,6 +440,19 @@ inline int createTempFileAt_linux(const std::string& basedir, std::string* resul
 #endif
 
 inline int createTempFileAt_default(const std::string& basedir, std::string* result) {
+#if defined(XZERO_OS_WINDOWS)
+  std::string pattern = FileUtil::joinPaths(basedir, "XXXXXXXX.tmp");
+  int fd = _mktemp_s(const_cast<char*>(pattern.c_str()), 4);
+
+  if (fd < 0)
+    RAISE_ERRNO(errno);
+
+  if (result)
+    *result = std::move(pattern);
+  else
+    FileUtil::rm(pattern);
+
+  return fd;
 #if defined(HAVE_MKOSTEMPS)
   std::string pattern = joinPaths(basedir, "XXXXXXXX.tmp");
   int flags = O_CLOEXEC;
@@ -496,62 +518,6 @@ std::string FileUtil::tempDirectory() {
     return s;
 
   return "/tmp";
-}
-
-void FileUtil::allocate(int fd, size_t length) {
-  if (ftruncate(fd, length) < 0)
-    RAISE_ERRNO(errno);
-}
-
-void FileUtil::preallocate(int fd, off_t offset, size_t length) {
-#if defined(FALLOC_FL_KEEP_SIZE)
-  const int mode = FALLOC_FL_KEEP_SIZE;
-  if (fallocate(fd, mode, offset, length) < 0)
-    RAISE_ERRNO(errno);
-#else
-  // ignoring is fine
-#endif
-}
-
-void FileUtil::deallocate(int fd, off_t offset, size_t length) {
-#if defined(FALLOC_FL_PUNCH_HOLE) && defined(FALLOC_FL_KEEP_SIZE)
-  const int mode = FALLOC_FL_PUNCH_HOLE | FALLOC_FL_KEEP_SIZE;
-  if (fallocate(fd, mode, offset, length) < 0)
-    RAISE_ERRNO(errno);
-#else
-  // we cannot release the underlying pages, but we can at least conform to
-  // filling with zeroes
-  const size_t pagesize = 4 * 4096;
-  Buffer zeroes;
-  zeroes.push_back('\0', pagesize);
-
-  while (length > pagesize) {
-    if (::pwrite(fd, zeroes.data(), pagesize, offset) < 0)
-      RAISE_ERRNO(errno);
-
-    offset += pagesize;
-    length -= pagesize;
-  }
-
-  if (::pwrite(fd, zeroes.data(), length, offset) < 0)
-    RAISE_ERRNO(errno);
-#endif
-}
-
-void FileUtil::collapse(int fd, off_t offset, size_t length) {
-#if defined(FALLOC_FL_COLLAPSE_RANGE)
-  const int mode = FALLOC_FL_COLLAPSE_RANGE;
-  if (fallocate(fd, mode, offset, length) < 0)
-    RAISE_ERRNO(errno);
-#else
-  // TODO: implement in userspace by copy+truncate
-  RAISE_STATUS(NotImplementedError);
-#endif
-}
-
-void FileUtil::truncate(int fd, size_t length) {
-  if (ftruncate(fd, length) < 0)
-    RAISE_ERRNO(errno);
 }
 
 void FileUtil::close(int fd) {
