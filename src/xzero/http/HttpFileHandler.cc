@@ -110,10 +110,15 @@ HttpStatus HttpFileHandler::handle(HttpRequest* request,
   if (request->method() == HttpMethod::GET) {
     fd = transferFile->createPosixChannel(File::Read | File::NonBlocking);
     if (fd < 0) {
-      if (errno != EPERM && errno != EACCES)
-        RAISE_ERRNO(errno);
-
-      return HttpStatus::Forbidden;
+      switch (errno) {
+        case EPERM:
+        case EACCES:
+          return HttpStatus::Forbidden;
+        case ENOSYS:
+          // TODO: in that case we're prjobably on MemoryFile and we need to read differently
+        default:
+          RAISE_ERRNO(errno);
+      }
     }
   } else if (request->method() != HttpMethod::HEAD) {
     return HttpStatus::MethodNotAllowed;
