@@ -23,6 +23,10 @@
 #include <fcntl.h>
 #include <errno.h>
 
+#if defined(HAVE_SYS_SENDFILE_H)
+#include <sys/sendfile.h>
+#endif
+
 #if defined(XZERO_OS_UNIX)
 #include <netinet/tcp.h>
 #include <unistd.h>
@@ -132,7 +136,7 @@ void TcpEndPoint::setCorking(bool enable) {
   if (isCorking_ != enable) {
 #if defined(TCP_CORK)
     int flag = enable ? 1 : 0;
-    if (setsockopt(fd, IPPROTO_TCP, TCP_CORK, &flag, sizeof(flag)) < 0)
+    if (setsockopt(socket_, IPPROTO_TCP, TCP_CORK, &flag, sizeof(flag)) < 0)
       RAISE_ERRNO(errno);
 #endif
     isCorking_ = enable;
