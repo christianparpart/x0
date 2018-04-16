@@ -131,6 +131,8 @@ inline RuntimeError::RuntimeError(const std::error_code& ec)
   RAISE_CATEGORY(errno, std::system_category());                              \
 }
 
+// TODO(Windows): make it more human readable (convert error code to text message)
+#define RAISE_WSA_ERROR(ec) throw std::runtime_error(fmt::format("WSA error {}", ec));
 
 /**
  * Raises an exception of given operating system error code with custom message.

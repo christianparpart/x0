@@ -23,16 +23,24 @@
 #include <stdexcept>
 #include <system_error>
 
+#include <sys/types.h>
+#include <fcntl.h>
+#include <errno.h>
+#include <assert.h>
+
+#if defined(XZERO_OS_WINDOWS)
+#include <io.h>
+#include <WinSock2.h>
+#endif
+
+#if defined(XZERO_OS_UNIX)
 #include <netinet/tcp.h>
 #include <arpa/inet.h>
-#include <sys/types.h>
 #include <sys/socket.h>
 #include <sys/un.h>
 #include <netdb.h>
-#include <fcntl.h>
-#include <errno.h>
 #include <unistd.h>
-#include <assert.h>
+#endif
 
 #if defined(SD_FOUND)
 #include <systemd/sd-daemon.h>
@@ -203,19 +211,13 @@ void TcpConnector::setBacklog(size_t value) {
   backlog_ = value;
 }
 
-bool TcpConnector::isBlocking() const {
-  return !(fcntl(socket_, F_GETFL) & O_NONBLOCK);
-}
-
 void TcpConnector::setBlocking(bool enable) {
-  unsigned flags = enable ? fcntl(socket_, F_GETFL) & ~O_NONBLOCK
-                          : fcntl(socket_, F_GETFL) | O_NONBLOCK;
+  socket_.setBlocking(enable);
+  blocking_ = enable;
 
-  if (fcntl(socket_, F_SETFL, flags) < 0) {
-    RAISE_ERRNO(errno);
-  }
-
-#if defined(HAVE_ACCEPT4) && defined(ENABLE_ACCEPT4)
+#if defined(XZERO_OS_WINDOWS)
+  /* */
+#elif defined(HAVE_ACCEPT4) && defined(ENABLE_ACCEPT4)
   if (enable) {
     typeMask_ &= ~SOCK_NONBLOCK;
   } else {
@@ -228,14 +230,12 @@ void TcpConnector::setBlocking(bool enable) {
     flags_ |= O_NONBLOCK;
   }
 #endif
-  blocking_ = enable;
-}
-
-bool TcpConnector::closeOnExec() const {
-  return fcntl(socket_, F_GETFD) & FD_CLOEXEC;
 }
 
 void TcpConnector::setCloseOnExec(bool enable) {
+#if defined(XZERO_OS_WINDOWS)
+  /* */
+#else
   unsigned flags = enable ? fcntl(socket_, F_GETFD) | FD_CLOEXEC
                           : fcntl(socket_, F_GETFD) & ~FD_CLOEXEC;
 
@@ -255,6 +255,7 @@ void TcpConnector::setCloseOnExec(bool enable) {
   } else {
     flags_ &= ~O_CLOEXEC;
   }
+#endif
 #endif
 }
 
@@ -482,23 +483,30 @@ std::optional<Socket> TcpConnector::acceptOne() {
 
   if (cfd < 0) {
     switch (errno) {
-      case EINTR:
-      case EAGAIN:
+    case EINTR:
+    case EAGAIN:
 #if EAGAIN != EWOULDBLOCK
-      case EWOULDBLOCK:
+    case EWOULDBLOCK:
 #endif
-        return std::nullopt;
-      default:
-        RAISE_ERRNO(errno);
+      return std::nullopt;
+    default:
+      RAISE_ERRNO(errno);
     }
   }
 
-  if (!flagged && flags_ && fcntl(cfd, F_SETFL, fcntl(cfd, F_GETFL) | flags_) < 0)
-    RAISE_ERRNO(errno);
-
   TcpUtil::setLingering(cfd, tcpFinTimeout_);
 
-  return Socket::make_socket(std::move(cfd), addressFamily());
+  Socket cs = Socket::make_socket(std::move(cfd), addressFamily());
+
+#if defined(XZERO_OS_UNIX)
+  if (!flagged && flags_ && fcntl(cfd, F_SETFL, fcntl(cfd, F_GETFL) | flags_) < 0)
+    RAISE_ERRNO(errno);
+#elif defined(XZERO_OS_WINDOWS)
+  if (!blocking_) {
+    cs.setBlocking(blocking_);
+  }
+  // XXX O_CLOEXEC
+#endif
 }
 
 std::shared_ptr<TcpEndPoint> TcpConnector::createEndPoint(Socket&& cfd, Executor* executor) {

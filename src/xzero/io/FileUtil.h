@@ -56,8 +56,7 @@ class FileUtil {
   static void truncate(const std::string& path, size_t size);
   static std::string dirname(const std::string& path);
   static std::string basename(const std::string& path);
-  static void mkdir(const std::string& path, int mode = 0775);
-  static void mkdir_p(const std::string& path, int mode = 0775);
+  static void mkdir_p(const std::string& path);
   static void rm(const std::string& path);
   static void mv(const std::string& path, const std::string& target);
   static void chown(const std::string& path,

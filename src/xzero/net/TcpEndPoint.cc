@@ -122,17 +122,8 @@ void TcpEndPoint::setConnection(std::unique_ptr<TcpConnection>&& c) {
   connection_ = std::move(c);
 }
 
-bool TcpEndPoint::isBlocking() const {
-  return !(fcntl(socket_, F_GETFL) & O_NONBLOCK);
-}
-
 void TcpEndPoint::setBlocking(bool enable) {
-  unsigned flags = enable ? fcntl(fd, F_GETFL) & ~O_NONBLOCK
-                          : fcntl(fd, F_GETFL) | O_NONBLOCK;
-
-  if (fcntl(fd, F_SETFL, flags) < 0) {
-    RAISE_ERRNO(errno);
-  }
+  socket_.setBlocking(enable);
 }
 
 bool TcpEndPoint::isCorking() const {
