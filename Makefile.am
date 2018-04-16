@@ -140,7 +140,6 @@ libXzero_a_SOURCES = \
 	src/xzero/io/LocalFileRepository.cc \
 	src/xzero/io/MemoryFile.cc \
 	src/xzero/io/MemoryFileRepository.cc \
-	src/xzero/io/MemoryMap.cc \
 	src/xzero/io/SystemPipe.cc \
 	src/xzero/logging.cc \
 	src/xzero/net/Cidr.cc \
@@ -334,7 +333,6 @@ nobase_libXzero_HEADERS = \
 	src/xzero/io/LocalFileRepository.h \
 	src/xzero/io/MemoryFile.h \
 	src/xzero/io/MemoryFileRepository.h \
-	src/xzero/io/MemoryMap.h \
 	src/xzero/io/SystemPipe.h \
 	src/xzero/logging.h \
 	src/xzero/net/Cidr.h \
@@ -547,7 +545,6 @@ xzero_test_SOURCES = \
 	src/xzero/http/http2/Stream-test.cc \
 	src/xzero/io/DataChain-test.cc \
 	src/xzero/io/MemoryFile-test.cc \
-	src/xzero/io/MemoryMap-test.cc \
 	src/xzero/net/Cidr-test.cc \
 	src/xzero/net/TcpConnector-test.cc \
 	src/xzero/raft/Generator-test.cc \

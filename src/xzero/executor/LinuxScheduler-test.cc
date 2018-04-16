@@ -7,6 +7,7 @@
 
 #include <xzero/executor/LinuxScheduler.h>
 #include <xzero/io/SystemPipe.h>
+#include <xzero/net/SocketPair.h>
 #include <xzero/MonotonicTime.h>
 #include <xzero/MonotonicClock.h>
 #include <xzero/Application.h>
@@ -289,7 +290,7 @@ TEST(LinuxScheduler, executeOnWritable_timeout) {
   auto onFire = [&] { fireCount++; };
   auto onTimeout = [&] { timeoutCount++; };
 
-  sched.executeOnWritable(pipe.writerFd(), onFire, 500_milliseconds, onTimeout);
+  sched.executeOnWritable(pair.right(), onFire, 500_milliseconds, onTimeout);
   sched.runLoop();
 
   EXPECT_EQ(0, fireCount);
@@ -298,13 +299,12 @@ TEST(LinuxScheduler, executeOnWritable_timeout) {
 
 TEST(LinuxScheduler, executeOnWritable_timeout_on_cancelled) {
   TheScheduler sched;
-  SystemPipe pipe;
+  SocketPair pair{SocketPair::NonBlocking};
 
   // fill pipe first
-  FileUtil::setBlocking(pipe.writerFd(), false);
   for (unsigned long long n = 0;;) {
     static const char buf[1024] = {0};
-    int rv = ::write(pipe.writerFd(), buf, sizeof(buf));
+    int rv = pair.right().write(buf, sizeof(buf));
     if (rv > 0) {
       n += rv;
     } else {
@@ -321,7 +321,7 @@ TEST(LinuxScheduler, executeOnWritable_timeout_on_cancelled) {
     timeoutCount++; };
 
   auto handle = sched.executeOnWritable(
-      pipe.writerFd(), onFire, 500_milliseconds, onTimeout);
+      pair.right(), onFire, 500_milliseconds, onTimeout);
 
   handle->cancel();
   sched.runLoopOnce();

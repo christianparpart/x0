@@ -17,8 +17,6 @@
 
 namespace xzero {
 
-class MemoryMap;
-
 /**
  * HTTP servable file.
  *

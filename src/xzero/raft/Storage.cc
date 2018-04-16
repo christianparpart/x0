@@ -5,17 +5,17 @@
 // file except in compliance with the License. You may obtain a copy of
 // the License at: http://opensource.org/licenses/MIT
 
-#include <xzero/raft/Storage.h>
+#include <xzero/BufferUtil.h>
 #include <xzero/executor/Executor.h>
-#include <xzero/io/FileUtil.h>
 #include <xzero/io/File.h>
-#include <xzero/io/MemoryMap.h>
+#include <xzero/io/FileUtil.h>
+#include <xzero/logging.h>
+#include <xzero/raft/Storage.h>
 #include <xzero/util/BinaryReader.h>
 #include <xzero/util/BinaryWriter.h>
-#include <xzero/BufferUtil.h>
-#include <xzero/logging.h>
-#include <stdlib.h>
-#include <assert.h>
+
+#include <cstdlib>
+#include <cassert>
 
 namespace xzero {
 namespace raft {

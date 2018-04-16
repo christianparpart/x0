@@ -5,23 +5,23 @@
 // file except in compliance with the License. You may obtain a copy of
 // the License at: http://opensource.org/licenses/MIT
 
-#include <xzero/io/MemoryFile.h>
-#include <xzero/io/MemoryMap.h>
-#include <xzero/io/FileUtil.h>
-#include <xzero/io/FileDescriptor.h>
 #include <xzero/Buffer.h>
-#include <xzero/hash/FNV.h>
-#include <xzero/io/FileUtil.h>
-#include <xzero/StringUtil.h>
 #include <xzero/RuntimeError.h>
+#include <xzero/StringUtil.h>
+#include <xzero/hash/FNV.h>
+#include <xzero/io/FileDescriptor.h>
+#include <xzero/io/FileUtil.h>
+#include <xzero/io/FileUtil.h>
+#include <xzero/io/MemoryFile.h>
 #include <xzero/sysconfig.h>
 
-#include <fstream>
+#include <cerrno>
 #include <ctime>
+#include <fstream>
+
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <fcntl.h>
-#include <errno.h>
 
 #if defined(XZERO_OS_UNIX)
 #include <sys/mman.h>
