@@ -211,7 +211,10 @@ int Socket::write(const void* buf, size_t count) {
 #elif defined(XZERO_OS_WINDOWS)
   DWORD nwritten = 0;
   DWORD flags = 0;
-  if (::WSASend(handle_, buf, count, &nwritten, flags, nullptr, nullptr) == SOCKET_ERROR)
+  WSABUF wsabuf;
+  wsabuf.buf = buf;
+  wsabuf.len = count;
+  if (::WSASend(handle_, &wsabuf, 1, &nwritten, flags, nullptr, nullptr) == SOCKET_ERROR)
     return -1;
   return nwritten;
 #endif
@@ -226,7 +229,10 @@ void Socket::setBlocking(bool enable) {
     RAISE_ERRNO(errno);
   }
 #elif defined(XZERO_OS_WINDOWS)
-#error "TODO"
+  u_long mode = enable ? 1 : 0;
+  if (ioctlsocket(handle_, FIONBIO, &mode) == SOCKET_ERROR) {
+    RAISE_WSA_ERROR(WSAGetLastError());
+  }
 #else
 #error "Unknown platform"
 #endif

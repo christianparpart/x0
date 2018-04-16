@@ -334,55 +334,16 @@ std::string FileUtil::basename(const std::string& path) {
          : path;
 }
 
-void FileUtil::mkdir(const std::string& path, int mode) {
-  if (::mkdir(path.c_str(), mode) < 0)
-    RAISE_ERRNO(errno);
-}
-
-void FileUtil::mkdir_p(const std::string& dirname, int mode) {
-  char const* begin = dirname.c_str();
-  char const* cur = begin;
-
-  if (exists(dirname)) {
-    if (isDirectory(dirname)) {
-      return;
-    } else {
-      throw std::logic_error{fmt::format(
-          "file '{}' exists but is not a directory",
-          dirname)};
-    }
-  }
-
-  for (cur = begin; *cur == '/'; ++cur);
-
-  while ((cur = strchr(cur, '/'))) {
-    std::string path(begin, cur);
-    cur++;
-
-    if (exists(path)) {
-      if (isDirectory(path)) {
-        continue;
-      } else {
-        throw std::logic_error{fmt::format(
-            "file '{}' exists but is not a directory",
-            path)};
-      }
-    }
-
-    mkdir(path);
-  }
-
-  mkdir(dirname);
+void FileUtil::mkdir_p(const std::string& path) {
+  fs::create_directories(fs::path(path));
 }
 
 void FileUtil::rm(const std::string& path) {
-  if (::unlink(path.c_str()) < 0)
-    RAISE_ERRNO(errno);
+  fs::remove(fs::path(path));
 }
 
-void FileUtil::mv(const std::string& path, const std::string& target) {
-  if (::rename(path.c_str(), target.c_str()) < 0)
-    RAISE_ERRNO(errno);
+void FileUtil::mv(const std::string& from, const std::string& to) {
+  fs::rename(fs::path(from), fs::path(to));
 }
 
 void FileUtil::chown(const std::string& path,
@@ -453,7 +414,7 @@ inline int createTempFileAt_default(const std::string& basedir, std::string* res
     FileUtil::rm(pattern);
 
   return fd;
-#if defined(HAVE_MKOSTEMPS)
+#elif defined(HAVE_MKOSTEMPS)
   std::string pattern = joinPaths(basedir, "XXXXXXXX.tmp");
   int flags = O_CLOEXEC;
   int fd = mkostemps(const_cast<char*>(pattern.c_str()), 4, flags);
@@ -496,6 +457,10 @@ int FileUtil::createTempFileAt(const std::string& basedir, std::string* result) 
 }
 
 std::string FileUtil::createTempDirectory() {
+#if defined(XZERO_OS_WINDOWS)
+#error TODO
+  //_tempnam(dirname, );
+#else
   std::string path;
   path += tempDirectory();
   path += PathSeperator;
@@ -505,6 +470,7 @@ std::string FileUtil::createTempDirectory() {
     RAISE_ERRNO(errno);
 
   return path;
+#endif
 }
 
 std::string FileUtil::tempDirectory() {

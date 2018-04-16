@@ -145,9 +145,6 @@ class TcpConnector {
   size_t backlog() const noexcept;
   void setBacklog(size_t enable);
 
-  /** Tests wether this connector is blocking on accepting new clients. */
-  bool isBlocking() const;
-
   /**
    * Specifies whether accepting new clients should block or not.
    *
@@ -162,11 +159,6 @@ class TcpConnector {
    * @see TcpEndPoint::setBlocking(bool enable)
    */
   void setBlocking(bool enable);
-
-  /**
-   * Tests whether the underlying system handle is closed on exec() syscalls.
-   */
-  bool closeOnExec() const;
 
   /**
    * Enables/disables the auto-close flag on exec()-family system calls.
@@ -335,7 +327,6 @@ class TcpConnector {
    * This call is blocking by default and can be changed to non-blocking
    * mode via @c setBlocking(bool).
    *
-   * @see isBlocking() const
    * @see setBlocking(bool enable)
    */
   std::optional<Socket> acceptOne();

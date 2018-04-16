@@ -108,11 +108,6 @@ class TcpEndPoint : public std::enable_shared_from_this<TcpEndPoint> {
   void setConnection(std::unique_ptr<TcpConnection>&& connection);
 
   /**
-   * Tests whether this endpoint is blocking on I/O.
-   */
-  bool isBlocking() const;
-
-  /**
    * Sets whether this endpoint is blocking on I/O or not.
    *
    * @param enable @c true to ensures I/O operations block (default), @c false
