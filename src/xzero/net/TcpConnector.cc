@@ -111,7 +111,7 @@ void TcpConnector::open(const IPAddress& ipaddress, int port, int backlog,
   if (isOpen())
     logFatal("TcpConnector already open.");
 
-  swap(socket_, Socket::make_tcp_ip(true, (Socket::AddressFamily) ipaddress.family()));
+  socket_ = std::move(Socket::make_tcp_ip(true, (Socket::AddressFamily) ipaddress.family()));
 
   setBacklog(backlog);
 
@@ -476,18 +476,20 @@ std::optional<Socket> TcpConnector::acceptOne() {
 
   TcpUtil::setLingering(cfd, tcpFinTimeout_);
 
-  Socket cs = Socket::make_socket(std::move(cfd), addressFamily());
 
 #if defined(XZERO_OS_UNIX)
   if (!flagged && flags_ && fcntl(cfd, F_SETFL, fcntl(cfd, F_GETFL) | flags_) < 0)
     RAISE_ERRNO(errno);
+
+  return Socket::make_socket(std::move(cfd), addressFamily());
 #elif defined(XZERO_OS_WINDOWS)
+  Socket cs = Socket::make_socket(std::move(cfd), addressFamily());
   if (!blocking_) {
     cs.setBlocking(blocking_);
   }
   // XXX O_CLOEXEC
-#endif
   return cs;
+#endif
 }
 
 std::shared_ptr<TcpEndPoint> TcpConnector::createEndPoint(Socket&& cfd, Executor* executor) {
