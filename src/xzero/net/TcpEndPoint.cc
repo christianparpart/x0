@@ -127,7 +127,12 @@ bool TcpEndPoint::isBlocking() const {
 }
 
 void TcpEndPoint::setBlocking(bool enable) {
-  FileUtil::setBlocking(socket_, enable);
+  unsigned flags = enable ? fcntl(fd, F_GETFL) & ~O_NONBLOCK
+                          : fcntl(fd, F_GETFL) | O_NONBLOCK;
+
+  if (fcntl(fd, F_SETFL, flags) < 0) {
+    RAISE_ERRNO(errno);
+  }
 }
 
 bool TcpEndPoint::isCorking() const {

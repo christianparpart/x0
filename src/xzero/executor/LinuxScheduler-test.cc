@@ -270,13 +270,12 @@ TEST(LinuxScheduler, executeOnWritable) {
 
 TEST(LinuxScheduler, executeOnWritable_timeout) {
   TheScheduler sched;
-  SystemPipe pipe;
+  SocketPair pair{SocketPair::NonBlocking};
 
   // fill pipe first
-  FileUtil::setBlocking(pipe.writerFd(), false);
   for (unsigned long long n = 0;;) {
     static const char buf[1024] = {0};
-    int rv = ::write(pipe.writerFd(), buf, sizeof(buf));
+    int rv = pair.right().write(buf, sizeof(buf));
     if (rv > 0) {
       n += rv;
     } else {

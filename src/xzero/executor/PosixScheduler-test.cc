@@ -249,7 +249,7 @@ TEST(PosixScheduler, executeOnWritable_timeout) {
   unsigned long long n = 0;
   for (;;) {
     static const char buf[4096] = {0};
-    int rv = ::write(pair.right(), buf, sizeof(buf));
+    int rv = pair.right().write(buf, sizeof(buf));
     if (rv > 0) {
       n += rv;
     } else {
@@ -272,10 +272,9 @@ TEST(PosixScheduler, executeOnWritable_timeout) {
 
 TEST(PosixScheduler, executeOnWritable_timeout_on_cancelled) {
   TheScheduler sched;
-  SocketPair pair;
+  SocketPair pair{SocketPair::NonBlocking};
 
   // fill pair first
-  FileUtil::setBlocking(pair.right(), false);
   for (unsigned long long n = 0;;) {
     static const char buf[1024] = {0};
     int rv = ::write(pair.right(), buf, sizeof(buf));
