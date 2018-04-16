@@ -7,7 +7,6 @@
 
 #include <xzero/io/LocalFile.h>
 #include <xzero/io/LocalFileRepository.h>
-#include <xzero/io/MemoryMap.h>
 #include <xzero/io/FileDescriptor.h>
 #include <xzero/MimeTypes.h>
 #include <xzero/RuntimeError.h>
