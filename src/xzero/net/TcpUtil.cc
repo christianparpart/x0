@@ -80,42 +80,6 @@ std::error_code TcpUtil::connect(Socket& sd, const InetAddress& address) {
     return std::error_code();
 }
 
-bool TcpUtil::isTcpNoDelay(int fd) {
-  int result = 0;
-  socklen_t sz = sizeof(result);
-  if (getsockopt(fd, IPPROTO_TCP, TCP_NODELAY, &result, &sz) < 0)
-    RAISE_ERRNO(errno);
-
-  return result;
-}
-
-void TcpUtil::setTcpNoDelay(int fd, bool enable) {
-  int flag = enable ? 1 : 0;
-  if (setsockopt(fd, IPPROTO_TCP, TCP_NODELAY, &flag, sizeof(flag)) < 0)
-    RAISE_ERRNO(errno);
-}
-
-bool TcpUtil::isCorking(int fd) {
-#if defined(TCP_CORK)
-  int flag = 0;
-  socklen_t sz = sizeof(flag);
-  if (getsockopt(fd, IPPROTO_TCP, TCP_CORK, &flag, &sz) < 0)
-    RAISE_ERRNO(errno);
-
-  return flag;
-#else
-  return false;
-#endif
-}
-
-void TcpUtil::setCorking(int fd, bool enable) {
-#if defined(TCP_CORK)
-  int flag = enable ? 1 : 0;
-  if (setsockopt(fd, IPPROTO_TCP, TCP_CORK, &flag, sizeof(flag)) < 0)
-    RAISE_ERRNO(errno);
-#endif
-}
-
 void TcpUtil::setLingering(int fd, Duration d) {
 #if defined(TCP_LINGER2)
   int waitTime = d.seconds();

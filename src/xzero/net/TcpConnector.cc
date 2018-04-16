@@ -111,7 +111,7 @@ void TcpConnector::open(const IPAddress& ipaddress, int port, int backlog,
   if (isOpen())
     logFatal("TcpConnector already open.");
 
-  socket_ = std::move(Socket::make_tcp_ip(true, (Socket::AddressFamily) ipaddress.family()));
+  swap(socket_, Socket::make_tcp_ip(true, (Socket::AddressFamily) ipaddress.family()));
 
   setBacklog(backlog);
 
@@ -487,6 +487,7 @@ std::optional<Socket> TcpConnector::acceptOne() {
   }
   // XXX O_CLOEXEC
 #endif
+  return cs;
 }
 
 std::shared_ptr<TcpEndPoint> TcpConnector::createEndPoint(Socket&& cfd, Executor* executor) {

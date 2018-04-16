@@ -26,8 +26,6 @@
 #include <unordered_map>
 #include <vector>
 
-#include <unistd.h>
-
 using namespace xzero;
 using raft::RaftError;
 

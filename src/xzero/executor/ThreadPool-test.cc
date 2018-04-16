@@ -9,7 +9,8 @@
 #include <xzero/MonotonicClock.h>
 #include <xzero/MonotonicTime.h>
 #include <xzero/testing.h>
-#include <unistd.h> // usleep()
+#include <chrono>
+#include <thread>
 
 using namespace xzero;
 
@@ -27,19 +28,19 @@ TEST(ThreadPool, simple) {
   startTime = MonotonicClock::now();
 
   tp.execute([&]() {
-    usleep(100_milliseconds .microseconds());
+    std::this_thread::sleep_for(std::chrono::milliseconds{ 100 });
     e1 = true;
     end1 = MonotonicClock::now();
   });
 
   tp.execute([&]() {
-    usleep(100_milliseconds .microseconds());
+    std::this_thread::sleep_for(std::chrono::milliseconds{ 100 });
     e2 = true;
     end2 = MonotonicClock::now();
   });
 
   tp.execute([&]() {
-    usleep(100_milliseconds .microseconds());
+    std::this_thread::sleep_for(std::chrono::milliseconds{ 100 });
     e3 = true;
     end3 = MonotonicClock::now();
   });

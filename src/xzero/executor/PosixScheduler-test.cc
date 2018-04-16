@@ -16,9 +16,6 @@
 #include <memory>
 #include <xzero/testing.h>
 
-#include <fcntl.h>
-#include <unistd.h>
-
 using namespace xzero;
 
 using TheScheduler = PosixScheduler;
@@ -100,7 +97,7 @@ TEST(PosixScheduler, executeAfter_cancel_beforeRun) {
   int fireCount = 0;
 
   auto handle = scheduler.executeAfter(1_seconds, [&](){
-    printf("****** cancel_beforeRun: running action\n");
+    logf("****** cancel_beforeRun: running action\n");
     fireCount++;
   });
 
@@ -277,7 +274,7 @@ TEST(PosixScheduler, executeOnWritable_timeout_on_cancelled) {
   // fill pair first
   for (unsigned long long n = 0;;) {
     static const char buf[1024] = {0};
-    int rv = ::write(pair.right(), buf, sizeof(buf));
+    int rv = pair.right().write(buf, sizeof(buf));
     if (rv > 0) {
       n += rv;
     } else {

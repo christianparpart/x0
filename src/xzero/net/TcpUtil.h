@@ -26,12 +26,6 @@ public:
 
   static std::error_code connect(Socket& socket, const InetAddress& remote);
 
-  static bool isTcpNoDelay(int fd);
-  static void setTcpNoDelay(int fd, bool enable);
-
-  static bool isCorking(int fd);
-  static void setCorking(int fd, bool enable);
-
   static void setLingering(int fd, Duration d);
 };
 

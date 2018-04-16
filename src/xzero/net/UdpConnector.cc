@@ -32,7 +32,7 @@
 
 namespace xzero {
 
-#if !defined(SO_REUSEPORT)
+#if defined(XZERO_OS_LINUX) && !defined(SO_REUSEPORT)
 #define SO_REUSEPORT 15
 #endif
 
@@ -76,16 +76,18 @@ void UdpConnector::stop() {
 }
 
 void UdpConnector::open(const InetAddress& address, bool reuseAddr, bool reusePort) {
+#if defined(SO_REUSEPORT)
   if (reusePort) {
     int rc = 1;
-    if (::setsockopt(socket_, SOL_SOCKET, SO_REUSEPORT, &rc, sizeof(rc)) < 0) {
+    if (::setsockopt(socket_, SOL_SOCKET, SO_REUSEPORT, (const char*) &rc, sizeof(rc)) < 0) {
       RAISE_ERRNO(errno);
     }
   }
+#endif
 
   if (reuseAddr) {
     int rc = 1;
-    if (::setsockopt(socket_, SOL_SOCKET, SO_REUSEADDR, &rc, sizeof(rc)) < 0) {
+    if (::setsockopt(socket_, SOL_SOCKET, SO_REUSEADDR, (const char*) &rc, sizeof(rc)) < 0) {
       RAISE_ERRNO(errno);
     }
   }
