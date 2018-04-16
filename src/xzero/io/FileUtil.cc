@@ -456,34 +456,8 @@ int FileUtil::createTempFileAt(const std::string& basedir, std::string* result) 
 #endif
 }
 
-std::string FileUtil::createTempDirectory() {
-#if defined(XZERO_OS_WINDOWS)
-#error TODO
-  //_tempnam(dirname, );
-#else
-  std::string path;
-  path += tempDirectory();
-  path += PathSeperator;
-  path += "xzero.XXXXXXXX";
-
-  if (!mkdtemp(const_cast<char*>(path.c_str())))
-    RAISE_ERRNO(errno);
-
-  return path;
-#endif
-}
-
 std::string FileUtil::tempDirectory() {
-  if (const char* s = getenv("TMPDIR"))
-    return s;
-
-  if (const char* s = getenv("TEMPDIR"))
-    return s;
-
-  if (const char* s = getenv("TEMP"))
-    return s;
-
-  return "/tmp";
+  return fs::temp_directory_path().string();
 }
 
 void FileUtil::close(int fd) {
