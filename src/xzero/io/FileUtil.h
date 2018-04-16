@@ -33,7 +33,6 @@ class FileUtil {
   static bool isRegular(const std::string& path);
   static uintmax_t size(const std::string& path);
   static uintmax_t sizeRecursive(const std::string& path);
-  XZERO_DEPRECATED static size_t du_c(const std::string& path) { return sizeRecursive(path); }
   static void ls(const std::string& path, std::function<bool(const std::string&)> cb);
 
   static std::string joinPaths(const std::string& base, const std::string& append);
@@ -70,19 +69,6 @@ class FileUtil {
                               std::string* result = nullptr);
   static std::string createTempDirectory();
   static std::string tempDirectory();
-
-  static void allocate(int fd, size_t length);
-  static void preallocate(int fd, off_t offset, size_t length);
-  static void deallocate(int fd, off_t offset, size_t length);
-
-  /**
-   * Collapses given range of a file.
-   *
-   * @note Operating systems that do not support it natively will be emulated.
-   */
-  static void collapse(int fd, off_t offset, size_t length);
-
-  static void truncate(int fd, size_t length);
 
   static void close(int fd);
 };

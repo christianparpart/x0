@@ -70,14 +70,21 @@ Socket::Socket(AddressFamily af, Type type, BlockingMode bm) {
 Socket::~Socket() {
 }
 
-Socket::Socket(InvalidSocketState)
-    : handle_{-1},
-      addressFamily_{} {
+Socket::Socket(InvalidSocketState) :
+#if defined(XZERO_OS_UNIX)
+    handle_{ -1 },
+#elif defined(XZERO_OS_WINDOWS)
+    handle_{ INVALID_SOCKET },
+#endif
+    addressFamily_{} {
 }
 
 Socket::Socket(Socket&& other)
     : handle_{std::move(other.handle_)},
       addressFamily_{std::move(other.addressFamily_)} {
+#if defined(XZERO_OS_WINDOWS)
+  other.handle_ = INVALID_SOCKET;
+#endif
 }
 
 Socket& Socket::operator=(Socket&& other) {
