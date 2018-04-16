@@ -28,7 +28,8 @@
 #endif
 
 #if defined(XZERO_OS_WINDOWS)
-#include <winsock2.h>
+#include <WinSock2.h>
+#include <MSWSock.h>
 #endif
 
 namespace xzero {
@@ -252,8 +253,26 @@ size_t TcpEndPoint::write(const BufferRef& source) {
   return rv;
 }
 
-size_t TcpEndPoint::write(const FileView& view) {
-  return TcpUtil::sendfile(handle(), view);
+size_t TcpEndPoint::write(const FileView& source) {
+#if defined(XZERO_OS_WINDOWS)
+  TransmitFile(handle(), source.handle(), source.size(), source.size(), nullptr, nullptr, 0);
+#elif defined(__APPLE__)
+  off_t len = source.size();
+  int rv = ::sendfile(source.handle(), handle(), source.offset(), &len, nullptr, 0);
+  if (rv < 0)
+    RAISE_ERRNO(errno);
+
+  return len;
+#else
+  off_t offset = source.offset();
+  ssize_t rv = ::sendfile(handle(), source.handle(), &offset, source.size());
+  if (rv < 0)
+    RAISE_ERRNO(errno);
+
+  // EOF exception?
+
+  return rv;
+#endif
 }
 
 void TcpEndPoint::wantRead() {

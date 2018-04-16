@@ -302,18 +302,6 @@ void TcpConnector::setDeferAccept(bool enable) {
 #endif
 }
 
-bool TcpConnector::quickAck() const {
-#if defined(TCP_QUICKACK)
-  int optval = 1;
-  socklen_t optlen = sizeof(optval);
-  return ::getsockopt(socket_, SOL_TCP, TCP_QUICKACK, &optval, &optlen) == 0
-             ? optval != 0
-             : false;
-#else
-  return false;
-#endif
-}
-
 void TcpConnector::setQuickAck(bool enable) {
 #if defined(TCP_QUICKACK)
   int rc = enable ? 1 : 0;
@@ -325,17 +313,9 @@ void TcpConnector::setQuickAck(bool enable) {
 #endif
 }
 
-bool TcpConnector::reusePort() const {
-  int optval = 1;
-  socklen_t optlen = sizeof(optval);
-  return ::getsockopt(socket_, SOL_SOCKET, SO_REUSEPORT, &optval, &optlen) == 0
-             ? optval != 0
-             : false;
-}
-
 void TcpConnector::setReusePort(bool enable) {
-  int rc = enable ? 1 : 0;
-  if (::setsockopt(socket_, SOL_SOCKET, SO_REUSEPORT, &rc, sizeof(rc)) < 0) {
+  int rc = enable ? 1 : 0; // XXX windows requires cast to (const char*)
+  if (::setsockopt(socket_, SOL_SOCKET, SO_REUSEPORT, (const char*) &rc, sizeof(rc)) < 0) {
     RAISE_ERRNO(errno);
   }
 }
@@ -346,7 +326,7 @@ bool TcpConnector::isReusePortSupported() {
     return false;
 
   int rc = 1;
-  bool res = ::setsockopt(fd, SOL_SOCKET, SO_REUSEPORT, &rc, sizeof(rc)) == 0;
+  bool res = ::setsockopt(fd, SOL_SOCKET, SO_REUSEPORT, (const char*) &rc, sizeof(rc)) == 0;
 
   FileUtil::close(fd);
   return res;
@@ -370,14 +350,14 @@ bool TcpConnector::isDeferAcceptSupported() {
 bool TcpConnector::reuseAddr() const {
   int optval = 1;
   socklen_t optlen = sizeof(optval);
-  return ::getsockopt(socket_, SOL_SOCKET, SO_REUSEADDR, &optval, &optlen) == 0
+  return ::getsockopt(socket_, SOL_SOCKET, SO_REUSEADDR, (char*) &optval, &optlen) == 0
              ? optval != 0
              : false;
 }
 
 void TcpConnector::setReuseAddr(bool enable) {
   int rc = enable ? 1 : 0;
-  if (::setsockopt(socket_, SOL_SOCKET, SO_REUSEADDR, &rc, sizeof(rc)) < 0) {
+  if (::setsockopt(socket_, SOL_SOCKET, SO_REUSEADDR, (char*) &rc, sizeof(rc)) < 0) {
     RAISE_ERRNO(errno);
   }
 }

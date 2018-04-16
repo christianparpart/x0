@@ -10,6 +10,7 @@
 #include <xzero/net/InetAddress.h>
 #include <xzero/Duration.h>
 #include <system_error>
+#include <functional>
 #include <string>
 
 namespace xzero {
@@ -20,7 +21,7 @@ class Socket;
 class TcpConnection;
 
 class TcpUtil {
- public:
+public:
   using ConnectionFactory = std::function<TcpConnection*(const std::string&)>;
 
   static std::error_code connect(Socket& socket, const InetAddress& remote);
@@ -32,8 +33,6 @@ class TcpUtil {
   static void setCorking(int fd, bool enable);
 
   static void setLingering(int fd, Duration d);
-
-  static size_t sendfile(int target, const FileView& source);
 };
 
 }  // namespace xzero

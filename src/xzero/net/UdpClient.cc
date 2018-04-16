@@ -12,14 +12,22 @@
 #include <xzero/logging.h>
 #include <stdexcept>
 
+#include <fcntl.h>
+#include <sys/types.h>
+
+#if defined(XZERO_OS_UNIX)
 #include <netinet/tcp.h>
 #include <arpa/inet.h>
-#include <sys/types.h>
 #include <sys/socket.h>
 #include <sys/un.h>
 #include <netdb.h>
-#include <fcntl.h>
 #include <unistd.h>
+#endif
+
+#if defined(XZERO_OS_WINDOWS)
+#include <io.h>
+#include <WinSock2.h>
+#endif
 
 namespace xzero {
 

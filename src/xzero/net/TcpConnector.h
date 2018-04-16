@@ -174,14 +174,8 @@ class TcpConnector {
   /** Enables/disables the @c TCP_DEFER_ACCEPT flag on this connector. */
   void setDeferAccept(bool enable);
 
-  /** Tests whether the underlying system @c TCP_QUICKACK flag is set. */
-  bool quickAck() const;
-
   /** Enables/disables the @c TCP_QUICKACK flag on this connector. */
   void setQuickAck(bool enable);
-
-  /** Tests whether the underlying system @c SO_REUSEPORT flag is set. */
-  bool reusePort() const;
 
   /** Enables/disables the @c SO_REUSEPORT flag on this connector. */
   void setReusePort(bool enable);

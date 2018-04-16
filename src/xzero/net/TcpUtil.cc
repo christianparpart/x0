@@ -127,24 +127,4 @@ void TcpUtil::setLingering(int fd, Duration d) {
 #endif
 }
 
-size_t TcpUtil::sendfile(int target, const FileView& source) {
-#if defined(__APPLE__)
-  off_t len = source.size();
-  int rv = ::sendfile(source.handle(), target, source.offset(), &len, nullptr, 0);
-  if (rv < 0)
-    RAISE_ERRNO(errno);
-
-  return len;
-#else
-  off_t offset = source.offset();
-  ssize_t rv = ::sendfile(target, source.handle(), &offset, source.size());
-  if (rv < 0)
-    RAISE_ERRNO(errno);
-
-  // EOF exception?
-
-  return rv;
-#endif
-}
-
 } // namespace xzero
