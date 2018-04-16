@@ -66,7 +66,6 @@ class FileUtil {
   static int createTempFile();
   static int createTempFileAt(const std::string& basedir,
                               std::string* result = nullptr);
-  static std::string createTempDirectory();
   static std::string tempDirectory();
 
   static void close(int fd);
