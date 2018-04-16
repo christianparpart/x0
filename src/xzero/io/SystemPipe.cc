@@ -11,13 +11,14 @@
 #include <xzero/RuntimeError.h>
 #include <xzero/logging.h>
 
-#if defined(XZERO_OS_WIN32)
-#include <Windows.h>
-#include <WinSock2.h>
-#include <io.h>
-#else
+#if defined(XZERO_OS_UNIX)
 #include <fcntl.h>
 #include <unistd.h>
+#endif
+
+#if defined(XZERO_OS_WINDOWS)
+#include <WinSock2.h>
+#include <io.h>
 #endif
 
 namespace xzero {
@@ -64,7 +65,8 @@ struct WinSocket {
 int pipe(int fd[2]) {
   // XXX setup listener
   WinSocket listener = WSASocket(AF_INET, SOCK_STREAM, 0, 0, 0, 0);
-  sockaddr_in addr = { 0 };
+  sockaddr_in addr;
+  ZeroMemory(&addr, sizeof(addr));
   int addr_size = sizeof(addr);
   addr.sin_family = AF_INET;
   addr.sin_addr.s_addr = htonl (INADDR_LOOPBACK);
@@ -84,7 +86,7 @@ int pipe(int fd[2]) {
   if (connect(receiver, (struct sockaddr *)&addr, addr_size) == -1)
     return -1;
 
-  WinSocket sender = accept(listener, 0, 0);
+  WinSocket sender = ::accept(listener.handle(), 0, 0);
   if (!sender)
     return -1;
 
