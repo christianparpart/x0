@@ -108,15 +108,15 @@ const std::vector<IPAddress>& DnsClient::lookupIP(
   DnsQuery(name.c_str(), dnsType, DNS_QUERY_WIRE_ONLY, nullptr, &queryResults, nullptr);
   for (auto p = queryResults; p != nullptr; p = p->pNext) {
     if constexpr(AddressFamily == AF_INET) {
-      in_addr ipaddr;
-      list.emplace_back(reinterpret_cast<InetType*>(p->Data.A.IpAddress));
+      list.emplace_back(reinterpret_cast<InetType*>(&p->Data.A.IpAddress));
     }
     if constexpr(AddressFamily == AF_INET6) {
-      list.emplace_back(reinterpret_cast<InetType*>(p->Data.AAAA.Ip6Address));
+      list.emplace_back(reinterpret_cast<InetType*>(&p->Data.AAAA.Ip6Address));
     }
     logDebug("The IP address of {} is {}", (const char*)p->pName, list.back().str());
   }
-  DnsRecordListFree(queryResults);
+  DnsRecordListFree(queryResults, DnsFreeRecordList);
+  return (*cache)[name] = list;
 #else
   addrinfo* res = nullptr;
   addrinfo hints;
