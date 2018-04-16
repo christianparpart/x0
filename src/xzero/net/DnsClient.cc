@@ -10,18 +10,42 @@
 #include <xzero/RuntimeError.h>
 #include <xzero/MonotonicClock.h>
 #include <xzero/logging.h>
+
 #include <vector>
+#include <algorithm>
+
+#if defined(XZERO_OS_UNIX)
 #include <netinet/in.h>
 #include <arpa/nameser.h>
 #include <netdb.h>
 #include <resolv.h>
-#include <algorithm>
 
 #ifndef NS_MAXMSG
 #define NS_MAXMSG NS_PACKETSZ
 #endif
+#endif
+
+#if defined(XZERO_OS_WINDOWS)
+#include <WinDNS.h>
+#endif
 
 namespace xzero {
+
+class GaiErrorCategory : public std::error_category {
+ public:
+  static std::error_category& get() {
+    static GaiErrorCategory gaiErrorCategory_;
+    return gaiErrorCategory_;
+  }
+
+  const char* name() const noexcept override {
+    return "gai";
+  }
+
+  std::string message(int ec) const override {
+    return gai_strerror(ec);
+  }
+};
 
 DnsClient::DnsClient()
   : ipv4_(),
@@ -66,23 +90,7 @@ std::vector<IPAddress> DnsClient::ip(const std::string& name) {
   return result;
 }
 
-class GaiErrorCategory : public std::error_category {
- public:
-  static std::error_category& get() {
-    static GaiErrorCategory gaiErrorCategory_;
-    return gaiErrorCategory_;
-  }
-
-  const char* name() const noexcept override {
-    return "gai";
-  }
-
-  std::string message(int ec) const override {
-    return gai_strerror(ec);
-  }
-};
-
-template<typename InetType, const int AddressFamilty>
+template<typename InetType, const int AddressFamily>
 const std::vector<IPAddress>& DnsClient::lookupIP(
     const std::string& name,
     std::unordered_map<std::string, std::vector<IPAddress>>* cache,
@@ -93,11 +101,28 @@ const std::vector<IPAddress>& DnsClient::lookupIP(
     return i->second;
   }
 
+#if defined(XZERO_OS_WINDOWS)
+  std::vector<IPAddress> list;
+  PDNS_RECORD queryResults = nullptr;
+  constexpr int dnsType = AddressFamily == AF_INET ? DNS_TYPE_A : DNS_TYPE_AAAA;
+  DnsQuery(name.c_str(), dnsType, DNS_QUERY_WIRE_ONLY, nullptr, &queryResults, nullptr);
+  for (auto p = queryResults; p != nullptr; p = p->pNext) {
+    if constexpr(AddressFamily == AF_INET) {
+      in_addr ipaddr;
+      list.emplace_back(reinterpret_cast<InetType*>(p->Data.A.IpAddress));
+    }
+    if constexpr(AddressFamily == AF_INET6) {
+      list.emplace_back(reinterpret_cast<InetType*>(p->Data.AAAA.Ip6Address));
+    }
+    logDebug("The IP address of {} is {}", (const char*)p->pName, list.back().str());
+  }
+  DnsRecordListFree(queryResults);
+#else
   addrinfo* res = nullptr;
   addrinfo hints;
   memset(&hints, 0, sizeof(hints));
   hints.ai_flags = 0;
-  hints.ai_family = AddressFamilty;
+  hints.ai_family = AddressFamily;
   hints.ai_socktype = SOCK_STREAM; // any, actually
 
   int rc = getaddrinfo(name.c_str(), nullptr, &hints, &res);
@@ -112,6 +137,7 @@ const std::vector<IPAddress>& DnsClient::lookupIP(
   freeaddrinfo(res);
 
   return (*cache)[name] = list;
+#endif
 }
 
 std::vector<std::string> DnsClient::txt(const std::string& fqdn) {
@@ -142,6 +168,9 @@ std::vector<std::string> DnsClient::txt(const std::string& fqdn) {
   }
 
   logDebug("DnsClient: resolving TXT: {}", fqdn);
+#if defined(XZERO_OS_WINDOWS)
+  RAISE_NOT_IMPLEMENTED();
+#else
   Buffer answer(NS_MAXMSG);
   int answerLength = res_query(fqdn.c_str(),
                                ns_c_in,
@@ -175,6 +204,7 @@ std::vector<std::string> DnsClient::txt(const std::string& fqdn) {
   }
 
   return result;
+#endif
 }
 
 std::vector<std::pair<int, std::string>> DnsClient::mx(const std::string& name) {
@@ -208,6 +238,9 @@ std::vector<DnsClient::SRV> DnsClient::srv(const std::string& fqdn) {
   if (!srvCache.empty())
     return srvCache;
 
+#if defined(XZERO_OS_WINDOWS)
+  RAISE_NOT_IMPLEMENTED();
+#else
   Buffer answer(NS_MAXMSG);
   int answerLength = res_query(fqdn.c_str(),
                                ns_c_in,
@@ -276,6 +309,7 @@ std::vector<DnsClient::SRV> DnsClient::srv(const std::string& fqdn) {
   }
 
   return srvCache;
+#endif
 }
 
 void DnsClient::clearIPv4() {

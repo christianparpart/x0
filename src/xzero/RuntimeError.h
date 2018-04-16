@@ -100,39 +100,44 @@ inline RuntimeError::RuntimeError(const std::error_code& ec)
   throw E(__VA_ARGS__).setSource<E>(__FILE__, __LINE__, __PRETTY_FUNCTION__); \
 }
 
-/**
- * Raises an exception of type RuntimeError for given code and category.
- *
- * Also sets source file, line, and calling function.
- *
- * @param code 1st argument is the error value.
- * @param category 2nd argument is the error category.
- * @param what_arg 3rd (optional) argument is the actual error message.
- */
+ /**
+  * Raises an exception of type RuntimeError for given code and category.
+  *
+  * Also sets source file, line, and calling function.
+  *
+  * @param code 1st argument is the error value.
+  * @param category 2nd argument is the error category.
+  * @param what_arg 3rd (optional) argument is the actual error message.
+  */
 #define RAISE_CATEGORY(Code, ...) {                                           \
   RAISE_EXCEPTION(::xzero::RuntimeError, ((int) Code), __VA_ARGS__);          \
 }
 
-/**
- * Raises an exception of given std::error_code.
- *
- * @see RAISE_EXCEPTION(E, ...)
- */
+  /**
+   * Raises an exception of given std::error_code.
+   *
+   * @see RAISE_EXCEPTION(E, ...)
+   */
 #define RAISE_ERROR(ErrorCode) {                                              \
   RAISE_EXCEPTION(RuntimeError, (ErrorCode))                                  \
 }
 
-/**
- * Raises an exception of given operating system error code.
- *
- * @see RAISE_EXCEPTION(E, ...)
- */
+   /**
+    * Raises an exception of given operating system error code.
+    *
+    * @see RAISE_EXCEPTION(E, ...)
+    */
 #define RAISE_ERRNO(errno) {                                                  \
   RAISE_CATEGORY(errno, std::system_category());                              \
 }
 
 // TODO(Windows): make it more human readable (convert error code to text message)
 #define RAISE_WSA_ERROR(ec) throw std::runtime_error(fmt::format("WSA error {}", ec));
+
+#define RAISE_NOT_IMPLEMENTED() do { \
+  throw std::runtime_error(fmt::format("Not implemented: {} in {}:{}",            \
+                                       __PRETTY_FUNCTION__, __FILE__, __LINE__)); \
+} while (0)
 
 /**
  * Raises an exception of given operating system error code with custom message.

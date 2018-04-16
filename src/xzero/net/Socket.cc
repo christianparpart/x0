@@ -212,7 +212,7 @@ int Socket::write(const void* buf, size_t count) {
   DWORD nwritten = 0;
   DWORD flags = 0;
   WSABUF wsabuf;
-  wsabuf.buf = buf;
+  wsabuf.buf = (CHAR*) buf;
   wsabuf.len = count;
   if (::WSASend(handle_, &wsabuf, 1, &nwritten, flags, nullptr, nullptr) == SOCKET_ERROR)
     return -1;

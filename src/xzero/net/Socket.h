@@ -78,6 +78,11 @@ class [[nodiscard]] Socket {
   SOCKET release() { SOCKET t = handle_; close(); return t; }
 #endif
 
+  void swap(Socket& other) {
+    std::swap(handle_, other.handle_);
+    std::swap(addressFamily_, other.addressFamily_);
+  }
+
  private:
 #if defined(XZERO_OS_UNIX)
   FileDescriptor handle_;
@@ -89,6 +94,10 @@ class [[nodiscard]] Socket {
 
   AddressFamily addressFamily_;
 };
+
+inline void swap(Socket& a, Socket& b) {
+  a.swap(b);
+}
 
 } // namespace xzero
 

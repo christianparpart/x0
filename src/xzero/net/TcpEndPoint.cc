@@ -11,6 +11,7 @@
 #include <xzero/net/TcpConnection.h>
 #include <xzero/util/BinaryReader.h>
 #include <xzero/io/FileUtil.h>
+#include <xzero/io/FileView.h>
 #include <xzero/executor/Executor.h>
 #include <xzero/logging.h>
 #include <xzero/RuntimeError.h>
@@ -127,31 +128,28 @@ void TcpEndPoint::setBlocking(bool enable) {
   socket_.setBlocking(enable);
 }
 
-bool TcpEndPoint::isCorking() const {
-  return isCorking_;
-}
-
 void TcpEndPoint::setCorking(bool enable) {
   if (isCorking_ != enable) {
-    TcpUtil::setCorking(socket_, enable);
+#if defined(TCP_CORK)
+    int flag = enable ? 1 : 0;
+    if (setsockopt(fd, IPPROTO_TCP, TCP_CORK, &flag, sizeof(flag)) < 0)
+      RAISE_ERRNO(errno);
+#endif
     isCorking_ = enable;
   }
 }
 
-bool TcpEndPoint::isTcpNoDelay() const {
-  return TcpUtil::isTcpNoDelay(socket_);
-}
-
 void TcpEndPoint::setTcpNoDelay(bool enable) {
-  TcpUtil::setTcpNoDelay(socket_, enable);
+  int flag = enable ? 1 : 0;
+  if (setsockopt(socket_, IPPROTO_TCP, TCP_NODELAY, (const char*) &flag, sizeof(flag)) < 0)
+    RAISE_ERRNO(errno);
 }
 
 std::string TcpEndPoint::toString() const {
   return fmt::format("TcpEndPoint({})", socket_.getRemoteAddress());
 }
 
-void TcpEndPoint::startDetectProtocol(bool dataReady,
-                                      ProtocolCallback createConnection) {
+void TcpEndPoint::startDetectProtocol(bool dataReady, ProtocolCallback createConnection) {
   inputBuffer_.reserve(256);
 
   if (dataReady) {
@@ -223,6 +221,17 @@ size_t TcpEndPoint::read(Buffer* result, size_t count) {
     return count;
   }
 
+#if defined(XZERO_OS_WINDOWS)
+  int n = recv(handle(), result->end(), count, 0);
+  if (n == SOCKET_ERROR) {
+    if (int ec = WSAGetLastError(); ec != WSAEWOULDBLOCK) {
+      RAISE_WSA_ERROR(WSAGetLastError());
+    }
+  } else if (n > 0) {
+    result->resize(result->size() + n);
+  }
+  return n;
+#else
   ssize_t n = ::read(handle(), result->end(), count);
   if (n < 0) {
     // don't raise on soft errors, such as there is simply no more data to read.
@@ -239,14 +248,20 @@ size_t TcpEndPoint::read(Buffer* result, size_t count) {
   } else {
     result->resize(result->size() + n);
   }
-
   return n;
+#endif
 }
 
 size_t TcpEndPoint::write(const BufferRef& source) {
+#if defined(XZERO_OS_WINDOWS)
+  int rv = ::send(handle(), source.data(), source.size(), 0);
+  if (rv == SOCKET_ERROR)
+    RAISE_WSA_ERROR(WSAGetLastError());
+#else
   ssize_t rv = ::write(handle(), source.data(), source.size());
   if (rv < 0)
     RAISE_ERRNO(errno);
+#endif
 
   // EOF exception?
 
@@ -349,7 +364,7 @@ void TcpEndPoint::onConnectComplete(InetAddress address,
                                     std::function<void(std::error_code ec)> onFailure) {
   int val = 0;
   socklen_t vlen = sizeof(val);
-  if (getsockopt(socket_, SOL_SOCKET, SO_ERROR, &val, &vlen) == 0) {
+  if (getsockopt(socket_, SOL_SOCKET, SO_ERROR, (char*) &val, &vlen) == 0) {
     if (val == 0) {
       onConnected();
     } else {

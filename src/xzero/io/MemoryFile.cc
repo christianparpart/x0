@@ -102,9 +102,9 @@ MemoryFile::MemoryFile(
   if (static_cast<size_t>(n) != data.size())
     RAISE_ERRNO(EIO);
 #elif defined(XZERO_OS_WINDOWS)
-#error "TODO"
+  RAISE_NOT_IMPLEMENTED();
 #else
-#error "Not Implemented"
+  RAISE_NOT_IMPLEMENTED();
 #endif
 }
 
@@ -153,6 +153,9 @@ bool MemoryFile::isExecutable() const noexcept {
 }
 
 int MemoryFile::createPosixChannel(OpenFlags oflags, int mode) {
+#if defined(XZERO_OS_WINDOWS)
+  RAISE_NOT_IMPLEMENTED();
+#else
   if (fd_ < 0) {
     errno = ENOENT;
     return -1;
@@ -167,6 +170,7 @@ int MemoryFile::createPosixChannel(OpenFlags oflags, int mode) {
     return ::open(fspath_.c_str(), to_posix(oflags));
 #else
   return shm_open(fspath_.c_str(), to_posix(oflags), mode ? mode : 0600);
+#endif
 #endif
 }
 

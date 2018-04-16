@@ -12,7 +12,6 @@
 #include <cstdlib>
 #include <cctype>
 #include <cassert>
-#include <strings.h>
 
 using namespace xzero;
 

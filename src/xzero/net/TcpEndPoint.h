@@ -116,15 +116,10 @@ class TcpEndPoint : public std::enable_shared_from_this<TcpEndPoint> {
   void setBlocking(bool enable);
 
   /**
-   * Retrieves @c TCP_CORK state.
-   */
-  bool isCorking() const;
-
-  /**
    * Sets whether to @c TCP_CORK or not.
    */
   void setCorking(bool enable);
-  bool isTcpNoDelay() const;
+
   void setTcpNoDelay(bool enable);
 
   /**
