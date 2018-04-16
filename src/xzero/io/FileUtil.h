@@ -71,9 +71,6 @@ class FileUtil {
   static std::string tempDirectory();
 
   static void close(int fd);
-
-  static void setBlocking(int fd, bool enable);
-  static bool isBlocking(int fd);
 };
 
 }  // namespace xzero
