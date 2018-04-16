@@ -85,9 +85,6 @@ class FileUtil {
   static void truncate(int fd, size_t length);
 
   static void close(int fd);
-
-  static void setBlocking(int fd, bool enable);
-  static bool isBlocking(int fd);
 };
 
 }  // namespace xzero
