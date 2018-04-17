@@ -299,8 +299,7 @@ void HttpChannel::handleRequest() {
     response()->sendError(HttpStatus::InternalServerError, e.what());
   } catch (...) {
     // TODO: reportException(RUNTIME_ERROR("Unhandled unknown exception caught");
-    response()->sendError(HttpStatus::InternalServerError,
-                          "unhandled unknown exception");
+    response()->sendError(HttpStatus::InternalServerError, "unhandled unknown exception");
   }
 }
 

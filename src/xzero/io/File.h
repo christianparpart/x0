@@ -74,7 +74,7 @@ class File {
    *
    * @param oflags such as O_RDONLY or O_NONBLOCK, etc (from <fcntl.h>)
    */
-  virtual int createPosixChannel(OpenFlags oflags, int mode = 0) = 0;
+  virtual int createPosixChannel(OpenFlags oflags) = 0;
 
   /**
    * Sets file-error code, that is only used for the validity of the entity.

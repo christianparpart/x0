@@ -30,7 +30,7 @@ WebdavModule::WebdavModule(x0d::Daemon* d)
 
   mainHandler("webdav", &WebdavModule::webdav)
       .setExperimental()
-      .param<int>("access", 0600);
+      ;
 }
 
 bool WebdavModule::webdav(Context* cx, Params& args) {
@@ -138,9 +138,8 @@ bool WebdavModule::webdav_put(Context* cx, Params& args) {
   logDebug("webdav: put filename: {}", cx->file()->path());
 
   //bool didNotExistBefore = !cx->file()->exists();
-  int mode = args.getInt(1);
   File::OpenFlags flags = File::Write | File::Create | File::Truncate;
-  FileDescriptor output = cx->file()->createPosixChannel(flags, mode);
+  FileDescriptor output = cx->file()->createPosixChannel(flags);
 
   // if (!output->tryAllocate(content.size())) {
   //   if (didNotExistBefore)

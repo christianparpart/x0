@@ -40,48 +40,49 @@
 #cmakedefine XZERO_OPPORTUNISTIC_WRITE 1
 
 // --------------------------------------------------------------------------
-// header tests
-
-#cmakedefine HAVE_SYS_INOTIFY_H
-#cmakedefine HAVE_SYS_SENDFILE_H
-#cmakedefine HAVE_SYS_RESOURCE_H
-#cmakedefine HAVE_SYS_LIMITS_H
-#cmakedefine HAVE_SYS_MMAN_H
-#cmakedefine HAVE_SYSLOG_H
-#cmakedefine HAVE_DLFCN_H
-#cmakedefine HAVE_EXECINFO_H
-#cmakedefine HAVE_PWD_H
-#cmakedefine HAVE_UNISTD_H
-#cmakedefine HAVE_PTHREAD_H
-
-#cmakedefine HAVE_NETDB_H
-#cmakedefine HAVE_AIO_H
-#cmakedefine HAVE_LIBAIO_H
-#cmakedefine HAVE_ZLIB_H
-#cmakedefine HAVE_BZLIB_H
-#cmakedefine HAVE_GNUTLS_H
-#cmakedefine HAVE_LUA_H
-#cmakedefine HAVE_PCRE_H
-#cmakedefine HAVE_SYS_UTSNAME_H
-#cmakedefine HAVE_SECURITY_PAM_APPL_H
-
-// --------------------------------------------------------------------------
-// functional tests
-
-#cmakedefine HAVE_INOTIFY_INIT1
-#cmakedefine HAVE_CHROOT
-#cmakedefine HAVE_PATHCONF
-#cmakedefine HAVE_SENDFILE
-#cmakedefine HAVE_POSIX_FADVISE
-#cmakedefine HAVE_READAHEAD
-#cmakedefine HAVE_PREAD
-#cmakedefine HAVE_SYSCONF
-#cmakedefine HAVE_PATHCONF
 #cmakedefine HAVE_ACCEPT4
-#cmakedefine HAVE_PIPE2
+#cmakedefine HAVE_BACKTRACE
+#cmakedefine HAVE_BACKTRACE_SYMBOLS
+#cmakedefine HAVE_CLOCK_GETTIME
+#cmakedefine HAVE_DLADDR
 #cmakedefine HAVE_DUP2
 #cmakedefine HAVE_FORK
-#cmakedefine HAVE_BACKTRACE
-#cmakedefine HAVE_CLOCK_GETTIME
-#cmakedefine HAVE_PTHREAD_SETNAME_NP
+#cmakedefine HAVE_FTRUNCATE
+#cmakedefine HAVE_GETRLIMIT
+#cmakedefine HAVE_GMTIME_R
+#cmakedefine HAVE_INOTIFY_INIT1
+#cmakedefine HAVE_PATHCONF
+#cmakedefine HAVE_PIPE2
+#cmakedefine HAVE_POSIX_FADVISE
+#cmakedefine HAVE_PREAD
+#cmakedefine HAVE_READAHEAD
+#cmakedefine HAVE_SENDFILE
+#cmakedefine HAVE_SIGPROCMASK
+#cmakedefine HAVE_STRPTIME
+#cmakedefine HAVE_SYSCONF
+#cmakedefine HAVE_TRUNCATE
+
+#cmakedefine HAVE_DLFCN_H
+#cmakedefine HAVE_EXECINFO_H
+#cmakedefine HAVE_FCNTL_H
+#cmakedefine HAVE_GLOB_H
+#cmakedefine HAVE_PTHREAD_H
+#cmakedefine HAVE_PWD_H
+#cmakedefine HAVE_SECURITY_PAM_APPL_H
+#cmakedefine HAVE_SYS_INOTIFY_H
+#cmakedefine HAVE_SYS_INOTIFY_H
+#cmakedefine HAVE_SYS_LIMITS_H
+#cmakedefine HAVE_SYS_MMAN_H
+#cmakedefine HAVE_SYS_RESOURCE_H
+#cmakedefine HAVE_SYS_SENDFILE_H
+#cmakedefine HAVE_SYS_TIME_H
+#cmakedefine HAVE_SYS_WAIT_H
+#cmakedefine HAVE_SYSLOG_H
+#cmakedefine HAVE_UNISTD_H
+#cmakedefine HAVE_UUID_UUID_H
+#cmakedefine HAVE_ZLIB_H
 #cmakedefine HAVE_PTHREAD_SETAFFINITY_NP
+#cmakedefine HAVE_PTHREAD_SETNAME_NP
+
+#cmakedefine HAVE_ZLIB_H
+#cmakedefine HAVE_BZLIB_H
