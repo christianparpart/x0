@@ -5,19 +5,21 @@
 // file except in compliance with the License. You may obtain a copy of
 // the License at: http://opensource.org/licenses/MIT
 
-#include <xzero/http/HttpResponse.h>
-#include <xzero/http/HttpRequest.h>
-#include <xzero/http/HttpChannel.h>
-#include <xzero/http/BadMessage.h>
 #include <xzero/RuntimeError.h>
+#include <xzero/http/BadMessage.h>
+#include <xzero/http/HttpChannel.h>
+#include <xzero/http/HttpRequest.h>
+#include <xzero/http/HttpResponse.h>
 #include <xzero/io/FileView.h>
 #include <xzero/io/Filter.h>
+#include <xzero/logging.h>
 #include <xzero/sysconfig.h>
+
 #include <cstring>
-#include <system_error>
 #include <stdexcept>
-#include <vector>
 #include <string>
+#include <system_error>
+#include <vector>
 
 #ifdef HAVE_UNISTD_H
 #include <unistd.h>
@@ -175,6 +177,7 @@ void HttpResponse::send100Continue(CompletionHandler onComplete) {
 }
 
 void HttpResponse::sendError(HttpStatus code, const std::string& message) {
+  logTrace("HttpResponse.sendError! {}: {}", code, message);
   if (!isError(code))
     throw std::invalid_argument{"code"};
 

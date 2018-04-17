@@ -189,6 +189,7 @@ void Channel::h2cUpgrade(const Http2Settings& settings,
 }
 
 void Channel::onError(std::error_code ec) {
+  logTrace("http1.Channel.onError! {}: {}", ec.category().name(), ec.message());
   request_->setBytesReceived(bytesReceived());
 
   if (!response_->isCommitted()) {

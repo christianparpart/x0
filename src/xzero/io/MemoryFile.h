@@ -9,6 +9,7 @@
 
 #include <xzero/Api.h>
 #include <xzero/io/File.h>
+#include <xzero/io/FileDescriptor.h>
 #include <xzero/UnixTime.h>
 #include <string>
 
@@ -34,7 +35,7 @@ class MemoryFile : public File {
   bool isRegular() const noexcept override;
   bool isDirectory() const noexcept override;
   bool isExecutable() const noexcept override;
-  int createPosixChannel(OpenFlags flags, int mode = 0) override;
+  int createPosixChannel(OpenFlags flags) override;
 
  private:
   time_t mtime_;
@@ -42,7 +43,7 @@ class MemoryFile : public File {
   size_t size_;
   std::string etag_;
   std::string fspath_;
-  int fd_;
+  FileDescriptor fd_;
 };
 
 } // namespace xzero

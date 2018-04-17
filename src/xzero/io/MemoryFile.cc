@@ -31,17 +31,10 @@
 #if defined(XZERO_OS_WINDOWS)
 #endif
 
-namespace xzero {
+#include <experimental/filesystem>
+namespace fs = std::experimental::filesystem;
 
-// Since OS/X doesn't support SHM in a way Linux does, we need to work around it.
-#if XZERO_OS_DARWIN
-#  define XZERO_MEMORYFILE_USE_TMPFILE
-#else
-// Use TMPFILE here, too (for now), because create*Channel would fail otherwise.
-// So let's create a posix_filebuf
-//#  define XZERO_MEMORYFILE_USE_SHM
-#  define XZERO_MEMORYFILE_USE_TMPFILE
-#endif
+namespace xzero {
 
 MemoryFile::MemoryFile()
     : File("", ""),
@@ -65,63 +58,19 @@ MemoryFile::MemoryFile(
       etag_(std::to_string(data.hash())),
       fspath_(),
       fd_(-1) {
-#if defined(XZERO_OS_UNIX)
-#if defined(XZERO_MEMORYFILE_USE_TMPFILE)
-  fspath_ = FileUtil::joinPaths(FileUtil::tempDirectory(), "memfile.XXXXXXXX");
-
-  fd_ = mkstemp(const_cast<char*>(fspath_.c_str()));
+  fd_ = FileUtil::createTempFileAt(FileUtil::tempDirectory(), &fspath_);
   if (fd_ < 0)
     RAISE_ERRNO(errno);
 
-  if (ftruncate(fd_, size()) < 0)
-    RAISE_ERRNO(errno);
-
-  ssize_t n = pwrite(fd_, data.data(), data.size(), 0);
+  ssize_t n = ::write(fd_, data.data(), data.size());
   if (n < 0)
     RAISE_ERRNO(errno);
-#else
-  // TODO: URL-escape instead
-  fspath_ = path;
-  StringUtil::replaceAll(&fspath_, "/", "\%2f");
-
-  if (fspath_.size() >= NAME_MAX)
-    RAISE_ERRNO(ENAMETOOLONG);
-
-  FileDescriptor fd = shm_open(fspath_.c_str(), O_RDWR | O_CREAT, 0600);
-  if (fd < 0)
-    RAISE_ERRNO(errno);
-
-  if (ftruncate(fd, size()) < 0)
-    RAISE_ERRNO(errno);
-
-  ssize_t n = pwrite(fd, data.data(), data.size(), 0);
-  if (n < 0)
-    RAISE_ERRNO(errno);
-#endif
 
   if (static_cast<size_t>(n) != data.size())
     RAISE_ERRNO(EIO);
-#elif defined(XZERO_OS_WINDOWS)
-  RAISE_NOT_IMPLEMENTED();
-#else
-  RAISE_NOT_IMPLEMENTED();
-#endif
 }
 
 MemoryFile::~MemoryFile() {
-#if defined(XZERO_OS_UNIX)
-#if defined(XZERO_MEMORYFILE_USE_TMPFILE)
-  if (fd_ >= 0) {
-    FileUtil::close(fd_);
-  }
-#else
-  shm_unlink(fspath_.c_str());
-#endif
-#elif defined(XZERO_OS_WINDOWS)
-  // TODO
-#else
-#error "Not Implemented"
-#endif
 }
 
 const std::string& MemoryFile::etag() const {
@@ -152,25 +101,20 @@ bool MemoryFile::isExecutable() const noexcept {
   return false;
 }
 
-int MemoryFile::createPosixChannel(OpenFlags oflags, int mode) {
+int MemoryFile::createPosixChannel(OpenFlags oflags) {
 #if defined(XZERO_OS_WINDOWS)
   RAISE_NOT_IMPLEMENTED();
 #else
-  if (fd_ < 0) {
+  if (fd_.isClosed()) {
     errno = ENOENT;
     return -1;
   }
 
-#if defined(XZERO_MEMORYFILE_USE_TMPFILE)
-  // XXX when using dup(fd_) we'd also need to fcntl() the flags.
-  // - Both having advantages / disadvantages.
-  if (mode)
-    return ::open(fspath_.c_str(), to_posix(oflags), mode);
-  else
-    return ::open(fspath_.c_str(), to_posix(oflags));
-#else
-  return shm_open(fspath_.c_str(), to_posix(oflags), mode ? mode : 0600);
-#endif
+  FileDescriptor fd = dup(fd_);
+  if (fcntl(fd, F_SETFL, to_posix(oflags)) < 0)
+    RAISE_ERRNO(errno);
+
+  return fd.release();
 #endif
 }
 

@@ -19,9 +19,7 @@
 #include <stdexcept>
 #include <system_error>
 
-namespace xzero {
-namespace http {
-namespace mock {
+namespace xzero::http::mock {
 
 Transport::Transport(Executor* executor, HttpHandlerFactory handlerFactory)
     : Transport(executor, handlerFactory, 32, 64, nullptr, nullptr) {
@@ -83,8 +81,10 @@ void Transport::run(HttpVersion version, const std::string& method,
     channel_->onMessageContent(BufferRef(body.data(), body.size()));
     channel_->onMessageEnd();
   } catch (const BadMessage& e) {
+    logTrace("BadMessage caught: {}", e.what());
     channel_->response()->sendError(e.httpCode(), e.what());
   } catch (const RuntimeError& e) {
+    logTrace("Unhandled exception caught ({}): {}", typeid(e).name(), e.what());
     channel_->response()->sendError(HttpStatus::InternalServerError, e.what());
   }
 }
@@ -192,6 +192,4 @@ void Transport::send(FileView&& chunk, CompletionHandler onComplete) {
   }
 }
 
-} // namespace mock
-} // namespace http
-} // namespace xzero
+} // namespace xzero::http::mock

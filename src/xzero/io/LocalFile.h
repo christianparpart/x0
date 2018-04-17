@@ -34,7 +34,7 @@ class LocalFile : public File {
   bool isRegular() const noexcept override;
   bool isDirectory() const noexcept override;
   bool isExecutable() const noexcept override;
-  int createPosixChannel(OpenFlags flags, int mode = 0) override;
+  int createPosixChannel(OpenFlags flags) override;
 
   void update();
 
