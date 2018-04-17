@@ -96,7 +96,7 @@ TEST(StringUtil, splitByAny) {
 
   int i = 0;
   for (const auto& part: parts) {
-    logf("part[$0]: '$1'", i, part);
+    logf("part[{}]: '{}'", i, part);
     i++;
   }
 

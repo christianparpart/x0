@@ -8,7 +8,6 @@
 #include <xzero/net/SslEndPoint.h>
 #include <xzero/net/SslContext.h>
 #include <xzero/net/TcpConnection.h>
-#include <xzero/net/TcpUtil.h>
 #include <xzero/io/FileUtil.h>
 #include <xzero/util/BinaryWriter.h>
 #include <xzero/BufferUtil.h>

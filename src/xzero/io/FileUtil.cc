@@ -146,7 +146,7 @@ size_t FileUtil::read(int fd, Buffer* output) {
     size_t beg = output->size();
     output->reserve(beg + st.st_size + 1);
     ssize_t nread;
-#if defined(HAVE_PTREAD)
+#if defined(HAVE_PREAD)
     nread = ::pread(fd, output->data() + beg, st.st_size, 0);
 #else
     nread = ::read(fd, output->data() + beg, st.st_size);

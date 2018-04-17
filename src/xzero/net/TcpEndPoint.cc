@@ -7,7 +7,6 @@
 
 #include <xzero/net/TcpEndPoint.h>
 #include <xzero/net/TcpConnector.h>
-#include <xzero/net/TcpUtil.h>
 #include <xzero/net/TcpConnection.h>
 #include <xzero/util/BinaryReader.h>
 #include <xzero/io/FileUtil.h>
@@ -49,7 +48,7 @@ TcpEndPoint::TcpEndPoint(Duration readTimeout,
       writeTimeout_(writeTimeout),
       inputBuffer_(),
       inputOffset_(0),
-      socket_{Socket::NonBlockingTCP},
+      socket_{Socket::InvalidSocket},
       isCorking_(false),
       onEndPointClosed_(onEndPointClosed),
       connection_() {
@@ -350,7 +349,8 @@ void TcpEndPoint::connect(const InetAddress& address,
                           Duration connectTimeout,
                           std::function<void()> onConnected,
                           std::function<void(std::error_code ec)> onFailure) {
-  std::error_code ec = TcpUtil::connect(socket_, address);
+  socket_ = Socket::make_tcp_ip(true, address.family());
+  std::error_code ec = socket_.connect(address);
   if (!ec) {
     onConnected();
   } else if (ec == std::errc::operation_in_progress) {

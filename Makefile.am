@@ -152,7 +152,6 @@ libXzero_a_SOURCES = \
 	src/xzero/net/TcpConnection.cc \
 	src/xzero/net/TcpConnector.cc \
 	src/xzero/net/TcpEndPoint.cc \
-	src/xzero/net/TcpUtil.cc \
 	src/xzero/net/UdpClient.cc \
 	src/xzero/net/UdpConnector.cc \
 	src/xzero/net/UdpEndPoint.cc \
@@ -347,7 +346,6 @@ nobase_libXzero_HEADERS = \
 	src/xzero/net/TcpConnection.h \
 	src/xzero/net/TcpConnector.h \
 	src/xzero/net/TcpEndPoint.h \
-	src/xzero/net/TcpUtil.h \
 	src/xzero/net/UdpClient.h \
 	src/xzero/net/UdpConnector.h \
 	src/xzero/net/UdpEndPoint.h \

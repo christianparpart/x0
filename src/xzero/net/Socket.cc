@@ -178,6 +178,7 @@ Result<InetAddress> Socket::getLocalAddress() const {
       return static_cast<std::errc>(EINVAL);
   }
 }
+
 Result<InetAddress> Socket::getRemoteAddress() const {
   if (handle_ < 0)
     return static_cast<std::errc>(EINVAL);
@@ -236,6 +237,44 @@ void Socket::setBlocking(bool enable) {
 #else
 #error "Unknown platform"
 #endif
+}
+
+std::error_code Socket::connect(const InetAddress& address) {
+  int rv;
+  switch (address.family()) {
+    case IPAddress::Family::V4: {
+      struct sockaddr_in saddr;
+      memset(&saddr, 0, sizeof(saddr));
+      saddr.sin_family = static_cast<int>(address.family());
+      saddr.sin_port = htons(address.port());
+      memcpy(&saddr.sin_addr,
+             address.ip().data(),
+             address.ip().size());
+
+      rv = ::connect(handle_, (const struct sockaddr*) &saddr, sizeof(saddr));
+      break;
+    }
+    case IPAddress::Family::V6: {
+      struct sockaddr_in6 saddr;
+      memset(&saddr, 0, sizeof(saddr));
+      saddr.sin6_family = static_cast<int>(address.family());
+      saddr.sin6_port = htons(address.port());
+      memcpy(&saddr.sin6_addr,
+             address.ip().data(),
+             address.ip().size());
+
+      rv = ::connect(handle_, (const struct sockaddr*) &saddr, sizeof(saddr));
+      break;
+    }
+    default: {
+      return std::make_error_code(std::errc::invalid_argument);
+    }
+  }
+
+  if (rv < 0)
+    return make_error_code(static_cast<std::errc>(errno));
+  else
+    return std::error_code();
 }
 
 } // namespace xzero

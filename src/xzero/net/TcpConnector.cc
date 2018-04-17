@@ -8,7 +8,6 @@
 #include <xzero/executor/EventLoop.h>
 #include <xzero/net/TcpConnector.h>
 #include <xzero/net/TcpEndPoint.h>
-#include <xzero/net/TcpUtil.h>
 #include <xzero/net/TcpConnection.h>
 #include <xzero/net/IPAddress.h>
 #include <xzero/io/FileDescriptor.h>
@@ -474,8 +473,13 @@ std::optional<Socket> TcpConnector::acceptOne() {
     }
   }
 
-  TcpUtil::setLingering(cfd, tcpFinTimeout_);
-
+#if defined(TCP_LINGER2)
+  if (int waitTime = tcpFinTimeout_.seconds(); waitTime != 0) {
+    if (setsockopt(cfd, SOL_TCP, TCP_LINGER2, (const char*) &waitTime, sizeof(waitTime)) < 0) {
+      RAISE_ERRNO(errno);
+    }
+  }
+#endif
 
 #if defined(XZERO_OS_UNIX)
   if (!flagged && flags_ && fcntl(cfd, F_SETFL, fcntl(cfd, F_GETFL) | flags_) < 0)

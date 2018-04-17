@@ -237,29 +237,34 @@ TEST(PosixScheduler, executeOnWritable) {
   EXPECT_EQ(0, timeoutCount);
 }
 
-TEST(PosixScheduler, executeOnWritable_timeout) {
-  TheScheduler sched;
-  SocketPair pair{SocketPair::NonBlocking};
-
-  // fill pair first
-  logf("Filling RHS");
-  unsigned long long n = 0;
+static size_t fill(Socket& s) {
+  size_t n = 0;
   for (;;) {
     static const char buf[4096] = {0};
-    int rv = pair.right().write(buf, sizeof(buf));
+    int rv = s.write(buf, sizeof(buf));
     if (rv > 0) {
       n += rv;
     } else {
       break;
     }
   }
-  logf("Filled pair.right with {} bytes", n);
+  return n;
+}
 
+TEST(PosixScheduler, executeOnWritable_timeout) {
+  if (Application::isWSL()) {
+    logf("WARNING: Cannot test due to missing socketpair() NBIO implementation on WSL");
+    return;
+  }
+
+  TheScheduler sched;
   int fireCount = 0;
   int timeoutCount = 0;
   auto onFire = [&] { fireCount++; };
   auto onTimeout = [&] { timeoutCount++; };
 
+  SocketPair pair{SocketPair::NonBlocking};
+  fill(pair.right());
   sched.executeOnWritable(pair.right(), onFire, 500_milliseconds, onTimeout);
   sched.runLoop();
 
@@ -268,20 +273,12 @@ TEST(PosixScheduler, executeOnWritable_timeout) {
 }
 
 TEST(PosixScheduler, executeOnWritable_timeout_on_cancelled) {
-  TheScheduler sched;
-  SocketPair pair{SocketPair::NonBlocking};
-
-  // fill pair first
-  for (unsigned long long n = 0;;) {
-    static const char buf[1024] = {0};
-    int rv = pair.right().write(buf, sizeof(buf));
-    if (rv > 0) {
-      n += rv;
-    } else {
-      logf("Filled pair with {} bytes", n);
-      break;
-    }
+  if (Application::isWSL()) {
+    logf("WARNING: Cannot test due to missing socketpair() NBIO implementation on WSL");
+    return;
   }
+
+  TheScheduler sched;
 
   int fireCount = 0;
   int timeoutCount = 0;
@@ -289,6 +286,9 @@ TEST(PosixScheduler, executeOnWritable_timeout_on_cancelled) {
   auto onTimeout = [&] {
     printf("onTimeout!\n");
     timeoutCount++; };
+
+  SocketPair pair{SocketPair::NonBlocking};
+  fill(pair.right());
 
   auto handle = sched.executeOnWritable(
       pair.right(), onFire, 500_milliseconds, onTimeout);

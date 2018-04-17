@@ -130,12 +130,13 @@ TEST(TcpConnector, echoServer) {
     connector->stop();
   };
 
-  TcpEndPoint c{5_seconds, 5_seconds, &sched};
+  const IPAddress ip{"127.0.0.1"};
+  auto c = std::make_shared<TcpEndPoint>(Socket::make_tcp_ip(true, ip.family()), 5_seconds, 5_seconds, &sched);
   std::error_code connectError;
-  c.connect(InetAddress{IPAddress{"127.0.0.1"}, connector->port()}, 5_seconds,
+  c->connect(InetAddress{ip, connector->port()}, 5_seconds,
       [&]() { // client connected
-        c.setConnection(std::make_unique<EchoClientConnection>(&c, &sched, "ping", onClientReceived));
-        c.connection()->onOpen(false);
+        c->setConnection(std::make_unique<EchoClientConnection>(c.get(), &sched, "ping", onClientReceived));
+        c->connection()->onOpen(false);
       },
       [&](std::error_code ec) {
         connectError = ec;
@@ -148,7 +149,7 @@ TEST(TcpConnector, echoServer) {
   EXPECT_EQ("ping", response);
 }
 
-#if 0
+#if 1
 TEST(TcpConnector, detectProtocols) {
   PosixScheduler sched;
 
@@ -182,10 +183,6 @@ TEST(TcpConnector, detectProtocols) {
   connector->start();
   logf("Listening on port {}", connector->port());
 
-  Future<std::shared_ptr<TcpEndPoint>> f = TcpEndPoint::connect(
-      InetAddress("127.0.0.1", connector->port()),
-      5_seconds, 5_seconds, 5_seconds, &sched);
-
   Buffer response;
   auto onClientReceived = [&](const BufferRef& receivedText) {
     logf("Client received \"{}\"", receivedText);
@@ -193,18 +190,23 @@ TEST(TcpConnector, detectProtocols) {
     connector->stop();
   };
 
-  auto onConnectionEstablished = [&](std::shared_ptr<TcpEndPoint> ep) {
-    log("onConnectionEstablished");
-    Buffer text;
-    connector->loadConnectionFactorySelector("yeah", &text);
-    text.push_back("blurrrb");
-    ep->setConnection(std::make_unique<EchoClientConnection>(ep.get(), &sched, text, onClientReceived));
-    ep->connection()->onOpen(false);
-  };
-
+  const IPAddress ip("127.0.0.1");
+  auto c = std::make_shared<TcpEndPoint>(Socket::make_tcp_ip(true, ip.family()), 5_seconds, 5_seconds, &sched);
   std::error_code connectError;
-  f.onFailure([&](std::error_code ec) { connectError = ec; });
-  f.onSuccess(onConnectionEstablished);
+  c->connect(InetAddress{ip, connector->port()}, 5_seconds,
+      [&]() { // client connected
+        log("onConnectionEstablished");
+        Buffer text;
+        connector->loadConnectionFactorySelector("yeah", &text);
+        text.push_back("blurrrb");
+
+        c->setConnection(std::make_unique<EchoClientConnection>(c.get(), &sched, text, onClientReceived));
+        c->connection()->onOpen(false);
+      },
+      [&](std::error_code ec) {
+        connectError = ec;
+      }
+  );
 
   sched.runLoop();
 

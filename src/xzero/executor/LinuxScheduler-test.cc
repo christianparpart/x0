@@ -270,6 +270,11 @@ TEST(LinuxScheduler, executeOnWritable) {
 }
 
 TEST(LinuxScheduler, executeOnWritable_timeout) {
+  if (Application::isWSL()) {
+    logf("WARNING: Cannot test due to missing socketpair() NBIO implementation on WSL");
+    return;
+  }
+
   TheScheduler sched;
   SocketPair pair{SocketPair::NonBlocking};
 
@@ -298,6 +303,11 @@ TEST(LinuxScheduler, executeOnWritable_timeout) {
 }
 
 TEST(LinuxScheduler, executeOnWritable_timeout_on_cancelled) {
+  if (Application::isWSL()) {
+    logf("WARNING: Cannot test due to missing socketpair() NBIO implementation on WSL");
+    return;
+  }
+
   TheScheduler sched;
   SocketPair pair{SocketPair::NonBlocking};
 

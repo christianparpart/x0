@@ -269,7 +269,6 @@ set(libXzero_SRC src/xzero/AnsiColor.cc
                  src/xzero/net/TcpConnection.cc
                  src/xzero/net/TcpConnector.cc
                  src/xzero/net/TcpEndPoint.cc
-                 src/xzero/net/TcpUtil.cc
                  src/xzero/net/UdpClient.cc
                  src/xzero/net/UdpConnector.cc
                  src/xzero/net/UdpEndPoint.cc
