@@ -66,6 +66,8 @@ class [[nodiscard]] Socket {
 
   void setBlocking(bool enable);
 
+  std::error_code connect(const InetAddress& address);
+
 #if defined(XZERO_OS_UNIX)
   operator int () const noexcept { return handle_; }
   int native() const noexcept { return handle_; }

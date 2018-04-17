@@ -50,7 +50,7 @@ class TcpEndPoint : public std::enable_shared_from_this<TcpEndPoint> {
               Duration readTimeout,
               Duration writeTimeout,
               Executor* executor,
-              Callback onEndPointClosed);
+              Callback onEndPointClosed = Callback{});
 
   TcpEndPoint(Duration readTimeout,
               Duration writeTimeout,

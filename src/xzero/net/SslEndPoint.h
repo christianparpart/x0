@@ -12,7 +12,6 @@
 #include <xzero/io/FileDescriptor.h>
 #include <xzero/Duration.h>
 #include <xzero/net/TcpEndPoint.h>
-#include <xzero/net/TcpUtil.h>
 #include <xzero/DeadlineTimer.h>
 #include <string>
 #include <vector>
