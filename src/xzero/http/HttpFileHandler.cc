@@ -157,19 +157,63 @@ HttpStatus HttpFileHandler::handle(HttpRequest* request,
   return HttpStatus::Ok;
 }
 
+static inline uint64_t getUnixMicros(const struct tm& tm) {
+  uint64_t days = tm.tm_mday - 1;
+
+  for (auto i = 1970; i < tm.tm_year; ++i)
+    days += 365 + ISO8601::isLeapYear(i);
+
+  for (auto i = 1; i < civil.month(); ++i)
+    days += ISO8601::daysInMonth(tm.tm_year, i);
+
+  return days * kMicrosPerDay +
+         tm.tm_hour * kMicrosPerHour +
+         tm.tm_min * kMicrosPerMinute +
+         tm.tm_sec * kMicrosPerSecond;
+}
+
+static std::optional<UnixTime> parseTime(const std::string& timeStr) {
+#if defined(HAVE_STRPTIME)
+  static const char* timeFormat = "%a, %d %b %Y %H:%M:%S GMT";
+
+  struct tm tm;
+
+  if (strptime(timeStr.c_str(), timeFormat, &tm) == nullptr)
+    return std::nullopt;
+
+  time_t t = mktime(&tm);
+  char buf[256];
+  printf("parseTime: \"%s\" -> %lu\n", timeStr.c_str(), t);
+  printf("       ->: \"%s\"\n", asctime_r(&tm, buf));
+  return UnixTime(t * kMicrosPerSecond);
+  // CivilTime ct;
+  // ct.setSecond(tm.tm_sec);
+  // ct.setMinute(tm.tm_min);
+  // ct.setHour(tm.tm_hour);
+  // ct.setDay(tm.tm_mday);
+  // ct.setMonth(tm.tm_mon + 1);
+  // ct.setYear(tm.tm_year + 1900);
+  // return UnixTime(ct);
+
+  // time_t t = mktime(&tm);
+  // return UnixTime(t);
+#endif
+}
+
 HttpStatus HttpFileHandler::handleClientCache(const File& transferFile,
                                               HttpRequest* request,
                                               HttpResponse* response) {
-  static const char* timeFormat = "%a, %d %b %Y %H:%M:%S GMT";
-
   // If-Modified-Since
   do {
     const std::string& value = request->headers().get("If-Modified-Since");
     if (value.empty()) continue;
 
-    UnixTime dt(UnixTime::parseString(value, timeFormat).value());
+    std::optional<UnixTime> dt = parseTime(value);
+    if (!dt)
+      continue;
 
-    if (transferFile.mtime() > dt.unixtime()) continue;
+    if (transferFile.mtime() > dt.value().unixtime())
+      continue;
 
     return HttpStatus::NotModified;
   } while (0);
@@ -177,11 +221,15 @@ HttpStatus HttpFileHandler::handleClientCache(const File& transferFile,
   // If-Unmodified-Since
   do {
     const std::string& value = request->headers().get("If-Unmodified-Since");
-    if (value.empty()) continue;
+    if (value.empty())
+      continue;
 
-    UnixTime dt(UnixTime::parseString(value, timeFormat).value());
+    std::optional<UnixTime> dt = parseTime(value);
+    if (!dt)
+      continue;
 
-    if (transferFile.mtime() <= dt.unixtime()) continue;
+    if (transferFile.mtime() <= dt.value().unixtime())
+      continue;
 
     return HttpStatus::PreconditionFailed;
   } while (0);
@@ -189,12 +237,15 @@ HttpStatus HttpFileHandler::handleClientCache(const File& transferFile,
   // If-Match
   do {
     const std::string& value = request->headers().get("If-Match");
-    if (value.empty()) continue;
+    if (value.empty())
+      continue;
 
-    if (value == "*") continue;
+    if (value == "*")
+      continue;
 
     // XXX: on static files we probably don't need the token-list support
-    if (value == transferFile.etag()) continue;
+    if (value == transferFile.etag())
+      continue;
 
     return HttpStatus::PreconditionFailed;
   } while (0);
@@ -202,10 +253,12 @@ HttpStatus HttpFileHandler::handleClientCache(const File& transferFile,
   // If-None-Match
   do {
     const std::string& value = request->headers().get("If-None-Match");
-    if (value.empty()) continue;
+    if (value.empty())
+      continue;
 
     // XXX: on static files we probably don't need the token-list support
-    if (value != transferFile.etag()) continue;
+    if (value != transferFile.etag())
+      continue;
 
     return HttpStatus::PreconditionFailed;
   } while (0);
