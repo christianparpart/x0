@@ -26,6 +26,22 @@
 
 namespace xzero {
 
+EventFd::EventFd()
+    : handle_{eventfd(0, EFD_CLOEXEC | EFD_NONBLOCK)} {
+}
+
+void EventFd::notify(uint64_t n) {
+  ::write(handle_, &n, sizeof(n));
+}
+
+std::optional<uint64_t> EventFd::consume() {
+  uint64_t counter = 0;
+  if (::read(handle_, &counter, sizeof(counter)) < 0)
+    return std::nullopt;
+  else
+    return counter;
+}
+
 #define EPOLL_MAX_USER_WATCHES_FILE "/proc/sys/fs/epoll/max_user_watches"
 
 LinuxScheduler::LinuxScheduler(ExceptionHandler eh)
@@ -49,11 +65,10 @@ LinuxScheduler::LinuxScheduler(ExceptionHandler eh)
 {
   epollfd_ = epoll_create1(EPOLL_CLOEXEC);
 
-  eventfd_ = eventfd(0, EFD_CLOEXEC | EFD_NONBLOCK);
   epoll_event event;
   memset(&event, 0, sizeof(event));
   event.events = EPOLLIN;
-  epoll_ctl(epollfd_, EPOLL_CTL_ADD, eventfd_, &event);
+  epoll_ctl(epollfd_, EPOLL_CTL_ADD, eventfd_.native(), &event);
 
   // setup signalfd
   sigemptyset(&signalMask_);
@@ -228,8 +243,7 @@ int LinuxScheduler::makeEvent(Mode mode) {
 }
 
 void LinuxScheduler::wakeupLoop() {
-  uint64_t dummy = 1;
-  ::write(eventfd_, &dummy, sizeof(dummy));
+  eventfd_.notify(1);
 }
 
 Executor::HandleRef LinuxScheduler::createWatcher(
@@ -511,8 +525,7 @@ void LinuxScheduler::collectActiveHandles(size_t count,
       }
     } else {
       // event.data.ptr is NULL, ie. that's our eventfd notification.
-      uint64_t counter = 0;
-      ::read(eventfd_, &counter, sizeof(counter));
+      eventfd_.consume();
     }
   }
 }

@@ -6,7 +6,6 @@
 // the License at: http://opensource.org/licenses/MIT
 
 #include <xzero/executor/LinuxScheduler.h>
-#include <xzero/io/SystemPipe.h>
 #include <xzero/net/SocketPair.h>
 #include <xzero/MonotonicTime.h>
 #include <xzero/MonotonicClock.h>
@@ -32,8 +31,8 @@ using TheScheduler = LinuxScheduler;
  */
 TEST(LinuxScheduler, timeoutBreak) {
   TheScheduler scheduler;
-  SystemPipe a;
-  SystemPipe b;
+  EventFd a;
+  EventFd b;
   MonotonicTime start = MonotonicClock::now();
   MonotonicTime a_fired_at;
   MonotonicTime b_fired_at;
@@ -48,9 +47,9 @@ TEST(LinuxScheduler, timeoutBreak) {
   auto b_timeout = [&]() { b_timeout_at = MonotonicClock::now();
                            logTrace("b_timeout_at: {}", b_timeout_at - start); };
 
-  scheduler.executeOnReadable(a.readerFd(), a_fired,
+  scheduler.executeOnReadable(a.native(), a_fired,
                               500_milliseconds, a_timeout);
-  scheduler.executeOnReadable(b.readerFd(), b_fired,
+  scheduler.executeOnReadable(b.native(), b_fired,
                               100_milliseconds, b_timeout);
 
   scheduler.runLoop();
@@ -170,14 +169,14 @@ TEST(LinuxScheduler, executeOnReadable) {
 
   TheScheduler sched;
 
-  SystemPipe pipe;
+  EventFd efd;
   int fireCount = 0;
   int timeoutCount = 0;
 
-  pipe.write("blurb");
+  efd.notify();
 
   auto handle = sched.executeOnReadable(
-      pipe.readerFd(),
+      efd.native(),
       [&] { log("onReadable.fire!"); fireCount++; },
       Duration::Zero,
       [&] { log("onReadable.timeout!"); timeoutCount++; } );
@@ -193,14 +192,14 @@ TEST(LinuxScheduler, executeOnReadable) {
 
 TEST(LinuxScheduler, executeOnReadable_timeout) {
   TheScheduler sched;
-  SystemPipe pipe;
+  EventFd efd;
 
   int fireCount = 0;
   int timeoutCount = 0;
   auto onFire = [&] { fireCount++; };
   auto onTimeout = [&] { timeoutCount++; };
 
-  sched.executeOnReadable(pipe.readerFd(), onFire, 500_milliseconds, onTimeout);
+  sched.executeOnReadable(efd.native(), onFire, 500_milliseconds, onTimeout);
   sched.runLoop();
 
   EXPECT_EQ(0, fireCount);
@@ -209,17 +208,15 @@ TEST(LinuxScheduler, executeOnReadable_timeout) {
 
 TEST(LinuxScheduler, executeOnReadable_timeout_on_cancelled) {
   TheScheduler sched;
-  SystemPipe pipe;
+  EventFd efd;
 
   int fireCount = 0;
   int timeoutCount = 0;
   auto onFire = [&] { fireCount++; };
-  auto onTimeout = [&] {
-    printf("onTimeout!\n");
-    timeoutCount++; };
+  auto onTimeout = [&] { printf("onTimeout!\n"); timeoutCount++; };
 
   auto handle = sched.executeOnReadable(
-      pipe.readerFd(), onFire, 500_milliseconds, onTimeout);
+      efd.native(), onFire, 500_milliseconds, onTimeout);
 
   handle->cancel();
   sched.runLoopOnce();
@@ -236,29 +233,29 @@ TEST(LinuxScheduler, executeOnReadable_timeout_on_cancelled) {
 
 // TEST(LinuxScheduler, executeOnReadable_twice_on_same_fd) {
 //   TheScheduler sched;
-//   SystemPipe pipe;
+//   EventFd efd;
 // 
-//   sched.executeOnReadable(pipe.readerFd(), [] () {});
+//   sched.executeOnReadable(efd.native(), [] () {});
 // 
 //   EXPECT_THROW_STATUS(AlreadyWatchingOnResource,
-//                       sched.executeOnReadable(pipe.readerFd(), [] () {}));
+//                       sched.executeOnReadable(efd.native(), [] () {}));
 // 
 //   // same fd, different mode
 //   EXPECT_THROW_STATUS(AlreadyWatchingOnResource,
-//                       sched.executeOnWritable(pipe.readerFd(), [] () {}));
+//                       sched.executeOnWritable(efd.native(), [] () {}));
 // }
 
 TEST(LinuxScheduler, executeOnWritable) {
   TheScheduler sched;
 
-  SystemPipe pipe;
+  EventFd efd;
   int fireCount = 0;
   int timeoutCount = 0;
   const Duration timeout = 1_seconds;
   const auto onFire = [&]() { fireCount++; };
   const auto onTimeout = [&]() { timeoutCount++; };
 
-  sched.executeOnWritable(pipe.writerFd(), onFire, timeout, onTimeout);
+  sched.executeOnWritable(efd.native(), onFire, timeout, onTimeout);
 
   EXPECT_EQ(0, fireCount);
   EXPECT_EQ(0, timeoutCount);

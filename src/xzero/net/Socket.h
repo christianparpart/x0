@@ -63,6 +63,7 @@ class [[nodiscard]] Socket {
   AddressFamily addressFamily() const noexcept { return addressFamily_; }
 
   int write(const void* buf, size_t count);
+  void consume();
 
   void setBlocking(bool enable);
 

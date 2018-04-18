@@ -24,7 +24,6 @@
 #include <xzero/Buffer.h>
 #include <xzero/StringUtil.h>
 #include <xzero/io/FileUtil.h>
-#include <xzero/io/SystemPipe.h>
 #include <xzero/executor/Executor.h>
 #include <xzero/thread/SignalHandler.h>
 #include <xzero/logging.h>

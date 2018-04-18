@@ -140,7 +140,6 @@ libXzero_a_SOURCES = \
 	src/xzero/io/LocalFileRepository.cc \
 	src/xzero/io/MemoryFile.cc \
 	src/xzero/io/MemoryFileRepository.cc \
-	src/xzero/io/SystemPipe.cc \
 	src/xzero/logging.cc \
 	src/xzero/net/Cidr.cc \
 	src/xzero/net/DnsClient.cc \
@@ -332,7 +331,6 @@ nobase_libXzero_HEADERS = \
 	src/xzero/io/LocalFileRepository.h \
 	src/xzero/io/MemoryFile.h \
 	src/xzero/io/MemoryFileRepository.h \
-	src/xzero/io/SystemPipe.h \
 	src/xzero/logging.h \
 	src/xzero/net/Cidr.h \
 	src/xzero/net/DnsClient.h \
