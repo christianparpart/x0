@@ -252,7 +252,6 @@ set(libXzero_SRC src/xzero/AnsiColor.cc
                  src/xzero/io/LocalFileRepository.cc
                  src/xzero/io/MemoryFile.cc
                  src/xzero/io/MemoryFileRepository.cc
-                 src/xzero/io/SystemPipe.cc
                  src/xzero/logging.cc
                  src/xzero/net/Cidr.cc
                  src/xzero/net/DnsClient.cc

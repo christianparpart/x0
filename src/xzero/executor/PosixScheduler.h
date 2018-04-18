@@ -9,7 +9,7 @@
 
 #include <xzero/executor/EventLoop.h>
 #include <xzero/PosixSignals.h>
-#include <xzero/io/SystemPipe.h>
+#include <xzero/net/SocketPair.h>
 #include <xzero/MonotonicTime.h>
 #include <xzero/sysconfig.h>
 #include <xzero/defines.h>
@@ -218,7 +218,7 @@ class PosixScheduler : public EventLoop {
  private:
   std::mutex lock_;                 //!< mutex, to protect access to tasks, timers
 
-  SystemPipe wakeupPipe_;           //!< system pipe, used to wakeup the waiting syscall
+  SocketPair wakeupPipe_;           //!< system pipe, used to wakeup the waiting syscall
 
   std::list<Task> tasks_;           //!< list of pending tasks
   std::list<std::shared_ptr<Timer>> timers_;  //!< ASC-sorted list of timers

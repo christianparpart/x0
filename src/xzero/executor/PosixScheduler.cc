@@ -47,7 +47,7 @@ namespace xzero {
 PosixScheduler::PosixScheduler(ExceptionHandler eh)
     : EventLoop{std::move(eh)},
       lock_{},
-      wakeupPipe_{},
+      wakeupPipe_{SocketPair::NonBlocking},
       tasks_{},
       timers_{},
       watchers_{},
@@ -60,8 +60,6 @@ PosixScheduler::PosixScheduler(ExceptionHandler eh)
       input_{},
       output_{},
       error_{} {
-  wakeupPipe_.setNonBlocking(true);
-
 #if defined(HAVE_GETRLIMIT)
   struct rlimit rlim{};
   memset(&rlim, 0, sizeof(rlim));
@@ -105,9 +103,7 @@ void PosixScheduler::execute(Task task) {
 }
 
 std::string PosixScheduler::toString() const {
-  return fmt::format("PosixScheduler: wakeupPipe{{}, {}}",
-      wakeupPipe_.readerFd(),
-      wakeupPipe_.writerFd());
+  return "PosixScheduler{}";
 }
 
 EventLoop::HandleRef PosixScheduler::executeAfter(Duration delay, Task task) {
@@ -313,8 +309,8 @@ PosixScheduler::HandleRef PosixScheduler::setupWatcher(
 }
 
 void PosixScheduler::collectActiveHandles(std::list<Task>* result) {
-  if (FD_ISSET(wakeupPipe_.readerFd(), &input_))
-    wakeupPipe_.consume();
+  if (FD_ISSET(wakeupPipe_.left(), &input_))
+    wakeupPipe_.left().consume();
 
   Watcher* w = firstWatcher_;
 
@@ -367,8 +363,8 @@ size_t PosixScheduler::waitForEvents() noexcept {
 
   int wmark = collectWatches();
 
-  FD_SET(wakeupPipe_.readerFd(), &input_);
-  wmark = std::max(wmark, wakeupPipe_.readerFd());
+  FD_SET(wakeupPipe_.left().native(), &input_);
+  wmark = std::max(wmark, wakeupPipe_.left().native());
 
   now_.update();
 
@@ -442,7 +438,7 @@ void PosixScheduler::breakLoop() {
 
 void PosixScheduler::wakeupLoop() {
   static const int dummy = 42;
-  wakeupPipe_.write(&dummy, sizeof(dummy));
+  wakeupPipe_.right().write(&dummy, sizeof(dummy));
 }
 
 void PosixScheduler::waitForReadable(const Socket& s, Duration timeout) {

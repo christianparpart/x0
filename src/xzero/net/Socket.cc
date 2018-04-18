@@ -221,6 +221,25 @@ int Socket::write(const void* buf, size_t count) {
 #endif
 }
 
+void Socket::consume() {
+  for (;;) {
+    char buf[4096];
+    int rv = ::read(handle_, buf, sizeof(buf));
+    if (rv < 0) {
+      switch (errno) {
+        case EBUSY:
+        case EAGAIN:
+#if defined(EWOULDBLOCK) && (EWOULDBLOCK != EAGAIN)
+        case EWOULDBLOCK:
+#endif
+          return;
+        default:
+          RAISE_ERRNO(errno);
+      }
+    }
+  }
+}
+
 void Socket::setBlocking(bool enable) {
 #if defined(XZERO_OS_UNIX)
   unsigned flags = enable ? fcntl(handle_, F_GETFL) & ~O_NONBLOCK

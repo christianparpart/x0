@@ -24,6 +24,22 @@
 namespace xzero {
 
 /**
+ * Wrapper API around the native Linux eventfd feature.
+ */
+class EventFd {
+ public:
+  EventFd();
+
+  void notify(uint64_t n = 1);
+  std::optional<uint64_t> consume();
+
+  int native() { return handle_; }
+
+ private:
+  FileDescriptor handle_;
+};
+
+/**
  * Implements EventLoop API via native Linux features,
  * such as @c epoll, @c eventfd, @p signalfd, etc.
  */
@@ -169,7 +185,7 @@ class LinuxScheduler : public EventLoop {
   std::list<std::shared_ptr<Timer>> timers_;    //!< ASC-sorted list of timers
 
   FileDescriptor epollfd_;
-  FileDescriptor eventfd_;
+  EventFd eventfd_;
 
   std::mutex signalLock_;
   FileDescriptor signalfd_;
