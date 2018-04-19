@@ -47,7 +47,7 @@ std::string File::filename() const {
 const std::string& File::lastModified() const {
   // build Last-Modified response header value on-demand
   if (lastModified_.empty()) {
-    time_t modificationTime = mtime();
+    time_t modificationTime = mtime().unixtime();
     struct tm tm;
     if (gmtime_r(&modificationTime, &tm)) {
       char buf[256];

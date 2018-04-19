@@ -41,7 +41,7 @@ class CsvFormatter : public OutputFormatter { // {{{
   }
 
   void generateEntry(std::shared_ptr<File> file) override {
-    buffer_.push_back(file->mtime());
+    buffer_.push_back(file->mtime().unixtime());
     buffer_.push_back(',');
     buffer_.push_back(file->isDirectory() ? 0 : file->size());
     buffer_.push_back(",\"");
@@ -79,7 +79,7 @@ class JsonFormatter : public OutputFormatter { // {{{
                                                    : "file");
     writer_.name("mimetype").value(file->mimetype());
     writer_.name("last-modified").value(file->lastModified());
-    writer_.name("mtime").value(file->mtime());
+    writer_.name("mtime").value(file->mtime().unixtime());
     writer_.name("size").value(file->isDirectory() ? 0 : file->size());
     writer_.endObject();
   }

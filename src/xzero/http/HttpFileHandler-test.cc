@@ -271,33 +271,54 @@ TEST_F(http_HttpFileHandler, GET_if_none_match) {
   EXPECT_EQ(HttpStatus::Ok, transport.responseInfo().status());
 }
 
-TEST_F(http_HttpFileHandler, GET_if_modified_since) {
+TEST_F(http_HttpFileHandler, GET_if_modified_since_EXACT) {
   LocalExecutor executor;
   mock::Transport transport(&executor,
       std::bind(&http_HttpFileHandler::staticfileHandler, this,
                 std::placeholders::_1, std::placeholders::_2));
-
   std::string path = "/12345.txt";
   auto file = getFile(path);
-
-  logf("file's lastModified: {}", file->lastModified());
 
   // test exact-date match
   transport.run(HttpVersion::VERSION_1_1, "GET", path,
       {{"Host", "test"},
        {"If-Modified-Since", file->lastModified()}}, "");
   EXPECT_EQ(HttpStatus::NotModified, transport.responseInfo().status());
+}
+
+TEST_F(http_HttpFileHandler, GET_if_modified_since_FUTURE) {
+  LocalExecutor executor;
+  mock::Transport transport(&executor,
+      std::bind(&http_HttpFileHandler::staticfileHandler, this,
+                std::placeholders::_1, std::placeholders::_2));
+  std::string path = "/12345.txt";
+  auto file = getFile(path);
 
   // test future-date-match
   transport.run(HttpVersion::VERSION_1_1, "GET", path,
       {{"Host", "test"},
        {"If-Modified-Since", (mtime_ + 1_minutes).toString(HTTP_DATE_FMT)}}, "");
   EXPECT_EQ(HttpStatus::NotModified, transport.responseInfo().status());
+}
+
+TEST_F(http_HttpFileHandler, GET_if_modified_since_PAST) {
+  LocalExecutor executor;
+  mock::Transport transport(&executor,
+      std::bind(&http_HttpFileHandler::staticfileHandler, this,
+                std::placeholders::_1, std::placeholders::_2));
+  std::string path = "/12345.txt";
+  auto file = getFile(path);
+
+  const UnixTime inputTime = (mtime_ - 1_minutes);
+  const std::string inputTimeStr = inputTime.toString(HTTP_DATE_FMT);
+
+  logf("file's mtime : {}", mtime_.toString(HTTP_DATE_FMT));
+  logf("input mtime  : {}", inputTime.toString(HTTP_DATE_FMT));
 
   // test past-date match
   transport.run(HttpVersion::VERSION_1_1, "GET", path,
       {{"Host", "test"},
-       {"If-Modified-Since", (mtime_ - 1_minutes).toString(HTTP_DATE_FMT)}}, "");
+       {"If-Modified-Since", inputTimeStr}}, "");
   EXPECT_EQ(HttpStatus::Ok, transport.responseInfo().status());
 }
 

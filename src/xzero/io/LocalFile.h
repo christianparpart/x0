@@ -29,7 +29,7 @@ class LocalFile : public File {
 
   const std::string& etag() const override;
   size_t size() const noexcept override;
-  time_t mtime() const noexcept override;
+  UnixTime mtime() const noexcept override;
   size_t inode() const noexcept override;
   bool isRegular() const noexcept override;
   bool isDirectory() const noexcept override;

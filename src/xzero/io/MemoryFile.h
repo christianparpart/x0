@@ -8,9 +8,10 @@
 #pragma once
 
 #include <xzero/Api.h>
+#include <xzero/UnixTime.h>
 #include <xzero/io/File.h>
 #include <xzero/io/FileDescriptor.h>
-#include <xzero/UnixTime.h>
+
 #include <string>
 
 namespace xzero {
@@ -30,7 +31,7 @@ class MemoryFile : public File {
 
   const std::string& etag() const override;
   size_t size() const noexcept override;
-  time_t mtime() const noexcept override;
+  UnixTime mtime() const noexcept override;
   size_t inode() const noexcept override;
   bool isRegular() const noexcept override;
   bool isDirectory() const noexcept override;
@@ -38,7 +39,7 @@ class MemoryFile : public File {
   int createPosixChannel(OpenFlags flags) override;
 
  private:
-  time_t mtime_;
+  UnixTime mtime_;
   size_t inode_;
   size_t size_;
   std::string etag_;

@@ -1131,23 +1131,23 @@ void CoreModule::header_remove(Context* cx, Params& args) {
 }
 
 void CoreModule::expire(Context* cx, Params& args) {
-  time_t now = cx->now().unixtime();
-  time_t mtime = cx->file() ? cx->file()->mtime() : now;
+  const UnixTime now = cx->now();
+  const UnixTime mtime = cx->file() ? cx->file()->mtime() : now;
   time_t value = args.getInt(1);
 
   // passed a timespan
-  if (value < mtime)
-    value = value + now;
+  if (value < mtime.unixtime())
+    value = value + now.unixtime();
 
   // (mtime+span) points to past?
-  if (value < now)
-    value = now;
+  if (value < now.unixtime())
+    value = now.unixtime();
 
   static const char* timeFormat = "%a, %d %b %Y %H:%M:%S GMT";
-  cx->response()->setHeader("Expires", UnixTime(value).format(timeFormat));
+  cx->response()->setHeader("Expires", UnixTime(value * kMicrosPerSecond).format(timeFormat));
 
   cx->response()->setHeader("Cache-Control",
-      fmt::format("max-age={}", value - now));
+      fmt::format("max-age={}", value - now.unixtime()));
 }
 
 void CoreModule::req_method(Context* cx, Params& args) {
@@ -1252,7 +1252,7 @@ void CoreModule::phys_is_exe(Context* cx, Params& args) {
 }
 
 void CoreModule::phys_mtime(Context* cx, Params& args) {
-  args.setResult(static_cast<FlowNumber>(cx->file() ? cx->file()->mtime() : 0));
+  args.setResult(static_cast<FlowNumber>(cx->file() ? cx->file()->mtime().unixtime() : 0));
 }
 
 void CoreModule::phys_size(Context* cx, Params& args) {
