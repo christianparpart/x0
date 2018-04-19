@@ -44,7 +44,6 @@ libXzero_a_SOURCES = \
 	src/xzero/Application.cc \
 	src/xzero/Buffer.cc \
 	src/xzero/BufferUtil.cc \
-	src/xzero/CivilTime.cc \
 	src/xzero/Counter.cc \
 	src/xzero/DeadlineTimer.cc \
 	src/xzero/Duration.cc \
@@ -52,7 +51,6 @@ libXzero_a_SOURCES = \
 	src/xzero/Flags.cc \
 	src/xzero/HugeBuffer.cc \
 	src/xzero/IEEE754.cc \
-	src/xzero/ISO8601.cc \
 	src/xzero/JsonWriter.cc \
 	src/xzero/MimeTypes.cc \
 	src/xzero/MonotonicClock.cc \
@@ -184,8 +182,6 @@ nobase_libXzero_HEADERS = \
 	src/xzero/Buffer.h \
 	src/xzero/BufferUtil.h \
 	src/xzero/Callback.h \
-	src/xzero/CivilTime.h \
-	src/xzero/CivilTime_impl.h \
 	src/xzero/CompletionHandler.h \
 	src/xzero/Counter.h \
 	src/xzero/CustomDataMgr.h \
@@ -196,7 +192,6 @@ nobase_libXzero_HEADERS = \
 	src/xzero/Flags.h \
 	src/xzero/HugeBuffer.h \
 	src/xzero/IEEE754.h \
-	src/xzero/ISO8601.h \
 	src/xzero/JsonWriter.h \
 	src/xzero/LinkedCounter.h \
 	src/xzero/MimeTypes.h \

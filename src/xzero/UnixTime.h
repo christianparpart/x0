@@ -6,14 +6,14 @@
 // the License at: http://opensource.org/licenses/MIT
 #pragma once
 
-#include <xzero/time_constants.h>
-#include <xzero/CivilTime.h>
-#include <xzero/Duration.h>
 #include <fmt/format.h>
-#include <optional>
+#include <xzero/Duration.h>
+
+#include <ctime>
 #include <ctime>
 #include <inttypes.h>
 #include <limits>
+#include <optional>
 #include <string>
 
 namespace xzero {
@@ -36,33 +36,26 @@ class UnixTime {
   constexpr explicit UnixTime(uint64_t utc_time);
 
   /**
-   * Create a new UTC UnixTime instance from a civil time reference
-   *
-   * @param civil the civil time
+   * Create a new UTC UnixTime instance from a struct tm reference
    */
-  explicit UnixTime(const CivilTime& civil);
+  explicit UnixTime(const struct tm& tm);
 
   /**
-   * Parse time from the provided string
+   * Create a new UTC UnixTime instance from given input date & time.
    *
-   * @param str the string to parse
-   * @param fmt the strftime format string (optional)
+   * @param year The absolute year
+   * @param month the current month giving that @p year (1 == January).
+   * @param day the day within the @p month (starting from 1).
+   * @param hour the hours past the given @p day.
+   * @param minute the minutes past the given @p hour.
+   * @param second the number of seconds to the next @p minute.
+   * @param millisecond number of milliseconds into the next @p second.
+   * @param offset GMT-offset in seconds
+   * @param isdst true if in daylight-saving
    */
-  static std::optional<UnixTime> parseString(
-      const std::string& str,
-      const char* fmt = "%Y-%m-%d %H:%M:%S");
-
-  /**
-   * Parse time from the provided string
-   *
-   * @param str the string to parse
-   * @param strlen the size of the string to parse
-   * @param fmt the strftime format string (optional)
-   */
-  static std::optional<UnixTime> parseString(
-      const char* str,
-      size_t strlen,
-      const char* fmt = "%Y-%m-%d %H:%M:%S");
+  UnixTime(int year, int month, int day,
+           int hour, int minute, int second, int millisecond,
+           long int offset, bool isdst);
 
   /**
    * Return a representation of the date as a string (strftime)
