@@ -19,7 +19,6 @@
 #include <xzero/io/FileUtil.h>
 #include <xzero/MimeTypes.h>
 #include <xzero/Buffer.h>
-#include <xzero/CivilTime.h>
 #include <xzero/testing.h>
 
 using namespace xzero;
@@ -47,7 +46,7 @@ std::string http_HttpFileHandler::generateBoundaryID() {
 
 http_HttpFileHandler::http_HttpFileHandler()
   : mimetypes_(),
-    mtime_(CivilTime(2016, 8, 17, 3, 26, 0, 0, 0)),
+    mtime_(2016, 8, 17, 3, 26, 0, 0, -3600, true),
     vfs_(mimetypes_),
     staticFileHandler_(&generateBoundaryID) {
 

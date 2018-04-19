@@ -151,7 +151,6 @@ set(libXzero_SRC src/xzero/AnsiColor.cc
                  src/xzero/Application.cc
                  src/xzero/Buffer.cc
                  src/xzero/BufferUtil.cc
-                 src/xzero/CivilTime.cc
                  src/xzero/Counter.cc
                  src/xzero/DeadlineTimer.cc
                  src/xzero/Duration.cc
@@ -159,7 +158,6 @@ set(libXzero_SRC src/xzero/AnsiColor.cc
                  src/xzero/Flags.cc
                  src/xzero/HugeBuffer.cc
                  src/xzero/IEEE754.cc
-                 src/xzero/ISO8601.cc
                  src/xzero/JsonWriter.cc
                  src/xzero/MimeTypes.cc
                  src/xzero/MonotonicClock.cc

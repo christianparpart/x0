@@ -12,39 +12,50 @@
 #include <xzero/inspect.h>
 #include <xzero/WallClock.h>
 #include <xzero/StringUtil.h>
-#include <xzero/ISO8601.h>
 #include <xzero/time_constants.h>
 #include <xzero/sysconfig.h>
 #include <xzero/defines.h>
 
 namespace xzero {
 
-inline uint64_t getUnixMicros(const CivilTime& civil) {
-  uint64_t days = civil.day() - 1;
+static uint64_t getUnixMicros(
+    int year, int month, int day,
+    int hour, int minute, int second, int millisecond,
+    long int offset, bool isdst) {
+  struct tm tm;
+  memset(&tm, 0, sizeof(tm));
+  tm.tm_year = year;
+  tm.tm_mon = month;
+  tm.tm_mday = day;
+  tm.tm_hour = hour;
+  tm.tm_min = minute;
+  tm.tm_sec = second;
+  tm.tm_gmtoff = offset;
+  tm.tm_isdst = isdst ? 1 : 0;
 
-  for (auto i = 1970; i < civil.year(); ++i) {
-    days += 365 + ISO8601::isLeapYear(i);
-  }
+  const time_t gmt = mktime(&tm);
+  const time_t utc = gmt + tm.tm_gmtoff;
 
-  for (auto i = 1; i < civil.month(); ++i) {
-    days += ISO8601::daysInMonth(civil.year(), i);
-  }
-
-  return
-      days * kMicrosPerDay +
-      civil.hour() * kMicrosPerHour +
-      civil.minute() * kMicrosPerMinute +
-      civil.second() * kMicrosPerSecond +
-      civil.millisecond() * 1000 +
-      civil.offset() * kMicrosPerSecond * -1;
+  return tm.tm_isdst == 1 ? (utc - 3600) * kMicrosPerSecond + millisecond * kMillisPerSecond
+                          : utc * kMicrosPerSecond + millisecond * kMillisPerSecond;
 }
 
-UnixTime::UnixTime(const CivilTime& civil) :
-    utc_micros_(getUnixMicros(civil)) {
+UnixTime::UnixTime(const struct tm& tm) :
+    UnixTime{tm.tm_year, tm.tm_mon, tm.tm_mday,
+             tm.tm_hour, tm.tm_min, tm.tm_sec, 0,
+             tm.tm_gmtoff, tm.tm_isdst == 1} {
+}
+
+UnixTime::UnixTime(int year, int month, int day,
+                   int hour, int minute, int second, int millisecond,
+                   long int offset, bool isdst)
+    : utc_micros_{getUnixMicros(year, month, day,
+                                hour, minute, second, millisecond,
+                                offset, isdst)} {
 }
 
 UnixTime UnixTime::now() {
-  return UnixTime(WallClock::unixMicros());
+  return UnixTime{WallClock::unixMicros()};
 }
 
 UnixTime UnixTime::daysFromNow(double days) {
@@ -54,8 +65,9 @@ UnixTime UnixTime::daysFromNow(double days) {
 std::string UnixTime::toString(const char* fmt) const {
 #if defined(HAVE_GMTIME_R)
   struct tm tm;
-  time_t tt = utc_micros_ / 1000000;
-  gmtime_r(&tt, &tm); // FIXPAUL
+  time_t tt = utc_micros_ / kMicrosPerSecond;
+  if (gmtime_r(&tt, &tm) == nullptr)
+    return std::string{};
 
   char buf[256]; // FIXPAUL
   buf[0] = 0;
@@ -80,24 +92,6 @@ std::string UnixTime::toString(const char* fmt) const {
 
   return std::string(buf, n);
 #endif
-}
-
-std::optional<UnixTime> UnixTime::parseString(
-    const std::string& str,
-    const char* fmt /* = "%Y-%m-%d %H:%M:%S" */) {
-  return UnixTime::parseString(str.data(), str.size(), fmt);
-}
-
-std::optional<UnixTime> UnixTime::parseString(
-    const char* str,
-    size_t strlen,
-    const char* fmt /* = "%Y-%m-%d %H:%M:%S" */) {
-  std::optional<CivilTime> ct = CivilTime::parseString(str, strlen, fmt);
-  if (!ct) {
-    return std::nullopt;
-  } else {
-    return UnixTime(ct.value());
-  }
 }
 
 } // namespace xzero
