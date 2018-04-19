@@ -33,6 +33,12 @@ Socket::Socket(AddressFamily af, FileDescriptor&& fd)
 }
 #endif
 
+#if defined(XZERO_OS_WINDOWS)
+Socket::Socket(AddressFamily af, SOCKET s)
+    : handle_(s), addressFamily_(af) {
+}
+#endif
+
 Socket::Socket(AddressFamily af, Type type, BlockingMode bm) {
 #if defined(XZERO_OS_UNIX)
   const int proto = type == TCP ? IPPROTO_TCP : IPPROTO_UDP;
@@ -122,8 +128,14 @@ Socket Socket::make_udp_ip(bool nonBlocking, AddressFamily af) {
 }
 
 #if defined(XZERO_OS_UNIX)
-Socket Socket::make_socket(FileDescriptor&& fd, AddressFamily af) {
+Socket Socket::make_socket(AddressFamily af, FileDescriptor&& fd) {
   return Socket(af, std::move(fd));
+}
+#endif
+
+#if defined(XZERO_OS_WINDOWS)
+Socket Socket::make_socket(AddressFamily af, SOCKET s) {
+  return Socket(af, s);
 }
 #endif
 
@@ -207,24 +219,13 @@ Result<InetAddress> Socket::getRemoteAddress() const {
 
 int Socket::write(const void* buf, size_t count) {
   // TODO: error handling (throw?)
-#if defined(XZERO_OS_UNIX)
-  return ::write(handle_, buf, count);
-#elif defined(XZERO_OS_WINDOWS)
-  DWORD nwritten = 0;
-  DWORD flags = 0;
-  WSABUF wsabuf;
-  wsabuf.buf = (CHAR*) buf;
-  wsabuf.len = count;
-  if (::WSASend(handle_, &wsabuf, 1, &nwritten, flags, nullptr, nullptr) == SOCKET_ERROR)
-    return -1;
-  return nwritten;
-#endif
+  return ::send(handle_, static_cast<const char*>(buf), count, 0);
 }
 
 void Socket::consume() {
   for (;;) {
     char buf[4096];
-    int rv = ::read(handle_, buf, sizeof(buf));
+    int rv = ::recv(handle_, buf, sizeof(buf), 0);
     if (rv < 0) {
       switch (errno) {
         case EBUSY:

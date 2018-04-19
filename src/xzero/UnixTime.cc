@@ -30,11 +30,13 @@ static uint64_t getUnixMicros(
   tm.tm_hour = hour;
   tm.tm_min = minute;
   tm.tm_sec = second;
+#if defined(XZERO_OS_UNIX)
   tm.tm_gmtoff = offset;
+#endif
   tm.tm_isdst = isdst ? 1 : 0;
 
   const time_t gmt = mktime(&tm);
-  const time_t utc = gmt + tm.tm_gmtoff;
+  const time_t utc = gmt + offset;
 
   return tm.tm_isdst == 1 ? (utc - 3600) * kMicrosPerSecond + millisecond * kMillisPerSecond
                           : utc * kMicrosPerSecond + millisecond * kMillisPerSecond;
@@ -43,7 +45,12 @@ static uint64_t getUnixMicros(
 UnixTime::UnixTime(const struct tm& tm) :
     UnixTime{tm.tm_year, tm.tm_mon, tm.tm_mday,
              tm.tm_hour, tm.tm_min, tm.tm_sec, 0,
-             tm.tm_gmtoff, tm.tm_isdst == 1} {
+#if defined(XZERO_OS_UNIX)
+             tm.tm_gmtoff,
+#else
+             0,
+#endif
+             tm.tm_isdst == 1} {
 }
 
 UnixTime::UnixTime(int year, int month, int day,

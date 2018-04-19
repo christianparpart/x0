@@ -37,6 +37,10 @@ class [[nodiscard]] Socket {
   Socket(AddressFamily family, FileDescriptor&& fd);
 #endif
 
+#if defined(XZERO_OS_WINDOWS)
+  Socket(AddressFamily family, SOCKET s);
+#endif
+
  public:
   ~Socket();
 
@@ -51,7 +55,14 @@ class [[nodiscard]] Socket {
 
   static Socket make_tcp_ip(bool nonBlocking, AddressFamily = AddressFamily::V6);
   static Socket make_udp_ip(bool nonBlocking, AddressFamily = AddressFamily::V6);
-  static Socket make_socket(FileDescriptor&& fd, AddressFamily af);
+
+#if defined(XZERO_OS_UNIX)
+  static Socket make_socket(AddressFamily af, FileDescriptor&& fd);
+#endif
+
+#if defined(XZERO_OS_WINDOWS)
+  static Socket make_socket(AddressFamily af, SOCKET s);
+#endif
 
   bool valid() const noexcept;
   void close();

@@ -487,7 +487,7 @@ std::optional<Socket> TcpConnector::acceptOne() {
 
   return Socket::make_socket(std::move(cfd), addressFamily());
 #elif defined(XZERO_OS_WINDOWS)
-  Socket cs = Socket::make_socket(std::move(cfd), addressFamily());
+  Socket cs = Socket::make_socket(addressFamily(), std::move(cfd));
   if (!blocking_) {
     cs.setBlocking(blocking_);
   }
