@@ -39,17 +39,8 @@ inline uint64_t getUnixMicros(const CivilTime& civil) {
       civil.offset() * kMicrosPerSecond * -1;
 }
 
-UnixTime::UnixTime() :
-    utc_micros_(WallClock::unixMicros()) {
-}
-
 UnixTime::UnixTime(const CivilTime& civil) :
     utc_micros_(getUnixMicros(civil)) {
-}
-
-UnixTime& UnixTime::operator=(const UnixTime& other) {
-  utc_micros_ = other.utc_micros_;
-  return *this;
 }
 
 UnixTime UnixTime::now() {

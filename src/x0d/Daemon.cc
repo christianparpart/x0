@@ -37,6 +37,7 @@
 #include <xzero/RuntimeError.h>
 #include <xzero/MimeTypes.h>
 #include <xzero/StringUtil.h>
+#include <xzero/WallClock.h>
 #include <xzero/logging.h>
 #include <xzero-flow/ASTPrinter.h>
 #include <xzero-flow/FlowParser.h>
@@ -67,7 +68,7 @@ namespace x0d {
 
 Daemon::Daemon()
     : generation_(1),
-      startupTime_(),
+      startupTime_(WallClock::now()),
       terminate_(false),
       mimetypes_(),
       vfs_(mimetypes_, "/", true, true, false),

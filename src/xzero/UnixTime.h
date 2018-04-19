@@ -19,25 +19,28 @@
 namespace xzero {
 
 class UnixTime {
-public:
+ public:
+  UnixTime(const UnixTime& t) = default;
+  UnixTime& operator=(const UnixTime& t) = default;
+
   /**
    * Create a new UTC UnixTime instance with time = now
    */
-  UnixTime();
+  constexpr UnixTime() : utc_micros_{0} {};
 
   /**
    * Create a new UTC UnixTime instance
    *
    * @param timestamp the UTC microsecond timestamp
    */
-  constexpr UnixTime(uint64_t utc_time);
+  constexpr explicit UnixTime(uint64_t utc_time);
 
   /**
    * Create a new UTC UnixTime instance from a civil time reference
    *
    * @param civil the civil time
    */
-  UnixTime(const CivilTime& civil);
+  explicit UnixTime(const CivilTime& civil);
 
   /**
    * Parse time from the provided string
@@ -69,8 +72,6 @@ public:
   std::string toString(const char* fmt = "%Y-%m-%d %H:%M:%S") const;
 
   inline std::string format(const char* fmt) const { return toString(fmt); }
-
-  UnixTime& operator=(const UnixTime& other);
 
   constexpr bool operator==(const UnixTime& other) const;
   constexpr bool operator!=(const UnixTime& other) const;
@@ -129,7 +130,6 @@ public:
   static inline UnixTime daysFromNow(double days);
 
 protected:
-
   /**
    * The utc microsecond timestamp of the represented moment in time
    */

@@ -203,35 +203,29 @@ static std::optional<UnixTime> parseTime(const std::string& timeStr) {
 
   const time_t gmt = mktime(&tm);
   const time_t utc = gmt + tm.tm_gmtoff;
-  return UnixTime(utc * kMicrosPerSecond);
+  if (tm.tm_isdst == 1)
+    return UnixTime((utc - 3600) * kMicrosPerSecond);
+  else
+    return UnixTime(utc * kMicrosPerSecond);
 #endif
 }
 
 HttpStatus HttpFileHandler::handleClientCache(const File& transferFile,
                                               HttpRequest* request,
                                               HttpResponse* response) {
+  static const char* FMT = "%a, %d %b %Y %T GMT";
   // If-Modified-Since
   do {
     const std::string& value = request->headers().get("If-Modified-Since");
-    if (value.empty()) continue;
+    if (value.empty())
+      continue;
 
     std::optional<UnixTime> dt = parseTime(value);
-    if (!dt) {
-      logTrace("handleClientCache: If-Modified-Since header invalid");
+    if (!dt)
       continue;
-    }
 
-    static const char* FMT = "%a, %d %b %Y %T GMT";
-    if (transferFile.mtime() > dt.value()) {
-      logTrace("handleClientCache(If-Modified-Since): client cache stale");
-      logTrace("- client's mtime {}, {}; {}", dt->unixtime(), dt->toString(FMT), value);
-      logTrace("- server's mtime {}, {}", transferFile.mtime(), transferFile.mtime().toString(FMT));
+    if (transferFile.mtime() > dt.value())
       continue;
-    }
-
-    logTrace("handleClientCache(If-Modified-Since): not modified");
-    logTrace("- client's mtime {}, {}; {}", dt->unixtime(), dt->toString(FMT), value);
-    logTrace("- server's mtime {}, {}", transferFile.mtime(), transferFile.mtime().toString(FMT));
 
     return HttpStatus::NotModified;
   } while (0);
@@ -246,7 +240,7 @@ HttpStatus HttpFileHandler::handleClientCache(const File& transferFile,
     if (!dt)
       continue;
 
-    if (transferFile.mtime() <= dt.value().unixtime())
+    if (transferFile.mtime() <= dt.value())
       continue;
 
     return HttpStatus::PreconditionFailed;
