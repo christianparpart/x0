@@ -26,7 +26,7 @@ TEST(MemoryFile, simple) {
   // printf("file.data: %s\n", FileUtil::read(file).c_str());
 
   EXPECT_TRUE(file.isRegular());
-  EXPECT_TRUE(mtime.unixtime() == file.mtime());
+  EXPECT_TRUE(mtime == file.mtime());
   EXPECT_EQ(5, file.size());
   EXPECT_EQ("hello", FileUtil::read(file));
 }

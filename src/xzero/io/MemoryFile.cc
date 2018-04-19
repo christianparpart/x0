@@ -52,7 +52,7 @@ MemoryFile::MemoryFile(
     const BufferRef& data,
     UnixTime mtime)
     : File(path, mimetype),
-      mtime_(mtime.unixtime()),
+      mtime_(mtime),
       inode_(0),
       size_(data.size()),
       etag_(std::to_string(data.hash())),
@@ -81,7 +81,7 @@ size_t MemoryFile::size() const noexcept {
   return size_;
 }
 
-time_t MemoryFile::mtime() const noexcept {
+UnixTime MemoryFile::mtime() const noexcept {
   return mtime_;
 }
 

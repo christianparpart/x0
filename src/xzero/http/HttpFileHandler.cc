@@ -158,45 +158,52 @@ HttpStatus HttpFileHandler::handle(HttpRequest* request,
 }
 
 static inline uint64_t getUnixMicros(const struct tm& tm) {
+  static const auto isLeapYear = [](uint16_t year) {
+    if (((year % 4 == 0) && (year % 100 != 0)) || (year % 400 == 0)) {
+      return true;
+    } else {
+      return false;
+    }
+  };
+
+  static const auto daysInMonth = [=](uint16_t year, uint8_t month) {
+    if (month == 2) {
+      return (28 + (isLeapYear(year) ? 1 : 0));
+    } else {
+      return (31 - (month - 1) % 7 % 2);
+    }
+  };
+
   uint64_t days = tm.tm_mday - 1;
 
   for (auto i = 1970; i < tm.tm_year; ++i)
-    days += 365 + ISO8601::isLeapYear(i);
+    days += 365 + isLeapYear(i);
 
-  for (auto i = 1; i < civil.month(); ++i)
-    days += ISO8601::daysInMonth(tm.tm_year, i);
+  for (auto i = 1; i < tm.tm_mon; ++i)
+    days += daysInMonth(tm.tm_year, i);
 
-  return days * kMicrosPerDay +
+  uint64_t micros = days * kMicrosPerDay +
          tm.tm_hour * kMicrosPerHour +
          tm.tm_min * kMicrosPerMinute +
          tm.tm_sec * kMicrosPerSecond;
+
+  fmt::print("secs = {}\n", micros / kMicrosPerSecond);
+
+  return micros;
 }
 
 static std::optional<UnixTime> parseTime(const std::string& timeStr) {
 #if defined(HAVE_STRPTIME)
-  static const char* timeFormat = "%a, %d %b %Y %H:%M:%S GMT";
+  static const char* timeFormat = "%a, %d %b %Y %T GMT";
 
   struct tm tm;
-
+  memset(&tm, 0, sizeof(tm));
   if (strptime(timeStr.c_str(), timeFormat, &tm) == nullptr)
     return std::nullopt;
 
-  time_t t = mktime(&tm);
-  char buf[256];
-  printf("parseTime: \"%s\" -> %lu\n", timeStr.c_str(), t);
-  printf("       ->: \"%s\"\n", asctime_r(&tm, buf));
-  return UnixTime(t * kMicrosPerSecond);
-  // CivilTime ct;
-  // ct.setSecond(tm.tm_sec);
-  // ct.setMinute(tm.tm_min);
-  // ct.setHour(tm.tm_hour);
-  // ct.setDay(tm.tm_mday);
-  // ct.setMonth(tm.tm_mon + 1);
-  // ct.setYear(tm.tm_year + 1900);
-  // return UnixTime(ct);
-
-  // time_t t = mktime(&tm);
-  // return UnixTime(t);
+  const time_t gmt = mktime(&tm);
+  const time_t utc = gmt + tm.tm_gmtoff;
+  return UnixTime(utc * kMicrosPerSecond);
 #endif
 }
 
@@ -209,11 +216,22 @@ HttpStatus HttpFileHandler::handleClientCache(const File& transferFile,
     if (value.empty()) continue;
 
     std::optional<UnixTime> dt = parseTime(value);
-    if (!dt)
+    if (!dt) {
+      logTrace("handleClientCache: If-Modified-Since header invalid");
       continue;
+    }
 
-    if (transferFile.mtime() > dt.value().unixtime())
+    static const char* FMT = "%a, %d %b %Y %T GMT";
+    if (transferFile.mtime() > dt.value()) {
+      logTrace("handleClientCache(If-Modified-Since): client cache stale");
+      logTrace("- client's mtime {}, {}; {}", dt->unixtime(), dt->toString(FMT), value);
+      logTrace("- server's mtime {}, {}", transferFile.mtime(), transferFile.mtime().toString(FMT));
       continue;
+    }
+
+    logTrace("handleClientCache(If-Modified-Since): not modified");
+    logTrace("- client's mtime {}, {}; {}", dt->unixtime(), dt->toString(FMT), value);
+    logTrace("- server's mtime {}, {}", transferFile.mtime(), transferFile.mtime().toString(FMT));
 
     return HttpStatus::NotModified;
   } while (0);

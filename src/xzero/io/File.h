@@ -9,6 +9,7 @@
 
 #include <xzero/Api.h>
 #include <xzero/Buffer.h>
+#include <xzero/UnixTime.h>
 #include <functional>
 #include <string>
 #include <memory>
@@ -41,7 +42,7 @@ class File {
   virtual const std::string& etag() const = 0;
 
   virtual size_t size() const noexcept = 0;
-  virtual time_t mtime() const noexcept = 0;
+  virtual UnixTime mtime() const noexcept = 0;
   virtual size_t inode() const noexcept = 0;
   virtual bool isRegular() const noexcept = 0;
   virtual bool isDirectory() const noexcept = 0;

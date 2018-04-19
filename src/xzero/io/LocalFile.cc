@@ -55,8 +55,8 @@ size_t LocalFile::size() const noexcept {
   return stat_.st_size;
 }
 
-time_t LocalFile::mtime() const noexcept {
-  return stat_.st_mtime;
+UnixTime LocalFile::mtime() const noexcept {
+  return UnixTime(stat_.st_mtime * kMicrosPerSecond);
 }
 
 size_t LocalFile::inode() const noexcept {
@@ -90,7 +90,7 @@ const std::string& LocalFile::etag() const {
 
     if (repo_.etagConsiderMTime_) {
       if (count++) buf.push_back('-');
-      buf.push_back(mtime());
+      buf.push_back(mtime().unixtime());
     }
 
     if (repo_.etagConsiderSize_) {
