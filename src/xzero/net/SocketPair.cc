@@ -58,9 +58,28 @@ SocketPair::SocketPair(BlockingMode blockingMode)
   }
 
 #elif defined(XZERO_OS_WINDOWS)
+  Socket srv = Socket::make_tcp_ip(true);
 
-#error "TODO"
+  sockaddr_in sin;
+  ZeroMemory(&sin, sizeof(sin));
+  sin.sin_family = AF_INET;
+  sin.sin_addr.S_un.S_addr = htonl(INADDR_LOOPBACK);
+  sin.sin_port = 0;
 
+  int reuse = 1;
+  setsockopt(srv, SOL_SOCKET, SO_REUSEADDR, (char*)&reuse, sizeof(reuse));
+  bind(srv.native(), (const sockaddr*) &sin, sizeof(sin));
+
+  socklen_t addrlen = sizeof(sin.sin_addr);
+  getsockname(srv.native(), (sockaddr*) &sin.sin_addr, &addrlen);
+  listen(srv.native(), 1);
+
+  left_ = Socket::make_tcp_ip(true);
+  connect(left_.native(), (sockaddr*)&sin.sin_addr, sizeof(sin.sin_addr));
+
+  right_ = Socket::make_socket(Socket::AddressFamily::V4, accept(srv.native(), nullptr, nullptr));
+
+  // TODO: error handling
 #endif
 }
 
