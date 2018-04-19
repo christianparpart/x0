@@ -227,7 +227,7 @@ HttpService::BuiltinAssetHandler::BuiltinAssetHandler()
 void HttpService::BuiltinAssetHandler::addAsset(const std::string& path,
                                                 const std::string& mimetype,
                                                 const Buffer&& data) {
-  assets_[path] = { mimetype, UnixTime(), std::move(data) };
+  assets_[path] = { mimetype, WallClock::now(), std::move(data) };
 }
 
 bool HttpService::BuiltinAssetHandler::handleRequest(HttpRequest* request,

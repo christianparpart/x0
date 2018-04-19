@@ -664,7 +664,7 @@ void CoreModule::sys_now(Context* cx, Params& args) {
 }
 
 void CoreModule::sys_now_str(Context* cx, Params& args) {
-  static const char* timeFormat = "%a, %d %b %Y %H:%M:%S GMT";
+  static const char* timeFormat = "%a, %d %b %Y %T GMT";
   args.setResult(cx->now().format(timeFormat));
 }
 
@@ -1131,23 +1131,37 @@ void CoreModule::header_remove(Context* cx, Params& args) {
 }
 
 void CoreModule::expire(Context* cx, Params& args) {
+  static const char* timeFormat = "%a, %d %b %Y %H:%M:%S GMT";
   const UnixTime now = cx->now();
   const UnixTime mtime = cx->file() ? cx->file()->mtime() : now;
-  time_t value = args.getInt(1);
+  const time_t value = args.getInt(1);
 
-  // passed a timespan
-  if (value < mtime.unixtime())
-    value = value + now.unixtime();
+  const auto [maxAge, expiry] =
+      value < mtime.unixtime() // value is a timespan? (otherwise an absolute time)
+          ? std::make_tuple(Duration::fromSeconds(value),
+                            now + Duration::fromSeconds(value))
+          : std::make_tuple(std::max(now, UnixTime(value * kMicrosPerSecond)) - now,
+                            std::max(now, UnixTime(value * kMicrosPerSecond)));
 
-  // (mtime+span) points to past?
-  if (value < now.unixtime())
-    value = now.unixtime();
+  cx->response()->setHeader("Expires", expiry.format(timeFormat));
+  cx->response()->setHeader("Cache-Control", fmt::format("max-age={}", maxAge.seconds()));
 
-  static const char* timeFormat = "%a, %d %b %Y %H:%M:%S GMT";
-  cx->response()->setHeader("Expires", UnixTime(value * kMicrosPerSecond).format(timeFormat));
-
-  cx->response()->setHeader("Cache-Control",
-      fmt::format("max-age={}", value - now.unixtime()));
+  // XXX same result, just more human readable ;-)
+  // if (value < mtime.unixtime()) {
+  //   // value is a timespan
+  //   const Duration maxAge = Duration::fromSeconds(value);
+  //   const UnixTime expiry = now + maxAge;
+  //
+  //   cx->response()->setHeader("Expires", expiry.format(timeFormat));
+  //   cx->response()->setHeader("Cache-Control", fmt::format("max-age={}", maxAge.seconds()));
+  // } else {
+  //   // value is treated as absolute time
+  //   const UnixTime expiry = std::max(now, UnixTime(value * kMicrosPerSecond));
+  //   const Duration maxAge = expiry - now;
+  //
+  //   cx->response()->setHeader("Expires", expiry.format(timeFormat));
+  //   cx->response()->setHeader("Cache-Control", fmt::format("max-age={}", maxAge.seconds()));
+  // }
 }
 
 void CoreModule::req_method(Context* cx, Params& args) {
