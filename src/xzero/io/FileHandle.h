@@ -36,6 +36,7 @@ class[[nodiscard]] FileHandle{
   FileHandle& operator=(const FileHandle& other) = delete;
 
   FileHandle() : handle_{InvalidHandle} {}
+  explicit FileHandle(native_type handle) : handle_{handle} {}
   ~FileHandle() { close(); }
 
   FileHandle(FileHandle&& other) : handle_{other.release()} {}

@@ -47,8 +47,8 @@ SocketPair::SocketPair(BlockingMode blockingMode)
 
   int sv[2];
   int rv = socketpair(PF_UNIX, SOCK_STREAM | typeMask, 0, sv);
-  left_ = Socket::make_socket(FileDescriptor(sv[0]), Socket::AddressFamily(PF_UNIX));
-  right_ = Socket::make_socket(FileDescriptor(sv[1]), Socket::AddressFamily(PF_UNIX));
+  left_ = Socket::make_socket(Socket::AddressFamily(PF_UNIX), FileDescriptor(sv[0]));
+  right_ = Socket::make_socket(Socket::AddressFamily(PF_UNIX), FileDescriptor(sv[1]));
 
   if (flags) {
     if (fcntl(sv[0], F_SETFL, flags) < 0)

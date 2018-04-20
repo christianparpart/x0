@@ -384,7 +384,7 @@ int FileUtil::createTempFile() {
 }
 
 #if defined(ENABLE_O_TMPFILE) && defined(O_TMPFILE)
-inline int createTempFileAt_linux(const std::string& basedir, std::string* result) {
+inline FileHandle createTempFileAt_linux(const std::string& basedir, std::string* result) {
   // XXX not implemented on WSL
   int flags = O_TMPFILE | O_CLOEXEC | O_RDWR;
   int mode = S_IRUSR | S_IWUSR;
@@ -396,11 +396,11 @@ inline int createTempFileAt_linux(const std::string& basedir, std::string* resul
   if (result)
     result->clear();
 
-  return fd;
+  return FileHandle{fd};
 }
 #endif
 
-inline int createTempFileAt_default(const std::string& basedir, std::string* result) {
+inline FileHandle createTempFileAt_default(const std::string& basedir, std::string* result) {
 #if defined(XZERO_OS_WINDOWS)
   std::string pattern = FileUtil::joinPaths(basedir, "XXXXXXXX.tmp");
   int fd = _mktemp_s(const_cast<char*>(pattern.c_str()), 4);
@@ -413,7 +413,7 @@ inline int createTempFileAt_default(const std::string& basedir, std::string* res
   else
     FileUtil::rm(pattern);
 
-  return fd;
+  return FileHandle{fd};
 #elif defined(HAVE_MKOSTEMPS)
   std::string pattern = joinPaths(basedir, "XXXXXXXX.tmp");
   int flags = O_CLOEXEC;
@@ -427,7 +427,7 @@ inline int createTempFileAt_default(const std::string& basedir, std::string* res
   else
     FileUtil::rm(pattern);
 
-  return fd;
+  return FileHandle{fd};
 #else
   std::string pattern = FileUtil::joinPaths(basedir, "XXXXXXXX.tmp");
   int fd = mkstemps(const_cast<char*>(pattern.c_str()), 4);
@@ -440,11 +440,11 @@ inline int createTempFileAt_default(const std::string& basedir, std::string* res
   else
     FileUtil::rm(pattern);
 
-  return fd;
+  return FileHandle{fd};
 #endif
 }
 
-int FileUtil::createTempFileAt(const std::string& basedir, std::string* result) {
+FileHandle FileUtil::createTempFileAt(const std::string& basedir, std::string* result) {
 #if defined(ENABLE_O_TMPFILE) && defined(O_TMPFILE)
   static const bool isWSL = Application::isWSL();
   if (!isWSL)

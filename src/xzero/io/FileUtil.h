@@ -7,7 +7,7 @@
 
 #pragma once
 
-#include <xzero/Api.h>
+#include <xzero/io/FileHandle.h>
 #include <xzero/Result.h>
 #include <functional>
 #include <string>
@@ -64,8 +64,8 @@ class FileUtil {
                     const std::string& group);
 
   static int createTempFile();
-  static int createTempFileAt(const std::string& basedir,
-                              std::string* result = nullptr);
+  static FileHandle createTempFileAt(const std::string& basedir,
+                                     std::string* result = nullptr);
   static std::string tempDirectory();
 
   static void close(int fd);
