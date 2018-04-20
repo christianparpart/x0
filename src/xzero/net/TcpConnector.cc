@@ -485,7 +485,7 @@ std::optional<Socket> TcpConnector::acceptOne() {
   if (!flagged && flags_ && fcntl(cfd, F_SETFL, fcntl(cfd, F_GETFL) | flags_) < 0)
     RAISE_ERRNO(errno);
 
-  return Socket::make_socket(std::move(cfd), addressFamily());
+  return Socket::make_socket(addressFamily(), std::move(cfd));
 #elif defined(XZERO_OS_WINDOWS)
   Socket cs = Socket::make_socket(addressFamily(), std::move(cfd));
   if (!blocking_) {
