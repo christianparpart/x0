@@ -10,7 +10,7 @@
 #include <xzero/Api.h>
 #include <xzero/UnixTime.h>
 #include <xzero/io/File.h>
-#include <xzero/io/FileDescriptor.h>
+#include <xzero/io/FileHandle.h>
 
 #include <string>
 
@@ -44,7 +44,7 @@ class MemoryFile : public File {
   size_t size_;
   std::string etag_;
   std::string fspath_;
-  FileDescriptor fd_;
+  FileHandle fd_;
 };
 
 } // namespace xzero
