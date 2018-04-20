@@ -11,7 +11,7 @@
 #include <xzero/hash/FNV.h>
 #include <xzero/io/FileDescriptor.h>
 #include <xzero/io/FileUtil.h>
-#include <xzero/io/FileUtil.h>
+#include <xzero/io/FileHandle.h>
 #include <xzero/io/MemoryFile.h>
 #include <xzero/sysconfig.h>
 
@@ -43,7 +43,7 @@ MemoryFile::MemoryFile()
       size_(0),
       etag_(),
       fspath_(),
-      fd_(-1) {
+      fd_() {
 }
 
 MemoryFile::MemoryFile(
@@ -57,11 +57,14 @@ MemoryFile::MemoryFile(
       size_(data.size()),
       etag_(std::to_string(data.hash())),
       fspath_(),
-      fd_(-1) {
+      fd_() {
   fd_ = FileUtil::createTempFileAt(FileUtil::tempDirectory(), &fspath_);
   if (fd_ < 0)
     RAISE_ERRNO(errno);
 
+#if defined(XZERO_OS_WINDOWS)
+#else
+#endif
   ssize_t n = ::write(fd_, data.data(), data.size());
   if (n < 0)
     RAISE_ERRNO(errno);
