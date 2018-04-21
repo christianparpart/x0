@@ -408,15 +408,13 @@ void Daemon::postConfig() {
         std::placeholders::_1, std::placeholders::_2));
 
   // mimetypes
-  mimetypes_.setDefaultMimeType(config_->mimetypesDefault);
-
   if (!config_->mimetypesPath.empty()) {
-    mimetypes_.loadFromLocal(config_->mimetypesPath);
+    mimetypes_ = std::move(MimeTypes{config_->mimetypesDefault, config_->mimetypesPath});
   }
 
   if (mimetypes_.empty()) {
     logDebug("No mimetypes given. Defaulting to builtin database.");
-    mimetypes_.load(mimetypes2cc);
+    mimetypes_ = std::move(MimeTypes{config_->mimetypesDefault, mimetypes2cc});
   }
 
   // event loops
