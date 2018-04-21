@@ -44,7 +44,7 @@ void LocalFileRepository::deleteAllFiles() {
                });
 }
 
-int LocalFileRepository::createTempFile(std::string* filename) {
+FileHandle LocalFileRepository::createTempFile(std::string* filename) {
   if (basedir_.empty() || basedir_ == "/")
     return FileUtil::createTempFileAt(FileUtil::tempDirectory(), filename);
   else

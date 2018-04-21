@@ -40,7 +40,7 @@ void MemoryFileRepository::deleteAllFiles() {
   files_.clear();
 }
 
-int MemoryFileRepository::createTempFile(std::string* filename) {
+FileHandle MemoryFileRepository::createTempFile(std::string* filename) {
   logFatal("NotImplementedError");
 }
 

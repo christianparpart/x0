@@ -12,6 +12,7 @@
 #include <fcntl.h>
 
 #if defined(XZERO_OS_WINDOWS)
+#define WIN32_LEAN_AND_MEAN
 #include <Windows.h>
 #endif
 
@@ -132,8 +133,10 @@ class [[nodiscard]] FileHandle {
   void close();
   FileHandle dup();
   FileHandle dup(FileOpenFlags oflags);
+  uint64_t size() const;
 
   ssize_t write(const void* buf, size_t count);
+  ssize_t read(void* buf, size_t count);
 
  private:
   native_type handle_;
@@ -165,6 +168,9 @@ inline FileHandle FileHandle::dup() {
 #if defined(XZERO_OS_UNIX)
   return FileHandle{::dup(handle_)};
 #else
+  HANDLE t;
+  DuplicateHandle(GetCurrentProcess(), handle_, GetCurrentProcess(), &t, 0, FALSE, DUPLICATE_SAME_ACCESS);
+  return FileHandle{ t };
 #endif
 }
 

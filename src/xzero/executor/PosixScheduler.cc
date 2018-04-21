@@ -356,6 +356,22 @@ void PosixScheduler::loop(bool repeat) {
   } while (breakLoopCounter_.load() == 0 && repeat && referenceCount() > 0);
 }
 
+static std::string wsaErrorMessage(int err) {
+  char buf[1024];
+  FormatMessage(FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS, // flags
+                nullptr,            // lpsource
+                err,                // message id
+                MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), // languageid
+                buf,                // output buffer
+                sizeof(buf),        // size of msgbuf, bytes
+                nullptr);           // va_list of arguments
+
+  if (*buf)
+    return buf;
+  else
+    return std::to_string(err);
+}
+
 size_t PosixScheduler::waitForEvents() noexcept {
   FD_ZERO(&input_);
   FD_ZERO(&output_);
@@ -364,7 +380,9 @@ size_t PosixScheduler::waitForEvents() noexcept {
   int wmark = collectWatches();
 
   FD_SET(wakeupPipe_.left().native(), &input_);
+#if !defined(XZERO_OS_WINDOWS)
   wmark = std::max(wmark, wakeupPipe_.left().native());
+#endif
 
   now_.update();
 
@@ -388,8 +406,13 @@ size_t PosixScheduler::waitForEvents() noexcept {
   // time is still left until the timeout would have been hit
   // Hence, (timeout - tv) equals the time waited
 
+#if defined(XZERO_OS_WINDOWS)
+  if (rv < 0)
+    logFatal("select() returned unexpected error code: {}", wsaErrorMessage(WSAGetLastError()));
+#else
   if (rv < 0)
     logFatal("select() returned unexpected error code: {}", strerror(errno));
+#endif
 
   now_ = now_ + (timeout - Duration{tv});
 

@@ -125,6 +125,36 @@ std::string FileUtil::joinPaths(const std::string& base,
   }
 }
 
+FileHandle FileUtil::open(const std::string& path, FileOpenFlags oflags) {
+#if defined(XZERO_OS_WINDOWS)
+  DWORD access = 0;
+  if (oflags & FileOpenFlags::Read)
+    access |= GENERIC_READ;
+  if (oflags & FileOpenFlags::Write)
+    access |= GENERIC_WRITE;
+
+  DWORD shareMode = FILE_SHARE_READ;
+
+  DWORD disposition = 0;
+  if (oflags & FileOpenFlags::CreateNew)
+    disposition |= CREATE_NEW;
+  else if (oflags & FileOpenFlags::Create)
+    disposition |= OPEN_ALWAYS;
+  if (oflags & FileOpenFlags::Truncate)
+    disposition |= TRUNCATE_EXISTING;
+
+  DWORD flagsAndAttribs = 0;
+  flagsAndAttribs = FILE_ATTRIBUTE_NORMAL;
+
+  if (FileOpenFlags::TempFile)
+    flagsAndAttribs |= FILE_ATTRIBUTE_TEMPORARY | FILE_FLAG_DELETE_ON_CLOSE;
+
+  return FileHandle{ CreateFile(path.c_str(), access, shareMode, nullptr, disposition, flagsAndAttribs, nullptr) };
+#else
+  return FileHandle(::open(path.c_str(), to_posix(oflags)));
+#endif
+}
+
 void FileUtil::seek(int fd, off_t offset) {
 #if defined(XZERO_OS_WINDOWS)
   if (_lseek(fd, offset, SEEK_SET) < 0)
@@ -138,19 +168,12 @@ void FileUtil::seek(int fd, off_t offset) {
 
 size_t FileUtil::read(FileHandle& fd, Buffer* output) {
   struct stat st;
-  if (fstat(fd.native(), &st) < 0)
-    RAISE_ERRNO(errno);
+  uint64_t fileSize = fd.size();
 
-  if (st.st_size > 0) {
+  if (fileSize > 0) {
     size_t beg = output->size();
-    output->reserve(beg + st.st_size + 1);
-    ssize_t nread;
-#if defined(HAVE_PREAD)
-    nread = ::pread(fd.native(), output->data() + beg, st.st_size, 0);
-#else
-    nread = ::read(fd.native(), output->data() + beg, st.st_size);
-#endif
-
+    output->reserve(beg + fileSize + 1);
+    ssize_t nread = fd.read(output->data() + beg, fileSize);
     if (nread < 0)
       RAISE_ERRNO(errno);
 
@@ -164,7 +187,7 @@ size_t FileUtil::read(FileHandle& fd, Buffer* output) {
   output->reserve(output->size() + 4096);
   ssize_t nread = 0;
   for (;;) {
-    ssize_t rv = ::read(fd, output->end(), output->capacity() - output->size());
+    ssize_t rv = fd.read(output->end(), output->capacity() - output->size());
     if (rv > 0) {
       output->resize(output->size() + rv);
       nread += rv;
@@ -185,7 +208,7 @@ size_t FileUtil::read(File& file, Buffer* output) {
 }
 
 size_t FileUtil::read(const std::string& path, Buffer* output) {
-  FileHandle fd{ open(path.c_str(), O_RDONLY) };
+  FileHandle fd{ open(path.c_str(), FileOpenFlags::Read) };
   if (fd.isClosed())
     RAISE_ERRNO(errno);
 
@@ -255,21 +278,18 @@ Buffer FileUtil::read(const std::string& path) {
 }
 
 void FileUtil::write(const std::string& path, const BufferRef& buffer) {
-  int fd = open(path.c_str(), O_WRONLY | O_CREAT | O_TRUNC, 0660);
-  if (fd < 0)
+  FileHandle fd = open(path, FileOpenFlags::Write | FileOpenFlags::Create | FileOpenFlags::Truncate);
+  if (fd.isClosed())
     RAISE_ERRNO(errno);
 
   ssize_t nwritten = 0;
   do {
-    ssize_t rv = ::write(fd, buffer.data(), buffer.size());
+    ssize_t rv = fd.write(buffer.data() + nwritten, buffer.size() - nwritten);
     if (rv < 0) {
-      close(fd);
       RAISE_ERRNO(errno);
     }
     nwritten += rv;
   } while (static_cast<size_t>(nwritten) < buffer.size());
-
-  close(fd);
 }
 
 void FileUtil::write(const std::string& path, const std::string& buffer) {
@@ -283,7 +303,7 @@ void FileUtil::write(FileHandle& fd, const char* cstr) {
 void FileUtil::write(FileHandle& fd, const BufferRef& buffer) {
   size_t nwritten = 0;
   do {
-    ssize_t rv = ::write(fd.native(), buffer.data() + nwritten, buffer.size() - nwritten);
+    ssize_t rv = fd.write(buffer.data() + nwritten, buffer.size() - nwritten);
     if (rv < 0) {
       switch (errno) {
         case EINTR:

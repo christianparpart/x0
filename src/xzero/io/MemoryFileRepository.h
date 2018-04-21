@@ -32,7 +32,7 @@ class MemoryFileRepository : public FileRepository {
 
   void listFiles(std::function<bool(const std::string&)> callback) override;
   void deleteAllFiles() override;
-  int createTempFile(std::string* filename = nullptr) override;
+  FileHandle createTempFile(std::string* filename = nullptr) override;
 
   void insert(const std::string& path, UnixTime mtime, const BufferRef& data);
   void insert(const std::string& path, UnixTime mtime, int errc);

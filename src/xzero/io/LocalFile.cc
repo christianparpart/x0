@@ -7,7 +7,7 @@
 
 #include <xzero/io/LocalFile.h>
 #include <xzero/io/LocalFileRepository.h>
-#include <xzero/io/FileDescriptor.h>
+#include <xzero/io/FileUtil.h>
 #include <xzero/MimeTypes.h>
 #include <xzero/RuntimeError.h>
 #include <xzero/sysconfig.h>
@@ -23,7 +23,6 @@
 #include <io.h>
 #include <experimental/filesystem>
 namespace fs = std::experimental::filesystem;
-#define open _open
 #endif
 
 #if defined(XZERO_OS_UNIX)
@@ -126,7 +125,7 @@ void LocalFile::update() {
 }
 
 FileHandle LocalFile::createPosixChannel(FileOpenFlags oflags) {
-  return FileHandle{::open(path().c_str(), to_posix(oflags))};
+  return (FileUtil::open)(path(), oflags);
 }
 
 std::shared_ptr<LocalFile> LocalFile::get(const std::string& path) {

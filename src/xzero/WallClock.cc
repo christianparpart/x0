@@ -12,14 +12,14 @@
 #include <sys/time.h>
 #endif
 
-#if defined(XZERO_OS_WIN32)
+#if defined(XZERO_OS_WINDOWS)
 #define WIN32_LEAN_AND_MEAN
 #include <Windows.h>
 #endif
 
 namespace xzero {
 
-#if defined(XZERO_OS_WIN32)
+#if defined(XZERO_OS_WINDOWS)
 int gettimeofday(struct timeval * tp, struct timezone * tzp)
 {
   // XXX: https://stackoverflow.com/a/26085827/386670
