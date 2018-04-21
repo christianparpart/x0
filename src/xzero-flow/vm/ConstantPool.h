@@ -77,8 +77,8 @@ class ConstantPool {
   const std::vector<FlowNumber>& getIntArray(size_t id) const {
     return intArrays_[id];
   }
-  const std::vector<BufferRef>& getStringArray(size_t id) const {
-    return stringArrays_[id].second;
+  const std::vector<std::string>& getStringArray(size_t id) const {
+    return stringArrays_[id];
   }
   const std::vector<IPAddress>& getIPAddressArray(size_t id) const {
     return ipaddrArrays_[id];
@@ -129,8 +129,7 @@ class ConstantPool {
 
   // constant arrays
   std::vector<std::vector<FlowNumber>> intArrays_;
-  std::vector<std::pair<std::vector<Buffer>, std::vector<BufferRef>>>
-  stringArrays_;
+  std::vector<std::vector<std::string>> stringArrays_;
   std::vector<std::vector<IPAddress>> ipaddrArrays_;
   std::vector<std::vector<Cidr>> cidrArrays_;
 
