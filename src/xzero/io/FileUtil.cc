@@ -8,7 +8,6 @@
 #include <xzero/Application.h>
 #include <xzero/io/FileUtil.h>
 #include <xzero/io/FileView.h>
-#include <xzero/io/FileDescriptor.h>
 #include <xzero/io/File.h>
 #include <xzero/RuntimeError.h>
 #include <xzero/Buffer.h>
@@ -186,8 +185,8 @@ size_t FileUtil::read(File& file, Buffer* output) {
 }
 
 size_t FileUtil::read(const std::string& path, Buffer* output) {
-  FileDescriptor fd = open(path.c_str(), O_RDONLY);
-  if (fd < 0)
+  FileHandle fd{ open(path.c_str(), O_RDONLY) };
+  if (fd.isClosed())
     RAISE_ERRNO(errno);
 
   return read(fd, output);
