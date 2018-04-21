@@ -45,7 +45,9 @@ std::string http_HttpFileHandler::generateBoundaryID() {
 }
 
 http_HttpFileHandler::http_HttpFileHandler()
-  : mimetypes_(),
+  : mimetypes_{"application/octet-stream", {
+      {"txt", "text/plain"},
+    }},
     mtime_(2016, 8, 17, 3, 26, 0, 0, -3600, true),
     vfs_(mimetypes_),
     staticFileHandler_(&generateBoundaryID) {
@@ -215,19 +217,7 @@ TEST_F(http_HttpFileHandler, GET_range_many) {
 
   EXPECT_EQ(HttpStatus::PartialContent, transport.responseInfo().status());
   EXPECT_EQ("multipart/byteranges; boundary=HelloBoundaryID", transport.responseInfo().getHeader("Content-Type"));
-  EXPECT_EQ("\r\n"
-            "--HelloBoundaryID\r\n"
-            "Content-Type: application/octet-stream\r\n"
-            "Content-Range: bytes 0-0/5\r\n"
-            "\r\n"
-            "1\r\n"
-            "--HelloBoundaryID\r\n"
-            "Content-Type: application/octet-stream\r\n"
-            "Content-Range: bytes 3-3/5\r\n"
-            "\r\n"
-            "4\r\n"
-            "--HelloBoundaryID--\r\n",
-            transport.responseBody());
+  EXPECT_EQ("\r\n--HelloBoundaryID\r\nContent-Type: text/plain\r\nContent-Range: bytes 0-0/5\r\n\r\n1\r\n--HelloBoundaryID\r\nContent-Type: text/plain\r\nContent-Range: bytes 3-3/5\r\n\r\n4\r\n--HelloBoundaryID--\r\n", transport.responseBody().str());
 }
 
 TEST_F(http_HttpFileHandler, GET_if_match) {
