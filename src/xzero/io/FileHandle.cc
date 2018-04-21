@@ -13,6 +13,8 @@
 #include <cerrno>
 
 #if defined(XZERO_OS_UNIX)
+#include <sys/types.h>
+#include <sys/stat.h>
 #include <unistd.h>
 #include <fcntl.h>
 #endif
@@ -27,27 +29,28 @@ namespace xzero {
 uint64_t FileHandle::size() const {
 #if defined(XZERO_OS_WINDOWS)
   DWORD high = 0;
-  DWORD low = GetFileSize(native(), &high);
+  DWORD low = GetFileSize(handle_, &high);
   uint64_t result = high << 16 | low;
   return result;
 #else
   struct stat st;
-  if (fstat(native(), &st) < 0)
+  if (fstat(handle_, &st) < 0) {
     RAISE_ERRNO(errno);
-  else
+  } else {
     return st.st_size;
+  }
 #endif
 }
 
 ssize_t FileHandle::read(void* buf, size_t count) {
 #if defined(XZERO_OS_WINDOWS)
   DWORD nread = 0;
-  if (ReadFile(native(), buf, count, &nread, nullptr))
+  if (ReadFile(handle_, buf, count, &nread, nullptr))
     return nread;
   else
     return -1;
 #else
-  return ::read(native(), output->data() + beg, st.st_size);
+  return ::read(handle_, buf, count);
 #endif
 }
 
