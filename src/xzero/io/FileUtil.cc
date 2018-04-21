@@ -181,7 +181,7 @@ size_t FileUtil::read(int fd, Buffer* output) {
 }
 
 size_t FileUtil::read(File& file, Buffer* output) {
-  FileDescriptor fd = file.createPosixChannel(File::Read);
+  FileHandle fd = file.createPosixChannel(FileOpenFlags::Read);
   return read(fd, output);
 }
 
@@ -379,7 +379,7 @@ void FileUtil::chown(const std::string& path,
 #endif
 }
 
-int FileUtil::createTempFile() {
+FileHandle FileUtil::createTempFile() {
   return createTempFileAt(tempDirectory());
 }
 

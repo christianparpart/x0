@@ -9,7 +9,7 @@
 
 #include <xzero/Buffer.h>
 #include <xzero/io/FileView.h>
-#include <xzero/io/FileDescriptor.h>
+#include <xzero/io/FileHandle.h>
 #include <memory>
 
 namespace xzero {
@@ -105,6 +105,8 @@ class HugeBuffer {
 
   void clear();
 
+  HugeBuffer(const HugeBuffer& other);
+
  private:
   void tryDisplaceBufferToFile();
 
@@ -112,7 +114,7 @@ class HugeBuffer {
   size_t maxBufferSize_;
   size_t actualSize_;
   Buffer buffer_;
-  FileDescriptor fd_;
+  FileHandle fd_;
 };
 
 } // namespace xzero

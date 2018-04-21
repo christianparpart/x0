@@ -125,8 +125,8 @@ void LocalFile::update() {
   }
 }
 
-int LocalFile::createPosixChannel(OpenFlags oflags) {
-  return ::open(path().c_str(), to_posix(oflags));
+FileHandle LocalFile::createPosixChannel(FileOpenFlags oflags) {
+  return FileHandle{::open(path().c_str(), to_posix(oflags))};
 }
 
 std::shared_ptr<LocalFile> LocalFile::get(const std::string& path) {

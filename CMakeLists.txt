@@ -242,6 +242,7 @@ set(libXzero_SRC src/xzero/AnsiColor.cc
                  src/xzero/io/DataChain.cc
                  src/xzero/io/File.cc
                  src/xzero/io/FileDescriptor.cc
+                 src/xzero/io/FileHandle.cc
                  src/xzero/io/FileRepository.cc
                  src/xzero/io/FileUtil.cc
                  src/xzero/io/FileView.cc

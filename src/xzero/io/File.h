@@ -10,10 +10,13 @@
 #include <xzero/Api.h>
 #include <xzero/Buffer.h>
 #include <xzero/UnixTime.h>
+#include <xzero/io/FileHandle.h>
+
 #include <functional>
-#include <string>
-#include <memory>
 #include <iosfwd>
+#include <memory>
+#include <string>
+
 #include <fcntl.h> // O_* flags for createPosixChannel()
 
 namespace xzero {
@@ -48,34 +51,11 @@ class File {
   virtual bool isDirectory() const noexcept = 0;
   virtual bool isExecutable() const noexcept = 0;
 
-  /**
-   * Flags that can be passed when creating a system file handle.
-   *
-   * @see createPosixChannel(OpenFlags oflags)
-   */
-  enum OpenFlags {
-    Read        = 0x0001, // O_RDONLY
-    Write       = 0x0002, // O_WRONLY
-    ReadWrite   = 0x0003, // O_RDWR
-    Create      = 0x0004, // O_CREAT
-    CreateNew   = 0x0008, // O_EXCL
-    Truncate    = 0x0010, // O_TRUNC
-    Append      = 0x0020, // O_APPEND
-    Share       = 0x0040, // O_CLOEXEC negagted
-    NonBlocking = 0x0080, // O_NONBLOCK
-    TempFile    = 0x0100, // O_TMPFILE
-  };
-
-  /**
-   * Converts given OpenFlags to POSIX compatible flags.
-   */
-  static int to_posix(OpenFlags oflags);
-
   /** Creates a POSIX file handle with given flags.
    *
    * @param oflags such as O_RDONLY or O_NONBLOCK, etc (from <fcntl.h>)
    */
-  virtual int createPosixChannel(OpenFlags oflags) = 0;
+  virtual FileHandle createPosixChannel(FileOpenFlags oflags) = 0;
 
   /**
    * Sets file-error code, that is only used for the validity of the entity.
@@ -101,13 +81,5 @@ class File {
   std::string mimetype_;
   mutable std::string lastModified_;
 };
-
-File::OpenFlags operator|(File::OpenFlags a, File::OpenFlags b);
-
-// {{{ inlines
-inline File::OpenFlags operator|(File::OpenFlags a, File::OpenFlags b) {
-  return (File::OpenFlags) ((unsigned) a | (unsigned) b);
-}
-// }}}
 
 } // namespace xzero

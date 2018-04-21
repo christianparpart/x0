@@ -30,7 +30,7 @@ class LogFile {
 
  private:
   std::shared_ptr<xzero::File> file_;
-  xzero::FileDescriptor fd_;
+  xzero::FileHandle fd_;
 };
 
 class AccesslogFormatError : public ConfigurationError {

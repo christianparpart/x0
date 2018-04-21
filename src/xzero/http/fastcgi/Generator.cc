@@ -144,7 +144,7 @@ void Generator::generateBody(FileView&& chunk) {
 
     // body
     if (offset + clen < len) {
-      FileView weak(chunk.handle(), chunk.offset() + offset, clen, false);
+      FileView weak(chunk.handle(), chunk.offset() + offset, clen);
       bytesTransmitted_ += clen;
       offset += clen;
       writer_->write(std::move(weak));

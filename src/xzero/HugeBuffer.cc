@@ -18,6 +18,14 @@ HugeBuffer::HugeBuffer(size_t maxBufferSize)
       fd_() {
 }
 
+HugeBuffer::HugeBuffer(const HugeBuffer& other)
+    : maxBufferSize_(other.maxBufferSize_),
+      actualSize_(0),
+      buffer_(),
+      fd_() {
+  write(other.getBuffer());
+}
+
 HugeBuffer::HugeBuffer(Buffer&& inputBuffer)
     : maxBufferSize_(inputBuffer.size()),
       actualSize_(maxBufferSize_),
@@ -83,7 +91,7 @@ void HugeBuffer::write(Buffer&& chunk) {
 
 FileView HugeBuffer::getFileView() const {
   const_cast<HugeBuffer*>(this)->tryDisplaceBufferToFile();
-  return FileView(fd_, 0, actualSize_, false);
+  return FileView(fd_, 0, actualSize_);
 }
 
 FileView HugeBuffer::takeFileView() {

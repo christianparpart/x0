@@ -104,20 +104,16 @@ bool MemoryFile::isExecutable() const noexcept {
   return false;
 }
 
-int MemoryFile::createPosixChannel(OpenFlags oflags) {
+FileHandle MemoryFile::createPosixChannel(FileOpenFlags oflags) {
 #if defined(XZERO_OS_WINDOWS)
   RAISE_NOT_IMPLEMENTED();
 #else
   if (fd_.isClosed()) {
     errno = ENOENT;
-    return -1;
+    return FileHandle{};
   }
 
-  FileDescriptor fd = dup(fd_);
-  if (fcntl(fd, F_SETFL, to_posix(oflags)) < 0)
-    RAISE_ERRNO(errno);
-
-  return fd.release();
+  return fd_.dup(oflags);
 #endif
 }
 
