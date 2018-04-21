@@ -8,14 +8,36 @@
 #include <xzero/MimeTypes.h>
 #include <xzero/testing.h>
 
-TEST(MimeTypes, loadFromString) {
+TEST(MimeTypes, getMimeType_tilde_backup) {
   xzero::MimeTypes mimetypes;
-  mimetypes.loadFromString("text/plain\ttxt text\n");
+  EXPECT_EQ("application/x-trash", mimetypes.getMimeType("/file.txt~"));
+}
 
-  ASSERT_FALSE(mimetypes.empty());
+TEST(MimeTypes, getMimeType_found) {
+  xzero::MimeTypes mimetypes{"application/octet-stream", {
+    {"json", "application/json"},
+    {"text", "text/plain"},
+    {"txt", "text/plain"},
+  }};
 
   EXPECT_EQ("text/plain", mimetypes.getMimeType("/fnord.txt"));
   EXPECT_EQ("text/plain", mimetypes.getMimeType("/fnord.text"));
+}
+
+TEST(MimeTypes, getMimeType_notfound) {
+  xzero::MimeTypes mimetypes{"application/octet-stream", {
+    {"json", "application/json"},
+    {"text", "text/plain"},
+    {"txt", "text/plain"},
+  }};
 
   EXPECT_EQ("application/octet-stream", mimetypes.getMimeType("/fnord.yeah"));
+}
+
+TEST(MimeTypes, loadFromString) {
+  xzero::MimeTypes mimetypes;
+  mimetypes.loadFromString("text/plain\ttxt text\n");
+  EXPECT_EQ(2, mimetypes.size());
+  EXPECT_EQ("text/plain", mimetypes.getMimeType("/hello.txt"));
+  EXPECT_EQ("text/plain", mimetypes.getMimeType("/hello.text"));
 }
