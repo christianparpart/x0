@@ -43,8 +43,8 @@ class MediaRange {
   /**
    * Matches available media ranges against @p accept'ed media ranges.
    *
-   * @param accept i.e. the list of media ranges an HTTP client accepts.
-   * @param available i.e. the list of media types an HTTP server supports.
+   * @param accept e.g. the list of media ranges an HTTP client accepts.
+   * @param available e.g. the list of media types an HTTP server supports.
    */
   static const MediaRange* match(const std::vector<MediaRange>& accept,
                                  const std::vector<std::string>& available);
@@ -52,13 +52,18 @@ class MediaRange {
   /**
    * Matches available media ranges against @p accept'ed media types.
    *
-   * @param accept Comma seperated list of media ranges.
+   * @param accept Comma seperated list of acceptable media ranges.
    * @param available List of supported media types.
+   * @param defaultType media-type to return if @p accept is empty.
    *
-   * @return media-type that matched the best or an empty string if none.
+   * @return first available media type if @p accept is empty,
+   *         an error code on @p accept string parsing failure,
+   *         the media-type that matched the best to @p accept,
+   *         or empty string otherwise
    */
-  static std::string match(const std::string& accept,
-                           const std::vector<std::string>& available);
+  static Result<std::string> match(const std::string& accept,
+                                   const std::vector<std::string>& available,
+                                   const std::string& defaultType);
 
  private:
   std::string type_;

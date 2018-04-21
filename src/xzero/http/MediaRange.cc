@@ -160,13 +160,21 @@ const MediaRange* MediaRange::match(const std::vector<MediaRange>& accepts,
   return bestMatch;
 }
 
-std::string MediaRange::match(const std::string& acceptsStr,
-                              const std::vector<std::string>& available) {
-  std::vector<MediaRange> accepts = *MediaRange::parseMany(acceptsStr);
+Result<std::string> MediaRange::match(const std::string& acceptsStr,
+                                      const std::vector<std::string>& available,
+                                      const std::string& defaultMimeType) {
+  if (acceptsStr.empty())
+    return defaultMimeType;
+
+  Result<std::vector<MediaRange>> parsedAccepts = MediaRange::parseMany(acceptsStr);
+  if (!parsedAccepts)
+    return parsedAccepts.error();
+
+  std::vector<MediaRange> accepts = *parsedAccepts;
   if (auto best = MediaRange::match(accepts, available))
-    return std::string(best->type() + "/" + best->subtype());
+    return best->type() + "/" + best->subtype();
   else
-    return std::string();
+    return std::string{}; // no match
 }
 
 } // namespace xzero::http
