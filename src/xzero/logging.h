@@ -8,7 +8,7 @@
 
 #include <atomic>
 #include <xzero/StringUtil.h>
-#include <xzero/io/FileDescriptor.h>
+#include <xzero/io/FileHandle.h>
 #include <fmt/format.h>
 
 namespace xzero {
@@ -37,7 +37,7 @@ class LogTarget { // {{{
 // }}}
 class FileLogTarget : public LogTarget { // {{{
  public:
-  explicit FileLogTarget(FileDescriptor&& fd);
+  explicit FileLogTarget(FileHandle&& fd);
 
   void log(LogLevel level, const std::string& message) override;
 
@@ -48,7 +48,7 @@ class FileLogTarget : public LogTarget { // {{{
   std::string createTimestamp() const;
 
  private:
-  FileDescriptor fd_;
+  FileHandle fd_;
   bool timestampEnabled_;
 }; // }}}
 class ConsoleLogTarget : public LogTarget { // {{{

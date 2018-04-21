@@ -7,11 +7,13 @@
 
 #pragma once
 
-#include <xzero/http/HttpStatus.h>
 #include <xzero/defines.h>
-#include <string>
-#include <memory>
+#include <xzero/http/HttpStatus.h>
+#include <xzero/io/FileHandle.h>
+
 #include <functional>
+#include <memory>
+#include <string>
 #include <unordered_map>
 
 namespace xzero {
@@ -112,7 +114,7 @@ class HttpFileHandler {
    * @note if this is no ranged request then nothing is done on it.
    */
   XZERO_NODISCARD bool handleRangeRequest(const File& transferFile,
-                                          int fd,
+                                          FileHandle& fd,
                                           HttpRequest* request,
                                           HttpResponse* response);
 

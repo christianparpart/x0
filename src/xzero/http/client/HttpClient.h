@@ -35,7 +35,6 @@ namespace xzero {
 
 namespace xzero::http {
   class HeaderFieldList;
-  class HttpRequest;
 }
 
 namespace xzero::http::client {

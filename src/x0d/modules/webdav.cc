@@ -138,8 +138,8 @@ bool WebdavModule::webdav_put(Context* cx, Params& args) {
   logDebug("webdav: put filename: {}", cx->file()->path());
 
   //bool didNotExistBefore = !cx->file()->exists();
-  File::OpenFlags flags = File::Write | File::Create | File::Truncate;
-  FileDescriptor output = cx->file()->createPosixChannel(flags);
+  constexpr FileOpenFlags flags = FileOpenFlags::Write | FileOpenFlags::Create | FileOpenFlags::Truncate;
+  FileHandle output = cx->file()->createPosixChannel(flags);
 
   // if (!output->tryAllocate(content.size())) {
   //   if (didNotExistBefore)

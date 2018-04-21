@@ -36,7 +36,7 @@ class MemoryFile : public File {
   bool isRegular() const noexcept override;
   bool isDirectory() const noexcept override;
   bool isExecutable() const noexcept override;
-  int createPosixChannel(OpenFlags flags) override;
+  FileHandle createPosixChannel(FileOpenFlags flags) override;
 
  private:
   UnixTime mtime_;

@@ -51,7 +51,7 @@ TEST(DataChain, transfer_partial_from_buffer) {
 }
 
 TEST(DataChain, file) {
-  FileDescriptor fd = FileUtil::createTempFile();
+  FileHandle fd = FileUtil::createTempFile();
   FileUtil::write(fd, "Hello World");
 
   DataChain source;
@@ -65,7 +65,7 @@ TEST(DataChain, file) {
 
 
 TEST(DataChain, transfer_partial_from_file) {
-  FileDescriptor fd = FileUtil::createTempFile();
+  FileHandle fd = FileUtil::createTempFile();
   FileUtil::write(fd, "Hello World");
 
   DataChain source;
@@ -101,11 +101,11 @@ TEST(DataChain, get_n_buffer) {
 }
 
 TEST(DataChain, get_n_file) {
-  FileDescriptor fd = FileUtil::createTempFile();
+  FileHandle fd = FileUtil::createTempFile();
   FileUtil::write(fd, "Hello World");
 
   DataChain source;
-  source.write(FileView(fd, 0, 11, false));
+  source.write(FileView(fd, 0, 11));
 
   auto chunk = source.get(5);
   ASSERT_TRUE(chunk != nullptr);

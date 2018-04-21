@@ -121,8 +121,8 @@ int main(int argc, const char* argv[]) {
   } else if (logTarget == "file") {
     std::string filename = flags.getString("log-file");
     std::shared_ptr<File> file = daemon.vfs().getFile(filename);
-    File::OpenFlags openFlags = File::Write | File::Create | File::Append;
-    FileDescriptor out = file->createPosixChannel(openFlags);
+    FileOpenFlags openFlags = FileOpenFlags::Write | FileOpenFlags::Create | FileOpenFlags::Append;
+    FileHandle out = file->createPosixChannel(openFlags);
     fileLogTarget = std::make_unique<FileLogTarget>(std::move(out));
     Logger::get()->addTarget(fileLogTarget.get());
   } else if (logTarget == "syslog") {

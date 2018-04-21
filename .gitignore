@@ -1,5 +1,6 @@
 /build
 /build-*
+/cbuild
 /.kdev4
 /3rdparty/gtest-1.7.0
 /sandbox/

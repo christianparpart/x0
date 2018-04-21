@@ -16,7 +16,7 @@
 #include <xzero/UnixTime.h>
 #include <xzero/WallClock.h>
 #include <xzero/logging.h>
-#include <xzero/io/FileDescriptor.h>
+#include <xzero/io/FileHandle.h>
 #include <xzero/io/FileUtil.h>
 #include <stdexcept>
 #include <iostream>
@@ -175,7 +175,7 @@ void Logger::setMinimumLogLevel(LogLevel min_level) {
 }
 // }}}
 // {{{ FileLogTarget
-FileLogTarget::FileLogTarget(FileDescriptor&& fd)
+FileLogTarget::FileLogTarget(FileHandle&& fd)
     : fd_(std::move(fd)),
       timestampEnabled_(true) {
 }

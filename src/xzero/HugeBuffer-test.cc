@@ -136,7 +136,7 @@ TEST(HugeBuffer, write_Buffer) {
 }
 
 TEST(HugeBuffer, write_FileView_memory) {
-  FileDescriptor fd = FileUtil::createTempFile();
+  FileHandle fd = FileUtil::createTempFile();
   FileUtil::write(fd, BufferRef("Hello"));
 
   FileView view(std::move(fd), 0, 5);
@@ -149,7 +149,7 @@ TEST(HugeBuffer, write_FileView_memory) {
 }
 
 TEST(HugeBuffer, write_FileView_file) {
-  FileDescriptor fd = FileUtil::createTempFile();
+  FileHandle fd = FileUtil::createTempFile();
   FileUtil::write(fd, BufferRef("Hello"));
 
   FileView view(std::move(fd), 0, 5);

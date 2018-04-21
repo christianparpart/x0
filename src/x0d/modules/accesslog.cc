@@ -46,7 +46,7 @@ namespace x0d {
 // {{{ LogFile impl LogFile impl LogFile impl LogFile impl
 LogFile::LogFile(std::shared_ptr<File> file)
     : file_(file),
-      fd_(file_->createPosixChannel(File::Write | File::Append)) {
+      fd_(file_->createPosixChannel(FileOpenFlags::Write | FileOpenFlags::Append)) {
 }
 
 LogFile::~LogFile() {
@@ -57,7 +57,7 @@ void LogFile::write(Buffer&& message) {
 }
 
 void LogFile::cycle() {
-  fd_ = file_->createPosixChannel(File::Write | File::Append);
+  fd_ = file_->createPosixChannel(FileOpenFlags::Write | FileOpenFlags::Append);
 }
 // }}}
 std::string getFormatName(std::string::const_iterator& i, std::string::const_iterator e) { // {{{

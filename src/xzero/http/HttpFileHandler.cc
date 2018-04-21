@@ -106,9 +106,9 @@ HttpStatus HttpFileHandler::handle(HttpRequest* request,
       RAISE_ERRNO(transferFile->errorCode());
   }
 
-  int fd = -1;
+  FileHandle fd;
   if (request->method() == HttpMethod::GET) {
-    fd = transferFile->createPosixChannel(File::Read | File::NonBlocking);
+    fd = transferFile->createPosixChannel(FileOpenFlags::Read | FileOpenFlags::NonBlocking);
     if (fd < 0) {
       switch (errno) {
         case EPERM:
@@ -141,11 +141,11 @@ HttpStatus HttpFileHandler::handle(HttpRequest* request,
 
   response->setContentLength(transferFile->size());
 
-  if (fd >= 0) {  // GET request
+  if (fd.isOpen()) {  // GET request
 #if defined(HAVE_POSIX_FADVISE)
     posix_fadvise(fd, 0, transferFile->size(), POSIX_FADV_SEQUENTIAL);
 #endif
-    response->write(FileView(fd, 0, transferFile->size(), true));
+    response->write(FileView(std::move(fd), 0, transferFile->size()));
     response->completed();
   } else {
     response->completed();
@@ -292,10 +292,11 @@ static size_t numdigits(size_t number) {
   return result;
 }
 
-bool HttpFileHandler::handleRangeRequest(const File& transferFile, int fd,
+bool HttpFileHandler::handleRangeRequest(const File& transferFile,
+                                         FileHandle& fd,
                                          HttpRequest* request,
                                          HttpResponse* response) {
-  const bool isHeadReq = fd < 0;
+  const bool isHeadReq = fd.isClosed();
   BufferRef range_value(request->headers().get("Range"));
   HttpRangeDef range;
 
@@ -382,7 +383,11 @@ bool HttpFileHandler::handleRangeRequest(const File& transferFile, int fd,
       if (!isHeadReq) {
         bool last = i + 1 == numRanges;
         response->write(std::move(buf));
-        response->write(FileView(fd, offsets.first, partLength, last));
+        if (!last) {
+          response->write(FileView(fd, offsets.first, partLength));
+        } else {
+          response->write(FileView(std::move(fd), offsets.first, partLength));
+        }
       }
     }
 
@@ -410,11 +415,11 @@ bool HttpFileHandler::handleRangeRequest(const File& transferFile, int fd,
              transferFile.size());
     response->addHeader("Content-Range", cr);
 
-    if (fd >= 0) {
+    if (fd.isOpen()) {
 #if defined(HAVE_POSIX_FADVISE)
       posix_fadvise(fd, offsets.first, length, POSIX_FADV_SEQUENTIAL);
 #endif
-      response->write(FileView(fd, offsets.first, length, true));
+      response->write(FileView(std::move(fd), offsets.first, length));
     }
   }
 

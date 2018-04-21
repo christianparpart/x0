@@ -61,48 +61,4 @@ const std::string& File::lastModified() const {
   return lastModified_;
 }
 
-int File::to_posix(OpenFlags oflags) {
-  int flags = 0;
-
-#if defined(O_LARGEFILE)
-  flags |= O_LARGEFILE;
-#endif
-
-  if ((oflags & ReadWrite) == ReadWrite)
-    flags |= O_RDWR;
-  else if (oflags & Read)
-    flags |= O_RDONLY;
-  else if (oflags & Write)
-    flags |= O_WRONLY;
-
-  if (oflags & Create)
-    flags |= O_CREAT;
-
-  if (oflags & CreateNew)
-    flags |= O_CREAT | O_EXCL;
-
-  if (oflags & Truncate)
-    flags |= O_TRUNC;
-
-  if (oflags & Append)
-    flags |= O_APPEND;
-
-#if defined(O_CLOEXEC)
-  if (!(oflags & Share))
-    flags |= O_CLOEXEC;
-#endif
-
-#if defined(O_NONBLOCK)
-  if (oflags & NonBlocking)
-    flags |= O_NONBLOCK;
-#endif
-
-#if defined(O_TMPFILE)
-  if (oflags & TempFile)
-    flags |= O_TMPFILE;
-#endif
-
-  return flags;
-}
-
 } // namespace xzero
