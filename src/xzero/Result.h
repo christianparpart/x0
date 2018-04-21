@@ -60,7 +60,6 @@ class Result {
   operator bool () const noexcept;
   bool isSuccess() const noexcept;
   bool isFailure() const noexcept;
-  const std::string failureMessage() const;
   const std::error_code& error() const noexcept;
 
   pointer_type get();

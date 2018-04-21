@@ -62,11 +62,6 @@ inline bool Result<T>::isFailure() const noexcept {
 }
 
 template<typename T>
-inline const std::string Result<T>::failureMessage() const {
-  return error_.message();
-}
-
-template<typename T>
 inline const std::error_code& Result<T>::error() const noexcept {
   return error_;
 }
