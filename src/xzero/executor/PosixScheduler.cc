@@ -356,6 +356,7 @@ void PosixScheduler::loop(bool repeat) {
   } while (breakLoopCounter_.load() == 0 && repeat && referenceCount() > 0);
 }
 
+#if defined(XZERO_OS_WINDOWS)
 static std::string wsaErrorMessage(int err) {
   char buf[1024];
   FormatMessage(FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS, // flags
@@ -371,6 +372,7 @@ static std::string wsaErrorMessage(int err) {
   else
     return std::to_string(err);
 }
+#endif
 
 size_t PosixScheduler::waitForEvents() noexcept {
   FD_ZERO(&input_);
