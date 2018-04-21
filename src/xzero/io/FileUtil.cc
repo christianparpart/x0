@@ -137,9 +137,9 @@ void FileUtil::seek(int fd, off_t offset) {
 #endif
 }
 
-size_t FileUtil::read(int fd, Buffer* output) {
+size_t FileUtil::read(FileHandle& fd, Buffer* output) {
   struct stat st;
-  if (fstat(fd, &st) < 0)
+  if (fstat(fd.native(), &st) < 0)
     RAISE_ERRNO(errno);
 
   if (st.st_size > 0) {
@@ -147,9 +147,9 @@ size_t FileUtil::read(int fd, Buffer* output) {
     output->reserve(beg + st.st_size + 1);
     ssize_t nread;
 #if defined(HAVE_PREAD)
-    nread = ::pread(fd, output->data() + beg, st.st_size, 0);
+    nread = ::pread(fd.native(), output->data() + beg, st.st_size, 0);
 #else
-    nread = ::read(fd, output->data() + beg, st.st_size);
+    nread = ::read(fd.native(), output->data() + beg, st.st_size);
 #endif
 
     if (nread < 0)
@@ -277,14 +277,14 @@ void FileUtil::write(const std::string& path, const std::string& buffer) {
   write(path, BufferRef(buffer.data(), buffer.size()));
 }
 
-void FileUtil::write(int fd, const char* cstr) {
+void FileUtil::write(FileHandle& fd, const char* cstr) {
   FileUtil::write(fd, BufferRef(cstr, strlen(cstr)));
 }
 
-void FileUtil::write(int fd, const BufferRef& buffer) {
+void FileUtil::write(FileHandle& fd, const BufferRef& buffer) {
   size_t nwritten = 0;
   do {
-    ssize_t rv = ::write(fd, buffer.data() + nwritten, buffer.size() - nwritten);
+    ssize_t rv = ::write(fd.native(), buffer.data() + nwritten, buffer.size() - nwritten);
     if (rv < 0) {
       switch (errno) {
         case EINTR:
@@ -299,11 +299,11 @@ void FileUtil::write(int fd, const BufferRef& buffer) {
   } while (nwritten < buffer.size());
 }
 
-void FileUtil::write(int fd, const std::string& buffer) {
+void FileUtil::write(FileHandle& fd, const std::string& buffer) {
   FileUtil::write(fd, BufferRef(buffer.data(), buffer.size()));
 }
 
-void FileUtil::write(int fd, const FileView& fileView) {
+void FileUtil::write(FileHandle& fd, const FileView& fileView) {
   write(fd, read(fileView));
 }
 
