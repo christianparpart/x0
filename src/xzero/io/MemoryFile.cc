@@ -62,10 +62,7 @@ MemoryFile::MemoryFile(
   if (fd_ < 0)
     RAISE_ERRNO(errno);
 
-#if defined(XZERO_OS_WINDOWS)
-#else
-#endif
-  ssize_t n = ::write(fd_, data.data(), data.size());
+  ssize_t n = fd_.write(data.data(), data.size());
   if (n < 0)
     RAISE_ERRNO(errno);
 

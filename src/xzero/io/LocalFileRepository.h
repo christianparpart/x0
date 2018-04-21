@@ -39,7 +39,7 @@ class LocalFileRepository : public FileRepository {
 
   void listFiles(std::function<bool(const std::string&)> callback) override;
   void deleteAllFiles() override;
-  int createTempFile(std::string* filename = nullptr) override;
+  FileHandle createTempFile(std::string* filename = nullptr) override;
 
   /**
    * Configures ETag generation.

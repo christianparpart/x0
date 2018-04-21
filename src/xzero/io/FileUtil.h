@@ -38,6 +38,7 @@ class FileUtil {
   static std::string joinPaths(const std::string& base, const std::string& append);
 
   static void seek(int fd, off_t offset);
+  static FileHandle open(const std::string& path, FileOpenFlags oflags);
   static size_t read(FileHandle& fd, Buffer* output);
   static size_t read(File&, Buffer* output);
   static size_t read(const std::string& path, Buffer* output);
