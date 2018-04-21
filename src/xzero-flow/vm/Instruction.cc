@@ -238,7 +238,7 @@ std::string disassemble(Instruction pc, size_t ip, size_t* sp,
             line.push_back(", ");
             n += 2;
           }
-          n += line.printf("\"%s\"", v[i].str().c_str());
+          n += line.printf("\"%s\"", v[i].c_str());
         }
         n += line.printf("]");
         break;

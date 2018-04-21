@@ -118,26 +118,18 @@ size_t ConstantPool::makeIntegerArray(const std::vector<FlowNumber>& elements) {
 
 size_t ConstantPool::makeStringArray(const std::vector<std::string>& elements) {
   for (size_t i = 0, e = stringArrays_.size(); i != e; ++i) {
-    const auto& test = stringArrays_[i];
+    const auto& array = stringArrays_[i];
 
-    if (test.second.size() != elements.size()) continue;
+    if (array.size() != elements.size())
+      continue;
 
-    if (!equals(test.second, elements)) continue;
+    if (!equals(array, elements))
+      continue;
 
     return i;
   }
 
-  stringArrays_.push_back(
-      std::make_pair(std::vector<Buffer>(elements.size()),
-                     std::vector<BufferRef>(elements.size())));
-
-  auto& target = stringArrays_.back();
-
-  for (size_t i = 0, e = elements.size(); i != e; ++i) {
-    target.first[i] = elements[i];
-    target.second[i] = target.first[i].ref();
-  }
-
+  stringArrays_.push_back(elements);
   return stringArrays_.size() - 1;
 }
 
@@ -275,7 +267,7 @@ void ConstantPool::dump() const {
   if (!stringArrays_.empty()) {
     std::cout << "\n; Constant String Arrays\n";
     for (size_t i = 0, e = stringArrays_.size(); i != e; ++i) {
-      const auto& array = stringArrays_[i].first;
+      const std::vector<std::string>& array = stringArrays_[i];
       std::cout << ".const array<string> " << std::setw(3) << i << " = [";
       for (size_t k = 0, m = array.size(); k != m; ++k) {
         if (k) std::cout << ", ";
