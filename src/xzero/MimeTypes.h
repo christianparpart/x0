@@ -16,7 +16,12 @@ namespace xzero {
 class MimeTypes {
  public:
   MimeTypes();
-  MimeTypes(const std::string& path, const std::string& defaultMimeType);
+
+  MimeTypes(const std::string& defaultMimeType,
+            const std::string& path);
+
+  MimeTypes(const std::string& defaultMimeType,
+            const std::unordered_map<std::string, std::string>& entries);
 
   /** Loads the mimetype map from given local file at @p path. */
   void loadFromLocal(const std::string& path);
@@ -44,6 +49,11 @@ class MimeTypes {
   bool empty() const noexcept;
 
   /**
+   * Retrieves actual number of extension-to-mimetype mappings.
+   */
+  size_t size() const noexcept;
+
+  /**
    * Initializes mimetypes DB with given entries.
    */
   void load(const std::unordered_map<std::string, std::string>& entries);
@@ -52,8 +62,8 @@ class MimeTypes {
   const std::unordered_map<std::string, std::string>& mimetypes() const noexcept;
 
  private:
-  std::unordered_map<std::string, std::string> mimetypes_;
   std::string defaultMimeType_;
+  std::unordered_map<std::string, std::string> mimetypes_;
 };
 
 // {{{ inlines
@@ -68,6 +78,14 @@ inline const std::string& MimeTypes::defaultMimeType() const noexcept {
 
 inline void MimeTypes::setDefaultMimeType(const std::string& value) {
   defaultMimeType_ = value;
+}
+
+inline bool MimeTypes::empty() const noexcept {
+  return mimetypes_.empty();
+}
+
+inline size_t MimeTypes::size() const noexcept {
+  return mimetypes_.size();
 }
 // }}}
 

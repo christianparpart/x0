@@ -5,25 +5,30 @@
 // file except in compliance with the License. You may obtain a copy of
 // the License at: http://opensource.org/licenses/MIT
 
-#include <xzero/MimeTypes.h>
-#include <xzero/io/FileUtil.h>
-#include <xzero/StringUtil.h>
 #include <xzero/Buffer.h>
+#include <xzero/MimeTypes.h>
+#include <xzero/StringUtil.h>
+#include <xzero/io/FileUtil.h>
+#include <xzero/logging.h>
 
 namespace xzero {
 
 MimeTypes::MimeTypes()
-    : MimeTypes("", "application/octet-stream") {
+    : defaultMimeType_{},
+      mimetypes_{} {
 }
 
-MimeTypes::MimeTypes(const std::string& path,
-                     const std::string& defaultMimeType)
-    : mimetypes_(),
-      defaultMimeType_(defaultMimeType) {
+MimeTypes::MimeTypes(const std::string& defaultMimeType,
+                     const std::unordered_map<std::string, std::string>& entries)
+    : defaultMimeType_{defaultMimeType},
+      mimetypes_{entries} {
+}
 
-  if (!path.empty()) {
-    loadFromLocal(path);
-  }
+MimeTypes::MimeTypes(const std::string& defaultMimeType,
+                     const std::string& path)
+    : defaultMimeType_{defaultMimeType},
+      mimetypes_{} {
+  loadFromLocal(path);
 }
 
 void MimeTypes::loadFromLocal(const std::string& path) {
@@ -56,39 +61,28 @@ void MimeTypes::setMimeType(const std::string& ext,
 }
 
 const std::string& MimeTypes::getMimeType(const std::string& path) {
-  std::string* result = nullptr;
+  if (path.empty())
+    return defaultMimeType_;
+
+  // treat '~'-backup files special, as they work w/o a dot
+  if (path[path.size() - 1] == '~') {
+    static const std::string trash = "application/x-trash";
+    return trash;
+  }
 
   // query mimetype
   const size_t ndot = path.find_last_of(".");
   const size_t nslash = path.find_last_of("/");
 
-  if (ndot != std::string::npos && ndot > nslash) {
-    std::string ext(path.substr(ndot + 1));
+  if (ndot == std::string::npos || nslash == std::string::npos || ndot < nslash)
+    return defaultMimeType_;
 
-    while (ext.size()) {
-      auto i = mimetypes_.find(ext);
+  std::string ext(path.substr(ndot + 1));
 
-      if (i != mimetypes_.end())
-        result = &i->second;
+  if (const auto& i = mimetypes_.find(ext); i != mimetypes_.end())
+    return i->second;
 
-      if (ext[ext.size() - 1] != '~')
-        break;
-
-      ext.resize(ext.size() - 1);
-    }
-
-    if (!result || result->empty()) {
-      result = &defaultMimeType_;
-    }
-  } else {
-    result = &defaultMimeType_;
-  }
-
-  return *result;
-}
-
-bool MimeTypes::empty() const noexcept {
-  return mimetypes_.empty();
+  return defaultMimeType_;
 }
 
 void MimeTypes::load(const std::unordered_map<std::string, std::string>& entries) {
