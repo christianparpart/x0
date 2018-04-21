@@ -106,20 +106,23 @@ TEST(http_MediaRange, match_q1_0) {
   // input taken from RFC 7231, section 5.3.2
   auto best = MediaRange::match(
       "text/plain; q=0.5, text/html, text/x-dvi; q=0.8, text/x-c",
-      {"text/plain", "text/html"});
-  EXPECT_EQ("text/html", best);
+      {"text/plain", "text/html"},
+      "application/some");
+  EXPECT_EQ("text/html", *best);
 }
 
 TEST(http_MediaRange, match_q0_5) {
   auto best = MediaRange::match(
       "text/plain; q=0.5, text/html, text/x-dvi; q=0.8, text/x-c",
-      {"text/plain", "application/json"});
-  EXPECT_EQ("text/plain", best);
+      {"text/plain", "application/json"},
+      "application/some");
+  EXPECT_EQ("text/plain", *best);
 }
 
 TEST(http_MediaRange, match_q0_0) {
   auto best = MediaRange::match(
       "text/plain; q=0.5, text/html, text/x-dvi; q=0.8, text/x-c",
-      {"application/json"});
-  EXPECT_EQ("", best);
+      {"application/json"},
+      "application/some");
+  EXPECT_EQ("", *best);
 }
