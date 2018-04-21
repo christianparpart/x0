@@ -193,17 +193,22 @@ bool DirlistingModule::dirlisting(Context* cx, Params& args) {
 
   std::unique_ptr<OutputFormatter> formatter;
 
-  std::string accept = MediaRange::match(cx->request()->getHeader("Accept"),
-                                         {"text/html", "application/json",
-                                          "text/csv"});
+  Result<std::string> accept = MediaRange::match(cx->request()->getHeader("Accept"),
+                                                 {"text/html", "application/json", "text/csv"},
+                                                 "text/html");
+  if (accept.isFailure()) {
+    cx->logDebug("dirlisting: Failed to parse Accept request header. {}", accept.error().message());
+    return cx->sendErrorPage(HttpStatus::BadRequest);
+  }
 
-  if (accept == "text/csv") {
+  if (*accept == "text/csv") {
     formatter = std::make_unique<CsvFormatter>(cx->response());
-  } else if (accept == "application/json") {
+  } else if (*accept == "application/json") {
     formatter = std::make_unique<JsonFormatter>(cx->response());
-  } else {
-    // default to text/html
+  } else if (*accept == "text/html") {
     formatter = std::make_unique<HtmlFormatter>(cx->response());
+  } else {
+    return cx->sendErrorPage(HttpStatus::NotFound);
   }
 
   formatter->generateHeader(cx->request()->path());
