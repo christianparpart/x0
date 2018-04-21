@@ -114,7 +114,7 @@ class HugeBuffer {
   size_t maxBufferSize_;
   size_t actualSize_;
   Buffer buffer_;
-  FileHandle fd_;
+  mutable FileHandle fd_;
 };
 
 } // namespace xzero

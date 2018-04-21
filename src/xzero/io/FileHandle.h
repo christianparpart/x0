@@ -9,6 +9,7 @@
 
 #include <xzero/defines.h>
 #include <xzero/RuntimeError.h>
+#include <fcntl.h>
 
 #if defined(XZERO_OS_WINDOWS)
 #include <Windows.h>
@@ -16,7 +17,6 @@
 
 #if defined(XZERO_OS_UNIX)
 #include <unistd.h>
-#include <fcntl.h>
 #endif
 
 namespace xzero {
