@@ -231,7 +231,7 @@ size_t FileUtil::read(const FileView& file, Buffer* output) {
   return nread;
 }
 
-Buffer FileUtil::read(int fd) {
+Buffer FileUtil::read(FileHandle& fd) {
   Buffer output;
   read(fd, &output);
   return output;
