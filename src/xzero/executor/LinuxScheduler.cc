@@ -57,6 +57,8 @@ LinuxScheduler::LinuxScheduler(ExceptionHandler eh)
       signalLock_{},
       signalfd_(),
       signalMask_{},
+      signalInterests_{0},
+      signalWatchers_{128},
       now_(0),
       activeEvents_(1024),
       readerCount_(0),
@@ -135,7 +137,9 @@ Executor::HandleRef LinuxScheduler::executeOnSignal(int signo, SignalHandler han
   signalWatchers_[signo].emplace_back(hr);
 
   if (signalInterests_.load() == 0) {
-    //TODO executeOnReadable(signalfd_, std::bind(&LinuxScheduler::onSignal, this));
+    executeOnReadable(signalfd_,
+                      std::bind(&LinuxScheduler::onSignal, this),
+                      5_years, nullptr);
     unref();
   }
 
