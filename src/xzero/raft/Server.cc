@@ -405,7 +405,7 @@ bool Server::tryLoadLogEntries(Index first,
     Result<LogEntry> entry = storage_->getLogEntry(i);
     if (entry.isFailure()) {
       logError("raft: Could not retrieve log at index {}. {}",
-               i, entry.failureMessage());
+               i, entry.error().message());
       return false;
     }
 
@@ -666,7 +666,7 @@ void Server::applyLogs() {
     Result<LogEntry> logEntry = storage_->getLogEntry(index);
     if (logEntry.isFailure()) {
       logError("raft: Failed to apply log index {}. {}",
-               index, logEntry.failureMessage());
+               index, logEntry.error().message());
       break;
     }
 
