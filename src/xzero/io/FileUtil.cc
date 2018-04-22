@@ -155,12 +155,12 @@ FileHandle FileUtil::open(const std::string& path, FileOpenFlags oflags) {
 #endif
 }
 
-void FileUtil::seek(int fd, off_t offset) {
+void FileUtil::seek(FileHandle& fd, off_t offset) {
 #if defined(XZERO_OS_WINDOWS)
-  if (_lseek(fd, offset, SEEK_SET) < 0)
+  if (_lseek(fd.native(), offset, SEEK_SET) < 0)
     RAISE_ERRNO(errno);
 #else
-  off_t rv = ::lseek(fd, offset, SEEK_SET);
+  off_t rv = ::lseek(fd.native(), offset, SEEK_SET);
   if (rv == (off_t) -1)
     RAISE_ERRNO(errno);
 #endif

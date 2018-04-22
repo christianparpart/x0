@@ -37,8 +37,6 @@ class FileUtil {
 
   static std::string joinPaths(const std::string& base, const std::string& append);
 
-  static void seek(int fd, off_t offset);
-  static FileHandle open(const std::string& path, FileOpenFlags oflags);
   static size_t read(FileHandle& fd, Buffer* output);
   static size_t read(File&, Buffer* output);
   static size_t read(const std::string& path, Buffer* output);
@@ -63,12 +61,13 @@ class FileUtil {
   static void chown(const std::string& path,
                     const std::string& user,
                     const std::string& group);
+  static void seek(FileHandle& fd, off_t offset);
 
+  static FileHandle open(const std::string& path, FileOpenFlags oflags);
   static FileHandle createTempFile();
   static FileHandle createTempFileAt(const std::string& basedir,
                                      std::string* result = nullptr);
   static std::string tempDirectory();
-
   static void close(int fd);
 };
 
