@@ -157,8 +157,17 @@ FileHandle FileUtil::open(const std::string& path, FileOpenFlags oflags) {
 
 void FileUtil::seek(FileHandle& fd, off_t offset) {
 #if defined(XZERO_OS_WINDOWS)
-  if (_lseek(fd.native(), offset, SEEK_SET) < 0)
-    RAISE_ERRNO(errno);
+  if constexpr(sizeof(offset) > 4) {
+    if ((offset >> 32) != 0) {
+      LONG low = offset & 0xFFFFFFFF;
+      LONG high = (offset >> 32) & 0xFFFFFFFF;
+      SetFilePointer(fd.native(), low, &high, FILE_BEGIN);
+    } else {
+      SetFilePointer(fd.native(), offset, nullptr, FILE_BEGIN);
+    }
+  } else {
+    SetFilePointer(fd.native(), offset, nullptr, FILE_BEGIN);
+  }
 #else
   off_t rv = ::lseek(fd.native(), offset, SEEK_SET);
   if (rv == (off_t) -1)
@@ -167,8 +176,7 @@ void FileUtil::seek(FileHandle& fd, off_t offset) {
 }
 
 size_t FileUtil::read(FileHandle& fd, Buffer* output) {
-  struct stat st;
-  uint64_t fileSize = fd.size();
+  size_t fileSize = static_cast<size_t>(fd.size());
 
   if (fileSize > 0) {
     size_t beg = output->size();
@@ -221,7 +229,7 @@ size_t FileUtil::read(const FileView& file, Buffer* output) {
   size_t count = file.size();
 
 #if !defined(HAVE_PREAD)
-  FileUtil::seek(file.handle(), file.offset());
+  FileUtil::seek(const_cast<FileView&>(file).handle(), file.offset());
 #endif
 
   do {
@@ -229,7 +237,7 @@ size_t FileUtil::read(const FileView& file, Buffer* output) {
 #if defined(HAVE_PREAD)
     rv = ::pread(file.handle(), output->data(), file.size() - nread, file.offset() + nread);
 #else
-    rv = ::read(file.handle(), output->data(), count);
+    rv = const_cast<FileView&>(file).handle().read(output->data(), count);
 #endif
     if (rv < 0) {
       switch (errno) {
@@ -421,18 +429,18 @@ inline FileHandle createTempFileAt_linux(const std::string& basedir, std::string
 
 inline FileHandle createTempFileAt_default(const std::string& basedir, std::string* result) {
 #if defined(XZERO_OS_WINDOWS)
-  std::string pattern = FileUtil::joinPaths(basedir, "XXXXXXXX.tmp");
-  int fd = _mktemp_s(const_cast<char*>(pattern.c_str()), 4);
+  TCHAR buf[MAX_PATH];
+  if (!GetTempFileName(basedir.c_str(), TEXT("TEMP"), 0 /* unique */, buf))
+    return FileHandle{}; // TODO: RAISE_WINDOWS_ERROR();
 
-  if (fd < 0)
+  FileHandle fd = FileUtil::open(buf, FileOpenFlags::Write | FileOpenFlags::TempFile);
+  if (fd.isClosed())
     RAISE_ERRNO(errno);
 
   if (result)
-    *result = std::move(pattern);
-  else
-    FileUtil::rm(pattern);
+    *result = std::move(buf);
 
-  return FileHandle{fd};
+  return fd;
 #elif defined(HAVE_MKOSTEMPS)
   std::string pattern = joinPaths(basedir, "XXXXXXXX.tmp");
   int flags = O_CLOEXEC;

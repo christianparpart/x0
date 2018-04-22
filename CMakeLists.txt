@@ -100,6 +100,7 @@ if(UNIX)
   CHECK_FUNCTION_EXISTS(pread HAVE_PREAD)
   CHECK_FUNCTION_EXISTS(readahead HAVE_READAHEAD)
   CHECK_FUNCTION_EXISTS(sendfile HAVE_SENDFILE)
+  CHECK_FUNCTION_EXISTS(setrlimit HAVE_SETRLIMIT)
   CHECK_FUNCTION_EXISTS(sigprocmask HAVE_SIGPROCMASK)
   CHECK_FUNCTION_EXISTS(strptime HAVE_STRPTIME)
   CHECK_FUNCTION_EXISTS(sysconf HAVE_SYSCONF)
@@ -320,7 +321,7 @@ target_link_libraries(Xzero ${ZLIB_LIBRARIES} ${OPENSSL_LIBRARIES} ${FMT_LIBRARI
 if(UNIX)
   target_link_libraries(Xzero pthread dl stdc++fs)
 endif()
-if(NOT APPLE)
+if(UNIX AND NOT APPLE)
   target_link_libraries(Xzero rt)
 endif()
 
@@ -511,7 +512,7 @@ set_target_properties(flowtest PROPERTIES
 if(CLANG_TIDY_EXE)
   set_target_properties(flowtest PROPERTIES CXX_CLANG_TIDY "${DO_CLANG_TIDY}")
 endif()
-target_link_libraries(flowtest Xzero XzeroFlow stdc++fs)
+target_link_libraries(flowtest Xzero XzeroFlow)
 
 endif(ENABLE_TESTS)
 # }}}

@@ -273,7 +273,8 @@ size_t TcpEndPoint::write(const BufferRef& source) {
 
 size_t TcpEndPoint::write(const FileView& source) {
 #if defined(XZERO_OS_WINDOWS)
-  TransmitFile(handle(), source.handle(), source.size(), source.size(), nullptr, nullptr, 0);
+  TransmitFile(handle(), source.handle(), source.size(), 0, nullptr, nullptr, 0); // TODO: proper non-blocking call & error handling
+  return source.size();
 #elif defined(__APPLE__)
   off_t len = source.size();
   int rv = ::sendfile(source.handle(), handle(), source.offset(), &len, nullptr, 0);
