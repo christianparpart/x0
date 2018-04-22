@@ -59,6 +59,7 @@ using namespace xzero::flow;
 
 namespace x0d {
 
+#if defined(HAVE_SETRLIMIT)
 static inline const char* rc2str(int resource) { // {{{
   switch (resource) {
     case RLIMIT_CORE:
@@ -72,7 +73,6 @@ static inline const char* rc2str(int resource) { // {{{
   }
 } // }}}
 
-#if defined(HAVE_SETRLIMIT)
 unsigned long long CoreModule::setrlimit(
     int resource, unsigned long long value) {
   struct rlimit rlim;

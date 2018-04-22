@@ -11,21 +11,6 @@
 
 #include <xzero/http/HttpRequest.h>
 #include <xzero/http/HttpResponse.h>
-#include <xzero/io/FileUtil.h>
-#include <xzero/WallClock.h>
-#include <xzero/StringUtil.h>
-#include <xzero/RuntimeError.h>
-#include <xzero/Tokenizer.h>
-#include <sstream>
-
-#include <sys/resource.h>
-#include <sys/types.h>
-#include <sys/time.h>
-#include <unistd.h>
-#include <fcntl.h>
-#include <time.h>
-#include <pwd.h>
-#include <grp.h>
 
 using namespace xzero;
 using namespace xzero::http;
