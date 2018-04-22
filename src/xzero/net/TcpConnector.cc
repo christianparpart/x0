@@ -320,27 +320,22 @@ void TcpConnector::setReusePort(bool enable) {
 }
 
 bool TcpConnector::isReusePortSupported() {
-  int fd = ::socket(AF_INET, SOCK_STREAM, 0);
-  if (fd < 0)
+  Socket s = Socket::make_tcp_ip(false, Socket::AddressFamily::V4);
+  if (!s.valid())
     return false;
 
   int rc = 1;
-  bool res = ::setsockopt(fd, SOL_SOCKET, SO_REUSEPORT, (const char*) &rc, sizeof(rc)) == 0;
-
-  FileUtil::close(fd);
-  return res;
+  return ::setsockopt(s.native(), SOL_SOCKET, SO_REUSEPORT, (const char*) &rc, sizeof(rc)) == 0;
 }
 
 bool TcpConnector::isDeferAcceptSupported() {
 #if defined(TCP_DEFER_ACCEPT)
-  FileDescriptor fd = ::socket(AF_INET, SOCK_STREAM, 0);
-  if (fd < 0)
+  Socket s = Socket::make_tcp_ip(false, Socket::AddressFamily::V4);
+  if (!s.valid())
     return false;
 
   int rc = 1;
-  bool res = ::setsockopt(fd, SOL_TCP, TCP_DEFER_ACCEPT, &rc, sizeof(rc)) == 0;
-
-  return res;
+  return ::setsockopt(s.native(), SOL_TCP, TCP_DEFER_ACCEPT, &rc, sizeof(rc)) == 0;
 #else
   return false;
 #endif
@@ -416,7 +411,7 @@ void TcpConnector::stop() {
     io_->cancel();
 
   if (isOpen())
-    FileUtil::close(socket_.release());
+    socket_.close();
 
   isStarted_ = false;
 }
