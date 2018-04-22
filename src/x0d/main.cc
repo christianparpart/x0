@@ -18,7 +18,11 @@
 #include <iostream>
 #include <memory>
 #include <cstdlib>
-#include <unistd.h>
+
+#if defined(XZERO_OS_WINDOWS)
+#define WIN32_LEAN_AND_MEAN
+#include <Windows.h>
+#endif
 
 using namespace xzero;
 using namespace xzero::http;
@@ -54,8 +58,13 @@ PidFile::PidFile(const std::string& path)
     : path_(path) {
   // TODO: sanity-check (flock?) to ensure that we're the one.
   if (!path_.empty()) {
-    logInfo("Writing main process ID {} into file {}", getpid(), path_);
-    FileUtil::write(path_, std::to_string(getpid()));
+#if defined(XZERO_OS_WINDOWS)
+    const DWORD pid = GetCurrentProcessId();
+#else
+    const pid_t pid = getpid();
+#endif
+    logInfo("Writing main process ID {} into file {}", pid, path_);
+    FileUtil::write(path_, std::to_string(pid));
   }
 }
 

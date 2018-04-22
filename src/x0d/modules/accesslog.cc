@@ -36,10 +36,18 @@
 #include <optional>
 #include <string>
 #include <cerrno>
+#include <ctime>
 
 using namespace xzero;
 using namespace xzero::http;
 using namespace xzero::flow;
+
+#if defined(XZERO_OS_WINDOWS)
+struct tm* localtime_r(const time_t* time, struct tm* result) {
+  localtime_s(result, time);
+  return result;
+}
+#endif
 
 namespace x0d {
 

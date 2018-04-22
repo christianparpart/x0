@@ -48,7 +48,7 @@ class Params {
   bool getBool(size_t offset) const { return at(offset); }
   FlowNumber getInt(size_t offset) const { return at(offset); }
   const FlowString& getString(size_t offset) const { return *(FlowString*)at(offset); }
-  Handler* getHandler(size_t offset) const { return caller_->program()->handler(at(offset)); }
+  Handler* getHandler(size_t offset) const { return caller_->program()->handler(static_cast<size_t>(at(offset))); }
   const IPAddress& getIPAddress(size_t offset) const { return *(IPAddress*)at(offset); }
   const Cidr& getCidr(size_t offset) const { return *(Cidr*)at(offset); }
 
