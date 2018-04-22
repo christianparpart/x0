@@ -17,9 +17,12 @@
 #include <xzero/RuntimeError.h>
 #include <xzero/Tokenizer.h>
 #include <xzero/Buffer.h>
+#include <xzero/sysconfig.h>
 #include <sstream>
 #include <cmath>
+#include <cctype>
 
+#if defined(XZERO_OS_UNIX)
 #include <sys/resource.h>
 #include <sys/types.h>
 #include <sys/time.h>
@@ -28,6 +31,10 @@
 #include <time.h>
 #include <pwd.h>
 #include <grp.h>
+#endif
+
+#include <experimental/filesystem>
+namespace fs = std::experimental::filesystem;
 
 using namespace xzero;
 using namespace xzero::http;
@@ -65,6 +72,7 @@ static inline const char* rc2str(int resource) { // {{{
   }
 } // }}}
 
+#if defined(HAVE_SETRLIMIT)
 unsigned long long CoreModule::setrlimit(
     int resource, unsigned long long value) {
   struct rlimit rlim;
@@ -97,6 +105,7 @@ unsigned long long CoreModule::setrlimit(
 
   return value;
 }
+#endif
 
 size_t CoreModule::cpuCount() {
   static int numCPU_ = -1;
@@ -458,15 +467,21 @@ void CoreModule::max_conns(Params& args) {
 }
 
 void CoreModule::max_files(Params& args) {
+#if defined(HAVE_SETRLIMIT)
   setrlimit(RLIMIT_NOFILE, args.getInt(1));
+#endif
 }
 
 void CoreModule::max_address_space(Params& args) {
+#if defined(HAVE_SETRLIMIT)
   setrlimit(RLIMIT_AS, args.getInt(1));
+#endif
 }
 
 void CoreModule::max_core(Params& args) {
+#if defined(HAVE_SETRLIMIT)
   setrlimit(RLIMIT_CORE, args.getInt(1));
+#endif
 }
 
 void CoreModule::tcp_cork(Params& args) {
@@ -650,12 +665,15 @@ void CoreModule::sys_env2(Context* cx, Params& args) {
 }
 
 void CoreModule::sys_cwd(Context* cx, Params& args) {
-  static char buf[1024];
-  args.setResult(getcwd(buf, sizeof(buf)));
+  args.setResult(fs::current_path().string());
 }
 
 void CoreModule::sys_pid(Context* cx, Params& args) {
+#if defined(XZERO_OS_WINDOWS)
+  args.setResult(static_cast<FlowNumber>(GetProcessId(GetCurrentProcess())));
+#else
   args.setResult(static_cast<FlowNumber>(getpid()));
+#endif
 }
 
 void CoreModule::sys_now(Context* cx, Params& args) {

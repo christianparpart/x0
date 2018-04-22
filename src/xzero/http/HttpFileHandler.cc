@@ -207,6 +207,8 @@ static std::optional<UnixTime> parseTime(const std::string& timeStr) {
     return UnixTime((utc - 3600) * kMicrosPerSecond);
   else
     return UnixTime(utc * kMicrosPerSecond);
+#else
+  return std::nullopt; // TODO: strptime() impl
 #endif
 }
 

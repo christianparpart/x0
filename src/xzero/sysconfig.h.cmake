@@ -57,6 +57,7 @@
 #cmakedefine HAVE_PREAD
 #cmakedefine HAVE_READAHEAD
 #cmakedefine HAVE_SENDFILE
+#cmakedefine HAVE_SETRLIMIT
 #cmakedefine HAVE_SIGPROCMASK
 #cmakedefine HAVE_STRPTIME
 #cmakedefine HAVE_SYSCONF
