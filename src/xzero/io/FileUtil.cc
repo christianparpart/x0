@@ -334,19 +334,6 @@ void FileUtil::write(FileHandle& fd, const FileView& fileView) {
   write(fd, read(fileView));
 }
 
-void FileUtil::copy(const std::string& from, const std::string& to) {
-  logFatal("NotImplementedError");
-}
-
-void FileUtil::truncate(const std::string& path, size_t size) {
-#if defined(HAVE_TRUNCATE)
-  if (::truncate(path.c_str(), size) < 0)
-    RAISE_ERRNO(errno);
-#else
-  RAISE_ERRNO(ENOTSUP);
-#endif
-}
-
 std::string FileUtil::dirname(const std::string& path) {
   size_t n = path.rfind(PathSeperator);
   return n != std::string::npos
@@ -367,10 +354,6 @@ void FileUtil::mkdir_p(const std::string& path) {
 
 void FileUtil::rm(const std::string& path) {
   fs::remove(fs::path(path));
-}
-
-void FileUtil::mv(const std::string& from, const std::string& to) {
-  fs::rename(fs::path(from), fs::path(to));
 }
 
 void FileUtil::chown(const std::string& path,
@@ -485,20 +468,6 @@ FileHandle FileUtil::createTempFileAt(const std::string& basedir, std::string* r
 
 std::string FileUtil::tempDirectory() {
   return fs::temp_directory_path().string();
-}
-
-void FileUtil::close(int fd) {
-  for (;;) {
-    int rv = ::close(fd);
-    switch (rv) {
-      case 0:
-        return;
-      case EINTR:
-        break;
-      default:
-        RAISE_ERRNO(errno);
-    }
-  }
 }
 
 }  // namespace xzero
