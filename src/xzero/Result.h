@@ -40,6 +40,7 @@ class Result {
  public:
   using value_type = typename std::remove_reference<T>::type;
   using pointer_type = typename std::add_pointer<value_type>::type;
+  using reference_type = typename std::add_lvalue_reference<value_type>::type;
 
   Result(const value_type& value);
   Result(value_type&& value);
@@ -61,6 +62,9 @@ class Result {
   bool isSuccess() const noexcept;
   bool isFailure() const noexcept;
   const std::error_code& error() const noexcept;
+
+  reference_type value();
+  const reference_type value() const;
 
   pointer_type get();
   const pointer_type get() const;
