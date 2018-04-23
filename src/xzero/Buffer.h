@@ -302,10 +302,10 @@ class BufferRef : public BufferBase<char*> {
   class reverse_iterator {  // {{{
    private:
     BufferRef* buf_;
-    int cur_;
+    ssize_t cur_;
 
    public:
-    reverse_iterator(BufferRef* r, int cur) : buf_(r), cur_(cur) {}
+    reverse_iterator(BufferRef* r, size_t cur) : buf_(r), cur_(static_cast<size_t>(cur)) {}
     reverse_iterator& operator++() {
       if (cur_ >= 0) {
         --cur_;
@@ -574,7 +574,7 @@ inline size_t BufferBase<T>::find(value_type value, size_t offset) const {
 
 template <typename T>
 inline size_t BufferBase<T>::find(const BufferRef& buf, size_t offset) const {
-  const int value_length = buf.size();
+  const size_t value_length = buf.size();
 
   if (value_length == 1)
     return find(buf[0], offset);
