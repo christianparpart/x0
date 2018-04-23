@@ -10,6 +10,7 @@
 #include <xzero/http/HttpRequest.h>
 #include <xzero/http/HttpResponse.h>
 #include <xzero/logging.h>
+#include <xzero/sysconfig.h>
 #include <sstream>
 
 #if defined(XZERO_OS_UNIX)
@@ -22,12 +23,12 @@ using namespace xzero::http;
 
 namespace x0d {
 
-Result<std::string> getUserHomeDirectory(const std::string& username) {
+Result<std::string> getUserHomeDirectory(const std::string& userName) {
 #if defined(XZERO_OS_WINDOWS)
   return std::errc::not_supported;
 #else
   if (struct passwd* pw = getpwnam(userName.c_str()))
-    return pw->pw_dir;
+    return Success(std::string(pw->pw_dir));
 
   return std::make_error_code(static_cast<std::errc>(errno));
 #endif
