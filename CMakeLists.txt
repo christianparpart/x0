@@ -78,7 +78,7 @@ if(UNIX)
 
   if (OPENSSL_FOUND)
     message(STATUS "OpenSSL found ;-)")
-    set(XZERO_ENABLE_OPENSSL TRUE)
+    set(XZERO_ENABLE_SSL TRUE)
   else()
     message(FATAL_ERROR "OpenSSL not found ;-(")
   endif()
@@ -248,6 +248,7 @@ set(libXzero_SRC src/xzero/AnsiColor.cc
                  src/xzero/io/FileUtil.cc
                  src/xzero/io/FileView.cc
                  src/xzero/io/Filter.cc
+                 src/xzero/io/GzipFilter.cc
                  src/xzero/io/LocalFile.cc
                  src/xzero/io/LocalFileRepository.cc
                  src/xzero/io/MemoryFile.cc
@@ -294,9 +295,6 @@ if(OPENSSL_FOUND)
                    src/xzero/net/SslContext.cc
                    src/xzero/net/SslEndPoint.cc)
 endif()
-if(HAVE_ZLIB_H)
-  set(libXzero_SRC ${libXzero_SRC} src/xzero/io/GzipFilter.cc)
-endif()
 # if(UNIX)
 #   set(libXzero_SRC ${libXzero_SRC} src/xzero/executor/PosixScheduler.cc)
 # endif()
@@ -323,6 +321,9 @@ if(UNIX)
 endif()
 if(UNIX AND NOT APPLE)
   target_link_libraries(Xzero rt)
+endif()
+if(WIN32)
+  target_link_libraries(Xzero wsock32 ws2_32 Mswsock AdvApi32 shlwapi)
 endif()
 
 install(TARGETS Xzero
@@ -422,7 +423,10 @@ set_target_properties(x0d PROPERTIES CXX_STANDARD 17 CXX_STANDARD_REQUIRED ON)
 if(CLANG_TIDY_EXE)
   set_target_properties(x0d PROPERTIES CXX_CLANG_TIDY "${DO_CLANG_TIDY}")
 endif()
-target_link_libraries(x0d Xzero XzeroFlow pam)
+target_link_libraries(x0d Xzero XzeroFlow)
+if(UNIX)
+target_link_libraries(x0d pam)
+endif()
 install(TARGETS x0d
         DESTINATION "${CMAKE_INSTALL_PREFIX}/bin")
 install(DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/src/x0d/"

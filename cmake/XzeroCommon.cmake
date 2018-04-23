@@ -4,13 +4,14 @@
 if(MSVC)
 # TODO ... fill in whatever is required for compiling under Visual Studio
   add_definitions(-DNOMINMAX)
+  set(CMAKE_SHARED_LINKER_FLAGS ${CMAKE_SHARED_LINKER_FLAGS} "/NODEFAULTLIBS:MSVCRT")
 else()
 
-if(APPLE)
-  set(CMAKE_CXX_FLAGS "-std=c++1z -stdlib=libc++")
-else()
-  set(CMAKE_CXX_FLAGS "-std=c++1z")
-endif()
+# if(APPLE)
+#   set(CMAKE_CXX_FLAGS "-std=c++1z -stdlib=libc++")
+# else()
+#   set(CMAKE_CXX_FLAGS "-std=c++1z")
+# endif()
 
 # we need the following definitions in order to get some special
 # OS-level features like posix_fadvise() or readahead().
