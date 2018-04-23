@@ -60,6 +60,9 @@ bool tryEncode(const std::string& encoding,
                const std::vector<BufferRef>& accepts,
                HttpRequest* request,
                HttpResponse* response) {
+  if (!Encoder::isSupported())
+    return false;
+
   if (std::find(accepts.begin(), accepts.end(), encoding) == accepts.end())
     return false;
 
