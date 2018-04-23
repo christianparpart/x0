@@ -73,6 +73,8 @@ std::string GzipFilter::z_code(int code) const {
       snprintf(msg, sizeof(msg), "Z_<%d>", code);
       return msg;
   }
+#else
+  return std::string{};
 #endif
 }
 
