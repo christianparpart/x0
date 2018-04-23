@@ -32,7 +32,6 @@
 #include <xzero/http/http1/ConnectionFactory.h>
 #include <xzero/io/LocalFileRepository.h>
 #include <xzero/executor/NativeScheduler.h>
-#include <xzero/net/SslConnector.h>
 #include <xzero/net/TcpConnector.h>
 #include <xzero/RuntimeError.h>
 #include <xzero/MimeTypes.h>
@@ -57,6 +56,10 @@
 #include <sstream>
 #include <fstream>
 #include <signal.h>
+
+#if defined(XZERO_ENABLE_SSL)
+#include <xzero/net/SslConnector.h>
+#endif
 
 using namespace xzero;
 using namespace xzero::http;
@@ -90,11 +93,13 @@ Daemon::Daemon()
   eventLoops_.emplace_back(createEventLoop());
 
   // setup singal handling
+#if !defined(XZERO_OS_WINDOWS)
   mainEventLoop()->executeOnSignal(SIGHUP, [&](const auto& si) { onConfigReloadSignal(si); });
   //mainEventLoop()->executeOnSignal(SIGHUP, std::bind(&Daemon::onConfigReloadSignal, this, std::placeholders::_1));
   mainEventLoop()->executeOnSignal(SIGUSR1, std::bind(&Daemon::onCycleLogsSignal, this, std::placeholders::_1));
   mainEventLoop()->executeOnSignal(SIGUSR2, std::bind(&Daemon::onUpgradeBinarySignal, this, std::placeholders::_1));
   mainEventLoop()->executeOnSignal(SIGQUIT, std::bind(&Daemon::onGracefulShutdownSignal, this, std::placeholders::_1));
+#endif
   mainEventLoop()->executeOnSignal(SIGTERM, std::bind(&Daemon::onQuickShutdownSignal, this, std::placeholders::_1));
   mainEventLoop()->executeOnSignal(SIGINT, std::bind(&Daemon::onQuickShutdownSignal, this, std::placeholders::_1));
 
@@ -428,9 +433,10 @@ void Daemon::postConfig() {
   removeAllConnectors();
   for (const ListenerConfig& l: config_->listeners) {
     if (l.ssl) {
-      if (config_->sslContexts.empty()) {
+      if (config_->sslContexts.empty())
         throw ConfigurationError{"SSL listeners found but no SSL contexts configured."};
-      }
+
+#if defined(XZERO_ENABLE_SSL)
       logNotice("Starting HTTPS listener on {}:{}", l.bindAddress, l.port);
       setupConnector<SslConnector>(
           l.bindAddress, l.port, l.backlog,
@@ -442,6 +448,9 @@ void Daemon::postConfig() {
             }
           }
       );
+#else
+      throw ConfigurationError{fmt::format("Listening on HTTPS for {}:{} not supported in this build.", l.bindAddress, l.port)};
+#endif
     } else {
       logNotice("Starting HTTP listener on {}:{}", l.bindAddress, l.port);
       setupConnector<TcpConnector>(
@@ -539,11 +548,11 @@ void Daemon::setThreadAffinity(int cpu, int workerId) {
   int rv = pthread_setaffinity_np(tid, sizeof(set), &set);
   if (rv < 0) {
     logError("setting event-loopaffinity on CPU {} failed for worker {}. {}",
-             cpu, workerId, strerror(errno));
+             cpu, workerId, std::make_error_code(static_cast<std::errc>(errno)).message());
   }
 #else
   logWarning("setting event-loop affinity on CPU {} failed for worker {}. {}",
-             cpu, workerId, strerror(ENOTSUP));
+             cpu, workerId, std::make_error_code(std::errc::not_supported).message());
 #endif
 }
 
@@ -647,7 +656,7 @@ void Daemon::onConfigReloadSignal(const xzero::UnixSignalInfo& info) {
 
   /* reloadConfiguration(); */
 
-  mainEventLoop()->executeOnSignal(SIGHUP, std::bind(&Daemon::onConfigReloadSignal, this, std::placeholders::_1));
+  mainEventLoop()->executeOnSignal(info.signal, std::bind(&Daemon::onConfigReloadSignal, this, std::placeholders::_1));
 }
 
 void Daemon::onCycleLogsSignal(const xzero::UnixSignalInfo& info) {
@@ -658,7 +667,7 @@ void Daemon::onCycleLogsSignal(const xzero::UnixSignalInfo& info) {
 
   onCycleLogs();
 
-  mainEventLoop()->executeOnSignal(SIGUSR1, std::bind(&Daemon::onCycleLogsSignal, this, std::placeholders::_1));
+  mainEventLoop()->executeOnSignal(info.signal, std::bind(&Daemon::onCycleLogsSignal, this, std::placeholders::_1));
 }
 
 void Daemon::onUpgradeBinarySignal(const UnixSignalInfo& info) {
