@@ -12,13 +12,26 @@
 #include <xzero/logging.h>
 #include <sstream>
 
+#if defined(XZERO_OS_UNIX)
 #include <sys/types.h>
 #include <pwd.h>
+#endif
 
 using namespace xzero;
 using namespace xzero::http;
 
 namespace x0d {
+
+Result<std::string> getUserHomeDirectory(const std::string& username) {
+#if defined(XZERO_OS_WINDOWS)
+  return std::errc::not_supported;
+#else
+  if (struct passwd* pw = getpwnam(userName.c_str()))
+    return pw->pw_dir;
+
+  return std::make_error_code(static_cast<std::errc>(errno));
+#endif
+}
 
 UserdirModule::UserdirModule(Daemon* d)
     : Module(d, "compress"),
@@ -78,8 +91,9 @@ void UserdirModule::userdir(Context* cx, Params& args) {
     userPath = "";
   }
 
-  if (struct passwd* pw = getpwnam(userName.c_str())) {
-    std::string docroot = FileUtil::joinPaths(pw->pw_dir, dirname_);
+  Result<std::string> userdir = getUserHomeDirectory(userName);
+  if (userdir) {
+    std::string docroot = FileUtil::joinPaths(userdir.value(), dirname_);
     std::string filepath = FileUtil::joinPaths(docroot, userPath);
 
     cx->setDocumentRoot(docroot);
