@@ -13,10 +13,7 @@
 // --------------------------------------------------------------------------
 // feature tests
 
-#cmakedefine XZERO_ENABLE_OPENSSL
-
-// Build with inotify support
-#cmakedefine XZERO_ENABLE_INOTIFY
+#cmakedefine XZERO_ENABLE_SSL
 
 #cmakedefine ENABLE_ACCEPT4
 #cmakedefine ENABLE_PIPE2
@@ -26,18 +23,6 @@
 #cmakedefine ENABLE_PCRE
 
 #cmakedefine ENABLE_INOTIFY
-
-// Enable support for TCP_DEFER_ACCEPT
-#cmakedefine ENABLE_TCP_DEFER_ACCEPT
-
-// Try to open temporary files with O_TMPFILE flag before falling back
-// to the standard behaviour.
-#cmakedefine XZERO_ENABLE_O_TMPFILE
-
-#cmakedefine XZERO_ENABLE_NOEXCEPT
-
-// Builds with support for opportunistic write() calls to client sockets
-#cmakedefine XZERO_OPPORTUNISTIC_WRITE 1
 
 // --------------------------------------------------------------------------
 #cmakedefine HAVE_ACCEPT4

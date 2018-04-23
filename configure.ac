@@ -133,12 +133,6 @@ AC_ARG_ENABLE([multi-accept],
 AS_IF([test "x$enable_multi_accept" != xno],
       [AC_DEFINE([ENABLE_MULTI_ACCEPT], [1], [Enables use of multiple accept() calls])])
 
-AC_ARG_ENABLE([tcp-defer-accept],
-              AS_HELP_STRING([--disable-tcp-defer-accept],
-                             [Disables use of TCP_DEFER_ACCEPT feature.]))
-AS_IF([test "x$enable_tcp_defer_accept" != xno],
-      [AC_DEFINE([ENABLE_TCP_DEFER_ACCEPT], [1], [Enables use of TCP_DEFER_ACCEPT])])
-
 AC_ARG_ENABLE([o_tmpfile],
               AS_HELP_STRING([--disable-o_tmpfile],
                              [Disables use of O_TMPFILE feature.]))
