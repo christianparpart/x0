@@ -91,7 +91,7 @@ class CoreModule : public Module {
   void sys_max_conn(Context* cx, Params& args);
 
   // {{{ shared functions
-  void error_page(Params& args);
+  void error_page_(Params& args);
   void error_page(Context* cx, Params& args);
   void log_err(Context* cx, Params& args);
   void log_warn(Context* cx, Params& args);
