@@ -201,7 +201,8 @@ std::string FileLogTarget::createTimestamp() const {
 // }}}
 // {{{ ConsoleLogTarget
 ConsoleLogTarget::ConsoleLogTarget()
-    : timestampEnabled_(true) {
+    : timestampEnabled_(true),
+      colored_{isatty(STDERR_FILENO) != 0} {
 }
 
 ConsoleLogTarget* ConsoleLogTarget::get() {
@@ -212,7 +213,7 @@ ConsoleLogTarget* ConsoleLogTarget::get() {
 // TODO is a mutex required for concurrent printf()'s ?
 void ConsoleLogTarget::log(LogLevel level,
                            const std::string& message) {
-  if (isatty(STDERR_FILENO)) {
+  if (colored_) {
     static const auto logColor = [](LogLevel ll) -> AnsiColor::Type {
       switch (ll) {
         case LogLevel::None: return AnsiColor::Clear;

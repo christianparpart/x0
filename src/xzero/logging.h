@@ -67,6 +67,7 @@ class ConsoleLogTarget : public LogTarget { // {{{
 
  private:
   bool timestampEnabled_;
+  bool colored_;
 }; // }}}
 class SyslogTarget : public LogTarget { // {{{
  public:
