@@ -108,17 +108,8 @@ unsigned long long CoreModule::setrlimit(
 #endif
 
 size_t CoreModule::cpuCount() {
-  static int numCPU_ = -1;
-
-  if (numCPU_ < 0) {
-    numCPU_ = sysconf(_SC_NPROCESSORS_ONLN);
-    if (numCPU_ < 0) {
-      logError("Could not retrieve processor count. {}", strerror(errno));
-      numCPU_ = 1;
-    }
-  }
-
-  return static_cast<size_t>(numCPU_);
+  static size_t numCPU_ = Application::processorCount();
+  return numCPU_;
 }
 
 CoreModule::CoreModule(Daemon* d)
@@ -219,7 +210,7 @@ CoreModule::CoreModule(Daemon* d)
       .returnType(LiteralType::Number);
 
   // shared functions
-  sharedFunction("error.page", &CoreModule::error_page,
+  sharedFunction("error.page", &CoreModule::error_page_,
                                &CoreModule::error_page)
       .param<FlowNumber>("status")
       .param<FlowString>("uri");
@@ -691,6 +682,10 @@ void CoreModule::sys_hostname(Context* cx, Params& args) {
 }
 
 void CoreModule::sys_domainname(Context* cx, Params& args) {
+#if defined(XZERO_OS_WINDOWS)
+  cx->logError("sys.domainname: Not supported.");
+  args.setResult("");
+#else
   char buf[256];
   if (getdomainname(buf, sizeof(buf)) == 0) {
     args.setResult(buf);
@@ -698,6 +693,7 @@ void CoreModule::sys_domainname(Context* cx, Params& args) {
     cx->logError("sys.domainname: getdomainname() failed. {}", strerror(errno));
     args.setResult("");
   }
+#endif
 }
 
 void CoreModule::sys_max_conn(Context* cx, Params& args) {
@@ -788,7 +784,7 @@ void CoreModule::error_page(Context* cx, Params& args) {
   cx->setErrorPage(status, uri);
 }
 
-void CoreModule::error_page(Params& args) {
+void CoreModule::error_page_(Params& args) {
   HttpStatus status = static_cast<HttpStatus>(args.getInt(1));
   std::string uri = args.getString(2);
 
