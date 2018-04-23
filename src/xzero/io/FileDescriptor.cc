@@ -52,6 +52,7 @@ void FileDescriptor::close() {
     int rv = ::close(fd_);
     switch (rv) {
       case 0:
+        fd_ = -1;
         return;
       case EINTR:
         break;
@@ -59,8 +60,6 @@ void FileDescriptor::close() {
         RAISE_ERRNO(errno);
     }
   }
-
-  fd_ = -1;
 }
 
 }  // namespace xzero
