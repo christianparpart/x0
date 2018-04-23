@@ -37,8 +37,8 @@ function(MIMETYPES_GENERATE_CPP SRCS)
 
     add_custom_command(
       OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/${FIL_WEPREFIX}.mimetypes2cc.cc"
-      COMMAND ${PROJ_ROOT_DIR}/mimetypes2cc.sh
-      ARGS ${ABS_FIL} "${CMAKE_CURRENT_BINARY_DIR}/${FIL_WEPREFIX}.mimetypes2cc.cc" mimetypes2cc
+      COMMAND python
+      ARGS ${PROJ_ROOT_DIR}/mimetypes2cc.py ${ABS_FIL} "${CMAKE_CURRENT_BINARY_DIR}/${FIL_WEPREFIX}.mimetypes2cc.cc" mimetypes2cc
       DEPENDS ${ABS_FIL}
       COMMENT "Running mimetypes2cc on ${FIL}"
       VERBATIM )
