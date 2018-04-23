@@ -338,6 +338,7 @@ install(DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/src/xzero/"
 # {{{ libXzeroTesting
 set(libXzeroTest_SRC src/xzero/testing_main.cc)
 add_library(XzeroTest STATIC ${libXzeroTest_SRC})
+set_target_properties(XzeroTest PROPERTIES CXX_STANDARD 17 CXX_STANDARD_REQUIRED ON)
 target_link_libraries(XzeroTest Xzero)
 install(TARGETS XzeroTest DESTINATION ${CMAKE_INSTALL_PREFIX}/lib)
 # }}}
