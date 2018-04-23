@@ -381,9 +381,7 @@ set(XzeroFlow_SRC src/xzero-flow/AST.cc
                   )
 
 add_library(XzeroFlow STATIC ${XzeroFlow_SRC})
-set_target_properties(XzeroFlow PROPERTIES
-		CXX_STANDARD 17
-		CXX_STANDARD_REQUIRED ON)
+set_target_properties(XzeroFlow PROPERTIES CXX_STANDARD 17 CXX_STANDARD_REQUIRED ON)
 if(CLANG_TIDY_EXE)
   set_target_properties(XzeroFlow PROPERTIES CXX_CLANG_TIDY "${DO_CLANG_TIDY}")
 endif()
@@ -501,18 +499,14 @@ else()
 endif()
 
 add_executable(xzero_test ${xzero_test_SRC} ${xzero_test_PLATFORM_SRC})
-set_target_properties(xzero_test PROPERTIES
-		CXX_STANDARD 17
-		CXX_STANDARD_REQUIRED ON)
+set_target_properties(xzero_test PROPERTIES CXX_STANDARD 17 CXX_STANDARD_REQUIRED ON)
 if(CLANG_TIDY_EXE)
   set_target_properties(xzero_test PROPERTIES CXX_CLANG_TIDY "${DO_CLANG_TIDY}")
 endif()
 target_link_libraries(xzero_test Xzero XzeroFlow XzeroTest)
 
 add_executable(flowtest src/xzero-flow/flowtest.cc)
-set_target_properties(flowtest PROPERTIES
-		CXX_STANDARD 17
-		CXX_STANDARD_REQUIRED ON)
+set_target_properties(flowtest PROPERTIES CXX_STANDARD 17 CXX_STANDARD_REQUIRED ON)
 if(CLANG_TIDY_EXE)
   set_target_properties(flowtest PROPERTIES CXX_CLANG_TIDY "${DO_CLANG_TIDY}")
 endif()

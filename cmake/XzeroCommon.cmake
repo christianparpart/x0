@@ -4,7 +4,7 @@
 if(MSVC)
 # TODO ... fill in whatever is required for compiling under Visual Studio
   add_definitions(-DNOMINMAX)
-  set(CMAKE_SHARED_LINKER_FLAGS ${CMAKE_SHARED_LINKER_FLAGS} "/NODEFAULTLIBS:MSVCRT")
+  set(CMAKE_SHARED_LINKER_FLAGS ${CMAKE_SHARED_LINKER_FLAGS} "/NODEFAULTLIB:library")
 else()
 
 # if(APPLE)
