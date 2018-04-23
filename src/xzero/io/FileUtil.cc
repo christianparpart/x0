@@ -125,7 +125,7 @@ std::string FileUtil::joinPaths(const std::string& base,
   }
 }
 
-FileHandle FileUtil::open(const std::string& path, FileOpenFlags oflags) {
+FileHandle FileUtil::open(const std::string& path, FileOpenFlags oflags, int mode) {
 #if defined(XZERO_OS_WINDOWS)
   DWORD access = 0;
   if (oflags & FileOpenFlags::Read)
@@ -149,9 +149,14 @@ FileHandle FileUtil::open(const std::string& path, FileOpenFlags oflags) {
   if (FileOpenFlags::TempFile)
     flagsAndAttribs |= FILE_ATTRIBUTE_TEMPORARY | FILE_FLAG_DELETE_ON_CLOSE;
 
+  // TODO: any chances we can evaluate `mode` here?
+
   return FileHandle{ CreateFile(path.c_str(), access, shareMode, nullptr, disposition, flagsAndAttribs, nullptr) };
 #else
-  return FileHandle(::open(path.c_str(), to_posix(oflags)));
+  if (mode)
+    return FileHandle(::open(path.c_str(), to_posix(oflags), mode));
+  else
+    return FileHandle(::open(path.c_str(), to_posix(oflags)));
 #endif
 }
 
@@ -286,7 +291,7 @@ Buffer FileUtil::read(const std::string& path) {
 }
 
 void FileUtil::write(const std::string& path, const BufferRef& buffer) {
-  FileHandle fd = open(path, FileOpenFlags::Write | FileOpenFlags::Create | FileOpenFlags::Truncate);
+  FileHandle fd = open(path, FileOpenFlags::Write | FileOpenFlags::Create | FileOpenFlags::Truncate, 0660);
   if (fd.isClosed())
     RAISE_ERRNO(errno);
 
