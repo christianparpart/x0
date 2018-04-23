@@ -151,7 +151,7 @@ int XUrl::run(int argc, const char* argv[]) {
     std::cerr
       << "xurl: Xzero HTTP Client " PACKAGE_VERSION
           << " [" PACKAGE_HOMEPAGE_URL "]" << std::endl
-      << "Copyright (c) 2009-2017 by Christian Parpart <christian@parpart.family>" << std::endl
+      << "Copyright (c) 2009-2018 by Christian Parpart <christian@parpart.family>" << std::endl
       << std::endl
       << "Usage: xurl [options ...]" << std::endl
       << std::endl

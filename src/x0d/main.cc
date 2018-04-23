@@ -31,7 +31,7 @@ void printVersion() {
   std::cout
     << "x0d: Xzero HTTP Web Server " PACKAGE_VERSION
         << " [" PACKAGE_URL "]" << std::endl
-    << "Copyright (c) 2009-2017 by Christian Parpart <christian@parpart.family>" << std::endl;
+    << "Copyright (c) 2009-2018 by Christian Parpart <christian@parpart.family>" << std::endl;
 }
 
 void printHelp(const Flags& cli) {
