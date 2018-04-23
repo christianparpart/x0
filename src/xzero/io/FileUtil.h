@@ -62,7 +62,7 @@ class FileUtil {
                     const std::string& group);
   static void seek(FileHandle& fd, off_t offset);
 
-  static FileHandle open(const std::string& path, FileOpenFlags oflags);
+  static FileHandle open(const std::string& path, FileOpenFlags oflags, int mode = 0);
   static FileHandle createTempFile();
   static FileHandle createTempFileAt(const std::string& basedir,
                                      std::string* result = nullptr);
