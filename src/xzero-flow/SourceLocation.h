@@ -28,6 +28,16 @@ struct FilePos { // {{{
     return *this;
   }
 
+  void advance(char ch) {
+    offset++;
+    if (ch != '\n') {
+      column++;
+    } else {
+      line++;
+      column = 1;
+    }
+  }
+
   size_t line;
   size_t column;
   size_t offset;

@@ -5,6 +5,8 @@
 // file except in compliance with the License. You may obtain a copy of
 // the License at: http://opensource.org/licenses/MIT
 
+#include "flowtest.h"
+
 #include <xzero-flow/FlowParser.h>
 #include <xzero-flow/SourceLocation.h>
 #include <xzero-flow/IRGenerator.h>
@@ -30,17 +32,16 @@
 
 using namespace std;
 using namespace xzero;
+using flow::SourceLocation;
 
 namespace fs = std::experimental::filesystem;
 
-enum class AnalysisType { TokenError, SyntaxError, TypeError, Warning, LinkError };
-
 /*
-  TestProgram   ::= FlowProgram [Initializer TestMessage*]
+  TestProgram   ::= FlowProgram [Initializer Message*]
   FlowProgram   ::= <flow program code until Initializer>
 
   Initializer   ::= '#' '----' LF
-  TestMessage   ::= '#' AnalysisType ':' Location MessageText LF
+  Message       ::= '#' AnalysisType ':' Location? MessageText LF
   AnalysisType  ::= 'TokenError' | 'SyntaxError' | 'TypeError' | 'Warning' | 'LinkError'
 
   Location      ::= '[' FilePos ['..' FilePos] ']'
@@ -56,76 +57,137 @@ enum class AnalysisType { TokenError, SyntaxError, TypeError, Warning, LinkError
   INDENT        ::= (' ' | '\t')+
 */
 
-struct TestMessage {
-  AnalysisType type;
-  flow::SourceLocation sourceLocation;
-  std::vector<std::string> texts;
-};
+namespace flowtest {
 
-/**
- * Parses the input @p contents and splits it into a flow program and a vector
- * of analysis TestMessage.
- */
-class TestParser {
- public:
-  TestParser(const std::string& filename, std::string& contents);
-
-  bool parse(std::string* programText, std::vector<TestMessage>* messages);
-
- public: // accessors
-  std::string program() const;
-
- private:
-  std::string parseUntilInitializer();
-  std::string parseLine();
-  TestMessage parseMessage();
-
- private:
-  std::string filename_;
-  std::string contents_;
-  size_t currentOffset_;
-};
-
-TestParser::TestParser(const std::string& filename, std::string& contents)
-    : filename_{filename}, contents_{contents} {
+// {{{ Parser
+Parser::Parser(const std::string& filename, std::string& contents)
+    : filename_{filename},
+      source_{contents},
+      currentToken_{Token::Eof},
+      currentPos_{} {
+  nextChar();
+  nextToken();
 }
 
-bool TestParser::parse(std::string* programText, std::vector<TestMessage>* messages) {
-  *programText = parseUntilInitializer();
+// ----------------------------------------------------------------------------
+// lexic
 
-  while (!eof())
-    messages->push_back(parseMessage());
-
-  return true;
+int Parser::nextChar(off_t i) {
+  while (i > 0 && !eof()) {
+    currentPos_.advance(currentChar());
+    i--;
+  }
+  return currentChar();
 }
 
-std::string TestParser::parseUntilInitializer() {
+Token Parser::nextToken() {
+  skipSpace();
+  switch (currentChar()) {
+    case '#':
+      nextChar();
+      return currentToken_ = Token::Begin;
+    case '.':
+      if (peekChar() == '.') {
+        nextChar(2);
+        return currentToken_ = Token::DotDot;
+      }
+      break;
+    case ':':
+      nextChar();
+      return currentToken_ = Token::Colon;
+    case '[':
+      nextChar();
+      return currentToken_ = Token::BrOpen;
+    case ']':
+      nextChar();
+      return currentToken_ = Token::BrClose;
+    case '\n':
+      nextChar();
+      return currentToken_ = Token::LF;
+    case '-':
+      if (peekChar(1) == '-' &&
+          peekChar(2) == '-' &&
+          peekChar(3) == '-') {
+        nextChar(4);
+        return currentToken_ = Token::InitializerMark;
+      }
+      break;
+    default:
+      if (std::isdigit(currentChar())) {
+        return currentToken_ = parseNumber();
+      }
+      if (std::isalpha(currentChar())) {
+        return currentToken_ = parseIdent();
+      }
+  }
+  reportError("Unexpected character {} during tokenization.", (char)currentChar());
+}
+
+Token Parser::parseNumber() {
+  numberValue_ = 0;
+
+  while (std::isdigit(currentChar())) {
+    numberValue_ *= 10;
+    numberValue_ += currentChar() - '0';
+    nextChar();
+  }
+  return Token::Number;
+}
+
+void Parser::skipSpace() {
   for (;;) {
-    size_t lastLineOffset = currentOffset_;
-    std::string line = parseLine();
-    if (line.empty() || line == "# ----") {
-      return contents_.substr(0, lastLineOffset);
+    switch (currentChar()) {
+      case ' ':
+      case '\t':
+        nextChar();
+        break;
+      default:
+        return;
     }
   }
 }
 
-std::string TestParser::parseLine() {
+
+// ----------------------------------------------------------------------------
+// syntax
+
+Result<ParseResult> Parser::parse() {
+  ParseResult pr;
+  pr.program = parseUntilInitializer();
+
+  while (!eof())
+    pr.messages.push_back(parseMessage());
+
+  return Success(std::move(pr));
+}
+
+std::string Parser::parseUntilInitializer() {
+  for (;;) {
+    size_t lastLineOffset = currentOffset();
+    std::string line = parseLine();
+    if (line.empty() || line == "# ----") {
+      return source_.substr(0, lastLineOffset);
+    }
+  }
+}
+
+std::string Parser::parseLine() {
   constexpr char LF = '\n';
-  const size_t startOfLine = currentOffset_;
+  const size_t startOfLine = currentOffset();
 
-  while (!eof() && contents_[currentOffset_] != LF)
-    currentOffset_++;
+  while (currentChar() != LF)
+    nextChar();
 
-  std::string line = contents_.substr(startOfLine, currentOffset_ - startOfLine);
+  std::string line = source_.substr(startOfLine, currentOffset() - startOfLine);
 
-  if (!eof() && contents_[currentOffset_] == LF)
-    currentOffset_++;
+  if (currentChar() == LF)
+    nextChar();
 
   return line;
 }
 
-TestMessage TestParser::parseMessage() {
-  // TestMessage   ::= '#' AnalysisType ':' Location MessageText LF
+Message Parser::parseMessage() {
+  // Message   ::= '#' AnalysisType ':' Location MessageText LF
   // MessageText   ::= TEXT (LF INDENT TEXT)*
   // AnalysisType  ::= 'TokenError' | 'SyntaxError' | 'TypeError' | 'Warning' | 'LinkError'
   // Location      ::= '[' FilePos ['..' FilePos] ']'
@@ -133,26 +195,29 @@ TestMessage TestParser::parseMessage() {
   // Column        ::= NUMBER
   // Line          ::= NUMBER
 
-  parseCommentToken();
+  consume(Token::Begin);
   AnalysisType type = parseAnalysisType();
-  parseColon();
+  consume(Token::Colon);
   SourceLocation location = parseLocation();
   std::string text = parseMessageText();
-  parseLF();
+  consume(Token::LF);
 
-  return TestMessage{};
+  std::vector<std::string> texts;
+  texts.emplace_back(text);
+
+  return Message{type, location, texts};
 }
 
-void TestParser::parseCommentToken() {
-  if (currentChar() == '#')
-    nextChar();
-
-  skipWhiteSpaces();
+void Parser::consume(Token t) {
+  if (currentToken() == t) {
+    nextToken();
+  } else {
+    logFatal("Expected token {}, but received {} instead.", t, currentToken());
+  }
 }
 
-AnalysisType TestParser::parseAnalysisType() {
-  const size_t startColumn = currentOffset_;
-  const std::string stringValue = parseIdent();
+AnalysisType Parser::parseAnalysisType() {
+  const std::string stringValue = consumeIdent();
 
   if (stringValue == "TokenError")
     return AnalysisType::TokenError;
@@ -169,37 +234,15 @@ AnalysisType TestParser::parseAnalysisType() {
   if (stringValue == "LinkError")
     return AnalysisType::LinkError;
 
-  const size_t endColumn = currentOffset_;
-
   // XXX prints error message, dump currentLine() and underlines column from given start to end
-  reportErrorAt(currentLine(), startColumn, endColumn, "Unknown analysis-type");
+  reportError("Unknown analysis-type");
 }
 
-class Tester : public flow::Runtime {
- public:
-  Tester();
-
-  bool testFile(const std::string& filename);
-  bool testDirectory(const std::string& path);
-
- private:
-  bool import(const std::string& name,
-              const std::string& path,
-              std::vector<flow::NativeCallback*>* builtins) override;
-  void reportError(const std::string& msg);
-
-  // handlers
-  void flow_handler_true(flow::Params& args);
-  void flow_handler(flow::Params& args);
-
-  // functions
-  void flow_sum(flow::Params& args);
-  void flow_assert(flow::Params& args);
-
- private:
-  int errorCount_ = 0;
-};
-
+std::string Parser::consumeIdent() {
+  return "";
+}
+// }}}
+// {{{ Tester
 Tester::Tester() {
   registerHandler("handler.true")
       .bind(&Tester::flow_handler_true, this);
@@ -299,9 +342,12 @@ bool Tester::testFile(const std::string& filename) {
 
   return errorCount_ == 0;
 }
+// }}}
+
+} // namespace flowtest
 
 int main(int argc, const char* argv[]) {
-  Tester t;
+  flowtest::Tester t;
   bool success = t.testDirectory(argv[1]);
 
   return success ? EXIT_SUCCESS : EXIT_FAILURE;
