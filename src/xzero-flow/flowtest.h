@@ -61,7 +61,9 @@ struct ParseResult {
   MessageList messages;
 };
 
-struct LexerError {
+class LexerError : public std::runtime_error {
+ public:
+  explicit LexerError(const std::string& msg) : std::runtime_error{msg} {}
 };
 
 class Lexer {
@@ -72,6 +74,7 @@ class Lexer {
   size_t currentOffset() const noexcept { return currentPos_.offset; }
   int currentChar() const { return !eof() ? source_[currentOffset()] : -1; }
 
+  bool peekSequenceMatch(const std::string& sequence) const;
   int peekChar(off_t i = 1) const {
     return currentOffset() + i < source_.size()
         ? source_[currentOffset() + i]
@@ -90,6 +93,8 @@ class Lexer {
   std::string source_;
   Token currentToken_;
   xzero::flow::FilePos currentPos_;
+  int numberValue_;
+  std::string stringValue_;
 };
 
 /**
