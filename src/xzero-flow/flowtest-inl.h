@@ -5,9 +5,17 @@ Lexer::Lexer(const std::string& filename, const std::string& contents)
     : filename_{filename},
       source_{contents},
       currentToken_{Token::Eof},
-      currentPos_{} {
+      currentPos_{},
+      numberValue_{0},
+      stringValue_{} {
   nextChar();
-  nextToken();
+  size_t i = source_.find("\n# ----\n");
+  if (i == std::string::npos) {
+    currentToken_ = Token::InitializerMark;
+    nextChar(i + 8);
+  } else {
+    nextToken();
+  }
 }
 
 // ----------------------------------------------------------------------------
@@ -21,10 +29,25 @@ int Lexer::nextChar(off_t i) {
   return currentChar();
 }
 
+bool Lexer::peekSequenceMatch(const std::string& sequence) const {
+  if (currentOffset() + sequence.size() > source_.size())
+    return false;
+
+  for (size_t i = 0; i < sequence.size(); ++i)
+    if (source_[currentOffset() + i] != sequence[i])
+      return false;
+
+  return true;
+}
+
 Token Lexer::nextToken() {
   skipSpace();
   switch (currentChar()) {
     case '#':
+      if (peekSequenceMatch("# ----\n")) {
+        nextChar(7);
+        return currentToken_ = Token::InitializerMark;
+      }
       nextChar();
       return currentToken_ = Token::Begin;
     case '.':
@@ -45,14 +68,6 @@ Token Lexer::nextToken() {
     case '\n':
       nextChar();
       return currentToken_ = Token::LF;
-    case '-':
-      if (peekChar(1) == '-' &&
-          peekChar(2) == '-' &&
-          peekChar(3) == '-') {
-        nextChar(4);
-        return currentToken_ = Token::InitializerMark;
-      }
-      break;
     default:
       if (std::isdigit(currentChar())) {
         return currentToken_ = parseNumber();
@@ -61,7 +76,7 @@ Token Lexer::nextToken() {
         return currentToken_ = parseIdent();
       }
   }
-  reportError("Unexpected character {} during tokenization.", (char)currentChar());
+  throw LexerError{fmt::format("Unexpected character {} during tokenization.", (char)currentChar())};
 }
 
 Token Lexer::parseNumber() {
