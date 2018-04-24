@@ -60,7 +60,7 @@ namespace fs = std::experimental::filesystem;
 namespace flowtest {
 
 // {{{ Parser
-Parser::Parser(const std::string& filename, std::string& contents)
+Parser::Parser(const std::string& filename, const std::string& contents)
     : filename_{filename},
       source_{contents},
       currentToken_{Token::Eof},

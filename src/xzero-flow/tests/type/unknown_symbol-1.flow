@@ -1,0 +1,5 @@
+handler main {
+  f();
+}
+# ---
+# TypeError: Unknown symbol 'f'.

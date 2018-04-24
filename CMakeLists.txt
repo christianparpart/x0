@@ -437,6 +437,7 @@ if(ENABLE_TESTS)
 set(xzero_test_SRC
 		src/xzero-flow/FlowLexer-test.cc
 		src/xzero-flow/FlowParser-test.cc
+    src/xzero-flow/flowtest-test.cc
 		src/xzero/Base64-test.cc
 		src/xzero/Buffer-test.cc
 		src/xzero/Callback-test.cc

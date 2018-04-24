@@ -61,13 +61,44 @@ struct ParseResult {
   MessageList messages;
 };
 
+struct LexerError {
+};
+
+class Lexer {
+ public:
+  Lexer(const std::string& filename, const std::string& contents); 
+
+  bool eof() const noexcept { return currentOffset() == source_.size(); }
+  size_t currentOffset() const noexcept { return currentPos_.offset; }
+  int currentChar() const { return !eof() ? source_[currentOffset()] : -1; }
+
+  int peekChar(off_t i = 1) const {
+    return currentOffset() + i < source_.size()
+        ? source_[currentOffset() + i]
+        : -1;
+  }
+
+  int nextChar(off_t i = 1);
+  Token currentToken() const noexcept { return currentToken_; }
+  Token nextToken();
+  void skipSpace();
+  Token parseNumber();
+  Token parseIdent();
+
+ private:
+  std::string filename_;
+  std::string source_;
+  Token currentToken_;
+  xzero::flow::FilePos currentPos_;
+};
+
 /**
  * Parses the input @p contents and splits it into a flow program and a vector
  * of analysis Message.
  */
 class Parser {
  public:
-  Parser(const std::string& filename, std::string& contents);
+  Parser(const std::string& filename, const std::string& contents);
 
   Result<ParseResult> parse();
 
@@ -214,3 +245,5 @@ namespace fmt {
     }
   };
 }
+
+#include <xzero-flow/flowtest-inl.h>
