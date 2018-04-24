@@ -1,0 +1,7 @@
+# vim:syntax=x0dconf
+main {
+  var i = sum(12, 34);
+}
+
+# ----
+# Warning: Unused result from call to sum(II)I..
