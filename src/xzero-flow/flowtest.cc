@@ -60,11 +60,8 @@ namespace fs = std::experimental::filesystem;
 namespace flowtest {
 
 // {{{ Parser
-Parser::Parser(const std::string& filename, const std::string& contents)
-    : filename_{filename},
-      source_{contents},
-      currentToken_{Token::Eof},
-      currentPos_{} {
+Parser::Parser(const std::string& filename, const std::string& source)
+    : lexer_{filename, source} {
 }
 
 // ----------------------------------------------------------------------------
@@ -72,37 +69,12 @@ Parser::Parser(const std::string& filename, const std::string& contents)
 
 Result<ParseResult> Parser::parse() {
   ParseResult pr;
-  pr.program = parseUntilInitializer();
+  pr.program = lexer_.getPrefixText();
 
-  while (!eof())
+  while (!lexer_.eof())
     pr.messages.push_back(parseMessage());
 
   return Success(std::move(pr));
-}
-
-std::string Parser::parseUntilInitializer() {
-  for (;;) {
-    size_t lastLineOffset = currentOffset();
-    std::string line = parseLine();
-    if (line.empty() || line == "# ----") {
-      return source_.substr(0, lastLineOffset);
-    }
-  }
-}
-
-std::string Parser::parseLine() {
-  constexpr char LF = '\n';
-  const size_t startOfLine = currentOffset();
-
-  while (currentChar() != LF)
-    nextChar();
-
-  std::string line = source_.substr(startOfLine, currentOffset() - startOfLine);
-
-  if (currentChar() == LF)
-    nextChar();
-
-  return line;
 }
 
 Message Parser::parseMessage() {
@@ -114,12 +86,12 @@ Message Parser::parseMessage() {
   // Column        ::= NUMBER
   // Line          ::= NUMBER
 
-  consume(Token::Begin);
+  lexer_.consume(Token::Begin);
   AnalysisType type = parseAnalysisType();
-  consume(Token::Colon);
+  lexer_.consume(Token::Colon);
   SourceLocation location = parseLocation();
   std::string text = parseMessageText();
-  consume(Token::LF);
+  lexer_.consume(Token::LF);
 
   std::vector<std::string> texts;
   texts.emplace_back(text);
@@ -127,38 +99,26 @@ Message Parser::parseMessage() {
   return Message{type, location, texts};
 }
 
-void Parser::consume(Token t) {
-  if (currentToken() == t) {
-    nextToken();
-  } else {
-    logFatal("Expected token {}, but received {} instead.", t, currentToken());
-  }
-}
-
 AnalysisType Parser::parseAnalysisType() {
-  const std::string stringValue = consumeIdent();
-
-  if (stringValue == "TokenError")
-    return AnalysisType::TokenError;
-
-  if (stringValue == "SyntaxError")
-    return AnalysisType::SyntaxError;
-
-  if (stringValue == "TypeError")
-    return AnalysisType::TypeError;
-
-  if (stringValue == "Warning")
-    return AnalysisType::Warning;
-
-  if (stringValue == "LinkError")
-    return AnalysisType::LinkError;
-
-  // XXX prints error message, dump currentLine() and underlines column from given start to end
-  reportError("Unknown analysis-type");
-}
-
-std::string Parser::consumeIdent() {
-  return "";
+  switch (lexer_.currentToken()) {
+    case Token::TokenError:
+      lexer_.nextToken();
+      return AnalysisType::TokenError;
+    case Token::SyntaxError:
+      lexer_.nextToken();
+      return AnalysisType::SyntaxError;
+    case Token::TypeError:
+      lexer_.nextToken();
+      return AnalysisType::TypeError;
+    case Token::Warning:
+      lexer_.nextToken();
+      return AnalysisType::Warning;
+    case Token::LinkError:
+      lexer_.nextToken();
+      return AnalysisType::LinkError;
+    default:
+      throw SyntaxError{"Unexpected token. Expected AnalysisType instead."};
+  }
 }
 // }}}
 // {{{ Tester

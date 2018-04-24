@@ -21,9 +21,8 @@ TEST(FlowTest, lexer_empty2) {
 
 TEST(FlowTest, lexer_empty3) {
   flowtest::Lexer x{"input.flow",
-      R"(handler main {}
-      # ----
-      )"};
+                    "handler main {}\n"
+                    "# ----\n"};
 
   ASSERT_EQ(Token::InitializerMark, x.currentToken());
   ASSERT_EQ(Token::Eof, x.nextToken());
