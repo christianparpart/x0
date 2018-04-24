@@ -66,9 +66,16 @@ class LexerError : public std::runtime_error {
   explicit LexerError(const std::string& msg) : std::runtime_error{msg} {}
 };
 
+class SyntaxError : public std::runtime_error {
+ public:
+  explicit SyntaxError(const std::string& msg) : std::runtime_error{msg} {}
+};
+
 class Lexer {
  public:
   Lexer(const std::string& filename, const std::string& contents); 
+
+  std::string getPrefixText() const { return source_.substr(0, startOffset_); }
 
   bool eof() const noexcept { return currentOffset() == source_.size(); }
   size_t currentOffset() const noexcept { return currentPos_.offset; }
@@ -88,9 +95,12 @@ class Lexer {
   Token parseNumber();
   Token parseIdent();
 
+  void consume(Token t);
+
  private:
   std::string filename_;
   std::string source_;
+  size_t startOffset_;
   Token currentToken_;
   xzero::flow::FilePos currentPos_;
   int numberValue_;
@@ -108,23 +118,6 @@ class Parser {
   Result<ParseResult> parse();
 
  private:
-  // lexer
-  bool eof() const noexcept { return currentOffset() == source_.size(); }
-  size_t currentOffset() const noexcept { return currentPos_.offset; }
-  int currentChar() const { return !eof() ? source_[currentOffset()] : -1; }
-  int peekChar(off_t i = 1) const {
-    return currentOffset() + i < source_.size()
-        ? source_[currentOffset() + i]
-        : -1;
-  }
-  int nextChar(off_t i = 1);
-  Token currentToken() const noexcept { return currentToken_; }
-  Token nextToken();
-  void skipSpace();
-  Token parseNumber();
-  Token parseIdent();
-
-  // syntax
   std::string parseUntilInitializer();
   std::string parseLine();
   Message parseMessage();
@@ -142,10 +135,7 @@ class Parser {
   }
 
  private:
-  std::string filename_;
-  std::string source_;
-  Token currentToken_;
-  xzero::flow::FilePos currentPos_;
+  Lexer lexer_;
 };
 
 class Tester : public xzero::flow::Runtime {

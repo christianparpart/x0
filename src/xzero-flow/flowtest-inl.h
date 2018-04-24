@@ -4,17 +4,20 @@ namespace flowtest {
 Lexer::Lexer(const std::string& filename, const std::string& contents)
     : filename_{filename},
       source_{contents},
+      startOffset_{0},
       currentToken_{Token::Eof},
       currentPos_{},
       numberValue_{0},
       stringValue_{} {
   nextChar();
   size_t i = source_.find("\n# ----\n");
-  if (i == std::string::npos) {
+  if (i != std::string::npos) {
     currentToken_ = Token::InitializerMark;
     nextChar(i + 8);
+    startOffset_ = i + 1;
   } else {
-    nextToken();
+    startOffset_ = source_.size();
+    currentToken_ = Token::Eof;
   }
 }
 
@@ -43,11 +46,13 @@ bool Lexer::peekSequenceMatch(const std::string& sequence) const {
 Token Lexer::nextToken() {
   skipSpace();
   switch (currentChar()) {
+    case -1:
+      return currentToken_ = Token::Eof;
     case '#':
-      if (peekSequenceMatch("# ----\n")) {
-        nextChar(7);
-        return currentToken_ = Token::InitializerMark;
-      }
+      // if (peekSequenceMatch("# ----\n")) {
+      //   nextChar(7);
+      //   return currentToken_ = Token::InitializerMark;
+      // }
       nextChar();
       return currentToken_ = Token::Begin;
     case '.':
@@ -76,7 +81,15 @@ Token Lexer::nextToken() {
         return currentToken_ = parseIdent();
       }
   }
-  throw LexerError{fmt::format("Unexpected character {} during tokenization.", (char)currentChar())};
+  throw LexerError{fmt::format("Unexpected character {} ({:x}) during tokenization.",
+                               (char) currentChar(), currentChar())};
+}
+
+Token Lexer::parseIdent() {
+  while (std::isalpha(currentChar())) {
+    stringValue_ += static_cast<char>(currentChar());
+    nextChar();
+  }
 }
 
 Token Lexer::parseNumber() {
@@ -100,6 +113,12 @@ void Lexer::skipSpace() {
       default:
         return;
     }
+  }
+}
+
+void Lexer::consume(Token t) {
+  if (currentToken() != t) {
+    throw LexerError{fmt::format("Unexpected token {}. Expected {} instead.", currentToken(), t)};
   }
 }
 
