@@ -1,5 +1,14 @@
+#include <xzero-flow/SourceLocation.h>
+#include <xzero/Result.h>
 
 namespace flowtest {
+
+// ----------------------------------------------------------------------------
+// lexic
+
+Lexer::Lexer()
+    : Lexer("", "") {
+}
 
 Lexer::Lexer(const std::string& filename, const std::string& contents)
     : filename_{filename},
@@ -9,23 +18,19 @@ Lexer::Lexer(const std::string& filename, const std::string& contents)
       currentPos_{},
       numberValue_{0},
       stringValue_{} {
-  nextChar();
   size_t i = source_.find("\n# ----\n");
   if (i != std::string::npos) {
-    currentToken_ = Token::InitializerMark;
     nextChar(i + 8);
     startOffset_ = i + 1;
+    currentToken_ = Token::InitializerMark;
   } else {
     startOffset_ = source_.size();
     currentToken_ = Token::Eof;
   }
 }
 
-// ----------------------------------------------------------------------------
-// lexic
-
 int Lexer::nextChar(off_t i) {
-  while (i > 0 && !eof()) {
+  while (i > 0 && !eof_()) {
     currentPos_.advance(currentChar());
     i--;
   }
@@ -74,6 +79,9 @@ Token Lexer::nextToken() {
       nextChar();
       return currentToken_ = Token::LF;
     default:
+      if (currentToken_ == Token::Colon) {
+        return currentToken_ = parseMessageText();
+      }
       if (std::isdigit(currentChar())) {
         return currentToken_ = parseNumber();
       }
@@ -82,14 +90,37 @@ Token Lexer::nextToken() {
       }
   }
   throw LexerError{fmt::format("Unexpected character {} ({:x}) during tokenization.",
-                               (char) currentChar(), currentChar())};
+      currentChar() ? (char) currentChar() : '?', currentChar())};
 }
 
 Token Lexer::parseIdent() {
+  stringValue_.clear();
   while (std::isalpha(currentChar())) {
     stringValue_ += static_cast<char>(currentChar());
     nextChar();
   }
+  if (stringValue_ == "TokenError")
+    return Token::TokenError;
+  if (stringValue_ == "SyntaxError")
+    return Token::SyntaxError;
+  if (stringValue_ == "TypeError")
+    return Token::TypeError;
+  if (stringValue_ == "Warning")
+    return Token::Warning;
+  if (stringValue_ == "LinkError")
+    return Token::LinkError;
+
+  throw LexerError{fmt::format("Unexpected identifier '{}' during tokenization.",
+                               stringValue_)};
+}
+
+Token Lexer::parseMessageText() {
+  stringValue_.clear();
+  while (!eof_() && currentChar() != '\n') {
+    stringValue_ += static_cast<char>(currentChar());
+    nextChar();
+  }
+  return Token::MessageText;
 }
 
 Token Lexer::parseNumber() {
@@ -117,9 +148,106 @@ void Lexer::skipSpace() {
 }
 
 void Lexer::consume(Token t) {
-  if (currentToken() != t) {
+  if (currentToken() != t)
     throw LexerError{fmt::format("Unexpected token {}. Expected {} instead.", currentToken(), t)};
+
+  nextToken();
+}
+
+std::string Lexer::consumeText(Token t) {
+  std::string result = stringValue();
+  consume(t);
+  return result;
+}
+
+std::string join(const std::initializer_list<Token>& tokens) {
+  std::string s;
+  for (Token t: tokens) {
+    if (!s.empty())
+      s += ", ";
+    s += fmt::format("{}", t);
   }
+  return s;
+}
+
+void Lexer::consumeOneOf(std::initializer_list<Token>&& tokens) {
+  if (std::find(tokens.begin(), tokens.end(), currentToken()) == tokens.end())
+    throw LexerError{fmt::format("Unexpected token {}. Expected on of {} instead.",
+                                 currentToken(), join(tokens))};
+
+  nextToken();
+}
+
+// ----------------------------------------------------------------------------
+// parser
+
+
+Parser::Parser(const std::string& filename, const std::string& source)
+    : lexer_{filename, source} {
+}
+
+Result<ParseResult> Parser::parse() {
+  lexer_.consume(Token::InitializerMark);
+  ParseResult pr;
+  pr.program = lexer_.getPrefixText();
+
+  while (!lexer_.eof())
+    pr.messages.push_back(parseMessage());
+
+  return Success(std::move(pr));
+}
+
+Message Parser::parseMessage() {
+  // Message   ::= '#' AnalysisType ':' Location MessageText (LF | EOF)
+  // MessageText   ::= TEXT (LF INDENT TEXT)*
+  // AnalysisType  ::= 'TokenError' | 'SyntaxError' | 'TypeError' | 'Warning' | 'LinkError'
+  // Location      ::= '[' FilePos ['..' FilePos] ']'
+  // FilePos       ::= Line ':' Column
+  // Column        ::= NUMBER
+  // Line          ::= NUMBER
+
+  lexer_.consume(Token::Begin);
+  AnalysisType type = parseAnalysisType();
+  lexer_.consume(Token::Colon);
+  xzero::flow::SourceLocation location = parseLocation();
+  std::string text = lexer_.consumeText(Token::MessageText);
+  lexer_.consumeOneOf({Token::LF, Token::Eof});
+
+  std::vector<std::string> texts;
+  texts.emplace_back(text);
+
+  return Message{type, location, texts};
+}
+
+AnalysisType Parser::parseAnalysisType() {
+  switch (lexer_.currentToken()) {
+    case Token::TokenError:
+      lexer_.nextToken();
+      return AnalysisType::TokenError;
+    case Token::SyntaxError:
+      lexer_.nextToken();
+      return AnalysisType::SyntaxError;
+    case Token::TypeError:
+      lexer_.nextToken();
+      return AnalysisType::TypeError;
+    case Token::Warning:
+      lexer_.nextToken();
+      return AnalysisType::Warning;
+    case Token::LinkError:
+      lexer_.nextToken();
+      return AnalysisType::LinkError;
+    default:
+      throw SyntaxError{"Unexpected token. Expected AnalysisType instead."};
+  }
+}
+
+xzero::flow::SourceLocation Parser::parseLocation() { // TODO
+  // Location      ::= '[' FilePos ['..' FilePos] ']'
+  // FilePos       ::= Line ':' Column
+  // Column        ::= NUMBER
+  // Line          ::= NUMBER
+
+  return xzero::flow::SourceLocation();
 }
 
 } // namespace flowtest

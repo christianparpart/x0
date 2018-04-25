@@ -59,68 +59,6 @@ namespace fs = std::experimental::filesystem;
 
 namespace flowtest {
 
-// {{{ Parser
-Parser::Parser(const std::string& filename, const std::string& source)
-    : lexer_{filename, source} {
-}
-
-// ----------------------------------------------------------------------------
-// syntax
-
-Result<ParseResult> Parser::parse() {
-  ParseResult pr;
-  pr.program = lexer_.getPrefixText();
-
-  while (!lexer_.eof())
-    pr.messages.push_back(parseMessage());
-
-  return Success(std::move(pr));
-}
-
-Message Parser::parseMessage() {
-  // Message   ::= '#' AnalysisType ':' Location MessageText LF
-  // MessageText   ::= TEXT (LF INDENT TEXT)*
-  // AnalysisType  ::= 'TokenError' | 'SyntaxError' | 'TypeError' | 'Warning' | 'LinkError'
-  // Location      ::= '[' FilePos ['..' FilePos] ']'
-  // FilePos       ::= Line ':' Column
-  // Column        ::= NUMBER
-  // Line          ::= NUMBER
-
-  lexer_.consume(Token::Begin);
-  AnalysisType type = parseAnalysisType();
-  lexer_.consume(Token::Colon);
-  SourceLocation location = parseLocation();
-  std::string text = parseMessageText();
-  lexer_.consume(Token::LF);
-
-  std::vector<std::string> texts;
-  texts.emplace_back(text);
-
-  return Message{type, location, texts};
-}
-
-AnalysisType Parser::parseAnalysisType() {
-  switch (lexer_.currentToken()) {
-    case Token::TokenError:
-      lexer_.nextToken();
-      return AnalysisType::TokenError;
-    case Token::SyntaxError:
-      lexer_.nextToken();
-      return AnalysisType::SyntaxError;
-    case Token::TypeError:
-      lexer_.nextToken();
-      return AnalysisType::TypeError;
-    case Token::Warning:
-      lexer_.nextToken();
-      return AnalysisType::Warning;
-    case Token::LinkError:
-      lexer_.nextToken();
-      return AnalysisType::LinkError;
-    default:
-      throw SyntaxError{"Unexpected token. Expected AnalysisType instead."};
-  }
-}
-// }}}
 // {{{ Tester
 Tester::Tester() {
   registerHandler("handler.true")
