@@ -13,6 +13,7 @@
 #include <xzero/Result.h>
 
 #include <cstdint>
+#include <initializer_list>
 #include <string>
 #include <system_error>
 #include <vector>
@@ -73,13 +74,30 @@ class SyntaxError : public std::runtime_error {
 
 class Lexer {
  public:
+  Lexer();
   Lexer(const std::string& filename, const std::string& contents); 
 
+  const std::string& source() const noexcept { return source_; }
   std::string getPrefixText() const { return source_.substr(0, startOffset_); }
 
-  bool eof() const noexcept { return currentOffset() == source_.size(); }
+  Token currentToken() const noexcept { return currentToken_; }
+  int numberValue() const noexcept { return numberValue_; }
+  const std::string& stringValue() const noexcept { return stringValue_; }
+
+  Token nextToken();
+  void consume(Token t);
+  void consumeOneOf(std::initializer_list<Token>&& tokens);
+  std::string consumeText(Token t);
+
+  Lexer& operator++() { nextToken(); }
+  bool operator==(const Lexer& other) const noexcept { return currentOffset() == other.currentOffset(); }
+  bool operator!=(const Lexer& other) const noexcept { return !(*this == other); }
+  bool eof() const noexcept { return currentToken() == Token::Eof; }
+
+ private:
+  bool eof_() const noexcept { return currentOffset() == source_.size(); }
   size_t currentOffset() const noexcept { return currentPos_.offset; }
-  int currentChar() const { return !eof() ? source_[currentOffset()] : -1; }
+  int currentChar() const { return !eof_() ? source_[currentOffset()] : -1; }
 
   bool peekSequenceMatch(const std::string& sequence) const;
   int peekChar(off_t i = 1) const {
@@ -89,13 +107,10 @@ class Lexer {
   }
 
   int nextChar(off_t i = 1);
-  Token currentToken() const noexcept { return currentToken_; }
-  Token nextToken();
   void skipSpace();
   Token parseNumber();
   Token parseIdent();
-
-  void consume(Token t);
+  Token parseMessageText();
 
  private:
   std::string filename_;
@@ -123,9 +138,6 @@ class Parser {
   Message parseMessage();
   AnalysisType parseAnalysisType();
   xzero::flow::SourceLocation parseLocation();
-  std::string parseMessageText();
-  void consume(Token t);
-  std::string consumeIdent();
 
   void reportError(const std::string& msg);
 
@@ -209,7 +221,7 @@ namespace fmt {
         case Token::Begin:
           return format_to(ctx.begin(), "'#'");
         case Token::InitializerMark:
-          return format_to(ctx.begin(), "'----'");
+          return format_to(ctx.begin(), "'# ----'");
         case Token::LF:
           return format_to(ctx.begin(), "<LF>");
         case Token::TokenError:
