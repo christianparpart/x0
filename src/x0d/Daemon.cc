@@ -185,17 +185,18 @@ std::unique_ptr<flow::Program> Daemon::loadConfigStream(
     std::unique_ptr<std::istream>&& is,
     const std::string& fakeFilename,
     bool printAST, bool printIR, bool printTC) {
+  flow::diagnostics::Report report;
   flow::FlowParser parser(
+      &report,
       this,
       std::bind(&Daemon::import, this, std::placeholders::_1,
                                             std::placeholders::_2,
-                                            std::placeholders::_3),
-      [](const std::string& msg) {
-        logError("Configuration file error. {}", msg);
-      });
+                                            std::placeholders::_3));
 
   parser.openStream(std::move(is), fakeFilename);
   std::unique_ptr<flow::UnitSym> unit = parser.parse();
+
+  report.log();
 
   validateConfig(unit.get());
 

@@ -9,9 +9,9 @@
 
 #include <xzero/defines.h>
 #include <string>
+#include <fmt/format.h>
 
-namespace xzero {
-namespace flow {
+namespace xzero::flow {
 
 //! \addtogroup Flow
 //@{
@@ -83,5 +83,30 @@ inline SourceLocation operator-(const SourceLocation& end,
 
 //!@}
 
-}  // namespace flow
-}  // namespace xzero
+} // namespace xzero::flow
+
+namespace fmt {
+  template<>
+  struct formatter<xzero::flow::FilePos> {
+    template <typename ParseContext>
+    constexpr auto parse(ParseContext &ctx) { return ctx.begin(); }
+
+    template <typename FormatContext>
+    constexpr auto format(const xzero::flow::FilePos& v, FormatContext &ctx) {
+      return format_to(ctx.begin(), "{0:0>4d}:{1:0>3d}", v.line, v.column);
+    }
+  };
+}
+
+namespace fmt {
+  template<>
+  struct formatter<xzero::flow::SourceLocation> {
+    template <typename ParseContext>
+    constexpr auto parse(ParseContext &ctx) { return ctx.begin(); }
+
+    template <typename FormatContext>
+    constexpr auto format(const xzero::flow::SourceLocation& v, FormatContext &ctx) {
+      return format_to(ctx.begin(), "{}:{}", v.filename, v.begin);
+    }
+  };
+}

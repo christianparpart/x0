@@ -9,6 +9,7 @@
 
 #include <xzero-flow/SourceLocation.h>
 
+#include <algorithm>
 #include <fmt/format.h>
 #include <string>
 #include <system_error>
@@ -27,7 +28,9 @@ enum class Type {
 struct Message {
   Type type;
   SourceLocation sourceLocation;
-  std::vector<std::string> texts;
+  std::string text;
+
+  Message(Type ty, SourceLocation sl, std::string t) : type{ty}, sourceLocation{sl}, text{t} {}
 
   bool operator==(const Message& other) const noexcept;
   bool operator!=(const Message& other) const noexcept { return !(*this == other); }
@@ -35,7 +38,51 @@ struct Message {
 
 using MessageList = std::vector<Message>;
 
-class DiagnosticsError : public std:runtime_error {
+class Report {
+ public:
+  template<typename... Args> void tokenError(const SourceLocation& sloc, const std::string& f, Args... args) {
+    messages_.emplace_back(Type::TokenError, sloc, fmt::format(f, std::move(args)...));
+  }
+
+  template<typename... Args> void syntaxError(const SourceLocation& sloc, const std::string& f, Args... args) {
+    messages_.emplace_back(Type::SyntaxError, sloc, fmt::format(f, std::move(args)...));
+  }
+
+  template<typename... Args> void typeError(const SourceLocation& sloc, const std::string& f, Args... args) {
+    messages_.emplace_back(Type::TypeError, sloc, fmt::format(f, std::move(args)...));
+  }
+
+  template<typename... Args> void warning(const SourceLocation& sloc, const std::string& f, Args... args) {
+    messages_.emplace_back(Type::Warning, sloc, fmt::format(f, std::move(args)...));
+  }
+
+  template<typename... Args> void linkError(const SourceLocation& sloc, const std::string& f, Args... args) {
+    messages_.emplace_back(Type::LinkError, sloc, fmt::format(f, std::move(args)...));
+  }
+
+  void log() const;
+
+  const MessageList& messages() const noexcept { return messages_; }
+
+  bool operator==(const Report& other) const noexcept;
+  bool operator!=(const Report& other) const noexcept { return !(*this == other); }
+
+  using iterator = MessageList::iterator;
+  using const_iterator = MessageList::const_iterator;
+  iterator begin() noexcept { return messages_.begin(); }
+  iterator end() noexcept { return messages_.end(); }
+  const_iterator begin() const noexcept { return messages_.begin(); }
+  const_iterator end() const noexcept { return messages_.end(); }
+
+  size_t errorCount() const noexcept {
+    return std::count_if(begin(), end(), [](const Message& m) { return m.type != Type::Warning; });
+  }
+
+ private:
+  MessageList messages_;
+};
+
+class DiagnosticsError : public std::runtime_error {
  public:
   explicit DiagnosticsError(SourceLocation sloc, const std::string& msg) : std::runtime_error{msg} {}
 
@@ -43,7 +90,7 @@ class DiagnosticsError : public std:runtime_error {
 
  private:
   SourceLocation sloc_;
-}
+};
 
 class LexerError : public DiagnosticsError {
  public:

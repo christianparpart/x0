@@ -345,6 +345,7 @@ install(TARGETS XzeroTest DESTINATION ${CMAKE_INSTALL_PREFIX}/lib)
 # {{{ libXzeroFlow
 set(XzeroFlow_SRC src/xzero-flow/AST.cc
                   src/xzero-flow/ASTPrinter.cc
+                  src/xzero-flow/Diagnostics.cc
                   src/xzero-flow/FlowCallVisitor.cc
                   src/xzero-flow/FlowLexer.cc
                   src/xzero-flow/FlowParser.cc
