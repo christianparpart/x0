@@ -147,10 +147,11 @@ bool Tester::compileFile(const std::string& filename) {
   fmt::print("testing: {}\n", filename);
 
   constexpr bool optimize = true;
+  flow::diagnostics::Report report;
 
-  flow::FlowParser parser(this,
-                          [this](auto x, auto y, auto z) { return import(x, y, z); },
-                          [this](const std::string& msg) { reportError(msg); });
+  flow::FlowParser parser(&report,
+                          this,
+                          [this](auto x, auto y, auto z) { return import(x, y, z); });
   parser.openStream(std::make_unique<std::ifstream>(filename), filename);
   std::unique_ptr<flow::UnitSym> unit = parser.parse();
 

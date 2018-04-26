@@ -77,14 +77,14 @@ class FlowParser::Scope {
   for (FlowParser::Scope _(this, (SCOPED_SYMBOL)); _.flip();)
 // }}}
 
-FlowParser::FlowParser(Runtime* runtime,
-                       ImportHandler importHandler,
-                       ErrorHandler errorHandler)
-    : lexer_(std::make_unique<FlowLexer>()),
-      scopeStack_(nullptr),
-      runtime_(runtime),
-      errorHandler(errorHandler),
-      importHandler(importHandler) {
+FlowParser::FlowParser(diagnostics::Report* report,
+                       Runtime* runtime,
+                       ImportHandler importHandler)
+    : report_{*report},
+      lexer_{std::make_unique<FlowLexer>()},
+      scopeStack_{nullptr},
+      runtime_{runtime},
+      importHandler_{importHandler} {
   // enterScope("global");
 }
 
@@ -296,33 +296,14 @@ Opcode makeOperator(FlowToken target, Expr* source) {
   return b->second;
 }
 // }}}
-// {{{ error mgnt
-void FlowParser::reportUnexpectedToken() {
-  reportError("Unexpected token '%s'", token().c_str());
-}
-
-void FlowParser::reportWarning(const std::string& message) {
-  char buf[1024];
-  snprintf(buf, sizeof(buf), "[%04zu:%02zu] %s", lexer_->line(),
-           lexer_->column(), message.c_str());
-  logWarning(buf);
-}
-
-void FlowParser::reportError(const std::string& message) {
-  if (errorHandler) {
-    errorHandler(fmt::format("[{:0>4}:{:0>2}] {}", lexer_->line(), lexer_->column(), message));
-  } else {
-    fmt::print("[{:0>4}:{:0>2}] {}\n", lexer_->line(), lexer_->column(), message);
-  }
-}
-// }}}
 // {{{ lexing
 FlowToken FlowParser::nextToken() const { return lexer_->nextToken(); }
 
 bool FlowParser::expect(FlowToken value) {
   if (token() != value) {
-    reportError("Unexpected token '%s' (expected: '%s')", token().c_str(),
-                value.c_str());
+    report_.syntaxError(lastLocation(),
+                        "Unexpected token '{}' (expected: '{}')",
+                        token(), value);
     return false;
   }
   return true;
@@ -469,7 +450,8 @@ bool FlowParser::importDecl(UnitSym* unit) {
   for (auto i = names.begin(), e = names.end(); i != e; ++i) {
     std::vector<NativeCallback*> builtins;
 
-    if (importHandler && !importHandler(*i, path, &builtins)) return false;
+    if (importHandler_ && !importHandler_(*i, path, &builtins))
+      return false;
 
     unit->import(*i, path);
 
@@ -502,7 +484,7 @@ bool FlowParser::importOne(std::list<std::string>& names) {
       if (!consume(FlowToken::RndClose)) return false;
       break;
     default:
-      reportError("Syntax error in import declaration.");
+      report_.syntaxError(lastLocation(), "Syntax error in import declaration. Unexpected token {}.", token());
       return false;
   }
   return true;
@@ -535,7 +517,7 @@ std::unique_ptr<HandlerSym> FlowParser::handlerDecl(bool keyword) {
   if (HandlerSym* handler = currentScope()->lookup<HandlerSym>(name, Lookup::Self)) {
     if (handler->body() != nullptr) {
       // TODO say where we found the other hand, compared to this one.
-      reportError("Redeclaring handler \"%s\"", handler->name().c_str());
+      report_.typeError(lastLocation(), "Redeclaring handler \"{}\"", handler->name());
       return nullptr;
     }
     handler->implement(std::move(st), std::move(body));
@@ -568,9 +550,10 @@ std::unique_ptr<Expr> FlowParser::logicExpr() {
 
         Opcode opc = makeOperator(binop, lhs.get(), rhs.get());
         if (opc == Opcode::EXIT) {
-          reportError("Type error in binary expression (%s %s %s).",
-                      tos(lhs->getType()).c_str(), binop.c_str(),
-                      tos(rhs->getType()).c_str());
+          report_.typeError(
+              lastLocation(),
+              "Incompatible binary expression operands ({} {} {}).",
+              lhs->getType(), binop, rhs->getType());
           return nullptr;
         }
 
@@ -597,8 +580,9 @@ std::unique_ptr<Expr> FlowParser::notExpr() {
 
   Opcode op = makeOperator(FlowToken::Not, subExpr.get());
   if (op == Opcode::EXIT) {
-    reportError(
-        "Type cast error in unary 'not'-operator. Invalid source type <%s>.",
+    report_.typeError(
+        lastLocation(),
+        "Type cast error in unary 'not'-operator. Invalid source type <{}>.",
         subExpr->getType());
     return nullptr;
   }
@@ -630,8 +614,9 @@ std::unique_ptr<Expr> FlowParser::relExpr() {
 
       Opcode opc = makeOperator(binop, lhs.get(), rhs.get());
       if (opc == Opcode::EXIT) {
-        reportError("Type error in binary expression (%s versus %s).",
-                    tos(lhs->getType()).c_str(), tos(rhs->getType()).c_str());
+        report_.typeError(lastLocation(),
+                          "Incompatible binary expression ({} in {}).",
+                          lhs->getType(), rhs->getType());
         return nullptr;
       }
 
@@ -659,8 +644,10 @@ std::unique_ptr<Expr> FlowParser::addExpr() {
 
         Opcode opc = makeOperator(binop, lhs.get(), rhs.get());
         if (opc == Opcode::EXIT) {
-          reportError("Type error in binary expression (%s versus %s).",
-                      tos(lhs->getType()).c_str(), tos(rhs->getType()).c_str());
+          report_.typeError(
+              lastLocation(),
+              "Incompatible binary expression operands ({} {} {}).",
+              lhs->getType(), binop, rhs->getType());
           return nullptr;
         }
 
@@ -692,8 +679,10 @@ std::unique_ptr<Expr> FlowParser::mulExpr() {
 
         Opcode opc = makeOperator(binop, lhs.get(), rhs.get());
         if (opc == Opcode::EXIT) {
-          reportError("Type error in binary expression (%s versus %s).",
-                      tos(lhs->getType()).c_str(), tos(rhs->getType()).c_str());
+          report_.typeError(
+              lastLocation(),
+              "Incompatible binary expression operands ({} {} {}).",
+              lhs->getType(), binop, rhs->getType());
           return nullptr;
         }
 
@@ -709,26 +698,28 @@ std::unique_ptr<Expr> FlowParser::mulExpr() {
 std::unique_ptr<Expr> FlowParser::powExpr() {
   // powExpr ::= negExpr ('**' powExpr)*
   SourceLocation sloc(location());
-  std::unique_ptr<Expr> left = negExpr();
-  if (!left) return nullptr;
+  std::unique_ptr<Expr> lhs = negExpr();
+  if (!lhs) return nullptr;
 
   while (token() == FlowToken::Pow) {
     nextToken();
 
-    std::unique_ptr<Expr> right = powExpr();
-    if (!right) return nullptr;
+    std::unique_ptr<Expr> rhs = powExpr();
+    if (!rhs) return nullptr;
 
-    auto opc = makeOperator(FlowToken::Pow, left.get(), right.get());
+    auto opc = makeOperator(FlowToken::Pow, lhs.get(), rhs.get());
     if (opc == Opcode::EXIT) {
-      reportError("Type error in binary expression (%s versus %s).",
-                  tos(left->getType()).c_str(), tos(right->getType()).c_str());
+      report_.typeError(
+          lastLocation(),
+          "Incompatible binary expression operands ({} {} {}).",
+          lhs->getType(), FlowToken::Pow, rhs->getType());
       return nullptr;
     }
 
-    left = std::make_unique<BinaryExpr>(opc, std::move(left), std::move(right));
+    lhs = std::make_unique<BinaryExpr>(opc, std::move(lhs), std::move(rhs));
   }
 
-  return left;
+  return lhs;
 }
 
 std::unique_ptr<Expr> FlowParser::negExpr() {
@@ -741,8 +732,9 @@ std::unique_ptr<Expr> FlowParser::negExpr() {
 
     Opcode op = makeOperator(FlowToken::Minus, e.get());
     if (op == Opcode::EXIT) {
-      reportError(
-          "Type cast error in unary 'neg'-operator. Invalid source type <%s>.",
+      report_.typeError(
+          lastLocation(),
+          "Type cast error in unary 'neg'-operator. Invalid source type <{}>.",
           e->getType());
       return nullptr;
     }
@@ -764,8 +756,9 @@ std::unique_ptr<Expr> FlowParser::bitNotExpr() {
 
     Opcode op = makeOperator(FlowToken::BitNot, e.get());
     if (op == Opcode::EXIT) {
-      reportError(
-          "Type cast error in unary 'not'-operator. Invalid source type <%s>.",
+      report_.typeError(
+          lastLocation(),
+          "Type cast error in unary 'not'-operator. Invalid source type <{}>.",
           e->getType());
       return nullptr;
     }
@@ -858,8 +851,9 @@ std::unique_ptr<Expr> FlowParser::primaryExpr() {
         return resolve(callables, std::move(params));
       }
 
-      reportError("Unsupported symbol type of \"%s\" in expression.",
-                  name.c_str());
+      report_.typeError(lastLocation(),
+                        "Unsupported symbol type of \"{}\" in expression.",
+                        name);
       return nullptr;
     }
     case FlowToken::Begin: {  // lambda-like inline function ref
@@ -895,7 +889,7 @@ std::unique_ptr<Expr> FlowParser::primaryExpr() {
     case FlowToken::BrOpen:
       return arrayExpr();
     default:
-      reportUnexpectedToken();
+      report_.syntaxError(lastLocation(), "Unexpected token {}", token());
       return nullptr;
   }
 }
@@ -925,7 +919,8 @@ std::unique_ptr<Expr> FlowParser::arrayExpr() {
     LiteralType baseType = fields.front()->getType();
     for (const auto& e : fields) {
       if (e->getType() != baseType) {
-        reportError("Mixed element types in array not allowed.");
+        report_.typeError(lastLocation(),
+                          "Mixed element types in array not allowed.");
         return nullptr;
       }
     }
@@ -937,13 +932,16 @@ std::unique_ptr<Expr> FlowParser::arrayExpr() {
       case LiteralType::Cidr:
         break;
       default:
-        reportError(
-            "Invalid array expression. Element type <%s> is not allowed.",
-            tos(baseType).c_str());
+        report_.typeError(
+            lastLocation(),
+            "Invalid array expression. Element type {} is not allowed.",
+            baseType);
         return nullptr;
     }
   } else {
-    reportError("Empty arrays are not allowed.");
+    report_.typeError(
+        lastLocation(),
+        "Empty arrays are not allowed. Cannot infer element type.");
     return nullptr;
   }
 
@@ -991,7 +989,7 @@ std::unique_ptr<Expr> FlowParser::literalExpr() {
         nextToken();
         return std::move(e);
       } else {
-        reportError("Error parsing regular expression.");
+        report_.syntaxError(lastLocation(), "Error parsing regular expression.");
         return nullptr;
       }
     }
@@ -1046,7 +1044,9 @@ std::unique_ptr<Expr> FlowParser::literalExpr() {
       return std::move(e);
     }
     default:
-      reportError("Expected literal expression, but got %s.", token().c_str());
+      report_.typeError(lastLocation(),
+                        "Expected literal expression, but got {}.",
+                        token());
       return nullptr;
   }
 }
@@ -1129,7 +1129,7 @@ std::unique_ptr<Expr> FlowParser::interpolatedStr() {
 
   e = asString(std::move(e));
   if (!e) {
-    reportError("Cast error in string interpolation.");
+    report_.typeError(lastLocation(), "Cast error in string interpolation.");
     return nullptr;
   }
 
@@ -1148,7 +1148,7 @@ std::unique_ptr<Expr> FlowParser::interpolatedStr() {
 
     e = asString(std::move(e));
     if (!e) {
-      reportError("Cast error in string interpolation.");
+      report_.typeError(lastLocation(), "Cast error in string interpolation.");
       return nullptr;
     }
 
@@ -1190,10 +1190,10 @@ std::unique_ptr<Expr> FlowParser::castExpr() {
 
   Opcode targetType = makeOperator(targetTypeToken, e.get());
   if (targetType == Opcode::EXIT) {
-    reportError(
-        "Type cast error. No cast implementation found for requested cast from "
-        "%s to %s.",
-        tos(e->getType()).c_str(), targetTypeToken.c_str());
+    report_.typeError(
+        lastLocation(),
+        "Type cast error. No cast implementation found for requested cast from {} to {}.",
+        e->getType(), targetTypeToken);
     return nullptr;
   }
 
@@ -1224,8 +1224,9 @@ std::unique_ptr<Stmt> FlowParser::stmt() {
       return std::make_unique<CompoundStmt>(sloc.update(end()));
     }
     default:
-      reportError("Unexpected token \"%s\". Expected a statement instead.",
-                  token().c_str());
+      report_.syntaxError(lastLocation(),
+                          "Unexpected token {}. Expected a statement instead.",
+                          token());
       return nullptr;
   }
 }
@@ -1247,8 +1248,10 @@ std::unique_ptr<Stmt> FlowParser::ifStmt() {
           std::make_unique<NumberExpr>(0, sloc));
       break;
     default:
-      reportError("If expression must be boolean type. Received type %s instead.",
-          tos(cond->getType()).c_str());
+      report_.typeError(
+          lastLocation(),
+          "If expression must be boolean type. Received type {} instead.",
+          cond->getType());
       return nullptr;
   }
 
@@ -1284,8 +1287,10 @@ std::unique_ptr<Stmt> FlowParser::matchStmt() {
   LiteralType matchType = cond->getType();
 
   if (matchType != LiteralType::String) {
-    reportError("Expected match condition type <%s>, found \"%s\" instead.",
-                tos(LiteralType::String).c_str(), tos(matchType).c_str());
+    report_.typeError(
+        lastLocation(),
+        "Expected match condition type <{}>, found <{}> instead.",
+        LiteralType::String, matchType);
     return nullptr;
   }
 
@@ -1306,8 +1311,10 @@ std::unique_ptr<Stmt> FlowParser::matchStmt() {
         op = MatchClass::RegExp;
         break;
       default:
-        reportError("Expected match oeprator, found \"%s\" instead.",
-                    token().c_str());
+        report_.typeError(
+            lastLocation(),
+            "Expected match operator, found token <{}> instead.",
+            token());
         return nullptr;
     }
     nextToken();
@@ -1348,9 +1355,10 @@ std::unique_ptr<Stmt> FlowParser::matchStmt() {
     for (auto& label : one.first) {
       LiteralType caseType = label->getType();
       if (matchType != caseType) {
-        reportError(
-            "Type mismatch in match-on statement. Expected <%s> but got <%s>.",
-            tos(matchType).c_str(), tos(caseType).c_str());
+        report_.typeError(
+            lastLocation(),
+            "Type mismatch in match-on statement. Expected <{}> but got <{}>.",
+            matchType, caseType);
         return nullptr;
       }
     }
@@ -1422,7 +1430,7 @@ std::unique_ptr<Stmt> FlowParser::identStmt() {
     // XXX assume that given symbol is a auto forward-declared handler that's
     // being defined later in the source.
     if (token() != FlowToken::Semicolon) {
-      reportError("Unknown symbol '%s'.", name.c_str());
+      report_.typeError(lastLocation(), "Unknown symbol '{}'.", name);
       return nullptr;
     }
 
@@ -1442,8 +1450,10 @@ std::unique_ptr<Stmt> FlowParser::identStmt() {
       LiteralType leftType = var->initializer()->getType();
       LiteralType rightType = value->getType();
       if (leftType != rightType) {
-        reportError("Type mismatch in assignment. Expected <%s> but got <%s>.",
-                    tos(leftType).c_str(), tos(rightType).c_str());
+        report_.typeError(
+            lastLocation(),
+            "Type mismatch in assignment. Expected <{}> but got <{}>.",
+            leftType, rightType);
         return nullptr;
       }
 
@@ -1494,7 +1504,7 @@ std::unique_ptr<CallExpr> FlowParser::callStmt(
   }
 
   if (callables.empty()) {
-    reportError("Symbol is not callable.");  // XXX should never reach here
+    report_.typeError(lastLocation(), "Symbol is not callable.");  // XXX should never reach here
     return nullptr;
   }
 
@@ -1546,7 +1556,7 @@ Signature makeSignature(const CallableSym* callee, const ParamList& params) {
 
 std::unique_ptr<CallExpr> FlowParser::resolve(
     const std::list<CallableSym*>& callables, ParamList&& params) {
-  auto inputSignature = makeSignature(callables.front(), params);
+  Signature inputSignature = makeSignature(callables.front(), params);
 
   // attempt to find a full match first
   for (CallableSym* callee : callables) {
@@ -1559,35 +1569,36 @@ std::unique_ptr<CallExpr> FlowParser::resolve(
   // attempt to find something with default values or parameter-reordering (if
   // named args)
   std::list<CallableSym*> result;
-  std::list<std::pair<CallableSym*, Buffer>> matchErrors;
+  std::list<std::pair<CallableSym*, std::string>> matchErrors;
 
   for (CallableSym* callee : callables) {
     Buffer msg;
     if (callee->tryMatch(params, &msg)) {
       result.push_back(callee);
     } else {
-      matchErrors.push_back(std::make_pair(callee, msg));
+      matchErrors.push_back(std::make_pair(callee, msg.str()));
     }
   }
 
   if (result.empty()) {
-    reportError("No matching signature for %s.", inputSignature.to_s().c_str());
+    report_.typeError(lastLocation(), "No matching signature for {}.", inputSignature);
     for (const auto& me : matchErrors) {
-      reportError(me.second.c_str());
+      report_.typeError(lastLocation(), me.second);
     }
     return nullptr;
   }
 
   if (result.size() > 1) {
-    reportError("Call to builtin is ambiguous.");
+    report_.typeError(lastLocation(), "Call to builtin is ambiguous.");
     return nullptr;
   }
 
   CallableSym* callableSym = result.front();
 
   if (callableSym->nativeCallback()->isExperimental()) {
-    reportWarning("Using experimental builtin API %s.",
-                  callableSym->nativeCallback()->signature().to_s().c_str());
+    report_.warning(lastLocation(),
+                    "Using experimental builtin API {}.",
+                    callableSym->nativeCallback()->signature());
   }
 
   return std::make_unique<CallExpr>(callableSym->location(), callableSym,
@@ -1618,10 +1629,11 @@ std::unique_ptr<Stmt> FlowParser::postscriptStmt(
   if (op == FlowToken::Unless) {
     auto opc = makeOperator(FlowToken::Not, condExpr.get());
     if (opc == Opcode::EXIT) {
-      reportError(
+      report_.typeError(
+          lastLocation(),
           "Type cast error. No cast implementation found for requested cast "
-          "from %s to %s.",
-          tos(condExpr->getType()).c_str(), "bool");
+          "from {} to {}.",
+          condExpr->getType(), LiteralType::Boolean);
       return nullptr;
     }
 
