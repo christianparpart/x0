@@ -1,5 +1,4 @@
 # vim:syntax=x0dconf
-
 handler main {
   if true {
   }
@@ -7,3 +6,4 @@ handler main {
   if true {}
   else {}
 }
+# ----

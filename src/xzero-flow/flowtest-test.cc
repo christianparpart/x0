@@ -7,7 +7,7 @@ using namespace xzero;
 using namespace flow;
 
 using flowtest::Token;
-using flowtest::AnalysisType;
+using flowtest::DiagnosticsType;
 
 // ---------------------------------------------------------------------------
 // Lexer
@@ -92,7 +92,7 @@ TEST(FlowTest, parser_simple1) {
   ASSERT_TRUE(pr);
   ASSERT_EQ("handler main {}\n", pr->program);
   ASSERT_EQ(1, pr->messages.size());
-  ASSERT_EQ(AnalysisType::TokenError, pr->messages[0].type);
+  ASSERT_EQ(DiagnosticsType::TokenError, pr->messages[0].type);
   ASSERT_EQ(1, pr->messages[0].texts.size());
   ASSERT_EQ("bla blah", pr->messages[0].texts[0]);
 }
@@ -110,11 +110,11 @@ TEST(FlowTest, parser_simple2) {
   ASSERT_EQ("handler main {}\n", pr->program);
   ASSERT_EQ(2, pr->messages.size());
 
-  ASSERT_EQ(AnalysisType::TokenError, pr->messages[0].type);
+  ASSERT_EQ(DiagnosticsType::TokenError, pr->messages[0].type);
   ASSERT_EQ(1, pr->messages[0].texts.size());
   ASSERT_EQ("bla blah", pr->messages[0].texts[0]);
 
-  ASSERT_EQ(AnalysisType::TokenError, pr->messages[0].type);
+  ASSERT_EQ(DiagnosticsType::TokenError, pr->messages[0].type);
   ASSERT_EQ(1, pr->messages[1].texts.size());
   ASSERT_EQ("bla yah", pr->messages[1].texts[0]);
 }
