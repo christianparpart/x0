@@ -41,7 +41,7 @@ enum class Token {
   MessageText,        // <anything after Location until [^HT] LF>
 };
 
-enum class AnalysisType {
+enum class DiagnosticsType {
   TokenError,
   SyntaxError,
   TypeError,
@@ -50,7 +50,7 @@ enum class AnalysisType {
 };
 
 struct Message {
-  AnalysisType type;
+  DiagnosticsType type;
   xzero::flow::SourceLocation sourceLocation;
   std::vector<std::string> texts;
 };
@@ -136,7 +136,7 @@ class Parser {
   std::string parseUntilInitializer();
   std::string parseLine();
   Message parseMessage();
-  AnalysisType parseAnalysisType();
+  DiagnosticsType parseDiagnosticsType();
   xzero::flow::SourceLocation parseLocation();
 
   void reportError(const std::string& msg);
@@ -158,6 +158,8 @@ class Tester : public xzero::flow::Runtime {
   bool testDirectory(const std::string& path);
 
  private:
+  bool compileFile(const std::string& filename);
+
   bool import(const std::string& name,
               const std::string& path,
               std::vector<xzero::flow::NativeCallback*>* builtins) override;
@@ -179,24 +181,24 @@ class Tester : public xzero::flow::Runtime {
 
 namespace fmt {
   template<>
-  struct formatter<flowtest::AnalysisType> {
-    using AnalysisType = flowtest::AnalysisType;
+  struct formatter<flowtest::DiagnosticsType> {
+    using DiagnosticsType = flowtest::DiagnosticsType;
 
     template <typename ParseContext>
     constexpr auto parse(ParseContext &ctx) { return ctx.begin(); }
 
     template <typename FormatContext>
-    constexpr auto format(const AnalysisType& v, FormatContext &ctx) {
+    constexpr auto format(const DiagnosticsType& v, FormatContext &ctx) {
       switch (v) {
-        case AnalysisType::TokenError:
+        case DiagnosticsType::TokenError:
           return format_to(ctx.begin(), "TokenError");
-        case AnalysisType::SyntaxError:
+        case DiagnosticsType::SyntaxError:
           return format_to(ctx.begin(), "SyntaxError");
-        case AnalysisType::TypeError:
+        case DiagnosticsType::TypeError:
           return format_to(ctx.begin(), "TypeError");
-        case AnalysisType::Warning:
+        case DiagnosticsType::Warning:
           return format_to(ctx.begin(), "Warning");
-        case AnalysisType::LinkError:
+        case DiagnosticsType::LinkError:
           return format_to(ctx.begin(), "LinkError");
         default:
           return format_to(ctx.begin(), "{}", static_cast<unsigned>(v));

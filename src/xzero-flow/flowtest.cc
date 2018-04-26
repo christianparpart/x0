@@ -37,29 +37,28 @@ using flow::SourceLocation;
 namespace fs = std::experimental::filesystem;
 
 /*
-  TestProgram   ::= FlowProgram [Initializer Message*]
-  FlowProgram   ::= <flow program code until Initializer>
+  TestProgram     ::= FlowProgram [Initializer Message*]
+  FlowProgram     ::= <flow program code until Initializer>
 
-  Initializer   ::= '#' '----' LF
-  Message       ::= '#' AnalysisType ':' Location? MessageText LF
-  AnalysisType  ::= 'TokenError' | 'SyntaxError' | 'TypeError' | 'Warning' | 'LinkError'
+  Initializer     ::= '#' '----' LF
+  Message         ::= '#' DiagnosticsType ':' Location? MessageText LF
+  DiagnosticsType ::= 'TokenError' | 'SyntaxError' | 'TypeError' | 'Warning' | 'LinkError'
 
-  Location      ::= '[' FilePos ['..' FilePos] ']'
-  FilePos       ::= Line ':' Column
-  Column        ::= NUMBER
-  Line          ::= NUMBER
+  Location        ::= '[' FilePos ['..' FilePos] ']'
+  FilePos         ::= Line ':' Column
+  Column          ::= NUMBER
+  Line            ::= NUMBER
 
-  MessageText   ::= TEXT (LF INDENT TEXT)*
+  MessageText     ::= TEXT (LF INDENT TEXT)*
 
-  NUMBER        ::= ('0'..'9')+
-  TEXT          ::= <until LF>
-  LF            ::= '\n' | '\r\n'
-  INDENT        ::= (' ' | '\t')+
+  NUMBER          ::= ('0'..'9')+
+  TEXT            ::= <until LF>
+  LF              ::= '\n' | '\r\n'
+  INDENT          ::= (' ' | '\t')+
 */
 
 namespace flowtest {
 
-// {{{ Tester
 Tester::Tester() {
   registerHandler("handler.true")
       .bind(&Tester::flow_handler_true, this);
@@ -113,7 +112,7 @@ bool Tester::import(
 }
 
 void Tester::reportError(const std::string& msg) {
-  fmt::print("Configuration file error. {}\n", msg);
+  fmt::print("Error. {}\n", msg);
   errorCount_++;
 }
 
@@ -128,6 +127,23 @@ bool Tester::testDirectory(const std::string& p) {
 }
 
 bool Tester::testFile(const std::string& filename) {
+  bool ok = compileFile(filename);
+  if (!ok)
+    return false;
+
+  Parser p(filename, FileUtil::read(filename).str());
+  Result<ParseResult> pr = p.parse();
+  if (!pr)
+    return false;
+
+  for (const Message& message: pr->messages) {
+    // TODO
+  }
+
+  return true;
+}
+
+bool Tester::compileFile(const std::string& filename) {
   fmt::print("testing: {}\n", filename);
 
   constexpr bool optimize = true;
@@ -159,7 +175,6 @@ bool Tester::testFile(const std::string& filename) {
 
   return errorCount_ == 0;
 }
-// }}}
 
 } // namespace flowtest
 

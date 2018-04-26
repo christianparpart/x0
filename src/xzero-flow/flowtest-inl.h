@@ -198,16 +198,16 @@ Result<ParseResult> Parser::parse() {
 }
 
 Message Parser::parseMessage() {
-  // Message   ::= '#' AnalysisType ':' Location MessageText (LF | EOF)
+  // Message   ::= '#' DiagnosticsType ':' Location MessageText (LF | EOF)
   // MessageText   ::= TEXT (LF INDENT TEXT)*
-  // AnalysisType  ::= 'TokenError' | 'SyntaxError' | 'TypeError' | 'Warning' | 'LinkError'
+  // DiagnosticsType  ::= 'TokenError' | 'SyntaxError' | 'TypeError' | 'Warning' | 'LinkError'
   // Location      ::= '[' FilePos ['..' FilePos] ']'
   // FilePos       ::= Line ':' Column
   // Column        ::= NUMBER
   // Line          ::= NUMBER
 
   lexer_.consume(Token::Begin);
-  AnalysisType type = parseAnalysisType();
+  DiagnosticsType type = parseDiagnosticsType();
   lexer_.consume(Token::Colon);
   xzero::flow::SourceLocation location = parseLocation();
   std::string text = lexer_.consumeText(Token::MessageText);
@@ -219,25 +219,25 @@ Message Parser::parseMessage() {
   return Message{type, location, texts};
 }
 
-AnalysisType Parser::parseAnalysisType() {
+DiagnosticsType Parser::parseDiagnosticsType() {
   switch (lexer_.currentToken()) {
     case Token::TokenError:
       lexer_.nextToken();
-      return AnalysisType::TokenError;
+      return DiagnosticsType::TokenError;
     case Token::SyntaxError:
       lexer_.nextToken();
-      return AnalysisType::SyntaxError;
+      return DiagnosticsType::SyntaxError;
     case Token::TypeError:
       lexer_.nextToken();
-      return AnalysisType::TypeError;
+      return DiagnosticsType::TypeError;
     case Token::Warning:
       lexer_.nextToken();
-      return AnalysisType::Warning;
+      return DiagnosticsType::Warning;
     case Token::LinkError:
       lexer_.nextToken();
-      return AnalysisType::LinkError;
+      return DiagnosticsType::LinkError;
     default:
-      throw SyntaxError{"Unexpected token. Expected AnalysisType instead."};
+      throw SyntaxError{"Unexpected token. Expected DiagnosticsType instead."};
   }
 }
 

@@ -9,6 +9,7 @@
 #include <xzero/defines.h>
 #include <xzero-flow/FlowToken.h>
 #include <xzero-flow/FlowLexer.h>
+#include <xzero-flow/Diagnostics.h>
 #include <xzero-flow/AST.h>  // SymbolTable
 
 #include <list>
@@ -27,32 +28,30 @@ class NativeCallback;
 class Runtime;
 
 class FlowParser {
+ private:
   std::unique_ptr<FlowLexer> lexer_;
   SymbolTable* scopeStack_;
   Runtime* runtime_;
 
  public:
-  typedef std::function<void(const std::string&)> ErrorHandler;
-  typedef std::function<bool(const std::string&, const std::string&,
-                     std::vector<NativeCallback*>*)> ImportHandler;
+  using ImportHandler = std::function<bool(const std::string&,
+                                           const std::string&,
+                                           std::vector<NativeCallback*>*)>;
 
-  ErrorHandler errorHandler;
   ImportHandler importHandler;
 
-  FlowParser() : FlowParser(nullptr, nullptr, nullptr) {}
+  FlowParser() : FlowParser(nullptr, nullptr) {}
 
-  explicit FlowParser(
-      Runtime* runtime,
-      ImportHandler importHandler = nullptr,
-      ErrorHandler errorHandler = nullptr);
+  explicit FlowParser(Runtime* runtime,
+                      ErrorHandler errorHandler = nullptr);
 
   ~FlowParser();
 
-  void openString(const std::string& filename);
+  void openString(const std::string& content);
   void openLocalFile(const std::string& filename);
   void openStream(std::unique_ptr<std::istream>&& ifs, const std::string& filename);
 
-  std::unique_ptr<UnitSym> parse();
+  std::unique_ptr<UnitSym> parse(diagnostics::MessageList* diagnosticsOutput);
 
   Runtime* runtime() const { return runtime_; }
 
