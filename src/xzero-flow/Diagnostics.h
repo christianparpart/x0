@@ -32,6 +32,8 @@ struct Message {
 
   Message(Type ty, SourceLocation sl, std::string t) : type{ty}, sourceLocation{sl}, text{t} {}
 
+  std::string string() const;
+
   bool operator==(const Message& other) const noexcept;
   bool operator!=(const Message& other) const noexcept { return !(*this == other); }
 };
@@ -56,16 +58,21 @@ class Report {
     messages_.emplace_back(Type::Warning, sloc, fmt::format(f, std::move(args)...));
   }
 
-  template<typename... Args> void linkError(const SourceLocation& sloc, const std::string& f, Args... args) {
-    messages_.emplace_back(Type::LinkError, sloc, fmt::format(f, std::move(args)...));
+  template<typename... Args> void linkError(const std::string& f, Args... args) {
+    messages_.emplace_back(Type::LinkError, SourceLocation{}, fmt::format(f, std::move(args)...));
+  }
+
+  void emplace_back(Message&& m) {
+    messages_.emplace_back(std::move(m));
   }
 
   void log() const;
+  void clear();
 
   const MessageList& messages() const noexcept { return messages_; }
 
-  bool operator==(const Report& other) const noexcept;
-  bool operator!=(const Report& other) const noexcept { return !(*this == other); }
+  size_t size() const noexcept { return messages_.size(); }
+  const Message& operator[](size_t i) const { return messages_[i]; }
 
   using iterator = MessageList::iterator;
   using const_iterator = MessageList::const_iterator;
@@ -78,9 +85,18 @@ class Report {
     return std::count_if(begin(), end(), [](const Message& m) { return m.type != Type::Warning; });
   }
 
+  bool operator==(const Report& other) const noexcept;
+  bool operator!=(const Report& other) const noexcept { return !(*this == other); }
+
+  bool contains(const Message& m) const noexcept;
+
  private:
   MessageList messages_;
 };
+
+using DifferenceReport = std::pair<MessageList, MessageList>;
+
+DifferenceReport difference(const Report& first, const Report& second);
 
 class DiagnosticsError : public std::runtime_error {
  public:
@@ -133,6 +149,21 @@ namespace fmt {
         default:
           return format_to(ctx.begin(), "{}", static_cast<unsigned>(v));
       }
+    }
+  };
+}
+
+namespace fmt {
+  template<>
+  struct formatter<xzero::flow::diagnostics::Message> {
+    using Message = xzero::flow::diagnostics::Message;
+
+    template <typename ParseContext>
+    constexpr auto parse(ParseContext &ctx) { return ctx.begin(); }
+
+    template <typename FormatContext>
+    constexpr auto format(const Message& v, FormatContext &ctx) {
+      return format_to(ctx.begin(), "{}", v.string());
     }
   };
 }

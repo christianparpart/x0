@@ -30,6 +30,10 @@ class Match;
 class MatchDef;
 class ConstantPool;
 
+namespace diagnostics {
+  class Report;
+}
+
 class Program {
  public:
   explicit Program(ConstantPool&& cp);
@@ -67,7 +71,7 @@ class Program {
   bool run(const std::string& handlerName,
       void* u1 = nullptr, void* u2 = nullptr);
 
-  bool link(Runtime* runtime);
+  bool link(Runtime* runtime, diagnostics::Report* report);
 
   void dump();
 

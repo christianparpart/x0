@@ -6,5 +6,4 @@ main {
 }
 
 # ----
-# SignatureMismatch: [4:3] No matching signature for sum(SS)V.
-#     Type mismatch in positional parameter 1, callee sum(II)I.
+# TypeError: No matching signature for sum(SS)V. Type mismatch in positional parameter 1, callee sum(II)I.

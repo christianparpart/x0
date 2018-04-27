@@ -186,37 +186,33 @@ Parser::Parser(const std::string& filename, const std::string& source)
     : lexer_{filename, source} {
 }
 
-Result<ParseResult> Parser::parse() {
+Result<xzero::flow::diagnostics::Report> Parser::parse() {
+  xzero::flow::diagnostics::Report report;
   lexer_.consume(Token::InitializerMark);
-  ParseResult pr;
-  pr.program = lexer_.getPrefixText();
 
   while (!lexer_.eof())
-    pr.messages.push_back(parseMessage());
+    report.emplace_back(parseMessage());
 
-  return Success(std::move(pr));
+  return Success(std::move(report));
 }
 
 Message Parser::parseMessage() {
-  // Message   ::= '#' DiagnosticsType ':' Location MessageText (LF | EOF)
-  // MessageText   ::= TEXT (LF INDENT TEXT)*
+  // Message          ::= '#' DiagnosticsType ':' Location MessageText (LF | EOF)
+  // MessageText      ::= TEXT (LF INDENT TEXT)*
   // DiagnosticsType  ::= 'TokenError' | 'SyntaxError' | 'TypeError' | 'Warning' | 'LinkError'
-  // Location      ::= '[' FilePos ['..' FilePos] ']'
-  // FilePos       ::= Line ':' Column
-  // Column        ::= NUMBER
-  // Line          ::= NUMBER
+  // Location         ::= '[' FilePos ['..' FilePos] ']'
+  // FilePos          ::= Line ':' Column
+  // Column           ::= NUMBER
+  // Line             ::= NUMBER
 
   lexer_.consume(Token::Begin);
   DiagnosticsType type = parseDiagnosticsType();
   lexer_.consume(Token::Colon);
-  xzero::flow::SourceLocation location = parseLocation();
+  SourceLocation location = parseLocation();
   std::string text = lexer_.consumeText(Token::MessageText);
   lexer_.consumeOneOf({Token::LF, Token::Eof});
 
-  std::vector<std::string> texts;
-  texts.emplace_back(text);
-
-  return Message{type, location, texts};
+  return Message{type, location, text};
 }
 
 DiagnosticsType Parser::parseDiagnosticsType() {
@@ -241,13 +237,13 @@ DiagnosticsType Parser::parseDiagnosticsType() {
   }
 }
 
-xzero::flow::SourceLocation Parser::parseLocation() { // TODO
+SourceLocation Parser::parseLocation() { // TODO
   // Location      ::= '[' FilePos ['..' FilePos] ']'
   // FilePos       ::= Line ':' Column
   // Column        ::= NUMBER
   // Line          ::= NUMBER
 
-  return xzero::flow::SourceLocation();
+  return SourceLocation();
 }
 
 } // namespace flowtest

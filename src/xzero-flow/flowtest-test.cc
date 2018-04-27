@@ -88,13 +88,10 @@ TEST(FlowTest, parser_simple1) {
          |# TokenError: bla blah
          )"_multiline};
 
-  Result<flowtest::ParseResult> pr = p.parse();
-  ASSERT_TRUE(pr);
-  ASSERT_EQ("handler main {}\n", pr->program);
-  ASSERT_EQ(1, pr->messages.size());
-  ASSERT_EQ(DiagnosticsType::TokenError, pr->messages[0].type);
-  ASSERT_EQ(1, pr->messages[0].texts.size());
-  ASSERT_EQ("bla blah", pr->messages[0].texts[0]);
+  flow::diagnostics::Report report = *p.parse();
+  ASSERT_EQ(1, report.size());
+  ASSERT_EQ(DiagnosticsType::TokenError, report[0].type);
+  ASSERT_EQ("bla blah", report[0].text);
 }
 
 TEST(FlowTest, parser_simple2) {
@@ -105,16 +102,12 @@ TEST(FlowTest, parser_simple2) {
          |# SyntaxError: bla yah
          )"_multiline};
 
-  Result<flowtest::ParseResult> pr = p.parse();
-  ASSERT_TRUE(pr);
-  ASSERT_EQ("handler main {}\n", pr->program);
-  ASSERT_EQ(2, pr->messages.size());
+  flow::diagnostics::Report report = *p.parse();
+  ASSERT_EQ(2, report.size());
 
-  ASSERT_EQ(DiagnosticsType::TokenError, pr->messages[0].type);
-  ASSERT_EQ(1, pr->messages[0].texts.size());
-  ASSERT_EQ("bla blah", pr->messages[0].texts[0]);
+  ASSERT_EQ(DiagnosticsType::TokenError, report[0].type);
+  ASSERT_EQ("bla blah", report[0].text);
 
-  ASSERT_EQ(DiagnosticsType::TokenError, pr->messages[0].type);
-  ASSERT_EQ(1, pr->messages[1].texts.size());
-  ASSERT_EQ("bla yah", pr->messages[1].texts[0]);
+  ASSERT_EQ(DiagnosticsType::TokenError, report[0].type);
+  ASSERT_EQ("bla yah", report[1].text);
 }

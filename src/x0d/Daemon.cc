@@ -196,9 +196,10 @@ std::unique_ptr<flow::Program> Daemon::loadConfigStream(
   parser.openStream(std::move(is), fakeFilename);
   std::unique_ptr<flow::UnitSym> unit = parser.parse();
 
-  report.log();
-
   validateConfig(unit.get());
+
+  report.log();
+  report.clear();
 
   if (printAST) {
     flow::ASTPrinter::print(unit.get());
@@ -238,7 +239,8 @@ std::unique_ptr<flow::Program> Daemon::loadConfigStream(
   std::unique_ptr<flow::Program> program =
       flow::TargetCodeGenerator().generate(programIR.get());
 
-  program->link(this);
+  program->link(this, &report);
+  report.log();
 
   if (printTC)
     program->dump();

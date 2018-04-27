@@ -5,19 +5,21 @@
 // file except in compliance with the License. You may obtain a copy of
 // the License at: http://opensource.org/licenses/MIT
 
-#include <xzero-flow/vm/Program.h>
+#include <xzero-flow/Diagnostics.h>
 #include <xzero-flow/vm/ConstantPool.h>
 #include <xzero-flow/vm/Handler.h>
 #include <xzero-flow/vm/Instruction.h>
-#include <xzero-flow/vm/Runtime.h>
-#include <xzero-flow/vm/Runner.h>
 #include <xzero-flow/vm/Match.h>
+#include <xzero-flow/vm/Program.h>
+#include <xzero-flow/vm/Runner.h>
+#include <xzero-flow/vm/Runtime.h>
 #include <xzero/StringUtil.h>
 #include <xzero/logging.h>
+
+#include <memory>
 #include <stdexcept>
 #include <utility>
 #include <vector>
-#include <memory>
 
 namespace xzero::flow {
 
@@ -144,7 +146,7 @@ void Program::dump() {
  * \retval false Linking failed due to unresolved native signatures not found in
  *the runtime.
  */
-bool Program::link(Runtime* runtime) {
+bool Program::link(Runtime* runtime, diagnostics::Report* report) {
   runtime_ = runtime;
   int errors = 0;
 
@@ -164,9 +166,7 @@ bool Program::link(Runtime* runtime) {
       nativeHandlers_[i] = cb;
     } else {
       nativeHandlers_[i] = nullptr;
-      logError("flow.vm.Program",
-               "Unresolved native handler signature: {}",
-               signature);
+      report->linkError("Unresolved symbol to native handler signature: {}", signature);
       // TODO unresolvedSymbols_.push_back(signature);
       errors++;
     }
