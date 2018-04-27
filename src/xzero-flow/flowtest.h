@@ -7,6 +7,7 @@
 
 #pragma once
 
+#include <xzero-flow/Diagnostics.h>
 #include <xzero-flow/Params.h>
 #include <xzero-flow/SourceLocation.h>
 #include <xzero-flow/vm/Runtime.h>
@@ -39,27 +40,6 @@ enum class Token {
   Number,             // [0-9]+
 
   MessageText,        // <anything after Location until [^HT] LF>
-};
-
-enum class DiagnosticsType {
-  TokenError,
-  SyntaxError,
-  TypeError,
-  Warning,
-  LinkError
-};
-
-struct Message {
-  DiagnosticsType type;
-  xzero::flow::SourceLocation sourceLocation;
-  std::vector<std::string> texts;
-};
-
-using MessageList = std::vector<Message>;
-
-struct ParseResult {
-  std::string program;
-  MessageList messages;
 };
 
 class LexerError : public std::runtime_error {
@@ -122,6 +102,10 @@ class Lexer {
   std::string stringValue_;
 };
 
+using DiagnosticsType = xzero::flow::diagnostics::Type;
+using Message = xzero::flow::diagnostics::Message;
+using SourceLocation = xzero::flow::SourceLocation;
+
 /**
  * Parses the input @p contents and splits it into a flow program and a vector
  * of analysis Message.
@@ -130,14 +114,14 @@ class Parser {
  public:
   Parser(const std::string& filename, const std::string& contents);
 
-  Result<ParseResult> parse();
+  Result<xzero::flow::diagnostics::Report> parse();
 
  private:
   std::string parseUntilInitializer();
   std::string parseLine();
   Message parseMessage();
   DiagnosticsType parseDiagnosticsType();
-  xzero::flow::SourceLocation parseLocation();
+  SourceLocation parseLocation();
 
   void reportError(const std::string& msg);
 
@@ -158,12 +142,18 @@ class Tester : public xzero::flow::Runtime {
   bool testDirectory(const std::string& path);
 
  private:
-  bool compileFile(const std::string& filename);
+  void compileFile(const std::string& filename, xzero::flow::diagnostics::Report* report);
 
   bool import(const std::string& name,
               const std::string& path,
               std::vector<xzero::flow::NativeCallback*>* builtins) override;
+
   void reportError(const std::string& msg);
+
+  template<typename... Args>
+  void reportError(const std::string& fmt, Args&&... args) {
+    reportError(fmt::format(fmt, args...));
+  }
 
   // handlers
   void flow_handler_true(xzero::flow::Params& args);
@@ -174,38 +164,12 @@ class Tester : public xzero::flow::Runtime {
   void flow_assert(xzero::flow::Params& args);
 
  private:
+  xzero::flow::diagnostics::Report report_;
   uintmax_t errorCount_ = 0;
+
 };
 
 } // namespace flowtest
-
-namespace fmt {
-  template<>
-  struct formatter<flowtest::DiagnosticsType> {
-    using DiagnosticsType = flowtest::DiagnosticsType;
-
-    template <typename ParseContext>
-    constexpr auto parse(ParseContext &ctx) { return ctx.begin(); }
-
-    template <typename FormatContext>
-    constexpr auto format(const DiagnosticsType& v, FormatContext &ctx) {
-      switch (v) {
-        case DiagnosticsType::TokenError:
-          return format_to(ctx.begin(), "TokenError");
-        case DiagnosticsType::SyntaxError:
-          return format_to(ctx.begin(), "SyntaxError");
-        case DiagnosticsType::TypeError:
-          return format_to(ctx.begin(), "TypeError");
-        case DiagnosticsType::Warning:
-          return format_to(ctx.begin(), "Warning");
-        case DiagnosticsType::LinkError:
-          return format_to(ctx.begin(), "LinkError");
-        default:
-          return format_to(ctx.begin(), "{}", static_cast<unsigned>(v));
-      }
-    }
-  };
-}
 
 namespace fmt {
   template<>

@@ -112,44 +112,51 @@ bool Tester::import(
 }
 
 void Tester::reportError(const std::string& msg) {
-  fmt::print("Error. {}\n", msg);
+  fmt::print("{}\n", msg);
   errorCount_++;
 }
 
 bool Tester::testDirectory(const std::string& p) {
   int errorCount = 0;
-  for (auto& dir: fs::recursive_directory_iterator(p))
-    if (dir.path().extension() == ".flow")
-      if (!testFile(dir.path().string()))
+  for (auto& dir: fs::recursive_directory_iterator(p)) {
+    if (dir.path().extension() == ".flow") {
+      report_.clear();
+      if (!testFile(dir.path().string())) {
+        report_.log();
         errorCount++;
+      }
+    }
+  }
 
   return errorCount == 0;
 }
 
 bool Tester::testFile(const std::string& filename) {
-  bool ok = compileFile(filename);
-  if (!ok)
-    return false;
+  flow::diagnostics::Report actual;
+  compileFile(filename, &actual);
 
   Parser p(filename, FileUtil::read(filename).str());
-  Result<ParseResult> pr = p.parse();
-  if (!pr)
+  Result<flow::diagnostics::Report> expected = p.parse();
+  if (!expected)
     return false;
 
-  for (const Message& message: pr->messages) {
-    // TODO
-  }
+  flow::diagnostics::DifferenceReport diff = flow::diagnostics::difference(actual, *expected);
+  for (const Message& m: diff.first)
+    reportError("Missing: {}", m);
+  for (const Message& m: diff.second)
+    reportError("Superfluous: {}", m);
+
+  if (actual != *expected)
+    return false;
 
   return true;
 }
 
-bool Tester::compileFile(const std::string& filename) {
+void Tester::compileFile(const std::string& filename, flow::diagnostics::Report* report) {
   fmt::print("testing: {}\n", filename);
 
   constexpr bool optimize = true;
-  flow::diagnostics::Report report;
-
-  flow::FlowParser parser(&report,
+  flow::FlowParser parser(report,
                           this,
                           [this](auto x, auto y, auto z) { return import(x, y, z); });
   parser.openStream(std::make_unique<std::ifstream>(filename), filename);
@@ -172,9 +179,7 @@ bool Tester::compileFile(const std::string& filename) {
   std::unique_ptr<flow::Program> program =
       flow::TargetCodeGenerator().generate(programIR.get());
 
-  program->link(this);
-
-  return errorCount_ == 0;
+  program->link(this, report);
 }
 
 } // namespace flowtest

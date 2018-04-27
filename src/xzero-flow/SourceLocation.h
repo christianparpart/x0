@@ -38,6 +38,16 @@ struct FilePos { // {{{
     }
   }
 
+  bool operator==(const FilePos& other) const noexcept {
+    return line == other.line &&
+           column == other.column &&
+           offset == other.offset;
+  }
+
+  bool operator!=(const FilePos& other) const noexcept {
+    return !(*this == other);
+  }
+
   size_t line;
   size_t column;
   size_t offset;
@@ -74,6 +84,16 @@ struct SourceLocation { // {{{
 
   std::string str() const;
   std::string text() const;
+
+  bool operator==(const SourceLocation& other) const noexcept {
+    return filename == other.filename &&
+           begin == other.begin &&
+           end == other.end;
+  }
+
+  bool operator!=(const SourceLocation& other) const noexcept {
+    return !(*this == other);
+  }
 };  // }}}
 
 inline SourceLocation operator-(const SourceLocation& end,
@@ -93,7 +113,7 @@ namespace fmt {
 
     template <typename FormatContext>
     constexpr auto format(const xzero::flow::FilePos& v, FormatContext &ctx) {
-      return format_to(ctx.begin(), "{0:0>4d}:{1:0>3d}", v.line, v.column);
+      return format_to(ctx.begin(), "{}:{}", v.line, v.column);
     }
   };
 }
