@@ -22,8 +22,9 @@ std::string Message::string() const {
 }
 
 bool Message::operator==(const Message& other) const noexcept {
+  // XXX ignore SourceLocation's filename & end
   return type == other.type &&
-         sourceLocation == other.sourceLocation &&
+         sourceLocation.begin == other.sourceLocation.begin &&
          text == other.text;
 }
 
