@@ -817,7 +817,9 @@ FlowToken FlowLexer::continueParseIPv6(bool firstComplete) {
       stringValue_ += ':';
       nextChar();
 
-      if (!ipv6HexDigit4()) return false;
+      if (!ipv6HexDigit4()) {
+        return token_ = FlowToken::Unknown;
+      }
     }
 
     if (currentChar() == ':' && peekChar() == ':') {
