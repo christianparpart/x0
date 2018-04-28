@@ -196,10 +196,12 @@ std::unique_ptr<flow::Program> Daemon::loadConfigStream(
   parser.openStream(std::move(is), fakeFilename);
   std::unique_ptr<flow::UnitSym> unit = parser.parse();
 
-  validateConfig(unit.get());
-
   report.log();
+  if (report.errorCount() > 0)
+    throw ConfigurationError{"Parsing configuration failed."};
   report.clear();
+
+  validateConfig(unit.get());
 
   if (printAST) {
     flow::ASTPrinter::print(unit.get());
@@ -241,6 +243,8 @@ std::unique_ptr<flow::Program> Daemon::loadConfigStream(
 
   program->link(this, &report);
   report.log();
+  if (report.errorCount() > 0)
+    throw ConfigurationError{"Linking configuration failed."};
 
   if (printTC)
     program->dump();
