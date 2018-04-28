@@ -34,6 +34,7 @@ class Tester : public xzero::flow::Runtime {
  public:
   Tester();
 
+  bool test(const std::string& path);
   bool testFile(const std::string& filename);
   bool testDirectory(const std::string& path);
 
@@ -122,9 +123,19 @@ void Tester::reportError(const std::string& msg) {
   errorCount_++;
 }
 
-bool Tester::testDirectory(const std::string& p) {
+bool Tester::test(const std::string& path) {
+  fs::path p{path};
+  if (fs::is_directory(p))
+    return testDirectory(path);
+
+  if (fs::is_regular_file(p))
+    return testFile(path);
+  return false;
+}
+
+bool Tester::testDirectory(const std::string& path) {
   int errorCount = 0;
-  for (auto& dir: fs::recursive_directory_iterator(p)) {
+  for (auto& dir: fs::recursive_directory_iterator(path)) {
     if (dir.path().extension() == ".flow") {
       report_.clear();
       if (!testFile(dir.path().string())) {
@@ -190,7 +201,7 @@ void Tester::compileFile(const std::string& filename, flow::diagnostics::Report*
 
 int main(int argc, const char* argv[]) {
   Tester t;
-  bool success = t.testDirectory(argv[1]);
+  bool success = t.test(argv[1]);
 
   return success ? EXIT_SUCCESS : EXIT_FAILURE;
 }
