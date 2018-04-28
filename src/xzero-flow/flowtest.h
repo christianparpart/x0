@@ -134,41 +134,6 @@ class Parser {
   Lexer lexer_;
 };
 
-class Tester : public xzero::flow::Runtime {
- public:
-  Tester();
-
-  bool testFile(const std::string& filename);
-  bool testDirectory(const std::string& path);
-
- private:
-  void compileFile(const std::string& filename, xzero::flow::diagnostics::Report* report);
-
-  bool import(const std::string& name,
-              const std::string& path,
-              std::vector<xzero::flow::NativeCallback*>* builtins) override;
-
-  void reportError(const std::string& msg);
-
-  template<typename... Args>
-  void reportError(const std::string& fmt, Args&&... args) {
-    reportError(fmt::format(fmt, args...));
-  }
-
-  // handlers
-  void flow_handler_true(xzero::flow::Params& args);
-  void flow_handler(xzero::flow::Params& args);
-
-  // functions
-  void flow_sum(xzero::flow::Params& args);
-  void flow_assert(xzero::flow::Params& args);
-
- private:
-  xzero::flow::diagnostics::Report report_;
-  uintmax_t errorCount_ = 0;
-
-};
-
 } // namespace flowtest
 
 namespace fmt {
@@ -218,5 +183,3 @@ namespace fmt {
     }
   };
 }
-
-#include <xzero-flow/flowtest-inl.h>
