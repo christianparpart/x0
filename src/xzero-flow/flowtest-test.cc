@@ -2,6 +2,8 @@
 #include <xzero/text/literals.h>
 #include <xzero-flow/flowtest.h>
 
+#include "flowtest.cc"
+
 using namespace std;
 using namespace xzero;
 using namespace flow;
