@@ -4,4 +4,4 @@ handler main {
 }
 
 # ----
-# TypeError: Unknown symbol 'f'.
+# [3:3] TypeError: Unknown symbol 'f'.

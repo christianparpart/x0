@@ -14,7 +14,7 @@
   FlowProgram     ::= <flow program code until Initializer>
 
   Initializer     ::= '#' '----' LF
-  Message         ::= '#' DiagnosticsType ':' Location? MessageText LF
+  Message         ::= '#' [Location] DiagnosticsType ':' MessageText LF
   DiagnosticsType ::= 'TokenError' | 'SyntaxError' | 'TypeError' | 'Warning' | 'LinkError'
 
   Location        ::= '[' FilePos ['..' FilePos] ']'
@@ -176,11 +176,25 @@ void Lexer::skipSpace() {
   }
 }
 
+bool Lexer::consumeIf(Token t) {
+  if (currentToken() != t)
+    return false;
+
+  nextToken();
+  return true;
+}
+
 void Lexer::consume(Token t) {
   if (currentToken() != t)
     throw LexerError{fmt::format("Unexpected token {}. Expected {} instead.", currentToken(), t)};
 
   nextToken();
+}
+
+int Lexer::consumeNumber() {
+  unsigned result = numberValue_;
+  consume(Token::Number);
+  return result;
 }
 
 std::string Lexer::consumeText(Token t) {
@@ -226,18 +240,12 @@ Result<xzero::flow::diagnostics::Report> Parser::parse() {
 }
 
 Message Parser::parseMessage() {
-  // Message          ::= '#' DiagnosticsType ':' Location MessageText (LF | EOF)
-  // MessageText      ::= TEXT (LF INDENT TEXT)*
-  // DiagnosticsType  ::= 'TokenError' | 'SyntaxError' | 'TypeError' | 'Warning' | 'LinkError'
-  // Location         ::= '[' FilePos ['..' FilePos] ']'
-  // FilePos          ::= Line ':' Column
-  // Column           ::= NUMBER
-  // Line             ::= NUMBER
+  // Message          ::= '#' [Location] DiagnosticsType ':' MessageText (LF | EOF)
 
   lexer_.consume(Token::Begin);
+  SourceLocation location = tryParseLocation();
   DiagnosticsType type = parseDiagnosticsType();
   lexer_.consume(Token::Colon);
-  SourceLocation location = parseLocation();
   std::string text = lexer_.consumeText(Token::MessageText);
   lexer_.consumeOneOf({Token::LF, Token::Eof});
 
@@ -245,6 +253,7 @@ Message Parser::parseMessage() {
 }
 
 DiagnosticsType Parser::parseDiagnosticsType() {
+  // DiagnosticsType  ::= 'TokenError' | 'SyntaxError' | 'TypeError' | 'Warning' | 'LinkError'
   switch (lexer_.currentToken()) {
     case Token::TokenError:
       lexer_.nextToken();
@@ -266,17 +275,34 @@ DiagnosticsType Parser::parseDiagnosticsType() {
   }
 }
 
-SourceLocation Parser::parseLocation() { // TODO
+SourceLocation Parser::tryParseLocation() { // TODO
   // Location      ::= '[' FilePos ['..' FilePos] ']'
-  // FilePos       ::= Line ':' Column
+
+  if (!lexer_.consumeIf(Token::BrOpen))
+    return SourceLocation{};
+
+  FilePos begin = parseFilePos();
+
+  if (lexer_.consumeIf(Token::DotDot)) {
+    FilePos end = parseFilePos();
+    return SourceLocation{"", begin, end};
+  } else {
+    return SourceLocation{"", begin, FilePos{}};
+  }
+}
+
+FilePos Parser::parseFilePos() {
+  // FilePos       ::= Line [':' Column]
   // Column        ::= NUMBER
   // Line          ::= NUMBER
 
-  // consume(Token::BrOpen);
-  // FilePos begin = parseFilePos();
-  // FilePos end = consumeIf(Token::DotDot) ? parseFilePos() : FilePos{};
-
-  return SourceLocation();
+  unsigned line = lexer_.consumeNumber();
+  if (lexer_.consumeIf(Token::Colon)) {
+    unsigned column = lexer_.consumeNumber();
+    return FilePos{line, column};
+  } else {
+    return FilePos{line, 0};
+  }
 }
 
 } // namespace flowtest

@@ -61,12 +61,14 @@ class Lexer {
   std::string getPrefixText() const { return source_.substr(0, startOffset_); }
 
   Token currentToken() const noexcept { return currentToken_; }
-  int numberValue() const noexcept { return numberValue_; }
+  unsigned numberValue() const noexcept { return numberValue_; }
   const std::string& stringValue() const noexcept { return stringValue_; }
 
   Token nextToken();
+  bool consumeIf(Token t);
   void consume(Token t);
   void consumeOneOf(std::initializer_list<Token>&& tokens);
+  int consumeNumber();
   std::string consumeText(Token t);
 
   Lexer& operator++() { nextToken(); }
@@ -98,13 +100,14 @@ class Lexer {
   size_t startOffset_;
   Token currentToken_;
   xzero::flow::FilePos currentPos_;
-  int numberValue_;
+  unsigned numberValue_;
   std::string stringValue_;
 };
 
 using DiagnosticsType = xzero::flow::diagnostics::Type;
 using Message = xzero::flow::diagnostics::Message;
 using SourceLocation = xzero::flow::SourceLocation;
+using FilePos = xzero::flow::FilePos;
 
 /**
  * Parses the input @p contents and splits it into a flow program and a vector
@@ -121,7 +124,8 @@ class Parser {
   std::string parseLine();
   Message parseMessage();
   DiagnosticsType parseDiagnosticsType();
-  SourceLocation parseLocation();
+  SourceLocation tryParseLocation();
+  FilePos parseFilePos();
 
   void reportError(const std::string& msg);
 
