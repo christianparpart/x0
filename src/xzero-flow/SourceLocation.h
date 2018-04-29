@@ -17,10 +17,11 @@ namespace xzero::flow {
 //@{
 
 struct FilePos { // {{{
-  FilePos() : line(1), column(1), offset(0) {}
-  FilePos(size_t r, size_t c, size_t o) : line(r), column(c), offset(o) {}
+  FilePos() : FilePos{1, 1, 0} {}
+  FilePos(unsigned r, unsigned c) : FilePos{r, c, 0} {}
+  FilePos(unsigned r, unsigned c, unsigned o) : line(r), column(c), offset(o) {}
 
-  FilePos& set(size_t r, size_t c, size_t o) {
+  FilePos& set(unsigned r, unsigned c, unsigned o) {
     line = r;
     column = c;
     offset = o;
@@ -48,9 +49,9 @@ struct FilePos { // {{{
     return !(*this == other);
   }
 
-  size_t line;
-  size_t column;
-  size_t offset;
+  unsigned line;
+  unsigned column;
+  unsigned offset;
 };
 
 inline size_t operator-(const FilePos& a, const FilePos& b) {
@@ -126,7 +127,10 @@ namespace fmt {
 
     template <typename FormatContext>
     constexpr auto format(const xzero::flow::SourceLocation& v, FormatContext &ctx) {
-      return format_to(ctx.begin(), "{}:{}", v.filename, v.begin);
+      if (!v.filename.empty())
+        return format_to(ctx.begin(), "{}:{}", v.filename, v.begin);
+      else
+        return format_to(ctx.begin(), "{}", v.begin);
     }
   };
 }
