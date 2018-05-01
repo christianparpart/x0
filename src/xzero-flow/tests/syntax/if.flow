@@ -1,0 +1,9 @@
+# vim:syntax=x0dconf
+handler main {
+  if true {
+  }
+
+  if true {}
+  else {}
+}
+# ----

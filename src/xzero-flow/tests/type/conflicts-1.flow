@@ -1,0 +1,9 @@
+# vim:syntax=x0dconf
+
+main {
+  sum(12, '34');
+  sum('12', '34');
+}
+
+# ----
+# TypeError: No matching signature for sum(SS)V. Type mismatch in positional parameter 1, callee sum(II)I.

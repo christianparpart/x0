@@ -185,17 +185,21 @@ std::unique_ptr<flow::Program> Daemon::loadConfigStream(
     std::unique_ptr<std::istream>&& is,
     const std::string& fakeFilename,
     bool printAST, bool printIR, bool printTC) {
+  flow::diagnostics::Report report;
   flow::FlowParser parser(
+      &report,
       this,
       std::bind(&Daemon::import, this, std::placeholders::_1,
                                             std::placeholders::_2,
-                                            std::placeholders::_3),
-      [](const std::string& msg) {
-        logError("Configuration file error. {}", msg);
-      });
+                                            std::placeholders::_3));
 
   parser.openStream(std::move(is), fakeFilename);
   std::unique_ptr<flow::UnitSym> unit = parser.parse();
+
+  report.log();
+  if (report.errorCount() > 0)
+    throw ConfigurationError{"Parsing configuration failed."};
+  report.clear();
 
   validateConfig(unit.get());
 
@@ -237,7 +241,10 @@ std::unique_ptr<flow::Program> Daemon::loadConfigStream(
   std::unique_ptr<flow::Program> program =
       flow::TargetCodeGenerator().generate(programIR.get());
 
-  program->link(this);
+  program->link(this, &report);
+  report.log();
+  if (report.errorCount() > 0)
+    throw ConfigurationError{"Linking configuration failed."};
 
   if (printTC)
     program->dump();

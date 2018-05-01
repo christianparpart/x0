@@ -9,18 +9,19 @@
 
 #include <xzero/defines.h>
 #include <string>
+#include <fmt/format.h>
 
-namespace xzero {
-namespace flow {
+namespace xzero::flow {
 
 //! \addtogroup Flow
 //@{
 
 struct FilePos { // {{{
-  FilePos() : line(1), column(1), offset(0) {}
-  FilePos(size_t r, size_t c, size_t o) : line(r), column(c), offset(o) {}
+  FilePos() : FilePos{1, 1, 0} {}
+  FilePos(unsigned r, unsigned c) : FilePos{r, c, 0} {}
+  FilePos(unsigned r, unsigned c, unsigned o) : line(r), column(c), offset(o) {}
 
-  FilePos& set(size_t r, size_t c, size_t o) {
+  FilePos& set(unsigned r, unsigned c, unsigned o) {
     line = r;
     column = c;
     offset = o;
@@ -28,9 +29,29 @@ struct FilePos { // {{{
     return *this;
   }
 
-  size_t line;
-  size_t column;
-  size_t offset;
+  void advance(char ch) {
+    offset++;
+    if (ch != '\n') {
+      column++;
+    } else {
+      line++;
+      column = 1;
+    }
+  }
+
+  bool operator==(const FilePos& other) const noexcept {
+    return line == other.line &&
+           column == other.column &&
+           offset == other.offset;
+  }
+
+  bool operator!=(const FilePos& other) const noexcept {
+    return !(*this == other);
+  }
+
+  unsigned line;
+  unsigned column;
+  unsigned offset;
 };
 
 inline size_t operator-(const FilePos& a, const FilePos& b) {
@@ -64,6 +85,16 @@ struct SourceLocation { // {{{
 
   std::string str() const;
   std::string text() const;
+
+  bool operator==(const SourceLocation& other) const noexcept {
+    return filename == other.filename &&
+           begin == other.begin &&
+           end == other.end;
+  }
+
+  bool operator!=(const SourceLocation& other) const noexcept {
+    return !(*this == other);
+  }
 };  // }}}
 
 inline SourceLocation operator-(const SourceLocation& end,
@@ -73,5 +104,33 @@ inline SourceLocation operator-(const SourceLocation& end,
 
 //!@}
 
-}  // namespace flow
-}  // namespace xzero
+} // namespace xzero::flow
+
+namespace fmt {
+  template<>
+  struct formatter<xzero::flow::FilePos> {
+    template <typename ParseContext>
+    constexpr auto parse(ParseContext &ctx) { return ctx.begin(); }
+
+    template <typename FormatContext>
+    constexpr auto format(const xzero::flow::FilePos& v, FormatContext &ctx) {
+      return format_to(ctx.begin(), "{}:{}", v.line, v.column);
+    }
+  };
+}
+
+namespace fmt {
+  template<>
+  struct formatter<xzero::flow::SourceLocation> {
+    template <typename ParseContext>
+    constexpr auto parse(ParseContext &ctx) { return ctx.begin(); }
+
+    template <typename FormatContext>
+    constexpr auto format(const xzero::flow::SourceLocation& v, FormatContext &ctx) {
+      if (!v.filename.empty())
+        return format_to(ctx.begin(), "{}:{}", v.filename, v.begin);
+      else
+        return format_to(ctx.begin(), "{}", v.begin);
+    }
+  };
+}

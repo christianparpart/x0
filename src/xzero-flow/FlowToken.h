@@ -12,117 +12,102 @@
 #include <iosfwd>
 #include <cstdint>
 #include <xzero/defines.h>
+#include <fmt/format.h>
 
-namespace xzero {
-namespace flow {
+namespace xzero::flow {
 
 //! \addtogroup Flow
 //@{
 
-struct FlowToken {
-  enum _ {
-    Unknown,
+enum class FlowToken {
+  Unknown,
 
-    // literals
-    Boolean,
-    Number,
-    String,
-    RawString,
-    RegExp,
-    IP,
-    Cidr,
-    NamedParam,
-    InterpolatedStringFragment,  // "hello #{" or "} world #{"
-    InterpolatedStringEnd,       // "} end"
+  // literals
+  Boolean,
+  Number,
+  String,
+  RawString,
+  RegExp,
+  IP,
+  Cidr,
+  NamedParam,
+  InterpolatedStringFragment,  // "hello #{" or "} world #{"
+  InterpolatedStringEnd,       // "} end"
 
-    // symbols
-    Assign,
-    OrAssign,
-    AndAssign,
-    PlusAssign,
-    MinusAssign,
-    MulAssign,
-    DivAssign,
-    Semicolon,
-    Question,
-    Colon,
-    And,
-    Or,
-    Xor,
-    Equal,
-    UnEqual,
-    Less,
-    Greater,
-    LessOrEqual,
-    GreaterOrEqual,
-    PrefixMatch,
-    SuffixMatch,
-    RegexMatch,
-    In,
-    HashRocket,
-    Plus,
-    Minus,
-    Mul,
-    Div,
-    Mod,
-    Shl,
-    Shr,
-    Comma,
-    Pow,
-    Not,
-    BitNot,
-    BitOr,
-    BitAnd,
-    BitXor,
-    BrOpen,
-    BrClose,
-    RndOpen,
-    RndClose,
-    Begin,
-    End,
+  // symbols
+  Assign,
+  OrAssign,
+  AndAssign,
+  PlusAssign,
+  MinusAssign,
+  MulAssign,
+  DivAssign,
+  Semicolon,
+  Question,
+  Colon,
+  And,
+  Or,
+  Xor,
+  Equal,
+  UnEqual,
+  Less,
+  Greater,
+  LessOrEqual,
+  GreaterOrEqual,
+  PrefixMatch,
+  SuffixMatch,
+  RegexMatch,
+  In,
+  HashRocket,
+  Plus,
+  Minus,
+  Mul,
+  Div,
+  Mod,
+  Shl,
+  Shr,
+  Comma,
+  Pow,
+  Not,
+  BitNot,
+  BitOr,
+  BitAnd,
+  BitXor,
+  BrOpen,
+  BrClose,
+  RndOpen,
+  RndClose,
+  Begin,
+  End,
 
-    // keywords
-    Var,
-    Do,
-    Handler,
-    If,
-    Then,
-    Else,
-    Unless,
-    Match,
-    On,
-    For,
-    Import,
-    From,
+  // keywords
+  Var,
+  Do,
+  Handler,
+  If,
+  Then,
+  Else,
+  Unless,
+  Match,
+  On,
+  For,
+  Import,
+  From,
 
-    // data types
-    VoidType,
-    BoolType,
-    NumberType,
-    StringType,
+  // data types
+  VoidType,
+  BoolType,
+  NumberType,
+  StringType,
 
-    // misc
-    Ident,
-    Period,
-    DblPeriod,
-    Ellipsis,
-    Comment,
-    Eof,
-    COUNT
-  };
-
- public:
-  FlowToken() : value_(Unknown) {}
-  FlowToken(int value) : value_(value) {}
-  FlowToken(_ value) : value_(static_cast<int>(value)) {}
-
-  int value() const throw() { return value_; }
-  const char *c_str() const throw();
-
-  operator int() const { return value_; }
-
- private:
-  int value_;
+  // misc
+  Ident,
+  Period,
+  DblPeriod,
+  Ellipsis,
+  Comment,
+  Eof,
+  COUNT
 };
 
 class FlowTokenTraits {
@@ -138,22 +123,30 @@ class FlowTokenTraits {
   static bool isRelOp(FlowToken t);
 };
 
+std::string to_string(FlowToken t);
+
 //!@}
 
-}  // namespace flow
-}  // namespace xzero
+}  // namespace xzero::flow
 
 namespace std {
+  template <>
+  struct hash<xzero::flow::FlowToken> {
+    uint32_t operator()(xzero::flow::FlowToken v) const {
+      return static_cast<uint32_t>(v);
+    }
+  };
+}
 
-//! \addtogroup Flow
-//@{
+namespace fmt {
+  template<>
+  struct formatter<xzero::flow::FlowToken> {
+    template <typename ParseContext>
+    constexpr auto parse(ParseContext &ctx) { return ctx.begin(); }
 
-template <>
-struct hash<xzero::flow::FlowToken> {
-  uint32_t operator()(xzero::flow::FlowToken v) const {
-    return static_cast<uint32_t>(v.value());
-  }
-};
-
-//!@}
+    template <typename FormatContext>
+    constexpr auto format(const xzero::flow::FlowToken& v, FormatContext &ctx) {
+      return format_to(ctx.begin(), to_string(v));
+    }
+  };
 }

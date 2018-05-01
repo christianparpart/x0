@@ -79,12 +79,15 @@ namespace testing {
   }
 
 #define EXPECT_ERROR_CODE(expected, actual)                                   \
-  if ((actual) != (expected)) {                                               \
-    ::xzero::testing::UnitTest::instance()->reportError(                      \
-        __FILE__, __LINE__, false,                                            \
-        #expected, (expected),                                                \
-        #actual, (actual));                                                   \
-  }
+  do {                                                                        \
+    std::error_code actual_ {(actual)};                                       \
+    if (actual_ != (expected)) {                                              \
+      ::xzero::testing::UnitTest::instance()->reportError(                    \
+          __FILE__, __LINE__, false,                                          \
+          #expected, (expected),                                              \
+          #actual, actual_);                                                  \
+    }                                                                         \
+  } while (0)
 
 #define EXPECT_THROW(program, ExceptionType)                                  \
   do {                                                                        \
@@ -147,12 +150,15 @@ namespace testing {
   }
 
 #define ASSERT_ERROR_CODE(expected, actual)                                   \
-  if ((actual) != (expected)) {                                               \
-    ::xzero::testing::UnitTest::instance()->reportError(                      \
-        __FILE__, __LINE__, true,                                             \
-        #expected, (expected),                                                \
-        #actual, (actual));                                                   \
-  }
+  do {                                                                        \
+    std::error_code actual_ {(actual)};                                       \
+    if (actual_ != (expected)) {                                              \
+      ::xzero::testing::UnitTest::instance()->reportError(                    \
+          __FILE__, __LINE__, true,                                           \
+          #expected, (expected),                                              \
+          #actual, actual_);                                                  \
+    }                                                                         \
+  } while (0)
 
 #define ASSERT_THROW(program, ExceptionType)                                  \
   do {                                                                        \
@@ -195,10 +201,13 @@ namespace testing {
   } while (0)
 
 #define _EXPECT_BINARY(fileName, lineNo, fatal, expected, actual, op)         \
-  do if (!((expected) op (actual))) {                                         \
+  do {                                                                        \
+    auto actual_ = (actual);                                                  \
+    if (!((expected) op (actual_))) {                                         \
     ::xzero::testing::UnitTest::instance()->reportBinary(                     \
         __FILE__, __LINE__, fatal, #expected, #actual,                        \
-        ::fmt::format("{}", (actual)), #op);                                  \
+        ::fmt::format("{}", actual_), #op);                                   \
+    }                                                                         \
   } while (0)
 
 #define _TEST_CLASS_NAME(testCaseName, testName) \

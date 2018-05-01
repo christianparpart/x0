@@ -5,304 +5,304 @@
 // file except in compliance with the License. You may obtain a copy of
 // the License at: http://opensource.org/licenses/MIT
 
-#include <xzero-flow/FlowParser.h>
+#include <xzero-flow/flowtest.h>
 #include <xzero-flow/SourceLocation.h>
-#include <xzero-flow/IRGenerator.h>
-#include <xzero-flow/NativeCallback.h>
-#include <xzero-flow/Params.h>
-#include <xzero-flow/TargetCodeGenerator.h>
-#include <xzero-flow/ir/IRProgram.h>
-#include <xzero-flow/ir/PassManager.h>
-#include <xzero-flow/transform/EmptyBlockElimination.h>
-#include <xzero-flow/transform/InstructionElimination.h>
-#include <xzero-flow/transform/MergeBlockPass.h>
-#include <xzero-flow/transform/UnusedBlockPass.h>
-#include <xzero-flow/vm/Program.h>
-#include <xzero-flow/vm/Runtime.h>
-
-#include <xzero/io/FileUtil.h>
-#include <xzero/logging.h>
-#include <fmt/format.h>
-
-#include <iostream>
-#include <vector>
-#include <experimental/filesystem>
-
-using namespace std;
-using namespace xzero;
-
-namespace fs = std::experimental::filesystem;
-
-enum class AnalysisType { TokenError, SyntaxError, TypeError, Warning, LinkError };
+#include <xzero/Result.h>
 
 /*
-  TestProgram   ::= FlowProgram [Initializer TestMessage*]
-  FlowProgram   ::= <flow program code until Initializer>
+  TestProgram     ::= FlowProgram [Initializer Message*]
+  FlowProgram     ::= <flow program code until Initializer>
 
-  Initializer   ::= '#' '----' LF
-  TestMessage   ::= '#' AnalysisType ':' Location MessageText LF
-  AnalysisType  ::= 'TokenError' | 'SyntaxError' | 'TypeError' | 'Warning' | 'LinkError'
+  Initializer     ::= '#' '----' LF
+  Message         ::= '#' [Location] DiagnosticsType ':' MessageText LF
+  DiagnosticsType ::= 'TokenError' | 'SyntaxError' | 'TypeError' | 'Warning' | 'LinkError'
 
-  Location      ::= '[' FilePos ['..' FilePos] ']'
-  FilePos       ::= Line ':' Column
-  Column        ::= NUMBER
-  Line          ::= NUMBER
+  Location        ::= '[' FilePos ['..' FilePos] ']'
+  FilePos         ::= Line ':' Column
+  Column          ::= NUMBER
+  Line            ::= NUMBER
 
-  MessageText   ::= TEXT (LF INDENT TEXT)*
+  MessageText     ::= TEXT (LF INDENT TEXT)*
 
-  NUMBER        ::= ('0'..'9')+
-  TEXT          ::= <until LF>
-  LF            ::= '\n' | '\r\n'
-  INDENT        ::= (' ' | '\t')+
+  NUMBER          ::= ('0'..'9')+
+  TEXT            ::= <until LF>
+  LF              ::= '\n' | '\r\n'
+  INDENT          ::= (' ' | '\t')+
 */
 
-struct TestMessage {
-  AnalysisType type;
-  flow::SourceLocation sourceLocation;
-  std::vector<std::string> texts;
-};
+namespace flowtest {
 
-/**
- * Parses the input @p contents and splits it into a flow program and a vector
- * of analysis TestMessage.
- */
-class TestParser {
- public:
-  TestParser(const std::string& filename, std::string& contents);
+// ----------------------------------------------------------------------------
+// lexic
 
-  bool parse(std::string* programText, std::vector<TestMessage>* messages);
-
- public: // accessors
-  std::string program() const;
-
- private:
-  std::string parseUntilInitializer();
-  std::string parseLine();
-  TestMessage parseMessage();
-
- private:
-  std::string filename_;
-  std::string contents_;
-  size_t currentOffset_;
-};
-
-TestParser::TestParser(const std::string& filename, std::string& contents)
-    : filename_{filename}, contents_{contents} {
+Lexer::Lexer()
+    : Lexer("", "") {
 }
 
-bool TestParser::parse(std::string* programText, std::vector<TestMessage>* messages) {
-  *programText = parseUntilInitializer();
+Lexer::Lexer(const std::string& filename, const std::string& contents)
+    : filename_{filename},
+      source_{contents},
+      startOffset_{0},
+      currentToken_{Token::Eof},
+      currentPos_{},
+      numberValue_{0},
+      stringValue_{} {
+  size_t i = source_.find("\n# ----\n");
+  if (i != std::string::npos) {
+    nextChar(i + 8);
+    startOffset_ = i + 1;
+    currentToken_ = Token::InitializerMark;
+  } else {
+    startOffset_ = source_.size();
+    currentToken_ = Token::Eof;
+  }
+}
 
-  while (!eof())
-    messages->push_back(parseMessage());
+int Lexer::nextChar(off_t i) {
+  while (i > 0 && !eof_()) {
+    currentPos_.advance(currentChar());
+    i--;
+  }
+  return currentChar();
+}
+
+bool Lexer::peekSequenceMatch(const std::string& sequence) const {
+  if (currentOffset() + sequence.size() > source_.size())
+    return false;
+
+  for (size_t i = 0; i < sequence.size(); ++i)
+    if (source_[currentOffset() + i] != sequence[i])
+      return false;
 
   return true;
 }
 
-std::string TestParser::parseUntilInitializer() {
+Token Lexer::nextToken() {
+  skipSpace();
+  switch (currentChar()) {
+    case -1:
+      return currentToken_ = Token::Eof;
+    case '#':
+      // if (peekSequenceMatch("# ----\n")) {
+      //   nextChar(7);
+      //   return currentToken_ = Token::InitializerMark;
+      // }
+      nextChar();
+      return currentToken_ = Token::Begin;
+    case '.':
+      if (peekChar() == '.') {
+        nextChar(2);
+        return currentToken_ = Token::DotDot;
+      }
+      break;
+    case ':':
+      nextChar();
+      return currentToken_ = Token::Colon;
+    case '[':
+      nextChar();
+      return currentToken_ = Token::BrOpen;
+    case ']':
+      nextChar();
+      return currentToken_ = Token::BrClose;
+    case '\n':
+      nextChar();
+      return currentToken_ = Token::LF;
+    default:
+      if (currentToken_ == Token::Colon) {
+        return currentToken_ = parseMessageText();
+      }
+      if (std::isdigit(currentChar())) {
+        return currentToken_ = parseNumber();
+      }
+      if (std::isalpha(currentChar())) {
+        return currentToken_ = parseIdent();
+      }
+  }
+  throw LexerError{fmt::format("Unexpected character {} ({:x}) during tokenization.",
+      currentChar() ? (char) currentChar() : '?', currentChar())};
+}
+
+Token Lexer::parseIdent() {
+  stringValue_.clear();
+  while (std::isalpha(currentChar())) {
+    stringValue_ += static_cast<char>(currentChar());
+    nextChar();
+  }
+  if (stringValue_ == "TokenError")
+    return Token::TokenError;
+  if (stringValue_ == "SyntaxError")
+    return Token::SyntaxError;
+  if (stringValue_ == "TypeError")
+    return Token::TypeError;
+  if (stringValue_ == "Warning")
+    return Token::Warning;
+  if (stringValue_ == "LinkError")
+    return Token::LinkError;
+
+  throw LexerError{fmt::format("Unexpected identifier '{}' during tokenization.",
+                               stringValue_)};
+}
+
+Token Lexer::parseMessageText() {
+  stringValue_.clear();
+  while (!eof_() && currentChar() != '\n') {
+    stringValue_ += static_cast<char>(currentChar());
+    nextChar();
+  }
+  return Token::MessageText;
+}
+
+Token Lexer::parseNumber() {
+  numberValue_ = 0;
+
+  while (std::isdigit(currentChar())) {
+    numberValue_ *= 10;
+    numberValue_ += currentChar() - '0';
+    nextChar();
+  }
+  return Token::Number;
+}
+
+void Lexer::skipSpace() {
   for (;;) {
-    size_t lastLineOffset = currentOffset_;
-    std::string line = parseLine();
-    if (line.empty() || line == "# ----") {
-      return contents_.substr(0, lastLineOffset);
+    switch (currentChar()) {
+      case ' ':
+      case '\t':
+        nextChar();
+        break;
+      default:
+        return;
     }
   }
 }
 
-std::string TestParser::parseLine() {
-  constexpr char LF = '\n';
-  const size_t startOfLine = currentOffset_;
+bool Lexer::consumeIf(Token t) {
+  if (currentToken() != t)
+    return false;
 
-  while (!eof() && contents_[currentOffset_] != LF)
-    currentOffset_++;
-
-  std::string line = contents_.substr(startOfLine, currentOffset_ - startOfLine);
-
-  if (!eof() && contents_[currentOffset_] == LF)
-    currentOffset_++;
-
-  return line;
-}
-
-TestMessage TestParser::parseMessage() {
-  // TestMessage   ::= '#' AnalysisType ':' Location MessageText LF
-  // MessageText   ::= TEXT (LF INDENT TEXT)*
-  // AnalysisType  ::= 'TokenError' | 'SyntaxError' | 'TypeError' | 'Warning' | 'LinkError'
-  // Location      ::= '[' FilePos ['..' FilePos] ']'
-  // FilePos       ::= Line ':' Column
-  // Column        ::= NUMBER
-  // Line          ::= NUMBER
-
-  parseCommentToken();
-  AnalysisType type = parseAnalysisType();
-  parseColon();
-  SourceLocation location = parseLocation();
-  std::string text = parseMessageText();
-  parseLF();
-
-  return TestMessage{};
-}
-
-void TestParser::parseCommentToken() {
-  if (currentChar() == '#')
-    nextChar();
-
-  skipWhiteSpaces();
-}
-
-AnalysisType TestParser::parseAnalysisType() {
-  const size_t startColumn = currentOffset_;
-  const std::string stringValue = parseIdent();
-
-  if (stringValue == "TokenError")
-    return AnalysisType::TokenError;
-
-  if (stringValue == "SyntaxError")
-    return AnalysisType::SyntaxError;
-
-  if (stringValue == "TypeError")
-    return AnalysisType::TypeError;
-
-  if (stringValue == "Warning")
-    return AnalysisType::Warning;
-
-  if (stringValue == "LinkError")
-    return AnalysisType::LinkError;
-
-  const size_t endColumn = currentOffset_;
-
-  // XXX prints error message, dump currentLine() and underlines column from given start to end
-  reportErrorAt(currentLine(), startColumn, endColumn, "Unknown analysis-type");
-}
-
-class Tester : public flow::Runtime {
- public:
-  Tester();
-
-  bool testFile(const std::string& filename);
-  bool testDirectory(const std::string& path);
-
- private:
-  bool import(const std::string& name,
-              const std::string& path,
-              std::vector<flow::NativeCallback*>* builtins) override;
-  void reportError(const std::string& msg);
-
-  // handlers
-  void flow_handler_true(flow::Params& args);
-  void flow_handler(flow::Params& args);
-
-  // functions
-  void flow_sum(flow::Params& args);
-  void flow_assert(flow::Params& args);
-
- private:
-  int errorCount_ = 0;
-};
-
-Tester::Tester() {
-  registerHandler("handler.true")
-      .bind(&Tester::flow_handler_true, this);
-
-  registerHandler("handler")
-      .bind(&Tester::flow_handler, this)
-      .param<flow::FlowNumber>("result");
-
-  registerFunction("sum", flow::LiteralType::Number)
-      .bind(&Tester::flow_sum, this)
-      .param<flow::FlowNumber>("x")
-      .param<flow::FlowNumber>("y");
-
-  registerFunction("assert", flow::LiteralType::Number)
-      .bind(&Tester::flow_assert, this)
-      .param<flow::FlowNumber>("condition")
-      .param<flow::FlowString>("description", "");
-}
-
-void Tester::flow_handler_true(flow::Params& args) {
-  args.setResult(true);
-}
-
-void Tester::flow_handler(flow::Params& args) {
-  args.setResult(args.getBool(1));
-}
-
-void Tester::flow_sum(flow::Params& args) {
-  const flow::FlowNumber x = args.getInt(1);
-  const flow::FlowNumber y = args.getInt(2);
-  args.setResult(x + y);
-}
-
-void Tester::flow_assert(flow::Params& args) {
-  const bool condition = args.getBool(1);
-  const std::string description = args.getString(2);
-
-  if (!condition) {
-    if (description.empty())
-      reportError("Assertion failed.");
-    else
-      reportError(fmt::format("Assertion failed ({}).", description));
-  }
-}
-
-bool Tester::import(
-    const std::string& name,
-    const std::string& path,
-    std::vector<flow::NativeCallback*>* builtins) {
+  nextToken();
   return true;
 }
 
-void Tester::reportError(const std::string& msg) {
-  fmt::print("Configuration file error. {}\n", msg);
-  errorCount_++;
+void Lexer::consume(Token t) {
+  if (currentToken() != t)
+    throw LexerError{fmt::format("Unexpected token {}. Expected {} instead.", currentToken(), t)};
+
+  nextToken();
 }
 
-bool Tester::testDirectory(const std::string& p) {
-  int errorCount = 0;
-  for (auto& dir: fs::recursive_directory_iterator(p))
-    if (dir.path().extension() == ".flow")
-      if (!testFile(dir.path().string()))
-        errorCount++;
-
-  return errorCount == 0;
+int Lexer::consumeNumber() {
+  unsigned result = numberValue_;
+  consume(Token::Number);
+  return result;
 }
 
-bool Tester::testFile(const std::string& filename) {
-  fmt::print("testing: {}\n", filename);
+std::string Lexer::consumeText(Token t) {
+  std::string result = stringValue();
+  consume(t);
+  return result;
+}
 
-  constexpr bool optimize = true;
-
-  flow::FlowParser parser(this,
-                          [this](auto x, auto y, auto z) { return import(x, y, z); },
-                          [this](const std::string& msg) { reportError(msg); });
-  parser.openStream(std::make_unique<std::ifstream>(filename), filename);
-  std::unique_ptr<flow::UnitSym> unit = parser.parse();
-
-  flow::IRGenerator irgen([this] (const std::string& msg) { reportError(msg); },
-                          {"main"});
-  std::shared_ptr<flow::IRProgram> programIR = irgen.generate(unit.get());
-
-  if (optimize) {
-    flow::PassManager pm;
-    pm.registerPass(std::make_unique<flow::UnusedBlockPass>());
-    pm.registerPass(std::make_unique<flow::MergeBlockPass>());
-    pm.registerPass(std::make_unique<flow::EmptyBlockElimination>());
-    pm.registerPass(std::make_unique<flow::InstructionElimination>());
-
-    pm.run(programIR.get());
+std::string join(const std::initializer_list<Token>& tokens) {
+  std::string s;
+  for (Token t: tokens) {
+    if (!s.empty())
+      s += ", ";
+    s += fmt::format("{}", t);
   }
-
-  std::unique_ptr<flow::Program> program =
-      flow::TargetCodeGenerator().generate(programIR.get());
-
-  program->link(this);
-
-  return errorCount_ == 0;
+  return s;
 }
 
-int main(int argc, const char* argv[]) {
-  Tester t;
-  bool success = t.testDirectory(argv[1]);
+void Lexer::consumeOneOf(std::initializer_list<Token>&& tokens) {
+  if (std::find(tokens.begin(), tokens.end(), currentToken()) == tokens.end())
+    throw LexerError{fmt::format("Unexpected token {}. Expected on of {} instead.",
+                                 currentToken(), join(tokens))};
 
-  return success ? EXIT_SUCCESS : EXIT_FAILURE;
+  nextToken();
 }
+
+// ----------------------------------------------------------------------------
+// parser
+
+
+Parser::Parser(const std::string& filename, const std::string& source)
+    : lexer_{filename, source} {
+}
+
+Result<xzero::flow::diagnostics::Report> Parser::parse() {
+  xzero::flow::diagnostics::Report report;
+  lexer_.consume(Token::InitializerMark);
+
+  while (!lexer_.eof())
+    report.emplace_back(parseMessage());
+
+  return Success(std::move(report));
+}
+
+Message Parser::parseMessage() {
+  // Message          ::= '#' [Location] DiagnosticsType ':' MessageText (LF | EOF)
+
+  lexer_.consume(Token::Begin);
+  SourceLocation location = tryParseLocation();
+  DiagnosticsType type = parseDiagnosticsType();
+  lexer_.consume(Token::Colon);
+  std::string text = lexer_.consumeText(Token::MessageText);
+  lexer_.consumeOneOf({Token::LF, Token::Eof});
+
+  return Message{type, location, text};
+}
+
+DiagnosticsType Parser::parseDiagnosticsType() {
+  // DiagnosticsType  ::= 'TokenError' | 'SyntaxError' | 'TypeError' | 'Warning' | 'LinkError'
+  switch (lexer_.currentToken()) {
+    case Token::TokenError:
+      lexer_.nextToken();
+      return DiagnosticsType::TokenError;
+    case Token::SyntaxError:
+      lexer_.nextToken();
+      return DiagnosticsType::SyntaxError;
+    case Token::TypeError:
+      lexer_.nextToken();
+      return DiagnosticsType::TypeError;
+    case Token::Warning:
+      lexer_.nextToken();
+      return DiagnosticsType::Warning;
+    case Token::LinkError:
+      lexer_.nextToken();
+      return DiagnosticsType::LinkError;
+    default:
+      throw SyntaxError{"Unexpected token. Expected DiagnosticsType instead."};
+  }
+}
+
+SourceLocation Parser::tryParseLocation() { // TODO
+  // Location      ::= '[' FilePos ['..' FilePos] ']'
+
+  if (!lexer_.consumeIf(Token::BrOpen))
+    return SourceLocation{};
+
+  FilePos begin = parseFilePos();
+
+  if (lexer_.consumeIf(Token::DotDot)) {
+    FilePos end = parseFilePos();
+    return SourceLocation{"", begin, end};
+  } else {
+    return SourceLocation{"", begin, FilePos{}};
+  }
+}
+
+FilePos Parser::parseFilePos() {
+  // FilePos       ::= Line [':' Column]
+  // Column        ::= NUMBER
+  // Line          ::= NUMBER
+
+  unsigned line = lexer_.consumeNumber();
+  if (lexer_.consumeIf(Token::Colon)) {
+    unsigned column = lexer_.consumeNumber();
+    return FilePos{line, column};
+  } else {
+    return FilePos{line, 0};
+  }
+}
+
+} // namespace flowtest

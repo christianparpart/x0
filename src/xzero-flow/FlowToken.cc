@@ -7,12 +7,9 @@
 
 #include <xzero-flow/FlowToken.h>
 #include <xzero/StringUtil.h>
-#include <cstdio>
-#include <cstdlib>
-#include <assert.h>
+#include <xzero/logging.h>
 
-namespace xzero {
-namespace flow {
+namespace xzero::flow {
 
 bool FlowTokenTraits::isKeyword(FlowToken t) {
   switch (t) {
@@ -139,8 +136,8 @@ bool FlowTokenTraits::isLiteral(FlowToken t) {
   }
 }
 
-const char *FlowToken::c_str() const throw() {
-  switch (value_) {
+std::string to_string(FlowToken t) {
+  switch (t) {
     case FlowToken::Unknown:
       return "Unknown";
     case FlowToken::Boolean:
@@ -296,10 +293,8 @@ const char *FlowToken::c_str() const throw() {
     case FlowToken::InterpolatedStringEnd:
       return "InterpolatedStringEnd";
     default:
-      assert(!"FIXME: Invalid Token.");
-      abort();
+      logFatal("FIXME: Invalid Token.");
   }
 }
 
-}  // namespace flow
-}  // namespace xzero
+}  // namespace xzero::flow

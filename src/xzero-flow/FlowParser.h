@@ -9,6 +9,7 @@
 #include <xzero/defines.h>
 #include <xzero-flow/FlowToken.h>
 #include <xzero-flow/FlowLexer.h>
+#include <xzero-flow/Diagnostics.h>
 #include <xzero-flow/AST.h>  // SymbolTable
 
 #include <list>
@@ -27,28 +28,15 @@ class NativeCallback;
 class Runtime;
 
 class FlowParser {
-  std::unique_ptr<FlowLexer> lexer_;
-  SymbolTable* scopeStack_;
-  Runtime* runtime_;
-
  public:
-  typedef std::function<void(const std::string&)> ErrorHandler;
-  typedef std::function<bool(const std::string&, const std::string&,
-                     std::vector<NativeCallback*>*)> ImportHandler;
+  using ImportHandler = std::function<bool(const std::string&,
+                                           const std::string&,
+                                           std::vector<NativeCallback*>*)>;
 
-  ErrorHandler errorHandler;
-  ImportHandler importHandler;
-
-  FlowParser() : FlowParser(nullptr, nullptr, nullptr) {}
-
-  explicit FlowParser(
-      Runtime* runtime,
-      ImportHandler importHandler = nullptr,
-      ErrorHandler errorHandler = nullptr);
-
+  FlowParser(diagnostics::Report* report, Runtime* runtime, ImportHandler importHandler);
   ~FlowParser();
 
-  void openString(const std::string& filename);
+  void openString(const std::string& content);
   void openLocalFile(const std::string& filename);
   void openStream(std::unique_ptr<std::istream>&& ifs, const std::string& filename);
 
@@ -58,14 +46,6 @@ class FlowParser {
 
  private:
   class Scope;
-
-  // error handling
-  void reportUnexpectedToken();
-  void reportError(const std::string& message);
-  template <typename... Args> void reportError(const std::string& fmt, Args&&...);
-
-  void reportWarning(const std::string& message);
-  template <typename... Args> void reportWarning(const std::string& fmt, Args&&...);
 
   // lexing
   FlowToken token() const { return lexer_->token(); }
@@ -161,27 +141,20 @@ class FlowParser {
   std::unique_ptr<CallExpr> resolve(const std::list<CallableSym*>& symbols,
                                     ParamList&& params);
   std::unique_ptr<Stmt> postscriptStmt(std::unique_ptr<Stmt> baseStmt);
+
+ private:
+  std::unique_ptr<FlowLexer> lexer_;
+  SymbolTable* scopeStack_;
+  Runtime* runtime_;
+  ImportHandler importHandler_;
+  diagnostics::Report& report_;
 };
 
 // {{{ inlines
-template <typename... Args>
-inline void FlowParser::reportError(const std::string& fmt, Args&&... args) {
-  char buf[1024];
-  snprintf(buf, sizeof(buf), fmt.c_str(), args...);
-  reportError(buf);
-}
-
-template <typename... Args>
-inline void FlowParser::reportWarning(const std::string& fmt, Args&&... args) {
-  char buf[1024];
-  snprintf(buf, sizeof(buf), fmt.c_str(), args...);
-  reportWarning(buf);
-}
-
 template <typename A1, typename... Args>
 inline bool FlowParser::consumeOne(A1 a1, Args... tokens) {
   if (!testTokens(a1, tokens...)) {
-    reportUnexpectedToken();
+    report_.syntaxError(lastLocation(), "Unexpected token {}", token());
     return false;
   }
 
@@ -200,7 +173,6 @@ inline bool FlowParser::testTokens(A1 a1, Args... tokens) const {
 
   return testTokens(tokens...);
 }
-
 // }}}
 
 //!@}
