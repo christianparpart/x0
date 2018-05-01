@@ -18,24 +18,25 @@ find_package(Git)
 include(ExternalProject)
 
 if(GIT_FOUND)
-    ExternalProject_Add(
-        fmt
-        PREFIX ${CMAKE_CURRENT_BINARY_DIR}/3rdparty/fmt
-        GIT_REPOSITORY https://github.com/fmtlib/fmt.git
-        GIT_TAG master
-        CMAKE_ARGS -DMASTER_PROJECT=OFF
-                   -DFMT_DOC=OFF
-                   -DFMT_INSTALL=ON
-                   -DFMT_TEST=OFF
-                   -DCMAKE_INSTALL_PREFIX=<INSTALL_DIR>
-                   -DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER}
-        LOG_DOWNLOAD 1
-        UPDATE_DISCONNECTED 1
-        BUILD_COMMAND "${CMAKE_COMMAND}" --build <BINARY_DIR> --config ${configuration}
-        INSTALL_COMMAND ""
-    )
-
-	if(UNIX)
+  ExternalProject_Add(
+    fmt
+    PREFIX ${CMAKE_CURRENT_BINARY_DIR}/3rdparty/fmt
+    GIT_REPOSITORY https://github.com/fmtlib/fmt.git
+    GIT_TAG master
+    CMAKE_ARGS -DMASTER_PROJECT=OFF
+                -DFMT_DOC=OFF
+                -DFMT_INSTALL=ON
+                -DFMT_TEST=OFF
+                -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
+                -DCMAKE_INSTALL_PREFIX=<INSTALL_DIR>
+                -DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER}
+    LOG_DOWNLOAD 1
+    UPDATE_DISCONNECTED 1
+    BUILD_COMMAND "${CMAKE_COMMAND}" --build <BINARY_DIR> --config ${configuration}
+    INSTALL_COMMAND ""
+  )
+  add_definitions(-DFMT_HEADER_ONLY=1 -DFMT_USE_WINDOWS_H=0)
+  if(UNIX)
 		message(STATUS "Hello UNIX")
 		set(FMT_LIBRARIES "${CMAKE_CURRENT_BINARY_DIR}/3rdparty/fmt/src/fmt-build/libfmt.a")
 	else()
@@ -43,8 +44,8 @@ if(GIT_FOUND)
 		set(FMT_LIBRARIES "${CMAKE_CURRENT_BINARY_DIR}/3rdparty/fmt/src/fmt-build/fmt.lib")
 	endif()
 else()
-    # assume catch is installed in a system directory
-    #add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/fmt")
+  # assume catch is installed in a system directory
+  #add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/fmt")
 endif()
 
 if(ENABLE_TIDY)
@@ -315,7 +316,7 @@ set_target_properties(Xzero PROPERTIES CXX_STANDARD 17 CXX_STANDARD_REQUIRED ON)
 if(CLANG_TIDY_EXE)
   set_target_properties(Xzero PROPERTIES CXX_CLANG_TIDY "${DO_CLANG_TIDY}")
 endif()
-target_link_libraries(Xzero ${ZLIB_LIBRARIES} ${OPENSSL_LIBRARIES} ${FMT_LIBRARIES})
+target_link_libraries(Xzero ${ZLIB_LIBRARIES} ${OPENSSL_LIBRARIES})
 if(UNIX)
   target_link_libraries(Xzero pthread dl stdc++fs)
 endif()
@@ -506,12 +507,12 @@ if(CLANG_TIDY_EXE)
 endif()
 target_link_libraries(xzero_test Xzero XzeroFlow XzeroTest)
 
-add_executable(flowtest src/xzero-flow/flowtest.cc)
-set_target_properties(flowtest PROPERTIES CXX_STANDARD 17 CXX_STANDARD_REQUIRED ON)
-if(CLANG_TIDY_EXE)
-  set_target_properties(flowtest PROPERTIES CXX_CLANG_TIDY "${DO_CLANG_TIDY}")
-endif()
-target_link_libraries(flowtest Xzero XzeroFlow)
+#add_executable(flowtest src/xzero-flow/flowtest.cc)
+#set_target_properties(flowtest PROPERTIES CXX_STANDARD 17 CXX_STANDARD_REQUIRED ON)
+#if(CLANG_TIDY_EXE)
+#  set_target_properties(flowtest PROPERTIES CXX_CLANG_TIDY "${DO_CLANG_TIDY}")
+#endif()
+#target_link_libraries(flowtest Xzero XzeroFlow)
 
 endif(ENABLE_TESTS)
 # }}}
@@ -523,3 +524,6 @@ if(CLANG_TIDY_EXE)
   set_target_properties(hello_http PROPERTIES CXX_CLANG_TIDY "${DO_CLANG_TIDY}")
 endif()
 # }}}
+
+add_executable(win32test src/win32test.cc)
+target_link_libraries(win32test)
