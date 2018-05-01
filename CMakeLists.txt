@@ -527,6 +527,3 @@ if(CLANG_TIDY_EXE)
   set_target_properties(hello_http PROPERTIES CXX_CLANG_TIDY "${DO_CLANG_TIDY}")
 endif()
 # }}}
-
-add_executable(win32test src/win32test.cc)
-target_link_libraries(win32test)
