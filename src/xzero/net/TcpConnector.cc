@@ -17,8 +17,11 @@
 #include <xzero/RuntimeError.h>
 #include <xzero/logging.h>
 #include <xzero/sysconfig.h>
+
 #include <algorithm>
+#include <fstream>
 #include <mutex>
+#include <sstream>
 #include <stdexcept>
 #include <system_error>
 
@@ -155,11 +158,18 @@ void TcpConnector::bind(const IPAddress& ipaddr, int port) {
   }
 }
 
+static std::string readFile(const std::string& filename) {
+  std::ifstream f(filename);
+  std::stringstream sstr;
+  sstr << f.rdbuf();
+  return std::move(sstr.str());
+}
+
 void TcpConnector::listen(int backlog) {
   int somaxconn = SOMAXCONN;
 
 #if defined(XZERO_OS_LINUX)
-  somaxconn = FileUtil::read("/proc/sys/net/core/somaxconn").toInt();
+  somaxconn = std::stoi(readFile("/proc/sys/net/core/somaxconn"));
 #endif
 
   if (backlog > somaxconn) {
