@@ -181,38 +181,7 @@ void FileUtil::seek(FileHandle& fd, off_t offset) {
 }
 
 size_t FileUtil::read(FileHandle& fd, Buffer* output) {
-  size_t fileSize = static_cast<size_t>(fd.size());
-
-  if (fileSize > 0) {
-    size_t beg = output->size();
-    output->reserve(beg + fileSize + 1);
-    ssize_t nread = fd.read(output->data() + beg, fileSize);
-    if (nread < 0)
-      RAISE_ERRNO(errno);
-
-    output->data()[beg + nread] = '\0';
-    output->resize(beg + nread);
-    return nread;
-  }
-
-  // XXX some files do not yield informations via stat, such as files in /proc.
-  // So fallback to standard read() until EOF is reached.
-  output->reserve(output->size() + 4096);
-  ssize_t nread = 0;
-  for (;;) {
-    ssize_t rv = fd.read(output->end(), output->capacity() - output->size());
-    if (rv > 0) {
-      output->resize(output->size() + rv);
-      nread += rv;
-    } else if (rv == 0) {
-      break;
-    } else if (errno == EINTR) {
-      continue;
-    } else {
-      RAISE_ERRNO(errno);
-    }
-  }
-  return nread;
+  return read(FileView{fd, 0, fd.size()}, output);
 }
 
 size_t FileUtil::read(File& file, Buffer* output) {
@@ -268,7 +237,7 @@ size_t FileUtil::read(const FileView& file, Buffer* output) {
 
 Buffer FileUtil::read(FileHandle& fd) {
   Buffer output;
-  read(fd, &output);
+  read(FileView{fd, 0, fd.size()}, &output);
   return output;
 }
 
