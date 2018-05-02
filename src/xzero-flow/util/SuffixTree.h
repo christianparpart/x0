@@ -7,21 +7,20 @@
 
 #pragma once
 
-#include <xzero/Api.h>
 #include <unordered_map>
 #include <memory>
 
-namespace xzero {
+namespace xzero::flow::util {
 
 template <typename K, typename V>
-class PrefixTree {
+class SuffixTree {
  public:
   typedef K Key;
   typedef typename Key::value_type Elem;
   typedef V Value;
 
-  PrefixTree();
-  ~PrefixTree();
+  SuffixTree();
+  ~SuffixTree();
 
   void insert(const Key& key, const Value& value);
   bool lookup(const Key& key, Value* value) const;
@@ -44,24 +43,25 @@ class PrefixTree {
 
 // {{{
 template <typename K, typename V>
-PrefixTree<K, V>::PrefixTree()
+SuffixTree<K, V>::SuffixTree()
     : root_() {}
 
 template <typename K, typename V>
-PrefixTree<K, V>::~PrefixTree() {}
+SuffixTree<K, V>::~SuffixTree() {}
 
 template <typename K, typename V>
-void PrefixTree<K, V>::insert(const Key& key, const Value& value) {
+void SuffixTree<K, V>::insert(const Key& key, const Value& value) {
   Node* level = &root_;
 
-  for (const auto& ke : key)
-    level = acquire(ke, level);
+  // insert reverse
+  for (auto i = key.rbegin(), e = key.rend(); i != e; ++i)
+    level = acquire(*i, level);
 
   level->value = value;
 }
 
 template <typename K, typename V>
-typename PrefixTree<K, V>::Node* PrefixTree<K, V>::acquire(Elem elem, Node* n) {
+typename SuffixTree<K, V>::Node* SuffixTree<K, V>::acquire(Elem elem, Node* n) {
   auto i = n->children.find(elem);
   if (i != n->children.end())
     return i->second.get();
@@ -71,15 +71,15 @@ typename PrefixTree<K, V>::Node* PrefixTree<K, V>::acquire(Elem elem, Node* n) {
 }
 
 template <typename K, typename V>
-bool PrefixTree<K, V>::lookup(const Key& key, Value* value) const {
+bool SuffixTree<K, V>::lookup(const Key& key, Value* value) const {
   const Node* level = &root_;
 
-  for (const auto& ke : key) {
-    auto i = level->children.find(ke);
-    if (i == level->children.end())
+  for (auto i = key.rbegin(), e = key.rend(); i != e; ++i) {
+    auto k = level->children.find(*i);
+    if (k == level->children.end())
       break;
 
-    level = i->second.get();
+    level = k->second.get();
   }
 
   while (level && level->parent) {
@@ -94,4 +94,4 @@ bool PrefixTree<K, V>::lookup(const Key& key, Value* value) const {
 }
 // }}}
 
-}  // namespace xzero
+}  // namespace xzero::flow::util

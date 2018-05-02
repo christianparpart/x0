@@ -13,6 +13,7 @@
 #include <cstdio>
 #include <climits>
 #include <unordered_map>
+#include <sstream>
 
 namespace xzero::flow {
 
@@ -191,13 +192,13 @@ std::string disassemble(const Instruction* program,
                         size_t n,
                         const std::string& indent,
                         const ConstantPool* cp) {
-  Buffer result;
+  std::stringstream result;
   size_t i = 0;
   size_t sp = 0;
   for (const Instruction* pc = program; pc < program + n; ++pc) {
-    result.push_back(indent);
-    result.push_back(disassemble(*pc, i++, &sp, cp));
-    result.push_back("\n");
+    result << indent;
+    result << disassemble(*pc, i++, &sp, cp);
+    result << '\n';
   }
   return result.str();
 }
@@ -209,100 +210,139 @@ std::string disassemble(Instruction pc, size_t ip, size_t* sp,
   const Operand B = operandB(pc);
   const Operand C = operandC(pc);
   const char* mnemo = mnemonic(opc);
-  Buffer line;
+  std::stringstream line;
   size_t n = 0;
 
-  n += line.printf("%-10s", mnemo);
+  std::string word = fmt::format("{:>10}", mnemo);
+  line << word;
+  n += word.size();
 
   // operands
   if (cp != nullptr) {
     switch (opc) {
       case Opcode::ITLOAD: {
-        n += line.printf("[");
-        const auto& v = cp->getIntArray(A);
+        line << "[";
+        n++;
+        const std::vector<FlowNumber>& v = cp->getIntArray(A);
         for (size_t i = 0, e = v.size(); i != e; ++i) {
           if (i) {
-            line.push_back(", ");
+            line << ", ";
             n += 2;
           }
-          n += line.printf("%lli", v[i]);
+          word = std::to_string(v[i]);
+          line << word;
+          n += word.size();
         }
-        n += line.printf("]");
+        line << "]";
+        n++;
         break;
       }
       case Opcode::STLOAD: {
-        n += line.printf("[");
-        const auto& v = cp->getStringArray(A);
+        line << '[';
+        n++;
+        const std::vector<std::string>& v = cp->getStringArray(A);
         for (size_t i = 0, e = v.size(); i != e; ++i) {
           if (i) {
-            line.push_back(", ");
+            line << ", ";
             n += 2;
           }
-          n += line.printf("\"%s\"", v[i].c_str());
+          line << v[i];
+          n += v[i].size();
         }
-        n += line.printf("]");
+        line << "]";
+        n += 1;
         break;
       }
       case Opcode::PTLOAD: {
-        n += line.printf("[");
-        const auto& v = cp->getIPAddressArray(A);
+        line << "[";
+        n++;
+        const std::vector<IPAddress>& v = cp->getIPAddressArray(A);
         for (size_t i = 0, e = v.size(); i != e; ++i) {
           if (i) {
-            line.push_back(", ");
+            line << ", ";
             n += 2;
           }
-          n += line.printf("%s", v[i].c_str());
+          word = v[i].str();
+          line << word;
+          n += word.size();
         }
-        n += line.printf("]");
+        line << "]";
+        n++;
         break;
       }
       case Opcode::CTLOAD: {
-        n += line.printf("[");
-        const auto& v = cp->getCidrArray(A);
+        line << "[";
+        n++;
+        const std::vector<Cidr>& v = cp->getCidrArray(A);
         for (size_t i = 0, e = v.size(); i != e; ++i) {
           if (i) {
-            line.push_back(", ");
+            line << ", ";
             n += 2;
           }
-          n += line.printf("%s", v[i].str().c_str());
+          word = v[i].str();
+          line << word;
+          n += word.size();
         }
-        n += line.printf("]");
+        line << "]";
+        n++;
         break;
       }
       case Opcode::LOAD:
-        n += line.printf("STACK[%lli]", A);
+        word = fmt::format("STACK[{}]", A);
+        line << word;
+        n += word.size();
         break;
       case Opcode::STORE:
-        n += line.printf("@STACK[%lli]", A);
+        word = fmt::format("@STACK[{}]", A);
+        line << word;
+        n += word.size();
         break;
       case Opcode::NLOAD:
-        n += line.printf("%lli", cp->getInteger(A));
+        word = std::to_string(cp->getInteger(A));
+        line << word;
+        n += word.size();
         break;
       case Opcode::SLOAD:
-        n += line.printf("\"%s\"", cp->getString(A).c_str());
+        word = fmt::format("\"{}\"", cp->getString(A));
+        line << word;
+        n += word.size();
         break;
       case Opcode::PLOAD:
-        n += line.printf("%s", cp->getIPAddress(A).c_str());
+        word = cp->getIPAddress(A).str();
+        line << word;
+        n += word.size();
         break;
       case Opcode::CLOAD:
-        n += line.printf("%s", cp->getCidr(A).str().c_str());
+        word = cp->getCidr(A).str();
+        line << word;
+        n += word.size();
         break;
       case Opcode::CALL:
-        n += line.printf("%s", cp->getNativeFunctionSignatures()[A].c_str());
+        word = cp->getNativeFunctionSignatures()[A];
+        line << word;
+        n += word.size();
         break;
       case Opcode::HANDLER:
-        n += line.printf("%s", cp->getNativeHandlerSignatures()[A].c_str());
+        word = cp->getNativeHandlerSignatures()[A];
+        line << word;
+        n += word.size();
         break;
       default:
         switch (operandSignature(opc)) {
           case OperandSig::III:
-            n += line.printf("%d, %d, %d", A, B, C);
+            word = fmt::format("{}, {}, {}", A, B, C);
+            line << word;
+            n += word.size();
             break;
           case OperandSig::II:
-            n += line.printf("%d, %d", A, B);
+            word = fmt::format("{}, {}", A, B);
+            line << word;
+            n += word.size();
             break;
           case OperandSig::I:
-            n += line.printf("%d", A);
+            word = fmt::format("{}", A);
+            line << word;
+            n += word.size();
             break;
           case OperandSig::V:
             break;
@@ -312,13 +352,19 @@ std::string disassemble(Instruction pc, size_t ip, size_t* sp,
   } else {
     switch (operandSignature(opc)) {
       case OperandSig::III:
-        n += line.printf("%d, %d, %d", A, B, C);
+        word = fmt::format("{}, {}, {}", A, B, C);
+        line << word;
+        n += word.size();
         break;
       case OperandSig::II:
-        n += line.printf("%d, %d", A, B);
+        word = fmt::format("{}, {}", A, B);
+        line << word;
+        n += word.size();
         break;
       case OperandSig::I:
-        n += line.printf("%d", A);
+        word = fmt::format("{}", A);
+        line << word;
+        n += word.size();
         break;
       case OperandSig::V:
         break;
@@ -326,24 +372,29 @@ std::string disassemble(Instruction pc, size_t ip, size_t* sp,
   }
 
   for (; n < 35; ++n) {
-    line.printf(" ");
+    line << ' ';
+    n++;
   }
 
   int stackChange = getStackChange(pc);
 
   const uint8_t* b = (uint8_t*)&pc;
   if (sp) {
-    line.printf("; ip=%-3hu sp=%-2hu (%c%d)",
-                ip, *sp,
-                stackChange > 0 ? '+' :
-                    stackChange < 0 ? '-' : ' ',
-                std::abs(stackChange));
+    word = fmt::format("; ip={:>3} sp={:>2} ({}{})",
+                       ip, *sp,
+                       stackChange > 0 ? '+' :
+                           stackChange < 0 ? '-' : ' ',
+                       std::abs(stackChange));
+    line << word;
+    n += word.size();
   } else {
-    line.printf("; ip=%-3hu (%c%d)",
-                ip,
-                stackChange > 0 ? '+' :
-                    stackChange < 0 ? '-' : ' ',
-                std::abs(stackChange));
+    word = fmt::format("; ip={:>3} ({}{})",
+                       ip,
+                       stackChange > 0 ? '+' :
+                           stackChange < 0 ? '-' : ' ',
+                       std::abs(stackChange));
+    line << word;
+    n += word.size();
   }
 
   *sp += stackChange;

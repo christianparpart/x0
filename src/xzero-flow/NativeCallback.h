@@ -8,12 +8,12 @@
 #pragma once
 
 #include <xzero/defines.h>
-#include <xzero-flow/Signature.h>
-#include <xzero-flow/vm/Runner.h>       // Runner*, Runner::Value
 #include <xzero-flow/LiteralType.h>
+#include <xzero-flow/Signature.h>
+#include <xzero-flow/util/RegExp.h>
+#include <xzero-flow/vm/Runner.h>       // Runner*, Runner::Value
 #include <xzero/net/IPAddress.h>
 #include <xzero/net/Cidr.h>
-#include <xzero/RegExp.h>
 #include <string>
 #include <vector>
 #include <functional>
@@ -38,7 +38,7 @@ class NativeCallback {
   using Functor = std::function<void(Params& args)>;
   using Verifier = std::function<bool(Instr*, IRBuilder*)>;
   using DefaultValue = std::variant<std::monostate,
-        bool, FlowString, FlowNumber, IPAddress, Cidr, RegExp>;
+        bool, FlowString, FlowNumber, IPAddress, Cidr, util::RegExp>;
 
  private:
   Runtime* runtime_;
@@ -241,7 +241,7 @@ inline NativeCallback& NativeCallback::param<Cidr>(const std::string& name,
 }
 
 template <>
-inline NativeCallback& NativeCallback::param<RegExp>(const std::string& name) {
+inline NativeCallback& NativeCallback::param<util::RegExp>(const std::string& name) {
   signature_.args().push_back(LiteralType::RegExp);
   names_.push_back(name);
   defaults_.push_back(std::monostate{});
@@ -250,8 +250,8 @@ inline NativeCallback& NativeCallback::param<RegExp>(const std::string& name) {
 }
 
 template <>
-inline NativeCallback& NativeCallback::param<RegExp>(const std::string& name,
-                                                     RegExp defaultValue) {
+inline NativeCallback& NativeCallback::param<util::RegExp>(const std::string& name,
+                                                           util::RegExp defaultValue) {
   signature_.args().push_back(LiteralType::RegExp);
   names_.push_back(name);
   defaults_.push_back(defaultValue);

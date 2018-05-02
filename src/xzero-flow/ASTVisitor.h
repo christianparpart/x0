@@ -7,12 +7,13 @@
 
 #pragma once
 
-#include <xzero/defines.h>
-#include <xzero/RegExp.h>
-#include <xzero/net/IPAddress.h>
+#include <xzero-flow/util/RegExp.h>
+
 #include <xzero/net/Cidr.h>
-#include <utility>
+#include <xzero/net/IPAddress.h>
+
 #include <memory>
+#include <utility>
 
 namespace xzero::flow {
 
@@ -39,7 +40,7 @@ class ArrayExpr;
 typedef LiteralExpr<std::string> StringExpr;
 typedef LiteralExpr<long long> NumberExpr;
 typedef LiteralExpr<bool> BoolExpr;
-typedef LiteralExpr<RegExp> RegExpExpr;
+typedef LiteralExpr<util::RegExp> RegExpExpr;
 typedef LiteralExpr<IPAddress> IPAddressExpr;
 typedef LiteralExpr<Cidr> CidrExpr;
 

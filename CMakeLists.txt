@@ -166,7 +166,6 @@ set(libXzero_SRC src/xzero/AnsiColor.cc
                  src/xzero/MonotonicTime.cc
                  src/xzero/PosixSignals.cc
                  src/xzero/Random.cc
-                 src/xzero/RegExp.cc
                  src/xzero/RuntimeError.cc
                  src/xzero/StackTrace.cc
                  src/xzero/StringUtil.cc
@@ -374,6 +373,7 @@ set(XzeroFlow_SRC src/xzero-flow/AST.cc
                   src/xzero-flow/transform/InstructionElimination.cc
                   src/xzero-flow/transform/MergeBlockPass.cc
                   src/xzero-flow/transform/UnusedBlockPass.cc
+                  src/xzero-flow/util/RegExp.cc
                   src/xzero-flow/vm/ConstantPool.cc
                   src/xzero-flow/vm/Handler.cc
                   src/xzero-flow/vm/Instruction.cc
@@ -440,6 +440,8 @@ set(xzero_test_SRC
 		src/xzero-flow/FlowLexer-test.cc
 		src/xzero-flow/FlowParser-test.cc
     src/xzero-flow/flowtest-test.cc
+		src/xzero-flow/util/PrefixTree-test.cc
+		src/xzero-flow/util/SuffixTree-test.cc
 		src/xzero/Base64-test.cc
 		src/xzero/Buffer-test.cc
 		src/xzero/Callback-test.cc
@@ -448,10 +450,8 @@ set(xzero_test_SRC
 		src/xzero/Flags-test.cc
 		src/xzero/HugeBuffer-test.cc
 		src/xzero/MimeTypes-test.cc
-		src/xzero/PrefixTree-test.cc
 		src/xzero/Result-test.cc
 		src/xzero/StringUtil-test.cc
-		src/xzero/SuffixTree-test.cc
 		src/xzero/TokenShaper-test.cc
 		src/xzero/Tokenizer-test.cc
 		src/xzero/Uri-test.cc

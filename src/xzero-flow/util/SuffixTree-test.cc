@@ -6,10 +6,10 @@
 // the License at: http://opensource.org/licenses/MIT
 
 #include <xzero/testing.h>
-#include <xzero/SuffixTree.h>
+#include <xzero-flow/util/SuffixTree.h>
 
 TEST(SuffixTree, exactMatch) {
-  xzero::SuffixTree<std::string, int> t;
+  xzero::flow::util::SuffixTree<std::string, int> t;
   t.insert("www.example.com.", 1);
   t.insert("example.com.", 2);
   t.insert("com.", 3);
@@ -26,7 +26,7 @@ TEST(SuffixTree, exactMatch) {
 }
 
 TEST(SuffixTree, subMatch) {
-  xzero::SuffixTree<std::string, int> t;
+  xzero::flow::util::SuffixTree<std::string, int> t;
   t.insert("www.example.com.", 1);
   t.insert(    "example.com.", 2);
   t.insert(            "com.", 3);

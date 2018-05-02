@@ -6,10 +6,10 @@
 // the License at: http://opensource.org/licenses/MIT
 
 #include <xzero/testing.h>
-#include <xzero/PrefixTree.h>
+#include <xzero-flow/util/PrefixTree.h>
 
 TEST(PrefixTree, exactMatch) {
-  xzero::PrefixTree<std::string, int> t;
+  xzero::flow::util::PrefixTree<std::string, int> t;
   t.insert("/foo", 1);
   t.insert("/foo/bar", 2);
   t.insert("/foo/fnord", 3);
@@ -26,7 +26,7 @@ TEST(PrefixTree, exactMatch) {
 }
 
 TEST(PrefixTree, subMatch) {
-  xzero::PrefixTree<std::string, int> t;
+  xzero::flow::util::PrefixTree<std::string, int> t;
   t.insert("/foo", 1);
   t.insert("/foo/bar", 2);
   t.insert("/foo/fnord", 3);

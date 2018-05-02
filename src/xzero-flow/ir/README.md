@@ -19,7 +19,7 @@
   - IRVariable            a writable variable
   - Constant              Base class for constants
     - ConstantValue<T>
-      - ConstantString    <Buffer>
+      - ConstantString    <std::string>
       - ConstantIP        <IPAddress>
       - ConstantCidr      <Cidr>
       - ConstantRegExp    <RegExp>

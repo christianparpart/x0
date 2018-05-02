@@ -86,7 +86,7 @@ template ConstantIP* IRProgram::get<ConstantIP, IPAddress>(
 template ConstantCidr* IRProgram::get<ConstantCidr, Cidr>(
     std::vector<std::unique_ptr<ConstantCidr>>&, const Cidr&);
 
-template ConstantRegExp* IRProgram::get<ConstantRegExp, RegExp>(
-    std::vector<std::unique_ptr<ConstantRegExp>>&, const RegExp&);
+template ConstantRegExp* IRProgram::get<ConstantRegExp, util::RegExp>(
+    std::vector<std::unique_ptr<ConstantRegExp>>&, const util::RegExp&);
 
 }  // namespace xzero::flow

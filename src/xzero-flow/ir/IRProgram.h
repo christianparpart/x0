@@ -7,18 +7,19 @@
 
 #pragma once
 
-#include <xzero/defines.h>
-#include <xzero-flow/ir/Value.h>
-#include <xzero-flow/ir/ConstantValue.h>
-#include <xzero-flow/ir/IRBuiltinHandler.h>
-#include <xzero-flow/ir/IRBuiltinFunction.h>
-#include <xzero-flow/ir/Instructions.h>
-#include <xzero-flow/ir/IRHandler.h>
 #include <xzero-flow/Signature.h>
-#include <xzero/util/UnboxedRange.h>
-#include <xzero/net/IPAddress.h>
+#include <xzero-flow/ir/ConstantValue.h>
+#include <xzero-flow/ir/IRBuiltinFunction.h>
+#include <xzero-flow/ir/IRBuiltinHandler.h>
+#include <xzero-flow/ir/IRHandler.h>
+#include <xzero-flow/ir/Instructions.h>
+#include <xzero-flow/ir/Value.h>
+#include <xzero-flow/util/RegExp.h>
+#include <xzero-flow/util/unbox.h>
+
+#include <xzero/defines.h>
 #include <xzero/net/Cidr.h>
-#include <xzero/RegExp.h>
+#include <xzero/net/IPAddress.h>
 
 #include <string>
 #include <vector>
@@ -50,7 +51,7 @@ class IRProgram {
   ConstantCidr* get(const Cidr& literal) {
     return get<ConstantCidr>(cidrs_, literal);
   }
-  ConstantRegExp* get(const RegExp& literal) {
+  ConstantRegExp* get(const util::RegExp& literal) {
     return get<ConstantRegExp>(regexps_, literal);
   }
   ConstantArray* get(const std::vector<Constant*>& elems) {
@@ -98,7 +99,7 @@ class IRProgram {
     return modules_;
   }
 
-  auto handlers() { return unbox(handlers_); }
+  auto handlers() { return util::unbox(handlers_); }
 
   IRHandler* findHandler(const std::string& name) {
     for (IRHandler* handler: handlers())

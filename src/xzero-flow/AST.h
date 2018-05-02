@@ -14,8 +14,6 @@
 #include <xzero-flow/MatchClass.h>
 #include <xzero-flow/Signature.h>
 #include <xzero-flow/vm/Instruction.h>  // Opcode
-#include <xzero/Buffer.h>
-#include <xzero/RegExp.h>
 #include <xzero/defines.h>
 
 #include <fmt/format.h>
@@ -203,7 +201,7 @@ class CallableSym : public Symbol {
   /** tries to match given parameters against this symbol by using default
    * values or reordering parameters (if named input args)
    */
-  bool tryMatch(ParamList& params, Buffer* errorMessage) const;
+  bool tryMatch(ParamList& params, std::string* errorMessage) const;
 };
 
 class HandlerSym : public CallableSym {

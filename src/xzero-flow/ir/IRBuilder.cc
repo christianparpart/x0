@@ -521,7 +521,7 @@ Value* IRBuilder::createSCmpEE(Value* lhs, Value* rhs,
 Value* IRBuilder::createSIn(Value* lhs, Value* rhs, const std::string& name) {
   if (auto a = dynamic_cast<ConstantString*>(lhs))
     if (auto b = dynamic_cast<ConstantString*>(rhs))
-      return getBoolean(BufferRef(b->get()).find(a->get()) != Buffer::npos);
+      return getBoolean(b->get().find(a->get()) != std::string::npos);
 
   return insert<SInInstr>(lhs, rhs, makeName(name));
 }

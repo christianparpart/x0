@@ -47,15 +47,15 @@ inline size_t ensureValue(std::vector<std::vector<T>>& vv, const U& array) {
     return i;
   }
 
-  // we hand-add each element seperately because
-  // it might be, that the source element type is not the same as the target
-  // element type
+  // we hand-add each element seperately because it might be,
+  // that the source element type is not the same as the target element type
   // (such as std::string -> Buffer)
 
   vv.push_back(std::vector<T>(array.size()));
   auto& target = vv.back();
 
-  for (size_t i = 0, e = array.size(); i != e; ++i) target[i] = array[i];
+  for (size_t i = 0, e = array.size(); i != e; ++i)
+    target[i] = array[i];
 
   return vv.size() - 1;
 }
@@ -108,7 +108,7 @@ size_t ConstantPool::makeCidr(const Cidr& value) {
   return ensureValue(cidrs_, value);
 }
 
-size_t ConstantPool::makeRegExp(const RegExp& value) {
+size_t ConstantPool::makeRegExp(const util::RegExp& value) {
   return ensureValue(regularExpressions_, value);
 }
 

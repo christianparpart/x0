@@ -8,7 +8,6 @@
 #include <xzero-flow/NativeCallback.h>
 #include <xzero/net/IPAddress.h>
 #include <xzero/net/Cidr.h>
-#include <xzero/RegExp.h>
 
 namespace xzero::flow {
 

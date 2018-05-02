@@ -10,16 +10,15 @@
 #include <xzero-flow/NativeCallback.h>
 #include <xzero-flow/Signature.h>
 #include <xzero/StringUtil.h>
-#include <xzero/Buffer.h>
-#include <fmt/format.h>
-#include <fmt/ostream.h>
-#include <memory>
-#include <algorithm>
-#include <cstdlib>
-#include <cstdio>
 
-namespace xzero {
-namespace flow {
+#include <fmt/format.h>
+
+#include <algorithm>
+#include <cstdio>
+#include <cstdlib>
+#include <memory>
+
+namespace xzero::flow {
 
 // {{{ SymbolTable
 SymbolTable::SymbolTable(SymbolTable* outer, const std::string& name)
@@ -177,7 +176,7 @@ bool CallableSym::isDirectMatch(const ParamList& params) const {
   return true;
 }
 
-bool CallableSym::tryMatch(ParamList& params, Buffer* errorMessage) const {
+bool CallableSym::tryMatch(ParamList& params, std::string* errorMessage) const {
   // printf("CallableSym(%s).tryMatch()\n", name().c_str());
 
   const NativeCallback* native = nativeCallback();
@@ -187,27 +186,27 @@ bool CallableSym::tryMatch(ParamList& params, Buffer* errorMessage) const {
 
   if (params.isNamed()) {
     if (!native->parametersNamed()) {
-      errorMessage->printf(
-          "Callee \"%s\" invoked with named parameters, but no names provided "
+      *errorMessage = fmt::format(
+          "Callee \"{}\" invoked with named parameters, but no names provided "
           "by runtime.",
-          name().c_str());
+          name());
       return false;
     }
 
     int argc = signature().args().size();
     for (int i = 0; i != argc; ++i) {
-      const auto& name = native->getParamNameAt(i);
-      if (!params.contains(name)) {
+      const auto& paramName = native->getParamNameAt(i);
+      if (!params.contains(paramName)) {
         const NativeCallback::DefaultValue& defaultValue =
             native->getDefaultParamAt(i);
         if (std::holds_alternative<std::monostate>(defaultValue)) {
-          errorMessage->printf(
-              "Callee \"%s\" invoked without required named parameter \"%s\".",
-              this->name().c_str(), name.c_str());
+          *errorMessage = fmt::format(
+              "Callee \"{}\" invoked without required named parameter \"{}\".",
+              name(), paramName);
           return false;
         }
         LiteralType type = signature().args()[i];
-        completeDefaultValue(params, type, defaultValue, name);
+        completeDefaultValue(params, type, defaultValue, paramName);
       }
     }
 
@@ -223,8 +222,8 @@ bool CallableSym::tryMatch(ParamList& params, Buffer* errorMessage) const {
         t += s;
         t += "\"";
       }
-      errorMessage->printf("Superfluous arguments passed to callee \"%s\": %s.",
-                           this->name().c_str(), t.c_str());
+      *errorMessage = fmt::format(
+          "Superfluous arguments passed to callee \"{}\": {}.", name(), t);
       return false;
     }
 
@@ -232,8 +231,7 @@ bool CallableSym::tryMatch(ParamList& params, Buffer* errorMessage) const {
   } else  // verify params positional
   {
     if (params.size() > signature().args().size()) {
-      errorMessage->printf("Superfluous parameters to callee %s.",
-                           signature().to_s().c_str());
+      *errorMessage = fmt::format("Superfluous parameters to callee {}.", signature());
       return false;
     }
 
@@ -241,9 +239,9 @@ bool CallableSym::tryMatch(ParamList& params, Buffer* errorMessage) const {
       LiteralType expectedType = signature().args()[i];
       LiteralType givenType = params.values()[i]->getType();
       if (givenType != expectedType) {
-        errorMessage->printf(
-            "Type mismatch in positional parameter %d, callee %s.", i + 1,
-            signature().to_s().c_str());
+        *errorMessage = fmt::format(
+            "Type mismatch in positional parameter {}, callee {}.",
+            i + 1, signature());
         return false;
       }
     }
@@ -251,9 +249,9 @@ bool CallableSym::tryMatch(ParamList& params, Buffer* errorMessage) const {
     for (size_t i = params.size(), e = signature().args().size(); i != e; ++i) {
       const NativeCallback::DefaultValue& defaultValue = native->getDefaultParamAt(i);
       if (std::holds_alternative<std::monostate>(defaultValue)) {
-        errorMessage->printf(
-            "No default value provided for positional parameter %d, callee %s.",
-            i + 1, signature().to_s().c_str());
+        *errorMessage = fmt::format(
+            "No default value provided for positional parameter {}, callee {}.",
+            i + 1, signature());
         return false;
       }
 
@@ -272,10 +270,9 @@ bool CallableSym::tryMatch(ParamList& params, Buffer* errorMessage) const {
     sig.setArgs(argTypes);
 
     if (sig != signature()) {
-      errorMessage->printf(
-          "Callee parameter type signature mismatch: %s passed, but %s "
-          "expected.",
-          sig.to_s().c_str(), signature().to_s().c_str());
+      *errorMessage = fmt::format(
+          "Callee parameter type signature mismatch: {} passed, but {} expected.",
+          sig, signature());
       return false;
     }
 
@@ -582,7 +579,7 @@ LiteralType ArrayExpr::getType() const {
 }
 
 template <>
-LiteralType LiteralExpr<RegExp>::getType() const {
+LiteralType LiteralExpr<util::RegExp>::getType() const {
   return LiteralType::RegExp;
 }
 
@@ -620,5 +617,4 @@ LiteralType VariableExpr::getType() const {
 LiteralType HandlerRefExpr::getType() const { return LiteralType::Handler; }
 // }}}
 
-}  // namespace flow
-}  // namespace xzero
+}  // namespace xzero::flow

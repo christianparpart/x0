@@ -984,7 +984,7 @@ std::unique_ptr<Expr> FlowParser::literalExpr() {
   switch (token()) {
     case FlowToken::Div: {  // /REGEX/
       if (lexer_->continueParseRegEx('/')) {
-        auto e = std::make_unique<RegExpExpr>(RegExp(stringValue()),
+        auto e = std::make_unique<RegExpExpr>(util::RegExp(stringValue()),
                                               loc.update(end()));
         nextToken();
         return std::move(e);
@@ -1039,7 +1039,7 @@ std::unique_ptr<Expr> FlowParser::literalExpr() {
     }
     case FlowToken::RegExp: {
       std::unique_ptr<RegExpExpr> e =
-          std::make_unique<RegExpExpr>(RegExp(stringValue()), loc);
+          std::make_unique<RegExpExpr>(util::RegExp(stringValue()), loc);
       nextToken();
       return std::move(e);
     }
@@ -1572,11 +1572,11 @@ std::unique_ptr<CallExpr> FlowParser::resolve(
   std::list<std::pair<CallableSym*, std::string>> matchErrors;
 
   for (CallableSym* callee : callables) {
-    Buffer msg;
+    std::string msg;
     if (callee->tryMatch(params, &msg)) {
       result.push_back(callee);
     } else {
-      matchErrors.push_back(std::make_pair(callee, msg.str()));
+      matchErrors.push_back(std::make_pair(callee, msg));
     }
   }
 

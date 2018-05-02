@@ -7,17 +7,18 @@
 
 #pragma once
 
-#include <xzero/defines.h>
-#include <xzero-flow/ir/Value.h>
-#include <xzero-flow/ir/ConstantValue.h>
-#include <xzero-flow/ir/IRBuiltinHandler.h>
-#include <xzero-flow/ir/IRBuiltinFunction.h>
-#include <xzero-flow/ir/IRProgram.h>
-#include <xzero-flow/Signature.h>
 #include <xzero-flow/MatchClass.h>
-#include <xzero/net/IPAddress.h>
+#include <xzero-flow/Signature.h>
+#include <xzero-flow/ir/ConstantValue.h>
+#include <xzero-flow/ir/IRBuiltinFunction.h>
+#include <xzero-flow/ir/IRBuiltinHandler.h>
+#include <xzero-flow/ir/IRProgram.h>
+#include <xzero-flow/ir/Value.h>
+#include <xzero-flow/util/RegExp.h>
+
+#include <xzero/defines.h>
 #include <xzero/net/Cidr.h>
-#include <xzero/RegExp.h>
+#include <xzero/net/IPAddress.h>
 
 #include <unordered_map>
 #include <vector>
@@ -79,7 +80,7 @@ class IRBuilder {
   }
   ConstantIP* get(const IPAddress& literal) { return program_->get(literal); }
   ConstantCidr* get(const Cidr& literal) { return program_->get(literal); }
-  ConstantRegExp* get(const RegExp& literal) { return program_->get(literal); }
+  ConstantRegExp* get(const util::RegExp& literal) { return program_->get(literal); }
   IRBuiltinHandler* findBuiltinHandler(const Signature& sig) {
     return program_->findBuiltinHandler(sig);
   }

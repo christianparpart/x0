@@ -10,7 +10,6 @@
 #include <xzero-flow/LiteralType.h>
 #include <vector>
 #include <string>
-#include <iosfwd>
 
 namespace xzero::flow {
 
@@ -56,13 +55,11 @@ char signatureType(LiteralType t);
 namespace fmt {
   template<>
   struct formatter<xzero::flow::Signature> {
-    using Signature = xzero::flow::Signature;
-
     template <typename ParseContext>
-    constexpr auto parse(ParseContext &ctx) { return ctx.begin(); }
+    auto parse(ParseContext &ctx) { return ctx.begin(); }
 
     template <typename FormatContext>
-    constexpr auto format(const Signature& v, FormatContext &ctx) {
+    auto format(const xzero::flow::Signature& v, FormatContext &ctx) {
       return format_to(ctx.begin(), v.to_s());
     }
   };

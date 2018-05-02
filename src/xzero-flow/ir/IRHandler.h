@@ -9,7 +9,7 @@
 
 #include <xzero-flow/ir/Constant.h>
 #include <xzero-flow/ir/BasicBlock.h>
-#include <xzero/util/UnboxedRange.h>
+#include <xzero-flow/util/unbox.h>
 #include <xzero/defines.h>
 
 #include <string>
@@ -38,7 +38,7 @@ class IRHandler : public Constant {
 
   void dump() override;
 
-  auto basicBlocks() { return unbox(blocks_); }
+  auto basicBlocks() { return util::unbox(blocks_); }
 
   BasicBlock* getEntryBlock() const { return blocks_.front().get(); }
   void setEntryBlock(BasicBlock* bb);

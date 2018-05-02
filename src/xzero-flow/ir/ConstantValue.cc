@@ -6,7 +6,7 @@
 // the License at: http://opensource.org/licenses/MIT
 
 #include <xzero-flow/ir/ConstantValue.h>
-#include <xzero/RegExp.h>
+#include <xzero-flow/util/RegExp.h>
 #include <xzero/net/Cidr.h>
 #include <xzero/net/IPAddress.h>
 
@@ -19,6 +19,6 @@ template class ConstantValue<bool, LiteralType::Boolean>;
 template class ConstantValue<std::string, LiteralType::String>;
 template class ConstantValue<IPAddress, LiteralType::IPAddress>;
 template class ConstantValue<Cidr, LiteralType::Cidr>;
-template class ConstantValue<RegExp, LiteralType::RegExp>;
+template class ConstantValue<util::RegExp, LiteralType::RegExp>;
 
 }  // namespace xzero::flow

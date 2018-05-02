@@ -16,6 +16,9 @@
 namespace xzero {
   class Cidr;
   class IPAddress;
+}
+
+namespace xzero::flow::util {
   class RegExp;
 }
 
@@ -43,6 +46,6 @@ typedef ConstantValue<bool, LiteralType::Boolean> ConstantBoolean;
 typedef ConstantValue<std::string, LiteralType::String> ConstantString;
 typedef ConstantValue<IPAddress, LiteralType::IPAddress> ConstantIP;
 typedef ConstantValue<Cidr, LiteralType::Cidr> ConstantCidr;
-typedef ConstantValue<RegExp, LiteralType::RegExp> ConstantRegExp;
+typedef ConstantValue<util::RegExp, LiteralType::RegExp> ConstantRegExp;
 
 }  // namespace xzero::flow

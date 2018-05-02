@@ -5,12 +5,11 @@
 // file except in compliance with the License. You may obtain a copy of
 // the License at: http://opensource.org/licenses/MIT
 
-#include <xzero/RegExp.h>
-#include <xzero/Buffer.h>
+#include <xzero-flow/util/RegExp.h>
 #include <cstring>
 #include <regex>
 
-namespace xzero {
+namespace xzero::flow::util {
 
 RegExp::RegExp()
     : pattern_(),
@@ -48,4 +47,4 @@ const char* RegExp::c_str() const {
   return pattern_.c_str();
 }
 
-}  // namespace xzero
+}  // namespace xzero::flow::util

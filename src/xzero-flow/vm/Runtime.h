@@ -8,7 +8,7 @@
 #pragma once
 
 #include <xzero/defines.h>
-#include <xzero/util/UnboxedRange.h>
+#include <xzero-flow/util/unbox.h>
 #include <xzero-flow/Signature.h>
 #include <xzero-flow/LiteralType.h>
 #include <string>
@@ -34,7 +34,7 @@ class Runtime {
 
   NativeCallback* find(const std::string& signature) const noexcept;
   NativeCallback* find(const Signature& signature) const noexcept;
-  auto builtins() { return unbox(builtins_); }
+  auto builtins() { return util::unbox(builtins_); }
 
   NativeCallback& registerHandler(const std::string& name);
   NativeCallback& registerFunction(const std::string& name, LiteralType returnType);

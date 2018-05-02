@@ -93,8 +93,8 @@ MatchRegEx::~MatchRegEx() {
 }
 
 uint64_t MatchRegEx::evaluate(const FlowString* condition, Runner* env) const {
-  RegExpContext* cx = (RegExpContext*)env->userdata();
-  RegExp::Result* rs = cx ? cx->regexMatch() : nullptr;
+  util::RegExpContext* cx = (util::RegExpContext*)env->userdata();
+  util::RegExp::Result* rs = cx ? cx->regexMatch() : nullptr;
   for (const auto& one : map_) {
     if (one.first.match(*condition, rs)) {
       return one.second;

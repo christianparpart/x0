@@ -7,13 +7,13 @@
 
 #pragma once
 
-#include <xzero/defines.h>
 #include <xzero-flow/LiteralType.h>
+#include <xzero-flow/util/RegExp.h>
 #include <xzero-flow/vm/Match.h>
-#include <xzero/net/IPAddress.h>
+
+#include <xzero/defines.h>
 #include <xzero/net/Cidr.h>
-#include <xzero/Buffer.h>
-#include <xzero/RegExp.h>
+#include <xzero/net/IPAddress.h>
 
 namespace xzero::flow {
 
@@ -44,7 +44,7 @@ class ConstantPool {
   size_t makeString(const std::string& value);
   size_t makeIPAddress(const IPAddress& value);
   size_t makeCidr(const Cidr& value);
-  size_t makeRegExp(const RegExp& value);
+  size_t makeRegExp(const util::RegExp& value);
 
   size_t makeIntegerArray(const std::vector<FlowNumber>& elements);
   size_t makeStringArray(const std::vector<std::string>& elements);
@@ -72,7 +72,7 @@ class ConstantPool {
   const FlowString& getString(size_t id) const { return strings_[id]; }
   const IPAddress& getIPAddress(size_t id) const { return ipaddrs_[id]; }
   const Cidr& getCidr(size_t id) const { return cidrs_[id]; }
-  const RegExp& getRegExp(size_t id) const { return regularExpressions_[id]; }
+  const util::RegExp& getRegExp(size_t id) const { return regularExpressions_[id]; }
 
   const std::vector<FlowNumber>& getIntArray(size_t id) const {
     return intArrays_[id];
@@ -125,7 +125,7 @@ class ConstantPool {
   std::vector<std::string> strings_;
   std::vector<IPAddress> ipaddrs_;
   std::vector<Cidr> cidrs_;
-  std::vector<RegExp> regularExpressions_;
+  std::vector<util::RegExp> regularExpressions_;
 
   // constant arrays
   std::vector<std::vector<FlowNumber>> intArrays_;

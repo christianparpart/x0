@@ -13,10 +13,9 @@
 #include <xzero-flow/vm/Instruction.h>
 #include <xzero-flow/Signature.h>
 #include <xzero-flow/MatchClass.h>
-#include <xzero/util/UnboxedRange.h>
+#include <xzero-flow/util/unbox.h>
 #include <xzero/net/IPAddress.h>
 #include <xzero/net/Cidr.h>
-#include <xzero/RegExp.h>
 
 #include <string>
 #include <vector>
@@ -56,7 +55,7 @@ class BasicBlock : public Value {
    * Retrieves the linear ordered list of instructions of instructions in this
    * basic block.
    */
-  auto instructions() { return unbox(code_); }
+  auto instructions() { return util::unbox(code_); }
   Instr* instruction(size_t i) { return code_[i].get(); }
 
   Instr* front() const { return code_.front().get(); }

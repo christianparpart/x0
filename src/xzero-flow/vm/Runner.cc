@@ -563,7 +563,7 @@ bool Runner::loop() {
   // }}}
   // {{{ regex
   instr(SREGMATCH) {  // A =~ B
-    const RegExp& regex = program()->constants().getRegExp(A);
+    const util::RegExp& regex = program()->constants().getRegExp(A);
     const FlowString& data = getString(-1);
     const bool result = regex.match(data, regexpContext_.regexMatch());
     SP(-1) = result;
@@ -572,7 +572,7 @@ bool Runner::loop() {
 
   instr(SREGGROUP) {
     FlowNumber position = getNumber(-1);
-    RegExp::Result& rr = *regexpContext_.regexMatch();
+    util::RegExp::Result& rr = *regexpContext_.regexMatch();
     const auto& match = rr[position];
 
     SP(-1) = (Value) newString(match);
@@ -609,7 +609,7 @@ bool Runner::loop() {
   }
 
   instr(R2S) {
-    const RegExp& re = getRegExp(-1);
+    const util::RegExp& re = getRegExp(-1);
     SP(-1) = (Value) newString(re.pattern());
     next;
   }

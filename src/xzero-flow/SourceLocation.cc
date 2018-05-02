@@ -6,7 +6,6 @@
 // the License at: http://opensource.org/licenses/MIT
 
 #include <xzero-flow/SourceLocation.h>
-#include <xzero/io/FileDescriptor.h>
 #include <fmt/format.h>
 #include <sys/types.h>
 #include <sys/stat.h>

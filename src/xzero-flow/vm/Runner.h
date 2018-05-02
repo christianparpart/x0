@@ -7,23 +7,25 @@
 
 #pragma once
 
+#include <xzero-flow/LiteralType.h>
+#include <xzero-flow/util/RegExp.h>
+#include <xzero-flow/vm/Handler.h>
+
+#include <xzero/CustomDataMgr.h>
 #include <xzero/defines.h>
 #include <xzero/logging.h>
-#include <xzero-flow/LiteralType.h>
-#include <xzero-flow/vm/Handler.h>
-#include <xzero/CustomDataMgr.h>
-#include <xzero/RegExp.h>
+
 #include <algorithm>
-#include <utility>
-#include <vector>
-#include <list>
-#include <memory>
+#include <cmath>
 #include <cstdint>
 #include <cstdio>
 #include <cstdlib>
-#include <cmath>
-#include <string>
 #include <iosfwd>
+#include <list>
+#include <memory>
+#include <string>
+#include <utility>
+#include <vector>
 
 namespace xzero::flow {
 
@@ -115,7 +117,7 @@ class Runner : public CustomData {
   //! pointer to the currently evaluated HttpRequest/HttpResponse our case
   std::pair<void*,void*> userdata_;
 
-  RegExpContext regexpContext_;
+  util::RegExpContext regexpContext_;
 
   State state_;     //!< current VM state
   size_t pc_;       //!< last saved program execution offset
@@ -157,8 +159,8 @@ class Runner : public CustomData {
     setUserData(udata.first, udata.second);
   }
 
-  const RegExpContext* regexpContext() const noexcept { return &regexpContext_; }
-  RegExpContext* regexpContext() noexcept { return &regexpContext_; }
+  const util::RegExpContext* regexpContext() const noexcept { return &regexpContext_; }
+  util::RegExpContext* regexpContext() noexcept { return &regexpContext_; }
 
   const Stack& stack() const noexcept { return stack_; }
   Value stack(int si) const { return stack_[si]; }
@@ -167,7 +169,7 @@ class Runner : public CustomData {
   const FlowString& getString(int si) const { return *(FlowString*) stack_[si]; }
   const IPAddress& getIPAddress(int si) const { return *(IPAddress*) stack_[si]; }
   const Cidr& getCidr(int si) const { return *(Cidr*) stack_[si]; }
-  const RegExp& getRegExp(int si) const { return *(RegExp*) stack_[si]; }
+  const util::RegExp& getRegExp(int si) const { return *(util::RegExp*) stack_[si]; }
 
   const FlowString* getStringPtr(int si) const { return (FlowString*) stack_[si]; }
   const Cidr* getCidrPtr(int si) const { return (Cidr*) stack_[si]; }

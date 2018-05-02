@@ -7,18 +7,20 @@
 
 #pragma once
 
-#include <xzero/defines.h>
-#include <xzero-flow/vm/Instruction.h>
-#include <xzero-flow/MatchClass.h>
 #include <xzero-flow/LiteralType.h>
-#include <xzero/PrefixTree.h>
-#include <xzero/SuffixTree.h>
-#include <xzero/RegExp.h>
-#include <sys/types.h>
+#include <xzero-flow/MatchClass.h>
+#include <xzero-flow/util/PrefixTree.h>
+#include <xzero-flow/util/RegExp.h>
+#include <xzero-flow/util/SuffixTree.h>
+#include <xzero-flow/vm/Instruction.h>
+
+#include <xzero/defines.h>
+
 #include <cstdint>
-#include <vector>
 #include <memory>
+#include <sys/types.h>
 #include <unordered_map>
+#include <vector>
 
 namespace xzero::flow {
 
@@ -83,7 +85,7 @@ class MatchHead : public Match {
   uint64_t evaluate(const FlowString* condition, Runner* env) const override;
 
  private:
-  PrefixTree<FlowString, uint64_t> map_;
+  util::PrefixTree<FlowString, uint64_t> map_;
 };
 
 /** Implements SMATCHBEG instruction. */
@@ -95,7 +97,7 @@ class MatchTail : public Match {
   uint64_t evaluate(const FlowString* condition, Runner* env) const override;
 
  private:
-  SuffixTree<FlowString, uint64_t> map_;
+  util::SuffixTree<FlowString, uint64_t> map_;
 };
 
 /** Implements SMATCHR instruction. */
@@ -107,7 +109,7 @@ class MatchRegEx : public Match {
   uint64_t evaluate(const FlowString* condition, Runner* env) const override;
 
  private:
-  std::vector<std::pair<RegExp, uint64_t>> map_;
+  std::vector<std::pair<util::RegExp, uint64_t>> map_;
 };
 
 }  // namespace xzero::flow

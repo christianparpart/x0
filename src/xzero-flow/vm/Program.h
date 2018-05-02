@@ -8,13 +8,12 @@
 #pragma once
 
 #include <xzero/defines.h>
-#include <xzero/util/UnboxedRange.h>
+#include <xzero-flow/util/unbox.h>
 #include <xzero-flow/vm/ConstantPool.h>
 #include <xzero-flow/vm/Instruction.h>
 #include <xzero-flow/LiteralType.h>  // FlowNumber
 #include <xzero/net/IPAddress.h>
 #include <xzero/net/Cidr.h>
-#include <xzero/RegExp.h>
 
 #include <vector>
 #include <utility>
@@ -55,7 +54,7 @@ class Program {
   }
 
   // bulk accessors
-  auto matches() { return unbox(matches_); }
+  auto matches() { return util::unbox(matches_); }
 
   std::vector<std::string> handlerNames() const;
   int indexOf(const Handler* handler) const noexcept;

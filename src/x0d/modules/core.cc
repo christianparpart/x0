@@ -1300,7 +1300,7 @@ void CoreModule::phys_mimetype(Context* cx, Params& args) {
 void CoreModule::regex_group(Context* cx, Params& args) {
   FlowNumber position = args.getInt(1);
 
-  if (const RegExp::Result* rr = cx->runner()->regexpContext()->regexMatch()) {
+  if (const flow::util::RegExp::Result* rr = cx->runner()->regexpContext()->regexMatch()) {
     if (position >= 0 && position < static_cast<FlowNumber>(rr->size())) {
       const auto& match = (*rr)[position];
       args.setResult(args.caller()->newString(match));
