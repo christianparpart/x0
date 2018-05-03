@@ -32,13 +32,13 @@
 namespace xzero::flow {
 
 // {{{ VM helper preprocessor definitions
-#define OP opcode((Instruction) * pc)
-#define A operandA((Instruction) * pc)
-#define B operandB((Instruction) * pc)
-#define C operandC((Instruction) * pc)
+#define OP opcode((Instruction) *pc)
+#define A  operandA((Instruction) *pc)
+#define B  operandB((Instruction) *pc)
+#define C  operandC((Instruction) *pc)
 
 #define SP(i)           stack_[(i)]
-#define popStringPtr()  ((FlowString*)  stack_.pop())
+#define popStringPtr()  ((FlowString*) stack_.pop())
 #define incr_pc()       do { ++pc; } while (0)
 #define jump_to(offset) do { set_pc(offset); jump; } while (0)
 
@@ -124,12 +124,6 @@ void Runner::rewind() {
 bool Runner::loop() {
   state_ = Running;
 
-#if defined(ENABLE_FLOW_DIRECT_THREADED_VM)
-  auto& code = handler_->directThreadedCode();
-#else
-  const auto& code = handler_->code();
-#endif
-
 #if !defined(FLOW_VM_LOOP_SWITCH)
 // {{{ jump table
 #define label(opcode) &&l_##opcode
@@ -182,9 +176,12 @@ bool Runner::loop() {
       label(CALL),      label(HANDLER), };
 // }}}
 // {{{ direct threaded code initialization
-#if defined(ENABLE_FLOW_DIRECT_THREADED_VM)
+#if !defined(ENABLE_FLOW_DIRECT_THREADED_VM)
+  const std::vector<Instruction>& code = handler_->code();
+#else
+  std::vector<uint64_t>& code = handler_->directThreadedCode();
   if (code.empty()) {
-    const auto& source = handler_->code();
+    const std::vector<Instruction>& source = handler_->code();
     code.resize(source.size() * 2);
 
     uint64_t* pc = code.data();
@@ -195,7 +192,6 @@ bool Runner::loop() {
       *pc++ = instr;
     }
   }
-// const void** pc = code.data();
 #endif
   // }}}
 #endif

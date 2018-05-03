@@ -5,24 +5,27 @@
 // file except in compliance with the License. You may obtain a copy of
 // the License at: http://opensource.org/licenses/MIT
 
-#include <xzero-flow/TargetCodeGenerator.h>
-#include <xzero-flow/vm/Match.h>
-#include <xzero-flow/vm/ConstantPool.h>
-#include <xzero-flow/vm/Program.h>
-#include <xzero-flow/ir/BasicBlock.h>
-#include <xzero-flow/ir/ConstantValue.h>
-#include <xzero-flow/ir/ConstantArray.h>
-#include <xzero-flow/ir/Instructions.h>
-#include <xzero-flow/ir/IRProgram.h>
-#include <xzero-flow/ir/IRHandler.h>
-#include <xzero-flow/ir/IRBuiltinHandler.h>
-#include <xzero-flow/ir/IRBuiltinFunction.h>
 #include <xzero-flow/LiteralType.h>
+#include <xzero-flow/TargetCodeGenerator.h>
+#include <xzero-flow/ir/BasicBlock.h>
+#include <xzero-flow/ir/ConstantArray.h>
+#include <xzero-flow/ir/ConstantValue.h>
+#include <xzero-flow/ir/IRBuiltinFunction.h>
+#include <xzero-flow/ir/IRBuiltinHandler.h>
+#include <xzero-flow/ir/IRHandler.h>
+#include <xzero-flow/ir/IRProgram.h>
+#include <xzero-flow/ir/Instructions.h>
+#include <xzero-flow/util/assert.h>
+#include <xzero-flow/vm/ConstantPool.h>
+#include <xzero-flow/vm/Match.h>
+#include <xzero-flow/vm/Program.h>
+
 #include <xzero/logging.h>
-#include <unordered_map>
-#include <limits>
+
 #include <array>
 #include <cstdarg>
+#include <limits>
+#include <unordered_map>
 
 namespace xzero::flow {
 
@@ -171,8 +174,7 @@ void TargetCodeGenerator::changeStack(size_t pops, const Value* pushValue) {
 }
 
 void TargetCodeGenerator::pop(size_t count) {
-  if (count > stack_.size())
-    logFatal("flow: BUG: stack smaller than amount of elements to pop.");
+  FLOW_ASSERT(count < stack_.size(), "flow: BUG: stack smaller than amount of elements to pop.");
 
   for (size_t i = 0; i != count; i++)
     stack_.pop_back();
@@ -195,7 +197,7 @@ void TargetCodeGenerator::visit(AllocaInstr& allocaInstr) {
 // variable = expression
 void TargetCodeGenerator::visit(StoreInstr& storeInstr) {
   StackPointer di = getStackPointer(storeInstr.variable());
-  XZERO_ASSERT(di != size_t(-1), "BUG: StoreInstr.variable not found on stack");
+  FLOW_ASSERT(di != size_t(-1), "BUG: StoreInstr.variable not found on stack");
 
   if (storeInstr.source()->uses().size() == 1 && stack_.back() == storeInstr.source()) {
     emitInstr(Opcode::STORE, di);
@@ -209,8 +211,8 @@ void TargetCodeGenerator::visit(StoreInstr& storeInstr) {
 
 void TargetCodeGenerator::visit(LoadInstr& loadInstr) {
 	StackPointer si = getStackPointer(loadInstr.variable());
-	XZERO_ASSERT(si != static_cast<size_t>(-1),
-			"BUG: emitLoad: LoadInstr with variable() not yet on the stack.");
+	FLOW_ASSERT(si != static_cast<size_t>(-1),
+              "BUG: emitLoad: LoadInstr with variable() not yet on the stack.");
 
 	emitInstr(Opcode::LOAD, si);
 	changeStack(0, &loadInstr);
@@ -256,7 +258,7 @@ void TargetCodeGenerator::visit(HandlerCallInstr& handlerCallInstr) {
 }
 
 Operand TargetCodeGenerator::getConstantInt(Value* value) {
-  XZERO_ASSERT(dynamic_cast<ConstantInt*>(value) != nullptr, "Must be ConstantInt");
+  FLOW_ASSERT(dynamic_cast<ConstantInt*>(value) != nullptr, "Must be ConstantInt");
   return static_cast<ConstantInt*>(value)->get();
 }
 
@@ -329,7 +331,8 @@ void TargetCodeGenerator::emitLoad(Value* value) {
         changeStack(0, value);
         break;
       default:
-        logFatal("BUG: Unsupported array type in target code generator.");
+        fprintf(stderr, "BUG: Unsupported array type in target code generator.");
+        abort();
     }
     return;
   }
@@ -344,14 +347,15 @@ void TargetCodeGenerator::emitLoad(Value* value) {
 
   // if value is already on stack, dup to top
   StackPointer si = getStackPointer(value);
-  XZERO_ASSERT(si != static_cast<size_t>(-1),
-      "BUG: emitLoad: value not yet on the stack but referenced as operand.");
+  FLOW_ASSERT(si != static_cast<size_t>(-1),
+              "BUG: emitLoad: value not yet on the stack but referenced as operand.");
   emitInstr(Opcode::LOAD, si);
   changeStack(0, value);
 }
 
 void TargetCodeGenerator::visit(PhiNode& phiInstr) {
-  logFatal("Should never reach here, as PHI instruction nodes should have been replaced by target registers.");
+  fprintf(stderr, "Should never reach here, as PHI instruction nodes should have been replaced by target registers.");
+  abort();
 }
 
 void TargetCodeGenerator::visit(CondBrInstr& condBrInstr) {

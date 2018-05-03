@@ -15,7 +15,6 @@
 #include <xzero-flow/vm/Program.h>
 #include <xzero-flow/vm/Runtime.h>
 
-#include <xzero/io/FileUtil.h>
 #include <xzero/logging.h>
 #include <fmt/format.h>
 
@@ -148,22 +147,32 @@ bool Tester::testDirectory(const std::string& path) {
   return errorCount == 0;
 }
 
+static std::string readFile(const std::string& filename) {
+  std::ifstream f(filename);
+  std::stringstream sstr;
+  sstr << f.rdbuf();
+  return std::move(sstr.str());
+}
+
 bool Tester::testFile(const std::string& filename) {
   flow::diagnostics::Report actual;
   compileFile(filename, &actual);
 
-  Parser p(filename, FileUtil::read(filename).str());
-  Result<flow::diagnostics::Report> expected = p.parse();
-  if (!expected)
+  flow::diagnostics::Report expected;
+  Parser p(filename, readFile(filename));
+  std::error_code ec = p.parse(&expected);
+  if (!ec) {
+    reportError("Parse Error({}): {}", ec.category().name(), ec.message());
     return false;
+  }
 
-  flow::diagnostics::DifferenceReport diff = flow::diagnostics::difference(actual, *expected);
+  flow::diagnostics::DifferenceReport diff = flow::diagnostics::difference(actual, expected);
   for (const Message& m: diff.first)
     reportError("Missing: {}", m);
   for (const Message& m: diff.second)
     reportError("Superfluous: {}", m);
 
-  if (actual != *expected)
+  if (actual != expected)
     return false;
 
   return true;

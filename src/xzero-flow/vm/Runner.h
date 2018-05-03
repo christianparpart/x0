@@ -9,11 +9,8 @@
 
 #include <xzero-flow/LiteralType.h>
 #include <xzero-flow/util/RegExp.h>
+#include <xzero-flow/util/assert.h>
 #include <xzero-flow/vm/Handler.h>
-
-#include <xzero/CustomDataMgr.h>
-#include <xzero/defines.h>
-#include <xzero/logging.h>
 
 #include <algorithm>
 #include <cmath>
@@ -31,7 +28,7 @@ namespace xzero::flow {
 
 // ExecutionEngine
 // VM
-class Runner : public CustomData {
+class Runner {
  public:
   enum State {
     Inactive,   //!< No handler running nor suspended.
@@ -52,14 +49,14 @@ class Runner : public CustomData {
     }
 
     Value pop() {
-      XZERO_ASSERT(stack_.size() > 0, "BUG: Cannot pop from empty stack.");
+      FLOW_ASSERT(stack_.size() > 0, "BUG: Cannot pop from empty stack.");
       Value v = stack_.back();
       stack_.pop_back();
       return v;
     }
 
     void discard(size_t n) {
-      assert(n <= stack_.size());
+      FLOW_ASSERT(n <= stack_.size(), "vm: Attempt to discard more items than available on stack.");
       n = std::min(n, stack_.size());
       stack_.resize(stack_.size() - n);
     }
@@ -68,24 +65,24 @@ class Runner : public CustomData {
 
     Value operator[](int relativeIndex) const {
       if (relativeIndex < 0) {
-        XZERO_ASSERT(static_cast<size_t>(-relativeIndex - 1) < stack_.size(),
-                     "vm: Attempt to load from stack beyond stack top");
+        FLOW_ASSERT(static_cast<size_t>(-relativeIndex - 1) < stack_.size(),
+                    "vm: Attempt to load from stack beyond stack top");
         return stack_[stack_.size() + relativeIndex];
       } else {
-        XZERO_ASSERT(static_cast<size_t>(relativeIndex) < stack_.size(),
-                     "vm: Attempt to load from stack beyond stack top");
+        FLOW_ASSERT(static_cast<size_t>(relativeIndex) < stack_.size(),
+                    "vm: Attempt to load from stack beyond stack top");
         return stack_[relativeIndex];
       }
     }
 
     Value& operator[](int relativeIndex) {
       if (relativeIndex < 0) {
-        XZERO_ASSERT(static_cast<size_t>(-relativeIndex - 1) < stack_.size(),
-                     "vm: Attempt to load from stack beyond stack top");
+        FLOW_ASSERT(static_cast<size_t>(-relativeIndex - 1) < stack_.size(),
+                    "vm: Attempt to load from stack beyond stack top");
         return stack_[stack_.size() + relativeIndex];
       } else {
-        XZERO_ASSERT(static_cast<size_t>(relativeIndex) < stack_.size(),
-                     "vm: Attempt to load from stack beyond stack top");
+        FLOW_ASSERT(static_cast<size_t>(relativeIndex) < stack_.size(),
+                    "vm: Attempt to load from stack beyond stack top");
         return stack_[relativeIndex];
       }
     }

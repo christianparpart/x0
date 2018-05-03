@@ -150,7 +150,8 @@ static inline void completeDefaultValue(
           std::make_unique<CidrExpr>(std::get<Cidr>(dv), loc));
       break;
     default:
-      logFatal("Unsupported type in default completion. Please report me. I am a bug.");
+      fprintf(stderr, "Unsupported type in default completion. Please report me. I am a bug.");
+      abort();
       // reportError("Cannot complete named paramter \"%s\" in callee \"%s\".
       // Unsupported type <%s>.",
       //        name.c_str(), this->name().c_str(), tos(type).c_str());

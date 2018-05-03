@@ -42,9 +42,7 @@ class Handler {
   void setCode(std::vector<Instruction>&& code);
 
 #if defined(ENABLE_FLOW_DIRECT_THREADED_VM)
-  const std::vector<uint64_t>& directThreadedCode() const noexcept {
-    return directThreadedCode_;
-  }
+  const std::vector<uint64_t>& directThreadedCode() const noexcept { return directThreadedCode_; }
   std::vector<uint64_t>& directThreadedCode() noexcept { return directThreadedCode_; }
 #endif
 

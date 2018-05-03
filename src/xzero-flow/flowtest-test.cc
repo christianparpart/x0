@@ -90,7 +90,8 @@ TEST(FlowTest, parser_simple1) {
          |# TokenError: bla blah
          )"_multiline};
 
-  flow::diagnostics::Report report = *p.parse();
+  flow::diagnostics::Report report;
+  p.parse(&report);
   ASSERT_EQ(1, report.size());
   ASSERT_EQ(DiagnosticsType::TokenError, report[0].type);
   ASSERT_EQ("bla blah", report[0].text);
@@ -104,7 +105,8 @@ TEST(FlowTest, parser_simple2) {
          |# SyntaxError: bla yah
          )"_multiline};
 
-  flow::diagnostics::Report report = *p.parse();
+  flow::diagnostics::Report report;
+  p.parse(&report);
   ASSERT_EQ(2, report.size());
 
   ASSERT_EQ(DiagnosticsType::TokenError, report[0].type);

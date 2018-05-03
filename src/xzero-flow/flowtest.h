@@ -11,7 +11,6 @@
 #include <xzero-flow/Params.h>
 #include <xzero-flow/SourceLocation.h>
 #include <xzero-flow/vm/Runtime.h>
-#include <xzero/Result.h>
 
 #include <cstdint>
 #include <initializer_list>
@@ -117,7 +116,7 @@ class Parser {
  public:
   Parser(const std::string& filename, const std::string& contents);
 
-  Result<xzero::flow::diagnostics::Report> parse();
+  std::error_code parse(xzero::flow::diagnostics::Report* report);
 
  private:
   std::string parseUntilInitializer();

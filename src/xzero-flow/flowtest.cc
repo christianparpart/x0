@@ -7,7 +7,6 @@
 
 #include <xzero-flow/flowtest.h>
 #include <xzero-flow/SourceLocation.h>
-#include <xzero/Result.h>
 
 /*
   TestProgram     ::= FlowProgram [Initializer Message*]
@@ -229,14 +228,13 @@ Parser::Parser(const std::string& filename, const std::string& source)
     : lexer_{filename, source} {
 }
 
-Result<xzero::flow::diagnostics::Report> Parser::parse() {
-  xzero::flow::diagnostics::Report report;
+std::error_code Parser::parse(xzero::flow::diagnostics::Report* report) {
   lexer_.consume(Token::InitializerMark);
 
   while (!lexer_.eof())
-    report.emplace_back(parseMessage());
+    report->emplace_back(parseMessage());
 
-  return Success(std::move(report));
+  return std::error_code{};
 }
 
 Message Parser::parseMessage() {

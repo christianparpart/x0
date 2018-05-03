@@ -6,12 +6,13 @@
 // the License at: http://opensource.org/licenses/MIT
 
 #include <xzero-flow/FlowLexer.h>
-#include <xzero/net/IPAddress.h>
-#include <xzero/RuntimeError.h>
+
 #include <xzero/logging.h>
-#include <xzero/sysconfig.h>
+#include <xzero/net/IPAddress.h>
+
 #include <sstream>
 #include <unordered_map>
+#include <system_error>
 #include <string.h>
 
 #if defined(HAVE_GLOB_H)
@@ -141,7 +142,7 @@ FlowLexer::Scope* FlowLexer::enterScope(const std::string& filename) {
 
   ifs->open(filename);
   if (!ifs->good())
-    RAISE_ERRNO(errno);
+    throw std::system_error(errno, std::system_category());
 
   return enterScope(std::move(ifs), filename);
 }
