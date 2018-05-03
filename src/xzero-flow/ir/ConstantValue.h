@@ -7,7 +7,6 @@
 
 #pragma once
 
-#include <xzero/defines.h>
 #include <xzero-flow/ir/Constant.h>
 
 #include <iostream>

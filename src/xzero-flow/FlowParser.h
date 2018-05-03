@@ -6,7 +6,6 @@
 // the License at: http://opensource.org/licenses/MIT
 #pragma once
 
-#include <xzero/defines.h>
 #include <xzero-flow/FlowToken.h>
 #include <xzero-flow/FlowLexer.h>
 #include <xzero-flow/Diagnostics.h>

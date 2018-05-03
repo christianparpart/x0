@@ -6,9 +6,11 @@
 // the License at: http://opensource.org/licenses/MIT
 
 #include <xzero-flow/ir/BasicBlock.h>
+#include <xzero-flow/ir/IRHandler.h>
 #include <xzero-flow/ir/Instr.h>
 #include <xzero-flow/ir/Instructions.h>
-#include <xzero-flow/ir/IRHandler.h>
+#include <xzero-flow/util/assert.h>
+
 #include <xzero/logging.h>
 #include <algorithm>
 #include <assert.h>
@@ -35,8 +37,8 @@ BasicBlock::~BasicBlock() {
     remove(back());
   }
 
-  XZERO_ASSERT(predecessors_.empty(),
-         "Cannot remove a BasicBlock that another BasicBlock still refers to.");
+  FLOW_ASSERT(predecessors_.empty(),
+              "Cannot remove a BasicBlock that another BasicBlock still refers to.");
 
   for (BasicBlock* bb : predecessors_) {
     bb->unlinkSuccessor(this);

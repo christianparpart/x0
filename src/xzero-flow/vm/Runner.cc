@@ -5,16 +5,18 @@
 // file except in compliance with the License. You may obtain a copy of
 // the License at: http://opensource.org/licenses/MIT
 
-#include <xzero-flow/vm/Runner.h>
-#include <xzero-flow/vm/Handler.h>
-#include <xzero-flow/vm/Program.h>
-#include <xzero-flow/vm/Match.h>
-#include <xzero-flow/vm/Instruction.h>
 #include <xzero-flow/NativeCallback.h>
 #include <xzero-flow/Params.h>
-#include <xzero/StringUtil.h>
+#include <xzero-flow/util/strings.h>
+#include <xzero-flow/vm/Handler.h>
+#include <xzero-flow/vm/Instruction.h>
+#include <xzero-flow/vm/Match.h>
+#include <xzero-flow/vm/Program.h>
+#include <xzero-flow/vm/Runner.h>
+
 #include <xzero/logging.h>
 #include <xzero/sysconfig.h>
+
 #include <vector>
 #include <utility>
 #include <memory>
@@ -478,19 +480,19 @@ bool Runner::loop() {
   }
 
   instr(SCMPBEG) {
-    SP(-2) = StringUtil::beginsWith(getString(-2), getString(-1));
+    SP(-2) = beginsWith(getString(-2), getString(-1));
     pop();
     next;
   }
 
   instr(SCMPEND) {
-    SP(-2) = StringUtil::endsWith(getString(-2), getString(-1));
+    SP(-2) = endsWith(getString(-2), getString(-1));
     pop();
     next;
   }
 
   instr(SCONTAINS) {
-    SP(-2) = StringUtil::includes(getString(-2), getString(-1));
+    SP(-2) = getString(-2).find(getString(-1)) != std::string::npos;
     pop();
     next;
   }

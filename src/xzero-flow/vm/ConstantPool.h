@@ -11,7 +11,6 @@
 #include <xzero-flow/util/RegExp.h>
 #include <xzero-flow/vm/Match.h>
 
-#include <xzero/defines.h>
 #include <xzero/net/Cidr.h>
 #include <xzero/net/IPAddress.h>
 

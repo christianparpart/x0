@@ -7,7 +7,6 @@
 
 #pragma once
 
-#include <xzero/defines.h>
 #include <xzero-flow/ir/Value.h>
 #include <xzero-flow/ir/InstructionVisitor.h>
 #include <xzero-flow/vm/Instruction.h>
@@ -37,7 +36,6 @@ class BasicBlock : public Value {
   BasicBlock(const std::string& name, IRHandler* parent);
   ~BasicBlock();
 
-  XZERO_DEPRECATED IRHandler* parent() const { return handler_; }
   IRHandler* getHandler() const { return handler_; }
   void setParent(IRHandler* handler) { handler_ = handler; }
 

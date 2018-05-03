@@ -7,7 +7,6 @@
 
 #pragma once
 
-#include <xzero/defines.h>
 #include <xzero-flow/ir/Instr.h>
 #include <xzero-flow/ir/ConstantValue.h>
 #include <xzero-flow/MatchClass.h>

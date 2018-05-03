@@ -8,7 +8,6 @@
 #pragma once
 
 #include <xzero-flow/LiteralType.h>
-#include <xzero/defines.h>
 
 namespace xzero::flow {
 

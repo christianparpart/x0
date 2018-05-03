@@ -7,8 +7,6 @@
 
 #pragma once
 
-#include <xzero/defines.h>
-
 namespace xzero::flow {
 
 class IRHandler;

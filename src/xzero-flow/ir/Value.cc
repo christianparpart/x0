@@ -5,14 +5,17 @@
 // file except in compliance with the License. You may obtain a copy of
 // the License at: http://opensource.org/licenses/MIT
 
-#include <xzero-flow/ir/Value.h>
-#include <xzero-flow/ir/Instr.h>
 #include <xzero-flow/ir/BasicBlock.h>
 #include <xzero-flow/ir/IRHandler.h>
+#include <xzero-flow/ir/Instr.h>
+#include <xzero-flow/ir/Value.h>
+#include <xzero-flow/util/strings.h>
+#include <xzero-flow/util/assert.h>
+
 #include <xzero/logging.h>
 #include <fmt/format.h>
 #include <algorithm>
-#include <assert.h>
+#include <cassert>
 
 namespace xzero::flow {
 
@@ -35,9 +38,9 @@ Value::Value(LiteralType ty, const std::string& name)
 }
 
 Value::~Value() {
-  XZERO_ASSERT(!isUsed(), fmt::format(
-      "Value being destroyed is still in use by: {}.",
-      StringUtil::join(uses_, ", ", &Instr::name)));
+  FLOW_ASSERT(!isUsed(), fmt::format(
+              "Value being destroyed is still in use by: {}.",
+              join(uses_, ", ", &Instr::name)));
 }
 
 void Value::addUse(Instr* user) {

@@ -7,7 +7,6 @@
 
 #pragma once
 
-#include <xzero/defines.h>
 #include <xzero-flow/ir/Value.h>
 
 namespace xzero::flow {

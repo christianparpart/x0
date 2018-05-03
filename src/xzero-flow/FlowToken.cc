@@ -6,7 +6,6 @@
 // the License at: http://opensource.org/licenses/MIT
 
 #include <xzero-flow/FlowToken.h>
-#include <xzero/StringUtil.h>
 #include <xzero/logging.h>
 
 namespace xzero::flow {
@@ -46,7 +45,6 @@ bool FlowTokenTraits::isType(FlowToken t) {
     case FlowToken::StringType:
       return true;
     default:
-      printf("unknown token: %d\n", (int)t);
       return false;
   }
 }

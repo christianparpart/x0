@@ -11,7 +11,6 @@
 #include <memory>
 #include <iosfwd>
 #include <cstdint>
-#include <xzero/defines.h>
 #include <fmt/format.h>
 
 namespace xzero::flow {

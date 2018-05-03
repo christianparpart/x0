@@ -14,8 +14,6 @@
 #include <xzero-flow/util/SuffixTree.h>
 #include <xzero-flow/vm/Instruction.h>
 
-#include <xzero/defines.h>
-
 #include <cstdint>
 #include <memory>
 #include <sys/types.h>

@@ -7,7 +7,6 @@
 #pragma once
 
 #include <xzero-flow/ASTVisitor.h>
-#include <xzero/defines.h>
 #include <vector>
 
 namespace xzero::flow {

@@ -7,7 +7,6 @@
 
 #pragma once
 
-#include <xzero/defines.h>
 #include <xzero-flow/ir/Value.h>
 #include <xzero-flow/ir/InstructionVisitor.h>
 #include <xzero-flow/vm/Instruction.h>
@@ -52,7 +51,6 @@ class Instr : public Value {
   /**
    * Retrieves parent basic block this instruction is part of.
    */
-  XZERO_DEPRECATED BasicBlock* parent() const { return basicBlock_; }
   BasicBlock* getBasicBlock() const { return basicBlock_; }
 
   /**

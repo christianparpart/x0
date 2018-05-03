@@ -17,7 +17,6 @@
 #include <xzero-flow/util/RegExp.h>
 #include <xzero-flow/util/unbox.h>
 
-#include <xzero/defines.h>
 #include <xzero/net/Cidr.h>
 #include <xzero/net/IPAddress.h>
 

@@ -7,5 +7,10 @@
 #pragma once
 
 #include <cassert>
+#include <cstdlib>
+#include <string>
 
-#define FLOW_ASSERT(cond, msg) assert((cond) && !(msg))
+#define FLOW_ASSERT(cond, msg) if (!(cond)) {             \
+  fprintf(stderr, "%s\n", std::string(msg).c_str());      \
+  abort();                                                \
+}

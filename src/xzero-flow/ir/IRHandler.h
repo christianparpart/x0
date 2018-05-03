@@ -10,7 +10,6 @@
 #include <xzero-flow/ir/Constant.h>
 #include <xzero-flow/ir/BasicBlock.h>
 #include <xzero-flow/util/unbox.h>
-#include <xzero/defines.h>
 
 #include <string>
 #include <memory>
@@ -33,7 +32,6 @@ class IRHandler : public Constant {
   BasicBlock* createBlock(const std::string& name = "");
 
   IRProgram* getProgram() const { return program_; }
-  XZERO_DEPRECATED IRProgram* parent() const { return program_; }
   void setParent(IRProgram* prog) { program_ = prog; }
 
   void dump() override;

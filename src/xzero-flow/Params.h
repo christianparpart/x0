@@ -7,7 +7,6 @@
 
 #pragma once
 
-#include <xzero/defines.h>
 #include <xzero-flow/LiteralType.h>
 #include <xzero-flow/vm/Handler.h>
 #include <xzero-flow/vm/Program.h>

@@ -7,11 +7,11 @@
 
 #pragma once
 
-#include <xzero/defines.h>
+#include <xzero-flow/LiteralType.h>  // FlowNumber
 #include <xzero-flow/util/unbox.h>
 #include <xzero-flow/vm/ConstantPool.h>
 #include <xzero-flow/vm/Instruction.h>
-#include <xzero-flow/LiteralType.h>  // FlowNumber
+
 #include <xzero/net/IPAddress.h>
 #include <xzero/net/Cidr.h>
 

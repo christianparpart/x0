@@ -14,7 +14,6 @@
 #include <xzero-flow/MatchClass.h>
 #include <xzero-flow/Signature.h>
 #include <xzero-flow/vm/Instruction.h>  // Opcode
-#include <xzero/defines.h>
 
 #include <fmt/format.h>
 

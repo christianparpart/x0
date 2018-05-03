@@ -6,10 +6,10 @@
 // the License at: http://opensource.org/licenses/MIT
 
 #include <xzero-flow/Signature.h>
-#include <xzero/StringUtil.h>
+
 #include <cstdlib>
-#include <vector>
 #include <string>
+#include <vector>
 
 namespace xzero::flow {
 

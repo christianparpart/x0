@@ -8,6 +8,7 @@
 #include <xzero-flow/ir/IRHandler.h>
 #include <xzero-flow/ir/BasicBlock.h>
 #include <xzero-flow/ir/Instructions.h>
+#include <xzero-flow/util/assert.h>
 #include <xzero/logging.h>
 #include <algorithm>
 #include <assert.h>
@@ -48,11 +49,11 @@ BasicBlock* IRHandler::createBlock(const std::string& name) {
 }
 
 void IRHandler::setEntryBlock(BasicBlock* bb) {
-  XZERO_ASSERT(bb->getHandler(), "BasicBlock must belong to this handler.");
+  FLOW_ASSERT(bb->getHandler(), "BasicBlock must belong to this handler.");
 
   auto i = std::find_if(blocks_.begin(), blocks_.end(),
                         [&](const auto& obj) { return obj.get() == bb; });
-  XZERO_ASSERT(i != blocks_.end(), "BasicBlock must belong to this handler.");
+  FLOW_ASSERT(i != blocks_.end(), "BasicBlock must belong to this handler.");
   std::unique_ptr<BasicBlock> t = std::move(*i);
   blocks_.erase(i);
   blocks_.push_front(std::move(t));
@@ -117,8 +118,8 @@ void IRHandler::moveBefore(const BasicBlock* moveable, const BasicBlock* before)
 void IRHandler::erase(BasicBlock* bb) {
   auto i = std::find_if(blocks_.begin(), blocks_.end(),
                         [&](const auto& obj) { return obj.get() == bb; });
-  XZERO_ASSERT(i != blocks_.end(),
-         "Given basic block must be a member of this handler to be removed.");
+  FLOW_ASSERT(i != blocks_.end(),
+              "Given basic block must be a member of this handler to be removed.");
 
   for (Instr* instr : bb->instructions()) {
     instr->clearOperands();

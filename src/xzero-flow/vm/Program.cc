@@ -13,7 +13,6 @@
 #include <xzero-flow/vm/Program.h>
 #include <xzero-flow/vm/Runner.h>
 #include <xzero-flow/vm/Runtime.h>
-#include <xzero/StringUtil.h>
 #include <xzero/logging.h>
 
 #include <memory>

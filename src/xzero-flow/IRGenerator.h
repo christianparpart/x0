@@ -7,7 +7,6 @@
 
 #pragma once
 
-#include <xzero/defines.h>
 #include <xzero-flow/ASTVisitor.h>
 #include <xzero-flow/ir/IRBuilder.h>
 #include <deque>

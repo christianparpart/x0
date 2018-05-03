@@ -5,12 +5,13 @@
 // file except in compliance with the License. You may obtain a copy of
 // the License at: http://opensource.org/licenses/MIT
 
-#include <xzero-flow/ir/IRBuilder.h>
-#include <xzero-flow/ir/IRHandler.h>
 #include <xzero-flow/ir/BasicBlock.h>
 #include <xzero-flow/ir/ConstantValue.h>
+#include <xzero-flow/ir/IRBuilder.h>
+#include <xzero-flow/ir/IRHandler.h>
 #include <xzero-flow/ir/Instructions.h>
-#include <xzero/StringUtil.h>
+#include <xzero-flow/util/strings.h>
+
 #include <assert.h>
 #include <inttypes.h>
 #include <math.h>
@@ -495,7 +496,7 @@ Value* IRBuilder::createSCmpEB(Value* lhs, Value* rhs,
                                const std::string& name) {
   if (auto a = dynamic_cast<ConstantString*>(lhs))
     if (auto b = dynamic_cast<ConstantString*>(rhs))
-      return getBoolean(StringUtil::beginsWith(a->get(), b->get()));
+      return getBoolean(beginsWith(a->get(), b->get()));
 
   return insert<SCmpBegInstr>(lhs, rhs, makeName(name));
 }
@@ -513,7 +514,7 @@ Value* IRBuilder::createSCmpEE(Value* lhs, Value* rhs,
                                const std::string& name) {
   if (auto a = dynamic_cast<ConstantString*>(lhs))
     if (auto b = dynamic_cast<ConstantString*>(rhs))
-      return getBoolean(StringUtil::endsWith(a->get(), b->get()));
+      return getBoolean(endsWith(a->get(), b->get()));
 
   return insert<SCmpEndInstr>(lhs, rhs, makeName(name));
 }

@@ -7,7 +7,6 @@
 
 #pragma once
 
-#include <xzero/defines.h>
 #include <xzero-flow/LiteralType.h>
 #include <xzero-flow/Signature.h>
 #include <xzero-flow/util/RegExp.h>

@@ -7,7 +7,6 @@
 
 #pragma once
 
-#include <xzero/defines.h>
 #include <xzero-flow/SourceLocation.h>
 #include <xzero-flow/FlowToken.h>
 #include <xzero-flow/LiteralType.h>
