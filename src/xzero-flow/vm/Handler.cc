@@ -9,7 +9,6 @@
 #include <xzero-flow/vm/Program.h>
 #include <xzero-flow/vm/Runner.h>
 #include <xzero-flow/vm/Instruction.h>
-#include <xzero/logging.h>
 #include <xzero/sysconfig.h>
 
 namespace xzero::flow {

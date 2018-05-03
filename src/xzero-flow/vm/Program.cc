@@ -13,7 +13,6 @@
 #include <xzero-flow/vm/Program.h>
 #include <xzero-flow/vm/Runner.h>
 #include <xzero-flow/vm/Runtime.h>
-#include <xzero/logging.h>
 
 #include <memory>
 #include <stdexcept>
@@ -180,10 +179,7 @@ bool Program::link(Runtime* runtime, diagnostics::Report* report) {
       nativeFunctions_[i] = cb;
     } else {
       nativeFunctions_[i] = nullptr;
-      logError("flow.vm.Program",
-               "Unresolved native function signature: %s\n",
-               signature);
-      // TODO unresolvedSymbols_.push_back(signature);
+      report->linkError("Unresolved native function signature: {}", signature);
       errors++;
     }
     ++i;

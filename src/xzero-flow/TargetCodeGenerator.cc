@@ -20,8 +20,6 @@
 #include <xzero-flow/vm/Match.h>
 #include <xzero-flow/vm/Program.h>
 
-#include <xzero/logging.h>
-
 #include <array>
 #include <cstdarg>
 #include <limits>
@@ -113,7 +111,7 @@ void TargetCodeGenerator::generate(IRHandler* handler) {
   cp_.getHandler(handlerId_).second = std::move(code_);
 
   // cleanup remaining handler-local work vars
-  logTrace("flow: stack depth after handler code generation: {}", stack_.size());
+  //FLOW_TRACE("flow: stack depth after handler code generation: {}", stack_.size());
   stack_.clear();
 }
 
@@ -406,7 +404,7 @@ void TargetCodeGenerator::visit(MatchInstr& matchInstr) {
             cp_.makeRegExp(static_cast<ConstantRegExp*>(one.first)->get()));
         break;
       default:
-        logFatal("BUG: unsupported label type");
+        FLOW_ASSERT(false, "BUG: unsupported label type");
     }
   }
 

@@ -14,7 +14,6 @@
 #include <xzero-flow/vm/Program.h>
 #include <xzero-flow/vm/Runner.h>
 
-#include <xzero/logging.h>
 #include <xzero/sysconfig.h>
 
 #include <vector>
@@ -31,6 +30,8 @@
 #define FLOW_VM_LOOP_SWITCH 1
 #endif
 
+#define FLOW_DEBUG(msg, ...) do {} while (0)
+
 namespace xzero::flow {
 
 // {{{ VM helper preprocessor definitions
@@ -46,8 +47,8 @@ namespace xzero::flow {
 
 #if defined(FLOW_VM_LOOP_SWITCH)
   #define LOOP_BEGIN()    for (;;) { switch (OP) {
-  #define LOOP_END()      default: logFatal("Unknown OP hit!"); } }
-  #define instr(NAME)     case NAME: logDebug("{}", disassemble(*pc, pc - code.data(), &sp_, &program_->constants()));
+  #define LOOP_END()      default: FLOW_ASSERT(false, "Unknown Opcode hit!"); } }
+  #define instr(NAME)     case NAME: FLOW_DEBUG("{}", disassemble(*pc, pc - code.data(), &sp_, &program_->constants()));
   #define get_pc()        (pc - code.data())
   #define set_pc(offset)  do { pc = code.data() + (offset); } while (0)
   #define jump            if (true) { break; }
@@ -55,7 +56,7 @@ namespace xzero::flow {
 #elif defined(ENABLE_FLOW_DIRECT_THREADED_VM)
   #define LOOP_BEGIN()    jump;
   #define LOOP_END()
-  #define instr(name)     l_##name : ++pc; logDebug("{}", disassemble((Instruction) * pc, (pc - code.data()) / 2), &program_->constants());
+  #define instr(name)     l_##name : ++pc; FLOW_DEBUG("{}", disassemble((Instruction) * pc, (pc - code.data()) / 2), &program_->constants());
   #define get_pc()        ((pc - code.data()) / 2)
   #define set_pc(offset)  do { pc = code.data() + (offset) * 2; } while (0)
   #define jump            goto*(void*)*pc
@@ -63,7 +64,7 @@ namespace xzero::flow {
 #else
   #define LOOP_BEGIN()    jump;
   #define LOOP_END()
-  #define instr(name)     l_##name : logDebug("{}", disassemble(*pc, pc - code.data(), &sp_, &program_->constants()));
+  #define instr(name)     l_##name : FLOW_DEBUG("{}", disassemble(*pc, pc - code.data(), &sp_, &program_->constants()));
   #define get_pc()        (pc - code.data())
   #define set_pc(offset)  do { pc = code.data() + (offset); } while (0)
   #define jump            goto* ops[OP]
@@ -635,7 +636,7 @@ bool Runner::loop() {
         push(args[0]);
 
       if (state_ == Suspended) {
-        logDebug("flow: vm suspended in function. returning (false)");
+        FLOW_DEBUG("flow: vm suspended in function. returning (false)");
         return false;
       }
     }
@@ -660,7 +661,7 @@ bool Runner::loop() {
       discard(argc);
 
       if (state_ == Suspended) {
-        logDebug("flow: vm suspended in handler. returning (false)");
+        FLOW_DEBUG("flow: vm suspended in handler. returning (false)");
         return false;
       }
 

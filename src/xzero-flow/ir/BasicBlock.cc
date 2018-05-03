@@ -11,8 +11,8 @@
 #include <xzero-flow/ir/Instructions.h>
 #include <xzero-flow/util/assert.h>
 
-#include <xzero/logging.h>
 #include <algorithm>
+#include <iterator>
 #include <assert.h>
 #include <math.h>
 
@@ -238,19 +238,13 @@ void BasicBlock::collectIDom(std::vector<BasicBlock*>& output) {
 }
 
 void BasicBlock::verify() {
-  if (code_.size() < 1) {
-    logFatal("BasicBlock {}: verify: Must contain at least one instruction.", name());
-  }
-
-  for (size_t i = 0, e = code_.size() - 1; i != e; ++i) {
-    if (dynamic_cast<TerminateInstr*>(code_[i].get()) != nullptr) {
-      logFatal("BasicBlock {}: verify: Found a terminate instruction in the middle of the block.", name());
-    }
-  }
-
-  if (getTerminator() == nullptr) {
-    logFatal("BasicBlock {}: verify: Last instruction must be a terminator instruction.", name());
-  }
+  FLOW_ASSERT(code_.size() > 0, fmt::format("BasicBlock {}: verify: Must contain at least one instruction.", name()));
+  FLOW_ASSERT(getTerminator() != nullptr, fmt::format("BasicBlock {}: verify: Last instruction must be a terminator instruction.", name()));
+  FLOW_ASSERT(
+      std::find_if(code_.begin(), std::prev(code_.end()), [&](std::unique_ptr<Instr>& instr) -> bool {
+        return dynamic_cast<TerminateInstr*>(instr.get()) != nullptr;
+      }) == std::prev(code_.end()),
+      fmt::format("BasicBlock {}: verify: Found a terminate instruction in the middle of the block.", name()));
 }
 
 }  // namespace xzero::flow

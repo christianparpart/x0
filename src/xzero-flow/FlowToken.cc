@@ -6,7 +6,7 @@
 // the License at: http://opensource.org/licenses/MIT
 
 #include <xzero-flow/FlowToken.h>
-#include <xzero/logging.h>
+#include <xzero-flow/util/assert.h>
 
 namespace xzero::flow {
 
@@ -291,7 +291,7 @@ std::string to_string(FlowToken t) {
     case FlowToken::InterpolatedStringEnd:
       return "InterpolatedStringEnd";
     default:
-      logFatal("FIXME: Invalid Token.");
+      FLOW_ASSERT(false, "FIXME: Invalid Token.");
   }
 }
 

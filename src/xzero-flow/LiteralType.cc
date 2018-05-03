@@ -6,7 +6,7 @@
 // the License at: http://opensource.org/licenses/MIT
 
 #include <xzero-flow/LiteralType.h>
-#include <xzero/logging.h>
+#include <xzero-flow/util/assert.h>
 
 namespace xzero {
 namespace flow {
@@ -38,7 +38,7 @@ std::string tos(LiteralType type) {
     case LiteralType::CidrArray:
       return "CidrArray";
     default:
-      logFatal("InvalidArgumentError");
+      FLOW_ASSERT(false, "InvalidArgumentError");
   }
 }
 
@@ -74,7 +74,7 @@ LiteralType elementTypeOf(LiteralType type) {
     case LiteralType::CidrArray:
       return LiteralType::Cidr;
     default:
-      logFatal("InvalidArgumentError");
+      FLOW_ASSERT(false, "InvalidArgumentError");
   }
 }
 

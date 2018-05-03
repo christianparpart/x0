@@ -6,7 +6,7 @@
 // the License at: http://opensource.org/licenses/MIT
 
 #include <xzero-flow/Diagnostics.h>
-#include <xzero/logging.h>
+#include <fmt/format.h>
 
 namespace xzero::flow::diagnostics {
 
@@ -36,10 +36,10 @@ void Report::log() const {
   for (const Message& message: messages_) {
     switch (message.type) {
       case Type::Warning:
-        logWarning("{}", message);
+        fmt::print("Warning: {}\n", message);
         break;
       default:
-        logError("{}", message);
+        fmt::print("Error: {}\n", message);
         break;
     }
   }

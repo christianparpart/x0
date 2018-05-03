@@ -12,7 +12,6 @@
 #include <xzero-flow/ir/IRHandler.h>
 #include <xzero-flow/ir/Instructions.h>
 #include <xzero-flow/ir/ConstantArray.h>
-#include <xzero/logging.h>
 #include <algorithm>
 #include <assert.h>
 #include <math.h>
@@ -182,13 +181,8 @@ void IRGenerator::accept(UnaryExpr& expr) {
   Value* rhs = codegen(expr.subExpr());
 
   auto i = ops.find(expr.op());
-  if (i != ops.end()) {
-    result_ = (this->*i->second)(rhs, "");
-  } else {
-    logFatal("Unsupported unary expression {} in IRGenerator.",
-        mnemonic(expr.op()));
-    result_ = nullptr;
-  }
+  FLOW_ASSERT(i != ops.end(), fmt::format("Unsupported unary expression {} in IRGenerator.", mnemonic(expr.op())));
+  result_ = (this->*i->second)(rhs, "");
 }
 
 void IRGenerator::accept(BinaryExpr& expr) {

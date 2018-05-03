@@ -11,7 +11,6 @@
 #include <xzero-flow/ir/IRBuiltinHandler.h>
 #include <xzero-flow/ir/IRBuiltinFunction.h>
 #include <xzero-flow/ir/BasicBlock.h>
-#include <xzero/logging.h>
 #include <fmt/format.h>
 #include <utility>
 #include <assert.h>

@@ -8,7 +8,6 @@
 #include <xzero-flow/ir/PassManager.h>
 #include <xzero-flow/ir/HandlerPass.h>
 #include <xzero-flow/ir/IRProgram.h>
-#include <xzero/logging.h>
 
 namespace xzero::flow {
 
@@ -29,13 +28,10 @@ void PassManager::run(IRProgram* program) {
 }
 
 void PassManager::run(IRHandler* handler) {
-  logTrace("flow: Running optimizations on handler: {}", handler->name());
   for (;;) {
     int changes = 0;
     for (auto& pass : handlerPasses_) {
-      //logTrace("flow: Running optimization pass: {}", pass->name());
       while (pass->run(handler)) {
-        logTrace("flow: Pass {} changed IR", pass->name());
         handler->verify();
         changes++;
       }

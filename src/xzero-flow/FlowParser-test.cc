@@ -7,7 +7,6 @@
 
 #include <xzero-flow/FlowParser.h>
 #include <xzero-flow/ASTPrinter.h>
-#include <xzero/logging.h>
 #include <xzero/testing.h>
 #include <memory>
 

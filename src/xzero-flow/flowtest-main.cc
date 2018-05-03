@@ -15,7 +15,6 @@
 #include <xzero-flow/vm/Program.h>
 #include <xzero-flow/vm/Runtime.h>
 
-#include <xzero/logging.h>
 #include <fmt/format.h>
 
 #include <iostream>
@@ -161,7 +160,7 @@ bool Tester::testFile(const std::string& filename) {
   flow::diagnostics::Report expected;
   Parser p(filename, readFile(filename));
   std::error_code ec = p.parse(&expected);
-  if (!ec) {
+  if (ec) {
     reportError("Parse Error({}): {}", ec.category().name(), ec.message());
     return false;
   }
@@ -179,7 +178,7 @@ bool Tester::testFile(const std::string& filename) {
 }
 
 void Tester::compileFile(const std::string& filename, flow::diagnostics::Report* report) {
-  fmt::print("testing: {}\n", filename);
+  fmt::print("testing {}\n", filename);
 
   constexpr bool optimize = true;
   flow::FlowParser parser(report,

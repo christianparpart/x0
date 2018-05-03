@@ -22,12 +22,16 @@
 namespace xzero {
 namespace flow {
 
+namespace diagnostics {
+  class Report;
+}
+
 //! \addtogroup Flow
 //@{
 
 class FlowLexer {
  public:
-  FlowLexer();
+  explicit FlowLexer(diagnostics::Report* report);
   ~FlowLexer();
 
   void openLocalFile(const std::string& filename);
@@ -90,6 +94,7 @@ class FlowLexer {
   bool ipv6HexDigit4();
 
  private:
+  diagnostics::Report& report_;
   std::list<std::unique_ptr<Scope>> contexts_;
 
   int currentChar_;

@@ -10,7 +10,6 @@
 #include <xzero-flow/FlowLexer.h>
 #include <xzero-flow/AST.h>
 #include <xzero-flow/vm/Runtime.h>
-#include <xzero/logging.h>
 #include <unordered_map>
 #include <memory>
 
@@ -81,7 +80,7 @@ FlowParser::FlowParser(diagnostics::Report* report,
                        Runtime* runtime,
                        ImportHandler importHandler)
     : report_{*report},
-      lexer_{std::make_unique<FlowLexer>()},
+      lexer_{std::make_unique<FlowLexer>(report)},
       scopeStack_{nullptr},
       runtime_{runtime},
       importHandler_{importHandler} {

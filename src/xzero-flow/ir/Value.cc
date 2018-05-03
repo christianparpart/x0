@@ -12,7 +12,6 @@
 #include <xzero-flow/util/strings.h>
 #include <xzero-flow/util/assert.h>
 
-#include <xzero/logging.h>
 #include <fmt/format.h>
 #include <algorithm>
 #include <cassert>

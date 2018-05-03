@@ -5,9 +5,9 @@
 // file except in compliance with the License. You may obtain a copy of
 // the License at: http://opensource.org/licenses/MIT
 
+#include <xzero-flow/Diagnostics.h>
 #include <xzero-flow/FlowLexer.h>
 
-#include <xzero/logging.h>
 #include <xzero/net/IPAddress.h>
 
 #include <sstream>
@@ -78,8 +78,9 @@ static inline std::string unescape(const std::string& value)  // {{{
 }
 // }}}
 
-FlowLexer::FlowLexer()
-    : contexts_(),
+FlowLexer::FlowLexer(diagnostics::Report* report)
+    : report_{*report},
+      contexts_(),
       currentChar_(EOF),
       ipv6HexDigits_(0),
       location_(),
@@ -273,13 +274,11 @@ void FlowLexer::processCommand(const std::string& line) {
   size_t beg = line.find('"');
   size_t end = line.rfind('"');
   if (beg == std::string::npos || end == std::string::npos) {
-    logDebug("Malformed #include line");
+    report_.tokenError(lastLocation(), "Malformed #include line");
     return;
   }
 
   std::string pattern = line.substr(beg + 1, end - beg - 1);
-
-  logDebug("Process include: '{}'", pattern);
 
 #if defined(HAVE_GLOB_H)
   glob_t gl;
@@ -295,7 +294,7 @@ void FlowLexer::processCommand(const std::string& line) {
         {GLOB_NOSPACE, "No space"},
         {GLOB_ABORTED, "Aborted"},
         {GLOB_NOMATCH, "No Match"}, };
-    logDebug("glob() error: {}", globErrs[rv]);
+    report_.tokenError(lastLocation(), "glob() error: {}", globErrs[rv]);
     return;
   }
 
@@ -490,8 +489,9 @@ FlowToken FlowLexer::nextToken() {
       if (std::isalpha(currentChar()) || currentChar() == '_')
         return token_ = parseIdent();
 
-      logDebug("nextToken: unknown char {} ({})",
-            escape(currentChar()), (int)(currentChar() & 0xFF));
+      report_.tokenError(lastLocation(),
+                         "unknown character {} ({})",
+                         escape(currentChar()), (int)(currentChar() & 0xFF));
 
       nextChar();
       return token_ = FlowToken::Unknown;
@@ -863,11 +863,12 @@ FlowToken FlowLexer::continueCidr(size_t range) {
   nextChar();  // consume '/'
 
   if (!std::isdigit(currentChar())) {
-    logDebug("{}[{}:{}]: invalid byte {}",
-          location_.filename,
-          line(),
-          column(),
-          (int)(currentChar() & 0xFF));
+    report_.tokenError(lastLocation(),
+        "{}[{}:{}]: invalid byte {}",
+        location_.filename,
+        line(),
+        column(),
+        (int)(currentChar() & 0xFF));
     return token_ = FlowToken::Unknown;
   }
 
@@ -880,8 +881,9 @@ FlowToken FlowLexer::continueCidr(size_t range) {
   }
 
   if (numberValue_ > static_cast<decltype(numberValue_)>(range)) {
-    logDebug("{}[{}:{}]: CIDR prefix out of range.",
-             location_.filename, line(), column());
+    report_.tokenError(lastLocation(),
+                       "{}[{}:{}]: CIDR prefix out of range.",
+                       location_.filename, line(), column());
     return token_ = FlowToken::Unknown;
   }
 

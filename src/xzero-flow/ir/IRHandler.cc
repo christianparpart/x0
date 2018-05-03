@@ -9,7 +9,6 @@
 #include <xzero-flow/ir/BasicBlock.h>
 #include <xzero-flow/ir/Instructions.h>
 #include <xzero-flow/util/assert.h>
-#include <xzero/logging.h>
 #include <algorithm>
 #include <assert.h>
 

@@ -6,6 +6,7 @@
 // the License at: http://opensource.org/licenses/MIT
 
 #include <xzero-flow/FlowLexer.h>
+#include <xzero-flow/Diagnostics.h>
 #include <xzero-flow/FlowToken.h>
 #include <xzero/testing.h>
 
@@ -13,7 +14,8 @@ using namespace xzero;
 using namespace xzero::flow;
 
 TEST(FlowLexer, eof) {
-  FlowLexer lexer;
+  diagnostics::Report report;
+  FlowLexer lexer(&report);
   lexer.openString("");
 
   ASSERT_EQ(FlowToken::Eof, lexer.token());
@@ -24,7 +26,8 @@ TEST(FlowLexer, eof) {
 }
 
 TEST(FlowLexer, token_keywords) {
-  FlowLexer lexer;
+  diagnostics::Report report;
+  FlowLexer lexer(&report);
   lexer.openString("handler");
 
   ASSERT_EQ(FlowToken::Handler, lexer.token());
@@ -33,7 +36,8 @@ TEST(FlowLexer, token_keywords) {
 }
 
 TEST(FlowLexer, composed) {
-  FlowLexer lexer;
+  diagnostics::Report report;
+  FlowLexer lexer(&report);
   lexer.openString("handler main {}");
 
   ASSERT_EQ(FlowToken::Handler, lexer.token());
@@ -52,7 +56,8 @@ TEST(FlowLexer, composed) {
 }
 
 TEST(FlowLexer, interpolatedString) {
-  FlowLexer lexer;
+  diagnostics::Report report;
+  FlowLexer lexer(&report);
   lexer.openString("\"head#{middle}tail\"");
 
   ASSERT_EQ(FlowToken::InterpolatedStringFragment, lexer.token());
@@ -68,7 +73,8 @@ TEST(FlowLexer, interpolatedString) {
 }
 
 TEST(FlowLexer, interpolatedString_withoutHead) {
-  FlowLexer lexer;
+  diagnostics::Report report;
+  FlowLexer lexer(&report);
   lexer.openString("\"#{middle}tail\"");
 
   ASSERT_EQ(FlowToken::InterpolatedStringFragment, lexer.token());
@@ -84,7 +90,8 @@ TEST(FlowLexer, interpolatedString_withoutHead) {
 }
 
 TEST(FlowLexer, interpolatedString_withoutTail) {
-  FlowLexer lexer;
+  diagnostics::Report report;
+  FlowLexer lexer(&report);
   lexer.openString("\"head#{middle}\"");
 
   ASSERT_EQ(FlowToken::InterpolatedStringFragment, lexer.token());

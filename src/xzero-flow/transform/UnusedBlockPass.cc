@@ -5,12 +5,12 @@
 // file except in compliance with the License. You may obtain a copy of
 // the License at: http://opensource.org/licenses/MIT
 
-#include <xzero-flow/transform/UnusedBlockPass.h>
 #include <xzero-flow/ir/BasicBlock.h>
-#include <xzero-flow/ir/Instructions.h>
 #include <xzero-flow/ir/IRHandler.h>
 #include <xzero-flow/ir/Instructions.h>
-#include <xzero/logging.h>
+#include <xzero-flow/ir/Instructions.h>
+#include <xzero-flow/transform/UnusedBlockPass.h>
+
 #include <list>
 
 namespace xzero::flow {
@@ -29,7 +29,7 @@ bool UnusedBlockPass::run(IRHandler* handler) {
   }
 
   for (BasicBlock* bb : unused) {
-    logTrace("flow: removing unused BasicBlock {}", bb->name());
+    // FLOW_TRACE("flow: removing unused BasicBlock {}", bb->name());
     handler->erase(bb);
   }
 
