@@ -50,6 +50,14 @@ class BasicBlock : public Value {
   TerminateInstr* getTerminator() const;
 
   /**
+   * Checks whether this BasicBlock is assured to terminate, hence, complete.
+   *
+   * This is either achieved by having a TerminateInstr at the end or a NativeCallback
+   * that never returns.
+   */
+  bool isComplete() const;
+
+  /**
    * Retrieves the linear ordered list of instructions of instructions in this
    * basic block.
    */

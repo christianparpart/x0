@@ -6,6 +6,8 @@
 // the License at: http://opensource.org/licenses/MIT
 
 #include <flow/ir/BasicBlock.h>
+#include <flow/ir/IRBuiltinFunction.h>
+#include <flow/ir/IRBuiltinHandler.h>
 #include <flow/ir/IRHandler.h>
 #include <flow/ir/Instr.h>
 #include <flow/ir/Instructions.h>
@@ -237,9 +239,25 @@ void BasicBlock::collectIDom(std::vector<BasicBlock*>& output) {
   }
 }
 
+bool BasicBlock::isComplete() const {
+  if (empty())
+    return false;
+
+  if (getTerminator())
+    return true;
+
+  if (auto instr = dynamic_cast<HandlerCallInstr*>(back()))
+    return instr->callee()->getNative().isNeverReturning();
+
+  if (auto instr = dynamic_cast<CallInstr*>(back()))
+    return instr->callee()->getNative().isNeverReturning();
+
+  return false;
+}
+
 void BasicBlock::verify() {
   FLOW_ASSERT(code_.size() > 0, fmt::format("BasicBlock {}: verify: Must contain at least one instruction.", name()));
-  FLOW_ASSERT(getTerminator() != nullptr, fmt::format("BasicBlock {}: verify: Last instruction must be a terminator instruction.", name()));
+  FLOW_ASSERT(isComplete(), fmt::format("BasicBlock {}: verify: Last instruction must be a terminator instruction.", name()));
   FLOW_ASSERT(
       std::find_if(code_.begin(), std::prev(code_.end()), [&](std::unique_ptr<Instr>& instr) -> bool {
         return dynamic_cast<TerminateInstr*>(instr.get()) != nullptr;
