@@ -15,7 +15,7 @@ FILES=(
   /missing
   /depcomp
   /xzero/sysconfig.h.in
-  /xzero-flow/sysconfig.h.in
+  /flow/sysconfig.h.in
 )
 
 if test "$1" == "clean"; then

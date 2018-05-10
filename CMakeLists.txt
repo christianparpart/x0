@@ -343,44 +343,44 @@ target_link_libraries(XzeroTest Xzero)
 install(TARGETS XzeroTest DESTINATION ${CMAKE_INSTALL_PREFIX}/lib)
 # }}}
 # {{{ libXzeroFlow
-set(XzeroFlow_SRC src/xzero-flow/AST.cc
-                  src/xzero-flow/ASTPrinter.cc
-                  src/xzero-flow/Diagnostics.cc
-                  src/xzero-flow/FlowCallVisitor.cc
-                  src/xzero-flow/FlowLexer.cc
-                  src/xzero-flow/FlowParser.cc
-                  src/xzero-flow/FlowToken.cc
-                  src/xzero-flow/LiteralType.cc
-                  src/xzero-flow/IRGenerator.cc
-                  src/xzero-flow/MatchClass.cc
-                  src/xzero-flow/NativeCallback.cc
-                  src/xzero-flow/Signature.cc
-                  src/xzero-flow/SourceLocation.cc
-                  src/xzero-flow/TargetCodeGenerator.cc
-                  src/xzero-flow/ir/BasicBlock.cc
-                  src/xzero-flow/ir/Constant.cc
-                  src/xzero-flow/ir/ConstantArray.cc
-                  src/xzero-flow/ir/ConstantValue.cc
-                  src/xzero-flow/ir/IRBuilder.cc
-                  src/xzero-flow/ir/IRHandler.cc
-                  src/xzero-flow/ir/IRProgram.cc
-                  src/xzero-flow/ir/Instr.cc
-                  src/xzero-flow/ir/InstructionVisitor.cc
-                  src/xzero-flow/ir/Instructions.cc
-                  src/xzero-flow/ir/PassManager.cc
-                  src/xzero-flow/ir/Value.cc
-                  src/xzero-flow/transform/EmptyBlockElimination.cc
-                  src/xzero-flow/transform/InstructionElimination.cc
-                  src/xzero-flow/transform/MergeBlockPass.cc
-                  src/xzero-flow/transform/UnusedBlockPass.cc
-                  src/xzero-flow/util/RegExp.cc
-                  src/xzero-flow/vm/ConstantPool.cc
-                  src/xzero-flow/vm/Handler.cc
-                  src/xzero-flow/vm/Instruction.cc
-                  src/xzero-flow/vm/Match.cc
-                  src/xzero-flow/vm/Program.cc
-                  src/xzero-flow/vm/Runner.cc
-                  src/xzero-flow/vm/Runtime.cc
+set(XzeroFlow_SRC src/flow/AST.cc
+                  src/flow/ASTPrinter.cc
+                  src/flow/Diagnostics.cc
+                  src/flow/FlowCallVisitor.cc
+                  src/flow/FlowLexer.cc
+                  src/flow/FlowParser.cc
+                  src/flow/FlowToken.cc
+                  src/flow/LiteralType.cc
+                  src/flow/IRGenerator.cc
+                  src/flow/MatchClass.cc
+                  src/flow/NativeCallback.cc
+                  src/flow/Signature.cc
+                  src/flow/SourceLocation.cc
+                  src/flow/TargetCodeGenerator.cc
+                  src/flow/ir/BasicBlock.cc
+                  src/flow/ir/Constant.cc
+                  src/flow/ir/ConstantArray.cc
+                  src/flow/ir/ConstantValue.cc
+                  src/flow/ir/IRBuilder.cc
+                  src/flow/ir/IRHandler.cc
+                  src/flow/ir/IRProgram.cc
+                  src/flow/ir/Instr.cc
+                  src/flow/ir/InstructionVisitor.cc
+                  src/flow/ir/Instructions.cc
+                  src/flow/ir/PassManager.cc
+                  src/flow/ir/Value.cc
+                  src/flow/transform/EmptyBlockElimination.cc
+                  src/flow/transform/InstructionElimination.cc
+                  src/flow/transform/MergeBlockPass.cc
+                  src/flow/transform/UnusedBlockPass.cc
+                  src/flow/util/RegExp.cc
+                  src/flow/vm/ConstantPool.cc
+                  src/flow/vm/Handler.cc
+                  src/flow/vm/Instruction.cc
+                  src/flow/vm/Match.cc
+                  src/flow/vm/Program.cc
+                  src/flow/vm/Runner.cc
+                  src/flow/vm/Runtime.cc
                   )
 
 add_library(XzeroFlow STATIC ${XzeroFlow_SRC})
@@ -391,8 +391,8 @@ endif()
 target_link_libraries(XzeroFlow Xzero)
 install(TARGETS XzeroFlow DESTINATION ${CMAKE_INSTALL_PREFIX}/lib)
 install(
-    DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/src/xzero-flow/"
-    DESTINATION "${CMAKE_INSTALL_PREFIX}/include/xzero-flow"
+    DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/src/flow/"
+    DESTINATION "${CMAKE_INSTALL_PREFIX}/include/flow"
     FILES_MATCHING PATTERN "*.h")
 # }}}
 # {{{ x0d
@@ -437,11 +437,11 @@ install(DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/src/x0d/"
 # {{{ test
 if(ENABLE_TESTS)
 set(xzero_test_SRC
-		src/xzero-flow/FlowLexer-test.cc
-		src/xzero-flow/FlowParser-test.cc
-    src/xzero-flow/flowtest-test.cc
-		src/xzero-flow/util/PrefixTree-test.cc
-		src/xzero-flow/util/SuffixTree-test.cc
+		src/flow/FlowLexer-test.cc
+		src/flow/FlowParser-test.cc
+    src/flow/flowtest-test.cc
+		src/flow/util/PrefixTree-test.cc
+		src/flow/util/SuffixTree-test.cc
 		src/xzero/Base64-test.cc
 		src/xzero/Buffer-test.cc
 		src/xzero/Callback-test.cc
@@ -509,8 +509,8 @@ if(CLANG_TIDY_EXE)
 endif()
 target_link_libraries(xzero_test Xzero XzeroFlow XzeroTest)
 
-add_executable(flowtest src/xzero-flow/flowtest-main.cc
-                        src/xzero-flow/flowtest.cc)
+add_executable(flowtest src/flow/flowtest-main.cc
+                        src/flow/flowtest.cc)
 set_target_properties(flowtest PROPERTIES CXX_STANDARD 17 CXX_STANDARD_REQUIRED ON)
 if(CLANG_TIDY_EXE)
   set_target_properties(flowtest PROPERTIES CXX_CLANG_TIDY "${DO_CLANG_TIDY}")

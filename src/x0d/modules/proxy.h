@@ -10,8 +10,8 @@
 #include <x0d/Module.h>
 #include <xzero/logging.h>
 #include <xzero/http/cluster/Api.h>
-#include <xzero-flow/AST.h>
-#include <xzero-flow/ir/Instr.h>
+#include <flow/AST.h>
+#include <flow/ir/Instr.h>
 
 #include <memory>
 #include <string>

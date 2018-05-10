@@ -28,13 +28,13 @@
 #include <xzero/RuntimeError.h>
 #include <xzero/logging.h>
 #include <xzero/Application.h>
-#include <xzero-flow/AST.h>
-#include <xzero-flow/ir/Instr.h>
-#include <xzero-flow/ir/BasicBlock.h>
-#include <xzero-flow/ir/IRHandler.h>
-#include <xzero-flow/ir/IRProgram.h>
-#include <xzero-flow/ir/ConstantValue.h>
-#include <xzero-flow/ir/ConstantArray.h>
+#include <flow/AST.h>
+#include <flow/ir/Instr.h>
+#include <flow/ir/BasicBlock.h>
+#include <flow/ir/IRHandler.h>
+#include <flow/ir/IRProgram.h>
+#include <flow/ir/ConstantValue.h>
+#include <flow/ir/ConstantArray.h>
 #include <fmt/format.h>
 
 namespace x0d {

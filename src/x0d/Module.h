@@ -10,7 +10,7 @@
 #include <x0d/Daemon.h>
 #include <x0d/Context.h>
 #include <xzero/Buffer.h>
-#include <xzero-flow/Params.h>
+#include <flow/Params.h>
 #include <string>
 #include <list>
 #include <vector>

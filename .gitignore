@@ -33,10 +33,10 @@ cscope.*
 debian/*.substvars
 debian/*.debhelper
 debian/libxzero-base/
-debian/libxzero-flow/
+debian/libflow/
 debian/libxzero-http/
 debian/libxzero-base-dev/
-debian/libxzero-flow-dev/
+debian/libflow-dev/
 debian/libxzero-http-dev/
 debian/x0-plugins/
 debian/x0d/
@@ -57,7 +57,7 @@ Makefile.in
 /missing
 /depcomp
 /src/xzero/sysconfig.h.in
-/src/xzero-flow/sysconfig.h.in
+/src/flow/sysconfig.h.in
 
 /contrib/ssl/cert.pem
 /contrib/ssl/key.pem
