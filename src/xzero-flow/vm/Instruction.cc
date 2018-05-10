@@ -213,7 +213,7 @@ std::string disassemble(Instruction pc, size_t ip, size_t* sp,
   std::stringstream line;
   size_t n = 0;
 
-  std::string word = fmt::format("{:>10}", mnemo);
+  std::string word = fmt::format("{:<10}", mnemo);
   line << word;
   n += word.size();
 
@@ -246,10 +246,10 @@ std::string disassemble(Instruction pc, size_t ip, size_t* sp,
             line << ", ";
             n += 2;
           }
-          line << v[i];
-          n += v[i].size();
+          line << '"' << v[i] << '"';
+          n += v[i].size() + 2;
         }
-        line << "]";
+        line << ']';
         n += 1;
         break;
       }
@@ -371,7 +371,7 @@ std::string disassemble(Instruction pc, size_t ip, size_t* sp,
     }
   }
 
-  for (; n < 35; ++n) {
+  while (n < 35) {
     line << ' ';
     n++;
   }
