@@ -172,7 +172,7 @@ void TargetCodeGenerator::changeStack(size_t pops, const Value* pushValue) {
 }
 
 void TargetCodeGenerator::pop(size_t count) {
-  FLOW_ASSERT(count < stack_.size(), "flow: BUG: stack smaller than amount of elements to pop.");
+  FLOW_ASSERT(count <= stack_.size(), "flow: BUG: stack smaller than amount of elements to pop.");
 
   for (size_t i = 0; i != count; i++)
     stack_.pop_back();
