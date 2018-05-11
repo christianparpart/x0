@@ -347,8 +347,10 @@ void TargetCodeGenerator::emitLoad(Value* value) {
   StackPointer si = getStackPointer(value);
   FLOW_ASSERT(si != static_cast<size_t>(-1),
               "BUG: emitLoad: value not yet on the stack but referenced as operand.");
-  emitInstr(Opcode::LOAD, si);
-  changeStack(0, value);
+  FLOW_ASSERT(si == getStackPointer() - 1, "BUG: emitLoad: value must be on top of stack");
+
+  // emitInstr(Opcode::LOAD, si);
+  // changeStack(0, value);
 }
 
 void TargetCodeGenerator::visit(PhiNode& phiInstr) {
