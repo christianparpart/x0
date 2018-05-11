@@ -6,15 +6,20 @@
 // the License at: http://opensource.org/licenses/MIT
 
 #include <x0d/Context.h>
+
+#include <flow/vm/Instruction.h>
+#include <flow/vm/Program.h>
+
+#include <xzero/UnixTime.h>
+#include <xzero/WallClock.h>
 #include <xzero/http/HttpRequest.h>
 #include <xzero/http/HttpResponse.h>
 #include <xzero/http/HttpStatus.h>
 #include <xzero/http/http1/Generator.h>
+#include <xzero/logging.h>
 #include <xzero/net/EndPointWriter.h>
 #include <xzero/net/IPAddress.h>
-#include <xzero/WallClock.h>
-#include <xzero/UnixTime.h>
-#include <xzero/logging.h>
+
 #include <stdexcept>
 
 using namespace xzero;
@@ -66,7 +71,10 @@ void Context::operator()() {
 }
 
 void Context::handleRequest() {
-  runner_ = std::make_unique<flow::Runner>(requestHandler_);
+  runner_ = std::make_unique<flow::Runner>(requestHandler_,
+      [this](flow::Instruction instr, size_t ip, size_t sp) {
+    logDebug("{}", flow::disassemble(instr, ip, &sp, &runner_->program()->constants()));
+  });
   runner_->setUserData(this);
 
   if (request()->expect100Continue()) {

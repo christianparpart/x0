@@ -300,7 +300,11 @@ void Daemon::patchProgramIR(flow::IRProgram* programIR,
 }
 
 void Daemon::applyConfiguration(std::unique_ptr<flow::Program>&& program) {
-  program->findHandler("setup")->run();
+  // run setup handler
+  flow::Runner{program->findHandler("setup"),
+               [&](flow::Instruction instr, size_t ip, size_t sp) {
+                 logDebug("{}", flow::disassemble(instr, ip, &sp, &program->constants()));
+               }}.run();
 
   // Override main and *then* preserve the program reference.
   // XXX The order is important to not accidentally generate stale weak ptrs.

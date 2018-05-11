@@ -48,7 +48,7 @@ namespace xzero::flow {
 #if defined(FLOW_VM_LOOP_SWITCH)
   #define LOOP_BEGIN()    for (;;) { switch (OP) {
   #define LOOP_END()      default: FLOW_ASSERT(false, "Unknown Opcode hit!"); } }
-  #define instr(NAME)     case NAME: FLOW_DEBUG("{}", disassemble(*pc, pc - code.data(), &sp_, &program_->constants()));
+  #define instr(NAME)     case NAME: traceLogger_(*pc, get_pc(), stack_.size());
   #define get_pc()        (pc - code.data())
   #define set_pc(offset)  do { pc = code.data() + (offset); } while (0)
   #define jump            if (true) { break; }
@@ -56,7 +56,7 @@ namespace xzero::flow {
 #elif defined(ENABLE_FLOW_DIRECT_THREADED_VM)
   #define LOOP_BEGIN()    jump;
   #define LOOP_END()
-  #define instr(name)     l_##name : ++pc; FLOW_DEBUG("{}", disassemble((Instruction) * pc, (pc - code.data()) / 2), &program_->constants());
+  #define instr(name)     l_##name : ++pc; traceLogger_((Instruction)*pc, get_pc(), stack_.size());
   #define get_pc()        ((pc - code.data()) / 2)
   #define set_pc(offset)  do { pc = code.data() + (offset) * 2; } while (0)
   #define jump            goto*(void*)*pc
@@ -64,7 +64,7 @@ namespace xzero::flow {
 #else
   #define LOOP_BEGIN()    jump;
   #define LOOP_END()
-  #define instr(name)     l_##name : FLOW_DEBUG("{}", disassemble(*pc, pc - code.data(), &sp_, &program_->constants()));
+  #define instr(name)     l_##name : traceLogger_(*pc, get_pc(), stack_.size());
   #define get_pc()        (pc - code.data())
   #define set_pc(offset)  do { pc = code.data() + (offset); } while (0)
   #define jump            goto* ops[OP]
@@ -74,8 +74,9 @@ namespace xzero::flow {
 
 static FlowString* t = nullptr;
 
-Runner::Runner(const Handler* handler)
+Runner::Runner(const Handler* handler, TraceLogger traceLogger)
     : handler_(handler),
+      traceLogger_{traceLogger ? traceLogger : [](Instruction, size_t, size_t) {}},
       program_(handler->program()),
       userdata_(nullptr),
       regexpContext_(),

@@ -17,6 +17,7 @@
 #include <cstdint>
 #include <cstdio>
 #include <cstdlib>
+#include <functional>
 #include <iosfwd>
 #include <list>
 #include <memory>
@@ -37,6 +38,8 @@ class Runner {
   };
 
   using Value = uint64_t;
+
+  using TraceLogger = std::function<void(Instruction instr, size_t ip, size_t sp)>;
 
   class Stack { // {{{
    public:
@@ -102,6 +105,7 @@ class Runner {
 
  private:
   const Handler* handler_;
+  TraceLogger traceLogger_;
 
   /**
    * We especially keep this ref to prevent ensure handler has
@@ -125,7 +129,7 @@ class Runner {
   std::list<std::string> stringGarbage_;
 
  public:
-  explicit Runner(const Handler* handler);
+  explicit Runner(const Handler* handler, TraceLogger logger = nullptr);
   ~Runner();
 
   bool run();
