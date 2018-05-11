@@ -45,7 +45,7 @@ class Handler {
   std::vector<uint64_t>& directThreadedCode() noexcept { return directThreadedCode_; }
 #endif
 
-  bool run(void* userdata = nullptr, void* userdata2 = nullptr) const;
+  bool run(void* userdata = nullptr) const;
 
   void disassemble() const noexcept;
 

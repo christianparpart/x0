@@ -77,7 +77,7 @@ static FlowString* t = nullptr;
 Runner::Runner(const Handler* handler)
     : handler_(handler),
       program_(handler->program()),
-      userdata_(nullptr, nullptr),
+      userdata_(nullptr),
       regexpContext_(),
       state_(Inactive),
       pc_(0),

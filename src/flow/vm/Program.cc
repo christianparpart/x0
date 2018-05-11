@@ -105,9 +105,9 @@ Handler* Program::findHandler(const std::string& name) const noexcept {
   return nullptr;
 }
 
-bool Program::run(const std::string& handlerName, void* u1, void* u2) {
+bool Program::run(const std::string& handlerName, void* u1) {
   if (Handler* handler = findHandler(handlerName); handler != nullptr)
-    return handler->run(u1, u2);
+    return handler->run(u1);
 
   throw std::runtime_error{fmt::format("No handler with name '{}' found.", handlerName)};
 }

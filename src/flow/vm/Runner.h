@@ -112,7 +112,7 @@ class Runner {
   const Program* program_;
 
   //! pointer to the currently evaluated HttpRequest/HttpResponse our case
-  std::pair<void*,void*> userdata_;
+  void* userdata_;
 
   util::RegExpContext regexpContext_;
 
@@ -144,12 +144,8 @@ class Runner {
 
   const Handler* handler() const noexcept { return handler_; }
   const Program* program() const noexcept { return program_; }
-  void* userdata() const noexcept { return userdata_.first; }
-  void* userdata2() const noexcept { return userdata_.second; }
-  void setUserData(void* p, void* q = nullptr) noexcept {
-    userdata_.first = p;
-    userdata_.second = q;
-  }
+  void* userdata() const noexcept { return userdata_; }
+  void setUserData(void* p, void* q = nullptr) noexcept { userdata_ = p; }
 
   template<typename P, typename Q>
   inline void setUserData(std::pair<P, Q> udata) noexcept {
