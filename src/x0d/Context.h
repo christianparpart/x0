@@ -16,6 +16,7 @@
 #include <xzero/logging.h>
 #include <xzero/http/HttpStatus.h>
 #include <xzero/http/HttpHandler.h>
+#include <xzero/http/HttpRequest.h>
 #include <flow/vm/Runner.h>
 #include <string>
 #include <list>
@@ -80,7 +81,7 @@ class Context {
 
   xzero::http::HttpRequest* request() const noexcept {
     return internalRedirects_.empty()
-        ? request_
+        ? masterRequest()
         : internalRedirects_.front().get();
   }
 
@@ -153,27 +154,27 @@ class Context {
   // {{{ Logging API
   template<typename... Args>
   inline void logError(const std::string& fmt, Args&&... args) {
-    ::xzero::logError(::fmt::format("{}: {}", remoteIP(), fmt), args...);
+    ::xzero::logError(::fmt::format("{}: {}", masterRequest()->remoteAddress(), fmt), args...);
   }
 
   template<typename... Args>
   inline void logWarning(const std::string& fmt, Args&&... args) {
-    ::xzero::logWarning(::fmt::format("{}: {}", remoteIP(), fmt), args...);
+    ::xzero::logWarning(::fmt::format("{}: {}", masterRequest()->remoteAddress(), fmt), args...);
   }
 
   template<typename... Args>
   inline void logNotice(const std::string& fmt, Args&&... args) {
-    ::xzero::logNotice(::fmt::format("{}: {}", remoteIP(), fmt), args...);
+    ::xzero::logNotice(::fmt::format("{}: {}", masterRequest()->remoteAddress(), fmt), args...);
   }
 
   template<typename... Args>
   inline void logInfo(const std::string& fmt, Args&&... args) {
-    ::xzero::logInfo(::fmt::format("{}: {}", remoteIP(), fmt), args...);
+    ::xzero::logInfo(::fmt::format("{}: {}", masterRequest()->remoteAddress(), fmt), args...);
   }
 
   template<typename... Args>
   inline void logDebug(const std::string& fmt, Args&&... args) {
-    ::xzero::logDebug(::fmt::format("{}: {}", remoteIP(), fmt), args...);
+    ::xzero::logDebug(::fmt::format("{}: {}", masterRequest()->remoteAddress(), fmt), args...);
   }
   // }}}
 
