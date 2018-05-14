@@ -16,7 +16,7 @@ std::unique_ptr<Runner> run(Code&& code) {
   cp.makeInteger(4);
   cp.setHandler("main", std::move(code));
   Program program(std::move(cp));
-  std::unique_ptr<Runner> vm = std::make_unique<Runner>(program.findHandler("main"));
+  std::unique_ptr<Runner> vm = std::make_unique<Runner>(program.findHandler("main"), nullptr);
   vm->run();
   return vm;
 }

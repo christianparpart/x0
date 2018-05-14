@@ -302,6 +302,7 @@ void Daemon::patchProgramIR(flow::IRProgram* programIR,
 void Daemon::applyConfiguration(std::unique_ptr<flow::Program>&& program) {
   // run setup handler
   flow::Runner{program->findHandler("setup"),
+               nullptr,
                [&](flow::Instruction instr, size_t ip, size_t sp) {
                  logDebug("{}", flow::disassemble(instr, ip, &sp, &program->constants()));
                }}.run();

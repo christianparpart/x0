@@ -1302,8 +1302,8 @@ void CoreModule::regex_group(Context* cx, Params& args) {
 
   if (const flow::util::RegExp::Result* rr = cx->runner()->regexpContext()->regexMatch()) {
     if (position >= 0 && position < static_cast<FlowNumber>(rr->size())) {
-      const auto& match = (*rr)[position];
-      args.setResult(args.caller()->newString(match));
+      std::string match = rr->str(position);
+      args.setResult(args.caller()->newString(std::move(match)));
     } else {
       // match index out of bounds
       args.setResult("");
@@ -1357,10 +1357,9 @@ void CoreModule::req_accept_language(Context* cx, Params& args) {
       break;
     }
 
-    auto token = parseToken();
-
+    std::string token = parseToken();
     if (isSupported(token)) {
-      args.setResult(args.caller()->newString(token.data(), token.size()));
+      args.setResult(args.caller()->newString(std::move(token)));
       return;
     }
 

@@ -22,6 +22,7 @@
 #include <list>
 #include <memory>
 #include <string>
+#include <string_view>
 #include <utility>
 #include <vector>
 
@@ -103,6 +104,57 @@ class Runner {
   };
   // }}}
 
+ public:
+  Runner(const Handler* handler, void* userdata, TraceLogger logger);
+  ~Runner();
+
+  const Handler* handler() const noexcept { return handler_; }
+  const Program* program() const noexcept { return program_; }
+  void* userdata() const noexcept { return userdata_; }
+
+  bool run();
+  void suspend();
+  bool resume();
+  void rewind();
+
+  /** Retrieves the last saved program execution offset. */
+  size_t getInstructionPointer() const noexcept { return ip_; }
+
+  /** Retrieves number of elements on stack. */
+  size_t getStackPointer() const noexcept { return stack_.size(); }
+
+  const util::RegExpContext* regexpContext() const noexcept { return &regexpContext_; }
+
+  FlowString* newString(std::string value);
+
+ private:
+  //! retrieves a pointer to a an empty string constant.
+  const FlowString* emptyString() const { return &*stringGarbage_.begin(); }
+
+  FlowString* catString(const FlowString& a, const FlowString& b);
+
+  const Stack& stack() const noexcept { return stack_; }
+  Value stack(int si) const { return stack_[si]; }
+
+  FlowNumber getNumber(int si) const { return static_cast<FlowNumber>(stack_[si]); }
+  const FlowString& getString(int si) const { return *(FlowString*) stack_[si]; }
+  const IPAddress& getIPAddress(int si) const { return *(IPAddress*) stack_[si]; }
+  const Cidr& getCidr(int si) const { return *(Cidr*) stack_[si]; }
+  const util::RegExp& getRegExp(int si) const { return *(util::RegExp*) stack_[si]; }
+
+  const FlowString* getStringPtr(int si) const { return (FlowString*) stack_[si]; }
+  const Cidr* getCidrPtr(int si) const { return (Cidr*) stack_[si]; }
+
+  void push(Value value) { stack_.push(value); }
+  Value pop() { return stack_.pop(); }
+  void discard(size_t n) { stack_.discard(n); }
+  void pushString(const FlowString* value) { push((Value) value); }
+
+  bool loop();
+
+  Runner(Runner&) = delete;
+  Runner& operator=(Runner&) = delete;
+
  private:
   const Handler* handler_;
   TraceLogger traceLogger_;
@@ -121,71 +173,12 @@ class Runner {
   util::RegExpContext regexpContext_;
 
   State state_;     //!< current VM state
-  size_t pc_;       //!< last saved program execution offset
+  size_t ip_;       //!< last saved program execution offset
 
   size_t sp_;       //!< current stack depth (XXX used in debugging only)
   Stack stack_;     //!< runtime stack
 
   std::list<std::string> stringGarbage_;
-
- public:
-  explicit Runner(const Handler* handler, TraceLogger logger = nullptr);
-  ~Runner();
-
-  bool run();
-  void suspend();
-  bool resume();
-  void rewind();
-
-  size_t getInstructionPointer() const noexcept { return sp_; }
-  size_t getStackPointer() const noexcept { return sp_; }
-
-  size_t instructionOffset() const noexcept { return pc_; }
-  State state() const noexcept { return state_; }
-  bool isInactive() const noexcept { return state_ == Inactive; }
-  bool isRunning() const noexcept { return state_ == Running; }
-  bool isSuspended() const noexcept { return state_ == Suspended; }
-
-  const Handler* handler() const noexcept { return handler_; }
-  const Program* program() const noexcept { return program_; }
-  void* userdata() const noexcept { return userdata_; }
-  void setUserData(void* p, void* q = nullptr) noexcept { userdata_ = p; }
-
-  template<typename P, typename Q>
-  inline void setUserData(std::pair<P, Q> udata) noexcept {
-    setUserData(udata.first, udata.second);
-  }
-
-  const util::RegExpContext* regexpContext() const noexcept { return &regexpContext_; }
-  util::RegExpContext* regexpContext() noexcept { return &regexpContext_; }
-
-  const Stack& stack() const noexcept { return stack_; }
-  Value stack(int si) const { return stack_[si]; }
-
-  FlowNumber getNumber(int si) const { return static_cast<FlowNumber>(stack_[si]); }
-  const FlowString& getString(int si) const { return *(FlowString*) stack_[si]; }
-  const IPAddress& getIPAddress(int si) const { return *(IPAddress*) stack_[si]; }
-  const Cidr& getCidr(int si) const { return *(Cidr*) stack_[si]; }
-  const util::RegExp& getRegExp(int si) const { return *(util::RegExp*) stack_[si]; }
-
-  const FlowString* getStringPtr(int si) const { return (FlowString*) stack_[si]; }
-  const Cidr* getCidrPtr(int si) const { return (Cidr*) stack_[si]; }
-
-  FlowString* newString(const std::string& value);
-  FlowString* newString(const char* p, size_t n);
-  FlowString* catString(const FlowString& a, const FlowString& b);
-  const FlowString* emptyString() const { return &*stringGarbage_.begin(); }
-
- private:
-  void push(Value value) { stack_.push(value); }
-  Value pop() { return stack_.pop(); }
-  void discard(size_t n) { stack_.discard(n); }
-  void pushString(const FlowString* value) { push((Value) value); }
-
-  bool loop();
-
-  Runner(Runner&) = delete;
-  Runner& operator=(Runner&) = delete;
 };
 
 }  // namespace xzero::flow

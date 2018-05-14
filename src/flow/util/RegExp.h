@@ -21,7 +21,7 @@ class RegExp {
   std::regex re_;
 
  public:
-  typedef std::smatch Result;
+  using Result = std::smatch;
 
  public:
   explicit RegExp(const std::string& pattern);
@@ -61,16 +61,22 @@ class RegExp {
 
 class RegExpContext {
  public:
-  RegExp::Result* regexMatch() {
-    if (!regexMatch_) {
+  const RegExp::Result* regexMatch() const {
+    if (!regexMatch_)
       regexMatch_ = std::make_unique<RegExp::Result>();
-    }
+
+    return regexMatch_.get();
+  }
+
+  RegExp::Result* regexMatch() {
+    if (!regexMatch_)
+      regexMatch_ = std::make_unique<RegExp::Result>();
 
     return regexMatch_.get();
   }
 
  private:
-  std::unique_ptr<RegExp::Result> regexMatch_;
+  mutable std::unique_ptr<RegExp::Result> regexMatch_;
 };
 
 }  // namespace xzero::flow::util

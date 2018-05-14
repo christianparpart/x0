@@ -78,12 +78,6 @@ void Handler::setCode(std::vector<Instruction>&& code) {
 #endif
 }
 
-bool Handler::run(void* userdata) const {
-  Runner runner(this);
-  runner.setUserData(userdata);
-  return runner.run();
-}
-
 void Handler::disassemble() const noexcept {
   printf("\n.handler %-27s ; (%zu stack size, %zu instructions)\n",
          name().c_str(),

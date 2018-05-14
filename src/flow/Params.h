@@ -31,8 +31,8 @@ class Params {
   void setResult(bool value) { argv_[0] = value; }
   void setResult(FlowNumber value) { argv_[0] = (Value) value; }
   void setResult(const Handler* handler) { argv_[0] = caller_->program()->indexOf(handler); }
-  void setResult(const char* cstr) { argv_[0] = (Value) caller_->newString(cstr); }
-  void setResult(const std::string& str) { argv_[0] = (Value) caller_->newString(str.data(), str.size()); }
+  void setResult(const std::string& str) { argv_[0] = (Value) caller_->newString(str); }
+  void setResult(std::string&& str) { argv_[0] = (Value) caller_->newString(std::move(str)); }
   void setResult(const FlowString* str) { argv_[0] = (Value) str; }
   void setResult(const IPAddress* ip) { argv_[0] = (Value) ip; }
   void setResult(const Cidr* cidr) { argv_[0] = (Value) cidr; }

@@ -60,14 +60,6 @@ class Program {
   int indexOf(const Handler* handler) const noexcept;
   Handler* findHandler(const std::string& name) const noexcept;
 
-  /**
-   * Convenience method to run a handler.
-   *
-   * @param handlerName The handler's name that is going to be run.
-   * @param u1 Opaque userdata value.
-   */
-  bool run(const std::string& handlerName, void* u1 = nullptr);
-
   bool link(Runtime* runtime, diagnostics::Report* report);
 
   void dump();

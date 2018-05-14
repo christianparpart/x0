@@ -44,11 +44,12 @@ namespace xzero::flow {
 #define popStringPtr()  ((FlowString*) stack_.pop())
 #define incr_pc()       do { ++pc; } while (0)
 #define jump_to(offset) do { set_pc(offset); jump; } while (0)
+#define tracelog()      do { traceLogger_((Instruction) *pc, get_pc(), stack_.size()); } while (0)
 
 #if defined(FLOW_VM_LOOP_SWITCH)
   #define LOOP_BEGIN()    for (;;) { switch (OP) {
   #define LOOP_END()      default: FLOW_ASSERT(false, "Unknown Opcode hit!"); } }
-  #define instr(NAME)     case NAME: traceLogger_(*pc, get_pc(), stack_.size());
+  #define instr(NAME)     case NAME: tracelog();
   #define get_pc()        (pc - code.data())
   #define set_pc(offset)  do { pc = code.data() + (offset); } while (0)
   #define jump            if (true) { break; }
@@ -56,15 +57,15 @@ namespace xzero::flow {
 #elif defined(ENABLE_FLOW_DIRECT_THREADED_VM)
   #define LOOP_BEGIN()    jump;
   #define LOOP_END()
-  #define instr(name)     l_##name : ++pc; traceLogger_((Instruction)*pc, get_pc(), stack_.size());
+  #define instr(name)     l_##name : ++pc; tracelog();
   #define get_pc()        ((pc - code.data()) / 2)
   #define set_pc(offset)  do { pc = code.data() + (offset) * 2; } while (0)
-  #define jump            goto*(void*)*pc
-  #define next            goto*(void*)*++pc
+  #define jump            goto* (void*) *pc
+  #define next            goto* (void*) *++pc
 #else
   #define LOOP_BEGIN()    jump;
   #define LOOP_END()
-  #define instr(name)     l_##name : traceLogger_(*pc, get_pc(), stack_.size());
+  #define instr(name)     l_##name : tracelog();
   #define get_pc()        (pc - code.data())
   #define set_pc(offset)  do { pc = code.data() + (offset); } while (0)
   #define jump            goto* ops[OP]
@@ -74,15 +75,14 @@ namespace xzero::flow {
 
 static FlowString* t = nullptr;
 
-Runner::Runner(const Handler* handler, TraceLogger traceLogger)
+Runner::Runner(const Handler* handler, void* userdata, TraceLogger traceLogger)
     : handler_(handler),
       traceLogger_{traceLogger ? traceLogger : [](Instruction, size_t, size_t) {}},
       program_(handler->program()),
-      userdata_(nullptr),
+      userdata_(userdata),
       regexpContext_(),
       state_(Inactive),
-      pc_(0),
-      sp_(0),
+      ip_(0),
       stack_(handler_->stackSize()),
       stringGarbage_() {
   // initialize emptyString()
@@ -91,13 +91,8 @@ Runner::Runner(const Handler* handler, TraceLogger traceLogger)
 
 Runner::~Runner() {}
 
-FlowString* Runner::newString(const std::string& value) {
-  stringGarbage_.emplace_back(value);
-  return &stringGarbage_.back();
-}
-
-FlowString* Runner::newString(const char* p, size_t n) {
-  stringGarbage_.emplace_back(p, n);
+FlowString* Runner::newString(std::string value) {
+  stringGarbage_.emplace_back(std::move(value));
   return &stringGarbage_.back();
 }
 
@@ -122,7 +117,7 @@ bool Runner::resume() {
 }
 
 void Runner::rewind() {
-  pc_ = 0;
+  ip_ = 0;
 }
 
 bool Runner::loop() {
@@ -200,7 +195,7 @@ bool Runner::loop() {
   // }}}
 #endif
   const auto* pc = code.data();
-  set_pc(pc_);
+  set_pc(ip_);
 
   LOOP_BEGIN()
 
@@ -223,6 +218,7 @@ bool Runner::loop() {
   // {{{ control
   instr(EXIT) {
     state_ = Inactive;
+    ip_ = get_pc();
     return A != 0;
   }
 
@@ -573,7 +569,7 @@ bool Runner::loop() {
   instr(SREGGROUP) {
     FlowNumber position = getNumber(-1);
     util::RegExp::Result& rr = *regexpContext_.regexMatch();
-    const auto& match = rr[position];
+    const std::string& match = rr[position];
 
     SP(-1) = (Value) newString(match);
     next;
@@ -621,7 +617,7 @@ bool Runner::loop() {
       int argc = B;
 
       incr_pc();
-      pc_ = get_pc();
+      ip_ = get_pc();
 
       Params args(this, argc);
       for (int i = 1; i <= argc; i++)
@@ -641,7 +637,7 @@ bool Runner::loop() {
         return false;
       }
     }
-    set_pc(pc_);
+    set_pc(ip_);
     jump;
   }
 
@@ -651,7 +647,7 @@ bool Runner::loop() {
       int argc = B;
 
       incr_pc();
-      pc_ = get_pc();
+      ip_ = get_pc();
 
       Params args(this, argc);
       for (int i = 1; i <= argc; i++)
@@ -671,7 +667,7 @@ bool Runner::loop() {
         return true;
       }
     }
-    set_pc(pc_);
+    set_pc(ip_);
     jump;
   }
   // }}}
