@@ -490,10 +490,10 @@ std::unique_ptr<EventLoop> Daemon::createEventLoop() {
 std::function<void()> Daemon::createHandler(HttpRequest* request,
                                             HttpResponse* response) {
   return Context{main_,
-                      request,
-                      response,
-                      &config_->errorPages,
-                      config_->maxInternalRedirectCount};
+                 request,
+                 response,
+                 &config_->errorPages,
+                 config_->maxInternalRedirectCount};
 }
 
 void Daemon::validateConfig(flow::UnitSym* unit) {
