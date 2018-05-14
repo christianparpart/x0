@@ -73,7 +73,7 @@ void Context::operator()() {
 void Context::handleRequest() {
   runner_ = std::make_unique<flow::Runner>(requestHandler_, this,
       [this](flow::Instruction instr, size_t ip, size_t sp) {
-    logDebug("{}", flow::disassemble(instr, ip, &sp, &runner_->program()->constants()));
+    logDebug("{}", flow::disassemble(instr, ip, sp, &runner_->program()->constants()));
   });
 
   if (request()->expect100Continue()) {

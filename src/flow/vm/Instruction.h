@@ -221,8 +221,6 @@ std::string disassemble(const Instruction* program, size_t n,
  *                been executed.
  * @param cp      pointer to ConstantPool for pretty-printing or @c nullptr 
  */
-std::string disassemble(Instruction pc, size_t ip,
-                        size_t* sp,
-                        const ConstantPool* cp);
+std::string disassemble(Instruction pc, size_t ip, size_t sp, const ConstantPool* cp);
 
 } // namespace xzero::flow

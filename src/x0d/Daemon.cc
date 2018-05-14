@@ -304,7 +304,7 @@ void Daemon::applyConfiguration(std::unique_ptr<flow::Program>&& program) {
   flow::Runner{program->findHandler("setup"),
                nullptr,
                [&](flow::Instruction instr, size_t ip, size_t sp) {
-                 logDebug("{}", flow::disassemble(instr, ip, &sp, &program->constants()));
+                 logDebug("{}", flow::disassemble(instr, ip, sp, &program->constants()));
                }}.run();
 
   // Override main and *then* preserve the program reference.

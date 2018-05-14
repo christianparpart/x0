@@ -197,14 +197,14 @@ std::string disassemble(const Instruction* program,
   size_t sp = 0;
   for (const Instruction* pc = program; pc < program + n; ++pc) {
     result << indent;
-    result << disassemble(*pc, i++, &sp, cp);
+    result << disassemble(*pc, i++, sp, cp);
     result << '\n';
+    sp += getStackChange(*pc);
   }
   return result.str();
 }
 
-std::string disassemble(Instruction pc, size_t ip, size_t* sp,
-                        const ConstantPool* cp) {
+std::string disassemble(Instruction pc, size_t ip, size_t sp, const ConstantPool* cp) {
   const Opcode opc = opcode(pc);
   const Operand A = operandA(pc);
   const Operand B = operandB(pc);
@@ -379,25 +379,14 @@ std::string disassemble(Instruction pc, size_t ip, size_t* sp,
   int stackChange = getStackChange(pc);
 
   const uint8_t* b = (uint8_t*)&pc;
-  if (sp) {
-    word = fmt::format("; ip={:>3} sp={:>2} ({}{})",
-                       ip, *sp,
-                       stackChange > 0 ? '+' :
-                           stackChange < 0 ? '-' : ' ',
-                       std::abs(stackChange));
-    line << word;
-    n += word.size();
-  } else {
-    word = fmt::format("; ip={:>3} ({}{})",
-                       ip,
-                       stackChange > 0 ? '+' :
-                           stackChange < 0 ? '-' : ' ',
-                       std::abs(stackChange));
-    line << word;
-    n += word.size();
-  }
+  word = fmt::format("; ip={:>3} sp={:>2} ({}{})",
+                     ip, sp,
+                     stackChange > 0 ? '+' :
+                         stackChange < 0 ? '-' : ' ',
+                     std::abs(stackChange));
+  line << word;
+  n += word.size();
 
-  *sp += stackChange;
   return line.str();
 }
 
