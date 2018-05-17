@@ -227,7 +227,7 @@ ProcessID Application::processId() {
 
 bool Application::isWSL() {
 #if defined(XZERO_OS_LINUX)
-  struct utsname uts;
+  struct utsname uts{};
   int rv = uname(&uts);
   if (rv < 0)
     RAISE_ERRNO(errno);

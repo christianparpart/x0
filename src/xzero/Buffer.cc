@@ -17,23 +17,20 @@
 
 namespace xzero {
 
-/*! changes the capacity of the underlying buffer, possibly reallocating into
- *more or less bytes reserved.
+/*!
+ * changes the capacity of the underlying buffer,
+ * possibly reallocating into more or less bytes reserved.
  *
  * This method either increases or decreases the reserved memory.
- * If it increases the size, and it is not the first capacity change, it will be
- *aligned
+ * If it increases the size, and it is not the first capacity change, it will be aligned
  * to \p CHUNK_SIZE bytes, otherwise the exact size will be reserved.
- * If the requested size is lower than the current capacity, then the underlying
- *storage
- * will be redused to exactly this size and the actually used buffer size is cut
- *down
+ * If the requested size is lower than the current capacity, then the underlying storage
+ * will be redused to exactly this size and the actually used buffer size is cut down
  * to the available capacity if it would exceed the capacity otherwise.
  * Reduzing the capacity to zero implicitely means to free up all storage.
  * If the requested size is equal to the current one, nothing happens.
  *
- * \param value the length in bytes you want to change the underlying storage
- *to.
+ * \param value the length in bytes you want to change the underlying storage to.
  *
  * \retval true the requested capacity is available. go ahead.
  * \retval false could not change capacity. take caution!

@@ -20,8 +20,8 @@ class [[nodiscard]] FileDescriptor {
   FileDescriptor(int fd) : fd_(fd) {}
   ~FileDescriptor() { close(); }
 
-  FileDescriptor(FileDescriptor&& fd) : fd_(fd.release()) {}
-  FileDescriptor& operator=(FileDescriptor&& fd);
+  FileDescriptor(FileDescriptor&& fd) noexcept : fd_(fd.release()) {}
+  FileDescriptor& operator=(FileDescriptor&& fd) noexcept;
 
   FileDescriptor(const FileDescriptor& fd);
   FileDescriptor& operator=(const FileDescriptor& fd);

@@ -31,7 +31,7 @@ FileDescriptor& FileDescriptor::operator=(const FileDescriptor& fd) {
   return *this;
 }
 
-FileDescriptor& FileDescriptor::operator=(FileDescriptor&& fd) {
+FileDescriptor& FileDescriptor::operator=(FileDescriptor&& fd) noexcept {
   close();
   fd_ = fd.release();
 

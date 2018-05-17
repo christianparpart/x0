@@ -27,6 +27,7 @@ if(ENABLE_TIDY) # {{{ clang-tidy
 ,modernize-*\
 ,performance-*\
 ,-bugprone-macro-parentheses\
+,-cppcoreguidelines-owning-memory\
 ,-cppcoreguidelines-pro-bounds-array-to-pointer-decay\
 ,-cppcoreguidelines-pro-bounds-constant-array-index\
 ,-cppcoreguidelines-pro-bounds-pointer-arithmetic\
