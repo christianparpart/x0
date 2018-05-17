@@ -57,24 +57,9 @@ echo CXX = $CXX
 echo CXXFLAGS = $CXXFLAGS
 echo PKG_CONFIG_PATH = $PKG_CONFIG_PATH
 
-if [[ "${1}" == "cmake" ]]; then
-  shift
-  exec cmake "${ROOT}" \
-              -DCMAKE_BUILD_TYPE="debug" \
-              -DCMAKE_INSTALL_PREFIX="${HOME}/local" \
-              -DCMAKE_VERBOSE_MAKEFILE=OFF \
-              -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
-              "${@}"
-fi
-
-# -----------------------------------------------------------------------------
-
-[[ "${1}" != "--help" ]] && autoreconf --verbose --force --install ${ROOT}
-
-exec ${ROOT}/configure --prefix="${HOME}/usr" \
-                       --sysconfdir="${HOME}/usr/etc" \
-                       --with-pidfile="" \
-                       --with-logdir="${BUILDDIR}" \
-                       --enable-proxy \
-                       --enable-xurl \
-                       "${@}"
+exec cmake "${ROOT}" \
+            -DCMAKE_BUILD_TYPE="debug" \
+            -DCMAKE_INSTALL_PREFIX="${HOME}/local" \
+            -DCMAKE_VERBOSE_MAKEFILE=OFF \
+            -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
+            "${@}"
