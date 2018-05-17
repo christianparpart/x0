@@ -12,42 +12,12 @@ set(X0D_CONFIGFILE "${CMAKE_INSTALL_PREFIX}/etc/x0d/x0d.conf" CACHE STRING "x0d 
 set(XZERO_CLUSTERDIR "${CMAKE_INSTALL_PREFIX}/var/x0d" CACHE STRING "Xzero HTTP cluster directory")
 set(PACKAGE_URL "https://xzero.io/")
 
+add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/fmt")
+add_definitions(-DFMT_USE_WINDOWS_H=0)
+
+#add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/flow")
+
 set(CLANG_TIDY_CHECKS "-checks=bugprone-*,cppcoreguidelines-*,performance-*,clang-analyzer-*,modernize-*,-cppcoreguidelines-pro-type-vararg,-cppcoreguidelines-pro-bounds-array-to-pointer-decay,-cppcoreguidelines-pro-bounds-constant-array-index,-cppcoreguidelines-pro-type-union-access" CACHE STRING "clang-tidy checks to enable/disable")
-
-find_package(Git)
-include(ExternalProject)
-
-if(GIT_FOUND)
-  ExternalProject_Add(
-    fmt
-    PREFIX ${CMAKE_CURRENT_BINARY_DIR}/3rdparty/fmt
-    GIT_REPOSITORY https://github.com/fmtlib/fmt.git
-    GIT_TAG master
-    CMAKE_ARGS -DMASTER_PROJECT=OFF
-                -DFMT_DOC=OFF
-                -DFMT_INSTALL=ON
-                -DFMT_TEST=OFF
-                -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
-                -DCMAKE_INSTALL_PREFIX=<INSTALL_DIR>
-                -DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER}
-    LOG_DOWNLOAD 1
-    UPDATE_DISCONNECTED 1
-    BUILD_COMMAND "${CMAKE_COMMAND}" --build <BINARY_DIR> --config ${configuration}
-    INSTALL_COMMAND ""
-  )
-  add_definitions(-DFMT_HEADER_ONLY=1 -DFMT_USE_WINDOWS_H=0)
-  if(UNIX)
-		message(STATUS "Hello UNIX")
-		set(FMT_LIBRARIES "${CMAKE_CURRENT_BINARY_DIR}/3rdparty/fmt/src/fmt-build/libfmt.a")
-	else()
-		message(STATUS "Hello Windows")
-		set(FMT_LIBRARIES "${CMAKE_CURRENT_BINARY_DIR}/3rdparty/fmt/src/fmt-build/fmt.lib")
-	endif()
-else()
-  # assume catch is installed in a system directory
-  #add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/fmt")
-endif()
-
 if(ENABLE_TIDY)
   find_program(CLANG_TIDY_EXE
     NAMES clang-tidy-7 clang-tidy-6.0 clang-tidy
@@ -309,21 +279,20 @@ endif()
 # endif()
 
 add_library(Xzero STATIC ${libXzero_SRC})
-add_dependencies(Xzero fmt)
 target_compile_definitions(Xzero PRIVATE XZERO_CLUSTERDIR="${XZERO_CLUSTERDIR}")
 set_target_properties(Xzero PROPERTIES CXX_STANDARD 17 CXX_STANDARD_REQUIRED ON)
 if(CLANG_TIDY_EXE)
   set_target_properties(Xzero PROPERTIES CXX_CLANG_TIDY "${DO_CLANG_TIDY}")
 endif()
-target_link_libraries(Xzero ${ZLIB_LIBRARIES} ${OPENSSL_LIBRARIES})
+target_link_libraries(Xzero PRIVATE fmt::fmt-header-only ${ZLIB_LIBRARIES} ${OPENSSL_LIBRARIES})
 if(UNIX)
-  target_link_libraries(Xzero pthread dl stdc++fs)
+  target_link_libraries(Xzero PRIVATE pthread dl stdc++fs)
 endif()
 if(UNIX AND NOT APPLE)
-  target_link_libraries(Xzero rt)
+  target_link_libraries(Xzero PRIVATE rt)
 endif()
 if(WIN32)
-  target_link_libraries(Xzero wsock32 ws2_32 Mswsock AdvApi32 shlwapi)
+  target_link_libraries(Xzero PRIVATE wsock32 ws2_32 Mswsock AdvApi32 shlwapi)
 endif()
 
 install(TARGETS Xzero
@@ -388,7 +357,8 @@ set_target_properties(XzeroFlow PROPERTIES CXX_STANDARD 17 CXX_STANDARD_REQUIRED
 if(CLANG_TIDY_EXE)
   set_target_properties(XzeroFlow PROPERTIES CXX_CLANG_TIDY "${DO_CLANG_TIDY}")
 endif()
-target_link_libraries(XzeroFlow Xzero)
+target_link_libraries(XzeroFlow PRIVATE Xzero)
+target_link_libraries(XzeroFlow PRIVATE fmt::fmt-header-only)
 install(TARGETS XzeroFlow DESTINATION ${CMAKE_INSTALL_PREFIX}/lib)
 install(
     DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/src/flow/"
