@@ -43,7 +43,7 @@ bool AccessModule::deny_ip(Context* cx, Params& args) {
 }
 
 bool AccessModule::deny_cidr(Context* cx, Params& args) {
-  if (args.getCidr(1).contains(cx->remoteIP()))
+  if (args.getCidr(1) & cx->remoteIP())
     return forbidden(cx);
 
   return false;
@@ -61,7 +61,7 @@ bool AccessModule::deny_ipArray(Context* cx, Params& args) {
 bool AccessModule::deny_cidrArray(Context* cx, Params& args) {
   const auto& list = args.getCidrArray(1);
   for (const auto& cidr : list)
-    if (cidr.contains(cx->remoteIP()))
+    if (cidr & cx->remoteIP())
       return forbidden(cx);
 
   return false;
@@ -76,7 +76,7 @@ bool AccessModule::denyExcept_ip(Context* cx, Params& args) {
 }
 
 bool AccessModule::denyExcept_cidr(Context* cx, Params& args) {
-  if (args.getCidr(1).contains(cx->remoteIP()))
+  if (args.getCidr(1) & cx->remoteIP())
     return false;
 
   return forbidden(cx);
@@ -94,7 +94,7 @@ bool AccessModule::denyExcept_ipArray(Context* cx, Params& args) {
 bool AccessModule::denyExcept_cidrArray(Context* cx, Params& args) {
   const auto& list = args.getCidrArray(1);
   for (const auto& cidr : list)
-    if (cidr.contains(cx->remoteIP()))
+    if (cidr & cx->remoteIP())
       return false;
 
   return forbidden(cx);

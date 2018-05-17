@@ -40,7 +40,7 @@
 
 using namespace xzero;
 using namespace xzero::http;
-using namespace xzero::flow;
+using namespace flow;
 
 #if defined(XZERO_OS_WINDOWS)
 struct tm* localtime_r(const time_t* time, struct tm* result) {
@@ -389,8 +389,8 @@ void AccesslogModule::onCycle() {
   }
 }
 
-bool AccesslogModule::accesslog_format_verifier(xzero::flow::Instr* call,
-                                                xzero::flow::IRBuilder* builder) {
+bool AccesslogModule::accesslog_format_verifier(flow::Instr* call,
+                                                flow::IRBuilder* builder) {
   if (!dynamic_cast<ConstantString*>(call->operand(1))) {
     throw AccesslogFormatError{"accesslog.format's id parameter must be constant."};
   }

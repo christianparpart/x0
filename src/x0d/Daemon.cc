@@ -38,19 +38,22 @@
 #include <xzero/StringUtil.h>
 #include <xzero/WallClock.h>
 #include <xzero/logging.h>
-#include <flow/ASTPrinter.h>
-#include <flow/FlowParser.h>
-#include <flow/IRGenerator.h>
+
 #include <flow/Signature.h>
 #include <flow/TargetCodeGenerator.h>
+#include <flow/NativeCallback.h>
 #include <flow/ir/IRProgram.h>
 #include <flow/ir/PassManager.h>
-#include <flow/vm/Runner.h>
-#include <flow/transform/MergeBlockPass.h>
-#include <flow/transform/UnusedBlockPass.h>
+#include <flow/lang/ASTPrinter.h>
+#include <flow/lang/CallVisitor.h>
+#include <flow/lang/IRGenerator.h>
+#include <flow/lang/Parser.h>
 #include <flow/transform/EmptyBlockElimination.h>
 #include <flow/transform/InstructionElimination.h>
-#include <flow/FlowCallVisitor.h>
+#include <flow/transform/MergeBlockPass.h>
+#include <flow/transform/UnusedBlockPass.h>
+#include <flow/vm/Runner.h>
+
 #include <fmt/format.h>
 #include <iostream>
 #include <sstream>
@@ -186,7 +189,7 @@ std::unique_ptr<flow::Program> Daemon::loadConfigStream(
     const std::string& fakeFilename,
     bool printAST, bool printIR, bool printTC) {
   flow::diagnostics::Report report;
-  flow::FlowParser parser(
+  flow::lang::Parser parser(
       &report,
       this,
       std::bind(&Daemon::import, this, std::placeholders::_1,
@@ -194,7 +197,7 @@ std::unique_ptr<flow::Program> Daemon::loadConfigStream(
                                             std::placeholders::_3));
 
   parser.openStream(std::move(is), fakeFilename);
-  std::unique_ptr<flow::UnitSym> unit = parser.parse();
+  std::unique_ptr<flow::lang::UnitSym> unit = parser.parse();
 
   report.log();
   if (report.errorCount() > 0)
@@ -204,12 +207,12 @@ std::unique_ptr<flow::Program> Daemon::loadConfigStream(
   validateConfig(unit.get());
 
   if (printAST) {
-    flow::ASTPrinter::print(unit.get());
+    flow::lang::ASTPrinter::print(unit.get());
     return nullptr;
   }
 
-  flow::IRGenerator irgen{[this](const std::string& msg) { logError("{}", msg); },
-                          {"setup", "main"}};
+  flow::lang::IRGenerator irgen{[this](const std::string& msg) { logError("{}", msg); },
+                                {"setup", "main"}};
 
   std::shared_ptr<flow::IRProgram> programIR = irgen.generate(unit.get());
 
@@ -253,7 +256,7 @@ std::unique_ptr<flow::Program> Daemon::loadConfigStream(
 }
 
 void Daemon::patchProgramIR(flow::IRProgram* programIR,
-                            flow::IRGenerator* irgen) {
+                            flow::lang::IRGenerator* irgen) {
   using namespace flow;
 
   IRHandler* mainIR = programIR->findHandler("main");
@@ -496,20 +499,20 @@ std::function<void()> Daemon::createHandler(HttpRequest* request,
                  config_->maxInternalRedirectCount};
 }
 
-void Daemon::validateConfig(flow::UnitSym* unit) {
+void Daemon::validateConfig(flow::lang::UnitSym* unit) {
   validateContext("setup", setupApi_, unit);
   validateContext("main", mainApi_, unit);
 }
 
 void Daemon::validateContext(const std::string& entrypointHandlerName,
                                   const std::vector<std::string>& api,
-                                  flow::UnitSym* unit) {
+                                  flow::lang::UnitSym* unit) {
   auto entrypointFn = unit->findHandler(entrypointHandlerName);
   if (!entrypointFn)
       throw ConfigurationError{fmt::format("No handler with name {} found.",
                                            entrypointHandlerName)};
 
-  flow::FlowCallVisitor callVisitor(entrypointFn);
+  flow::lang::CallVisitor callVisitor(entrypointFn);
   auto calls = callVisitor.calls();
 
   unsigned errorCount = 0;

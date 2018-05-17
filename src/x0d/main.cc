@@ -159,7 +159,7 @@ int main(int argc, const char* argv[]) {
     return EXIT_FAILURE;
   }
 
-  std::unique_ptr<xzero::flow::Program> config;
+  std::unique_ptr<flow::Program> config;
 
   try {
     if (!flags.getString("instant").empty()) {

@@ -38,7 +38,7 @@ namespace fs = std::experimental::filesystem;
 
 using namespace xzero;
 using namespace xzero::http;
-using namespace xzero::flow;
+using namespace flow;
 
 /**
  * * max_connections:
@@ -118,7 +118,7 @@ CoreModule::CoreModule(Daemon* d)
 
   // setup functions
   setupFunction("listen", &CoreModule::listen)
-      .param<IPAddress>("address", IPAddress("0.0.0.0"))
+      .param<flow::util::IPAddress>("address", flow::util::IPAddress("0.0.0.0"))
       .param<int>("port")
       .param<int>("backlog", 0) // <= 0 means, it'll default to system-default
       .param<int>("multi_accept", 1)
@@ -126,7 +126,7 @@ CoreModule::CoreModule(Daemon* d)
       .param<bool>("reuse_port", false);
 
   setupFunction("ssl.listen", &CoreModule::ssl_listen)
-      .param<IPAddress>("address", IPAddress("0.0.0.0"))
+      .param<flow::util::IPAddress>("address", flow::util::IPAddress("0.0.0.0"))
       .param<int>("port")
       .param<int>("backlog", 0) // <= 0 means, it'll default to system-default
       .param<int>("multi_accept", 1)
@@ -516,7 +516,7 @@ void CoreModule::response_body_buffer_size(Params& args) {
 }
 
 void CoreModule::listen(Params& args) {
-  IPAddress bind = args.getIPAddress(1);
+  IPAddress bind{static_cast<int>(args.getIPAddress(1).family()), args.getIPAddress(1).data()};
   int port = args.getInt(2);
   int backlog = args.getInt(3);
   int multiAcceptCount = args.getInt(4);
@@ -530,7 +530,7 @@ void CoreModule::listen(Params& args) {
 }
 
 void CoreModule::ssl_listen(Params& args) {
-  IPAddress bind = args.getIPAddress(1);
+  IPAddress bind{static_cast<int>(args.getIPAddress(1).family()), args.getIPAddress(1).data()};
   int port = args.getInt(2);
   int backlog = args.getInt(3);
   int multiAcceptCount = args.getInt(4);
@@ -601,7 +601,7 @@ void CoreModule::sys_cpu_count(Context* cx, Params& args) {
   args.setResult(static_cast<FlowNumber>(cpuCount()));
 }
 
-bool CoreModule::preproc_sys_env(xzero::flow::Instr* call, xzero::flow::IRBuilder* builder) {
+bool CoreModule::preproc_sys_env(flow::Instr* call, flow::IRBuilder* builder) {
   if (auto arg = dynamic_cast<ConstantString*>(call->operand(1))) {
     if (arg->get().empty()) {
       logError("sys.env: Empty environment variable name is not allowed.");
@@ -627,7 +627,7 @@ void CoreModule::sys_env(Context* cx, Params& args) {
   }
 }
 
-bool CoreModule::preproc_sys_env2(xzero::flow::Instr* call, xzero::flow::IRBuilder* builder) {
+bool CoreModule::preproc_sys_env2(flow::Instr* call, flow::IRBuilder* builder) {
   if (auto arg = dynamic_cast<ConstantString*>(call->operand(1))) {
     if (auto val = dynamic_cast<ConstantString*>(call->operand(2))) {
       if (arg->get().empty()) {
@@ -826,7 +826,7 @@ void CoreModule::file_is_exe(Context* cx, Params& args) {
     args.setResult(false);
 }
 
-bool CoreModule::verify_docroot(xzero::flow::Instr* call, xzero::flow::IRBuilder* builder) {
+bool CoreModule::verify_docroot(flow::Instr* call, flow::IRBuilder* builder) {
   if (auto arg = dynamic_cast<ConstantString*>(call->operand(1))) {
     if (arg->get().empty()) {
       logError("Setting empty document root is not allowed.");
@@ -1377,7 +1377,7 @@ void CoreModule::req_accept_language(Context* cx, Params& args) {
   args.setResult(supportedLanguages[0]);
 }
 
-bool CoreModule::verify_req_accept_language(xzero::flow::Instr* call, xzero::flow::IRBuilder* builder) {
+bool CoreModule::verify_req_accept_language(flow::Instr* call, flow::IRBuilder* builder) {
   auto arg = dynamic_cast<ConstantArray*>(call->operand(1));
   assert(arg != nullptr);
 

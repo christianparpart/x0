@@ -13,7 +13,7 @@
 #include <optional>
 #include <ostream>
 
-namespace xzero::flow {
+namespace flow {
   class Instr;
   class IRBuilder;
 };
@@ -47,14 +47,14 @@ class AccesslogModule : public Module {
 
  private:
   void accesslog_format(Params& args);
-  bool accesslog_format_verifier(xzero::flow::Instr* call,
-                                 xzero::flow::IRBuilder* builder);
+  bool accesslog_format_verifier(flow::Instr* call,
+                                 flow::IRBuilder* builder);
 
   void accesslog_syslog(Context* cx, Params& args);
   void accesslog_console(Context* cx, Params& args);
   void accesslog_file(Context* cx, Params& args);
 
-  using FlowString = xzero::flow::FlowString;
+  using FlowString = flow::FlowString;
 
   std::optional<FlowString> lookupFormat(const FlowString& id) const;
   LogFile* getLogFile(const FlowString& filename);

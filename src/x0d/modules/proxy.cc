@@ -41,7 +41,7 @@ namespace x0d {
 
 using namespace xzero;
 using namespace xzero::http;
-using namespace xzero::flow;
+using namespace flow;
 
 using xzero::http::cluster::ApiHandler;
 using ClusterContext = xzero::http::cluster::Context;
@@ -118,7 +118,7 @@ ProxyModule::ProxyModule(Daemon* d)
 ProxyModule::~ProxyModule() {
 }
 
-void ProxyModule::proxy_pseudonym(xzero::flow::Params& args) {
+void ProxyModule::proxy_pseudonym(flow::Params& args) {
   std::string value = args.getString(1);
 
   for (char ch: value) {
@@ -130,7 +130,7 @@ void ProxyModule::proxy_pseudonym(xzero::flow::Params& args) {
   pseudonym_ = value;
 }
 
-bool ProxyModule::verify_proxy_cluster(xzero::flow::Instr* call, xzero::flow::IRBuilder* builder) {
+bool ProxyModule::verify_proxy_cluster(flow::Instr* call, flow::IRBuilder* builder) {
   auto program = call->getBasicBlock()->getHandler()->getProgram();
 
   auto nameArg = dynamic_cast<ConstantString*>(call->operand(1));
@@ -315,7 +315,7 @@ bool ProxyModule::proxy_cluster(Context* cx, Params& args) {
   return true;
 }
 
-bool ProxyModule::proxy_api(Context* cx, xzero::flow::Params& args) {
+bool ProxyModule::proxy_api(Context* cx, flow::Params& args) {
   std::string prefix = args.getString(1);
 
   if (!StringUtil::beginsWithIgnoreCase(cx->request()->path(), prefix))
@@ -327,12 +327,12 @@ bool ProxyModule::proxy_api(Context* cx, xzero::flow::Params& args) {
   return handler->run();
 }
 
-bool ProxyModule::proxy_fcgi(Context* cx, xzero::flow::Params& args) {
+bool ProxyModule::proxy_fcgi(Context* cx, flow::Params& args) {
   cx->logError("proxy.fcgi: Not yet reimplemented");
   return false; // TODO
 }
 
-bool ProxyModule::proxy_http(Context* cx, xzero::flow::Params& args) {
+bool ProxyModule::proxy_http(Context* cx, flow::Params& args) {
   const FlowString onClientAbortStr = args.getString(1);
   const InetAddress upstreamAddr(args.getIPAddress(2), args.getInt(3));
   const Duration connectTimeout = Duration::fromSeconds(args.getInt(4));
@@ -452,11 +452,11 @@ void ProxyModule::destroyCluster(const std::string& name) {
   }
 }
 
-bool ProxyModule::proxy_roadwarrior_verify(xzero::flow::Instr* instr, xzero::flow::IRBuilder* builder) {
+bool ProxyModule::proxy_roadwarrior_verify(flow::Instr* instr, flow::IRBuilder* builder) {
   return true; // TODO
 }
 
-void ProxyModule::proxy_cache(Context* cx, xzero::flow::Params& args) {
+void ProxyModule::proxy_cache(Context* cx, flow::Params& args) {
   // TODO
 }
 

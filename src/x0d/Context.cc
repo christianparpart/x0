@@ -28,7 +28,7 @@ using namespace xzero::http;
 namespace x0d {
 
 Context::Context(
-    const xzero::flow::Handler* requestHandler,
+    const flow::Handler* requestHandler,
     xzero::http::HttpRequest* request,
     xzero::http::HttpResponse* response,
     const std::unordered_map<xzero::http::HttpStatus, std::string>* globalErrorPages,

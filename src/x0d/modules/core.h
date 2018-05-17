@@ -12,7 +12,7 @@
 #include <xzero/Random.h>
 #include <xzero/logging.h>
 #include <xzero/io/LocalFileRepository.h>
-#include <flow/AST.h>
+#include <flow/lang/AST.h>
 #include <flow/ir/Instr.h>
 #include <flow/ir/BasicBlock.h>
 #include <flow/ir/IRHandler.h>
@@ -78,9 +78,9 @@ class CoreModule : public Module {
 
   // shared properties
   void sys_cpu_count(Context* cx, Params& args);
-  bool preproc_sys_env(xzero::flow::Instr* call, xzero::flow::IRBuilder* builder);
+  bool preproc_sys_env(flow::Instr* call, flow::IRBuilder* builder);
   void sys_env(Context* cx, Params& args);
-  bool preproc_sys_env2(xzero::flow::Instr* call, xzero::flow::IRBuilder* builder);
+  bool preproc_sys_env2(flow::Instr* call, flow::IRBuilder* builder);
   void sys_env2(Context* cx, Params& args);
   void sys_cwd(Context* cx, Params& args);
   void sys_pid(Context* cx, Params& args);
@@ -110,7 +110,7 @@ class CoreModule : public Module {
   // }}}
 
   // main handlers
-  bool verify_docroot(xzero::flow::Instr* call, xzero::flow::IRBuilder* builder);
+  bool verify_docroot(flow::Instr* call, flow::IRBuilder* builder);
   bool docroot(Context* cx, Params& args);
   bool alias(Context* cx, Params& args);
   bool redirect_with_to(Context* cx, Params& args);
@@ -158,7 +158,7 @@ class CoreModule : public Module {
   void phys_mimetype(Context* cx, Params& args);
   void regex_group(Context* cx, Params& args);
   void req_accept_language(Context* cx, Params& args);
-  bool verify_req_accept_language(xzero::flow::Instr* call, xzero::flow::IRBuilder* builder);
+  bool verify_req_accept_language(flow::Instr* call, flow::IRBuilder* builder);
 };
 
 } // namespace x0d

@@ -45,7 +45,7 @@ class Context {
   CUSTOMDATA_API_INLINE
  public:
   Context(
-      const xzero::flow::Handler* requestHandler,
+      const flow::Handler* requestHandler,
       xzero::http::HttpRequest* request,
       xzero::http::HttpResponse* response,
       const std::unordered_map<xzero::http::HttpStatus, std::string>* globalErrorPages,
@@ -102,7 +102,7 @@ class Context {
   void setFile(std::shared_ptr<xzero::File> file) { file_ = file; }
   std::shared_ptr<xzero::File> file() const { return file_; }
 
-  xzero::flow::Runner* runner() const noexcept { return runner_.get(); }
+  flow::Runner* runner() const noexcept { return runner_.get(); }
 
   const xzero::IPAddress& remoteIP() const;
   int remotePort() const;
@@ -179,8 +179,8 @@ class Context {
   // }}}
 
  private:
-  const xzero::flow::Handler* requestHandler_; //!< HTTP request handler as flow program
-  std::unique_ptr<xzero::flow::Runner> runner_; //!< Flow VM execution unit.
+  const flow::Handler* requestHandler_; //!< HTTP request handler as flow program
+  std::unique_ptr<flow::Runner> runner_; //!< Flow VM execution unit.
   const xzero::UnixTime createdAt_; //!< When the request started
   xzero::http::HttpRequest* request_; //!< actual HTTP request
   std::list<std::unique_ptr<xzero::http::HttpRequest>> internalRedirects_;

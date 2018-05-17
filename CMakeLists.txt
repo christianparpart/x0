@@ -2,7 +2,6 @@ cmake_minimum_required(VERSION 3.6)
 project(x0 VERSION "0.11.0" LANGUAGES CXX C)
 set(CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 
-option(ENABLE_FLOW_DIRECT_THREADED_VM "Flow VM using direct threaded mode [default: OFF]" OFF)
 option(ENABLE_TESTS "Enable building tests [default: ON]" ON)
 option(ENABLE_TIDY "Enable clang-tidy [default: OFF]" OFF)
 
@@ -12,10 +11,12 @@ set(X0D_CONFIGFILE "${CMAKE_INSTALL_PREFIX}/etc/x0d/x0d.conf" CACHE STRING "x0d 
 set(XZERO_CLUSTERDIR "${CMAKE_INSTALL_PREFIX}/var/x0d" CACHE STRING "Xzero HTTP cluster directory")
 set(PACKAGE_URL "https://xzero.io/")
 
-add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/fmt")
+# 3rdparty: fmtlib
+add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/fmt" EXCLUDE_FROM_ALL)
 add_definitions(-DFMT_USE_WINDOWS_H=0)
 
-#add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/flow")
+# 3rdparty: Flow
+add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/flow")
 
 set(CLANG_TIDY_CHECKS "-checks=bugprone-*,cppcoreguidelines-*,performance-*,clang-analyzer-*,modernize-*,-cppcoreguidelines-pro-type-vararg,-cppcoreguidelines-pro-bounds-array-to-pointer-decay,-cppcoreguidelines-pro-bounds-constant-array-index,-cppcoreguidelines-pro-type-union-access" CACHE STRING "clang-tidy checks to enable/disable")
 if(ENABLE_TIDY)
@@ -311,60 +312,6 @@ set_target_properties(XzeroTest PROPERTIES CXX_STANDARD 17 CXX_STANDARD_REQUIRED
 target_link_libraries(XzeroTest Xzero)
 install(TARGETS XzeroTest DESTINATION ${CMAKE_INSTALL_PREFIX}/lib)
 # }}}
-# {{{ libXzeroFlow
-set(XzeroFlow_SRC src/flow/AST.cc
-                  src/flow/ASTPrinter.cc
-                  src/flow/Diagnostics.cc
-                  src/flow/FlowCallVisitor.cc
-                  src/flow/FlowLexer.cc
-                  src/flow/FlowParser.cc
-                  src/flow/FlowToken.cc
-                  src/flow/LiteralType.cc
-                  src/flow/IRGenerator.cc
-                  src/flow/MatchClass.cc
-                  src/flow/NativeCallback.cc
-                  src/flow/Signature.cc
-                  src/flow/SourceLocation.cc
-                  src/flow/TargetCodeGenerator.cc
-                  src/flow/ir/BasicBlock.cc
-                  src/flow/ir/Constant.cc
-                  src/flow/ir/ConstantArray.cc
-                  src/flow/ir/ConstantValue.cc
-                  src/flow/ir/IRBuilder.cc
-                  src/flow/ir/IRHandler.cc
-                  src/flow/ir/IRProgram.cc
-                  src/flow/ir/Instr.cc
-                  src/flow/ir/InstructionVisitor.cc
-                  src/flow/ir/Instructions.cc
-                  src/flow/ir/PassManager.cc
-                  src/flow/ir/Value.cc
-                  src/flow/transform/EmptyBlockElimination.cc
-                  src/flow/transform/InstructionElimination.cc
-                  src/flow/transform/MergeBlockPass.cc
-                  src/flow/transform/UnusedBlockPass.cc
-                  src/flow/util/RegExp.cc
-                  src/flow/vm/ConstantPool.cc
-                  src/flow/vm/Handler.cc
-                  src/flow/vm/Instruction.cc
-                  src/flow/vm/Match.cc
-                  src/flow/vm/Program.cc
-                  src/flow/vm/Runner.cc
-                  src/flow/vm/Runtime.cc
-                  )
-
-add_library(XzeroFlow STATIC ${XzeroFlow_SRC})
-set_target_properties(XzeroFlow PROPERTIES CXX_STANDARD 17 CXX_STANDARD_REQUIRED ON)
-if(CLANG_TIDY_EXE)
-  set_target_properties(XzeroFlow PROPERTIES CXX_CLANG_TIDY "${DO_CLANG_TIDY}")
-endif()
-target_link_libraries(XzeroFlow PRIVATE Xzero)
-target_link_libraries(XzeroFlow PRIVATE fmt::fmt-header-only)
-install(TARGETS XzeroFlow DESTINATION ${CMAKE_INSTALL_PREFIX}/lib)
-install(
-    DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/src/flow/"
-    DESTINATION "${CMAKE_INSTALL_PREFIX}/include/flow"
-    FILES_MATCHING PATTERN "*.h")
-# }}}
 # {{{ x0d
 MIMETYPES_GENERATE_CPP(MT_SRC ${PROJECT_SOURCE_DIR}/3rdparty/mime.types)
 
@@ -394,7 +341,7 @@ set_target_properties(x0d PROPERTIES CXX_STANDARD 17 CXX_STANDARD_REQUIRED ON)
 if(CLANG_TIDY_EXE)
   set_target_properties(x0d PROPERTIES CXX_CLANG_TIDY "${DO_CLANG_TIDY}")
 endif()
-target_link_libraries(x0d Xzero XzeroFlow)
+target_link_libraries(x0d Xzero FlowLang FlowCore)
 if(UNIX)
 target_link_libraries(x0d pam)
 endif()
@@ -407,11 +354,6 @@ install(DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/src/x0d/"
 # {{{ test
 if(ENABLE_TESTS)
 set(xzero_test_SRC
-		src/flow/FlowLexer-test.cc
-		src/flow/FlowParser-test.cc
-    src/flow/flowtest-test.cc
-		src/flow/util/PrefixTree-test.cc
-		src/flow/util/SuffixTree-test.cc
 		src/xzero/Base64-test.cc
 		src/xzero/Buffer-test.cc
 		src/xzero/Callback-test.cc
@@ -477,15 +419,7 @@ set_target_properties(xzero_test PROPERTIES CXX_STANDARD 17 CXX_STANDARD_REQUIRE
 if(CLANG_TIDY_EXE)
   set_target_properties(xzero_test PROPERTIES CXX_CLANG_TIDY "${DO_CLANG_TIDY}")
 endif()
-target_link_libraries(xzero_test Xzero XzeroFlow XzeroTest)
-
-add_executable(flowtest src/flow/flowtest-main.cc
-                        src/flow/flowtest.cc)
-set_target_properties(flowtest PROPERTIES CXX_STANDARD 17 CXX_STANDARD_REQUIRED ON)
-if(CLANG_TIDY_EXE)
-  set_target_properties(flowtest PROPERTIES CXX_CLANG_TIDY "${DO_CLANG_TIDY}")
-endif()
-target_link_libraries(flowtest Xzero XzeroFlow)
+target_link_libraries(xzero_test XzeroTest Xzero FlowLang FlowCore)
 
 endif(ENABLE_TESTS)
 # }}}

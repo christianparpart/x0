@@ -53,18 +53,18 @@ class ProxyModule : public Module,
 
  private:
   // setup functions
-  void proxy_pseudonym(xzero::flow::Params& args);
+  void proxy_pseudonym(flow::Params& args);
 
   // main handlers
   xzero::http::cluster::Cluster* findLocalCluster(const std::string& host);
-  bool proxy_cluster_auto(Context* cx, xzero::flow::Params& args);
-  bool verify_proxy_cluster(xzero::flow::Instr* call, xzero::flow::IRBuilder* builder);
+  bool proxy_cluster_auto(Context* cx, flow::Params& args);
+  bool verify_proxy_cluster(flow::Instr* call, flow::IRBuilder* builder);
   bool proxy_cluster(Context* cx, Params& args);
-  bool proxy_api(Context* cx, xzero::flow::Params& args);
-  bool proxy_fcgi(Context* cx, xzero::flow::Params& args);
-  bool proxy_http(Context* cx, xzero::flow::Params& args);
-  bool proxy_roadwarrior_verify(xzero::flow::Instr* instr, xzero::flow::IRBuilder* builder);
-  void proxy_cache(Context* cx, xzero::flow::Params& args);
+  bool proxy_api(Context* cx, flow::Params& args);
+  bool proxy_fcgi(Context* cx, flow::Params& args);
+  bool proxy_http(Context* cx, flow::Params& args);
+  bool proxy_roadwarrior_verify(flow::Instr* instr, flow::IRBuilder* builder);
+  void proxy_cache(Context* cx, flow::Params& args);
 
  private:
   bool internalServerError(Context* cx);

@@ -1,3 +1,6 @@
 [submodule "fmtlib"]
 	path = 3rdparty/fmt
 	url = https://github.com/fmtlib/fmt.git
+[submodule "flow"]
+	path = 3rdparty/flow
+	url = https://github.com/christianparpart/flow.git

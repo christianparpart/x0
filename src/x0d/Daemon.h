@@ -10,28 +10,30 @@
 #include <x0d/Config.h>
 
 #include <xzero/Buffer.h>
-#include <xzero/MimeTypes.h>
-#include <xzero/io/LocalFileRepository.h>
 #include <xzero/Callback.h>
-#include <xzero/UnixTime.h>
 #include <xzero/Duration.h>
-#include <xzero/net/TcpConnector.h>
-#include <xzero/executor/ThreadedExecutor.h>
+#include <xzero/MimeTypes.h>
+#include <xzero/UnixTime.h>
 #include <xzero/executor/NativeScheduler.h>
+#include <xzero/executor/ThreadedExecutor.h>
 #include <xzero/http/HttpFileHandler.h>
 #include <xzero/http/http1/ConnectionFactory.h>
-#include <flow/AST.h>
+#include <xzero/io/LocalFileRepository.h>
+#include <xzero/net/TcpConnector.h>
+
 #include <flow/NativeCallback.h>
 #include <flow/ir/IRProgram.h>
-#include <flow/vm/Runtime.h>
-#include <flow/vm/Program.h>
+#include <flow/lang/AST.h>
 #include <flow/vm/Handler.h>
-#include <list>
-#include <vector>
-#include <string>
-#include <memory>
+#include <flow/vm/Program.h>
+#include <flow/vm/Runtime.h>
+
 #include <cstdint>
 #include <iosfwd>
+#include <list>
+#include <memory>
+#include <string>
+#include <vector>
 
 namespace xzero {
   class IPAddress;
@@ -44,11 +46,11 @@ namespace xzero {
     class HttpRequest;
     class HttpResponse;
   }
+}
 
-  namespace flow {
-    class CallExpr;
-    class IRGenerator;
-  }
+
+namespace flow::lang {
+  class IRGenerator;
 }
 
 namespace x0d {
@@ -71,7 +73,7 @@ enum class DaemonState {
   GracefullyShuttingdown
 };
 
-class Daemon : public xzero::flow::Runtime {
+class Daemon : public flow::Runtime {
  public:
   typedef xzero::Callback<void(xzero::Connection*)> ConnectionHook;
   typedef xzero::Callback<void(xzero::http::HttpRequest*, xzero::http::HttpResponse*)> RequestHook;
@@ -86,21 +88,21 @@ class Daemon : public xzero::flow::Runtime {
   xzero::EventLoop* mainEventLoop() const { return eventLoops_[0].get(); }
 
   // {{{ config management
-  std::unique_ptr<xzero::flow::Program> loadConfigFile(
+  std::unique_ptr<flow::Program> loadConfigFile(
       const std::string& configFileName);
-  std::unique_ptr<xzero::flow::Program> loadConfigFile(
+  std::unique_ptr<flow::Program> loadConfigFile(
       const std::string& configFileName,
       bool printAST, bool printIR, bool printTC);
-  std::unique_ptr<xzero::flow::Program> loadConfigEasy(
+  std::unique_ptr<flow::Program> loadConfigEasy(
       const std::string& docroot, int port);
-  std::unique_ptr<xzero::flow::Program> loadConfigEasy(
+  std::unique_ptr<flow::Program> loadConfigEasy(
       const std::string& docroot, int port,
       bool printAST, bool printIR, bool printTC);
-  std::unique_ptr<xzero::flow::Program> loadConfigStream(
+  std::unique_ptr<flow::Program> loadConfigStream(
       std::unique_ptr<std::istream>&& is, const std::string& name,
       bool printAST, bool printIR, bool printTC);
   void reloadConfiguration();
-  void applyConfiguration(std::unique_ptr<xzero::flow::Program>&& program);
+  void applyConfiguration(std::unique_ptr<flow::Program>&& program);
   // }}}
 
   void run();
@@ -122,23 +124,23 @@ class Daemon : public xzero::flow::Runtime {
                       bool reuseAddr, bool deferAccept, bool reusePort);
 
   template <typename... ArgTypes>
-  xzero::flow::NativeCallback& setupFunction(
-      const std::string& name, xzero::flow::NativeCallback::Functor cb,
+  flow::NativeCallback& setupFunction(
+      const std::string& name, flow::NativeCallback::Functor cb,
       ArgTypes... argTypes);
 
   template <typename... ArgTypes>
-  xzero::flow::NativeCallback& sharedFunction(
-      const std::string& name, xzero::flow::NativeCallback::Functor cb,
+  flow::NativeCallback& sharedFunction(
+      const std::string& name, flow::NativeCallback::Functor cb,
       ArgTypes... argTypes);
 
   template <typename... ArgTypes>
-  xzero::flow::NativeCallback& mainFunction(
-      const std::string& name, xzero::flow::NativeCallback::Functor cb,
+  flow::NativeCallback& mainFunction(
+      const std::string& name, flow::NativeCallback::Functor cb,
       ArgTypes... argTypes);
 
   template <typename... ArgTypes>
-  xzero::flow::NativeCallback& mainHandler(
-      const std::string& name, xzero::flow::NativeCallback::Functor cb,
+  flow::NativeCallback& mainHandler(
+      const std::string& name, flow::NativeCallback::Functor cb,
       ArgTypes... argTypes);
 
  public:
@@ -146,13 +148,13 @@ class Daemon : public xzero::flow::Runtime {
   virtual bool import(
       const std::string& name,
       const std::string& path,
-      std::vector<xzero::flow::NativeCallback*>* builtins);
+      std::vector<flow::NativeCallback*>* builtins);
 
  private:
-  void validateConfig(xzero::flow::UnitSym* unit);
+  void validateConfig(flow::lang::UnitSym* unit);
   void validateContext(const std::string& entrypointHandlerName,
                        const std::vector<std::string>& api,
-                       xzero::flow::UnitSym* unit);
+                       flow::lang::UnitSym* unit);
   void stopThreads();
   void startThreads();
 
@@ -197,8 +199,8 @@ class Daemon : public xzero::flow::Runtime {
 
  private:
   std::unique_ptr<Config> createDefaultConfig();
-  void patchProgramIR(xzero::flow::IRProgram* program,
-                      xzero::flow::IRGenerator* irgen);
+  void patchProgramIR(flow::IRProgram* program,
+                      flow::lang::IRGenerator* irgen);
   void postConfig();
   std::unique_ptr<xzero::EventLoop> createEventLoop();
   void runOneThread(size_t index);
@@ -228,8 +230,8 @@ class Daemon : public xzero::flow::Runtime {
   std::list<std::unique_ptr<xzero::TcpConnector>> connectors_; //!< TCP (HTTP) connectors
 
   // Flow configuration
-  std::unique_ptr<xzero::flow::Program> program_; // kept to preserve strong reference count
-  xzero::flow::Handler* main_;
+  std::unique_ptr<flow::Program> program_; // kept to preserve strong reference count
+  flow::Handler* main_;
   std::vector<std::string> setupApi_;
   std::vector<std::string> mainApi_;
   int optimizationLevel_;
@@ -250,36 +252,36 @@ class Daemon : public xzero::flow::Runtime {
 
 // {{{ inlines
 template <typename... ArgTypes>
-inline xzero::flow::NativeCallback& Daemon::setupFunction(
-    const std::string& name, xzero::flow::NativeCallback::Functor cb,
+inline flow::NativeCallback& Daemon::setupFunction(
+    const std::string& name, flow::NativeCallback::Functor cb,
     ArgTypes... argTypes) {
   setupApi_.push_back(name);
-  return registerFunction(name, xzero::flow::LiteralType::Void).bind(cb).params(
+  return registerFunction(name, flow::LiteralType::Void).bind(cb).params(
       argTypes...);
 }
 
 template <typename... ArgTypes>
-inline xzero::flow::NativeCallback& Daemon::sharedFunction(
-    const std::string& name, xzero::flow::NativeCallback::Functor cb,
+inline flow::NativeCallback& Daemon::sharedFunction(
+    const std::string& name, flow::NativeCallback::Functor cb,
     ArgTypes... argTypes) {
   setupApi_.push_back(name);
   mainApi_.push_back(name);
-  return registerFunction(name, xzero::flow::LiteralType::Void).bind(cb).params(
+  return registerFunction(name, flow::LiteralType::Void).bind(cb).params(
       argTypes...);
 }
 
 template <typename... ArgTypes>
-inline xzero::flow::NativeCallback& Daemon::mainFunction(
-    const std::string& name, xzero::flow::NativeCallback::Functor cb,
+inline flow::NativeCallback& Daemon::mainFunction(
+    const std::string& name, flow::NativeCallback::Functor cb,
     ArgTypes... argTypes) {
   mainApi_.push_back(name);
-  return registerFunction(name, xzero::flow::LiteralType::Void).bind(cb).params(
+  return registerFunction(name, flow::LiteralType::Void).bind(cb).params(
       argTypes...);
 }
 
 template <typename... ArgTypes>
-inline xzero::flow::NativeCallback& Daemon::mainHandler(
-    const std::string& name, xzero::flow::NativeCallback::Functor cb,
+inline flow::NativeCallback& Daemon::mainHandler(
+    const std::string& name, flow::NativeCallback::Functor cb,
     ArgTypes... argTypes) {
   mainApi_.push_back(name);
   return registerHandler(name).bind(cb).params(argTypes...);

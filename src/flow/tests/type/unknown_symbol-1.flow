@@ -1,7 +1,0 @@
-# vim:syntax=x0dconf
-handler main {
-  f();
-}
-
-# ----
-# [3:3] TypeError: Unknown symbol 'f'.

@@ -36,7 +36,7 @@
 
 using namespace xzero;
 using namespace xzero::http;
-using namespace xzero::flow;
+using namespace flow;
 
 namespace x0d {
 
