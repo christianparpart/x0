@@ -18,8 +18,26 @@ add_definitions(-DFMT_USE_WINDOWS_H=0)
 # 3rdparty: Flow
 add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/flow")
 
-set(CLANG_TIDY_CHECKS "-checks=bugprone-*,cppcoreguidelines-*,performance-*,clang-analyzer-*,modernize-*,-cppcoreguidelines-pro-type-vararg,-cppcoreguidelines-pro-bounds-array-to-pointer-decay,-cppcoreguidelines-pro-bounds-constant-array-index,-cppcoreguidelines-pro-type-union-access" CACHE STRING "clang-tidy checks to enable/disable")
-if(ENABLE_TIDY)
+option(ENABLE_TIDY "Enable clang-tidy [default: OFF]" OFF)
+if(ENABLE_TIDY) # {{{ clang-tidy
+  set(CLANG_TIDY_CHECKS "\
+,bugprone-*\
+,clang-analyzer-*\
+,cppcoreguidelines-*\
+,modernize-*\
+,performance-*\
+,-bugprone-macro-parentheses\
+,-cppcoreguidelines-pro-bounds-array-to-pointer-decay\
+,-cppcoreguidelines-pro-bounds-constant-array-index\
+,-cppcoreguidelines-pro-bounds-pointer-arithmetic\
+,-cppcoreguidelines-pro-type-cstyle-cast\
+,-cppcoreguidelines-pro-type-reinterpret-cast\
+,-cppcoreguidelines-pro-type-static-cast-downcast\
+,-cppcoreguidelines-pro-type-union-access\
+,-cppcoreguidelines-pro-type-vararg\
+,-modernize-use-auto\
+")
+
   find_program(CLANG_TIDY_EXE
     NAMES clang-tidy-7 clang-tidy-6.0 clang-tidy
     DOC "Path to clang-tidy executable")
@@ -27,9 +45,9 @@ if(ENABLE_TIDY)
     message(STATUS "clang-tidy not found.")
   else()
     message(STATUS "clang-tidy found: ${CLANG_TIDY_EXE}")
-    set(DO_CLANG_TIDY "${CLANG_TIDY_EXE}" "${CLANG_TIDY_CHECKS}")
+    set(DO_CLANG_TIDY "${CLANG_TIDY_EXE}" "-checks=${CLANG_TIDY_CHECKS}")
   endif()
-endif()
+endif() # }}}
 
 # {{{ build-time requirements and platform feature tests
 include(XzeroCommon)

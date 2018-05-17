@@ -3,15 +3,6 @@
 
 All the things I've found out on the way, that need retouching
 
-- [ ] EventPipe | EventSignal
-
-```
-EventPipe { // pipe/pipe2/eventfd -- PosixScheduler, LinuxScheduler
-  void send(uint64_t incr = 1);
-  uin64_t receive();
-};
-```
-
 - [ ] consider replacing Result<T> with T and throw instead.
 - [ ] http: rework HttpClient API (so it's becoming dead-easy to be used within proxy code)
 - [ ] http.client: HttpClient to support fastcgi
