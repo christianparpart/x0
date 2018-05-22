@@ -63,32 +63,21 @@ std::string as_string(LogLevel value) {
   }
 }
 
-LogLevel make_loglevel(const std::string& str) {
-  std::string value = StringUtil::toLower(str);
+LogLevel make_loglevel(const std::string& value) {
+  const std::vector<std::pair<std::string, LogLevel>> map = {
+    {"none", LogLevel::None},
+    {"fatal", LogLevel::Fatal},
+    {"error", LogLevel::Error},
+    {"warning", LogLevel::Warning},
+    {"notice", LogLevel::Notice},
+    {"info", LogLevel::Info},
+    {"debug", LogLevel::Debug},
+    {"trace", LogLevel::Trace},
+  };
 
-  if (value == "none")
-    return LogLevel::None;
-
-  if (value == "fatal")
-    return LogLevel::Fatal;
-
-  if (value == "error" || value == "err")
-    return LogLevel::Error;
-
-  if (value == "warning" || value == "warn")
-    return LogLevel::Warning;
-
-  if (value == "notice")
-    return LogLevel::Notice;
-
-  if (value == "info")
-    return LogLevel::Info;
-
-  if (value == "debug")
-    return LogLevel::Debug;
-
-  if (value == "trace")
-    return LogLevel::Trace;
+  for (const std::pair<std::string, LogLevel>& match: map)
+    if (value == match.first)
+      return match.second;
 
   logFatal("Illegal LogLevel enum value.");
 }
