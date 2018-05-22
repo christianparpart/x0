@@ -5,11 +5,12 @@
 // file except in compliance with the License. You may obtain a copy of
 // the License at: http://opensource.org/licenses/MIT
 
+#include <xzero/Buffer.h>
+#include <xzero/MonotonicClock.h>
+#include <xzero/RuntimeError.h>
+#include <xzero/logging.h>
 #include <xzero/net/DnsClient.h>
 #include <xzero/net/IPAddress.h>
-#include <xzero/RuntimeError.h>
-#include <xzero/MonotonicClock.h>
-#include <xzero/logging.h>
 
 #include <vector>
 #include <algorithm>

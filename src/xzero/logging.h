@@ -7,7 +7,6 @@
 #pragma once
 
 #include <atomic>
-#include <xzero/StringUtil.h>
 #include <xzero/io/FileHandle.h>
 #include <fmt/format.h>
 

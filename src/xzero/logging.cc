@@ -5,21 +5,21 @@
 // file except in compliance with the License. You may obtain a copy of
 // the License at: http://opensource.org/licenses/MIT
 
-#include <xzero/sysconfig.h>
-#include <xzero/defines.h>
 #include <xzero/logging.h>
-#include <xzero/inspect.h>
-#include <xzero/StackTrace.h>
 #include <xzero/AnsiColor.h>
 #include <xzero/Application.h>
+#include <xzero/StackTrace.h>
 #include <xzero/StringUtil.h>
 #include <xzero/UnixTime.h>
 #include <xzero/WallClock.h>
-#include <xzero/logging.h>
+#include <xzero/defines.h>
+#include <xzero/inspect.h>
 #include <xzero/io/FileHandle.h>
 #include <xzero/io/FileUtil.h>
-#include <stdexcept>
+#include <xzero/sysconfig.h>
+
 #include <iostream>
+#include <stdexcept>
 #include <stdlib.h>
 
 #if defined(XZERO_OS_UNIX)
