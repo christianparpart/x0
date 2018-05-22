@@ -6,7 +6,7 @@
 // the License at: http://opensource.org/licenses/MIT
 
 #include <xzero/Flags.h>
-#include <xzero/net/IPAddress.h>
+#include <fmt/format.h>
 #include <sstream>
 #include <iostream>
 #include <iomanip>
@@ -59,17 +59,6 @@ void Flags::set(const std::string& opt,
 
 bool Flags::isSet(const std::string& flag) const {
   return set_.find(flag) != set_.end();
-}
-
-IPAddress Flags::getIPAddress(const std::string& flag) const {
-  auto i = set_.find(flag);
-  if (i == set_.end())
-    throw Error{ErrorCode::NotFound, flag};
-
-  if (i->second.first != FlagType::IP)
-    throw Error{ErrorCode::TypeMismatch, flag};
-
-  return IPAddress(i->second.second);
 }
 
 std::string Flags::asString(const std::string& flag) const {
@@ -233,25 +222,6 @@ Flags& Flags::defineFloat(
       [=](const std::string& value) {
         if (callback) {
           callback(std::stof(value));
-        }
-      });
-}
-
-Flags& Flags::defineIPAddress(
-    const std::string& longOpt,
-    char shortOpt,
-    const std::string& valuePlaceholder,
-    const std::string& helpText,
-    std::optional<IPAddress> defaultValue,
-    std::function<void(const IPAddress&)> callback) {
-
-  return define(
-      longOpt, shortOpt, false, FlagType::IP, valuePlaceholder,
-      helpText, defaultValue.has_value() ? std::make_optional(defaultValue->str())
-                                         : std::nullopt,
-      [=](const std::string& value) {
-        if (callback) {
-          callback(IPAddress(value));
         }
       });
 }

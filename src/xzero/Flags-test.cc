@@ -224,73 +224,63 @@ TEST(Flags, type_float) {
   ASSERT_EQ(1.42f, flags.getFloat("float"));
 }
 
-TEST(Flags, type_ip) {
-  Flags flags;
-  flags.defineIPAddress("ip", 'a', "<IP>", "The IP");
-
-  std::error_code ec = flags.tryParse({"--ip=4.2.2.1"});
-  ASSERT_ERROR_CODE_SUCCESS(ec);
-  ASSERT_EQ(1, flags.size());
-  ASSERT_EQ(IPAddress("4.2.2.1"), flags.getIPAddress("ip"));
-}
-
 TEST(Flags, callbacks_on_explicit) {
-  IPAddress bindIP;
+  std::string bindIP;
 
   Flags flags;
-  flags.defineIPAddress("bind", 'a', "<IP>", "IP address to bind listener address to.", std::nullopt,
-      [&](const IPAddress& ip) {
+  flags.defineString("bind", 'a', "<IP>", "IP address to bind listener address to.", std::nullopt,
+      [&](const std::string& ip) {
         bindIP = ip;
       });
 
   std::error_code ec = flags.tryParse({"--bind", "127.0.0.2"});
   ASSERT_ERROR_CODE_SUCCESS(ec);
 
-  ASSERT_EQ(IPAddress("127.0.0.2"), bindIP);
+  ASSERT_EQ("127.0.0.2", bindIP);
 }
 
 TEST(Flags, callbacks_on_defaults__passed) {
-  IPAddress bindIP;
+  std::string bindIP;
 
   Flags flags;
-  flags.defineIPAddress(
+  flags.defineString(
       "bind", 'a', "<IP>", "IP address to bind listener address to.",
-      IPAddress("127.0.0.1"),
-      [&](const IPAddress& ip) { bindIP = ip; });
+      "127.0.0.1",
+      [&](const std::string& ip) { bindIP = ip; });
 
   std::error_code ec = flags.tryParse({"--bind", "127.0.0.3"});
   ASSERT_ERROR_CODE_SUCCESS(ec);
-  ASSERT_EQ(IPAddress("127.0.0.3"), bindIP);
+  ASSERT_EQ("127.0.0.3", bindIP);
 }
 
 TEST(Flags, callbacks_on_defaults__default) {
-  IPAddress bindIP;
+  std::string bindIP;
 
   Flags flags;
-  flags.defineIPAddress(
+  flags.defineString(
       "bind", 'a', "<IP>", "IP address to bind listener address to.",
-      IPAddress("127.0.0.1"),
-      [&](const IPAddress& ip) { bindIP = ip; });
+      "127.0.0.1",
+      [&](const std::string& ip) { bindIP = ip; });
 
   std::error_code ec = flags.tryParse({});
   ASSERT_ERROR_CODE_SUCCESS(ec);
-  ASSERT_EQ(IPAddress("127.0.0.1"), bindIP);
+  ASSERT_EQ("127.0.0.1", bindIP);
 }
 
 TEST(Flags, callbacks_on_repeated_args) {
-  std::vector<IPAddress> hosts;
+  std::vector<std::string> hosts;
   Flags flags;
-  flags.defineIPAddress(
+  flags.defineString(
       "host", 't', "<IP>", "Host address to talk to.", std::nullopt,
-      [&](const IPAddress& host) { hosts.emplace_back(host); });
+      [&](const std::string& host) { hosts.emplace_back(host); });
 
   std::error_code ec = flags.tryParse({"--host=127.0.0.1", "--host=192.168.0.1", "-t10.10.20.40"});
   ASSERT_ERROR_CODE_SUCCESS(ec);
 
   ASSERT_EQ(3, hosts.size());
-  ASSERT_EQ(IPAddress("127.0.0.1"), hosts[0]);
-  ASSERT_EQ(IPAddress("192.168.0.1"), hosts[1]);
-  ASSERT_EQ(IPAddress("10.10.20.40"), hosts[2]);
+  ASSERT_EQ("127.0.0.1", hosts[0]);
+  ASSERT_EQ("192.168.0.1", hosts[1]);
+  ASSERT_EQ("10.10.20.40", hosts[2]);
 }
 
 TEST(Flags, argc_argv_to_vector) {

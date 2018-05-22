@@ -6,8 +6,6 @@
 // the License at: http://opensource.org/licenses/MIT
 #pragma once
 
-#include <xzero/net/IPAddress.h>
-
 #include <optional>
 #include <functional>
 #include <system_error>
@@ -25,7 +23,6 @@ class Flags {
     String,
     Number,
     Float,
-    IP,
     Bool,
   };
 
@@ -63,7 +60,6 @@ class Flags {
 
   Flags();
 
-  IPAddress getIPAddress(const std::string& flag) const;
   std::string getString(const std::string& flag) const;
   std::string asString(const std::string& flag) const;
   long int getNumber(const std::string& flag) const;
@@ -101,13 +97,6 @@ class Flags {
                      const std::string& helpText,
                      std::optional<float> defaultValue = std::nullopt,
                      std::function<void(float)> callback = nullptr);
-
-  Flags& defineIPAddress(const std::string& longOpt,
-                         char shortOpt,
-                         const std::string& valuePlaceholder,
-                         const std::string& helpText,
-                         std::optional<IPAddress> defaultValue = std::nullopt,
-                         std::function<void(const IPAddress&)> callback = nullptr);
 
   Flags& defineBool(const std::string& longOpt,
                     char shortOpt,
