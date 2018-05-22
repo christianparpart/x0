@@ -101,9 +101,10 @@ int main(int argc, const char* argv[]) {
        .defineBool("dump-tc", 0, "Dumps configuration opcode stream and exits.")
        ;
 
-  std::error_code ec = flags.parse(argc, argv);
-  if (ec) {
-    fprintf(stderr, "Failed to parse flags. %s\n", ec.message().c_str());
+  try {
+    flags.parse(argc, argv);
+  } catch (const std::exception& ex) {
+    fprintf(stderr, "Filed to parse flags. %s\n", ex.what());
     return EXIT_FAILURE;
   }
 

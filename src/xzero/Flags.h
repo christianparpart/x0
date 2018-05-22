@@ -38,6 +38,26 @@ class Flags {
     UnnamedParameter
   };
 
+  enum class ErrorCode {
+    TypeMismatch,
+    UnknownOption,
+    MissingOption,
+    MissingOptionValue,
+    NotFound,
+  };
+  
+  class Error : public std::runtime_error {
+   public:
+    Error(ErrorCode code, std::string arg);
+
+    ErrorCode code() const noexcept { return code_; }
+    const std::string& arg() const noexcept { return arg_; }
+
+   private:
+    ErrorCode code_;
+    std::string arg_;
+  };
+
   struct FlagDef;
   class Flag;
 
@@ -103,16 +123,12 @@ class Flags {
   const FlagDef* findDef(const std::string& longOption) const;
   const FlagDef* findDef(char shortOption) const;
 
-  [[nodiscard]] std::error_code parse(int argc, const char* argv[]);
-  [[nodiscard]] std::error_code parse(const std::vector<std::string>& args);
+  void parse(int argc, const char* argv[]);
+  void parse(const std::vector<std::string>& args);
 
-  enum class Error {
-    TypeMismatch,
-    UnknownOption,
-    MissingOption,
-    MissingOptionValue,
-    NotFound,
-  };
+  // Attempts to parse given arguments and returns an error code in case of parsing errors instead
+  // of throwing.
+  std::error_code tryParse(const std::vector<std::string>& args);
 
  private:
   Flags& define(const std::string& longOpt,
@@ -180,7 +196,7 @@ class FlagsErrorCategory : public std::error_category {
   std::string message(int ec) const override;
 };
 
-std::error_code make_error_code(Flags::Error errc);
+std::error_code make_error_code(Flags::ErrorCode errc);
 
 // maybe via CLI / FlagBuilder
 std::string inspect(const Flags& flags);
@@ -188,5 +204,5 @@ std::string inspect(const Flags& flags);
 }  // namespace xzero
 
 namespace std {
-  template<> struct is_error_code_enum<xzero::Flags::Error> : public std::true_type {};
+  template<> struct is_error_code_enum<xzero::Flags::ErrorCode> : public std::true_type {};
 } // namespace std

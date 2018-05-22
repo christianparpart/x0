@@ -155,15 +155,16 @@ int UnitTest::main(int argc, const char* argv[]) {
        .defineNumber("repeat", 'r', "COUNT", "Repeat tests given number of times.", 1)
        ;
 
-  std::error_code ec = flags.parse(argc, argv);
-  if (ec) {
-    fprintf(stderr, "Failed to parse flags. %s\n", ec.message().c_str());
-    return 1;
+  try {
+    flags.parse(argc, argv);
+  } catch (const std::exception& ex) {
+    fprintf(stderr, "Failed to parse flags. %s\n", ex.what());
+    return EXIT_FAILURE;
   }
 
   if (flags.getBool("help")) {
     printf("%s\n", flags.helpText().c_str());
-    return 0;
+    return EXIT_SUCCESS;
   }
 
   LogLevel logLevel = Logger::get()->getMinimumLogLevel();
@@ -200,7 +201,7 @@ int UnitTest::main(int argc, const char* argv[]) {
 
   if (flags.getBool("list")) {
     printTestList();
-    return 0;
+    return EXIT_SUCCESS;
   }
 
   run();

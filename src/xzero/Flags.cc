@@ -7,8 +7,6 @@
 
 #include <xzero/Flags.h>
 #include <xzero/net/IPAddress.h>
-#include <xzero/RuntimeError.h>
-#include <xzero/logging.h>
 #include <sstream>
 #include <iostream>
 #include <iomanip>
@@ -16,6 +14,15 @@
 extern char** environ;
 
 namespace xzero {
+
+// {{{ Flags::Error
+Flags::Error::Error(ErrorCode code, std::string arg)
+    : std::runtime_error{fmt::format("{}: {}", 
+          FlagsErrorCategory::get().message(static_cast<int>(code)), arg)},
+      code_{code},
+      arg_{std::move(arg)} {
+}
+// }}}
 
 // {{{ Flag
 Flags::Flag::Flag(
@@ -57,10 +64,10 @@ bool Flags::isSet(const std::string& flag) const {
 IPAddress Flags::getIPAddress(const std::string& flag) const {
   auto i = set_.find(flag);
   if (i == set_.end())
-    throw "RAISE_STATUS(CliFlagNotFoundError)";
+    throw Error{ErrorCode::NotFound, flag};
 
   if (i->second.first != FlagType::IP)
-    throw "RAISE_STATUS(CliTypeMismatchError)";
+    throw Error{ErrorCode::TypeMismatch, flag};
 
   return IPAddress(i->second.second);
 }
@@ -68,31 +75,29 @@ IPAddress Flags::getIPAddress(const std::string& flag) const {
 std::string Flags::asString(const std::string& flag) const {
   auto i = set_.find(flag);
   if (i == set_.end())
-    throw "RAISE_STATUS(CliFlagNotFoundError)";
+    throw Error{ErrorCode::NotFound, flag};
 
   return i->second.second;
 }
 
 std::string Flags::getString(const std::string& flag) const {
   auto i = set_.find(flag);
-  if (i == set_.end()) {
-    throw "RAISE_STATUS(CliFlagNotFoundError)";
-  }
+  if (i == set_.end())
+    throw Error{ErrorCode::NotFound, flag};
 
   if (i->second.first != FlagType::String)
-    throw "RAISE_STATUS(CliTypeMismatchError)";
+    throw Error{ErrorCode::TypeMismatch, flag};
 
   return i->second.second;
 }
 
 long int Flags::getNumber(const std::string& flag) const {
   auto i = set_.find(flag);
-  if (i == set_.end()) {
-    throw "RAISE_STATUS(CliFlagNotFoundError)";
-  }
+  if (i == set_.end())
+    throw Error{ErrorCode::NotFound, flag};
 
   if (i->second.first != FlagType::Number)
-    throw "RAISE_STATUS(CliTypeMismatchError)";
+    throw Error{ErrorCode::TypeMismatch, flag};
 
   return std::stoi(i->second.second);
 }
@@ -100,10 +105,10 @@ long int Flags::getNumber(const std::string& flag) const {
 float Flags::getFloat(const std::string& flag) const {
   auto i = set_.find(flag);
   if (i == set_.end())
-    throw "RAISE_STATUS(CliFlagNotFoundError)";
+    throw Error{ErrorCode::NotFound, flag};
 
   if (i->second.first != FlagType::Float)
-    throw "RAISE_STATUS(CliTypeMismatchError)";
+    throw Error{ErrorCode::TypeMismatch, flag};
 
   return std::stof(i->second.second);
 }
@@ -293,15 +298,24 @@ const Flags::FlagDef* Flags::findDef(char shortOption) const {
 }
 
 // -----------------------------------------------------------------------------
-std::error_code Flags::parse(int argc, const char* argv[]) {
+void Flags::parse(int argc, const char* argv[]) {
   std::vector<std::string> args;
   for (int i = 1; i < argc; ++i)
     args.push_back(argv[i]);
 
-  return parse(args);
+  parse(args);
 }
 
-std::error_code Flags::parse(const std::vector<std::string>& args) {
+std::error_code Flags::tryParse(const std::vector<std::string>& args) {
+  try {
+    parse(args);
+  } catch (const Error& parseError) {
+    return parseError.code();
+  }
+  return std::error_code();
+}
+
+void Flags::parse(const std::vector<std::string>& args) {
   auto invokeCallback = [&](const FlagDef* fd, FlagStyle style, const std::string& value) {
     if (fd) {
       set(fd->longOption, value, style, fd->type);
@@ -329,33 +343,30 @@ std::error_code Flags::parse(const std::vector<std::string>& args) {
       if (parametersEnabled_) {
         pstate = ParsingState::Parameters;
       } else {
-        return Error::UnknownOption;
+        throw Error{ErrorCode::UnknownOption, arg};
       }
     } else if (arg.size() > 2 && arg[0] == '-' && arg[1] == '-') {
       // longopt
-      arg = arg.substr(2);
-      size_t eq = arg.find('=');
-      if (eq != arg.npos) { // --name=value
-        std::string name = arg.substr(0, eq);
-        std::string value = arg.substr(eq + 1);
+      std::string name = arg.substr(2);
+      size_t eq = name.find('=');
+      if (eq != name.npos) { // --name=value
+        std::string value = name.substr(eq + 1);
+        name = name.substr(0, eq);
         const FlagDef* fd = findDef(name);
         if (fd == nullptr) {
-          return Error::UnknownOption;
+          throw Error{ErrorCode::UnknownOption, arg};
         } else {
           invokeCallback(fd, FlagStyle::LongWithValue, value);
         }
       } else { // --name [VALUE]
-        const FlagDef* fd = findDef(arg);
+        const FlagDef* fd = findDef(name);
         if (fd == nullptr) {
-          return Error::UnknownOption;
+          throw Error{ErrorCode::UnknownOption, arg};
         } else if (fd->type == FlagType::Bool) { // --name
           invokeCallback(fd, FlagStyle::LongSwitch, "true");
         } else { // --name VALUE
-          std::string name = arg;
-
           if (i >= args.size())
-            // "--" + name
-            return Error::MissingOption;
+            throw Error{ErrorCode::MissingOption, arg};
 
           std::string value = args[i];
           i++;
@@ -369,7 +380,7 @@ std::error_code Flags::parse(const std::vector<std::string>& args) {
       while (!arg.empty()) {
         const FlagDef* fd = findDef(arg[0]);
         if (fd == nullptr) { // option not found
-          return Error::UnknownOption; //"-" + arg.substr(0, 1));
+          throw Error{ErrorCode::UnknownOption, "-" + arg.substr(0, 1)};
         } else if (fd->type == FlagType::Bool) {
           invokeCallback(fd, FlagStyle::ShortSwitch, "true");
           arg = arg.substr(1);
@@ -382,8 +393,7 @@ std::error_code Flags::parse(const std::vector<std::string>& args) {
 
           if (i >= args.size()) {
             char option[3] = { '-', fd->shortOption, '\0' };
-            logDebug("flags: Missing option value for {}", option);
-            return Error::MissingOptionValue;
+            throw Error{ErrorCode::MissingOptionValue, option};
           }
 
           arg.clear();
@@ -392,8 +402,7 @@ std::error_code Flags::parse(const std::vector<std::string>& args) {
 
           if (!value.empty() && value[0] == '-') {
             char option[3] = { '-', fd->shortOption, '\0' };
-            logDebug("flags: Missing option value for {}", option);
-            return Error::MissingOptionValue;
+            throw Error{ErrorCode::MissingOptionValue, option};
           }
 
           invokeCallback(fd, FlagStyle::ShortSwitch, value);
@@ -403,8 +412,7 @@ std::error_code Flags::parse(const std::vector<std::string>& args) {
       params.push_back(arg);
     } else {
       // oops
-      logDebug("flags: Unknown option {}", arg);
-      return Error::UnknownOption;
+      throw Error{ErrorCode::UnknownOption, arg};
     }
   }
 
@@ -422,8 +430,6 @@ std::error_code Flags::parse(const std::vector<std::string>& args) {
       }
     }
   }
-
-  return std::error_code();
 }
 
 // -----------------------------------------------------------------------------
@@ -475,7 +481,7 @@ static std::string wordWrap(
   return sstr.str();
 }
 
-std::error_code make_error_code(Flags::Error errc) {
+std::error_code make_error_code(Flags::ErrorCode errc) {
   return std::error_code(static_cast<int>(errc), FlagsErrorCategory::get());
 }
 
@@ -538,19 +544,19 @@ const char* FlagsErrorCategory::name() const noexcept {
 }
 
 std::string FlagsErrorCategory::message(int ec) const {
-  switch (static_cast<Flags::Error>(ec)) {
-  case Flags::Error::TypeMismatch:
+  switch (static_cast<Flags::ErrorCode>(ec)) {
+  case Flags::ErrorCode::TypeMismatch:
     return "Type Mismatch";
-  case Flags::Error::UnknownOption:
+  case Flags::ErrorCode::UnknownOption:
     return "Unknown Option";
-  case Flags::Error::MissingOption:
+  case Flags::ErrorCode::MissingOption:
     return "Missing Option";
-  case Flags::Error::MissingOptionValue:
+  case Flags::ErrorCode::MissingOptionValue:
     return "Missing Option Value";
-  case Flags::Error::NotFound:
+  case Flags::ErrorCode::NotFound:
     return "Flag Not Found";
   default:
-    logFatal("Invalid Flags::Error code.");
+    return "<UNKNOWN>";
   }
 }
 // }}}

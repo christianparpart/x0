@@ -29,8 +29,10 @@ int main(int argc, const char* argv[]) {
   flags.defineNumber("port", 'p', "PORT", "HTTP port to listen on", 8080);
   flags.defineString("log-level", 'L', "ENUM", "Defines the minimum log level.", "info");
 
-  if (std::error_code ec = flags.parse(argc, argv); ec) {
-    logError("Failed to parse flags. $0", ec.message());
+  try {
+    flags.parse(argc, argv);
+  } catch (const std::exception& ex) {
+    logError("Failed to parse flags. {}", ex.what());
     return EXIT_FAILURE;
   }
 
