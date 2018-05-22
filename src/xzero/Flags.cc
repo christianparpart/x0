@@ -122,7 +122,7 @@ std::string Flags::to_s() const {
   std::stringstream sstr;
 
   int i = 0;
-  for (const auto& flag: set_) {
+  for (const std::pair<std::string, FlagValue>& flag: set_) {
     if (i)
       sstr << ' ';
 
@@ -145,10 +145,6 @@ std::string Flags::to_s() const {
   }
 
   return sstr.str();
-}
-
-std::string inspect(const Flags& flags) {
-  return flags.to_s();
 }
 
 Flags& Flags::define(

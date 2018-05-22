@@ -6,6 +6,7 @@
 // the License at: http://opensource.org/licenses/MIT
 #pragma once
 
+#include <fmt/format.h>
 #include <optional>
 #include <functional>
 #include <system_error>
@@ -187,11 +188,21 @@ class FlagsErrorCategory : public std::error_category {
 
 std::error_code make_error_code(Flags::ErrorCode errc);
 
-// maybe via CLI / FlagBuilder
-std::string inspect(const Flags& flags);
-
 }  // namespace xzero
 
 namespace std {
   template<> struct is_error_code_enum<xzero::Flags::ErrorCode> : public std::true_type {};
 } // namespace std
+
+namespace fmt {
+  template<>
+  struct formatter<std::optional<xzero::Flags>> {
+    template <typename ParseContext>
+    constexpr auto parse(ParseContext &ctx) { return ctx.begin(); }
+
+    template <typename FormatContext>
+    constexpr auto format(const xzero::Flags& v, FormatContext &ctx) {
+      return format_to(ctx.begin(), v.to_s());
+    }
+  };
+}
