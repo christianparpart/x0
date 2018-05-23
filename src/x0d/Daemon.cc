@@ -190,6 +190,7 @@ std::unique_ptr<flow::Program> Daemon::loadConfigStream(
     bool printAST, bool printIR, bool printTC) {
   flow::diagnostics::Report report;
   flow::lang::Parser parser(
+      {}, // features
       &report,
       this,
       std::bind(&Daemon::import, this, std::placeholders::_1,
@@ -304,7 +305,8 @@ void Daemon::patchProgramIR(flow::IRProgram* programIR,
 void Daemon::applyConfiguration(std::unique_ptr<flow::Program>&& program) {
   // run setup handler
   flow::Runner{program->findHandler("setup"),
-               nullptr,
+               nullptr, // userdata
+               nullptr, // globals
                [this, &program](flow::Instruction instr, size_t ip, size_t sp) {
                  logDebug("{}", flow::disassemble(instr, ip, sp, &program->constants()));
                }}.run();

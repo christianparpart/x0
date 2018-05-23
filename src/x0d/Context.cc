@@ -71,7 +71,7 @@ void Context::operator()() {
 }
 
 void Context::handleRequest() {
-  runner_ = std::make_unique<flow::Runner>(requestHandler_, this,
+  runner_ = std::make_unique<flow::Runner>(requestHandler_, this, nullptr,
       [this](flow::Instruction instr, size_t ip, size_t sp) {
     logDebug("{}", flow::disassemble(instr, ip, sp, &runner_->program()->constants()));
   });
