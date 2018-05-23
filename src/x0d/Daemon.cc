@@ -194,8 +194,8 @@ std::unique_ptr<flow::Program> Daemon::loadConfigStream(
       &report,
       this,
       std::bind(&Daemon::import, this, std::placeholders::_1,
-                                            std::placeholders::_2,
-                                            std::placeholders::_3));
+                                       std::placeholders::_2,
+                                       std::placeholders::_3));
 
   parser.openStream(std::move(is), fakeFilename);
   std::unique_ptr<flow::lang::UnitSym> unit = parser.parse();
