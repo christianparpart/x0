@@ -196,7 +196,7 @@ namespace std {
 
 namespace fmt {
   template<>
-  struct formatter<std::optional<xzero::Flags>> {
+  struct formatter<xzero::Flags> {
     template <typename ParseContext>
     constexpr auto parse(ParseContext &ctx) { return ctx.begin(); }
 
