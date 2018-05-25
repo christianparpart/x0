@@ -188,21 +188,20 @@ std::unique_ptr<flow::Program> Daemon::loadConfigStream(
     std::unique_ptr<std::istream>&& is,
     const std::string& fakeFilename,
     bool printAST, bool printIR, bool printTC) {
-  flow::diagnostics::Report report;
+  flow::diagnostics::ConsoleReport report;
   flow::lang::Parser parser(
+      {}, // features
       &report,
       this,
       std::bind(&Daemon::import, this, std::placeholders::_1,
-                                            std::placeholders::_2,
-                                            std::placeholders::_3));
+                                       std::placeholders::_2,
+                                       std::placeholders::_3));
 
   parser.openStream(std::move(is), fakeFilename);
   std::unique_ptr<flow::lang::UnitSym> unit = parser.parse();
 
-  report.log();
-  if (report.errorCount() > 0)
+  if (report.containsFailures())
     throw ConfigurationError{"Parsing configuration failed."};
-  report.clear();
 
   validateConfig(unit.get());
 
@@ -223,13 +222,16 @@ std::unique_ptr<flow::Program> Daemon::loadConfigStream(
     flow::PassManager pm;
 
     // mandatory passes
-    pm.registerPass(std::make_unique<flow::UnusedBlockPass>());
+    pm.registerPass("eliminate-empty-blocks", &flow::transform::emptyBlockElimination);
 
     // optional passes
     if (optimizationLevel_ >= 1) {
-      pm.registerPass(std::make_unique<flow::MergeBlockPass>());
-      pm.registerPass(std::make_unique<flow::EmptyBlockElimination>());
-      pm.registerPass(std::make_unique<flow::InstructionElimination>());
+      pm.registerPass("eliminate-linear-br", &flow::transform::eliminateLinearBr);
+      pm.registerPass("eliminate-unused-blocks", &flow::transform::eliminateUnusedBlocks);
+      pm.registerPass("eliminate-unused-instr", &flow::transform::eliminateUnusedInstr);
+      pm.registerPass("fold-constant-condbr", &flow::transform::foldConstantCondBr);
+      pm.registerPass("rewrite-br-to-exit", &flow::transform::rewriteBrToExit);
+      pm.registerPass("rewrite-cond-br-to-same-branches", &flow::transform::rewriteCondBrToSameBranches);
     }
 
     pm.run(programIR.get());
@@ -244,8 +246,7 @@ std::unique_ptr<flow::Program> Daemon::loadConfigStream(
       flow::TargetCodeGenerator().generate(programIR.get());
 
   program->link(this, &report);
-  report.log();
-  if (report.errorCount() > 0)
+  if (report.containsFailures() > 0)
     throw ConfigurationError{"Linking configuration failed."};
 
   if (printTC)
@@ -304,7 +305,8 @@ void Daemon::patchProgramIR(flow::IRProgram* programIR,
 void Daemon::applyConfiguration(std::unique_ptr<flow::Program>&& program) {
   // run setup handler
   flow::Runner{program->findHandler("setup"),
-               nullptr,
+               nullptr, // context
+               nullptr, // globals
                [this, &program](flow::Instruction instr, size_t ip, size_t sp) {
                  logDebug("{}", flow::disassemble(instr, ip, sp, &program->constants()));
                }}.run();
