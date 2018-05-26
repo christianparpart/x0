@@ -75,6 +75,7 @@ void Context::handleRequest() {
       requestHandler_,
       this, // context
       nullptr, // globals
+      flow::NoQuota,
       [this](flow::Instruction instr, size_t ip, size_t sp) {
     logDebug("{}", flow::disassemble(instr, ip, sp, &runner_->program()->constants()));
   });

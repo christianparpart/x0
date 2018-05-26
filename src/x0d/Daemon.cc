@@ -307,6 +307,7 @@ void Daemon::applyConfiguration(std::unique_ptr<flow::Program>&& program) {
   flow::Runner{program->findHandler("setup"),
                nullptr, // context
                nullptr, // globals
+               flow::NoQuota,
                [this, &program](flow::Instruction instr, size_t ip, size_t sp) {
                  logDebug("{}", flow::disassemble(instr, ip, sp, &program->constants()));
                }}.run();
