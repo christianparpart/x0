@@ -14,8 +14,7 @@
 #include <memory>
 #include <vector>
 
-namespace xzero {
-namespace testing {
+namespace xzero::testing {
 
 #define TEST_ENV_SETUP(Name)                                                  \
   class _CALLBACK_NAME(Name) : public ::xzero::testing::Callback {            \
@@ -416,5 +415,4 @@ inline void Test::logf(const char* fmt, Args... args) {
   UnitTest::instance()->logf(fmt, args...);
 }
 
-} // namespace testing
-} // namespace xzero
+} // namespace xzero::testing

@@ -23,8 +23,7 @@
 #include <fnmatch.h>
 #endif
 
-namespace xzero {
-namespace testing {
+namespace xzero::testing {
 
 int main(int argc, const char* argv[]) {
   return UnitTest::instance()->main(argc, argv);
@@ -545,5 +544,4 @@ void UnitTest::log(const std::string& message) {
       message);
 }
 
-} // namespace testing
-} // namespace xzero
+} // namespace xzero::testing
