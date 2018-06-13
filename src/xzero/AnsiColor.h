@@ -4,11 +4,8 @@
 // Licensed under the MIT License (the "License"); you may not use this
 // file except in compliance with the License. You may obtain a copy of
 // the License at: http://opensource.org/licenses/MIT
+#pragma once
 
-#ifndef sw_x0_AnsiColor_hpp
-#define sw_x0_AnsiColor_hpp (1)
-
-#include <xzero/Api.h>
 #include <string>
 
 namespace xzero {
@@ -56,5 +53,3 @@ inline AnsiColor::Type operator|(AnsiColor::Type a, AnsiColor::Type b) {
 }
 
 }  // namespace xzero
-
-#endif
