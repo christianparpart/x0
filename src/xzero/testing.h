@@ -8,7 +8,6 @@
 #pragma once
 
 #include <xzero/defines.h>
-#include <xzero/StringUtil.h>
 #include <fmt/format.h>
 
 #include <string>

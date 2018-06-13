@@ -6,15 +6,16 @@
 // the License at: http://opensource.org/licenses/MIT
 
 #include <xzero/testing.h>
-#include <xzero/Flags.h>
+
 #include <xzero/AnsiColor.h>
-#include <xzero/StringUtil.h>
+#include <xzero/Flags.h>
 #include <xzero/logging.h>
-#include <fmt/format.h>
+
 #include <algorithm>
-#include <random>
 #include <chrono>
 #include <cstdlib>
+#include <fmt/format.h>
+#include <random>
 
 #if defined(XZERO_OS_WINDOWS)
 #include <Shlwapi.h>
@@ -27,6 +28,14 @@ namespace testing {
 
 int main(int argc, const char* argv[]) {
   return UnitTest::instance()->main(argc, argv);
+}
+
+bool beginsWith(const std::string& str, const std::string_view& prefix) {
+  if (str.length() < prefix.length()) {
+    return false;
+  }
+
+  return std::string_view(&str[0], prefix.length()) == prefix;
 }
 
 // ############################################################################
@@ -520,8 +529,8 @@ TestInfo* UnitTest::addTest(const char* testCaseName,
   testCases_.emplace_back(std::make_unique<TestInfo>(
           testCaseName,
           testName,
-          !StringUtil::beginsWith(testCaseName, "DISABLED_")
-              && !StringUtil::beginsWith(testName, "DISABLED_"),
+          !beginsWith(testCaseName, "DISABLED_")
+              && !beginsWith(testName, "DISABLED_"),
           std::move(testFactory)));
 
   activeTests_.emplace_back(activeTests_.size());
