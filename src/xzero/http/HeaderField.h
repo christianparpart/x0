@@ -114,7 +114,7 @@ namespace fmt {
 
     template <typename FormatContext>
     constexpr auto format(const HeaderField& v, FormatContext &ctx) {
-      return format_to(ctx.begin(), "{}: {}", v.name(), v.value());
+      return format_to(ctx.out(), "{}: {}", v.name(), v.value());
     }
   };
 }

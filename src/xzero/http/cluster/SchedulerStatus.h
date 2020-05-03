@@ -39,13 +39,13 @@ namespace fmt {
     constexpr auto format(const SchedulerStatus& v, FormatContext &ctx) {
       switch (v) {
         case SchedulerStatus::Unavailable:
-          return format_to(ctx.begin(), "Unavailable");
+          return format_to(ctx.out(), "Unavailable");
         case SchedulerStatus::Success:
-          return format_to(ctx.begin(), "Success");
+          return format_to(ctx.out(), "Success");
         case SchedulerStatus::Overloaded:
-          return format_to(ctx.begin(), "Overloaded");
+          return format_to(ctx.out(), "Overloaded");
         default:
-          return format_to(ctx.begin(), "({})", (int) v);
+          return format_to(ctx.out(), "({})", (int) v);
       }
     }
   };

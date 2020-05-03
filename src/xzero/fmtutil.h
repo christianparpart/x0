@@ -18,7 +18,7 @@ namespace fmt {
 
     template <typename FormatContext>
     constexpr auto format(const std::errc& v, FormatContext &ctx) {
-      return format_to(ctx.begin(), strerror((int)v));
+      return format_to(ctx.out(), strerror((int)v));
     }
   };
 
@@ -29,7 +29,7 @@ namespace fmt {
 
     template <typename FormatContext>
     constexpr auto format(const std::error_code& v, FormatContext &ctx) {
-      return format_to(ctx.begin(), "{}: {}", v.category().name(), v.message());
+      return format_to(ctx.out(), "{}: {}", v.category().name(), v.message());
     }
   };
 }

@@ -300,13 +300,13 @@ namespace fmt {
     constexpr auto format(const ServerState& v, FormatContext &ctx) {
       switch (v) {
         case ServerState::Follower:
-          return format_to(ctx.begin(), "Follower");
+          return format_to(ctx.out(), "Follower");
         case ServerState::Candidate:
-          return format_to(ctx.begin(), "Candidate");
+          return format_to(ctx.out(), "Candidate");
         case ServerState::Leader:
-          return format_to(ctx.begin(), "Leader");
+          return format_to(ctx.out(), "Leader");
         default:
-          return format_to(ctx.begin(), "({})", (int) v);
+          return format_to(ctx.out(), "({})", (int) v);
       }
     }
   };

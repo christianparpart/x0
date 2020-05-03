@@ -149,13 +149,13 @@ namespace fmt {
     constexpr auto format(const State& v, FormatContext &ctx) {
       switch (v) {
         case State::Undefined:
-          return format_to(ctx.begin(), "Undefined");
+          return format_to(ctx.out(), "Undefined");
         case State::Offline:
-          return format_to(ctx.begin(), "Offline");
+          return format_to(ctx.out(), "Offline");
         case State::Online:
-          return format_to(ctx.begin(), "Online");
+          return format_to(ctx.out(), "Online");
         default:
-          return format_to(ctx.begin(), "({})", (int) v);
+          return format_to(ctx.out(), "({})", (int) v);
       }
     }
   };

@@ -37,15 +37,15 @@ namespace fmt {
     template <typename FormatContext>
     constexpr auto format(const MessageType& t, FormatContext &ctx) {
       switch (t) {
-        case MessageType::VoteRequest: return format_to(ctx.begin(), "VoteRequest");
-        case MessageType::VoteResponse: return format_to(ctx.begin(), "VoteResponse");
-        case MessageType::AppendEntriesRequest: return format_to(ctx.begin(), "AppendEntriesRequest");
-        case MessageType::AppendEntriesResponse: return format_to(ctx.begin(), "AppendEntriesResponse");
-        case MessageType::InstallSnapshotRequest: return format_to(ctx.begin(), "InstallSnapshotRequest");
-        case MessageType::InstallSnapshotResponse: return format_to(ctx.begin(), "InstallSnapshotResponse");
-        case MessageType::HelloRequest: return format_to(ctx.begin(), "HelloRequest");
-        case MessageType::HelloResponse: return format_to(ctx.begin(), "HelloResponse");
-        default: return format_to(ctx.begin(), "({})", (int) t);
+        case MessageType::VoteRequest: return format_to(ctx.out(), "VoteRequest");
+        case MessageType::VoteResponse: return format_to(ctx.out(), "VoteResponse");
+        case MessageType::AppendEntriesRequest: return format_to(ctx.out(), "AppendEntriesRequest");
+        case MessageType::AppendEntriesResponse: return format_to(ctx.out(), "AppendEntriesResponse");
+        case MessageType::InstallSnapshotRequest: return format_to(ctx.out(), "InstallSnapshotRequest");
+        case MessageType::InstallSnapshotResponse: return format_to(ctx.out(), "InstallSnapshotResponse");
+        case MessageType::HelloRequest: return format_to(ctx.out(), "HelloRequest");
+        case MessageType::HelloResponse: return format_to(ctx.out(), "HelloResponse");
+        default: return format_to(ctx.out(), "({})", (int) t);
       }
     }
   };

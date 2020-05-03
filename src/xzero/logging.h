@@ -180,16 +180,16 @@ namespace fmt {
       using xzero::LogLevel;
 
       switch (v) {
-        case LogLevel::None: return format_to(ctx.begin(), "none");
-        case LogLevel::Fatal: return format_to(ctx.begin(), "fatal");
-        case LogLevel::Error: return format_to(ctx.begin(), "error");
-        case LogLevel::Warning: return format_to(ctx.begin(), "warning");
-        case LogLevel::Notice: return format_to(ctx.begin(), "notice");
-        case LogLevel::Info: return format_to(ctx.begin(), "info");
-        case LogLevel::Debug: return format_to(ctx.begin(), "debug");
-        case LogLevel::Trace: return format_to(ctx.begin(), "trace");
+        case LogLevel::None: return format_to(ctx.out(), "none");
+        case LogLevel::Fatal: return format_to(ctx.out(), "fatal");
+        case LogLevel::Error: return format_to(ctx.out(), "error");
+        case LogLevel::Warning: return format_to(ctx.out(), "warning");
+        case LogLevel::Notice: return format_to(ctx.out(), "notice");
+        case LogLevel::Info: return format_to(ctx.out(), "info");
+        case LogLevel::Debug: return format_to(ctx.out(), "debug");
+        case LogLevel::Trace: return format_to(ctx.out(), "trace");
         default:
-          return format_to(ctx.begin(), "({})", (int) v);
+          return format_to(ctx.out(), "({})", (int) v);
       }
     }
   };
