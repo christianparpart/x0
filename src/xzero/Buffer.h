@@ -1636,42 +1636,12 @@ struct hash<xzero::Buffer> {
 namespace fmt {
   template<>
   struct formatter<xzero::BufferRef> {
-    memory_buffer format_;
+    template <typename ParseContext>
+    constexpr auto parse(ParseContext& ctx) { return ctx.begin(); }
 
-    parse_context::iterator parse(parse_context& ctx) {
-      using internal::pointer_from;
-
-      auto it = internal::null_terminating_iterator<char>(ctx);
-      if (*it == ':')
-        ++it;
-
-      auto end = it;
-      while (*end && *end != '}')
-        ++end;
-
-      format_.reserve(end - it + 1);
-      format_.append(pointer_from(it), pointer_from(end));
-      format_.push_back('\0');
-
-      return pointer_from(end);
-    }
-
-    format_context::iterator format(const xzero::BufferRef& arg, format_context& ctx) {
-      internal::buffer& buf = internal::get_container(ctx.begin());
-      const std::size_t start = buf.size();
-      const std::size_t count = arg.size();
-
-      if (buf.size() + count < buf.capacity()) {
-        //constexpr std::size_t MIN_GROWTH = 10;
-        buf.reserve(buf.size() + count);
-      }
-      buf.append(&arg[0], &arg[count]);
-
-      if (count != 0) {
-        buf.resize(start + count);
-      }
-
-      return ctx.begin();
+    template <typename FormatContext>
+    constexpr auto format(const xzero::BufferRef& arg, FormatContext& ctx) {
+      return format_to(ctx.out(), "{}", std::string_view(arg.data(), arg.size()));
     }
   };
 }

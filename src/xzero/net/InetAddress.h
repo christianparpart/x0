@@ -76,13 +76,13 @@ namespace fmt {
     using InetAddress = xzero::InetAddress;
 
     template <typename ParseContext>
-    constexpr auto parse(ParseContext &ctx) -> decltype(ctx.begin()) {
+    constexpr auto parse(ParseContext &ctx) {
       return ctx.begin();
     }
 
     template <typename FormatContext>
-    constexpr auto format(const InetAddress& v, FormatContext& ctx) -> decltype(ctx.begin()) {
-      return format_to(ctx.begin(), "{}:{}", v.ip(), v.port());
+    constexpr auto format(const InetAddress& v, FormatContext& ctx) {
+      return format_to(ctx.out(), "{}:{}", v.ip(), v.port());
     }
   };
 }
@@ -98,9 +98,9 @@ namespace fmt {
     template <typename FormatContext>
     constexpr auto format(const std::optional<InetAddress>& v, FormatContext &ctx) {
       if (v)
-        return format_to(ctx.begin(), "{}:{}", v->ip(), v->port());
+        return format_to(ctx.out(), "{}:{}", v->ip(), v->port());
       else
-        return format_to(ctx.begin(), "NONE");
+        return format_to(ctx.out(), "NONE");
     }
   };
 }

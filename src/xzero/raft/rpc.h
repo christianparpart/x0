@@ -140,13 +140,13 @@ namespace fmt {
     constexpr auto format(const xzero::raft::LogType& v, FormatContext &ctx) {
       switch (v) {
         case xzero::raft::LOG_COMMAND:
-          return format_to(ctx.begin(), "LOG_COMMAND");
+          return format_to(ctx.out(), "LOG_COMMAND");
         case xzero::raft::LOG_PEER_ADD:
-          return format_to(ctx.begin(), "LOG_PEER_ADD");
+          return format_to(ctx.out(), "LOG_PEER_ADD");
         case xzero::raft::LOG_PEER_REMOVE:
-          return format_to(ctx.begin(), "LOG_PEER_REMOVE");
+          return format_to(ctx.out(), "LOG_PEER_REMOVE");
         default: {
-          return format_to(ctx.begin(), "<{}>", (int) v);
+          return format_to(ctx.out(), "<{}>", (int) v);
         }
       }
     }
@@ -160,12 +160,12 @@ namespace fmt {
     template <typename FormatContext>
     constexpr auto format(const xzero::raft::LogEntry& v, FormatContext &ctx) {
       if (v.type() == xzero::raft::LOG_COMMAND) {
-        return format_to(ctx.begin(),
+        return format_to(ctx.out(),
             "LogEntry<term:{}, command:{}>",
             v.term(),
             xzero::StringUtil::hexPrint(v.command().data(), v.command().size()));
       } else {
-        return format_to(ctx.begin(),
+        return format_to(ctx.out(),
             "LogEntry<term:{}, type:{}>",
             v.term(),
             v.type());
@@ -180,7 +180,7 @@ namespace fmt {
 
     template <typename FormatContext>
     constexpr auto format(const xzero::raft::VoteResponse& v, FormatContext &ctx) {
-      return format_to(ctx.begin(), 
+      return format_to(ctx.out(),
           "VoteResponse<term:{}, voteGranted:{}>",
           v.term,
           v.voteGranted);
@@ -194,7 +194,7 @@ namespace fmt {
 
     template <typename FormatContext>
     constexpr auto format(const xzero::raft::AppendEntriesRequest& v, FormatContext &ctx) {
-      return format_to(ctx.begin(), 
+      return format_to(ctx.out(),
           "AppendEntriesRequest<term:{}, leaderId:{}, prevLogIndex:{}, prevLogTerm:{}, entries:{}, leaderCommit:{}>",
           v.term,
           v.leaderId,
@@ -212,7 +212,7 @@ namespace fmt {
 
     template <typename FormatContext>
     constexpr auto format(const xzero::raft::AppendEntriesResponse& v, FormatContext &ctx) {
-      return format_to(ctx.begin(), 
+      return format_to(ctx.out(),
           "AppendEntriesResponse<term:{}, lastLogIndex: {}, success:{}>",
           v.term,
           v.lastLogIndex,
@@ -227,7 +227,7 @@ namespace fmt {
 
     template <typename FormatContext>
     constexpr auto format(const xzero::raft::InstallSnapshotRequest& v, FormatContext &ctx) {
-      return format_to(ctx.begin(), 
+      return format_to(ctx.out(),
           "InstallSnapshotRequest<term:{}, leaderId:{}, lastIncludedIndex:{}, lastIncludedTerm:{}, offset:{}, dataSize:{}, done:{}>",
           v.term,
           v.leaderId,
@@ -246,7 +246,7 @@ namespace fmt {
 
     template <typename FormatContext>
     constexpr auto format(const xzero::raft::InstallSnapshotResponse& v, FormatContext &ctx) {
-      return format_to(ctx.begin(), "InstallSnapshotResponse<term:{}>", v.term);
+      return format_to(ctx.out(), "InstallSnapshotResponse<term:{}>", v.term);
     }
   };
 

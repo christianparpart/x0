@@ -290,7 +290,7 @@ namespace fmt {
 
     template <typename FormatContext>
     constexpr auto format(const Duration& v, FormatContext &ctx) {
-      return format_to(ctx.begin(), xzero::inspect(v));
+      return format_to(ctx.out(), xzero::inspect(v));
     }
   };
 }

@@ -273,17 +273,17 @@ namespace fmt {
     constexpr auto format(const TokenShaperError& v, FormatContext &ctx) {
       switch (v) {
         case TokenShaperError::Success:
-          return format_to(ctx.begin(), "Success");
+          return format_to(ctx.out(), "Success");
         case TokenShaperError::RateLimitOverflow:
-          return format_to(ctx.begin(), "Rate Limit Overflow");
+          return format_to(ctx.out(), "Rate Limit Overflow");
         case TokenShaperError::CeilLimitOverflow:
-          return format_to(ctx.begin(), "Ceil Limit Overflow");
+          return format_to(ctx.out(), "Ceil Limit Overflow");
         case TokenShaperError::NameConflict:
-          return format_to(ctx.begin(), "Name Conflict");
+          return format_to(ctx.out(), "Name Conflict");
         case TokenShaperError::InvalidChildNode:
-          return format_to(ctx.begin(), "Invalid Child Node");
+          return format_to(ctx.out(), "Invalid Child Node");
         default:
-          return format_to(ctx.begin(), "({})", (int) v);
+          return format_to(ctx.out(), "({})", (int) v);
       }
     }
   };

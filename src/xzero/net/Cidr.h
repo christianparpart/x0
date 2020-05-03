@@ -110,7 +110,7 @@ namespace fmt {
 
     template <typename FormatContext>
     constexpr auto format(const xzero::Cidr& v, FormatContext &ctx) {
-      return format_to(ctx.begin(), v.str());
+      return format_to(ctx.out(), v.str());
     }
   };
 }

@@ -59,7 +59,7 @@ namespace fmt {
 
     template <typename FormatContext>
     constexpr auto format(const xzero::MonotonicTime& v, FormatContext &ctx) {
-      return format_to(ctx.begin(), "{}ns", v.nanoseconds());
+      return format_to(ctx.out(), "{}ns", v.nanoseconds());
     }
   };
 }

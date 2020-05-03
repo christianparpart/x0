@@ -230,7 +230,7 @@ namespace fmt {
 
     template <typename FormatContext>
     constexpr auto format(const IPAddress& v, FormatContext &ctx) {
-      return format_to(ctx.begin(), v.str());
+      return format_to(ctx.out(), v.str());
     }
   };
 }
@@ -246,9 +246,9 @@ namespace fmt {
     template <typename FormatContext>
     constexpr auto format(const std::optional<IPAddress>& v, FormatContext &ctx) {
       if (v)
-        return format_to(ctx.begin(), v->str());
+        return format_to(ctx.out(), v->str());
       else
-        return format_to(ctx.begin(), "NONE");
+        return format_to(ctx.out(), "NONE");
     }
   };
 }

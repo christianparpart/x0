@@ -41,17 +41,17 @@ namespace fmt {
     constexpr auto format(const HttpVersion& v, FormatContext &ctx) {
       switch (v) {
         case HttpVersion::VERSION_0_9:
-          return format_to(ctx.begin(), "0.9");
+          return format_to(ctx.out(), "0.9");
         case HttpVersion::VERSION_1_0:
-          return format_to(ctx.begin(), "1.0");
+          return format_to(ctx.out(), "1.0");
         case HttpVersion::VERSION_1_1:
-          return format_to(ctx.begin(), "1.1");
+          return format_to(ctx.out(), "1.1");
         case HttpVersion::VERSION_2_0:
-          return format_to(ctx.begin(), "2.0");
+          return format_to(ctx.out(), "2.0");
         case HttpVersion::UNKNOWN:
-          return format_to(ctx.begin(), "UNKNOWN");
+          return format_to(ctx.out(), "UNKNOWN");
         default:
-          return format_to(ctx.begin(), "({})", (int) v);
+          return format_to(ctx.out(), "({})", (int) v);
       }
     }
   };

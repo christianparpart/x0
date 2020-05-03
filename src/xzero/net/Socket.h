@@ -126,9 +126,9 @@ namespace fmt {
     template <typename FormatContext>
     constexpr auto format(const Socket& v, FormatContext &ctx) {
 #if defined(XZERO_OS_UNIX)
-      return format_to(ctx.begin(), "{}", v.native());
+      return format_to(ctx.out(), "{}", v.native());
 #else
-      return format_to(ctx.begin(), /* TODO */);
+      return format_to(ctx.out(), /* TODO */);
 #endif
     }
   };
