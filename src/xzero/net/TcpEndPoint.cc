@@ -115,11 +115,11 @@ bool TcpEndPoint::isOpen() const noexcept {
 
 void TcpEndPoint::close() {
   if (isOpen()) {
+    socket_.close();
+
     if (onEndPointClosed_) {
       onEndPointClosed_(this);
     }
-
-    socket_.close();
   }
 }
 

@@ -79,7 +79,8 @@ TcpConnector::TcpConnector(const std::string& name, Executor* executor,
       readTimeout_(readTimeout),
       writeTimeout_(writeTimeout),
       tcpFinTimeout_(tcpFinTimeout),
-      isStarted_(false) {
+      isStarted_(false),
+      inDestructor_(false) {
 #if defined(PLATFORM_WSL)
   if (tcpFinTimeout_ != Duration::Zero) {
     logWarning(
@@ -199,6 +200,8 @@ bool TcpConnector::isOpen() const noexcept {
 }
 
 TcpConnector::~TcpConnector() {
+  inDestructor_ = true;
+
   if (isStarted()) {
     stop();
   }
@@ -532,6 +535,9 @@ std::list<std::shared_ptr<TcpEndPoint>> TcpConnector::connectedEndPoints() {
 }
 
 void TcpConnector::onEndPointClosed(TcpEndPoint* endpoint) {
+  if (inDestructor_)
+    return;
+
   assert(endpoint != nullptr);
 
   // XXX: e.g. SSL doesn't have a connection in case the handshake failed
