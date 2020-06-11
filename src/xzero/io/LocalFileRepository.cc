@@ -24,8 +24,10 @@ LocalFileRepository::LocalFileRepository(MimeTypes& mt,
       etagConsiderINode_(etagInode) {
 }
 
-std::shared_ptr<File> LocalFileRepository::getFile(const std::string& path) {
-  return std::make_unique<LocalFile>(*this, path, mimetypes_.getMimeType(path));
+std::shared_ptr<File> LocalFileRepository::getFile(const std::string& requestPath) {
+    return std::make_unique<LocalFile>(*this,
+                                       FileUtil::joinPaths(basedir_, requestPath),
+                                       mimetypes_.getMimeType(requestPath));
 }
 
 void LocalFileRepository::listFiles(
