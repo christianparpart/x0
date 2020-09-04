@@ -118,11 +118,6 @@ inline void Result<T>::require() const {
 }
 
 template<typename T>
-inline Result<T> Success(const T& value) {
-  return Result<T>(value);
-}
-
-template<typename T>
 inline Result<T> Success(T&& value) {
-  return Result<T>(std::move(value));
+  return Result<T>(std::forward<T>(value));
 }

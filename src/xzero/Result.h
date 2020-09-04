@@ -87,12 +87,6 @@ class Result {
  * Generates Result<T> object that represents a successful item of value @p value.
  */
 template<typename T>
-Result<T> Success(const T& value);
-
-/**
- * Generates Result<T> object that represents a successful item of value @p value.
- */
-template<typename T>
 Result<T> Success(T&& value);
 
 #include <xzero/Result-inl.h>
