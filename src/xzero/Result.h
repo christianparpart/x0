@@ -6,6 +6,7 @@
 // the License at: http://opensource.org/licenses/MIT
 #pragma once
 
+#include <optional>
 #include <string>
 #include <system_error>
 #include <type_traits>
@@ -45,8 +46,7 @@ class Result {
   Result(const value_type& value);
   Result(value_type&& value);
   Result(const std::error_code& message);
-  Result(Result&& other);
-  ~Result();
+  Result(Result&& other) = default;
 
   template<typename ErrorEnum>
   Result(ErrorEnum e,
@@ -78,16 +78,9 @@ class Result {
   void require() const;
 
  private:
-  bool success_;
-  unsigned char storage_[sizeof(T)];
+  std::optional<T> value_;
   std::error_code error_;
 };
-
-/**
- * Generates Result<T> object that represents a successful item of value @p value.
- */
-template<typename T>
-Result<T> Success(const T& value);
 
 /**
  * Generates Result<T> object that represents a successful item of value @p value.

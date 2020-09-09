@@ -7,58 +7,33 @@
 
 template<typename T>
 inline Result<T>::Result(const value_type& value)
-  : success_(true),
-    error_() {
-  new (storage_) value_type(value);
-}
+  : value_(value) {}
 
 template<typename T>
 inline Result<T>::Result(value_type&& value)
-  : success_(true),
-    error_() {
-  new (storage_) value_type(std::move(value));
-}
+  : value_(std::move(value)) {}
 
 template<typename T>
 inline Result<T>::Result(const std::error_code& ec)
-  : success_(false),
-    error_(ec) {
+  : error_(ec) {
   if (!error_) {
     throw std::invalid_argument("Result<> received an error_code that does not contain an error.");
   }
 }
 
 template<typename T>
-Result<T>::Result(Result&& other)
-    : success_(other.success_),
-      error_(std::move(other.error_)) {
-  if (success_) {
-    new (storage_) value_type(std::move(*other.get()));
-    other.get()->~value_type();
-  }
-}
-
-
-template<typename T>
-inline Result<T>::~Result() {
-  if (success_) {
-    ((value_type*) &storage_)->~value_type();
-  }
-}
-
-template<typename T>
 inline Result<T>::operator bool () const noexcept {
-  return success_;
+  return bool{ value_ };
 }
 
 template<typename T>
 inline bool Result<T>::isSuccess() const noexcept {
-  return success_;
+  return bool{ value_ };
 }
 
 template<typename T>
 inline bool Result<T>::isFailure() const noexcept {
-  return !success_;
+  return !value_;
 }
 
 template<typename T>
@@ -69,25 +44,23 @@ inline const std::error_code& Result<T>::error() const noexcept {
 template<typename T>
 inline typename Result<T>::reference_type Result<T>::value() {
   require();
-  return (reference_type) storage_;
+  return *value_;
 }
 
 template<typename T>
 inline const typename Result<T>::reference_type Result<T>::value() const {
   require();
-  return (reference_type) storage_;
+  return *value_;
 }
 
 template<typename T>
 inline typename Result<T>::pointer_type Result<T>::get() {
-  require();
-  return ((pointer_type) &storage_);
+  return &value();
 }
 
 template<typename T>
 inline const typename Result<T>::pointer_type Result<T>::get() const {
-  require();
-  return ((pointer_type) &storage_);
+  return &value();
 }
 
 template<typename T>
@@ -118,11 +91,6 @@ inline void Result<T>::require() const {
 }
 
 template<typename T>
-inline Result<T> Success(const T& value) {
-  return Result<T>(value);
-}
-
-template<typename T>
 inline Result<T> Success(T&& value) {
-  return Result<T>(std::move(value));
+  return Result<T>(std::forward<T>(value));
 }
