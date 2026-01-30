@@ -253,31 +253,31 @@ constexpr Duration Duration::fromNanoseconds(uint64_t v) noexcept {
 
 }  // namespace xzero
 
-constexpr xzero::Duration operator"" _microseconds(unsigned long long v) {
+constexpr xzero::Duration operator""_microseconds(unsigned long long v) {
   return xzero::Duration::fromMicroseconds(v);
 }
 
-constexpr xzero::Duration operator"" _milliseconds(unsigned long long v) {
+constexpr xzero::Duration operator""_milliseconds(unsigned long long v) {
   return xzero::Duration::fromMilliseconds(v);
 }
 
-constexpr xzero::Duration operator"" _seconds(unsigned long long v) {
+constexpr xzero::Duration operator""_seconds(unsigned long long v) {
   return xzero::Duration::fromSeconds(v);
 }
 
-constexpr xzero::Duration operator"" _minutes(unsigned long long v) {
+constexpr xzero::Duration operator""_minutes(unsigned long long v) {
   return xzero::Duration::fromMinutes(v);
 }
 
-constexpr xzero::Duration operator"" _hours(unsigned long long v) {
+constexpr xzero::Duration operator""_hours(unsigned long long v) {
   return xzero::Duration::fromHours(v);
 }
 
-constexpr xzero::Duration operator"" _days(unsigned long long v) {
+constexpr xzero::Duration operator""_days(unsigned long long v) {
   return xzero::Duration::fromDays(v);
 }
 
-constexpr xzero::Duration operator"" _years(unsigned long long v) {
+constexpr xzero::Duration operator""_years(unsigned long long v) {
   return xzero::Duration::fromDays(v * 365);
 }
 

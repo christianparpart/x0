@@ -7,11 +7,11 @@
 
 #pragma once
 
-#include <xzero/defines.h>
 #include <format>
-#include <system_error>
-#include <string>
 #include <iosfwd>
+#include <string>
+#include <system_error>
+#include <xzero/defines.h>
 
 namespace xzero::http {
 
@@ -143,7 +143,8 @@ constexpr bool isSuccess(HttpStatus code);
 /** Tests whether given status @p code is a redirect (3xx). */
 constexpr bool isRedirect(HttpStatus code);
 
-/** Tests whether given status @p code is a client or server error (4xx, 5xx). */
+/** Tests whether given status @p code is a client or server error (4xx, 5xx).
+ */
 constexpr bool isError(HttpStatus code);
 
 /** Tests whether given status @p code is a client error (4xx). */
@@ -195,32 +196,24 @@ constexpr bool isContentForbidden(HttpStatus code) {
 // }}}
 
 inline std::error_code make_error_code(HttpStatus status) {
-  return std::error_code((int) status, HttpStatusCategory::get());
+  return std::error_code((int)status, HttpStatusCategory::get());
 }
 
 }  // namespace xzero::http
 
 namespace std {
-#if defined(XZERO_OS_WIN32)
-  template<>
-  struct hash<xzero::http::HttpStatus> {
-    constexpr size_t operator()(xzero::http::HttpStatus status) const {
-      return static_cast<size_t>(status);
-    }
-  };
-#else
-  template <>
-  struct hash<xzero::http::HttpStatus> : public unary_function<xzero::http::HttpStatus, size_t> {
-    size_t operator()(xzero::http::HttpStatus status) const {
-      return (size_t) status;
-    }
-  };
-#endif
+template <>
+struct hash<xzero::http::HttpStatus> {
+  constexpr size_t operator()(xzero::http::HttpStatus status) const {
+    return static_cast<size_t>(status);
+  }
+};
 
-  template<> struct is_error_code_enum<xzero::http::HttpStatus> : public true_type {};
+template <>
+struct is_error_code_enum<xzero::http::HttpStatus> : public true_type {};
 }  // namespace std
 
-template<>
+template <>
 struct std::formatter<xzero::http::HttpStatus> {
   using HttpStatus = xzero::http::HttpStatus;
 
@@ -228,64 +221,118 @@ struct std::formatter<xzero::http::HttpStatus> {
 
   auto format(const HttpStatus& v, std::format_context& ctx) const {
     switch (v) {
-      case HttpStatus::ContinueRequest: return std::format_to(ctx.out(), "Continue Request");
-      case HttpStatus::SwitchingProtocols: return std::format_to(ctx.out(), "Switching Protocols");
-      case HttpStatus::Processing: return std::format_to(ctx.out(), "Processing");
-      case HttpStatus::Ok: return std::format_to(ctx.out(), "Ok");
-      case HttpStatus::Created: return std::format_to(ctx.out(), "Created");
-      case HttpStatus::Accepted: return std::format_to(ctx.out(), "Accepted");
-      case HttpStatus::NonAuthoriativeInformation: return std::format_to(ctx.out(), "Non Authoriative Information");
-      case HttpStatus::NoContent: return std::format_to(ctx.out(), "No Content");
-      case HttpStatus::ResetContent: return std::format_to(ctx.out(), "Reset Content");
-      case HttpStatus::PartialContent: return std::format_to(ctx.out(), "Partial Content");
-      case HttpStatus::MultipleChoices: return std::format_to(ctx.out(), "Multiple Choices");
-      case HttpStatus::MovedPermanently: return std::format_to(ctx.out(), "Moved Permanently");
-      case HttpStatus::Found: return std::format_to(ctx.out(), "Found");
-      case HttpStatus::NotModified: return std::format_to(ctx.out(), "Not Modified");
-      case HttpStatus::TemporaryRedirect: return std::format_to(ctx.out(), "Temporary Redirect");
-      case HttpStatus::PermanentRedirect: return std::format_to(ctx.out(), "Permanent Redirect");
-      case HttpStatus::BadRequest: return std::format_to(ctx.out(), "Bad Request");
-      case HttpStatus::Unauthorized: return std::format_to(ctx.out(), "Unauthorized");
-      case HttpStatus::PaymentRequired: return std::format_to(ctx.out(), "Payment Required");
-      case HttpStatus::Forbidden: return std::format_to(ctx.out(), "Forbidden");
-      case HttpStatus::NotFound: return std::format_to(ctx.out(), "Not Found");
-      case HttpStatus::MethodNotAllowed: return std::format_to(ctx.out(), "Method Not Allowed");
-      case HttpStatus::NotAcceptable: return std::format_to(ctx.out(), "Not Acceptable");
-      case HttpStatus::ProxyAuthenticationRequired: return std::format_to(ctx.out(), "Proxy Authentication Required");
-      case HttpStatus::RequestTimeout: return std::format_to(ctx.out(), "Request Timeout");
-      case HttpStatus::Conflict: return std::format_to(ctx.out(), "Conflict");
-      case HttpStatus::Gone: return std::format_to(ctx.out(), "Gone");
-      case HttpStatus::LengthRequired: return std::format_to(ctx.out(), "Length Required");
-      case HttpStatus::PreconditionFailed: return std::format_to(ctx.out(), "Precondition Failed");
-      case HttpStatus::PayloadTooLarge: return std::format_to(ctx.out(), "Payload Too Large");
-      case HttpStatus::RequestUriTooLong: return std::format_to(ctx.out(), "Request Uri Too Long");
-      case HttpStatus::UnsupportedMediaType: return std::format_to(ctx.out(), "Unsupported Media Type");
-      case HttpStatus::RequestedRangeNotSatisfiable: return std::format_to(ctx.out(), "Requested Range Not Satisfiable");
-      case HttpStatus::ExpectationFailed: return std::format_to(ctx.out(), "Expectation Failed");
-      case HttpStatus::MisdirectedRequest: return std::format_to(ctx.out(), "Misdirected Request");
-      case HttpStatus::UnprocessableEntity: return std::format_to(ctx.out(), "Unprocessable Entity");
-      case HttpStatus::Locked: return std::format_to(ctx.out(), "Locked");
-      case HttpStatus::FailedDependency: return std::format_to(ctx.out(), "Failed Dependency");
-      case HttpStatus::UnorderedCollection: return std::format_to(ctx.out(), "Unordered Collection");
-      case HttpStatus::UpgradeRequired: return std::format_to(ctx.out(), "Upgrade Required");
-      case HttpStatus::PreconditionRequired: return std::format_to(ctx.out(), "Precondition Required");
-      case HttpStatus::TooManyRequests: return std::format_to(ctx.out(), "Too Many Requests");
-      case HttpStatus::RequestHeaderFieldsTooLarge: return std::format_to(ctx.out(), "Request Header Fields Too Large");
-      case HttpStatus::InternalServerError: return std::format_to(ctx.out(), "Internal Server Error");
-      case HttpStatus::NotImplemented: return std::format_to(ctx.out(), "Not Implemented");
-      case HttpStatus::BadGateway: return std::format_to(ctx.out(), "Bad Gateway");
-      case HttpStatus::ServiceUnavailable: return std::format_to(ctx.out(), "Service Unavailable");
-      case HttpStatus::GatewayTimeout: return std::format_to(ctx.out(), "Gateway Timeout");
-      case HttpStatus::HttpVersionNotSupported: return std::format_to(ctx.out(), "Http Version Not Supported");
-      case HttpStatus::VariantAlsoNegotiates: return std::format_to(ctx.out(), "Variant Also Negotiates");
-      case HttpStatus::InsufficientStorage: return std::format_to(ctx.out(), "Insufficient Storage");
-      case HttpStatus::LoopDetected: return std::format_to(ctx.out(), "Loop Detected");
-      case HttpStatus::BandwidthExceeded: return std::format_to(ctx.out(), "Bandwidth Exceeded");
-      case HttpStatus::NotExtended: return std::format_to(ctx.out(), "Not Extended");
-      case HttpStatus::NetworkAuthenticationRequired: return std::format_to(ctx.out(), "Network Authentication Required");
+      case HttpStatus::ContinueRequest:
+        return std::format_to(ctx.out(), "Continue Request");
+      case HttpStatus::SwitchingProtocols:
+        return std::format_to(ctx.out(), "Switching Protocols");
+      case HttpStatus::Processing:
+        return std::format_to(ctx.out(), "Processing");
+      case HttpStatus::Ok:
+        return std::format_to(ctx.out(), "Ok");
+      case HttpStatus::Created:
+        return std::format_to(ctx.out(), "Created");
+      case HttpStatus::Accepted:
+        return std::format_to(ctx.out(), "Accepted");
+      case HttpStatus::NonAuthoriativeInformation:
+        return std::format_to(ctx.out(), "Non Authoriative Information");
+      case HttpStatus::NoContent:
+        return std::format_to(ctx.out(), "No Content");
+      case HttpStatus::ResetContent:
+        return std::format_to(ctx.out(), "Reset Content");
+      case HttpStatus::PartialContent:
+        return std::format_to(ctx.out(), "Partial Content");
+      case HttpStatus::MultipleChoices:
+        return std::format_to(ctx.out(), "Multiple Choices");
+      case HttpStatus::MovedPermanently:
+        return std::format_to(ctx.out(), "Moved Permanently");
+      case HttpStatus::Found:
+        return std::format_to(ctx.out(), "Found");
+      case HttpStatus::NotModified:
+        return std::format_to(ctx.out(), "Not Modified");
+      case HttpStatus::TemporaryRedirect:
+        return std::format_to(ctx.out(), "Temporary Redirect");
+      case HttpStatus::PermanentRedirect:
+        return std::format_to(ctx.out(), "Permanent Redirect");
+      case HttpStatus::BadRequest:
+        return std::format_to(ctx.out(), "Bad Request");
+      case HttpStatus::Unauthorized:
+        return std::format_to(ctx.out(), "Unauthorized");
+      case HttpStatus::PaymentRequired:
+        return std::format_to(ctx.out(), "Payment Required");
+      case HttpStatus::Forbidden:
+        return std::format_to(ctx.out(), "Forbidden");
+      case HttpStatus::NotFound:
+        return std::format_to(ctx.out(), "Not Found");
+      case HttpStatus::MethodNotAllowed:
+        return std::format_to(ctx.out(), "Method Not Allowed");
+      case HttpStatus::NotAcceptable:
+        return std::format_to(ctx.out(), "Not Acceptable");
+      case HttpStatus::ProxyAuthenticationRequired:
+        return std::format_to(ctx.out(), "Proxy Authentication Required");
+      case HttpStatus::RequestTimeout:
+        return std::format_to(ctx.out(), "Request Timeout");
+      case HttpStatus::Conflict:
+        return std::format_to(ctx.out(), "Conflict");
+      case HttpStatus::Gone:
+        return std::format_to(ctx.out(), "Gone");
+      case HttpStatus::LengthRequired:
+        return std::format_to(ctx.out(), "Length Required");
+      case HttpStatus::PreconditionFailed:
+        return std::format_to(ctx.out(), "Precondition Failed");
+      case HttpStatus::PayloadTooLarge:
+        return std::format_to(ctx.out(), "Payload Too Large");
+      case HttpStatus::RequestUriTooLong:
+        return std::format_to(ctx.out(), "Request Uri Too Long");
+      case HttpStatus::UnsupportedMediaType:
+        return std::format_to(ctx.out(), "Unsupported Media Type");
+      case HttpStatus::RequestedRangeNotSatisfiable:
+        return std::format_to(ctx.out(), "Requested Range Not Satisfiable");
+      case HttpStatus::ExpectationFailed:
+        return std::format_to(ctx.out(), "Expectation Failed");
+      case HttpStatus::MisdirectedRequest:
+        return std::format_to(ctx.out(), "Misdirected Request");
+      case HttpStatus::UnprocessableEntity:
+        return std::format_to(ctx.out(), "Unprocessable Entity");
+      case HttpStatus::Locked:
+        return std::format_to(ctx.out(), "Locked");
+      case HttpStatus::FailedDependency:
+        return std::format_to(ctx.out(), "Failed Dependency");
+      case HttpStatus::UnorderedCollection:
+        return std::format_to(ctx.out(), "Unordered Collection");
+      case HttpStatus::UpgradeRequired:
+        return std::format_to(ctx.out(), "Upgrade Required");
+      case HttpStatus::PreconditionRequired:
+        return std::format_to(ctx.out(), "Precondition Required");
+      case HttpStatus::TooManyRequests:
+        return std::format_to(ctx.out(), "Too Many Requests");
+      case HttpStatus::RequestHeaderFieldsTooLarge:
+        return std::format_to(ctx.out(), "Request Header Fields Too Large");
+      case HttpStatus::InternalServerError:
+        return std::format_to(ctx.out(), "Internal Server Error");
+      case HttpStatus::NotImplemented:
+        return std::format_to(ctx.out(), "Not Implemented");
+      case HttpStatus::BadGateway:
+        return std::format_to(ctx.out(), "Bad Gateway");
+      case HttpStatus::ServiceUnavailable:
+        return std::format_to(ctx.out(), "Service Unavailable");
+      case HttpStatus::GatewayTimeout:
+        return std::format_to(ctx.out(), "Gateway Timeout");
+      case HttpStatus::HttpVersionNotSupported:
+        return std::format_to(ctx.out(), "Http Version Not Supported");
+      case HttpStatus::VariantAlsoNegotiates:
+        return std::format_to(ctx.out(), "Variant Also Negotiates");
+      case HttpStatus::InsufficientStorage:
+        return std::format_to(ctx.out(), "Insufficient Storage");
+      case HttpStatus::LoopDetected:
+        return std::format_to(ctx.out(), "Loop Detected");
+      case HttpStatus::BandwidthExceeded:
+        return std::format_to(ctx.out(), "Bandwidth Exceeded");
+      case HttpStatus::NotExtended:
+        return std::format_to(ctx.out(), "Not Extended");
+      case HttpStatus::NetworkAuthenticationRequired:
+        return std::format_to(ctx.out(), "Network Authentication Required");
       default:
-        return std::format_to(ctx.out(), "({})", (int) v);
+        return std::format_to(ctx.out(), "({})", (int)v);
     }
   }
 };
-
