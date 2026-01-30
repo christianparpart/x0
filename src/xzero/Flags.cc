@@ -6,7 +6,7 @@
 // the License at: http://opensource.org/licenses/MIT
 
 #include <xzero/Flags.h>
-#include <fmt/format.h>
+#include <format>
 #include <sstream>
 #include <iostream>
 #include <iomanip>
@@ -17,7 +17,7 @@ namespace xzero {
 
 // {{{ Flags::Error
 Flags::Error::Error(ErrorCode code, std::string arg)
-    : std::runtime_error{fmt::format("{}: {}", 
+    : std::runtime_error{std::format("{}: {}", 
           FlagsErrorCategory::get().message(static_cast<int>(code)), arg)},
       code_{code},
       arg_{std::move(arg)} {

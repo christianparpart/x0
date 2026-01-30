@@ -310,7 +310,7 @@ void SslEndPoint::wantWrite() {
 }
 
 std::string SslEndPoint::toString() const {
-  return fmt::format("SslEndPoint({})", handle());
+  return std::format("SslEndPoint({})", handle());
 }
 
 void SslEndPoint::onClientHandshake(Promise<std::shared_ptr<SslEndPoint>> promise) {

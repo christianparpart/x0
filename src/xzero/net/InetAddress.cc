@@ -8,7 +8,7 @@
 #include <xzero/net/InetAddress.h>
 #include <xzero/net/IPAddress.h>
 #include <xzero/RuntimeError.h>
-#include <fmt/format.h>
+#include <format>
 #include <stdexcept>
 
 namespace xzero {

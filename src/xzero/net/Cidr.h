@@ -7,8 +7,8 @@
 
 #pragma once
 
+#include <format>
 #include <xzero/net/IPAddress.h>
-#include <fmt/format.h>
 
 namespace xzero {
 
@@ -102,16 +102,11 @@ struct hash<xzero::Cidr> {
 
 }  // namespace std
 
-namespace fmt {
-  template<>
-  struct formatter<xzero::Cidr> {
-    template <typename ParseContext>
-    constexpr auto parse(ParseContext &ctx) { return ctx.begin(); }
+template <>
+struct std::formatter<xzero::Cidr> {
+  constexpr auto parse(std::format_parse_context& ctx) { return ctx.begin(); }
 
-    template <typename FormatContext>
-    constexpr auto format(const xzero::Cidr& v, FormatContext &ctx) {
-      return format_to(ctx.begin(), v.str());
-    }
-  };
-}
-
+  auto format(const xzero::Cidr& v, std::format_context& ctx) const {
+    return std::format_to(ctx.out(), "{}", v.str());
+  }
+};

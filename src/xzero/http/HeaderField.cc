@@ -7,7 +7,7 @@
 
 #include <xzero/http/HeaderField.h>
 #include <xzero/Buffer.h>
-#include <fmt/format.h>
+#include <format>
 
 namespace xzero::http {
 

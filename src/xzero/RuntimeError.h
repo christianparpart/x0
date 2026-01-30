@@ -132,10 +132,10 @@ inline RuntimeError::RuntimeError(const std::error_code& ec)
 }
 
 // TODO(Windows): make it more human readable (convert error code to text message)
-#define RAISE_WSA_ERROR(ec) throw std::runtime_error(fmt::format("WSA error {}", ec));
+#define RAISE_WSA_ERROR(ec) throw std::runtime_error(std::format("WSA error {}", ec));
 
 #define RAISE_NOT_IMPLEMENTED() do { \
-  throw std::runtime_error(fmt::format("Not implemented: {} in {}:{}",            \
+  throw std::runtime_error(std::format("Not implemented: {} in {}:{}",            \
                                        __PRETTY_FUNCTION__, __FILE__, __LINE__)); \
 } while (0)
 

@@ -54,18 +54,18 @@ std::string Cookies::makeCookie(
     const std::string& domain /* = "" */,
     bool secure /* = false */,
     bool httponly /* = false */) {
-  auto cookie_str = fmt::format("{}={}", Uri::encode(key), Uri::encode(value));
+  auto cookie_str = std::format("{}={}", Uri::encode(key), Uri::encode(value));
 
   if (path.length() > 0) {
-    cookie_str.append(fmt::format("; Path={}", path));
+    cookie_str.append(std::format("; Path={}", path));
   }
 
   if (domain.length() > 0) {
-    cookie_str.append(fmt::format("; Domain={}", domain));
+    cookie_str.append(std::format("; Domain={}", domain));
   }
 
   if (static_cast<uint64_t>(expire.unixtime()) > 0) {
-    cookie_str.append(fmt::format("; Expires={}",
+    cookie_str.append(std::format("; Expires={}",
         expire.format("%a, %d-%b-%Y %H:%M:%S UTC")));
   }
 

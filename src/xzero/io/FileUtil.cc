@@ -14,7 +14,7 @@
 #include <xzero/logging.h>
 #include <xzero/sysconfig.h>
 #include <xzero/defines.h>
-#include <fmt/format.h>
+#include <format>
 
 #include <system_error>
 #include <sys/types.h>

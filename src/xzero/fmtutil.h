@@ -6,31 +6,25 @@
 // the License at: http://opensource.org/licenses/MIT
 #pragma once
 
-#include <fmt/format.h>
-#include <system_error>
 #include <cstring>
+#include <format>
+#include <system_error>
 
-namespace fmt {
-  template<>
-  struct formatter<std::errc> {
-    template <typename ParseContext>
-    constexpr auto parse(ParseContext &ctx) { return ctx.begin(); }
+template <>
+struct std::formatter<std::errc> {
+  constexpr auto parse(std::format_parse_context& ctx) { return ctx.begin(); }
 
-    template <typename FormatContext>
-    constexpr auto format(const std::errc& v, FormatContext &ctx) {
-      return format_to(ctx.begin(), strerror((int)v));
-    }
-  };
+  auto format(const std::errc& v, std::format_context& ctx) const {
+    return std::format_to(ctx.out(), "{}", strerror((int)v));
+  }
+};
 
-  template<>
-  struct formatter<std::error_code> {
-    template <typename ParseContext>
-    constexpr auto parse(ParseContext &ctx) { return ctx.begin(); }
+template <>
+struct std::formatter<std::error_code> {
+  constexpr auto parse(std::format_parse_context& ctx) { return ctx.begin(); }
 
-    template <typename FormatContext>
-    constexpr auto format(const std::error_code& v, FormatContext &ctx) {
-      return format_to(ctx.begin(), "{}: {}", v.category().name(), v.message());
-    }
-  };
-}
-
+  auto format(const std::error_code& v, std::format_context& ctx) const {
+    return std::format_to(ctx.out(), "{}: {}", v.category().name(),
+                          v.message());
+  }
+};

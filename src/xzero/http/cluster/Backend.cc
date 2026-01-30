@@ -12,7 +12,7 @@
 #include <xzero/io/FileView.h>
 #include <xzero/JsonWriter.h>
 #include <xzero/logging.h>
-#include <fmt/format.h>
+#include <format>
 
 namespace xzero::http::cluster {
 

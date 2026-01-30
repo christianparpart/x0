@@ -7,7 +7,7 @@
 
 #pragma once
 
-#include <fmt/format.h>
+#include <format>
 
 namespace xzero::http::http2 {
 
@@ -101,35 +101,31 @@ std::string as_string(ErrorCode ec);
 
 } // namespace xzero::http::http2
 
-namespace fmt {
-  template<>
-  struct formatter<xzero::http::http2::ErrorCode> {
-    using ErrorCode = xzero::http::http2::ErrorCode;
+template<>
+struct std::formatter<xzero::http::http2::ErrorCode> {
+  using ErrorCode = xzero::http::http2::ErrorCode;
 
-    template <typename ParseContext>
-    constexpr auto parse(ParseContext &ctx) { return ctx.begin(); }
+  constexpr auto parse(std::format_parse_context& ctx) { return ctx.begin(); }
 
-    template <typename FormatContext>
-    constexpr auto format(const ErrorCode& v, FormatContext &ctx) {
-      switch (v) {
-        case ErrorCode::NoError: return format_to(ctx.begin(), "No Error");
-        case ErrorCode::ProtocolError: return format_to(ctx.begin(), "Protocol Error");
-        case ErrorCode::InternalError: return format_to(ctx.begin(), "Internal Error");
-        case ErrorCode::FlowControlError: return format_to(ctx.begin(), "Flow Control Error");
-        case ErrorCode::SettingsTimeout: return format_to(ctx.begin(), "Settings Timeout");
-        case ErrorCode::StreamClosed: return format_to(ctx.begin(), "Stream Closed");
-        case ErrorCode::FrameSizeError: return format_to(ctx.begin(), "Frame Size Error");
-        case ErrorCode::RefusedStream: return format_to(ctx.begin(), "Refused Stream");
-        case ErrorCode::Cancel: return format_to(ctx.begin(), "Cancel");
-        case ErrorCode::CompressionError: return format_to(ctx.begin(), "Compression Error");
-        case ErrorCode::ConnectError: return format_to(ctx.begin(), "Connect Error");
-        case ErrorCode::EnhanceYourCalm: return format_to(ctx.begin(), "Enhance Your Calm");
-        case ErrorCode::InadequateSecurity: return format_to(ctx.begin(), "Inadequate Security");
-        case ErrorCode::Http11Required: return format_to(ctx.begin(), "HTTP/1.1 Required");
-        default:
-          return format_to(ctx.begin(), "({})", (int) v);
-      }
+  auto format(const ErrorCode& v, std::format_context& ctx) const {
+    switch (v) {
+      case ErrorCode::NoError: return std::format_to(ctx.out(), "No Error");
+      case ErrorCode::ProtocolError: return std::format_to(ctx.out(), "Protocol Error");
+      case ErrorCode::InternalError: return std::format_to(ctx.out(), "Internal Error");
+      case ErrorCode::FlowControlError: return std::format_to(ctx.out(), "Flow Control Error");
+      case ErrorCode::SettingsTimeout: return std::format_to(ctx.out(), "Settings Timeout");
+      case ErrorCode::StreamClosed: return std::format_to(ctx.out(), "Stream Closed");
+      case ErrorCode::FrameSizeError: return std::format_to(ctx.out(), "Frame Size Error");
+      case ErrorCode::RefusedStream: return std::format_to(ctx.out(), "Refused Stream");
+      case ErrorCode::Cancel: return std::format_to(ctx.out(), "Cancel");
+      case ErrorCode::CompressionError: return std::format_to(ctx.out(), "Compression Error");
+      case ErrorCode::ConnectError: return std::format_to(ctx.out(), "Connect Error");
+      case ErrorCode::EnhanceYourCalm: return std::format_to(ctx.out(), "Enhance Your Calm");
+      case ErrorCode::InadequateSecurity: return std::format_to(ctx.out(), "Inadequate Security");
+      case ErrorCode::Http11Required: return std::format_to(ctx.out(), "HTTP/1.1 Required");
+      default:
+        return std::format_to(ctx.out(), "({})", (int) v);
     }
-  };
-}
+  }
+};
 

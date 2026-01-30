@@ -263,43 +263,39 @@ struct XZERO_PACKED EndRequestRecord : public Record {
 
 #include <xzero/http/fastcgi/bits-inl.h>
 
-namespace fmt {
-  template<>
-  struct formatter<xzero::http::fastcgi::Type> {
-    using Type = xzero::http::fastcgi::Type;
+template<>
+struct std::formatter<xzero::http::fastcgi::Type> {
+  using Type = xzero::http::fastcgi::Type;
 
-    template <typename ParseContext>
-    constexpr auto parse(ParseContext &ctx) { return ctx.begin(); }
+  constexpr auto parse(std::format_parse_context& ctx) { return ctx.begin(); }
 
-    template <typename FormatContext>
-    constexpr auto format(const Type& v, FormatContext &ctx) {
-      switch (v) {
-        case Type::BeginRequest:
-          return format_to(ctx.begin(), "BeginRequest");
-        case Type::AbortRequest:
-          return format_to(ctx.begin(), "AbortRequest");
-        case Type::EndRequest:
-          return format_to(ctx.begin(), "EndRequest");
-        case Type::Params:
-          return format_to(ctx.begin(), "Params");
-        case Type::StdIn:
-          return format_to(ctx.begin(), "StdIn");
-        case Type::StdOut:
-          return format_to(ctx.begin(), "StdOut");
-        case Type::StdErr:
-          return format_to(ctx.begin(), "StdErr");
-        case Type::Data:
-          return format_to(ctx.begin(), "Data");
-        case Type::GetValues:
-          return format_to(ctx.begin(), "GetValues");
-        case Type::GetValuesResult:
-          return format_to(ctx.begin(), "GetValuesResult");
-        case Type::UnknownType:
-          return format_to(ctx.begin(), "UnknownType");
-        default:
-          return format_to(ctx.begin(), "({})", (int) v);
-      }
+  auto format(const Type& v, std::format_context& ctx) const {
+    switch (v) {
+      case Type::BeginRequest:
+        return std::format_to(ctx.out(), "BeginRequest");
+      case Type::AbortRequest:
+        return std::format_to(ctx.out(), "AbortRequest");
+      case Type::EndRequest:
+        return std::format_to(ctx.out(), "EndRequest");
+      case Type::Params:
+        return std::format_to(ctx.out(), "Params");
+      case Type::StdIn:
+        return std::format_to(ctx.out(), "StdIn");
+      case Type::StdOut:
+        return std::format_to(ctx.out(), "StdOut");
+      case Type::StdErr:
+        return std::format_to(ctx.out(), "StdErr");
+      case Type::Data:
+        return std::format_to(ctx.out(), "Data");
+      case Type::GetValues:
+        return std::format_to(ctx.out(), "GetValues");
+      case Type::GetValuesResult:
+        return std::format_to(ctx.out(), "GetValuesResult");
+      case Type::UnknownType:
+        return std::format_to(ctx.out(), "UnknownType");
+      default:
+        return std::format_to(ctx.out(), "({})", (int) v);
     }
-  };
-}
+  }
+};
 

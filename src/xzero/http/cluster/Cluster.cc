@@ -172,7 +172,7 @@ void Cluster::setConfiguration(const std::string& text,
 
   if (settings.contains("director", "enabled")) {
     if (!settings.load("director", "enabled", value)) {
-      throw std::runtime_error{fmt::format(
+      throw std::runtime_error{std::format(
             "Could not load settings value director.enabled in file '{}'",
             path)};
     }
@@ -182,7 +182,7 @@ void Cluster::setConfiguration(const std::string& text,
   }
 
   if (!settings.load("director", "queue-limit", value)) {
-    throw std::runtime_error{fmt::format(
+    throw std::runtime_error{std::format(
           "director: Could not load settings value "
           "director.queue-limit in file '{}'",
           path)};
@@ -190,7 +190,7 @@ void Cluster::setConfiguration(const std::string& text,
   queueLimit_ = std::stoll(value);
 
   if (!settings.load("director", "queue-timeout", value)) {
-    throw std::runtime_error{fmt::format(
+    throw std::runtime_error{std::format(
           "director: Could not load settings value "
           "director.queue-timeout in file '{}'",
           path)};
@@ -199,7 +199,7 @@ void Cluster::setConfiguration(const std::string& text,
   shaper()->rootNode()->setQueueTimeout(queueTimeout_);
 
   if (!settings.load("director", "retry-after", value)) {
-    throw std::runtime_error{fmt::format(
+    throw std::runtime_error{std::format(
           "director: Could not load settings value "
           "director.retry-after in file '{}'",
           path)};
@@ -207,7 +207,7 @@ void Cluster::setConfiguration(const std::string& text,
   retryAfter_ = Duration::fromSeconds(std::stoll(value));
 
   if (!settings.load("director", "connect-timeout", value)) {
-    throw std::runtime_error{fmt::format(
+    throw std::runtime_error{std::format(
           "director: Could not load settings value "
           "director.connect-timeout in file '%s'",
           path)};
@@ -215,7 +215,7 @@ void Cluster::setConfiguration(const std::string& text,
   connectTimeout_ = Duration::fromMilliseconds(std::stoll(value));
 
   if (!settings.load("director", "read-timeout", value)) {
-    throw std::runtime_error{fmt::format(
+    throw std::runtime_error{std::format(
           "director: Could not load settings value "
           "director.read-timeout in file '%s'",
           path)};
@@ -223,7 +223,7 @@ void Cluster::setConfiguration(const std::string& text,
   readTimeout_ = Duration::fromMilliseconds(std::stoll(value));
 
   if (!settings.load("director", "write-timeout", value)) {
-    throw std::runtime_error{fmt::format(
+    throw std::runtime_error{std::format(
           "director: Could not load settings value "
           "director.write-timeout in file '%s'",
           path)};
@@ -253,7 +253,7 @@ void Cluster::setConfiguration(const std::string& text,
 #endif
 
   if (!settings.load("director", "max-retry-count", value)) {
-    throw std::runtime_error{fmt::format(
+    throw std::runtime_error{std::format(
           "director: Could not load settings value "
           "director.max-retry-count in file '{}'",
           path)};
@@ -261,7 +261,7 @@ void Cluster::setConfiguration(const std::string& text,
   maxRetryCount_ = std::stoll(value);
 
   if (!settings.load("director", "sticky-offline-mode", value)) {
-    throw std::runtime_error{fmt::format(
+    throw std::runtime_error{std::format(
           "director: Could not load settings value "
           "director.sticky-offline-mode in file '{}'",
           path)};
@@ -295,7 +295,7 @@ void Cluster::setConfiguration(const std::string& text,
       if (i != 0) {
         healthCheckSuccessThreshold_ = i;
       } else {
-        throw std::runtime_error{fmt::format(
+        throw std::runtime_error{std::format(
             "director: Could not load settings value "
             "director.health-check-success-threshold in file '{}'",
             path)};
@@ -305,7 +305,7 @@ void Cluster::setConfiguration(const std::string& text,
 
   if (!settings.load("director", "health-check-host-header",
                      healthCheckHostHeader_)) {
-    throw std::runtime_error{fmt::format(
+    throw std::runtime_error{std::format(
         "director: Could not load settings value "
         "director.health-check-host-header in file '{}'",
         path)};
@@ -313,7 +313,7 @@ void Cluster::setConfiguration(const std::string& text,
 
   if (!settings.load("director", "health-check-request-path",
                      healthCheckRequestPath_)) {
-    throw std::runtime_error{fmt::format(
+    throw std::runtime_error{std::format(
         "director: Could not load settings value "
         "director.health-check-request-path in file '{}'",
         path)};
@@ -336,7 +336,7 @@ void Cluster::setConfiguration(const std::string& text,
 #if defined(ENABLE_DIRECTOR_CACHE)
   if (settings.contains("cache", "enabled")) {
     if (!settings.load("cache", "enabled", value)) {
-      throw std::runtime_error{fmt::format(
+      throw std::runtime_error{std::format(
           "director: Could not load settings value cache.enabled in file '{}'",
           path)};
     }
@@ -347,7 +347,7 @@ void Cluster::setConfiguration(const std::string& text,
 
   if (settings.contains("cache", "deliver-active")) {
     if (!settings.load("cache", "deliver-active", value)) {
-      throw std::runtime_error{fmt::format(
+      throw std::runtime_error{std::format(
           "director: Could not load settings value "
           "cache.deliver-active in file '{}'",
           path)};
@@ -359,7 +359,7 @@ void Cluster::setConfiguration(const std::string& text,
 
   if (settings.contains("cache", "deliver-shadow")) {
     if (!settings.load("cache", "deliver-shadow", value)) {
-      throw std::runtime_error{fmt::format(
+      throw std::runtime_error{std::format(
           "director: Could not load settings value "
           "cache.deliver-shadow in file '{}'",
           path)};
@@ -371,7 +371,7 @@ void Cluster::setConfiguration(const std::string& text,
 
   if (settings.contains("cache", "default-ttl")) {
     if (!settings.load("cache", "default-ttl", value)) {
-      throw std::runtime_error{fmt::format(
+      throw std::runtime_error{std::format(
           "director: Could not load settings value cache.default-ttl "
           "in file '{}'",
           path)};
@@ -383,7 +383,7 @@ void Cluster::setConfiguration(const std::string& text,
 
   if (settings.contains("cache", "default-shadow-ttl")) {
     if (!settings.load("cache", "default-shadow-ttl", value)) {
-      throw std::runtime_error{fmt::format(
+      throw std::runtime_error{std::format(
           "director: Could not load settings value cache.default-ttl "
           "in file '{}'",
           path)};
@@ -408,7 +408,7 @@ void Cluster::setConfiguration(const std::string& text,
     } else if (key.find(bucketSectionPrefix) == 0) {
       loadBucket(settings, key);
     } else {
-      throw std::runtime_error{fmt::format(
+      throw std::runtime_error{std::format(
           "director: Invalid configuration section '{}' in file '{}'.",
           key, path)};
     }
@@ -430,7 +430,7 @@ void Cluster::loadBackend(const IniFile& settings, const std::string& key) {
   // capacity
   std::string capacityStr;
   if (!settings.load(key, "capacity", capacityStr)) {
-      throw std::runtime_error{fmt::format(
+      throw std::runtime_error{std::format(
         "director: Error loading configuration file '{}'. Item "
         "'capacity' not found in section '{}'.",
         storagePath_, key)};
@@ -440,7 +440,7 @@ void Cluster::loadBackend(const IniFile& settings, const std::string& key) {
   // protocol
   std::string protocol;
   if (!settings.load(key, "protocol", protocol)) {
-    throw std::runtime_error{fmt::format(
+    throw std::runtime_error{std::format(
         "director: Error loading configuration file '{}'. Item "
         "'protocol' not found in section '{}'.",
         storagePath_, key)};
@@ -449,7 +449,7 @@ void Cluster::loadBackend(const IniFile& settings, const std::string& key) {
   // enabled
   std::string enabledStr;
   if (!settings.load(key, "enabled", enabledStr)) {
-    throw std::runtime_error{fmt::format(
+    throw std::runtime_error{std::format(
           "director: Error loading configuration file '{}'. Item "
           "'enabled' not found in section '{}'.",
           storagePath_, key)};
@@ -459,7 +459,7 @@ void Cluster::loadBackend(const IniFile& settings, const std::string& key) {
   // health-check-interval
   std::string hcIntervalStr;
   if (!settings.load(key, "health-check-interval", hcIntervalStr)) {
-    throw std::runtime_error{fmt::format(
+    throw std::runtime_error{std::format(
         "director: Error loading configuration file '{}'. Item "
         "'health-check-interval' not found in section '{}'.",
         storagePath_, key)};
@@ -469,7 +469,7 @@ void Cluster::loadBackend(const IniFile& settings, const std::string& key) {
   // host
   std::string host;
   if (!settings.load(key, "host", host)) {
-    throw std::runtime_error{fmt::format(
+    throw std::runtime_error{std::format(
         "director: Error loading configuration file '{}'. Item "
         "'host' not found in section '{}'.",
         storagePath_, key)};
@@ -478,7 +478,7 @@ void Cluster::loadBackend(const IniFile& settings, const std::string& key) {
   // port
   std::string portStr;
   if (!settings.load(key, "port", portStr)) {
-    throw std::runtime_error{fmt::format(
+    throw std::runtime_error{std::format(
         "director: Error loading configuration file '{}'. Item "
         "'port' not found in section '{}'.",
         storagePath_, key)};
@@ -486,7 +486,7 @@ void Cluster::loadBackend(const IniFile& settings, const std::string& key) {
 
   int port = std::atoi(portStr.c_str());
   if (port <= 0) {
-    throw std::runtime_error{fmt::format(
+    throw std::runtime_error{std::format(
         "director: Error loading configuration file '{}'. Invalid "
         "port number '{}' for backend '{}'",
         storagePath_, portStr, name)};
@@ -505,7 +505,7 @@ void Cluster::loadBucket(const IniFile& settings, const std::string& key) {
 
   std::string rateStr;
   if (!settings.load(key, "rate", rateStr)) {
-    throw std::runtime_error{fmt::format(
+    throw std::runtime_error{std::format(
         "director: Error loading configuration file '{}'. Item "
         "'rate' not found in section '{}'.",
         storagePath_, key)};
@@ -513,7 +513,7 @@ void Cluster::loadBucket(const IniFile& settings, const std::string& key) {
 
   std::string ceilStr;
   if (!settings.load(key, "ceil", ceilStr)) {
-    throw std::runtime_error{fmt::format(
+    throw std::runtime_error{std::format(
         "director: Error loading configuration file '{}'. Item "
         "'ceil' not found in section '{}'.",
         storagePath_, key)};
@@ -532,7 +532,7 @@ void Cluster::loadBucket(const IniFile& settings, const std::string& key) {
         "Name conflict.",
         "Invalid child node."
     };
-    throw std::runtime_error{fmt::format(
+    throw std::runtime_error{std::format(
         "Could not create director's bucket. {}",
         str[(size_t)ec])};
   }
@@ -555,7 +555,7 @@ void Cluster::setScheduler(std::unique_ptr<Scheduler> scheduler) {
 }
 
 void Cluster::addMember(const InetAddress& addr) {
-  addMember(fmt::format("{}", addr),
+  addMember(std::format("{}", addr),
             addr,
             0,        // capacity (0 = no limit)
             true,     // enabled
@@ -565,7 +565,7 @@ void Cluster::addMember(const InetAddress& addr) {
 }
 
 void Cluster::addMember(const InetAddress& addr, size_t capacity) {
-  addMember(fmt::format("{}", addr),
+  addMember(std::format("{}", addr),
             addr,
             capacity,
             true,     // enabled
@@ -744,7 +744,7 @@ bool Cluster::verifyTryCount(Context* cx) {
 void Cluster::serviceUnavailable(Context* cx, HttpStatus status) {
   cx->onMessageBegin(HttpVersion::VERSION_1_1,
                      status,
-                     BufferRef(fmt::format("{}", status)));
+                     BufferRef(std::format("{}", status)));
 
   // TODO: put into a more generic place where it affects all responses.
   if (cx->bucket) {
@@ -755,7 +755,7 @@ void Cluster::serviceUnavailable(Context* cx, HttpStatus status) {
   if (retryAfter() != Duration::Zero) {
     cx->onMessageHeader(
         BufferRef("Retry-After"),
-        BufferRef(fmt::format("{}", retryAfter().seconds())));
+        BufferRef(std::format("{}", retryAfter().seconds())));
   }
 
   cx->onMessageHeaderEnd();

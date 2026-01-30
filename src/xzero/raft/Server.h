@@ -288,27 +288,23 @@ class Server : public Handler {
 
 #include <xzero/raft/Server-inl.h>
 
-namespace fmt {
-  template<>
-  struct formatter<xzero::raft::ServerState> {
-    using ServerState = xzero::raft::ServerState;
+template<>
+struct std::formatter<xzero::raft::ServerState> {
+  using ServerState = xzero::raft::ServerState;
 
-    template <typename ParseContext>
-    constexpr auto parse(ParseContext &ctx) { return ctx.begin(); }
+  constexpr auto parse(std::format_parse_context& ctx) { return ctx.begin(); }
 
-    template <typename FormatContext>
-    constexpr auto format(const ServerState& v, FormatContext &ctx) {
-      switch (v) {
-        case ServerState::Follower:
-          return format_to(ctx.begin(), "Follower");
-        case ServerState::Candidate:
-          return format_to(ctx.begin(), "Candidate");
-        case ServerState::Leader:
-          return format_to(ctx.begin(), "Leader");
-        default:
-          return format_to(ctx.begin(), "({})", (int) v);
-      }
+  auto format(const ServerState& v, std::format_context& ctx) const {
+    switch (v) {
+      case ServerState::Follower:
+        return std::format_to(ctx.out(), "Follower");
+      case ServerState::Candidate:
+        return std::format_to(ctx.out(), "Candidate");
+      case ServerState::Leader:
+        return std::format_to(ctx.out(), "Leader");
+      default:
+        return std::format_to(ctx.out(), "({})", (int) v);
     }
-  };
-}
+  }
+};
 

@@ -8,7 +8,7 @@
 
 #include <xzero/Buffer.h>
 #include <xzero/StringUtil.h>
-#include <fmt/format.h>
+#include <format>
 #include <string>
 #include <vector>
 #include <iosfwd>
@@ -129,125 +129,109 @@ struct InstallSnapshotResponse {
 } // namespace raft
 } // namespace xzero
 
-namespace fmt {
 
-  template<>
-  struct formatter<xzero::raft::LogType> {
-    template <typename ParseContext>
-    constexpr auto parse(ParseContext &ctx) { return ctx.begin(); }
+template<>
+struct std::formatter<xzero::raft::LogType> {
+  constexpr auto parse(std::format_parse_context& ctx) { return ctx.begin(); }
 
-    template <typename FormatContext>
-    constexpr auto format(const xzero::raft::LogType& v, FormatContext &ctx) {
-      switch (v) {
-        case xzero::raft::LOG_COMMAND:
-          return format_to(ctx.begin(), "LOG_COMMAND");
-        case xzero::raft::LOG_PEER_ADD:
-          return format_to(ctx.begin(), "LOG_PEER_ADD");
-        case xzero::raft::LOG_PEER_REMOVE:
-          return format_to(ctx.begin(), "LOG_PEER_REMOVE");
-        default: {
-          return format_to(ctx.begin(), "<{}>", (int) v);
-        }
+  auto format(const xzero::raft::LogType& v, std::format_context& ctx) const {
+    switch (v) {
+      case xzero::raft::LOG_COMMAND:
+        return std::format_to(ctx.out(), "LOG_COMMAND");
+      case xzero::raft::LOG_PEER_ADD:
+        return std::format_to(ctx.out(), "LOG_PEER_ADD");
+      case xzero::raft::LOG_PEER_REMOVE:
+        return std::format_to(ctx.out(), "LOG_PEER_REMOVE");
+      default: {
+        return std::format_to(ctx.out(), "<{}>", (int) v);
       }
     }
-  };
+  }
+};
 
-  template<>
-  struct formatter<xzero::raft::LogEntry> {
-    template <typename ParseContext>
-    constexpr auto parse(ParseContext &ctx) { return ctx.begin(); }
+template<>
+struct std::formatter<xzero::raft::LogEntry> {
+  constexpr auto parse(std::format_parse_context& ctx) { return ctx.begin(); }
 
-    template <typename FormatContext>
-    constexpr auto format(const xzero::raft::LogEntry& v, FormatContext &ctx) {
-      if (v.type() == xzero::raft::LOG_COMMAND) {
-        return format_to(ctx.begin(),
-            "LogEntry<term:{}, command:{}>",
-            v.term(),
-            xzero::StringUtil::hexPrint(v.command().data(), v.command().size()));
-      } else {
-        return format_to(ctx.begin(),
-            "LogEntry<term:{}, type:{}>",
-            v.term(),
-            v.type());
-      }
+  auto format(const xzero::raft::LogEntry& v, std::format_context& ctx) const {
+    if (v.type() == xzero::raft::LOG_COMMAND) {
+      return std::format_to(ctx.out(),
+          "LogEntry<term:{}, command:{}>",
+          v.term(),
+          xzero::StringUtil::hexPrint(v.command().data(), v.command().size()));
+    } else {
+      return std::format_to(ctx.out(),
+          "LogEntry<term:{}, type:{}>",
+          v.term(),
+          v.type());
     }
-  };
+  }
+};
 
-  template<>
-  struct formatter<xzero::raft::VoteResponse> {
-    template <typename ParseContext>
-    constexpr auto parse(ParseContext &ctx) { return ctx.begin(); }
+template<>
+struct std::formatter<xzero::raft::VoteResponse> {
+  constexpr auto parse(std::format_parse_context& ctx) { return ctx.begin(); }
 
-    template <typename FormatContext>
-    constexpr auto format(const xzero::raft::VoteResponse& v, FormatContext &ctx) {
-      return format_to(ctx.begin(), 
-          "VoteResponse<term:{}, voteGranted:{}>",
-          v.term,
-          v.voteGranted);
-    }
-  };
+  auto format(const xzero::raft::VoteResponse& v, std::format_context& ctx) const {
+    return std::format_to(ctx.out(), 
+        "VoteResponse<term:{}, voteGranted:{}>",
+        v.term,
+        v.voteGranted);
+  }
+};
 
-  template<>
-  struct formatter<xzero::raft::AppendEntriesRequest> {
-    template <typename ParseContext>
-    constexpr auto parse(ParseContext &ctx) { return ctx.begin(); }
+template<>
+struct std::formatter<xzero::raft::AppendEntriesRequest> {
+  constexpr auto parse(std::format_parse_context& ctx) { return ctx.begin(); }
 
-    template <typename FormatContext>
-    constexpr auto format(const xzero::raft::AppendEntriesRequest& v, FormatContext &ctx) {
-      return format_to(ctx.begin(), 
-          "AppendEntriesRequest<term:{}, leaderId:{}, prevLogIndex:{}, prevLogTerm:{}, entries:{}, leaderCommit:{}>",
-          v.term,
-          v.leaderId,
-          v.prevLogIndex,
-          v.prevLogTerm,
-          v.entries.size(),
-          v.leaderCommit);
-    }
-  };
+  auto format(const xzero::raft::AppendEntriesRequest& v, std::format_context& ctx) const {
+    return std::format_to(ctx.out(), 
+        "AppendEntriesRequest<term:{}, leaderId:{}, prevLogIndex:{}, prevLogTerm:{}, entries:{}, leaderCommit:{}>",
+        v.term,
+        v.leaderId,
+        v.prevLogIndex,
+        v.prevLogTerm,
+        v.entries.size(),
+        v.leaderCommit);
+  }
+};
 
-  template<>
-  struct formatter<xzero::raft::AppendEntriesResponse> {
-    template <typename ParseContext>
-    constexpr auto parse(ParseContext &ctx) { return ctx.begin(); }
+template<>
+struct std::formatter<xzero::raft::AppendEntriesResponse> {
+  constexpr auto parse(std::format_parse_context& ctx) { return ctx.begin(); }
 
-    template <typename FormatContext>
-    constexpr auto format(const xzero::raft::AppendEntriesResponse& v, FormatContext &ctx) {
-      return format_to(ctx.begin(), 
-          "AppendEntriesResponse<term:{}, lastLogIndex: {}, success:{}>",
-          v.term,
-          v.lastLogIndex,
-          v.success);
-    }
-  };
+  auto format(const xzero::raft::AppendEntriesResponse& v, std::format_context& ctx) const {
+    return std::format_to(ctx.out(), 
+        "AppendEntriesResponse<term:{}, lastLogIndex: {}, success:{}>",
+        v.term,
+        v.lastLogIndex,
+        v.success);
+  }
+};
 
-  template<>
-  struct formatter<xzero::raft::InstallSnapshotRequest> {
-    template <typename ParseContext>
-    constexpr auto parse(ParseContext &ctx) { return ctx.begin(); }
+template<>
+struct std::formatter<xzero::raft::InstallSnapshotRequest> {
+  constexpr auto parse(std::format_parse_context& ctx) { return ctx.begin(); }
 
-    template <typename FormatContext>
-    constexpr auto format(const xzero::raft::InstallSnapshotRequest& v, FormatContext &ctx) {
-      return format_to(ctx.begin(), 
-          "InstallSnapshotRequest<term:{}, leaderId:{}, lastIncludedIndex:{}, lastIncludedTerm:{}, offset:{}, dataSize:{}, done:{}>",
-          v.term,
-          v.leaderId,
-          v.lastIncludedIndex,
-          v.lastIncludedTerm,
-          v.offset,
-          v.data.size(),
-          v.done);
-    }
-  };
+  auto format(const xzero::raft::InstallSnapshotRequest& v, std::format_context& ctx) const {
+    return std::format_to(ctx.out(), 
+        "InstallSnapshotRequest<term:{}, leaderId:{}, lastIncludedIndex:{}, lastIncludedTerm:{}, offset:{}, dataSize:{}, done:{}>",
+        v.term,
+        v.leaderId,
+        v.lastIncludedIndex,
+        v.lastIncludedTerm,
+        v.offset,
+        v.data.size(),
+        v.done);
+  }
+};
 
-  template<>
-  struct formatter<xzero::raft::InstallSnapshotResponse> {
-    template <typename ParseContext>
-    constexpr auto parse(ParseContext &ctx) { return ctx.begin(); }
+template<>
+struct std::formatter<xzero::raft::InstallSnapshotResponse> {
+  constexpr auto parse(std::format_parse_context& ctx) { return ctx.begin(); }
 
-    template <typename FormatContext>
-    constexpr auto format(const xzero::raft::InstallSnapshotResponse& v, FormatContext &ctx) {
-      return format_to(ctx.begin(), "InstallSnapshotResponse<term:{}>", v.term);
-    }
-  };
+  auto format(const xzero::raft::InstallSnapshotResponse& v, std::format_context& ctx) const {
+    return std::format_to(ctx.out(), "InstallSnapshotResponse<term:{}>", v.term);
+  }
+};
 
-}

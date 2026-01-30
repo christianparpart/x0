@@ -8,7 +8,7 @@
 #include <xzero/http/HeaderFieldList.h>
 #include <xzero/RuntimeError.h>
 #include <xzero/Buffer.h>
-#include <fmt/format.h>
+#include <format>
 #include <algorithm>
 
 namespace xzero::http {

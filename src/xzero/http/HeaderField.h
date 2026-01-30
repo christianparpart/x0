@@ -9,7 +9,7 @@
 
 #include <string>
 #include <iosfwd>
-#include <fmt/format.h>
+#include <format>
 
 namespace xzero::http {
 
@@ -104,18 +104,14 @@ inline HeaderField::HeaderField(const std::string& name,
 
 }  // namespace xzero::http
 
-namespace fmt {
-  template<>
-  struct formatter<xzero::http::HeaderField> {
-    using HeaderField = xzero::http::HeaderField;
+template<>
+struct std::formatter<xzero::http::HeaderField> {
+  using HeaderField = xzero::http::HeaderField;
 
-    template <typename ParseContext>
-    constexpr auto parse(ParseContext &ctx) { return ctx.begin(); }
+  constexpr auto parse(std::format_parse_context& ctx) { return ctx.begin(); }
 
-    template <typename FormatContext>
-    constexpr auto format(const HeaderField& v, FormatContext &ctx) {
-      return format_to(ctx.begin(), "{}: {}", v.name(), v.value());
-    }
-  };
-}
+  auto format(const HeaderField& v, std::format_context& ctx) const {
+    return std::format_to(ctx.out(), "{}: {}", v.name(), v.value());
+  }
+};
 

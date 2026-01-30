@@ -271,8 +271,8 @@ void ApiHandler::createCluster(const std::string& name) {
   }
 
   std::string location = request_->localAddress()->port() != 80
-      ? fmt::format("http://{}:{}/", name, request_->localAddress()->port())
-      : fmt::format("http://{}/", name);
+      ? std::format("http://{}:{}/", name, request_->localAddress()->port())
+      : std::format("http://{}/", name);
 
   HttpStatus status = doUpdateCluster(cluster, HttpStatus::Created);
 
@@ -691,7 +691,7 @@ void ApiHandler::createBucket(Cluster* cluster, const std::string& name) {
   if (ec == TokenShaperError::Success) {
     generateResponse(HttpStatus::NoContent);
   } else {
-    generateResponse(HttpStatus::BadRequest, fmt::format("{}", ec));
+    generateResponse(HttpStatus::BadRequest, std::format("{}", ec));
   }
 }
 
@@ -719,7 +719,7 @@ void ApiHandler::updateBucket(Cluster* cluster, const std::string& name) {
   if (ec == TokenShaperError::Success) {
     generateResponse(HttpStatus::NoContent);
   } else {
-    generateResponse(HttpStatus::BadRequest, fmt::format("{}", ec));
+    generateResponse(HttpStatus::BadRequest, std::format("{}", ec));
   }
 }
 

@@ -148,7 +148,7 @@ void HealthMonitor::onResponseReceived(const HttpClient::Response& response) {
 
 void HealthMonitor::serialize(JsonWriter& json) const {
   json.beginObject()
-      .name("state")(fmt::format("{}", state()))
+      .name("state")(std::format("{}", state()))
       .name("interval")(interval().milliseconds())
       .endObject();
 }

@@ -585,7 +585,7 @@ void CoreModule::workers_affinity(Params& args) {
 
   for (FlowNumber affinity: affinities)
     if (affinity >= numCPU)
-      throw ConfigurationError{fmt::format(
+      throw ConfigurationError{std::format(
             "Worker's CPU affinity {} too high. "
             "The value must be between 0 and {}.",
             affinity, numCPU)};
@@ -612,7 +612,7 @@ bool CoreModule::preproc_sys_env(flow::Instr* call, flow::IRBuilder* builder) {
 
     const char* cval = getenv(arg->get().c_str());
     ConstantString* str = program->get(cval ? cval : "");
-    std::string name = builder->makeName(fmt::format("sys.env.{}", arg->get()));
+    std::string name = builder->makeName(std::format("sys.env.{}", arg->get()));
 
     call->replace(std::make_unique<LoadInstr>(str, name));
   }
@@ -639,7 +639,7 @@ bool CoreModule::preproc_sys_env2(flow::Instr* call, flow::IRBuilder* builder) {
 
       const char* cval = getenv(arg->get().c_str());
       ConstantString* str = program->get((cval && *cval) ? cval : val->get());
-      std::string name = builder->makeName(fmt::format("sys.env.{}", arg->get()));
+      std::string name = builder->makeName(std::format("sys.env.{}", arg->get()));
 
       call->replace(std::make_unique<LoadInstr>(str, name));
     }
@@ -1158,7 +1158,7 @@ void CoreModule::expire(Context* cx, Params& args) {
                             std::max(now, UnixTime(value * kMicrosPerSecond)));
 
   cx->response()->setHeader("Expires", expiry.format(timeFormat));
-  cx->response()->setHeader("Cache-Control", fmt::format("max-age={}", maxAge.seconds()));
+  cx->response()->setHeader("Cache-Control", std::format("max-age={}", maxAge.seconds()));
 
   // XXX same result, just more human readable ;-)
   // if (value < mtime.unixtime()) {
@@ -1167,14 +1167,14 @@ void CoreModule::expire(Context* cx, Params& args) {
   //   const UnixTime expiry = now + maxAge;
   //
   //   cx->response()->setHeader("Expires", expiry.format(timeFormat));
-  //   cx->response()->setHeader("Cache-Control", fmt::format("max-age={}", maxAge.seconds()));
+  //   cx->response()->setHeader("Cache-Control", std::format("max-age={}", maxAge.seconds()));
   // } else {
   //   // value is treated as absolute time
   //   const UnixTime expiry = std::max(now, UnixTime(value * kMicrosPerSecond));
   //   const Duration maxAge = expiry - now;
   //
   //   cx->response()->setHeader("Expires", expiry.format(timeFormat));
-  //   cx->response()->setHeader("Cache-Control", fmt::format("max-age={}", maxAge.seconds()));
+  //   cx->response()->setHeader("Cache-Control", std::format("max-age={}", maxAge.seconds()));
   // }
 }
 

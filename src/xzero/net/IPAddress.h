@@ -6,25 +6,25 @@
 // the License at: http://opensource.org/licenses/MIT
 #pragma once
 
-#include <functional>     // hash<>
-#include <optional>
-#include <iostream>
-#include <string>
-#include <cstring>        // memset()
 #include <cstdint>
 #include <cstdio>
 #include <cstdlib>
+#include <cstring>     // memset()
+#include <functional>  // hash<>
+#include <iostream>
+#include <optional>
+#include <string>
 
 #include <xzero/defines.h>
 
-#include <fmt/format.h>
+#include <format>
 
 #if defined(XZERO_OS_WINDOWS)
 #include <winsock2.h>
 #include <ws2tcpip.h>
 #else
-#include <netinet/in.h>  // in_addr, in6_addr
 #include <arpa/inet.h>   // ntohl(), htonl()
+#include <netinet/in.h>  // in_addr, in6_addr
 #endif
 
 namespace xzero {
@@ -189,7 +189,9 @@ inline size_t IPAddress::size() const {
   return family_ == Family::V4 ? sizeof(in_addr) : sizeof(in6_addr);
 }
 
-inline std::string IPAddress::str() const { return c_str(); }
+inline std::string IPAddress::str() const {
+  return c_str();
+}
 
 inline const char* IPAddress::c_str() const {
   if (*cstr_ == '\0') {
@@ -212,44 +214,36 @@ inline bool operator!=(const IPAddress& a, const IPAddress& b) {
 }  // namespace xzero
 
 namespace std {
-  template <>
-  struct hash<::xzero::IPAddress> {
-    size_t operator()(const ::xzero::IPAddress& v) const {
-      return *(uint32_t*)(v.data());
-    }
-  };
-} // namespace std
+template <>
+struct hash<::xzero::IPAddress> {
+  size_t operator()(const ::xzero::IPAddress& v) const {
+    return *(uint32_t*)(v.data());
+  }
+};
+}  // namespace std
 
-namespace fmt {
-  template<>
-  struct formatter<xzero::IPAddress> {
-    using IPAddress = xzero::IPAddress;
+template <>
+struct std::formatter<xzero::IPAddress> {
+  using IPAddress = xzero::IPAddress;
 
-    template <typename ParseContext>
-    constexpr auto parse(ParseContext &ctx) { return ctx.begin(); }
+  constexpr auto parse(std::format_parse_context& ctx) { return ctx.begin(); }
 
-    template <typename FormatContext>
-    constexpr auto format(const IPAddress& v, FormatContext &ctx) {
-      return format_to(ctx.begin(), v.str());
-    }
-  };
-}
+  auto format(const IPAddress& v, std::format_context& ctx) const {
+    return std::format_to(ctx.out(), "{}", v.str());
+  }
+};
 
-namespace fmt {
-  template<>
-  struct formatter<std::optional<xzero::IPAddress>> {
-    using IPAddress = xzero::IPAddress;
+template <>
+struct std::formatter<std::optional<xzero::IPAddress>> {
+  using IPAddress = xzero::IPAddress;
 
-    template <typename ParseContext>
-    constexpr auto parse(ParseContext &ctx) { return ctx.begin(); }
+  constexpr auto parse(std::format_parse_context& ctx) { return ctx.begin(); }
 
-    template <typename FormatContext>
-    constexpr auto format(const std::optional<IPAddress>& v, FormatContext &ctx) {
-      if (v)
-        return format_to(ctx.begin(), v->str());
-      else
-        return format_to(ctx.begin(), "NONE");
-    }
-  };
-}
-
+  auto format(const std::optional<IPAddress>& v,
+              std::format_context& ctx) const {
+    if (v)
+      return std::format_to(ctx.out(), "{}", v->str());
+    else
+      return std::format_to(ctx.out(), "NONE");
+  }
+};

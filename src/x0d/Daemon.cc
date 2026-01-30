@@ -54,7 +54,7 @@
 #include <flow/transform/UnusedBlockPass.h>
 #include <flow/vm/Runner.h>
 
-#include <fmt/format.h>
+#include <format>
 #include <iostream>
 #include <sstream>
 #include <fstream>
@@ -466,7 +466,7 @@ void Daemon::postConfig() {
           }
       );
 #else
-      throw ConfigurationError{fmt::format("Listening on HTTPS for {}:{} not supported in this build.", l.bindAddress, l.port)};
+      throw ConfigurationError{std::format("Listening on HTTPS for {}:{} not supported in this build.", l.bindAddress, l.port)};
 #endif
     } else {
       logNotice("Starting HTTP listener on {}:{}", l.bindAddress, l.port);
@@ -489,7 +489,7 @@ std::unique_ptr<EventLoop> Daemon::createEventLoop() {
   size_t i = eventLoops_.size();
 
   return std::make_unique<NativeScheduler>(
-        CatchAndLogExceptionHandler{fmt::format("x0d/{}", i)});
+        CatchAndLogExceptionHandler{std::format("x0d/{}", i)});
 }
 
 std::function<void()> Daemon::createHandler(HttpRequest* request,
@@ -511,7 +511,7 @@ void Daemon::validateContext(const std::string& entrypointHandlerName,
                                   flow::lang::UnitSym* unit) {
   auto entrypointFn = unit->findHandler(entrypointHandlerName);
   if (!entrypointFn)
-      throw ConfigurationError{fmt::format("No handler with name {} found.",
+      throw ConfigurationError{std::format("No handler with name {} found.",
                                            entrypointHandlerName)};
 
   flow::lang::CallVisitor callVisitor(entrypointFn);

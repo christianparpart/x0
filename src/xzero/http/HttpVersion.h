@@ -9,7 +9,7 @@
 
 #include <string>
 #include <iosfwd>
-#include <fmt/format.h>
+#include <format>
 
 namespace xzero::http {
 
@@ -29,31 +29,27 @@ HttpVersion make_version(const std::string& value);
 
 } // namespace xzero::http
 
-namespace fmt {
-  template<>
-  struct formatter<xzero::http::HttpVersion> {
-    using HttpVersion = xzero::http::HttpVersion;
+template<>
+struct std::formatter<xzero::http::HttpVersion> {
+  using HttpVersion = xzero::http::HttpVersion;
 
-    template <typename ParseContext>
-    constexpr auto parse(ParseContext &ctx) { return ctx.begin(); }
+  constexpr auto parse(std::format_parse_context& ctx) { return ctx.begin(); }
 
-    template <typename FormatContext>
-    constexpr auto format(const HttpVersion& v, FormatContext &ctx) {
-      switch (v) {
-        case HttpVersion::VERSION_0_9:
-          return format_to(ctx.begin(), "0.9");
-        case HttpVersion::VERSION_1_0:
-          return format_to(ctx.begin(), "1.0");
-        case HttpVersion::VERSION_1_1:
-          return format_to(ctx.begin(), "1.1");
-        case HttpVersion::VERSION_2_0:
-          return format_to(ctx.begin(), "2.0");
-        case HttpVersion::UNKNOWN:
-          return format_to(ctx.begin(), "UNKNOWN");
-        default:
-          return format_to(ctx.begin(), "({})", (int) v);
-      }
+  auto format(const HttpVersion& v, std::format_context& ctx) const {
+    switch (v) {
+      case HttpVersion::VERSION_0_9:
+        return std::format_to(ctx.out(), "0.9");
+      case HttpVersion::VERSION_1_0:
+        return std::format_to(ctx.out(), "1.0");
+      case HttpVersion::VERSION_1_1:
+        return std::format_to(ctx.out(), "1.1");
+      case HttpVersion::VERSION_2_0:
+        return std::format_to(ctx.out(), "2.0");
+      case HttpVersion::UNKNOWN:
+        return std::format_to(ctx.out(), "UNKNOWN");
+      default:
+        return std::format_to(ctx.out(), "({})", (int) v);
     }
-  };
-}
+  }
+};
 

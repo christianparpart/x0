@@ -5,7 +5,7 @@
 // file except in compliance with the License. You may obtain a copy of
 // the License at: http://opensource.org/licenses/MIT
 
-#include <fmt/format.h>
+#include <format>
 #include <xzero/PosixSignals.h>
 #include <xzero/StringUtil.h>
 #include <xzero/executor/Executor.h>

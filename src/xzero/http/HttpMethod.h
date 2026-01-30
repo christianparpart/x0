@@ -8,7 +8,7 @@
 #pragma once
 
 #include <string>
-#include <fmt/format.h>
+#include <format>
 
 // WTF MICROSOFT?!? (winnt.h)
 #ifdef DELETE
@@ -43,36 +43,32 @@ HttpMethod to_method(const std::string& value);
 } // namespace xzero::http
 
 
-namespace fmt {
-  template<>
-  struct formatter<xzero::http::HttpMethod> {
-    using HttpMethod = xzero::http::HttpMethod;
+template<>
+struct std::formatter<xzero::http::HttpMethod> {
+  using HttpMethod = xzero::http::HttpMethod;
 
-    template <typename ParseContext>
-    constexpr auto parse(ParseContext &ctx) { return ctx.begin(); }
+  constexpr auto parse(std::format_parse_context& ctx) { return ctx.begin(); }
 
-    template <typename FormatContext>
-    constexpr auto format(const HttpMethod& v, FormatContext &ctx) {
-      switch (v) {
-        case HttpMethod::UNKNOWN_METHOD: return format_to(ctx.begin(), "UNKNOWN_METHOD");
-        case HttpMethod::OPTIONS: return format_to(ctx.begin(), "OPTIONS");
-        case HttpMethod::GET: return format_to(ctx.begin(), "GET");
-        case HttpMethod::HEAD: return format_to(ctx.begin(), "HEAD");
-        case HttpMethod::POST: return format_to(ctx.begin(), "POST");
-        case HttpMethod::PUT: return format_to(ctx.begin(), "PUT");
-        case HttpMethod::DELETE: return format_to(ctx.begin(), "DELETE");
-        case HttpMethod::TRACE: return format_to(ctx.begin(), "TRACE");
-        case HttpMethod::CONNECT: return format_to(ctx.begin(), "CONNECT");
-        case HttpMethod::PROPFIND: return format_to(ctx.begin(), "PROPFIND");
-        case HttpMethod::PROPPATCH: return format_to(ctx.begin(), "PROPPATCH");
-        case HttpMethod::MKCOL: return format_to(ctx.begin(), "MKCOL");
-        case HttpMethod::COPY: return format_to(ctx.begin(), "COPY");
-        case HttpMethod::MOVE: return format_to(ctx.begin(), "MOVE");
-        case HttpMethod::LOCK: return format_to(ctx.begin(), "LOCK");
-        case HttpMethod::UNLOCK: return format_to(ctx.begin(), "UNLOCK");
-        default:
-          return format_to(ctx.begin(), "({})", (int) v);
-      }
+  auto format(const HttpMethod& v, std::format_context& ctx) const {
+    switch (v) {
+      case HttpMethod::UNKNOWN_METHOD: return std::format_to(ctx.out(), "UNKNOWN_METHOD");
+      case HttpMethod::OPTIONS: return std::format_to(ctx.out(), "OPTIONS");
+      case HttpMethod::GET: return std::format_to(ctx.out(), "GET");
+      case HttpMethod::HEAD: return std::format_to(ctx.out(), "HEAD");
+      case HttpMethod::POST: return std::format_to(ctx.out(), "POST");
+      case HttpMethod::PUT: return std::format_to(ctx.out(), "PUT");
+      case HttpMethod::DELETE: return std::format_to(ctx.out(), "DELETE");
+      case HttpMethod::TRACE: return std::format_to(ctx.out(), "TRACE");
+      case HttpMethod::CONNECT: return std::format_to(ctx.out(), "CONNECT");
+      case HttpMethod::PROPFIND: return std::format_to(ctx.out(), "PROPFIND");
+      case HttpMethod::PROPPATCH: return std::format_to(ctx.out(), "PROPPATCH");
+      case HttpMethod::MKCOL: return std::format_to(ctx.out(), "MKCOL");
+      case HttpMethod::COPY: return std::format_to(ctx.out(), "COPY");
+      case HttpMethod::MOVE: return std::format_to(ctx.out(), "MOVE");
+      case HttpMethod::LOCK: return std::format_to(ctx.out(), "LOCK");
+      case HttpMethod::UNLOCK: return std::format_to(ctx.out(), "UNLOCK");
+      default:
+        return std::format_to(ctx.out(), "({})", (int) v);
     }
-  };
-}
+  }
+};

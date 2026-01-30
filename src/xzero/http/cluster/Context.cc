@@ -61,7 +61,7 @@ void Context::onMessageHeaderEnd() {
   if (!proxyId_.empty()) {
     Buffer buf;
     buf.reserve(proxyId_.size() + viaText_.size() + 8);
-    buf.push_back(fmt::format("{}", proxyVersion_));
+    buf.push_back(std::format("{}", proxyVersion_));
     buf.push_back(' ');
     buf.push_back(proxyId_);
     buf.push_back(viaText_);

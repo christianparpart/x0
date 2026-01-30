@@ -7,7 +7,7 @@
 
 #include <xzero/raft/rpc.h>
 #include <xzero/StringUtil.h>
-#include <fmt/format.h>
+#include <format>
 #include <string.h>
 #include <iostream>
 

@@ -7,7 +7,7 @@
 
 #pragma once
 #include <limits>
-#include <fmt/format.h>
+#include <format>
 
 namespace xzero {
 namespace http {
@@ -36,26 +36,22 @@ namespace std {
   }
 }
 
-namespace fmt {
-  template<>
-  struct formatter<xzero::http::http2::SettingParameter> {
-    using SettingParameter = xzero::http::http2::SettingParameter;
+template<>
+struct std::formatter<xzero::http::http2::SettingParameter> {
+  using SettingParameter = xzero::http::http2::SettingParameter;
 
-    template <typename ParseContext>
-    constexpr auto parse(ParseContext &ctx) { return ctx.begin(); }
+  constexpr auto parse(std::format_parse_context& ctx) { return ctx.begin(); }
 
-    template <typename FormatContext>
-    constexpr auto format(const SettingParameter& v, FormatContext &ctx) {
-      switch (v) {
-        case SettingParameter::HeaderTableSize: return format_to(ctx.begin(), "HeaderTableSize");
-        case SettingParameter::EnablePush: return format_to(ctx.begin(), "EnablePush");
-        case SettingParameter::MaxConcurrentStreams: return format_to(ctx.begin(), "MaxConcurrentStreams");
-        case SettingParameter::InitialWindowSize: return format_to(ctx.begin(), "InitialWindowSize");
-        case SettingParameter::MaxFrameSize: return format_to(ctx.begin(), "MaxFrameSize");
-        case SettingParameter::MaxHeaderListSize: return format_to(ctx.begin(), "MaxHeaderListSize");
-        default: return format_to(ctx.begin(), "({})", (int) v);
-      }
+  auto format(const SettingParameter& v, std::format_context& ctx) const {
+    switch (v) {
+      case SettingParameter::HeaderTableSize: return std::format_to(ctx.out(), "HeaderTableSize");
+      case SettingParameter::EnablePush: return std::format_to(ctx.out(), "EnablePush");
+      case SettingParameter::MaxConcurrentStreams: return std::format_to(ctx.out(), "MaxConcurrentStreams");
+      case SettingParameter::InitialWindowSize: return std::format_to(ctx.out(), "InitialWindowSize");
+      case SettingParameter::MaxFrameSize: return std::format_to(ctx.out(), "MaxFrameSize");
+      case SettingParameter::MaxHeaderListSize: return std::format_to(ctx.out(), "MaxHeaderListSize");
+      default: return std::format_to(ctx.out(), "({})", (int) v);
     }
-  };
-}
+  }
+};
 

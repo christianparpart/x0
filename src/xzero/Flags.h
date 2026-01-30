@@ -1,4 +1,5 @@
-// This file is part of the "x0" project, // http://github.com/christianparpart/x0>
+// This file is part of the "x0" project, //
+// http://github.com/christianparpart/x0>
 //   (c) 2009-2018 Christian Parpart <christian@parpart.family>
 //
 // Licensed under the MIT License (the "License"); you may not use this
@@ -6,15 +7,15 @@
 // the License at: http://opensource.org/licenses/MIT
 #pragma once
 
-#include <fmt/format.h>
-#include <optional>
+#include <format>
 #include <functional>
+#include <list>
+#include <optional>
+#include <string>
 #include <system_error>
 #include <unordered_map>
-#include <vector>
-#include <list>
-#include <string>
 #include <utility>
+#include <vector>
 
 namespace xzero {
 
@@ -43,7 +44,7 @@ class Flags {
     MissingOptionValue,
     NotFound,
   };
-  
+
   class Error : public std::runtime_error {
    public:
     Error(ErrorCode code, std::string arg);
@@ -75,15 +76,19 @@ class Flags {
   std::string to_s() const;
 
   void set(const Flag& flag);
-  void set(const std::string& opt, const std::string& val, FlagStyle fs, FlagType ft);
+  void set(const std::string& opt,
+           const std::string& val,
+           FlagStyle fs,
+           FlagType ft);
   bool isSet(const std::string& flag) const;
 
-  Flags& defineString(const std::string& longOpt,
-                      char shortOpt,
-                      const std::string& valuePlaceholder,
-                      const std::string& helpText,
-                      std::optional<std::string> defaultValue = std::nullopt,
-                      std::function<void(const std::string&)> callback = nullptr);
+  Flags& defineString(
+      const std::string& longOpt,
+      char shortOpt,
+      const std::string& valuePlaceholder,
+      const std::string& helpText,
+      std::optional<std::string> defaultValue = std::nullopt,
+      std::function<void(const std::string&)> callback = nullptr);
 
   Flags& defineNumber(const std::string& longOpt,
                       char shortOpt,
@@ -116,8 +121,8 @@ class Flags {
   void parse(int argc, const char* argv[]);
   void parse(const std::vector<std::string>& args);
 
-  // Attempts to parse given arguments and returns an error code in case of parsing errors instead
-  // of throwing.
+  // Attempts to parse given arguments and returns an error code in case of
+  // parsing errors instead of throwing.
   std::error_code tryParse(const std::vector<std::string>& args);
 
  private:
@@ -132,7 +137,7 @@ class Flags {
 
  private:
   std::list<FlagDef> flagDefs_;
-  bool parametersEnabled_;              // non-option parameters enabled?
+  bool parametersEnabled_;  // non-option parameters enabled?
   std::string parametersPlaceholder_;
   std::string parametersHelpText_;
 
@@ -156,11 +161,10 @@ struct Flags::FlagDef {
 
 class Flags::Flag {
  public:
-  Flag(
-      const std::string& opt,
-      const std::string& val,
-      FlagStyle fs,
-      FlagType ft);
+  Flag(const std::string& opt,
+       const std::string& val,
+       FlagStyle fs,
+       FlagType ft);
 
   explicit Flag(char shortOpt);
   Flag(char shortOpt, const std::string& val);
@@ -191,18 +195,15 @@ std::error_code make_error_code(Flags::ErrorCode errc);
 }  // namespace xzero
 
 namespace std {
-  template<> struct is_error_code_enum<xzero::Flags::ErrorCode> : public std::true_type {};
-} // namespace std
+template <>
+struct is_error_code_enum<xzero::Flags::ErrorCode> : public std::true_type {};
+}  // namespace std
 
-namespace fmt {
-  template<>
-  struct formatter<xzero::Flags> {
-    template <typename ParseContext>
-    constexpr auto parse(ParseContext &ctx) { return ctx.begin(); }
+template <>
+struct std::formatter<xzero::Flags> {
+  constexpr auto parse(std::format_parse_context& ctx) { return ctx.begin(); }
 
-    template <typename FormatContext>
-    constexpr auto format(const xzero::Flags& v, FormatContext &ctx) {
-      return format_to(ctx.begin(), v.to_s());
-    }
-  };
-}
+  auto format(const xzero::Flags& v, std::format_context& ctx) const {
+    return std::format_to(ctx.out(), "{}", v.to_s());
+  }
+};

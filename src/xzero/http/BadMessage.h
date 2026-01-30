@@ -5,11 +5,11 @@
 // file except in compliance with the License. You may obtain a copy of
 // the License at: http://opensource.org/licenses/MIT
 
-#include <xzero/http/HttpStatus.h>
-#include <xzero/RuntimeError.h>
-#include <fmt/format.h>
-#include <system_error>
+#include <format>
 #include <stdexcept>
+#include <system_error>
+#include <xzero/RuntimeError.h>
+#include <xzero/http/HttpStatus.h>
 
 namespace xzero {
 namespace http {
@@ -28,21 +28,21 @@ class BadMessage : public RuntimeError {
   }
 };
 
-#define RAISE_HTTP(status) RAISE_EXCEPTION(BadMessage, (HttpStatus:: status))
-#define RAISE_HTTP_REASON(status, reason) RAISE_EXCEPTION(BadMessage, (HttpStatus:: status), reason)
+#define RAISE_HTTP(status) RAISE_EXCEPTION(BadMessage, (HttpStatus::status))
+#define RAISE_HTTP_REASON(status, reason) \
+  RAISE_EXCEPTION(BadMessage, (HttpStatus::status), reason)
 
 class InvalidState : public std::logic_error {
  public:
-  InvalidState()
-      : std::logic_error{"Invalid HTTP state."} {}
+  InvalidState() : std::logic_error{"Invalid HTTP state."} {}
 
   explicit InvalidState(const std::string& diag)
       : std::logic_error{"Invalid HTTP state. " + diag} {}
 
-  template<typename... Args>
+  template <typename... Args>
   explicit InvalidState(const std::string& diag, Args... args)
-      : std::logic_error(fmt::format(
-            "Invalid HTTP channel state. " + diag, args...)) {}
+      : std::logic_error("Invalid HTTP channel state. " +
+                         std::vformat(diag, std::make_format_args(args...))) {}
 };
 
 class ResponseAlreadyCommitted : public std::logic_error {
@@ -54,5 +54,5 @@ class ResponseAlreadyCommitted : public std::logic_error {
       : std::logic_error{"HTTP response was already committed. " + diag} {}
 };
 
-} // namespace http
-} // namespace xzero
+}  // namespace http
+}  // namespace xzero

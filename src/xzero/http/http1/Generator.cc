@@ -276,7 +276,7 @@ void Generator::generateResponseLine(const HttpResponseInfo& info) {
   if (info.reason().size() > 0)
     buffer_.push_back(info.reason());
   else
-    buffer_.push_back(fmt::format("{}", info.status()));
+    buffer_.push_back(std::format("{}", info.status()));
 
   buffer_.push_back("\r\n");
 }

@@ -5,22 +5,22 @@
 // file except in compliance with the License. You may obtain a copy of
 // the License at: http://opensource.org/licenses/MIT
 
-#include <xzero/net/TcpEndPoint.h>
-#include <xzero/net/TcpConnector.h>
-#include <xzero/net/TcpConnection.h>
-#include <xzero/util/BinaryReader.h>
+#include <xzero/Buffer.h>
+#include <xzero/RuntimeError.h>
+#include <xzero/defines.h>
+#include <xzero/executor/Executor.h>
 #include <xzero/io/FileUtil.h>
 #include <xzero/io/FileView.h>
-#include <xzero/executor/Executor.h>
 #include <xzero/logging.h>
-#include <xzero/RuntimeError.h>
-#include <xzero/Buffer.h>
+#include <xzero/net/TcpConnection.h>
+#include <xzero/net/TcpConnector.h>
+#include <xzero/net/TcpEndPoint.h>
 #include <xzero/sysconfig.h>
-#include <xzero/defines.h>
+#include <xzero/util/BinaryReader.h>
 
-#include <stdexcept>
-#include <fcntl.h>
 #include <errno.h>
+#include <fcntl.h>
+#include <stdexcept>
 
 #if defined(HAVE_SYS_SENDFILE_H)
 #include <sys/sendfile.h>
@@ -32,8 +32,8 @@
 #endif
 
 #if defined(XZERO_OS_WINDOWS)
-#include <WinSock2.h>
 #include <MSWSock.h>
+#include <WinSock2.h>
 #endif
 
 namespace xzero {
@@ -42,34 +42,20 @@ TcpEndPoint::TcpEndPoint(Duration readTimeout,
                          Duration writeTimeout,
                          Executor* executor,
                          std::function<void(TcpEndPoint*)> onEndPointClosed)
-    : io_(),
-      executor_(executor),
-      readTimeout_(readTimeout),
-      writeTimeout_(writeTimeout),
-      inputBuffer_(),
-      inputOffset_(0),
-      socket_{Socket::InvalidSocket},
-      isCorking_(false),
-      onEndPointClosed_(onEndPointClosed),
-      connection_() {
-}
+    : io_(), executor_(executor), readTimeout_(readTimeout),
+      writeTimeout_(writeTimeout), inputBuffer_(), inputOffset_(0),
+      socket_{Socket::InvalidSocket}, isCorking_(false),
+      onEndPointClosed_(onEndPointClosed), connection_() {}
 
 TcpEndPoint::TcpEndPoint(Socket&& socket,
                          Duration readTimeout,
                          Duration writeTimeout,
                          Executor* executor,
                          std::function<void(TcpEndPoint*)> onEndPointClosed)
-    : io_(),
-      executor_(executor),
-      readTimeout_(readTimeout),
-      writeTimeout_(writeTimeout),
-      inputBuffer_(),
-      inputOffset_(0),
-      socket_(std::move(socket)),
-      isCorking_(false),
-      onEndPointClosed_(onEndPointClosed),
-      connection_() {
-}
+    : io_(), executor_(executor), readTimeout_(readTimeout),
+      writeTimeout_(writeTimeout), inputBuffer_(), inputOffset_(0),
+      socket_(std::move(socket)), isCorking_(false),
+      onEndPointClosed_(onEndPointClosed), connection_() {}
 
 void TcpEndPoint::onTimeout() {
   if (connection()) {
@@ -91,8 +77,7 @@ std::optional<InetAddress> TcpEndPoint::remoteAddress() const {
     return *addr;
   else {
     logError("TcpEndPoint: remoteAddress: ({}) {}",
-        addr.error().category().name(),
-        addr.error().message().c_str());
+             addr.error().category().name(), addr.error().message().c_str());
     return std::nullopt;
   }
 }
@@ -103,8 +88,7 @@ std::optional<InetAddress> TcpEndPoint::localAddress() const {
     return *addr;
   else {
     logError("TcpEndPoint: localAddress: ({}) {}",
-        addr.error().category().name(),
-        addr.error().message().c_str());
+             addr.error().category().name(), addr.error().message().c_str());
     return std::nullopt;
   }
 }
@@ -144,15 +128,21 @@ void TcpEndPoint::setCorking(bool enable) {
 
 void TcpEndPoint::setTcpNoDelay(bool enable) {
   int flag = enable ? 1 : 0;
-  if (setsockopt(socket_, IPPROTO_TCP, TCP_NODELAY, (const char*) &flag, sizeof(flag)) < 0)
+  if (setsockopt(socket_, IPPROTO_TCP, TCP_NODELAY, (const char*)&flag,
+                 sizeof(flag)) < 0)
     RAISE_ERRNO(errno);
 }
 
 std::string TcpEndPoint::toString() const {
-  return fmt::format("TcpEndPoint({})", socket_.getRemoteAddress());
+  auto addr = socket_.getRemoteAddress();
+  if (addr)
+    return std::format("TcpEndPoint({})", *addr);
+  else
+    return std::format("TcpEndPoint(unknown)");
 }
 
-void TcpEndPoint::startDetectProtocol(bool dataReady, ProtocolCallback createConnection) {
+void TcpEndPoint::startDetectProtocol(bool dataReady,
+                                      ProtocolCallback createConnection) {
   inputBuffer_.reserve(256);
 
   if (dataReady) {
@@ -175,7 +165,7 @@ void TcpEndPoint::onDetectProtocol(ProtocolCallback createConnection) {
   // XXX detect magic byte (0x01) to protocol detection
   if (inputBuffer_[0] == TcpConnector::MagicProtocolSwitchByte) {
     BinaryReader reader(inputBuffer_);
-    reader.parseVarUInt(); // skip magic
+    reader.parseVarUInt();  // skip magic
     std::string protocol = reader.parseString();
     inputOffset_ = inputBuffer_.size() - reader.pending();
     createConnection(protocol, this);
@@ -273,11 +263,13 @@ size_t TcpEndPoint::write(const BufferRef& source) {
 
 size_t TcpEndPoint::write(const FileView& source) {
 #if defined(XZERO_OS_WINDOWS)
-  TransmitFile(handle(), source.handle(), source.size(), 0, nullptr, nullptr, 0); // TODO: proper non-blocking call & error handling
+  TransmitFile(handle(), source.handle(), source.size(), 0, nullptr, nullptr,
+               0);  // TODO: proper non-blocking call & error handling
   return source.size();
 #elif defined(__APPLE__)
   off_t len = source.size();
-  int rv = ::sendfile(source.handle(), handle(), source.offset(), &len, nullptr, 0);
+  int rv =
+      ::sendfile(source.handle(), handle(), source.offset(), &len, nullptr, 0);
   if (rv < 0)
     RAISE_ERRNO(errno);
 
@@ -299,9 +291,7 @@ void TcpEndPoint::wantRead() {
 
   if (!io_) {
     io_ = executor_->executeOnReadable(
-        handle(),
-        std::bind(&TcpEndPoint::fillable, this),
-        readTimeout(),
+        handle(), std::bind(&TcpEndPoint::fillable, this), readTimeout(),
         std::bind(&TcpEndPoint::onTimeout, this));
   }
 }
@@ -320,9 +310,7 @@ void TcpEndPoint::fillable() {
 void TcpEndPoint::wantWrite() {
   if (!io_) {
     io_ = executor_->executeOnWritable(
-        handle(),
-        std::bind(&TcpEndPoint::flushable, this),
-        writeTimeout(),
+        handle(), std::bind(&TcpEndPoint::flushable, this), writeTimeout(),
         std::bind(&TcpEndPoint::onTimeout, this));
   }
 }
@@ -355,8 +343,8 @@ void TcpEndPoint::connect(const InetAddress& address,
   if (!ec) {
     onConnected();
   } else if (ec == std::errc::operation_in_progress) {
-    executor_->executeOnWritable(socket_,
-        [=]() { onConnectComplete(address, onConnected, onFailure); },
+    executor_->executeOnWritable(
+        socket_, [=]() { onConnectComplete(address, onConnected, onFailure); },
         connectTimeout,
         [=]() { onFailure(std::make_error_code(std::errc::timed_out)); });
   } else {
@@ -364,24 +352,27 @@ void TcpEndPoint::connect(const InetAddress& address,
   }
 }
 
-void TcpEndPoint::onConnectComplete(InetAddress address,
-                                    std::function<void()> onConnected,
-                                    std::function<void(std::error_code ec)> onFailure) {
+void TcpEndPoint::onConnectComplete(
+    InetAddress address,
+    std::function<void()> onConnected,
+    std::function<void(std::error_code ec)> onFailure) {
   int val = 0;
   socklen_t vlen = sizeof(val);
-  if (getsockopt(socket_, SOL_SOCKET, SO_ERROR, (char*) &val, &vlen) == 0) {
+  if (getsockopt(socket_, SOL_SOCKET, SO_ERROR, (char*)&val, &vlen) == 0) {
     if (val == 0) {
       onConnected();
     } else {
-      const std::error_code ec = std::make_error_code(static_cast<std::errc>(val));
+      const std::error_code ec =
+          std::make_error_code(static_cast<std::errc>(val));
       logDebug("Connecting to {} failed. {}", address, ec.message());
       onFailure(ec);
     }
   } else {
-    const std::error_code ec = std::make_error_code(static_cast<std::errc>(val));
+    const std::error_code ec =
+        std::make_error_code(static_cast<std::errc>(val));
     logDebug("Connecting to {} failed. {}", address, ec.message());
     onFailure(ec);
   }
 }
 
-} // namespace xzero
+}  // namespace xzero

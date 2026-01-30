@@ -7,7 +7,7 @@
 
 #include <xzero/Uri.h>
 #include <xzero/logging.h>
-#include <fmt/format.h>
+#include <format>
 
 namespace xzero {
 
@@ -79,7 +79,7 @@ unsigned Uri::port() const {
 
 std::string Uri::hostAndPort() const {
   if (port_ > 0) {
-    return fmt::format("{}:{}", host_, port_);
+    return std::format("{}:{}", host_, port_);
   } else {
     return host_;
   }
@@ -91,7 +91,7 @@ const std::string& Uri::path() const {
 
 std::string Uri::pathAndQuery() const {
   if (query_.length() > 0) {
-    return fmt::format("{}?{}", path_, query_);
+    return std::format("{}?{}", path_, query_);
   } else {
     return path_;
   }

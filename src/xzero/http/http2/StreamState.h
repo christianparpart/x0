@@ -25,26 +25,22 @@ enum class StreamState {
 } // namespace http
 } // namespace xzero
 
-namespace fmt {
-  template<>
-  struct formatter<xzero::http::http2::StreamState> {
-    using StreamState = xzero::http::http2::StreamState;
+template<>
+struct std::formatter<xzero::http::http2::StreamState> {
+  using StreamState = xzero::http::http2::StreamState;
 
-    template <typename ParseContext>
-    constexpr auto parse(ParseContext &ctx) { return ctx.begin(); }
+  constexpr auto parse(std::format_parse_context& ctx) { return ctx.begin(); }
 
-    template <typename FormatContext>
-    constexpr auto format(const StreamState& v, FormatContext &ctx) {
-      switch (v) {
-        case StreamState::Idle: return format_to(ctx.begin(), "Idle");
-        case StreamState::Open: return format_to(ctx.begin(), "Open");
-        case StreamState::ReservedRemote: return format_to(ctx.begin(), "ReservedRemote");
-        case StreamState::ReservedLocal: return format_to(ctx.begin(), "ReservedLocal");
-        case StreamState::HalfClosedRemote: return format_to(ctx.begin(), "HalfClosedRemote");
-        case StreamState::HalfClosedRemote: return format_to(ctx.begin(), "HalfClosedRemote");
-        case StreamState::Closed: return format_to(ctx.begin(), "Closed");
-        default: return format_to(ctx.begin(), "({})", (int) v);
-      }
+  auto format(const StreamState& v, std::format_context& ctx) const {
+    switch (v) {
+      case StreamState::Idle: return std::format_to(ctx.out(), "Idle");
+      case StreamState::Open: return std::format_to(ctx.out(), "Open");
+      case StreamState::ReservedRemote: return std::format_to(ctx.out(), "ReservedRemote");
+      case StreamState::ReservedLocal: return std::format_to(ctx.out(), "ReservedLocal");
+      case StreamState::HalfClosedRemote: return std::format_to(ctx.out(), "HalfClosedRemote");
+      case StreamState::HalfClosedRemote: return std::format_to(ctx.out(), "HalfClosedRemote");
+      case StreamState::Closed: return std::format_to(ctx.out(), "Closed");
+      default: return std::format_to(ctx.out(), "({})", (int) v);
     }
-  };
-}
+  }
+};

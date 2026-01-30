@@ -26,7 +26,7 @@
 #include <xzero/io/FileDescriptor.h>
 #include <xzero/logging.h>
 
-#include <fmt/format.h>
+#include <format>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
@@ -201,7 +201,7 @@ std::string formatLog(Context* cx, const std::string& format) { // {{{
       case 'r':  // request line
         result << request->unparsedMethod()
                << ' ' << request->unparsedUri()
-               << " HTTP/" << fmt::format("{}", request->version());
+               << " HTTP/" << std::format("{}", request->version());
         ++i;
         break;
       case 'T': {  // request time duration
@@ -246,7 +246,7 @@ std::string formatLog(Context* cx, const std::string& format) { // {{{
         ++i;
         break;
       default:
-        throw AccesslogFormatError{fmt::format("Unknown format identifier '%{}'", *i)};
+        throw AccesslogFormatError{std::format("Unknown format identifier '%{}'", *i)};
     }
   }
 
@@ -277,7 +277,7 @@ void verifyFormat(const std::string& format) { // {{{
         char id = *i;
         ++i;
         if (auto fn = getFormatName(i, e); fn == "") {
-          throw AccesslogFormatError{fmt::format(
+          throw AccesslogFormatError{std::format(
               "message field for %{}{{}} must not be empty.", id)};
         }
         break;
@@ -300,7 +300,7 @@ void verifyFormat(const std::string& format) { // {{{
       case 'v': // request vhost
         break;
       default:
-        throw AccesslogFormatError{fmt::format("Unknown format identifier '%{}'", *i)};
+        throw AccesslogFormatError{std::format("Unknown format identifier '%{}'", *i)};
     }
   }
 }

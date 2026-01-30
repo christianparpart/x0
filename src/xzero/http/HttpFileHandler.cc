@@ -5,23 +5,24 @@
 // file except in compliance with the License. You may obtain a copy of
 // the License at: http://opensource.org/licenses/MIT
 
+#include <fcntl.h>
+#include <print>
+#include <sys/stat.h>
+#include <sys/types.h>
+#include <xzero/Buffer.h>
+#include <xzero/Random.h>
+#include <xzero/RuntimeError.h>
+#include <xzero/Tokenizer.h>
+#include <xzero/UnixTime.h>
+#include <xzero/http/HeaderFieldList.h>
 #include <xzero/http/HttpFileHandler.h>
+#include <xzero/http/HttpRangeDef.h>
 #include <xzero/http/HttpRequest.h>
 #include <xzero/http/HttpResponse.h>
-#include <xzero/http/HttpRangeDef.h>
-#include <xzero/http/HeaderFieldList.h>
-#include <xzero/Random.h>
 #include <xzero/io/File.h>
 #include <xzero/io/FileView.h>
-#include <xzero/UnixTime.h>
-#include <xzero/Tokenizer.h>
-#include <xzero/Buffer.h>
-#include <xzero/RuntimeError.h>
 #include <xzero/logging.h>
 #include <xzero/sysconfig.h>
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <fcntl.h>
 
 namespace xzero {
 namespace http {
@@ -36,10 +37,10 @@ inline constexpr std::pair<size_t, size_t> makeOffsets(
   return p.first == HttpRangeDef::npos
              ? std::make_pair(actualSize - p.second,
                               actualSize - 1)  // last N bytes
-             : p.second == HttpRangeDef::npos && p.second > actualSize
-                   ? std::make_pair(p.first, actualSize - 1)  // from fixed N to
-                                                              // the end of file
-                   : std::make_pair(p.first, p.second);       // fixed range
+         : p.second == HttpRangeDef::npos && p.second > actualSize
+             ? std::make_pair(p.first, actualSize - 1)  // from fixed N to
+                                                        // the end of file
+             : std::make_pair(p.first, p.second);       // fixed range
 }
 
 /**
@@ -62,15 +63,13 @@ static std::string generateDefaultBoundaryID() {
 // }}}
 
 HttpFileHandler::HttpFileHandler()
-    : HttpFileHandler(std::bind(&generateDefaultBoundaryID)) {
-}
+    : HttpFileHandler(std::bind(&generateDefaultBoundaryID)) {}
 
-HttpFileHandler::HttpFileHandler(std::function<std::string()> generateBoundaryID)
-    : generateBoundaryID_(generateBoundaryID) {
-}
+HttpFileHandler::HttpFileHandler(
+    std::function<std::string()> generateBoundaryID)
+    : generateBoundaryID_(generateBoundaryID) {}
 
-HttpFileHandler::~HttpFileHandler() {
-}
+HttpFileHandler::~HttpFileHandler() {}
 
 HttpStatus HttpFileHandler::handle(HttpRequest* request,
                                    HttpResponse* response,
@@ -108,14 +107,16 @@ HttpStatus HttpFileHandler::handle(HttpRequest* request,
 
   FileHandle fd;
   if (request->method() == HttpMethod::GET) {
-    fd = transferFile->createPosixChannel(FileOpenFlags::Read | FileOpenFlags::NonBlocking);
+    fd = transferFile->createPosixChannel(FileOpenFlags::Read |
+                                          FileOpenFlags::NonBlocking);
     if (fd < 0) {
       switch (errno) {
         case EPERM:
         case EACCES:
           return HttpStatus::Forbidden;
         case ENOSYS:
-          // TODO: in that case we're prjobably on MemoryFile and we need to read differently
+          // TODO: in that case we're prjobably on MemoryFile and we need to
+          // read differently
         default:
           RAISE_ERRNO(errno);
       }
@@ -182,12 +183,10 @@ static inline uint64_t getUnixMicros(const struct tm& tm) {
   for (auto i = 1; i < tm.tm_mon; ++i)
     days += daysInMonth(tm.tm_year, i);
 
-  uint64_t micros = days * kMicrosPerDay +
-         tm.tm_hour * kMicrosPerHour +
-         tm.tm_min * kMicrosPerMinute +
-         tm.tm_sec * kMicrosPerSecond;
+  uint64_t micros = days * kMicrosPerDay + tm.tm_hour * kMicrosPerHour +
+                    tm.tm_min * kMicrosPerMinute + tm.tm_sec * kMicrosPerSecond;
 
-  fmt::print("secs = {}\n", micros / kMicrosPerSecond);
+  std::print("secs = {}\n", micros / kMicrosPerSecond);
 
   return micros;
 }
@@ -208,7 +207,7 @@ static std::optional<UnixTime> parseTime(const std::string& timeStr) {
   else
     return UnixTime(utc * kMicrosPerSecond);
 #else
-  return std::nullopt; // TODO: strptime() impl
+  return std::nullopt;  // TODO: strptime() impl
 #endif
 }
 
@@ -308,9 +307,8 @@ bool HttpFileHandler::handleRangeRequest(const File& transferFile,
     return false;
 
   std::string ifRangeCond = request->headers().get("If-Range");
-  if (!ifRangeCond.empty()
-        && !equals(ifRangeCond, transferFile.etag())
-        && !equals(ifRangeCond, transferFile.lastModified()))
+  if (!ifRangeCond.empty() && !equals(ifRangeCond, transferFile.etag()) &&
+      !equals(ifRangeCond, transferFile.lastModified()))
     return false;
 
   response->setStatus(HttpStatus::PartialContent);
@@ -329,25 +327,19 @@ bool HttpFileHandler::handleRangeRequest(const File& transferFile,
       const auto offsets = makeOffsets(range[i], transferFile.size());
       const size_t partLength = 1 + offsets.second - offsets.first;
 
-      const size_t headerLen = sizeof("\r\n--") - 1
-                             + boundary.size()
-                             + sizeof("\r\nContent-Type: ") - 1
-                             + transferFile.mimetype().size()
-                             + sizeof("\r\nContent-Range: bytes ") - 1
-                             + numdigits(offsets.first)
-                             + sizeof("-") - 1
-                             + numdigits(offsets.second)
-                             + sizeof("/") - 1
-                             + numdigits(transferFile.size())
-                             + sizeof("\r\n\r\n") - 1;
+      const size_t headerLen =
+          sizeof("\r\n--") - 1 + boundary.size() +
+          sizeof("\r\nContent-Type: ") - 1 + transferFile.mimetype().size() +
+          sizeof("\r\nContent-Range: bytes ") - 1 + numdigits(offsets.first) +
+          sizeof("-") - 1 + numdigits(offsets.second) + sizeof("/") - 1 +
+          numdigits(transferFile.size()) + sizeof("\r\n\r\n") - 1;
 
       contentLength += headerLen + partLength;
     }
 
     // add trailer length
-    const size_t trailerLen = sizeof("\r\n--") - 1
-                            + boundary.size()
-                            + sizeof("--\r\n") - 1;
+    const size_t trailerLen =
+        sizeof("\r\n--") - 1 + boundary.size() + sizeof("--\r\n") - 1;
     contentLength += trailerLen;
 
     // populate response info
@@ -360,7 +352,7 @@ bool HttpFileHandler::handleRangeRequest(const File& transferFile,
       const std::pair<size_t, size_t> offsets(
           makeOffsets(range[i], transferFile.size()));
 
-      if (offsets.second < offsets.first) { // FIXME why did I do this here?
+      if (offsets.second < offsets.first) {  // FIXME why did I do this here?
         response->setStatus(HttpStatus::PartialContent);
         response->completed();
         return true;
@@ -429,5 +421,5 @@ bool HttpFileHandler::handleRangeRequest(const File& transferFile,
   return true;
 }
 
-} // namespace http
-} // namespace xzero
+}  // namespace http
+}  // namespace xzero

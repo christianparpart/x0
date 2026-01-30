@@ -14,7 +14,7 @@
 #include <algorithm>
 #include <chrono>
 #include <cstdlib>
-#include <fmt/format.h>
+#include <format>
 #include <random>
 
 #if defined(XZERO_OS_WINDOWS)
@@ -224,7 +224,7 @@ void UnitTest::filterTests(const std::string& filter,
   std::vector<size_t> filtered;
   for (size_t i = 0, e = activeTests_.size(); i != e; ++i) {
     TestInfo* testInfo = testCases_[activeTests_[i]].get();
-    std::string matchName = fmt::format("{}.{}",
+    std::string matchName = std::format("{}.{}",
         testInfo->testCaseName(), testInfo->testName());
 
 #if defined(XZERO_OS_WINDOWS)
@@ -399,7 +399,7 @@ void UnitTest::reportError(const char* fileName,
                            bool fatal,
                            const char* actual,
                            const std::error_code& ec) {
-  std::string message = fmt::format(
+  std::string message = std::format(
       "{}:{}: Failure\n"
       "  Value of: {}\n"
       "  Expected: success\n"
@@ -419,7 +419,7 @@ void UnitTest::reportError(const char* fileName,
                            const std::error_code& expectedEvaluated,
                            const char* actual,
                            const std::error_code& actualEvaluated) {
-  std::string message = fmt::format(
+  std::string message = std::format(
       "{}:{}: Failure\n"
       "  Value of: {}\n"
       "  Expected: ({}) {}\n"
@@ -439,7 +439,7 @@ void UnitTest::reportBinary(const char* fileName,
                             const char* actual,
                             const std::string& actualEvaluated,
                             const char* op) {
-  std::string message = fmt::format(
+  std::string message = std::format(
       "{}:{}: Failure\n"
       "  Value of: {}\n"
       "  Expected: {} {}\n"
@@ -454,7 +454,7 @@ void UnitTest::reportBinary(const char* fileName,
 
 void UnitTest::reportUnhandledException(const std::exception& e) {
   if (const RuntimeError* rte = dynamic_cast<const RuntimeError*>(&e)) {
-    std::string message = fmt::format(
+    std::string message = std::format(
         "Unhandled Exception\n"
           "  Type: {}\n"
           "  What: {}\n"
@@ -468,7 +468,7 @@ void UnitTest::reportUnhandledException(const std::exception& e) {
         rte->sourceLine());
     reportMessage(message, false);
   } else {
-    std::string message = fmt::format(
+    std::string message = std::format(
         "Unhandled Exception\n"
           "  Type: {}\n"
           "  What: {}\n",
@@ -484,7 +484,7 @@ void UnitTest::reportEH(const char* fileName,
                         const char* program,
                         const char* expected,
                         const char* actual) {
-  std::string message = fmt::format(
+  std::string message = std::format(
       "{}:{}: {}\n"
       "  Value of: {}\n"
       "  Expected: {}\n"

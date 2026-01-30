@@ -84,7 +84,7 @@ const char* HttpStatusCategory::name() const noexcept {
 }
 
 std::string HttpStatusCategory::message(int ev) const {
-  return fmt::format("{}", static_cast<HttpStatus>(ev));
+  return std::format("{}", static_cast<HttpStatus>(ev));
 }
 
 } // namespace http

@@ -7,42 +7,44 @@
 
 #pragma once
 
+#include <format>
 #include <xzero/defines.h>
-#include <fmt/format.h>
 
-#include <string>
 #include <memory>
+#include <string>
 #include <vector>
 
 namespace xzero::testing {
 
-#define TEST_ENV_SETUP(Name)                                                  \
-  class _CALLBACK_NAME(Name) : public ::xzero::testing::Callback {            \
-   public:                                                                    \
-    void invoke() override;                                                   \
-   private:                                                                   \
-    static ::xzero::testing::Callback* const ref_ XZERO_UNUSED;               \
-  };                                                                          \
-                                                                              \
-  ::xzero::testing::Callback* const                                           \
-  _CALLBACK_NAME(Name)::ref_ =                                                \
-      ::xzero::testing::UnitTest::instance()->addInitializer(                 \
-          std::make_unique<_CALLBACK_NAME>(Name));                            \
-                                                                              \
+#define TEST_ENV_SETUP(Name)                                       \
+  class _CALLBACK_NAME(Name) : public ::xzero::testing::Callback { \
+   public:                                                         \
+    void invoke() override;                                        \
+                                                                   \
+   private:                                                        \
+    static ::xzero::testing::Callback* const ref_ XZERO_UNUSED;    \
+  };                                                               \
+                                                                   \
+  ::xzero::testing::Callback* const _CALLBACK_NAME(Name)::ref_ =   \
+      ::xzero::testing::UnitTest::instance()->addInitializer(      \
+          std::make_unique<_CALLBACK_NAME>(Name));                 \
+                                                                   \
   void _CALLBACK_NAME(Name)::invoke()
 
 #define _CALLBACK_NAME(Name) Callback_##Name
 
-#define TEST_ENV_TEARDOWN(Name) // TODO
+#define TEST_ENV_TEARDOWN(Name)  // TODO
 
-#define TEST_ENV_F(EnvName)                                                   \
-  ::xzero::testing::UnitTest::instance()->addEnvironment(                     \
+#define TEST_ENV_F(EnvName)                               \
+  ::xzero::testing::UnitTest::instance()->addEnvironment( \
       std::unique_ptr<::xzero::testing::Environment>(EnvName));
 
 // ############################################################################
 
-#define TEST(testCase, testName) _CREATE_TEST(testCase, testName, ::xzero::testing::Test)
-#define TEST_F(testFixture, testName) _CREATE_TEST(testFixture, testName, testFixture)
+#define TEST(testCase, testName) \
+  _CREATE_TEST(testCase, testName, ::xzero::testing::Test)
+#define TEST_F(testFixture, testName) \
+  _CREATE_TEST(testFixture, testName, testFixture)
 
 #define EXPECT_EQ(expected, actual) \
   _EXPECT_BINARY(__FILE__, __LINE__, false, expected, actual, ==)
@@ -68,49 +70,47 @@ namespace xzero::testing {
 #define EXPECT_FALSE(actual) \
   _EXPECT_BOOLEAN(__FILE__, __LINE__, false, false, actual)
 
-#define EXPECT_NEAR(expected, actual, diff)       // TODO
+#define EXPECT_NEAR(expected, actual, diff)  // TODO
 
-#define EXPECT_ERROR_CODE_SUCCESS(errorCode)                                  \
-  if (errorCode) {                                                            \
-    ::xzero::testing::UnitTest::instance()->reportError(                      \
-        __FILE__, __LINE__, false, #errorCode, errorCode);                    \
+#define EXPECT_ERROR_CODE_SUCCESS(errorCode)               \
+  if (errorCode) {                                         \
+    ::xzero::testing::UnitTest::instance()->reportError(   \
+        __FILE__, __LINE__, false, #errorCode, errorCode); \
   }
 
-#define EXPECT_ERROR_CODE(expected, actual)                                   \
-  do {                                                                        \
-    std::error_code actual_ {(actual)};                                       \
-    if (actual_ != (expected)) {                                              \
-      ::xzero::testing::UnitTest::instance()->reportError(                    \
-          __FILE__, __LINE__, false,                                          \
-          #expected, (expected),                                              \
-          #actual, actual_);                                                  \
-    }                                                                         \
+#define EXPECT_ERROR_CODE(expected, actual)                                    \
+  do {                                                                         \
+    std::error_code actual_{(actual)};                                         \
+    if (actual_ != (expected)) {                                               \
+      ::xzero::testing::UnitTest::instance()->reportError(                     \
+          __FILE__, __LINE__, false, #expected, (expected), #actual, actual_); \
+    }                                                                          \
   } while (0)
 
-#define EXPECT_THROW(program, ExceptionType)                                  \
-  do {                                                                        \
-    try {                                                                     \
-      program;                                                                \
-      ::xzero::testing::UnitTest::instance()->reportEH(                       \
-          __FILE__, __LINE__, false, #program, #ExceptionType,                \
-          "<no exception thrown>");                                           \
-    } catch (const ExceptionType&) {                                          \
-      break; \
-    } catch (...) { \
-      ::xzero::testing::UnitTest::instance()->reportEH(                       \
-          __FILE__, __LINE__, false, #program, #ExceptionType, "<foreign>");  \
-    }                                                                         \
+#define EXPECT_THROW(program, ExceptionType)                                 \
+  do {                                                                       \
+    try {                                                                    \
+      program;                                                               \
+      ::xzero::testing::UnitTest::instance()->reportEH(                      \
+          __FILE__, __LINE__, false, #program, #ExceptionType,               \
+          "<no exception thrown>");                                          \
+    } catch (const ExceptionType&) {                                         \
+      break;                                                                 \
+    } catch (...) {                                                          \
+      ::xzero::testing::UnitTest::instance()->reportEH(                      \
+          __FILE__, __LINE__, false, #program, #ExceptionType, "<foreign>"); \
+    }                                                                        \
   } while (0)
 
-#define EXPECT_ANY_THROW(program)                                             \
-  do {                                                                        \
-    try {                                                                     \
-      program;                                                                \
-      ::xzero::testing::UnitTest::instance()->reportEH(                       \
-          __FILE__, __LINE__, false, #program, "<any exception>",             \
-          "<no exception thrown>");                                           \
-    } catch (...) {                                                           \
-    }                                                                         \
+#define EXPECT_ANY_THROW(program)                                 \
+  do {                                                            \
+    try {                                                         \
+      program;                                                    \
+      ::xzero::testing::UnitTest::instance()->reportEH(           \
+          __FILE__, __LINE__, false, #program, "<any exception>", \
+          "<no exception thrown>");                               \
+    } catch (...) {                                               \
+    }                                                             \
   } while (0)
 
 // ############################################################################
@@ -139,98 +139,94 @@ namespace xzero::testing {
 #define ASSERT_FALSE(actual) \
   _EXPECT_BOOLEAN(__FILE__, __LINE__, true, false, actual)
 
-#define ASSERT_NEAR(expected, actual, diff)       // TODO
+#define ASSERT_NEAR(expected, actual, diff)  // TODO
 
-#define ASSERT_ERROR_CODE_SUCCESS(errorCode)                                  \
-  if (errorCode) {                                                            \
-    ::xzero::testing::UnitTest::instance()->reportError(                      \
-        __FILE__, __LINE__, true, #errorCode, errorCode);                     \
+#define ASSERT_ERROR_CODE_SUCCESS(errorCode)              \
+  if (errorCode) {                                        \
+    ::xzero::testing::UnitTest::instance()->reportError(  \
+        __FILE__, __LINE__, true, #errorCode, errorCode); \
   }
 
 #define ASSERT_ERROR_CODE(expected, actual)                                   \
   do {                                                                        \
-    std::error_code actual_ {(actual)};                                       \
+    std::error_code actual_{(actual)};                                        \
     if (actual_ != (expected)) {                                              \
       ::xzero::testing::UnitTest::instance()->reportError(                    \
-          __FILE__, __LINE__, true,                                           \
-          #expected, (expected),                                              \
-          #actual, actual_);                                                  \
+          __FILE__, __LINE__, true, #expected, (expected), #actual, actual_); \
     }                                                                         \
   } while (0)
 
-#define ASSERT_THROW(program, ExceptionType)                                  \
-  do {                                                                        \
-    try {                                                                     \
-      program;                                                                \
-      ::xzero::testing::UnitTest::instance()->reportEH(                       \
-          __FILE__, __LINE__, true, #program, #ExceptionType,                 \
-          "<no exception thrown>");                                           \
-    } catch (const ExceptionType&) {                                          \
-      break; \
-    } catch (...) { \
-      ::xzero::testing::UnitTest::instance()->reportEH(                       \
-          __FILE__, __LINE__, true, #program, #ExceptionType, "<foreign>");   \
-    }                                                                         \
+#define ASSERT_THROW(program, ExceptionType)                                \
+  do {                                                                      \
+    try {                                                                   \
+      program;                                                              \
+      ::xzero::testing::UnitTest::instance()->reportEH(                     \
+          __FILE__, __LINE__, true, #program, #ExceptionType,               \
+          "<no exception thrown>");                                         \
+    } catch (const ExceptionType&) {                                        \
+      break;                                                                \
+    } catch (...) {                                                         \
+      ::xzero::testing::UnitTest::instance()->reportEH(                     \
+          __FILE__, __LINE__, true, #program, #ExceptionType, "<foreign>"); \
+    }                                                                       \
   } while (0)
 
-#define ASSERT_ANY_THROW(program)                                             \
-  do {                                                                        \
-    try {                                                                     \
-      program;                                                                \
-      ::xzero::testing::UnitTest::instance()->reportEH(                       \
-          __FILE__, __LINE__, true, #program, "<any exception>",              \
-          "<no exception thrown>");                                           \
-    } catch (...) {                                                           \
-    }                                                                         \
+#define ASSERT_ANY_THROW(program)                                \
+  do {                                                           \
+    try {                                                        \
+      program;                                                   \
+      ::xzero::testing::UnitTest::instance()->reportEH(          \
+          __FILE__, __LINE__, true, #program, "<any exception>", \
+          "<no exception thrown>");                              \
+    } catch (...) {                                              \
+    }                                                            \
   } while (0)
 
 // ############################################################################
 
-#define _EXPECT_BOOLEAN(fileName, lineNo, fatal, expected, actual)            \
-  do {                                                                        \
-    bool actualEvaluated = !! (actual);                                       \
-    bool failed = (expected && !actualEvaluated)                              \
-               || (!expected && actualEvaluated);                             \
-    if (failed) {                                                             \
-      ::xzero::testing::UnitTest::instance()->reportBinary(                   \
-          __FILE__, __LINE__, fatal, #expected, #actual,                      \
-          ::fmt::format("{}", (actualEvaluated)), "");                        \
-    } \
+#define _EXPECT_BOOLEAN(fileName, lineNo, fatal, expected, actual)        \
+  do {                                                                    \
+    bool actualEvaluated = !!(actual);                                    \
+    bool failed =                                                         \
+        (expected && !actualEvaluated) || (!expected && actualEvaluated); \
+    if (failed) {                                                         \
+      ::xzero::testing::UnitTest::instance()->reportBinary(               \
+          __FILE__, __LINE__, fatal, #expected, #actual,                  \
+          std::format("{}", (actualEvaluated)), "");                      \
+    }                                                                     \
   } while (0)
 
-#define _EXPECT_BINARY(fileName, lineNo, fatal, expected, actual, op)         \
-  do {                                                                        \
-    auto actual_ = (actual);                                                  \
-    if (!((expected) op (actual_))) {                                         \
-    ::xzero::testing::UnitTest::instance()->reportBinary(                     \
-        __FILE__, __LINE__, fatal, #expected, #actual,                        \
-        ::fmt::format("{}", actual_), #op);                                   \
-    }                                                                         \
+#define _EXPECT_BINARY(fileName, lineNo, fatal, expected, actual, op) \
+  do {                                                                \
+    auto actual_ = (actual);                                          \
+    if (!((expected)op(actual_))) {                                   \
+      ::xzero::testing::UnitTest::instance()->reportBinary(           \
+          __FILE__, __LINE__, fatal, #expected, #actual,              \
+          std::format("{}", actual_), #op);                           \
+    }                                                                 \
   } while (0)
 
-#define _TEST_CLASS_NAME(testCaseName, testName) \
-  Test_##testCaseName##testName
+#define _TEST_CLASS_NAME(testCaseName, testName) Test_##testCaseName##testName
 
-#define _CREATE_TEST(testCaseName, testName, ParentClass)                     \
-class _TEST_CLASS_NAME(testCaseName, testName) : public ParentClass {         \
- public:                                                                      \
-  _TEST_CLASS_NAME(testCaseName, testName)() {}                               \
-                                                                              \
- private:                                                                     \
-  virtual void TestBody();                                                    \
-                                                                              \
-  static ::xzero::testing::TestInfo* const test_info_ XZERO_UNUSED;           \
-};                                                                            \
-                                                                              \
-::xzero::testing::TestInfo* const                                             \
-_TEST_CLASS_NAME(testCaseName, testName)::test_info_ =                        \
-    ::xzero::testing::UnitTest::instance()->addTest(                          \
-        #testCaseName, #testName,                                             \
-        std::make_unique<                                                     \
-            ::xzero::testing::TestFactoryTemplate<                            \
-                _TEST_CLASS_NAME(testCaseName, testName)>>());                \
-                                                                              \
-void _TEST_CLASS_NAME(testCaseName, testName)::TestBody()
+#define _CREATE_TEST(testCaseName, testName, ParentClass)                    \
+  class _TEST_CLASS_NAME(testCaseName, testName) : public ParentClass {      \
+   public:                                                                   \
+    _TEST_CLASS_NAME(testCaseName, testName)() {}                            \
+                                                                             \
+   private:                                                                  \
+    virtual void TestBody();                                                 \
+                                                                             \
+    static ::xzero::testing::TestInfo* const test_info_ XZERO_UNUSED;        \
+  };                                                                         \
+                                                                             \
+  ::xzero::testing::TestInfo* const _TEST_CLASS_NAME(testCaseName,           \
+                                                     testName)::test_info_ = \
+      ::xzero::testing::UnitTest::instance()->addTest(                       \
+          #testCaseName, #testName,                                          \
+          std::make_unique<::xzero::testing::TestFactoryTemplate<            \
+              _TEST_CLASS_NAME(testCaseName, testName)>>());                 \
+                                                                             \
+  void _TEST_CLASS_NAME(testCaseName, testName)::TestBody()
 
 // ############################################################################
 
@@ -269,7 +265,7 @@ class Test {
 
   void log(const std::string& message);
 
-  template<typename... Args>
+  template <typename... Args>
   void logf(const char* fmt, Args... args);
 
   void reportUnhandledException(const std::exception& e);
@@ -288,7 +284,7 @@ class TestFactory {
   virtual std::unique_ptr<Test> createTest() = 0;
 };
 
-template<typename TheTestClass>
+template <typename TheTestClass>
 class TestFactoryTemplate : public TestFactory {
  public:
   std::unique_ptr<Test> createTest() override {
@@ -304,7 +300,7 @@ class TestInfo {
   TestInfo& operator=(const TestInfo&) = delete;
 
  public:
-  TestInfo(const std::string& testCaseName, 
+  TestInfo(const std::string& testCaseName,
            const std::string& testName,
            bool enabled,
            std::unique_ptr<TestFactory>&& testFactory);
@@ -380,9 +376,9 @@ class UnitTest {
 
   void log(const std::string& message);
 
-  template<typename ... Args>
+  template <typename... Args>
   void logf(const char* format, Args... args) {
-    log(fmt::format(format, args...));
+    log(std::vformat(format, std::make_format_args(args...)));
   }
 
  private:
@@ -410,9 +406,9 @@ class UnitTest {
   std::vector<std::string> failures_;
 };
 
-template<typename... Args>
+template <typename... Args>
 inline void Test::logf(const char* fmt, Args... args) {
   UnitTest::instance()->logf(fmt, args...);
 }
 
-} // namespace xzero::testing
+}  // namespace xzero::testing

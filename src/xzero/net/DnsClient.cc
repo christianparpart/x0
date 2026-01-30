@@ -215,7 +215,7 @@ std::vector<std::pair<int, std::string>> DnsClient::mx(const std::string& name) 
 std::vector<DnsClient::SRV> DnsClient::srv(const std::string& service,
                                            const std::string& protocol,
                                            const std::string& name) {
-  return srv(fmt::format("_{}._{}.{}.", service, protocol, name));
+  return srv(std::format("_{}._{}.{}.", service, protocol, name));
 }
 
 std::vector<DnsClient::SRV> DnsClient::srv(const std::string& fqdn) {

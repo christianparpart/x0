@@ -35,7 +35,7 @@
 #include <flow/ir/IRProgram.h>
 #include <flow/ir/ConstantValue.h>
 #include <flow/ir/ConstantArray.h>
-#include <fmt/format.h>
+#include <format>
 
 namespace x0d {
 

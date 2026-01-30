@@ -12,7 +12,7 @@
 #include <xzero/logging.h>
 #include <xzero/sysconfig.h>
 #include <xzero/sysconfig.h>
-#include <fmt/format.h>
+#include <format>
 
 #include <iostream>
 #include <typeinfo>
@@ -82,7 +82,7 @@ void RuntimeError::debugPrint(std::ostream* os) const {
     os = &std::cerr;
   }
 
-  *os << fmt::format(
+  *os << std::format(
             "{}: {}\n"
             "    in {}\n"
             "    in {}:{}\n",

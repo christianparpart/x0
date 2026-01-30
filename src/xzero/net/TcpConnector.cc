@@ -173,7 +173,7 @@ void TcpConnector::listen(int backlog) {
 #endif
 
   if (backlog > somaxconn) {
-    throw std::runtime_error{fmt::format(
+    throw std::runtime_error{std::format(
         "Listener {} configured with a backlog higher than the system"
         " permits ({} > {})."
 #if defined(XZERO_OS_LINUX)
@@ -622,7 +622,7 @@ void TcpConnector::loadConnectionFactorySelector(const std::string& protocolName
 }
 
 std::string TcpConnector::toString() const {
-  return fmt::format("TcpConnector({})<{}>", name(), address_);
+  return std::format("TcpConnector({})<{}>", name(), address_);
 }
 
 }  // namespace xzero

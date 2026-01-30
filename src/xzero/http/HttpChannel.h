@@ -13,7 +13,7 @@
 #include <xzero/http/HttpHandler.h>
 #include <xzero/http/HttpVersion.h>
 #include <xzero/io/Filter.h>
-#include <fmt/format.h>
+#include <format>
 #include <list>
 #include <memory>
 #include <iosfwd>
@@ -208,27 +208,23 @@ inline Executor* HttpChannel::executor() const noexcept {
 }  // namespace http
 }  // namespace xzero
 
-namespace fmt {
-  template<>
-  struct formatter<xzero::http::HttpChannelState> {
-    using HttpChannelState = xzero::http::HttpChannelState;
+template<>
+struct std::formatter<xzero::http::HttpChannelState> {
+  using HttpChannelState = xzero::http::HttpChannelState;
 
-    template <typename ParseContext>
-    constexpr auto parse(ParseContext &ctx) { return ctx.begin(); }
+  constexpr auto parse(std::format_parse_context& ctx) { return ctx.begin(); }
 
-    template <typename FormatContext>
-    constexpr auto format(const HttpChannelState& v, FormatContext &ctx) {
-      switch (v) {
-        case HttpChannelState::READING:
-          return format_to(ctx.begin(), "READING");
-        case HttpChannelState::HANDLING:
-          return format_to(ctx.begin(), "HANDLING");
-        case HttpChannelState::SENDING:
-          return format_to(ctx.begin(), "SENDING");
-        default:
-          return format_to(ctx.begin(), "({})", (int) v);
-      }
+  auto format(const HttpChannelState& v, std::format_context& ctx) const {
+    switch (v) {
+      case HttpChannelState::READING:
+        return std::format_to(ctx.out(), "READING");
+      case HttpChannelState::HANDLING:
+        return std::format_to(ctx.out(), "HANDLING");
+      case HttpChannelState::SENDING:
+        return std::format_to(ctx.out(), "SENDING");
+      default:
+        return std::format_to(ctx.out(), "({})", (int) v);
     }
-  };
-}
+  }
+};
 

@@ -7,18 +7,18 @@
 
 #pragma once
 
+#include <cassert>
+#include <climits>
+#include <cstdarg>
+#include <cstddef>
+#include <cstdlib>
+#include <cstring>
+#include <format>
+#include <iosfwd>
+#include <stdexcept>
+#include <string>
 #include <xzero/Api.h>
 #include <xzero/RuntimeError.h>
-#include <fmt/format.h>
-#include <cstddef>
-#include <climits>
-#include <cstring>
-#include <cstdlib>
-#include <cstdarg>
-#include <cassert>
-#include <string>
-#include <stdexcept>
-#include <iosfwd>
 
 namespace xzero {
 
@@ -91,11 +91,7 @@ struct BufferTraits<Buffer> {
 };
 // }}}
 // {{{ BufferBase<T>
-enum class HexDumpMode {
-  InlineWide,
-  InlineNarrow,
-  PrettyAscii
-};
+enum class HexDumpMode { InlineWide, InlineNarrow, PrettyAscii };
 
 template <typename T>
 class BufferBase {
@@ -108,7 +104,7 @@ class BufferBase {
   typedef typename BufferTraits<T>::const_iterator const_iterator;
   typedef typename BufferTraits<T>::data_type data_type;
 
-  static constexpr size_t npos = (size_t) -1;
+  static constexpr size_t npos = (size_t)-1;
 
  protected:
   data_type data_;
@@ -116,8 +112,10 @@ class BufferBase {
 
  public:
   constexpr BufferBase() : data_(), size_(0) {}
-  constexpr BufferBase(data_type data, size_t size) : data_(data), size_(size) {}
-  constexpr BufferBase(const BufferBase<T>& v) : data_(v.data_), size_(v.size_) {}
+  constexpr BufferBase(data_type data, size_t size)
+      : data_(data), size_(size) {}
+  constexpr BufferBase(const BufferBase<T>& v)
+      : data_(v.data_), size_(v.size_) {}
 
   // properties
   pointer_type data() { return data_; }
@@ -295,9 +293,9 @@ class BufferRef : public BufferBase<char*> {
   void shr(ssize_t offset = 1);
 
   using BufferBase<char*>::hexdump;
-  static std::string hexdump(
-      const void* bytes, std::size_t length,
-      HexDumpMode mode = HexDumpMode::InlineWide);
+  static std::string hexdump(const void* bytes,
+                             std::size_t length,
+                             HexDumpMode mode = HexDumpMode::InlineWide);
 
   class reverse_iterator {  // {{{
    private:
@@ -305,7 +303,8 @@ class BufferRef : public BufferBase<char*> {
     ssize_t cur_;
 
    public:
-    reverse_iterator(BufferRef* r, size_t cur) : buf_(r), cur_(static_cast<size_t>(cur)) {}
+    reverse_iterator(BufferRef* r, size_t cur)
+        : buf_(r), cur_(static_cast<size_t>(cur)) {}
     reverse_iterator& operator++() {
       if (cur_ >= 0) {
         --cur_;
@@ -511,14 +510,12 @@ Buffer operator+(const BufferRef& a, const BufferRef& b);
 
 // {{{ BufferTraits helper impl
 inline BufferOffset::operator char*() {
-  assert(buffer_ != nullptr &&
-         "Buffer must not be empty when accessing data.");
+  assert(buffer_ != nullptr && "Buffer must not be empty when accessing data.");
   return buffer_->data() + offset_;
 }
 
 inline BufferOffset::operator const char*() const {
-  assert(buffer_ != nullptr &&
-         "Buffer must not be empty when accessing data.");
+  assert(buffer_ != nullptr && "Buffer must not be empty when accessing data.");
   return const_cast<BufferOffset*>(this)->buffer_->data() + offset_;
 }
 // }}}
@@ -544,9 +541,9 @@ inline size_t BufferBase<T>::find(const value_type* value,
 
   while (i != e) {
     if (*i == *value) {
-      const char* p = i + 1; // points to the second search-byte (data)
-      const char* q = value + 1; // points to the second search-byte (pattern)
-      const char* qe = i + value_length; // EOS (pattern)
+      const char* p = i + 1;      // points to the second search-byte (data)
+      const char* q = value + 1;  // points to the second search-byte (pattern)
+      const char* qe = i + value_length;  // EOS (pattern)
 
       while (*p == *q && p != qe) {
         ++p;
@@ -608,8 +605,8 @@ inline size_t BufferBase<T>::find(const BufferRef& buf, size_t offset) const {
 }
 
 template <typename T>
-inline size_t BufferBase<T>::find(
-    const std::string& value, size_t offset) const {
+inline size_t BufferBase<T>::find(const std::string& value,
+                                  size_t offset) const {
   return find(BufferRef(value.data(), value.size()), offset);
 }
 
@@ -658,15 +655,18 @@ inline size_t BufferBase<T>::rfind(value_type value) const {
 
 template <typename T>
 inline size_t BufferBase<T>::rfind(value_type value, size_t offset) const {
-  if (empty()) return npos;
+  if (empty())
+    return npos;
 
   const char* p = data();
   const char* q = p + offset;
 
   for (;;) {
-    if (*q == value) return q - p;
+    if (*q == value)
+      return q - p;
 
-    if (p == q) break;
+    if (p == q)
+      break;
 
     --q;
   }
@@ -677,9 +677,11 @@ inline size_t BufferBase<T>::rfind(value_type value, size_t offset) const {
 template <typename T>
 template <typename PodType, size_t N>
 size_t BufferBase<T>::rfind(PodType (&value)[N]) const {
-  if (empty()) return npos;
+  if (empty())
+    return npos;
 
-  if (size() < N - 1) return npos;
+  if (size() < N - 1)
+    return npos;
 
   const char* i = end();
   const char* e = begin() + (N - 1);
@@ -825,13 +827,16 @@ inline U BufferBase<T>::hex() const {
   auto e = end();
 
   // empty string
-  if (i == e) return 0;
+  if (i == e)
+    return 0;
 
   U val = 0;
   while (i != e) {
-    if (!std::isxdigit(*i)) break;
+    if (!std::isxdigit(*i))
+      break;
 
-    if (val) val *= 16;
+    if (val)
+      val *= 16;
 
     if (std::isdigit(*i))
       val += *i++ - '0';
@@ -846,9 +851,11 @@ inline U BufferBase<T>::hex() const {
 
 template <typename T>
 inline bool BufferBase<T>::toBool() const {
-  if (iequals(*this, "true")) return true;
+  if (iequals(*this, "true"))
+    return true;
 
-  if (equals(*this, "1")) return true;
+  if (equals(*this, "1"))
+    return true;
 
   return false;
 }
@@ -859,7 +866,8 @@ inline int BufferBase<T>::toInt() const {
   auto e = cend();
 
   // empty string
-  if (i == e) return 0;
+  if (i == e)
+    return 0;
 
   // parse sign
   bool sign = false;
@@ -873,21 +881,25 @@ inline int BufferBase<T>::toInt() const {
   } else if (*i == '+') {
     ++i;
 
-    if (i == e) return 0;
+    if (i == e)
+      return 0;
   }
 
   // parse digits
   int val = 0;
   while (i != e) {
-    if (*i < '0' || *i > '9') break;
+    if (*i < '0' || *i > '9')
+      break;
 
-    if (val) val *= 10;
+    if (val)
+      val *= 10;
 
     val += *i++ - '0';
   }
 
   // parsing succeed.
-  if (sign) val = -val;
+  if (sign)
+    val = -val;
 
   return val;
 }
@@ -896,7 +908,8 @@ template <typename T>
 inline double BufferBase<T>::toDouble() const {
   char* endptr = nullptr;
   double result = strtod(cbegin(), &endptr);
-  if (endptr <= cend()) return result;
+  if (endptr <= cend())
+    return result;
 
   return 0.0;
 }
@@ -918,9 +931,11 @@ inline std::string BufferBase<T>::hexdump(HexDumpMode mode) const {
 // --------------------------------------------------------------------------
 template <typename T>
 inline bool equals(const BufferBase<T>& a, const BufferBase<T>& b) {
-  if (&a == &b) return true;
+  if (&a == &b)
+    return true;
 
-  if (a.size() != b.size()) return false;
+  if (a.size() != b.size())
+    return false;
 
   return std::memcmp(a.data(), b.data(), a.size()) == 0;
 }
@@ -929,20 +944,23 @@ template <typename T, typename PodType, std::size_t N>
 bool equals(const BufferBase<T>& a, PodType (&b)[N]) {
   const std::size_t bsize = N - 1;
 
-  if (a.size() != bsize) return false;
+  if (a.size() != bsize)
+    return false;
 
   return std::memcmp(a.data(), b, bsize) == 0;
 }
 
 template <typename T>
 inline bool equals(const BufferBase<T>& a, const std::string& b) {
-  if (a.size() != b.size()) return false;
+  if (a.size() != b.size())
+    return false;
 
   return std::memcmp(a.data(), b.data(), b.size()) == 0;
 }
 
 inline bool equals(const std::string& a, const std::string& b) {
-  if (a.size() != b.size()) return false;
+  if (a.size() != b.size())
+    return false;
 
   return std::memcmp(a.data(), b.data(), b.size()) == 0;
 }
@@ -951,9 +969,11 @@ inline bool equals(const std::string& a, const std::string& b) {
 
 template <typename T>
 inline bool iequals(const BufferBase<T>& a, const BufferBase<T>& b) {
-  if (&a == &b) return true;
+  if (&a == &b)
+    return true;
 
-  if (a.size() != b.size()) return false;
+  if (a.size() != b.size())
+    return false;
 
 #if defined(_WIN32) || defined(_WIN64)
   return _strnicmp(a.data(), b.data(), b.size()) == 0;
@@ -966,7 +986,8 @@ template <typename T, typename PodType, std::size_t N>
 bool iequals(const BufferBase<T>& a, PodType (&b)[N]) {
   const std::size_t bsize = N - 1;
 
-  if (a.size() != bsize) return false;
+  if (a.size() != bsize)
+    return false;
 
 #if defined(_WIN32) || defined(_WIN64)
   return _strnicmp(a.data(), b, bsize) == 0;
@@ -977,7 +998,8 @@ bool iequals(const BufferBase<T>& a, PodType (&b)[N]) {
 
 template <typename T>
 inline bool iequals(const BufferBase<T>& a, const std::string& b) {
-  if (a.size() != b.size()) return false;
+  if (a.size() != b.size())
+    return false;
 
 #if defined(_WIN32) || defined(_WIN64)
   return _strnicmp(a.data(), b.data(), b.size()) == 0;
@@ -987,7 +1009,8 @@ inline bool iequals(const BufferBase<T>& a, const std::string& b) {
 }
 
 inline bool iequals(const std::string& a, const std::string& b) {
-  if (a.size() != b.size()) return false;
+  if (a.size() != b.size())
+    return false;
 
 #if defined(_WIN32) || defined(_WIN64)
   return _strnicmp(a.data(), b.data(), b.size()) == 0;
@@ -1046,7 +1069,7 @@ inline void BufferRef::swap(xzero::BufferRef& other) {
 
 inline constexpr BufferRef::const_reference_type BufferRef::operator[](
     size_t index) const {
-  //assert(index < size_);
+  // assert(index < size_);
 
   return data_[index];
 }
@@ -1065,8 +1088,7 @@ inline void BufferRef::shr(ssize_t value) {
 // }}}
 // {{{ MutableBuffer<ensure> impl
 template <void (*ensure)(void*, size_t)>
-inline MutableBuffer<ensure>::MutableBuffer()
-    : BufferRef(), capacity_(0) {}
+inline MutableBuffer<ensure>::MutableBuffer() : BufferRef(), capacity_(0) {}
 
 template <void (*ensure)(void*, size_t)>
 inline MutableBuffer<ensure>::MutableBuffer(const MutableBuffer& v)
@@ -1081,13 +1103,15 @@ inline MutableBuffer<ensure>::MutableBuffer(MutableBuffer&& v)
 }
 
 template <void (*ensure)(void*, size_t)>
-inline MutableBuffer<ensure>::MutableBuffer(char* value, size_t capacity,
+inline MutableBuffer<ensure>::MutableBuffer(char* value,
+                                            size_t capacity,
                                             size_t size)
     : BufferRef(value, size), capacity_(capacity) {}
 
 template <void (*ensure)(void*, size_t)>
 inline bool MutableBuffer<ensure>::resize(size_t value) {
-  if (value > capacity_) return false;
+  if (value > capacity_)
+    return false;
 
   size_ = value;
   return true;
@@ -1189,7 +1213,8 @@ inline void MutableBuffer<ensure>::push_back(const BufferRef& value) {
 
 template <void (*ensure)(void*, size_t)>
 inline void MutableBuffer<ensure>::push_back(const BufferRef& value,
-                                             size_t offset, size_t length) {
+                                             size_t offset,
+                                             size_t length) {
   assert(value.size() <= offset + length);
 
   if (!length)
@@ -1220,9 +1245,7 @@ template <void (*ensure)(void*, size_t)>
 inline void MutableBuffer<ensure>::push_back(const void* value, size_t size) {
   if (size) {
     reserve(size_ + size);
-    const size_t minsize = capacity_ - size_ < size
-        ? capacity_ - size_
-        : size;
+    const size_t minsize = capacity_ - size_ < size ? capacity_ - size_ : size;
     std::memcpy(end(), value, minsize);
     size_ += minsize;
   }
@@ -1284,8 +1307,8 @@ inline size_t MutableBuffer<ensure>::printf(const char* fmt, Args... args) {
 }
 
 template <void (*ensure)(void*, size_t)>
-inline typename MutableBuffer<ensure>::reference_type MutableBuffer<ensure>::
-operator[](size_t index) {
+inline typename MutableBuffer<ensure>::reference_type
+MutableBuffer<ensure>::operator[](size_t index) {
   assert(index < size_);
 
   return data_[index];
@@ -1293,8 +1316,7 @@ operator[](size_t index) {
 
 template <void (*ensure)(void*, size_t)>
 inline typename MutableBuffer<ensure>::const_reference_type
-MutableBuffer<ensure>::
-operator[](size_t index) const {
+MutableBuffer<ensure>::operator[](size_t index) const {
   assert(index < size_);
 
   return data_[index];
@@ -1405,8 +1427,7 @@ inline FixedBuffer::FixedBuffer(FixedBuffer&& v)
 }
 
 inline FixedBuffer::FixedBuffer(char* data, size_t capacity, size_t size)
-    : MutableBuffer<immutableEnsure>(data, capacity, size) {
-}
+    : MutableBuffer<immutableEnsure>(data, capacity, size) {}
 
 inline Buffer& Buffer::operator=(Buffer&& v) {
   swap(v);
@@ -1447,75 +1468,61 @@ inline FixedBuffer& FixedBuffer::operator=(const value_type* v) {
 }
 // }}}
 // {{{ Buffer impl
-inline Buffer::Buffer()
-    : MutableBuffer<mutableEnsure>(),
-      mark_(0) {
-}
+inline Buffer::Buffer() : MutableBuffer<mutableEnsure>(), mark_(0) {}
 
 inline Buffer::Buffer(const BufferRef& v, size_t offset, size_t count)
-    : MutableBuffer<mutableEnsure>(),
-      mark_(0) {
+    : MutableBuffer<mutableEnsure>(), mark_(0) {
   assert(offset + count <= v.size());
 
   push_back(v.data() + offset, count);
 }
 
 inline Buffer::Buffer(const BufferRef& v)
-    : MutableBuffer<mutableEnsure>(),
-      mark_(0) {
+    : MutableBuffer<mutableEnsure>(), mark_(0) {
   push_back(v.data(), v.size());
 }
 
 inline Buffer::Buffer(size_t _capacity)
-    : MutableBuffer<mutableEnsure>(),
-      mark_(0) {
+    : MutableBuffer<mutableEnsure>(), mark_(0) {
   reserve(_capacity);
 }
 
-inline Buffer::Buffer(size_t size, char value)
-    : Buffer(size) {
+inline Buffer::Buffer(size_t size, char value) : Buffer(size) {
   memset(data(), value, size);
   resize(size);
 }
 
 template <typename PodType, size_t N>
 inline Buffer::Buffer(PodType (&value)[N])
-    : MutableBuffer<mutableEnsure>(),
-      mark_(0) {
+    : MutableBuffer<mutableEnsure>(), mark_(0) {
   reserve(N);
   push_back(value, N - 1);
 }
 
 inline Buffer::Buffer(const value_type* value, size_t size)
-    : MutableBuffer<mutableEnsure>(),
-      mark_(0) {
+    : MutableBuffer<mutableEnsure>(), mark_(0) {
   reserve(size + 1);
   push_back(value, size);
 }
 
 inline Buffer::Buffer(const char* v)
-    : MutableBuffer<mutableEnsure>(),
-      mark_(0) {
+    : MutableBuffer<mutableEnsure>(), mark_(0) {
   push_back(v);
 }
 
 inline Buffer::Buffer(const std::string& v)
-    : MutableBuffer<mutableEnsure>(),
-      mark_(0) {
+    : MutableBuffer<mutableEnsure>(), mark_(0) {
   reserve(v.size() + 1);
   push_back(v.data(), v.size());
 }
 
 inline Buffer::Buffer(const Buffer& v)
-    : MutableBuffer<mutableEnsure>(),
-      mark_(0) {
+    : MutableBuffer<mutableEnsure>(), mark_(0) {
   push_back(v.data(), v.size());
 }
 
 inline Buffer::Buffer(Buffer&& v)
-    : MutableBuffer<mutableEnsure>(std::move(v)),
-      mark_(0) {
-}
+    : MutableBuffer<mutableEnsure>(std::move(v)), mark_(0) {}
 
 inline Buffer::~Buffer() {
   reserve(0);
@@ -1594,19 +1601,19 @@ inline void swap(xzero::BufferRef& left, xzero::BufferRef& right) {
 
 // {{{ std::hash<BufferBase<T>>
 namespace xzero {
-  // Fowler / Noll / Vo (FNV) Hash-Implementation
-  template <typename T>
-  uint32_t _hash(const T& array) noexcept {
-    uint32_t result = 2166136261u;
+// Fowler / Noll / Vo (FNV) Hash-Implementation
+template <typename T>
+uint32_t _hash(const T& array) noexcept {
+  uint32_t result = 2166136261u;
 
-    for (auto value : array) {
-      result ^= value;
-      result *= 16777619;
-    }
-
-    return result;
+  for (auto value : array) {
+    result ^= value;
+    result *= 16777619;
   }
+
+  return result;
 }
+}  // namespace xzero
 
 namespace std {
 
@@ -1630,48 +1637,15 @@ struct hash<xzero::Buffer> {
   }
 };
 
-}
+}  // namespace std
 // }}}
 
-namespace fmt {
-  template<>
-  struct formatter<xzero::BufferRef> {
-    memory_buffer format_;
+template <>
+struct std::formatter<xzero::BufferRef> {
+  constexpr auto parse(std::format_parse_context& ctx) { return ctx.begin(); }
 
-    parse_context::iterator parse(parse_context& ctx) {
-      using internal::pointer_from;
-
-      auto it = internal::null_terminating_iterator<char>(ctx);
-      if (*it == ':')
-        ++it;
-
-      auto end = it;
-      while (*end && *end != '}')
-        ++end;
-
-      format_.reserve(end - it + 1);
-      format_.append(pointer_from(it), pointer_from(end));
-      format_.push_back('\0');
-
-      return pointer_from(end);
-    }
-
-    format_context::iterator format(const xzero::BufferRef& arg, format_context& ctx) {
-      internal::buffer& buf = internal::get_container(ctx.begin());
-      const std::size_t start = buf.size();
-      const std::size_t count = arg.size();
-
-      if (buf.size() + count < buf.capacity()) {
-        //constexpr std::size_t MIN_GROWTH = 10;
-        buf.reserve(buf.size() + count);
-      }
-      buf.append(&arg[0], &arg[count]);
-
-      if (count != 0) {
-        buf.resize(start + count);
-      }
-
-      return ctx.begin();
-    }
-  };
-}
+  auto format(const xzero::BufferRef& arg, std::format_context& ctx) const {
+    return std::format_to(ctx.out(), "{}",
+                          std::string_view(arg.data(), arg.size()));
+  }
+};

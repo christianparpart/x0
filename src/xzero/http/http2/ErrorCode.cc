@@ -7,7 +7,7 @@
 
 #include <xzero/http/http2/ErrorCode.h>
 #include <string>
-#include <fmt/format.h>
+#include <format>
 
 namespace xzero::http::http2 {
 
@@ -42,7 +42,7 @@ std::string as_string(ErrorCode ec) {
     case ErrorCode::Http11Required:
       return "Http11Required";
     default: {
-      return fmt::format("ERROR_CODE_{}", static_cast<unsigned>(ec));
+      return std::format("ERROR_CODE_{}", static_cast<unsigned>(ec));
     }
   }
 }

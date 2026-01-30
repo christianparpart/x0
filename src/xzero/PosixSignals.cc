@@ -208,7 +208,7 @@ std::string PosixSignals::toString(int signo) {
     default: break;
   }
 
-  return fmt::format("<{}>", signo);
+  return std::format("<{}>", signo);
 }
 
 }  // namespace xzero

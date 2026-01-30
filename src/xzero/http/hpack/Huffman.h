@@ -7,6 +7,7 @@
 
 #pragma once
 
+#include <cstdint>
 #include <string>
 
 namespace xzero {
@@ -17,11 +18,13 @@ class Huffman {
  public:
   static std::string encode(const std::string& value);
   static std::string decode(const uint8_t* pos, const uint8_t* end);
-  static void decode(std::string* output, const uint8_t* pos, const uint8_t* end);
+  static void decode(std::string* output,
+                     const uint8_t* pos,
+                     const uint8_t* end);
 
   static size_t encodeLength(const std::string& value);
 };
 
-} // namespace hpack
-} // namespace http
-} // namespace xzero
+}  // namespace hpack
+}  // namespace http
+}  // namespace xzero

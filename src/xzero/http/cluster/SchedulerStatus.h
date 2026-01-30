@@ -7,7 +7,7 @@
 
 #pragma once
 
-#include <fmt/format.h>
+#include <format>
 
 namespace xzero::http::cluster {
 
@@ -27,27 +27,23 @@ enum class SchedulerStatus {
 
 } // namespace xzero::http::cluster
 
-namespace fmt {
-  template<>
-  struct formatter<xzero::http::cluster::SchedulerStatus> {
-    using SchedulerStatus = xzero::http::cluster::SchedulerStatus;
+template<>
+struct std::formatter<xzero::http::cluster::SchedulerStatus> {
+  using SchedulerStatus = xzero::http::cluster::SchedulerStatus;
 
-    template <typename ParseContext>
-    constexpr auto parse(ParseContext &ctx) { return ctx.begin(); }
+  constexpr auto parse(std::format_parse_context& ctx) { return ctx.begin(); }
 
-    template <typename FormatContext>
-    constexpr auto format(const SchedulerStatus& v, FormatContext &ctx) {
-      switch (v) {
-        case SchedulerStatus::Unavailable:
-          return format_to(ctx.begin(), "Unavailable");
-        case SchedulerStatus::Success:
-          return format_to(ctx.begin(), "Success");
-        case SchedulerStatus::Overloaded:
-          return format_to(ctx.begin(), "Overloaded");
-        default:
-          return format_to(ctx.begin(), "({})", (int) v);
-      }
+  auto format(const SchedulerStatus& v, std::format_context& ctx) const {
+    switch (v) {
+      case SchedulerStatus::Unavailable:
+        return std::format_to(ctx.out(), "Unavailable");
+      case SchedulerStatus::Success:
+        return std::format_to(ctx.out(), "Success");
+      case SchedulerStatus::Overloaded:
+        return std::format_to(ctx.out(), "Overloaded");
+      default:
+        return std::format_to(ctx.out(), "({})", (int) v);
     }
-  };
-}
+  }
+};
 

@@ -275,7 +275,7 @@ void Context::sendTrivialResponse(HttpStatus status, const std::string& reason) 
 
   Buffer body(2048);
 
-  Buffer htmlMessage = reason.empty() ? fmt::format("{}", status) : reason;
+  Buffer htmlMessage = reason.empty() ? std::format("{}", status) : reason;
 
   htmlMessage.replaceAll("<", "&lt;");
   htmlMessage.replaceAll(">", "&gt;");

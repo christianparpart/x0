@@ -9,7 +9,7 @@
 #include <string>
 #include <cstdint>
 #include <system_error>
-#include <fmt/format.h>
+#include <format>
 
 namespace xzero {
 namespace raft {
@@ -54,25 +54,21 @@ namespace std {
   template<> struct is_error_code_enum<xzero::raft::RaftError> : public true_type{};
 }
 
-namespace fmt {
-  template<>
-  struct formatter<xzero::raft::RaftError> {
-    using RaftError = xzero::raft::RaftError;
+template<>
+struct std::formatter<xzero::raft::RaftError> {
+  using RaftError = xzero::raft::RaftError;
 
-    template <typename ParseContext>
-    constexpr auto parse(ParseContext &ctx) { return ctx.begin(); }
+  constexpr auto parse(std::format_parse_context& ctx) { return ctx.begin(); }
 
-    template <typename FormatContext>
-    constexpr auto format(const RaftError& v, FormatContext &ctx) {
-      switch (v) {
-        case RaftError::Success: return format_to(ctx.begin(), "Success");
-        case RaftError::MismatchingServerId: return format_to(ctx.begin(), "MismatchingServerId");
-        case RaftError::NotLeading: return format_to(ctx.begin(), "NotLeading");
-        case RaftError::CommitTimeout: return format_to(ctx.begin(), "CommitTimeout");
-        case RaftError::ServerNotFound: return format_to(ctx.begin(), "ServerNotFound");
-        default: return format_to(ctx.begin(), "({})", (int) v);
-      }
+  auto format(const RaftError& v, std::format_context& ctx) const {
+    switch (v) {
+      case RaftError::Success: return std::format_to(ctx.out(), "Success");
+      case RaftError::MismatchingServerId: return std::format_to(ctx.out(), "MismatchingServerId");
+      case RaftError::NotLeading: return std::format_to(ctx.out(), "NotLeading");
+      case RaftError::CommitTimeout: return std::format_to(ctx.out(), "CommitTimeout");
+      case RaftError::ServerNotFound: return std::format_to(ctx.out(), "ServerNotFound");
+      default: return std::format_to(ctx.out(), "({})", (int) v);
     }
-  };
-}
+  }
+};
 

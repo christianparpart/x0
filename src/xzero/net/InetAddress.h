@@ -7,9 +7,9 @@
 
 #pragma once
 
-#include <xzero/net/IPAddress.h>
-#include <fmt/format.h>
+#include <format>
 #include <optional>
+#include <xzero/net/IPAddress.h>
 
 namespace xzero {
 
@@ -39,13 +39,13 @@ class InetAddress {
 };
 
 // {{{ inlines
-inline InetAddress::InetAddress(const std::string& ipaddr, int port, Family family)
-    : ipaddress_(ipaddr, family), port_(port) {
-}
+inline InetAddress::InetAddress(const std::string& ipaddr,
+                                int port,
+                                Family family)
+    : ipaddress_(ipaddr, family), port_(port) {}
 
 inline InetAddress::InetAddress(const IPAddress& ipaddr, int port)
-    : ipaddress_(ipaddr), port_(port) {
-}
+    : ipaddress_(ipaddr), port_(port) {}
 
 inline const IPAddress& InetAddress::ip() const noexcept {
   return ipaddress_;
@@ -68,40 +68,30 @@ inline InetAddress::Family InetAddress::family() const noexcept {
 }
 // }}}
 
-} // namespace xzero
+}  // namespace xzero
 
-namespace fmt {
-  template<>
-  struct formatter<xzero::InetAddress> {
-    using InetAddress = xzero::InetAddress;
+template <>
+struct std::formatter<xzero::InetAddress> {
+  using InetAddress = xzero::InetAddress;
 
-    template <typename ParseContext>
-    constexpr auto parse(ParseContext &ctx) -> decltype(ctx.begin()) {
-      return ctx.begin();
-    }
+  constexpr auto parse(std::format_parse_context& ctx) { return ctx.begin(); }
 
-    template <typename FormatContext>
-    constexpr auto format(const InetAddress& v, FormatContext& ctx) -> decltype(ctx.begin()) {
-      return format_to(ctx.begin(), "{}:{}", v.ip(), v.port());
-    }
-  };
-}
+  auto format(const InetAddress& v, std::format_context& ctx) const {
+    return std::format_to(ctx.out(), "{}:{}", v.ip(), v.port());
+  }
+};
 
-namespace fmt {
-  template<>
-  struct formatter<std::optional<xzero::InetAddress>> {
-    using InetAddress = xzero::InetAddress;
+template <>
+struct std::formatter<std::optional<xzero::InetAddress>> {
+  using InetAddress = xzero::InetAddress;
 
-    template <typename ParseContext>
-    constexpr auto parse(ParseContext &ctx) { return ctx.begin(); }
+  constexpr auto parse(std::format_parse_context& ctx) { return ctx.begin(); }
 
-    template <typename FormatContext>
-    constexpr auto format(const std::optional<InetAddress>& v, FormatContext &ctx) {
-      if (v)
-        return format_to(ctx.begin(), "{}:{}", v->ip(), v->port());
-      else
-        return format_to(ctx.begin(), "NONE");
-    }
-  };
-}
-
+  auto format(const std::optional<InetAddress>& v,
+              std::format_context& ctx) const {
+    if (v)
+      return std::format_to(ctx.out(), "{}:{}", v->ip(), v->port());
+    else
+      return std::format_to(ctx.out(), "NONE");
+  }
+};

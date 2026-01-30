@@ -21,7 +21,7 @@ namespace xzero {
  *               |line two
  *               |line three
  *               )";
- * fmt::print(s);
+ * std::print(s);
  * \endcode
  *
  * This prints three lines: @c "line one\nline two\nline three\n"

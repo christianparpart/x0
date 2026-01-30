@@ -6,7 +6,7 @@
 // the License at: http://opensource.org/licenses/MIT
 #pragma once
 
-#include <fmt/format.h>
+#include <format>
 #include <xzero/Duration.h>
 
 #include <ctime>
@@ -150,16 +150,12 @@ namespace std {
 
 #include <xzero/UnixTime_impl.h>
 
-namespace fmt {
-  template<>
-  struct formatter<xzero::UnixTime> {
-    template <typename ParseContext>
-    constexpr auto parse(ParseContext &ctx) { return ctx.begin(); }
+template<>
+struct std::formatter<xzero::UnixTime> {
+  constexpr auto parse(std::format_parse_context& ctx) { return ctx.begin(); }
 
-    template <typename FormatContext>
-    constexpr auto format(const xzero::UnixTime& v, FormatContext &ctx) {
-      return format_to(ctx.begin(), "{}", v.unixtime());
-    }
-  };
-}
+  auto format(const xzero::UnixTime& v, std::format_context& ctx) const {
+    return std::format_to(ctx.out(), "{}", v.unixtime());
+  }
+};
 

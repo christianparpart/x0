@@ -34,7 +34,7 @@ void Generator::generateRequest(const HttpRequestInfo& info) {
   CgiParamStreamWriter paramsWriter;
   paramsWriter.encode("GATEWAY_INTERFACE", "CGI/1.1");
   paramsWriter.encode("SERVER_SOFTWARE", "xzero/http");
-  paramsWriter.encode("SERVER_PROTOCOL", fmt::format("{}", info.version()));
+  paramsWriter.encode("SERVER_PROTOCOL", std::format("{}", info.version()));
   if (info.headers().contains("Host"))
     paramsWriter.encode("SERVER_NAME", info.headers().get("Host"));
   paramsWriter.encode("REQUEST_METHOD", info.unparsedMethod());

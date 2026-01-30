@@ -13,7 +13,7 @@
 #include <xzero/net/InetAddress.h>
 #include <xzero/sysconfig.h>
 
-#include <fmt/format.h>
+#include <format>
 
 #if defined(XZERO_OS_WINDOWS)
 #include <winsock2.h>
@@ -53,8 +53,10 @@ class [[nodiscard]] Socket {
   Socket(Socket&& other);
   Socket& operator=(Socket&& other);
 
-  static Socket make_tcp_ip(bool nonBlocking, AddressFamily = AddressFamily::V6);
-  static Socket make_udp_ip(bool nonBlocking, AddressFamily = AddressFamily::V6);
+  static Socket make_tcp_ip(bool nonBlocking,
+                            AddressFamily = AddressFamily::V6);
+  static Socket make_udp_ip(bool nonBlocking,
+                            AddressFamily = AddressFamily::V6);
 
 #if defined(XZERO_OS_UNIX)
   static Socket make_socket(AddressFamily af, FileDescriptor&& fd);
@@ -81,15 +83,19 @@ class [[nodiscard]] Socket {
   std::error_code connect(const InetAddress& address);
 
 #if defined(XZERO_OS_UNIX)
-  operator int () const noexcept { return handle_; }
+  operator int() const noexcept { return handle_; }
   int native() const noexcept { return handle_; }
   int release() { return handle_.release(); }
 #endif
 
 #if defined(XZERO_OS_WINDOWS)
-  operator SOCKET () const noexcept { return handle_; }
+  operator SOCKET() const noexcept { return handle_; }
   SOCKET native() const noexcept { return handle_; }
-  SOCKET release() { SOCKET t = handle_; close(); return t; }
+  SOCKET release() {
+    SOCKET t = handle_;
+    close();
+    return t;
+  }
 #endif
 
   void swap(Socket& other) {
@@ -113,23 +119,20 @@ inline void swap(Socket& a, Socket& b) {
   a.swap(b);
 }
 
-} // namespace xzero
+}  // namespace xzero
 
-namespace fmt {
-  template<>
-  struct formatter<xzero::Socket> {
-    using Socket = xzero::Socket;
+template <>
+struct std::formatter<xzero::Socket> {
+  using Socket = xzero::Socket;
 
-    template <typename ParseContext>
-    constexpr auto parse(ParseContext &ctx) { return ctx.begin(); }
+  constexpr auto parse(std::format_parse_context& ctx) { return ctx.begin(); }
 
-    template <typename FormatContext>
-    constexpr auto format(const Socket& v, FormatContext &ctx) {
+  auto format(const Socket& v, std::format_context& ctx) const {
 #if defined(XZERO_OS_UNIX)
-      return format_to(ctx.begin(), "{}", v.native());
+    return std::format_to(ctx.out(), "{}", v.native());
 #else
-      return format_to(ctx.begin(), /* TODO */);
+    return std::format_to(ctx.out(), "{}",
+                          v.native()); /* TODO: platform-specific */
 #endif
-    }
-  };
-}
+  }
+};

@@ -8,7 +8,7 @@
 #pragma once
 
 #include <cstdint>
-#include <fmt/format.h>
+#include <format>
 #include <xzero/Duration.h>
 
 namespace xzero {
@@ -51,16 +51,12 @@ constexpr Duration distance(MonotonicTime a, MonotonicTime b);
 
 #include <xzero/MonotonicTime_impl.h>
 
-namespace fmt {
-  template<>
-  struct formatter<xzero::MonotonicTime> {
-    template <typename ParseContext>
-    constexpr auto parse(ParseContext &ctx) { return ctx.begin(); }
+template<>
+struct std::formatter<xzero::MonotonicTime> {
+  constexpr auto parse(std::format_parse_context& ctx) { return ctx.begin(); }
 
-    template <typename FormatContext>
-    constexpr auto format(const xzero::MonotonicTime& v, FormatContext &ctx) {
-      return format_to(ctx.begin(), "{}ns", v.nanoseconds());
-    }
-  };
-}
+  auto format(const xzero::MonotonicTime& v, std::format_context& ctx) const {
+    return std::format_to(ctx.out(), "{}ns", v.nanoseconds());
+  }
+};
 

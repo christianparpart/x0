@@ -6,7 +6,7 @@
 // the License at: http://opensource.org/licenses/MIT
 
 #include <xzero/raft/Error.h>
-#include <fmt/format.h>
+#include <format>
 
 namespace xzero::raft {
 
@@ -32,7 +32,7 @@ std::string RaftCategory::message(int ec) const {
     case RaftError::ServerNotFound:
       return "Server not found";
     default:
-      return fmt::format("RaftError<{}>", ec);
+      return std::format("RaftError<{}>", ec);
   }
 }
 

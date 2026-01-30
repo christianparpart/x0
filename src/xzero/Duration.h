@@ -11,23 +11,23 @@
 #include <limits>
 #include <string>
 
-#include <fmt/format.h>
+#include <format>
 #include <xzero/defines.h>
 #include <xzero/time_constants.h>
 
 #if defined(_WIN32) || defined(_WIN64)
 #include <Winsock2.h>
 #else
-#include <sys/time.h>                   // struct timeval; struct timespec;
+#include <sys/time.h>  // struct timeval; struct timespec;
 #endif
 
 namespace xzero {
 
 class Duration {
-private:
+ private:
   enum class ZeroType { Zero };
 
-public:
+ public:
   constexpr static ZeroType Zero = ZeroType::Zero;
 
   /**
@@ -111,15 +111,14 @@ public:
   static constexpr Duration fromMicroseconds(uint64_t v) noexcept;
   static constexpr Duration fromNanoseconds(uint64_t v) noexcept;
 
-protected:
+ protected:
   uint64_t micros_;
 };
 
 std::string inspect(const Duration& value);
 
 // {{{ inlines
-inline constexpr Duration::Duration(ZeroType) noexcept
-    : micros_(0) {}
+inline constexpr Duration::Duration(ZeroType) noexcept : micros_(0) {}
 
 inline constexpr Duration::Duration(uint64_t microseconds) noexcept
     : micros_(microseconds) {}
@@ -164,18 +163,19 @@ constexpr bool Duration::operator!() const noexcept {
 }
 
 inline constexpr Duration::operator struct timeval() const noexcept {
-  return { static_cast<decltype(timeval::tv_sec)>(micros_ / kMicrosPerSecond),
-           static_cast<decltype(timeval::tv_usec)>(micros_ % kMicrosPerSecond) };
+  return {static_cast<decltype(timeval::tv_sec)>(micros_ / kMicrosPerSecond),
+          static_cast<decltype(timeval::tv_usec)>(micros_ % kMicrosPerSecond)};
 }
 
 inline constexpr Duration::operator struct timespec() const noexcept {
 #if defined(XZERO_OS_DARWIN)
   // OS/X plays in it's own universe. ;(
-  return { static_cast<time_t>(micros_ / kMicrosPerSecond),
-           (static_cast<__darwin_suseconds_t>(micros_ % kMicrosPerSecond) * 1000) };
+  return {
+      static_cast<time_t>(micros_ / kMicrosPerSecond),
+      (static_cast<__darwin_suseconds_t>(micros_ % kMicrosPerSecond) * 1000)};
 #else
-  return { static_cast<time_t>(micros_ / kMicrosPerSecond),
-           (static_cast<long>(micros_ % kMicrosPerSecond) * 1000) };
+  return {static_cast<time_t>(micros_ / kMicrosPerSecond),
+          (static_cast<long>(micros_ % kMicrosPerSecond) * 1000)};
 #endif
 }
 
@@ -191,14 +191,15 @@ inline constexpr uint64_t Duration::seconds() const noexcept {
   return micros_ / kMicrosPerSecond;
 }
 
-inline constexpr Duration Duration::operator+(const Duration& other) const noexcept {
+inline constexpr Duration Duration::operator+(
+    const Duration& other) const noexcept {
   return Duration{micros_ + other.micros_};
 }
 
-inline constexpr Duration Duration::operator-(const Duration& other) const noexcept {
-  return micros_ > other.micros_
-      ? Duration{micros_ - other.micros_}
-      : Duration{other.micros_ - micros_};
+inline constexpr Duration Duration::operator-(
+    const Duration& other) const noexcept {
+  return micros_ > other.micros_ ? Duration{micros_ - other.micros_}
+                                 : Duration{other.micros_ - micros_};
 }
 
 inline constexpr Duration Duration::operator*(int factor) const noexcept {
@@ -250,48 +251,43 @@ constexpr Duration Duration::fromNanoseconds(uint64_t v) noexcept {
 }
 // }}}
 
-} // namespace xzero
+}  // namespace xzero
 
-constexpr xzero::Duration operator "" _microseconds(unsigned long long v) {
+constexpr xzero::Duration operator"" _microseconds(unsigned long long v) {
   return xzero::Duration::fromMicroseconds(v);
 }
 
-constexpr xzero::Duration operator "" _milliseconds(unsigned long long v) {
+constexpr xzero::Duration operator"" _milliseconds(unsigned long long v) {
   return xzero::Duration::fromMilliseconds(v);
 }
 
-constexpr xzero::Duration operator "" _seconds(unsigned long long v) {
+constexpr xzero::Duration operator"" _seconds(unsigned long long v) {
   return xzero::Duration::fromSeconds(v);
 }
 
-constexpr xzero::Duration operator "" _minutes(unsigned long long v) {
+constexpr xzero::Duration operator"" _minutes(unsigned long long v) {
   return xzero::Duration::fromMinutes(v);
 }
 
-constexpr xzero::Duration operator "" _hours(unsigned long long v) {
+constexpr xzero::Duration operator"" _hours(unsigned long long v) {
   return xzero::Duration::fromHours(v);
 }
 
-constexpr xzero::Duration operator "" _days(unsigned long long v) {
+constexpr xzero::Duration operator"" _days(unsigned long long v) {
   return xzero::Duration::fromDays(v);
 }
 
-constexpr xzero::Duration operator "" _years(unsigned long long v) {
+constexpr xzero::Duration operator"" _years(unsigned long long v) {
   return xzero::Duration::fromDays(v * 365);
 }
 
-namespace fmt {
-  template<>
-  struct formatter<xzero::Duration> {
-    using Duration = xzero::Duration;
+template <>
+struct std::formatter<xzero::Duration> {
+  using Duration = xzero::Duration;
 
-    template <typename ParseContext>
-    constexpr auto parse(ParseContext &ctx) { return ctx.begin(); }
+  constexpr auto parse(std::format_parse_context& ctx) { return ctx.begin(); }
 
-    template <typename FormatContext>
-    constexpr auto format(const Duration& v, FormatContext &ctx) {
-      return format_to(ctx.begin(), xzero::inspect(v));
-    }
-  };
-}
-
+  auto format(const Duration& v, std::format_context& ctx) const {
+    return std::format_to(ctx.out(), "{}", xzero::inspect(v));
+  }
+};

@@ -14,7 +14,7 @@
 #include <xzero/raft/Transport.h>
 #include <xzero/MonotonicClock.h>
 #include <xzero/logging.h>
-#include <fmt/format.h>
+#include <format>
 #include <system_error>
 #include <algorithm>
 
@@ -84,7 +84,7 @@ std::error_code Server::start() {
   logDebug("raft: Server {} starts with term {} and index {}",
            id(), currentTerm(), commitIndex());
 
-  executor_.execute(fmt::format("apply/{}", id_),
+  executor_.execute(std::format("apply/{}", id_),
                     std::bind(&Server::applyLogsLoop, this));
 
   running_ = true;
@@ -100,7 +100,7 @@ std::error_code Server::startWithLeader(Id leaderId) {
   if (ec)
     return ec;
 
-  executor_.execute(fmt::format("apply/{}", id_),
+  executor_.execute(std::format("apply/{}", id_),
                     std::bind(&Server::applyLogsLoop, this));
 
   running_ = true;
@@ -195,7 +195,7 @@ void Server::sendVoteRequest() {
 
   for (Id peerId: discovery_->listMembers()) {
     if (peerId != id_) {
-      executor_.execute(fmt::format("voter/{}", peerId),
+      executor_.execute(std::format("voter/{}", peerId),
                         [this, peerId, voteRequest]() {
                           transport_->send(peerId, voteRequest);
                         });
@@ -542,7 +542,7 @@ void Server::setupLeader() {
   for (Id peerId: discovery_->listMembers()) {
     if (peerId != id_) {
       logDebug("raft: {} starting replication loop for peer {}", id_, peerId);
-      executor_.execute(fmt::format("replicate/{}", peerId),
+      executor_.execute(std::format("replicate/{}", peerId),
                         std::bind(&Server::replicationLoop, this, peerId));
     }
   }

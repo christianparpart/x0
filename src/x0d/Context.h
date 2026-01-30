@@ -154,27 +154,27 @@ class Context {
   // {{{ Logging API
   template<typename... Args>
   inline void logError(const std::string& fmt, Args&&... args) {
-    ::xzero::logError(::fmt::format("{}: {}", masterRequest()->remoteAddress(), fmt), args...);
+    ::xzero::logError(std::format("{}: {}", masterRequest()->remoteAddress(), fmt), args...);
   }
 
   template<typename... Args>
   inline void logWarning(const std::string& fmt, Args&&... args) {
-    ::xzero::logWarning(::fmt::format("{}: {}", masterRequest()->remoteAddress(), fmt), args...);
+    ::xzero::logWarning(std::format("{}: {}", masterRequest()->remoteAddress(), fmt), args...);
   }
 
   template<typename... Args>
   inline void logNotice(const std::string& fmt, Args&&... args) {
-    ::xzero::logNotice(::fmt::format("{}: {}", masterRequest()->remoteAddress(), fmt), args...);
+    ::xzero::logNotice(std::format("{}: {}", masterRequest()->remoteAddress(), fmt), args...);
   }
 
   template<typename... Args>
   inline void logInfo(const std::string& fmt, Args&&... args) {
-    ::xzero::logInfo(::fmt::format("{}: {}", masterRequest()->remoteAddress(), fmt), args...);
+    ::xzero::logInfo(std::format("{}: {}", masterRequest()->remoteAddress(), fmt), args...);
   }
 
   template<typename... Args>
   inline void logDebug(const std::string& fmt, Args&&... args) {
-    ::xzero::logDebug(::fmt::format("{}: {}", masterRequest()->remoteAddress(), fmt), args...);
+    ::xzero::logDebug(std::format("{}: {}", masterRequest()->remoteAddress(), fmt), args...);
   }
   // }}}
 

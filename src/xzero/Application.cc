@@ -30,7 +30,7 @@
 #include <xzero/logging.h>
 #include <xzero/RuntimeError.h>
 #include <xzero/sysconfig.h>
-#include <fmt/format.h>
+#include <format>
 #include <cstdlib>
 #include <fcntl.h>
 
@@ -55,7 +55,7 @@ std::string Application::appName() {
   return fileName;
 #else
   return StringUtil::split(
-      FileUtil::read(fmt::format("/proc/{}/cmdline", getpid())).str(),
+      FileUtil::read(std::format("/proc/{}/cmdline", getpid())).str(),
       " ")[0];
 #endif
 }

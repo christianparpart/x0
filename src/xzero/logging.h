@@ -7,12 +7,12 @@
 #pragma once
 
 #include <atomic>
+#include <format>
 #include <xzero/io/FileHandle.h>
-#include <fmt/format.h>
 
 namespace xzero {
 
-enum class LogLevel { // {{{
+enum class LogLevel {  // {{{
   None = 9999,
   Fatal = 7000,
   Error = 6000,
@@ -27,14 +27,14 @@ LogLevel make_loglevel(const std::string& value);
 
 std::string as_string(LogLevel value);
 // }}}
-class LogTarget { // {{{
+class LogTarget {  // {{{
  public:
   virtual ~LogTarget() {}
 
   virtual void log(LogLevel level, const std::string& message) = 0;
 };
 // }}}
-class FileLogTarget : public LogTarget { // {{{
+class FileLogTarget : public LogTarget {  // {{{
  public:
   explicit FileLogTarget(FileHandle&& fd);
 
@@ -49,8 +49,8 @@ class FileLogTarget : public LogTarget { // {{{
  private:
   FileHandle fd_;
   bool timestampEnabled_;
-}; // }}}
-class ConsoleLogTarget : public LogTarget { // {{{
+};  // }}}
+class ConsoleLogTarget : public LogTarget {  // {{{
  public:
   ConsoleLogTarget();
 
@@ -67,8 +67,8 @@ class ConsoleLogTarget : public LogTarget { // {{{
  private:
   bool timestampEnabled_;
   bool colored_;
-}; // }}}
-class SyslogTarget : public LogTarget { // {{{
+};  // }}}
+class SyslogTarget : public LogTarget {  // {{{
  public:
   explicit SyslogTarget(const std::string& ident);
   ~SyslogTarget();
@@ -78,7 +78,7 @@ class SyslogTarget : public LogTarget { // {{{
   static SyslogTarget* get();
 };
 // }}}
-class Logger { // {{{
+class Logger {  // {{{
  public:
   Logger();
   static Logger* get();
@@ -110,11 +110,11 @@ class Logger { // {{{
  */
 template <typename... T>
 [[noreturn]] void logFatal(const std::string& msg, T... args) {
-  Logger::get()->fatal(fmt::format(msg, args...));
+  Logger::get()->fatal(std::vformat(msg, std::make_format_args(args...)));
 }
 
-#define XZERO_ASSERT(cond, msg) \
-  if (!(cond)) { \
+#define XZERO_ASSERT(cond, msg)                                       \
+  if (!(cond)) {                                                      \
     logFatal((__FILE__ ":") + std::to_string(__LINE__) + ": " + msg); \
   }
 
@@ -123,7 +123,7 @@ template <typename... T>
  */
 template <typename... T>
 inline void logError(const std::string& msg, T... args) {
-  Logger::get()->error(fmt::format(msg, args...));
+  Logger::get()->error(std::vformat(msg, std::make_format_args(args...)));
 }
 
 /**
@@ -131,7 +131,7 @@ inline void logError(const std::string& msg, T... args) {
  */
 template <typename... T>
 inline void logWarning(const std::string& msg, T... args) {
-  Logger::get()->warning(fmt::format(msg, args...));
+  Logger::get()->warning(std::vformat(msg, std::make_format_args(args...)));
 }
 
 /**
@@ -139,7 +139,7 @@ inline void logWarning(const std::string& msg, T... args) {
  */
 template <typename... T>
 inline void logNotice(const std::string& msg, T... args) {
-  Logger::get()->notice(fmt::format(msg, args...));
+  Logger::get()->notice(std::vformat(msg, std::make_format_args(args...)));
 }
 
 /**
@@ -147,7 +147,7 @@ inline void logNotice(const std::string& msg, T... args) {
  */
 template <typename... T>
 inline void logInfo(const std::string& msg, T... args) {
-  Logger::get()->info(fmt::format(msg, args...));
+  Logger::get()->info(std::vformat(msg, std::make_format_args(args...)));
 }
 
 /**
@@ -155,7 +155,7 @@ inline void logInfo(const std::string& msg, T... args) {
  */
 template <typename... T>
 inline void logDebug(const std::string& msg, T... args) {
-  Logger::get()->debug(fmt::format(msg, args...));
+  Logger::get()->debug(std::vformat(msg, std::make_format_args(args...)));
 }
 
 /**
@@ -163,34 +163,38 @@ inline void logDebug(const std::string& msg, T... args) {
  */
 template <typename... T>
 inline void logTrace(const std::string& msg, T... args) {
-  Logger::get()->trace(fmt::format(msg, args...));
+  Logger::get()->trace(std::vformat(msg, std::make_format_args(args...)));
 }
 // }}}
 
-} // namespace xzero
+}  // namespace xzero
 
-namespace fmt {
-  template<>
-  struct formatter<xzero::LogLevel> {
-    template <typename ParseContext>
-    constexpr auto parse(ParseContext &ctx) { return ctx.begin(); }
+template <>
+struct std::formatter<xzero::LogLevel> {
+  constexpr auto parse(std::format_parse_context& ctx) { return ctx.begin(); }
 
-    template <typename FormatContext>
-    constexpr auto format(const xzero::LogLevel& v, FormatContext &ctx) {
-      using xzero::LogLevel;
+  auto format(const xzero::LogLevel& v, std::format_context& ctx) const {
+    using xzero::LogLevel;
 
-      switch (v) {
-        case LogLevel::None: return format_to(ctx.begin(), "none");
-        case LogLevel::Fatal: return format_to(ctx.begin(), "fatal");
-        case LogLevel::Error: return format_to(ctx.begin(), "error");
-        case LogLevel::Warning: return format_to(ctx.begin(), "warning");
-        case LogLevel::Notice: return format_to(ctx.begin(), "notice");
-        case LogLevel::Info: return format_to(ctx.begin(), "info");
-        case LogLevel::Debug: return format_to(ctx.begin(), "debug");
-        case LogLevel::Trace: return format_to(ctx.begin(), "trace");
-        default:
-          return format_to(ctx.begin(), "({})", (int) v);
-      }
+    switch (v) {
+      case LogLevel::None:
+        return std::format_to(ctx.out(), "none");
+      case LogLevel::Fatal:
+        return std::format_to(ctx.out(), "fatal");
+      case LogLevel::Error:
+        return std::format_to(ctx.out(), "error");
+      case LogLevel::Warning:
+        return std::format_to(ctx.out(), "warning");
+      case LogLevel::Notice:
+        return std::format_to(ctx.out(), "notice");
+      case LogLevel::Info:
+        return std::format_to(ctx.out(), "info");
+      case LogLevel::Debug:
+        return std::format_to(ctx.out(), "debug");
+      case LogLevel::Trace:
+        return std::format_to(ctx.out(), "trace");
+      default:
+        return std::format_to(ctx.out(), "({})", (int)v);
     }
-  };
-}
+  }
+};

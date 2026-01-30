@@ -15,7 +15,7 @@
 #include <xzero/CompletionHandler.h>
 #include <xzero/Duration.h>
 
-#include <fmt/format.h>
+#include <format>
 
 #include <utility>
 #include <vector>
@@ -137,27 +137,23 @@ class HealthMonitor {
 
 } // namespace xzero::http::cluster
 
-namespace fmt {
-  template<>
-  struct formatter<xzero::http::cluster::HealthMonitor::State> {
-    using State = xzero::http::cluster::HealthMonitor::State;
+template<>
+struct std::formatter<xzero::http::cluster::HealthMonitor::State> {
+  using State = xzero::http::cluster::HealthMonitor::State;
 
-    template <typename ParseContext>
-    constexpr auto parse(ParseContext &ctx) { return ctx.begin(); }
+  constexpr auto parse(std::format_parse_context& ctx) { return ctx.begin(); }
 
-    template <typename FormatContext>
-    constexpr auto format(const State& v, FormatContext &ctx) {
-      switch (v) {
-        case State::Undefined:
-          return format_to(ctx.begin(), "Undefined");
-        case State::Offline:
-          return format_to(ctx.begin(), "Offline");
-        case State::Online:
-          return format_to(ctx.begin(), "Online");
-        default:
-          return format_to(ctx.begin(), "({})", (int) v);
-      }
+  auto format(const State& v, std::format_context& ctx) const {
+    switch (v) {
+      case State::Undefined:
+        return std::format_to(ctx.out(), "Undefined");
+      case State::Offline:
+        return std::format_to(ctx.out(), "Offline");
+      case State::Online:
+        return std::format_to(ctx.out(), "Online");
+      default:
+        return std::format_to(ctx.out(), "({})", (int) v);
     }
-  };
-}
+  }
+};
 

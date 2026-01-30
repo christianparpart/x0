@@ -11,10 +11,6 @@ set(X0D_CONFIGFILE "${CMAKE_INSTALL_PREFIX}/etc/x0d/x0d.conf" CACHE STRING "x0d 
 set(XZERO_CLUSTERDIR "${CMAKE_INSTALL_PREFIX}/var/x0d" CACHE STRING "Xzero HTTP cluster directory")
 set(PACKAGE_URL "https://xzero.io/")
 
-# 3rdparty: fmtlib
-add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/fmt" EXCLUDE_FROM_ALL)
-add_definitions(-DFMT_USE_WINDOWS_H=0)
-
 # 3rdparty: Flow
 add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/flow")
 
@@ -131,9 +127,7 @@ if(UNIX)
 endif(UNIX)
 
 include_directories(${CMAKE_CURRENT_BINARY_DIR}/src
-                    ${CMAKE_CURRENT_SOURCE_DIR}/src
-                    ${CMAKE_CURRENT_BINARY_DIR}/3rdparty/fmt/src/fmt/include
-                    ${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/fmt/include)
+                    ${CMAKE_CURRENT_SOURCE_DIR}/src)
 
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/src/xzero/sysconfig.h.cmake
                ${CMAKE_CURRENT_BINARY_DIR}/src/xzero/sysconfig.h)
@@ -300,11 +294,11 @@ endif()
 
 add_library(Xzero STATIC ${libXzero_SRC})
 target_compile_definitions(Xzero PRIVATE XZERO_CLUSTERDIR="${XZERO_CLUSTERDIR}")
-set_target_properties(Xzero PROPERTIES CXX_STANDARD 17 CXX_STANDARD_REQUIRED ON)
+set_target_properties(Xzero PROPERTIES CXX_STANDARD 23 CXX_STANDARD_REQUIRED ON)
 if(CLANG_TIDY_EXE)
   set_target_properties(Xzero PROPERTIES CXX_CLANG_TIDY "${DO_CLANG_TIDY}")
 endif()
-target_link_libraries(Xzero PRIVATE fmt::fmt-header-only ${ZLIB_LIBRARIES} ${OPENSSL_LIBRARIES})
+target_link_libraries(Xzero PRIVATE ${ZLIB_LIBRARIES} ${OPENSSL_LIBRARIES})
 if(UNIX)
   target_link_libraries(Xzero PRIVATE pthread dl stdc++fs)
 endif()
@@ -327,7 +321,7 @@ install(DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/src/xzero/"
 # {{{ libXzeroTesting
 set(libXzeroTest_SRC src/xzero/testing_main.cc)
 add_library(XzeroTest STATIC ${libXzeroTest_SRC})
-set_target_properties(XzeroTest PROPERTIES CXX_STANDARD 17 CXX_STANDARD_REQUIRED ON)
+set_target_properties(XzeroTest PROPERTIES CXX_STANDARD 23 CXX_STANDARD_REQUIRED ON)
 target_link_libraries(XzeroTest Xzero)
 install(TARGETS XzeroTest DESTINATION ${CMAKE_INSTALL_PREFIX}/lib)
 # }}}
@@ -356,7 +350,7 @@ target_compile_definitions(x0d PRIVATE
                            X0D_PIDFILE="${X0D_PIDFILE}"
                            X0D_LOGDIR="${X0D_LOGDIR}"
                            X0D_CONFIGFILE="${X0D_CONFIGFILE}")
-set_target_properties(x0d PROPERTIES CXX_STANDARD 17 CXX_STANDARD_REQUIRED ON)
+set_target_properties(x0d PROPERTIES CXX_STANDARD 23 CXX_STANDARD_REQUIRED ON)
 if(CLANG_TIDY_EXE)
   set_target_properties(x0d PROPERTIES CXX_CLANG_TIDY "${DO_CLANG_TIDY}")
 endif()
@@ -434,7 +428,7 @@ else()
 endif()
 
 add_executable(xzero_test ${xzero_test_SRC} ${xzero_test_PLATFORM_SRC})
-set_target_properties(xzero_test PROPERTIES CXX_STANDARD 17 CXX_STANDARD_REQUIRED ON)
+set_target_properties(xzero_test PROPERTIES CXX_STANDARD 23 CXX_STANDARD_REQUIRED ON)
 if(CLANG_TIDY_EXE)
   set_target_properties(xzero_test PROPERTIES CXX_CLANG_TIDY "${DO_CLANG_TIDY}")
 endif()
@@ -445,7 +439,7 @@ endif(ENABLE_TESTS)
 # {{{ examples
 add_executable(hello_http examples/hello_http.cc)
 target_link_libraries(hello_http Xzero)
-set_target_properties(hello_http PROPERTIES	CXX_STANDARD 17	CXX_STANDARD_REQUIRED ON)
+set_target_properties(hello_http PROPERTIES	CXX_STANDARD 23	CXX_STANDARD_REQUIRED ON)
 if(CLANG_TIDY_EXE)
   set_target_properties(hello_http PROPERTIES CXX_CLANG_TIDY "${DO_CLANG_TIDY}")
 endif()

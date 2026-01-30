@@ -23,7 +23,7 @@ HttpRequest::HttpRequest(HttpVersion version,
                          const HeaderFieldList& headers,
                          bool secure,
                          HugeBuffer&& content)
-    : HttpRequest(version, fmt::format("{}", method), uri, headers, secure, std::move(content)) {
+    : HttpRequest(version, std::format("{}", method), uri, headers, secure, std::move(content)) {
 }
 
 HttpRequest::HttpRequest(HttpVersion version,
