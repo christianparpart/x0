@@ -380,6 +380,7 @@ class TcpConnector {
   Duration writeTimeout_;
   Duration tcpFinTimeout_;
   bool isStarted_;
+  bool inDestructor_;
 };
 
 inline const IPAddress& TcpConnector::bindAddress() const noexcept {
